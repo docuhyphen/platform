@@ -4,5 +4,12 @@ enum class MultifactorAuthenticationType
 {
     SMS,
     EMAIL,
-    PASSKEY
+    PASSKEY,
+    PASSWORD_RESET
+}
+
+enum class MultifactorAuthenticationStatus
+{
+    PENDING,
+    COMPLETED
 }

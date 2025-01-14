@@ -18,6 +18,6 @@ class ConfigurationService
     fun getSignInTokenExpiryHours(): Long = 1
     fun getMaxSignInAttempts(): Long = 3
     fun getPasswordResetOtpExpiryMins(): Long = 10
-    fun getJwtSecret() = "123456789" //ToDo: store in a secure location get from environment variable or AWS Secrets Manager
+    fun getJwtSecret() = "myverysecurekeythatis32byteslong" //ToDo: store in a secure location get from environment variable or AWS Secrets Manager
 //    fun getJwtSecret(): String = System.getenv("JWT_SECRET") ?: throw IllegalStateException("JWT_SECRET not set")
 }

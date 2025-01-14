@@ -15,33 +15,46 @@ import org.slf4j.LoggerFactory
 @Consumes(MediaType.APPLICATION_JSON)
 class PasswordResetResource @Inject constructor(
     private val passwordResetService: PasswordResetService,
-) {
-    companion object {
+)
+{
+    companion object
+    {
         private val logger = LoggerFactory.getLogger(PasswordResetResource::class.java)
     }
 
     @POST
     @Path("/initiation")
-    fun initiatePasswordReset(payload: PasswordResetRequest): Response {
-        return try {
+    fun initiatePasswordReset(payload: PasswordResetRequest): Response
+    {
+        return try
+        {
             with(payload) {
                 passwordResetService.initiatePasswordReset(email)
-                Response.ok(mapOf("message" to "Password reset request processed. Please check your email for the OTP.")).build()
+                Response.ok().build()
             }
-        } catch (exception: Exception) {
-            when (exception) {
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
                 is EmailRequiredException,
-                is InvalidEmailException -> {
+                is InvalidEmailException ->
+                {
                     val responseError = ResponseError(exception.message)
                     Response.status(BAD_REQUEST).entity(responseError).build()
                 }
-                is EmailNotFoundException -> {
+
+                is EmailNotFoundException ->
+                {
                     val responseError = ResponseError("No account found with the provided email.")
                     Response.status(BAD_REQUEST).entity(responseError).build()
                 }
-                else -> {
+
+                else ->
+                {
                     logger.error("Error processing password reset request.", exception)
-                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred.")).build()
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred."))
+                        .build()
                 }
             }
         }
@@ -49,14 +62,19 @@ class PasswordResetResource @Inject constructor(
 
     @POST
     @Path("/completion")
-    fun completePasswordReset(payload: PasswordResetCompletionRequest): Response {
-        return try {
+    fun completePasswordReset(payload: PasswordResetCompletionRequest): Response
+    {
+        return try
+        {
             with(payload) {
                 passwordResetService.completePasswordReset(email, otp, password, confirmationPassword)
-                Response.ok(mapOf("message" to "Password reset successfully completed.")).build()
+                Response.ok().build()
             }
-        } catch (exception: Exception) {
-            when (exception) {
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
                 is EmailRequiredException,
                 is InvalidEmailException,
                 is OtpRequiredException,
@@ -65,13 +83,17 @@ class PasswordResetResource @Inject constructor(
                 is PasswordMismatchException,
                 is PasswordRequirementsNotMetException,
                 is InvalidOtpException,
-                is OTPExpiredException -> {
+                is OTPExpiredException ->
+                {
                     val responseError = ResponseError(exception.message)
                     Response.status(BAD_REQUEST).entity(responseError).build()
                 }
-                else -> {
+
+                else ->
+                {
                     logger.error("Error completing password reset.", exception)
-                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred.")).build()
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred."))
+                        .build()
                 }
             }
         }

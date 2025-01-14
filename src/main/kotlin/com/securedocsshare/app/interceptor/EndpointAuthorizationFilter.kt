@@ -1,12 +1,8 @@
 package com.securedocsshare.app.interceptor
 
-import com.securedocsshare.app.api.model.*
+import com.securedocsshare.app.api.model.AuthToken
 import com.securedocsshare.app.service.AppUserService
 import com.securedocsshare.app.service.AuthenticationService
-import com.securedocsshare.app.service.ConfigurationService
-import io.jsonwebtoken.Jwts
-import io.jsonwebtoken.SignatureAlgorithm
-import io.jsonwebtoken.security.Keys
 import jakarta.enterprise.context.RequestScoped
 import jakarta.enterprise.inject.Produces
 import jakarta.inject.Inject
@@ -15,9 +11,6 @@ import jakarta.ws.rs.container.ContainerRequestFilter
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.ext.Provider
 import org.slf4j.LoggerFactory
-import java.util.Date
-import java.util.UUID
-import java.util.concurrent.TimeUnit
 
 @RequestScoped
 class AuthTokenContext
@@ -46,18 +39,15 @@ class AuthTokenProducer
 
     @Produces
     @RequestScoped
-    fun produceAppUser(): AuthToken
+    fun produceAuthToken(): AuthToken
     {
         return authTokenContext.authToken
     }
 }
 
-
 @Provider
 class EndpointVerificationFilter @Inject constructor(
-    val configurationService: ConfigurationService,
-    val appUserService: AppUserService,
-    val authenticationService: AuthenticationService,
+    private val authenticationService: AuthenticationService,
 ) : ContainerRequestFilter
 {
     private val logger = LoggerFactory.getLogger(EndpointVerificationFilter::class.java.name)
@@ -67,7 +57,9 @@ class EndpointVerificationFilter @Inject constructor(
         "/auth/sign-up/completion",
         "/auth/sign-up/otp-regeneration",
         "/auth/sign-in/initiate",
-        "/auth/sign-in/completion"
+        "/auth/sign-in/completion",
+        "/auth/password-reset/initiation",
+        "/auth/password-reset/completion"
     )
 
     @Inject
@@ -93,7 +85,17 @@ class EndpointVerificationFilter @Inject constructor(
         }
 
         val token = authorizationHeader.removePrefix("Bearer ").trim()
-        val authToken = authenticationService.authenticateToken(token)
+        val authToken = try
+        {
+            authenticationService.authenticateToken(token)
+        }
+        catch (e: Exception)
+        {
+            logger.warn("Invalid token for request to $requestUri: ${e.message}")
+            abortRequest(requestContext, "Unauthorized request")
+            return
+        }
+
         if (authToken == null)
         {
             logger.warn("Invalid token for request to $requestUri.")

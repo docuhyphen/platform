@@ -39,6 +39,12 @@ abstract class BaseRepository<T>(private val entityClass: Class<T>)
         }
     }
 
+    @Transactional
+    open fun delete(entity: T)
+    {
+        entityManager.remove(if (entityManager.contains(entity)) entity else entityManager.merge(entity))
+    }
+
     fun findAll(): List<T>
     {
         val query = entityManager.createQuery("SELECT e FROM ${entityClass.simpleName} e", entityClass)

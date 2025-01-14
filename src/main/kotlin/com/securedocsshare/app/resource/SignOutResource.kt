@@ -1,27 +1,39 @@
 package com.securedocsshare.app.resource
 
-import com.securedocsshare.app.api.model.SignOutRequest
-import com.securedocsshare.app.service.AuthenticationService
+import com.securedocsshare.app.api.model.ResponseError
 import com.securedocsshare.app.service.SignOutService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
+import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
+import jakarta.ws.rs.core.Response.Status.UNAUTHORIZED
+import org.slf4j.LoggerFactory
 
 @Path("/auth/sign-out")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 class SignOutResource @Inject constructor(
-    private val authService: AuthenticationService,
     private val signOutService: SignOutService,
 )
 {
-    @POST
-    @Path("/sign-out")
-    fun signOut(payload: SignOutRequest): Response
+    companion object
     {
-        signOutService.signOut(payload.appUser)
+        private val logger = LoggerFactory.getLogger(SignOutResource::class.java)
+    }
 
-        return Response.ok(mapOf("message" to "")).build()
+    @POST
+    fun signOut(): Response
+    {
+        return try
+        {
+            signOutService.signOut()
+            Response.ok().build()
+        }
+        catch (exception: Exception)
+        {
+            logger.error("Error during sign-out.", exception)
+            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred.")).build()
+        }
     }
 }

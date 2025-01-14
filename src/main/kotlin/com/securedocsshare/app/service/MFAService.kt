@@ -3,7 +3,7 @@ package com.securedocsshare.app.service
 import com.securedocsshare.app.api.model.AppUser
 import com.securedocsshare.app.api.model.MultifactorAuthenticationType
 import com.securedocsshare.app.api.model.MfaRecord
-import com.securedocsshare.app.repository.MfaRepository
+import com.securedocsshare.app.repository.MfaRecordRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.transaction.Transactional
 
@@ -12,7 +12,7 @@ class MfaService(
     private val emailService: EmailService,
     private val smsService: SmsService,
     private val passkeyService: PasskeyService,
-    private val mfaRepository: MfaRepository
+    private val mfaRecordRepository: MfaRecordRepository
 )
 {
     @Transactional
@@ -36,18 +36,43 @@ class MfaService(
         passkeyService.initiatePasskeyAuthentication(user)
     }
 
-    fun getMfaRecordByToken(otp: String, mfaType: MultifactorAuthenticationType): MfaRecord?
+    fun getMfaRecordByEmail(email: String): MfaRecord?
     {
-        return mfaRepository.findMfaRecordByOtpAndType(otp, mfaType)
+        return mfaRecordRepository.findByEmail(email)
     }
 
-    fun getMfaRecordByEmailAndOtp(email: String, otp: String): MfaRecord?
+    fun getLatestMfaRecordByEmail(email: String): MfaRecord?
     {
-        return mfaRepository.findMfaRecordByEmailAndToken(email, otp)
+        return mfaRecordRepository.findLatestByEmail(email)
+    }
+
+    fun getByEmailAndToken(token: String, email: String): MfaRecord?
+    {
+        return mfaRecordRepository.findByEmailAndToken(token, email)
     }
 
     fun saveMfaRecord(mfaRecord: MfaRecord): MfaRecord
     {
-        return mfaRepository.save(mfaRecord);
+        return mfaRecordRepository.save(mfaRecord);
+    }
+
+    fun saveRecord(mfaRecord: MfaRecord)
+    {
+        mfaRecordRepository.save(mfaRecord)
+    }
+
+    fun updateRecord(record: MfaRecord)
+    {
+        mfaRecordRepository.update(record)
+    }
+
+    fun getMfaRecordByTokenAndType(token: String, type: MultifactorAuthenticationType): MfaRecord?
+    {
+        return mfaRecordRepository.findByTokenAndType(token, type)
+    }
+
+    fun removeMfaRecord(record: MfaRecord)
+    {
+        return mfaRecordRepository.delete(record)
     }
 }

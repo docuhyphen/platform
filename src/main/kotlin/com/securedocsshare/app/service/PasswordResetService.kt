@@ -1,25 +1,13 @@
 package com.securedocsshare.app.service
 
-import com.securedocsshare.app.api.model.ConfirmationPasswordRequiredException
-import com.securedocsshare.app.api.model.EmailNotFoundException
-import com.securedocsshare.app.api.model.EmailRequiredException
-import com.securedocsshare.app.api.model.InvalidEmailException
-import com.securedocsshare.app.api.model.InvalidOtpException
-import com.securedocsshare.app.api.model.OTPExpiredException
-import com.securedocsshare.app.api.model.OtpRequiredException
-import com.securedocsshare.app.api.model.PasswordMismatchException
-import com.securedocsshare.app.api.model.PasswordRequiredException
-import com.securedocsshare.app.api.model.PasswordRequirementsNotMetException
-import com.securedocsshare.app.api.model.MultifactorAuthenticationType
-import com.securedocsshare.app.api.model.MfaRecord
+import com.securedocsshare.app.api.model.*
 import com.securedocsshare.app.repository.AppUserRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.Base64
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 @RequestScoped
@@ -39,23 +27,11 @@ class PasswordResetService @Inject constructor(
 
     fun initiatePasswordReset(email: String?)
     {
+        validateEmail(email)
 
-        if (email.isNullOrBlank())
-        {
-            logger.warn("Password reset request failed. Email is null or blank.")
-            throw EmailRequiredException()
-        }
-
-        if (authenticationService.isEmailInvalid(email))
-        {
-            logger.warn("Password reset request failed. Email format is invalid: $email")
-            throw InvalidEmailException()
-        }
-
-        val appUser = appUserRepository.findByEmail(email)
-            ?: run {
+        val appUser = appUserRepository.findByEmail(email!!)
+            ?: throw EmailNotFoundException().also {
                 logger.warn("Password reset request failed. User not found for email: $email")
-                throw EmailNotFoundException()
             }
 
         val otp = otpService.generateEmailOtp()
@@ -65,8 +41,9 @@ class PasswordResetService @Inject constructor(
         val mfaRecord = MfaRecord().apply {
             this.id = UUID.randomUUID()
             this.appUser = appUser
-            this.mfaType = MultifactorAuthenticationType.EMAIL
+            this.mfaType = MultifactorAuthenticationType.PASSWORD_RESET
             this.mfaToken = otp
+            this.status = MultifactorAuthenticationStatus.PENDING
             this.createdDate = Timestamp.from(Instant.now())
             this.expiryDateTime = expiryDate
         }
@@ -77,7 +54,7 @@ class PasswordResetService @Inject constructor(
             email,
             "${configurationService.getAppEmailSubjectTitle()} | Password reset",
             """
-                You have requested that your password be reset. 
+                You have requested that your password be reset.
                 To continue, you will need this OTP $otp
             """.trimIndent()
         )
@@ -87,77 +64,95 @@ class PasswordResetService @Inject constructor(
 
     fun completePasswordReset(email: String?, otp: String?, newPassword: String?, confirmPassword: String?)
     {
+        validateEmail(email)
+        validateOtp(otp)
+        validatePasswords(newPassword, confirmPassword)
 
-        if (email.isNullOrBlank())
-        {
-            logger.warn("Password reset failed. Email is null or blank.")
-            throw EmailRequiredException()
-        }
-
-        if (!authenticationService.isEmailInvalid(email))
-        {
-            logger.warn("Password reset failed. Email format is invalid: $email")
-            throw InvalidEmailException()
-        }
-
-        if (otp.isNullOrBlank())
-        {
-            logger.warn("Password reset failed. OTP is null or blank.")
-            throw OtpRequiredException()
-        }
-
-        if (newPassword.isNullOrBlank())
-        {
-            logger.warn("Password reset failed. New password is null or blank.")
-            throw PasswordRequiredException()
-        }
-
-        if (confirmPassword.isNullOrBlank())
-        {
-            logger.warn("Password reset failed. Confirmation password is null or blank.")
-            throw ConfirmationPasswordRequiredException()
-        }
-
-        if (newPassword != confirmPassword)
-        {
-            logger.warn("Password reset failed. New password and confirmation password do not match.")
-            throw PasswordMismatchException()
-        }
-
-        if (!authenticationService.isPasswordStrong(newPassword))
-        {
-            logger.warn("Password reset failed. New password does not meet strength requirements.")
-            throw PasswordRequirementsNotMetException()
-        }
-
-        val mfaRecord = mfaService.getMfaRecordByEmailAndOtp(email, otp)
-            ?: run {
+        val mfaRecord = mfaService.getMfaRecordByTokenAndType(otp!!, MultifactorAuthenticationType.PASSWORD_RESET)
+            ?: throw InvalidOtpException().also {
                 logger.warn("Password reset failed. Invalid OTP: $otp")
-                throw InvalidOtpException()
             }
 
         if (mfaRecord.expiryDateTime?.before(Timestamp.from(Instant.now())) == true)
         {
-            logger.warn("Password reset failed. OTP expired for email: $email")
-            throw OTPExpiredException("The OTP has expired.")
+            throw OTPExpiredException("The OTP has expired.").also {
+                logger.warn("Password reset failed. OTP expired for email: $email")
+            }
         }
 
-        val appUser = appUserRepository.findByEmail(email)
-            ?: run {
+        val appUser = appUserRepository.findByEmail(email!!)
+            ?: throw EmailNotFoundException().also {
                 logger.error("Password reset failed. App user not found for email: $email after OTP verification")
-                throw EmailNotFoundException()
             }
 
         val passwordSalt = authenticationService.generatePasswordSalt()
-        val hashedPassword = authenticationService.hashPassword(newPassword, passwordSalt)
+        val hashedPassword = authenticationService.hashPassword(newPassword!!, passwordSalt)
 
         appUser.apply {
             this.password = hashedPassword
-            this.passwordSalt = Base64.getEncoder().encodeToString(passwordSalt)
+            this.passwordSalt = Base64.getEncoder().encodeToString(passwordSalt.toByteArray())
         }
 
-        appUserRepository.save(appUser)
-
+        appUserRepository.update(appUser)
+        mfaService.removeMfaRecord(mfaRecord)
         logger.info("Password reset successfully for email: $email")
+    }
+
+    private fun validateEmail(email: String?)
+    {
+        if (email.isNullOrBlank())
+        {
+            throw EmailRequiredException().also {
+                logger.warn("Password reset request failed. Email is null or blank.")
+            }
+        }
+
+        if (authenticationService.isEmailInvalid(email))
+        {
+            throw InvalidEmailException().also {
+                logger.warn("Password reset request failed. Email format is invalid: $email")
+            }
+        }
+    }
+
+    private fun validateOtp(otp: String?)
+    {
+        if (otp.isNullOrBlank())
+        {
+            throw OtpRequiredException().also {
+                logger.warn("Password reset failed. OTP is null or blank.")
+            }
+        }
+    }
+
+    private fun validatePasswords(newPassword: String?, confirmPassword: String?)
+    {
+        if (newPassword.isNullOrBlank())
+        {
+            throw PasswordRequiredException().also {
+                logger.warn("Password reset failed. New password is null or blank.")
+            }
+        }
+
+        if (confirmPassword.isNullOrBlank())
+        {
+            throw ConfirmationPasswordRequiredException().also {
+                logger.warn("Password reset failed. Confirmation password is null or blank.")
+            }
+        }
+
+        if (newPassword != confirmPassword)
+        {
+            throw PasswordMismatchException().also {
+                logger.warn("Password reset failed. New password and confirmation password do not match.")
+            }
+        }
+
+        if (!authenticationService.isPasswordStrong(newPassword))
+        {
+            throw PasswordRequirementsNotMetException().also {
+                logger.warn("Password reset failed. New password does not meet strength requirements.")
+            }
+        }
     }
 }

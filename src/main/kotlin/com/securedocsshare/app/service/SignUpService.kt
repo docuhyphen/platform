@@ -1,30 +1,12 @@
 package com.securedocsshare.app.service
 
-import com.securedocsshare.app.api.model.ConfirmationPasswordRequiredException
-import com.securedocsshare.app.api.model.EmailNotFoundException
-import com.securedocsshare.app.api.model.EmailRequiredException
-import com.securedocsshare.app.api.model.IncorrectSignUpCompletionStatusException
-import com.securedocsshare.app.api.model.InvalidEmailException
-import com.securedocsshare.app.api.model.InvalidOtpException
-import com.securedocsshare.app.api.model.InvalidSignUpStatusException
-import com.securedocsshare.app.api.model.MaxAttemptsOTPExceededException
-import com.securedocsshare.app.api.model.OTPExpiredException
-import com.securedocsshare.app.api.model.PasswordMismatchException
-import com.securedocsshare.app.api.model.PasswordRequiredException
-import com.securedocsshare.app.api.model.PasswordRequirementsNotMetException
-import com.securedocsshare.app.api.model.AppUser
-import com.securedocsshare.app.api.model.AppUserExistsException
-import com.securedocsshare.app.api.model.ExistingSignUpException
-import com.securedocsshare.app.api.model.OtpRequiredException
-import com.securedocsshare.app.api.model.PasswordContainsEmailException
-import com.securedocsshare.app.api.model.SignUpEntity
-import com.securedocsshare.app.api.model.SignUpStatus.EXPIRED
-import com.securedocsshare.app.api.model.SignUpStatus.PENDING
-import com.securedocsshare.app.api.model.SignUpStatus.VERIFIED
+import com.securedocsshare.app.api.model.*
+import com.securedocsshare.app.api.model.MultifactorAuthenticationStatus.COMPLETED
 import com.securedocsshare.app.repository.AppUserRepository
 import com.securedocsshare.app.repository.SignUpRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
+import org.mindrot.jbcrypt.BCrypt
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.LocalDateTime
@@ -80,7 +62,8 @@ class SignUpService @Inject constructor(
                 }
 
                 existingSignUp.apply {
-                    this.otp = otp
+                    this.otp = otpService.hashOtp(otp)
+
                     this.expiresAt = LocalDateTime.now().plusMinutes(expirationMinutes.toLong())
                 }
                 signUpRepository.update(existingSignUp)
@@ -89,16 +72,14 @@ class SignUpService @Inject constructor(
             {
                 val signUpEntity = SignUpEntity().apply {
                     this.email = email
-                    this.otp = otp
+                    this.otp = otpService.hashOtp(otp)
                     this.expiresAt = LocalDateTime.now().plusMinutes(expirationMinutes.toLong())
                 }
                 signUpRepository.save(signUpEntity)
             }
 
             emailService.sendEmail(
-                email,
-                "${configurationService.getAppEmailSubjectTitle()} | Sign Up",
-                """
+                email, "${configurationService.getAppEmailSubjectTitle()} | Sign Up", """
             Thank you for signing up with Secure Document Share.
             Here's the OTP you'll need to continue: $otp
             Alternatively, you can click on this link: $emailConfirmationLink
@@ -118,8 +99,6 @@ class SignUpService @Inject constructor(
 
     fun regenerateOtp(email: String?)
     {
-        //ToDo: Implement rate limiter for specific email
-
         if (email.isNullOrBlank())
         {
             logger.warn("Sign up OTP regeneration failed: Email is null or blank")
@@ -144,7 +123,7 @@ class SignUpService @Inject constructor(
             throw EmailNotFoundException()
         }
 
-        if (signUpEntity.status != PENDING)
+        if (signUpEntity.status != SignUpStatus.PENDING)
         {
             logger.warn("Sign up OTP regeneration failed: Entity (${signUpEntity.status}) is not Pending")
             throw InvalidSignUpStatusException("Cannot regenerate OTP for a non-pending sign-up.")
@@ -154,7 +133,7 @@ class SignUpService @Inject constructor(
         val configExpiryMinutes = configurationService.getSignUpOtpExpiryMins()
         val expirationTime = LocalDateTime.now().plusMinutes(configExpiryMinutes)
 
-        signUpEntity.otp = newOtp
+        signUpEntity.otp = otpService.hashOtp(newOtp)
         signUpEntity.expiresAt = expirationTime
 
         signUpRepository.update(signUpEntity)
@@ -170,13 +149,11 @@ class SignUpService @Inject constructor(
 
     fun completeSignUp(email: String?, otp: String?, password: String?, passwordConfirmation: String?): AppUser
     {
-
         validateInputs(email, otp, password, passwordConfirmation)
 
-        val signUpEntity = signUpRepository.findByEmail(email!!)
-            ?: throw EmailNotFoundException().also {
-                logger.warn("Sign up completion failed: Entity not found with email ($email)")
-            }
+        val signUpEntity = signUpRepository.findByEmail(email!!) ?: throw EmailNotFoundException().also {
+            logger.warn("Sign up completion failed: Entity not found with email ($email)")
+        }
 
         handleMaxAttempts(signUpEntity)
 
@@ -217,7 +194,7 @@ class SignUpService @Inject constructor(
             val now = LocalDateTime.now()
             val minutesTillNextAttempt = Duration.between(now, signUpEntity.expiresAt).toMinutes()
 
-            signUpEntity.status = EXPIRED
+            signUpEntity.status = SignUpStatus.EXPIRED
             signUpRepository.update(signUpEntity)
 
             if (minutesTillNextAttempt > 0)
@@ -228,7 +205,7 @@ class SignUpService @Inject constructor(
             }
             else
             {
-                signUpEntity.status = PENDING
+                signUpEntity.status = SignUpStatus.PENDING
                 signUpEntity.attempts = 0
                 signUpRepository.update(signUpEntity)
                 logger.info("Status reset to PENDING as expiration has passed.")
@@ -245,7 +222,7 @@ class SignUpService @Inject constructor(
             }
         }
 
-        if (signUpEntity.otp != otp)
+        if (!BCrypt.checkpw(otp, signUpEntity.otp))
         {
             signUpEntity.attempts++
             signUpRepository.update(signUpEntity)
@@ -258,7 +235,7 @@ class SignUpService @Inject constructor(
 
     private fun finalizeSignUp(signUpEntity: SignUpEntity, email: String, password: String): AppUser
     {
-        signUpEntity.status = VERIFIED
+        signUpEntity.status = SignUpStatus.VERIFIED
         signUpRepository.update(signUpEntity)
 
         val passwordSalt = authenticationService.generatePasswordSalt()
@@ -266,128 +243,7 @@ class SignUpService @Inject constructor(
 
         return AppUser().apply {
             this.email = email
-            this.passwordSalt = Base64.getEncoder().encodeToString(passwordSalt)
-            this.password = hashedPassword
-            this.verificationCompleted = true
-            this.isActive = true
-        }.also {
-            logger.info("Successfully signed up")
-            appUserRepository.save(it)
-        }
-    }
-
-
-    fun completeSignUp2(email: String?, otp: String?, password: String?, passwordConfirmation: String?): AppUser
-    {
-        if (email.isNullOrBlank())
-        {
-            logger.warn("Sign up completion  failed: Email is null or blank")
-            throw EmailRequiredException()
-        }
-
-        if (authenticationService.isEmailInvalid(email))
-        {
-            logger.warn("Sign up completion failed: Email validation failed")
-            throw InvalidEmailException()
-        }
-
-        if (otp.isNullOrBlank())
-        {
-            logger.warn("Sign up completion failed: OTP is null or blank")
-            throw OtpRequiredException()
-        }
-
-        if (password.isNullOrBlank())
-        {
-            logger.warn("Sign up completion failed: Password is null or blank")
-            throw PasswordRequiredException()
-        }
-
-        if (passwordConfirmation.isNullOrBlank())
-        {
-            logger.warn("Sign up completion failed: Confirmation password is null or blank")
-            throw ConfirmationPasswordRequiredException()
-        }
-
-        if (authenticationService.isPasswordStrong(password))
-        {
-            logger.warn("Sign up completion failed: Password validation failed")
-            throw PasswordRequirementsNotMetException()
-        }
-
-        if (password != passwordConfirmation)
-        {
-            logger.warn("Sign up completion failed: Passwords do not match")
-            throw PasswordMismatchException()
-        }
-
-        if (password.contains(email))
-        {
-            logger.warn("Sign up completion failed: Passwords contains email")
-            throw PasswordContainsEmailException()
-        }
-
-        val signUpEntity = signUpRepository.findByEmail(email)
-
-        if (signUpEntity == null)
-        {
-            logger.warn("Sign up completion failed: Entity not found with email ($email)")
-            throw EmailNotFoundException()
-        }
-
-        val maxAttempts = configurationService.getMaxSignUpCompletionOtpAttempts()
-
-        if (signUpEntity.attempts >= maxAttempts)
-        {
-            val now = LocalDateTime.now()
-            val minutesTillNextAttempt = Duration.between(now, signUpEntity.expiresAt).toMinutes()
-
-            signUpEntity.status = EXPIRED
-            signUpRepository.update(signUpEntity)
-
-            if (minutesTillNextAttempt > 0)
-            {
-                logger.warn("Sign up completion failed. Max attempts reached. Next attempt allowed in $minutesTillNextAttempt minutes.")
-                throw MaxAttemptsOTPExceededException("Maximum attempts exceeded. Please wait $minutesTillNextAttempt minutes before trying again.")
-            }
-            else
-            {
-                logger.warn("Sign up completion failed. Max attempts reached, but OTP has already expired.")
-                throw MaxAttemptsOTPExceededException("Maximum attempts exceeded. The OTP has already expired, please initiate a new sign-up.")
-            }
-        }
-
-        if (signUpEntity.status != PENDING)
-        {
-
-            logger.warn("Sign up completion failed. Status is not pending")
-            throw IncorrectSignUpCompletionStatusException(signUpEntity.status)
-        }
-
-        if (signUpEntity.expiresAt.isBefore(LocalDateTime.now()))
-        {
-            logger.warn("Sign up completion failed. OTP $otp expired")
-            throw OTPExpiredException(otp)
-        }
-
-        if (signUpEntity.otp != otp)
-        {
-            signUpEntity.attempts++
-            signUpRepository.update(signUpEntity)
-
-            logger.warn("Sign up completion failed. OTP $otp invalid")
-            throw InvalidOtpException()
-        }
-
-        signUpEntity.status = VERIFIED
-        signUpRepository.update(signUpEntity)
-
-        val passwordSalt = authenticationService.generatePasswordSalt()
-        val hashedPassword = authenticationService.hashPassword(password, passwordSalt)
-
-        return AppUser().apply {
-            this.email = email
-            this.passwordSalt = Base64.getEncoder().encodeToString(passwordSalt)
+            this.passwordSalt = passwordSalt
             this.password = hashedPassword
             this.verificationCompleted = true
             this.isActive = true

@@ -60,7 +60,7 @@ class SignInResource @Inject constructor(
         return try
         {
             val signInToken = with(payload) {
-                signInService.completeSignIn(email, otp, mfaType)
+                signInService.completeSignIn(email, otp)
             }
             val signInCompletionResponse = SignInCompletionResponse(signInToken)
             Response.ok(signInCompletionResponse).build()
@@ -79,7 +79,7 @@ class SignInResource @Inject constructor(
                 else ->
                 {
                     val responseError = ResponseError("Something went wrong while trying to complete sign-in.")
-                    logger.error("Error completing sign-in with.", exception)
+                    logger.error("Error completing sign-in", exception)
                     Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
             }

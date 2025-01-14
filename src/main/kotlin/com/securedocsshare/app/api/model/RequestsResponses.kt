@@ -13,8 +13,7 @@ data class SignInResponse(var message: String)
 
 @Serializable
 data class SignInCompletionRequest(
-    var otp: String,
-    var mfaType: MultifactorAuthenticationType,
+    var otp: String? = null,
     var email: String? = null
 )
 

@@ -25,4 +25,9 @@ class AppUserRepository : BaseRepository<AppUser>(AppUser::class.java)
         )
         return query.resultList
     }
+
+    fun detach(user: AppUser)
+    {
+        entityManager.detach(user)
+    }
 }

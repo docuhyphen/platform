@@ -1,26 +1,27 @@
 package com.securedocsshare.app.service
 
-import com.securedocsshare.app.api.model.AppUser
-import com.securedocsshare.app.api.model.MultifactorAuthenticationType
-import com.securedocsshare.app.repository.AuthenticationRepository
+import com.securedocsshare.app.api.model.AuthTokenNotFoundException
+import com.securedocsshare.app.repository.AuthTokenRepository
+import com.securedocsshare.app.interceptor.AuthTokenContext
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
-import java.security.SecureRandom
-import java.util.Base64
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
+import org.slf4j.LoggerFactory
 
 @RequestScoped
 class SignOutService @Inject constructor(
-    private val authenticationRepo: AuthenticationRepository,
-    private val mfaService: MfaService,
-    private val emailService: EmailService,
-    private val otpService: OtpService,
-    private val configurationService: ConfigurationService,
-)
-{
-    fun signOut(user: AppUser)
-    {
-        TODO("Not yet implemented")
+    private val authTokenRepository: AuthTokenRepository,
+    private val authTokenContext: AuthTokenContext,
+) {
+    companion object {
+        private val logger = LoggerFactory.getLogger(SignOutService::class.java)
+    }
+
+    fun signOut() {
+        val token = authTokenContext.authToken.token
+        val authToken = authTokenRepository.findByToken(token!!)
+            ?: throw AuthTokenNotFoundException()
+
+        authTokenRepository.delete(authToken)
+        logger.info("User signed out successfully.")
     }
 }

@@ -40,5 +40,9 @@ class MfaRecord {
     @Enumerated(STRING)
     var mfaType: MultifactorAuthenticationType? = null
 
+    @Column(name = "status")
+    @Enumerated(STRING)
+    var status: MultifactorAuthenticationStatus? = null
+
     constructor()
 }

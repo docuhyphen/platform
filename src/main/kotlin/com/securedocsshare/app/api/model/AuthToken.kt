@@ -34,5 +34,8 @@ class AuthToken {
     @Column(name = "token", nullable = false)
     var token: String? = null
 
+    @Column(name = "otp")
+    var otp: String? = null
+
     constructor()
 }

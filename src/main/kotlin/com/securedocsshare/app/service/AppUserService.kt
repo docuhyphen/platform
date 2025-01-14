@@ -17,4 +17,9 @@ class AppUserService @Inject constructor(
     {
         return appUserRepository.findById(id)
     }
+
+    fun findUserByEmail(email: String): AppUser?
+    {
+        return appUserRepository.findByEmail(email)
+    }
 }

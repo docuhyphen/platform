@@ -6,14 +6,12 @@ import jakarta.enterprise.context.RequestScoped
 @RequestScoped
 class AuthTokenRepository : BaseRepository<AuthToken>(AuthToken::class.java)
 {
-    fun getByToken(authToken: String): AuthToken?
+    fun findByToken(authToken: String): AuthToken?
     {
-        val query = entityManager.createQuery(
-            "SELECT s FROM AuthToken s WHERE s.token = :token",
-            AuthToken::class.java
-        )
-        query.setParameter("token", authToken)
-
-        return query.resultList.firstOrNull()
+        return entityManager.createQuery(
+            "SELECT s FROM AuthToken s WHERE s.token = :token", AuthToken::class.java
+        ).setParameter("token", authToken)
+            .resultList
+            .firstOrNull()
     }
 }
