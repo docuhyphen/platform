@@ -1,12 +1,11 @@
 package com.securedocsshare.app.api.model
 
-import com.securedocsshare.app.hacks.CustomerSerializers
-import com.securedocsshare.app.hacks.TimestampSerializer
+import com.securedocsshare.app.api.hacks.CustomerSerializers
+import com.securedocsshare.app.api.hacks.TimestampSerializer
 import jakarta.persistence.CascadeType.ALL
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType.LAZY
-import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.OneToMany
@@ -28,6 +27,9 @@ class Company {
 
     @Column(name = "is_active", nullable = false)
     var isActive: Boolean = true
+
+    @Column(name = "verification_complete", nullable = false)
+    var verificationComplete: Boolean = false
 
     @Column(name = "created_date", nullable = false)
     @Serializable(with = TimestampSerializer::class)

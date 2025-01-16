@@ -1,7 +1,7 @@
 package com.securedocsshare.app.api.model
 
 import com.securedocsshare.app.api.model.SignUpStatus.PENDING
-import com.securedocsshare.app.hacks.CustomerSerializers
+import com.securedocsshare.app.api.hacks.CustomerSerializers
 import jakarta.persistence.*
 import kotlinx.serialization.Serializable
 import java.time.LocalDateTime

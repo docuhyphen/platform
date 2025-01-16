@@ -1,11 +1,10 @@
 package com.securedocsshare.app.api.model
 
-import com.securedocsshare.app.hacks.CustomerSerializers
-import com.securedocsshare.app.hacks.TimestampSerializer
+import com.securedocsshare.app.api.hacks.CustomerSerializers
+import com.securedocsshare.app.api.hacks.TimestampSerializer
 import jakarta.persistence.CascadeType.ALL
 import jakarta.persistence.Column
 import jakarta.persistence.FetchType.LAZY
-import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.OneToOne
