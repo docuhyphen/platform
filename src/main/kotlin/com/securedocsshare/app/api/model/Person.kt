@@ -32,18 +32,21 @@ class Person
     var createdDate: Timestamp = Timestamp.from(Instant.now())
 
     @Column(name = "first_name")
-    lateinit var firstName: String
+    var firstName: String? = null
 
     @Column(name = "last_name")
-    lateinit var lastName: String
+    var lastName: String? = null
+
+    @Column(name = "identification_number")
+    var identificationNumber: String? = null
 
     @Column(name = "person_id_type")
     @Enumerated(STRING)
-    lateinit var personIDType: PersonIDType
+    var personIDType: PersonIDType? = null
 
     @JoinColumn(name = "contact_details_id")
     @OneToOne(cascade = [(ALL)], fetch = LAZY)
-    lateinit var contactDetails: ContactDetails
+    var contactDetails: ContactDetails? = null
 
     constructor()
 }

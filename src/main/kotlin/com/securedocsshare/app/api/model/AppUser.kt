@@ -12,6 +12,11 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
+enum class AppUserRole {
+    USER,
+    ADMIN
+}
+
 @Entity
 @Serializable
 @Table(name = "app_user")
@@ -51,7 +56,9 @@ class AppUser {
     @JoinColumn(name = "person_id")
     var person: Person? = null
 
-//    var roles: Array<String> = arrayOf()
+    @Enumerated(STRING)
+    @Column(name = "role", nullable = false)
+    var role: AppUserRole = AppUserRole.USER
 
     constructor(email: String, password: String)
 

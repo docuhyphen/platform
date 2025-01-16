@@ -1,6 +1,7 @@
 package com.securedocsshare.app.service
 
 import com.securedocsshare.app.api.model.AppUser
+import com.securedocsshare.app.api.model.Person
 import com.securedocsshare.app.repository.AppUserRepository
 import com.securedocsshare.app.repository.AuthTokenRepository
 import jakarta.enterprise.context.ApplicationScoped
@@ -21,5 +22,11 @@ class AppUserService @Inject constructor(
     fun findUserByEmail(email: String): AppUser?
     {
         return appUserRepository.findByEmail(email)
+    }
+
+    fun updatePerson(appUser: AppUser, person: Person)
+    {
+        appUser.person = person
+        appUserRepository.update(appUser)
     }
 }

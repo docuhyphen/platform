@@ -44,7 +44,7 @@ class Company {
     var contactDetails: ContactDetails? = null
 
     @OneToMany(cascade = [ALL], fetch = LAZY)
-    var appUsers: ArrayList<AppUser> = arrayListOf()
+    var appUsers: MutableList<AppUser> = mutableListOf()
 
     constructor()
 }

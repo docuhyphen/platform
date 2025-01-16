@@ -1,5 +1,6 @@
 package com.securedocsshare.app.api.model
 
+import com.ctc.wstx.shaded.msv_core.datatype.xsd.IDType
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -63,11 +64,12 @@ data class PasswordResetRequest(var email: String? = null)
 data class PersonRegistrationRequest(
     var firstName: String? = null,
     var lastName: String? = null,
-    var idNumber: String? = null
+    var idNumber: String? = null,
+    var idType: PersonIDType? = null
 )
 
 @Serializable
-data class PersonRegistrationResponse(var message: String? = null)
+data class PersonRegistrationResponse(var person: Person)
 
 @Serializable
 data class CompanyRegistrationRequest(
@@ -76,4 +78,4 @@ data class CompanyRegistrationRequest(
 )
 
 @Serializable
-data class CompanyRegistrationResponse(var message: String? = null)
+data class CompanyRegistrationResponse(var company: Company)
