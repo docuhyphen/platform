@@ -1,8 +1,8 @@
 import React from 'react';
-import {PrimaryButton} from '@fluentui/react';
 import {useAuth} from '../../context/AuthContext';
 import {signOut} from '../../services/api';
 import {useNavigate} from 'react-router-dom';
+import {Button} from "@fluentui/react-components";
 
 const SignOutButton: React.FC = () =>
 {
@@ -26,7 +26,7 @@ const SignOutButton: React.FC = () =>
         }
     };
 
-    return <PrimaryButton text="Sign Out" onClick={handleSignOut}/>;
+    return <Button onClick={handleSignOut}> Sign Out </Button>;
 };
 
 export default SignOutButton;

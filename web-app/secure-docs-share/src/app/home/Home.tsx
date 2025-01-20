@@ -1,7 +1,7 @@
 import React from 'react';
-import { PrimaryButton } from '@fluentui/react';
 import { useNavigate } from 'react-router-dom';
 import './Home.css';
+import {Button} from "@fluentui/react-components";
 
 const Home: React.FC = () => {
     const navigate = useNavigate();
@@ -10,15 +10,15 @@ const Home: React.FC = () => {
         navigate('/sign-in');
     };
 
-    const onJoin = () => {
+    const signUp = () => {
         navigate('/sign-up');
     };
 
     return (
         <div>
             <h1>Welcome to Secure Docs Share</h1>
-            <PrimaryButton text="Sign In" onClick={onSignIn} />
-            <PrimaryButton text="Sign Up" onClick={onJoin} />
+            <Button  onClick={onSignIn}> Sign In </Button>
+            <Button onClick={signUp}> Sign Up </Button>
         </div>
     );
 };

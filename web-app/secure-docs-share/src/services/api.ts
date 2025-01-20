@@ -1,5 +1,6 @@
 import axios from 'axios';
 import {
+    PersonRegistrationRequest,
     SignInCompletionRequest,
     SignInInitiationRequest,
     SignUpCompletionRequest,
@@ -16,7 +17,7 @@ export const initiateSignUp = async (request: SignUpInitiationRequest) =>
         const response = await axios.post(`${API_BASE_URL}/auth/sign-up/initiation`, request);
         return response.data;
     }
-    catch (error)
+    catch (error: any)
     {
         throw error.response?.data || error.message;
     }
@@ -28,7 +29,7 @@ export const completeSignUp = async (request: SignUpCompletionRequest) =>
         const response = await axios.post(`${API_BASE_URL}/auth/sign-up/completion`, request);
         return response.data;
     }
-    catch (error)
+    catch (error: any)
     {
         throw error.response?.data || error.message;
     }
@@ -41,7 +42,7 @@ export const regenerateSignUpOtp = async (request: SignUpOtpRegenerationRequest)
         const response = await axios.post(`${API_BASE_URL}/auth/sign-up/otp-regeneration`, request);
         return response.data;
     }
-    catch (error)
+    catch (error: any)
     {
         throw error.response?.data || error.message;
     }
@@ -54,7 +55,7 @@ export const initiateSignIn = async (request: SignInInitiationRequest) =>
         const response = await axios.post(`${API_BASE_URL}/auth/sign-in/initiate`, request);
         return response.data;
     }
-    catch (error)
+    catch (error: any)
     {
         throw error.response?.data || error.message;
     }
@@ -68,7 +69,7 @@ export const completeSignIn = async (request: SignInCompletionRequest) =>
         const response = await axios.post(`${API_BASE_URL}/auth/sign-in/completion`, request);
         return response.data;
     }
-    catch (error)
+    catch (error: any)
     {
         throw error.response?.data || error.message;
     }
@@ -85,7 +86,58 @@ export const signOut = async (token: string) =>
         });
         return response.data;
     }
-    catch (error)
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+export const fetchAppUser = async (token: string | null) =>
+{
+    try
+    {
+        const response = await axios.get(`${API_BASE_URL}/app-user`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+export const fetchAppUserPersonCompany = async (appUserId: string, personId: string, token: string | null) =>
+{
+    try
+    {
+        const response = await axios.get(`${API_BASE_URL}/app-user/${appUserId}/person/${personId}/company`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+export const registerIndividual = async (request: PersonRegistrationRequest, token: string | null) =>
+{
+    try
+    {
+        const response = await axios.post(`${API_BASE_URL}/entity-registration/person`, request, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+        return response.data;
+    }
+    catch (error: any)
     {
         throw error.response?.data || error.message;
     }

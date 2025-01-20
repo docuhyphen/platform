@@ -1,9 +1,9 @@
 import React, {useState} from 'react';
-import {TextField, PrimaryButton, Link} from '@fluentui/react';
 import './SignUp.css';
 import {completeSignUp, initiateSignUp, regenerateSignUpOtp} from "../../services/api.ts";
 import {ResponseError} from "../../services/models/models.tsx";
 import {useNavigate} from "react-router-dom";
+import {Button, Input, Label, Link} from "@fluentui/react-components";
 
 const SignUp: React.FC = () =>
 {
@@ -20,26 +20,26 @@ const SignUp: React.FC = () =>
     const [responseErrorMessage, setResponseError] = useState<string | undefined>('')
     const [signUpSuccessful, setSignUpSuccessful] = useState<boolean>(false)
 
-    function onEmailChange(e, newValue: any)
+    function onEmailChange(newValue: any)
     {
-        return setEmail(newValue || '')
+        return setEmail(newValue.value || '')
     }
 
-    function onOtpChange(e, newValue)
+    function onOtpChange(newValue: any)
     {
         setOtpRegenerationSuccessfulMsg('')
         setOtpRegenerationFailedMsg('')
-        return setOtp(newValue || '')
+        return setOtp(newValue.value || '')
     }
 
-    function onPasswordChange(e, newValue)
+    function onPasswordChange(newValue: any)
     {
-        return setPassword(newValue || '')
+        return setPassword(newValue.value || '')
     }
 
-    function onPasswordConfirmationChange(e, newValue)
+    function onPasswordConfirmationChange(_e: any, newValue: any)
     {
-        return setConfirmationPassword(newValue || '')
+        return setConfirmationPassword(newValue.value || '')
     }
 
     const onInitiateSignUp = async () =>
@@ -113,7 +113,9 @@ const SignUp: React.FC = () =>
                         </p>
                     </>
                     }
-                    <TextField label="Email"
+                    <Label htmlFor="email">Email</Label>
+                    <Input type="email"
+                           id={"email"}
                                value={email}
                                onChange={onEmailChange}/>
 
@@ -122,34 +124,39 @@ const SignUp: React.FC = () =>
                             {initiationSuccessfulMsg}
                         </p>
 
-                        <TextField label="OTP"
+                        <Label htmlFor="otp">OTP</Label>
+                        <Input type="text"
+                               id={"otp"}
                                    value={otp}
+                               autoComplete="false"
                                    onChange={onOtpChange}/>
 
                         <p>{otpRegenerationSuccessfulMsg}</p>
 
                         <p>{otpRegenerationFailedMsg}</p>
 
-                        <PrimaryButton text="Regenerate OTP"
-                                       onClick={onRegenerateOTP}/>
+                        <Button onClick={onRegenerateOTP}> Regenerate OTP</Button>
 
-                        <TextField label="Password"
+                        <Label htmlFor="password">Password</Label>
+                        <Input type="password"
+                               id={"password"}
                                    value={password}
                                    onChange={onPasswordChange}/>
 
-                        <TextField label="Password Confirmation"
+                        <Label htmlFor="passwordConfirmation">Password Confirmation</Label>
+                        <Input type={"password"}
+                               id={"passwordConfirmation"}
                                    value={confirmationPassword}
                                    onChange={onPasswordConfirmationChange}/>
 
-                        <PrimaryButton text="Finish Sign up"
-                                       onClick={onCompleteSignUp}/>
+                        <Button onClick={onCompleteSignUp}> Finish Sign up</Button>
 
                         <p>{responseErrorMessage}</p>
                     </>
                     }
 
                     {!initiationSuccessful &&
-                        <PrimaryButton text="Sign Up" onClick={onInitiateSignUp}/>
+                        <Button onClick={onInitiateSignUp}> Sign Up </Button>
                     }
                 </section>
             }
@@ -157,7 +164,7 @@ const SignUp: React.FC = () =>
             {signUpSuccessful &&
                 <section>
                     <p>Sign up successful</p>
-                    <PrimaryButton text="Sign In" onClick={() => navigate("/sign-in")}/>
+                    <Button onClick={() => navigate("/sign-in")}> </Button>
                 </section>
             }
         </>

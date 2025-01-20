@@ -32,3 +32,7 @@ export interface SignInCompletionRequest
     email: string
     otp: string
 }
+
+export interface PersonRegistrationRequest
+{
+}
