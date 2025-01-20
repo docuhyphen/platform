@@ -73,3 +73,20 @@ export const completeSignIn = async (request: SignInCompletionRequest) =>
         throw error.response?.data || error.message;
     }
 };
+
+export const signOut = async (token: string) =>
+{
+    try
+    {
+        const response = await axios.post(`${API_BASE_URL}/auth/sign-out`, {}, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+        return response.data;
+    }
+    catch (error)
+    {
+        throw error.response?.data || error.message;
+    }
+};
