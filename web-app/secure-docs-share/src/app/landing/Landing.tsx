@@ -2,23 +2,24 @@ import React from 'react';
 import SignOutButton from "../components/SignOutButton.tsx";
 import {useAuth} from '../../context/AuthContext';
 import {useNavigate} from 'react-router-dom';
-import {Avatar, Button, Persona} from "@fluentui/react-components";
+import {Button, Persona} from "@fluentui/react-components";
 
 const Landing: React.FC = () =>
 {
     const {appUser, appUserPersonCompany} = useAuth();
     const navigate = useNavigate();
 
-    const handleRegisterCompany = () =>
-    {
-        navigate('/onboarding/company-registration');
-    };
-
     return (
         <div>
             <div>
                 {!appUserPersonCompany &&
-                    <Button onClick={handleRegisterCompany}> Register Company</Button>
+                    <Button onClick={() => navigate('/onboarding/company-registration')}> Register Company</Button>
+                }
+
+                {(appUserPersonCompany && !appUserPersonCompany.registrationComplete) &&
+                    <p>
+                        Company registration pending
+                    </p>
                 }
                 <SignOutButton/>
                 <Persona

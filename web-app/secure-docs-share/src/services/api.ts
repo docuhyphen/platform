@@ -1,5 +1,6 @@
 import axios from 'axios';
 import {
+    CompanyRegistrationRequest,
     PersonRegistrationRequest,
     SignInCompletionRequest,
     SignInInitiationRequest,
@@ -109,7 +110,7 @@ export const fetchAppUser = async (token: string | null) =>
     }
 };
 
-export const fetchAppUserPersonCompany = async (appUserId: string, personId: string, token: string | null) =>
+export const fetchAppUserPersonCompany = async (appUserId?: string, personId?: string, token?: string) =>
 {
     try
     {
@@ -122,7 +123,7 @@ export const fetchAppUserPersonCompany = async (appUserId: string, personId: str
     }
     catch (error: any)
     {
-        throw error.response?.data || error.message;
+        throw error
     }
 };
 
@@ -135,6 +136,24 @@ export const registerIndividual = async (request: PersonRegistrationRequest, tok
                 Authorization: `Bearer ${token}`
             }
         });
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+export const registerCompany = async (request: CompanyRegistrationRequest, token: string | null) =>
+{
+    try
+    {
+        const response = await axios.post(`${API_BASE_URL}/entity-registration/company`, request, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+
         return response.data;
     }
     catch (error: any)

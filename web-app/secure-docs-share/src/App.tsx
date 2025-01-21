@@ -2,7 +2,7 @@ import React from 'react';
 import {BrowserRouter, Route, Routes} from 'react-router-dom';
 import Home from './app/home';
 import SignIn from './app/sign-in';
-import CompanyRegistration from './app/company-registration';
+import CompanyRegistrationPending from './app/company-registration';
 import {AuthProvider} from './context/AuthContext';
 import './App.css';
 import ProtectedRoute from "./app/components/ProtectedRoutes.tsx";
@@ -11,6 +11,7 @@ import SignUp from "./app/sign-up";
 import RedirectIfAuthenticated from "./app/components/RedirectIfAuthenticated.tsx";
 import NotFound from './app/NotFound.tsx';
 import Onboarding from "./app/onboarding/Onboarding.tsx";
+import CompanyRegistration from "./app/company-registration-pending";
 
 const App: React.FC = () => {
     return (
@@ -24,6 +25,8 @@ const App: React.FC = () => {
                            element={<ProtectedRoute path='/sign-in' element={<Onboarding/>}/>}/>
                     <Route path="/onboarding/company-registration"
                            element={<ProtectedRoute path='/sign-in' element={<CompanyRegistration/>}/>}/>
+                    <Route path="/onboarding/company-registration-pending"
+                           element={<ProtectedRoute path='/sign-in' element={<CompanyRegistrationPending/>}/>}/>
                     <Route path="/landing" element={<ProtectedRoute path='/sign-in' element={<Landing />} />} />
                     <Route path="*" element={<NotFound/>}/>
                 </Routes>

@@ -36,3 +36,9 @@ export interface SignInCompletionRequest
 export interface PersonRegistrationRequest
 {
 }
+
+export interface CompanyRegistrationRequest
+{
+    name: string,
+    registrationNumber: string
+}

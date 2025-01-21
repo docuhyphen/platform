@@ -1,9 +1,9 @@
-import React, {useState} from 'react';
+import React, {ChangeEvent, useState} from 'react';
 import './SignUp.css';
 import {completeSignUp, initiateSignUp, regenerateSignUpOtp} from "../../services/api.ts";
 import {ResponseError} from "../../services/models/models.tsx";
 import {useNavigate} from "react-router-dom";
-import {Button, Input, Label, Link} from "@fluentui/react-components";
+import {Button, Field, Input, InputOnChangeData, Link} from "@fluentui/react-components";
 
 const SignUp: React.FC = () =>
 {
@@ -20,24 +20,24 @@ const SignUp: React.FC = () =>
     const [responseErrorMessage, setResponseError] = useState<string | undefined>('')
     const [signUpSuccessful, setSignUpSuccessful] = useState<boolean>(false)
 
-    function onEmailChange(newValue: any)
+    function onEmailChange(_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData)
     {
         return setEmail(newValue.value || '')
     }
 
-    function onOtpChange(newValue: any)
+    function onOtpChange(_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData)
     {
         setOtpRegenerationSuccessfulMsg('')
         setOtpRegenerationFailedMsg('')
         return setOtp(newValue.value || '')
     }
 
-    function onPasswordChange(newValue: any)
+    function onPasswordChange(_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData)
     {
         return setPassword(newValue.value || '')
     }
 
-    function onPasswordConfirmationChange(_e: any, newValue: any)
+    function onPasswordConfirmationChange(_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData)
     {
         return setConfirmationPassword(newValue.value || '')
     }
@@ -107,29 +107,37 @@ const SignUp: React.FC = () =>
             {!signUpSuccessful &&
                 <section>
                     <h1>Sign up | <Link onClick={() => navigate("/sign-in")}>Sign In</Link></h1>
+
                     {!initiationSuccessful && <>
                         <p>
                             {responseErrorMessage}
                         </p>
                     </>
                     }
-                    <Label htmlFor="email">Email</Label>
-                    <Input type="email"
-                           id={"email"}
+
+                    <Field
+                        label={"Email"}
+                        validationState={"none"}
+                        validationMessage={""}>
+                        <Input type="email"
                                value={email}
                                onChange={onEmailChange}/>
+                    </Field>
 
                     {initiationSuccessful && <>
                         <p className="success">
                             {initiationSuccessfulMsg}
                         </p>
 
-                        <Label htmlFor="otp">OTP</Label>
-                        <Input type="text"
-                               id={"otp"}
+                        <Field
+                            label={"OTP"}
+                            validationState={"none"}
+                            validationMessage={""}>
+                            <Input type="text"
                                    value={otp}
-                               autoComplete="false"
+                                   autoComplete="false"
                                    onChange={onOtpChange}/>
+                        </Field>
 
                         <p>{otpRegenerationSuccessfulMsg}</p>
 
@@ -137,18 +145,23 @@ const SignUp: React.FC = () =>
 
                         <Button onClick={onRegenerateOTP}> Regenerate OTP</Button>
 
-                        <Label htmlFor="password">Password</Label>
-                        <Input type="password"
-                               id={"password"}
+                        <Field
+                            label={"Password"}
+                            validationState={"none"}
+                            validationMessage={""}>
+                            <Input type="password"
                                    value={password}
                                    onChange={onPasswordChange}/>
+                        </Field>
 
-                        <Label htmlFor="passwordConfirmation">Password Confirmation</Label>
-                        <Input type={"password"}
-                               id={"passwordConfirmation"}
+                        <Field
+                            label={"Password Confirmation"}
+                            validationState={"none"}
+                            validationMessage={""}>
+                            <Input type={"password"}
                                    value={confirmationPassword}
                                    onChange={onPasswordConfirmationChange}/>
-
+                        </Field>
                         <Button onClick={onCompleteSignUp}> Finish Sign up</Button>
 
                         <p>{responseErrorMessage}</p>
@@ -164,7 +177,7 @@ const SignUp: React.FC = () =>
             {signUpSuccessful &&
                 <section>
                     <p>Sign up successful</p>
-                    <Button onClick={() => navigate("/sign-in")}> </Button>
+                    <Button onClick={() => navigate("/sign-in")}> Sign In</Button>
                 </section>
             }
         </>

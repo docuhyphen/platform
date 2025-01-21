@@ -1,37 +1,76 @@
-import React, {useState} from 'react';
+import React, {ChangeEvent, useState} from 'react';
 import {useAuth} from '../../context/AuthContext';
 import {useNavigate} from 'react-router-dom';
-import {registerIndividual} from '../../services/api'; // Assume this API call exists
-import {AppUser} from '../models/models'; // Assume this model exists
+import {registerIndividual} from '../../services/api';
+import {AppUser} from '../models/models';
 import './IndividualRegistration.css';
 import useToken from "../../context/useToken.tsx";
-import {Button, Checkbox, Dropdown, Input, Label, Option} from "@fluentui/react-components";
+import {
+    Button,
+    Checkbox,
+    CheckboxOnChangeData,
+    Dropdown,
+    Field,
+    Input,
+    InputOnChangeData,
+    Option,
+    OptionOnSelectData,
+    SelectionEvents
+} from "@fluentui/react-components";
 
+//ToDo: change this based on country
 const idTypes = [
     {key: 'ID_NUMBER', text: 'ID Number'},
     {key: 'PASSPORT_NUMBER', text: 'Passport Number'},
     {key: 'SOCIAL_SECURITY', text: 'Social Security'},
 ];
 
-const IndividualRegistration: React.FC = () => {
+const IndividualRegistration: React.FC = () =>
+{
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
-    const [idNumber, setIdNumber] = useState('');
-    const [idType, setIdType] = useState(idTypes[0].key as string);
-    const [isCompany, setIsCompany] = useState(false);
+    const [identificationNumber, setIdentificationNumber] = useState('');
+    const [idType, setIdType] = useState<string | undefined>('');
+    const [alsoRegisterCompany, setAlsoRegisterCompany] = useState(false);
     const {setAppUser} = useAuth();
     const navigate = useNavigate();
     const token = useToken()
+
+    const onFirstNameChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
+    {
+        setFirstName(newValue.value || '')
+    }
+
+    const onLastNameChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
+    {
+        setLastName(newValue.value || '')
+    }
+
+    const onIdentificationNumberChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
+    {
+        setIdentificationNumber(newValue.value || '')
+    }
+
+    const onIdTypeSelect = (_e: SelectionEvents, data: OptionOnSelectData) =>
+    {
+        setIdType(data.optionValue)
+    }
+
+    const onRegisterCompanyCheck = (_e: React.ChangeEvent<HTMLInputElement>, checked: CheckboxOnChangeData) =>
+    {
+        return setAlsoRegisterCompany(!!checked);
+    }
 
     const onRegisterIndividual = async () =>
     {
         try
         {
-            const person = {firstName, lastName, idNumber, idType};
+            const person = {firstName, lastName, idNumber: identificationNumber, idType};
             const updatedUser: AppUser = await registerIndividual(person, token); // Assume this API call returns the updated user
+
             setAppUser(updatedUser);
 
-            if (isCompany)
+            if (alsoRegisterCompany)
             {
                 navigate('/onboarding/company-registration');
             }
@@ -50,27 +89,55 @@ const IndividualRegistration: React.FC = () => {
         <div>
             <h1>Individual Registration</h1>
 
-            <Label htmlFor={'firstName'}>First Name</Label>
-            <Input value={firstName}
-                   onChange={(_e, newValue) => setFirstName(newValue.value || '')}/>
+            <Field
+                label={"First Name"}
+                validationState={"none"}
+                validationMessage={""}>
 
-            <Label htmlFor={'lastName'}>Last Name</Label>
-            <Input value={lastName} onChange={(_e, newValue) => setLastName(newValue.value || '')}/>
+                <Input type="text"
+                       value={firstName}
+                       onChange={onFirstNameChange}/>
+            </Field>
 
-            <Label htmlFor={'identificationNumber'}>Identification Number</Label>
-            <Input value={idNumber}
-                   onChange={(_e, newValue) => setIdNumber(newValue.value || '')}/>
+            <Field
+                label={"Last Name"}
+                validationState={"none"}
+                validationMessage={""}>
 
-            <Label htmlFor="idType">ID Type</Label>
-            <Dropdown placeholder="Select an animal" id="idType">
-                {idTypes.map((option) => (
-                    <Option key={option.key} value={idType}>
-                        {option.text}
-                    </Option>
+                <Input type="text"
+                       value={lastName}
+                       onChange={onLastNameChange}/>
+            </Field>
+
+            <Field
+                label={"Identification Number"}
+                validationState={"none"}
+                validationMessage={""}>
+
+                <Input type="text"
+                       value={identificationNumber}
+                       onChange={onIdentificationNumberChange}/>
+            </Field>
+
+            <Field
+                label={"Email"}
+                validationState={"none"}
+                validationMessage={""}>
+
+                <Dropdown id="idType"
+                          onOptionSelect={onIdTypeSelect}>
+                    {
+                        idTypes.map((option) => (
+                            <Option key={option.key} value={option.key}>
+                                {option.text}
+                            </Option>
                 ))}
             </Dropdown>
+            </Field>
 
-            <Checkbox label="I'm a company" checked={isCompany} onChange={(_e, checked) => setIsCompany(!!checked)}/>
+            <Checkbox label="Register a company"
+                      checked={alsoRegisterCompany}
+                      onChange={onRegisterCompanyCheck}/>
 
             <Button onClick={onRegisterIndividual}> Register </Button>
         </div>

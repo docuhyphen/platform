@@ -2,7 +2,7 @@ import React, {createContext, ReactNode, useContext, useEffect, useState} from '
 import {fetchAppUser, fetchAppUserPersonCompany} from '../services/api';
 import {AppUser, Company} from "../app/models/models.tsx";
 import {isTokenExpired} from "../utils/helpers.ts";
-import {useNavigate} from "react-router-dom";
+import {useLocation, useNavigate} from "react-router-dom";
 
 interface AuthContextType
 {
@@ -22,7 +22,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
     const [appUser, setAppUser] = useState<AppUser | null>(null);
     const [appUserPersonCompany, setAppUserPersonCompany] = useState<Company | null>(null);
 
-    const navigate = useNavigate()
+    const navigate = useNavigate();
+    const location = useLocation();
 
     const saveToken = (newToken: string | null) =>
     {
@@ -40,42 +41,51 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
 
     useEffect(() =>
     {
-        console.log("Token in storage ", token)
+        console.log("Token in storage ", token);
 
         const fetchUserDetails = async () =>
         {
             if (token && !isTokenExpired(token))
             {
-                const user = await fetchAppUser(token);
-                setAppUser(user);
-
-                if (user.person)
+                if (!appUser)
                 {
-                    try
-                    {
-                        const company = await fetchAppUserPersonCompany(user.id, user.person.id, token);
-                        setAppUserPersonCompany(company);
-
-                        if (company.verificationComplete)
-                        {
-                            navigate('/landing');
-                        }
-                        else
-                        {
-                            navigate('/onboarding/company-registration');
-                        }
-                    }
-                    catch (e)
-                    {
-                        console.log("!!!")
-                        console.log(e)
-                        navigate('landing');
-                    }
+                    const user = await fetchAppUser(token);
+                    setAppUser(user);
                 }
-                else
+
+                if (appUser && !appUser?.person)
                 {
+                    alert("No Person, Navigating to individual registration");
                     navigate('/onboarding/individual-registration');
+                    return;
                 }
+
+                if (!appUserPersonCompany && location.pathname === '/onboarding/company-registration')
+                {
+                    return
+                }
+
+                try
+                {
+                    const company = await fetchAppUserPersonCompany(appUser?.id, appUser?.person?.id, token);
+                    setAppUserPersonCompany(company);
+
+                    if (company && company.verificationComplete)
+                    {
+                        navigate('/landing');
+                    }
+                    else
+                    {
+                        // navigate('/onboarding/company-registration-pending');
+                    }
+                }
+                catch (e)
+                {
+                    console.log("!!!");
+                    console.log(e);
+                    navigate('/landing');
+                }
+
             }
             else
             {
@@ -94,15 +104,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         }, 30000);
 
         return () => clearInterval(intervalId);
-    }, [token, navigate]);
+    }, [token, navigate, location.pathname]);
 
-    useEffect(() =>
-    {
-        if (appUser && !appUser.person)
-        {
-            navigate('/onboarding/individual-registration');
-        }
-    }, [appUser, navigate]);
+    // useEffect(() =>
+    // {
+    //     if (appUser && !appUser.person)
+    //     {
+    //         navigate('/onboarding/individual-registration');
+    //     }
+    // }, [appUser, navigate]);
 
     return (
         <AuthContext.Provider

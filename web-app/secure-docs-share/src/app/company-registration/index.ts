@@ -1,1 +1,1 @@
-export { default } from './CompanyRegistration';
+export { default } from './CompanyRegistrationPending.tsx';

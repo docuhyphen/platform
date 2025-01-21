@@ -6,7 +6,8 @@ import {useAuth} from '../../context/AuthContext';
 import {useNavigate} from 'react-router-dom';
 import RedirectIfAuthenticated from '../components/RedirectIfAuthenticated';
 import useToken from "../../context/useToken.tsx";
-import {Button, Input, Label} from "@fluentui/react-components";
+import {Button, Field, Input} from "@fluentui/react-components";
+import {AppUser} from "../models/models.tsx";
 
 const SignIn: React.FC = () =>
 {
@@ -49,11 +50,30 @@ const SignIn: React.FC = () =>
             const response = await completeSignIn(signInCompletionRequest);
             setToken(response.token);
 
-            const user = await fetchAppUser(token);
-            setAppUser(user);
+            let appUser: AppUser | null = null
 
-            const company = await fetchAppUserPersonCompany(user.id, user.person.id, token)
-            setAppUserPersonCompany(company)
+            try
+            {
+                appUser = await fetchAppUser(token);
+                setAppUser(appUser);
+            }
+            catch (error)
+            {
+
+            }
+
+            try
+            {
+                if (appUser)
+                {
+                    const company = await fetchAppUserPersonCompany(appUser.id, appUser.person?.id, token?.toString());
+                    setAppUserPersonCompany(company)
+                }
+            }
+            catch (error)
+            {
+
+            }
 
             navigate('/landing');
         }
@@ -61,6 +81,7 @@ const SignIn: React.FC = () =>
         {
             setResponseErrorMessage((error as ResponseError)?.errorMessage);
         }
+
     };
 
     return (
@@ -74,17 +95,25 @@ const SignIn: React.FC = () =>
                     </p>
                 }
 
-                <Label htmlFor={"email"}>Email</Label>
-                <Input
-                    value={email}
-                    type="email"
-                    onChange={onEmailChange}/>
+                <Field
+                    label={"Email"}
+                    validationState={"none"}
+                    validationMessage={""}>
+                    <Input
+                        value={email}
+                        type="email"
+                        onChange={onEmailChange}/>
+                </Field>
 
-                <Label htmlFor={"password"}>Password</Label>
-                <Input
-                    type="password"
-                    value={password}
-                    onChange={onPasswordChange}/>
+                <Field
+                    label={"Password"}
+                    validationState={"none"}
+                    validationMessage={""}>
+                    <Input
+                        type="password"
+                        value={password}
+                        onChange={onPasswordChange}/>
+                </Field>
 
                 {!signInInitiationSuccessful &&
                     <Button onClick={onInitiateSignIn}>Sign In </Button>
@@ -93,11 +122,16 @@ const SignIn: React.FC = () =>
                 {signInInitiationSuccessful && (
                     <>
                         <p>{signInInitiationSuccessfulMsg}</p>
-                        <Label htmlFor={"otp"}>OTP</Label>
-                        <Input
-                            value={otp}
-                            autoComplete="false"
-                            onChange={onOtpChange}/>
+
+                        <Field
+                            label={"OTP"}
+                            validationState={"none"}
+                            validationMessage={""}>
+                            <Input
+                                value={otp}
+                                autoComplete="false"
+                                onChange={onOtpChange}/>
+                        </Field>
                         <Button onClick={onCompleteSignIn}> Complete Sign In</Button>
                     </>
                 )}
