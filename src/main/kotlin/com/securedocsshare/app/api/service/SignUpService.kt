@@ -213,13 +213,6 @@ class SignUpService @Inject constructor(
 
     private fun ensureOtpValidity(signUpEntity: SignUpEntity, otp: String?)
     {
-        if (signUpEntity.expiresAt.isBefore(LocalDateTime.now()))
-        {
-            throw OTPExpiredException(otp!!).also {
-                logger.warn("Sign up completion failed. OTP $otp expired")
-            }
-        }
-
         if (!BCrypt.checkpw(otp, signUpEntity.otp))
         {
             signUpEntity.attempts++
@@ -227,6 +220,13 @@ class SignUpService @Inject constructor(
 
             throw InvalidOtpException().also {
                 logger.warn("Sign up completion failed. OTP $otp invalid")
+            }
+        }
+
+        if (signUpEntity.expiresAt.isBefore(LocalDateTime.now()))
+        {
+            throw OTPExpiredException(otp!!).also {
+                logger.warn("Sign up completion failed. OTP $otp expired")
             }
         }
     }
@@ -243,7 +243,7 @@ class SignUpService @Inject constructor(
             this.email = email
             this.passwordSalt = passwordSalt
             this.password = hashedPassword
-            this.verificationCompleted = true
+            this.emailVerificationComplete = true
             this.isActive = true
         }.also {
             logger.info("Successfully signed up")

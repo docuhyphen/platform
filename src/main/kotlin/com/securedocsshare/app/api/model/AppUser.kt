@@ -42,8 +42,8 @@ class AppUser {
     @Column(name = "password_salt", nullable = false)
     lateinit var passwordSalt: String
 
-    @Column(name = "verification_completed", nullable = false)
-    var verificationCompleted: Boolean = false
+    @Column(name = "email_verification_completed", nullable = false)
+    var emailVerificationComplete: Boolean = false
 
     @Column(name = "sign_in_attempts", nullable = false)
     var signInAttempts: Int = 0

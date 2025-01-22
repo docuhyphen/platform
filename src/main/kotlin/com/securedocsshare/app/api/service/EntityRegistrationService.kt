@@ -1,14 +1,8 @@
 package com.securedocsshare.app.api.service
 
 import com.securedocsshare.app.api.interceptor.AuthTokenContext
-import com.securedocsshare.app.api.model.AppUserRole
-import com.securedocsshare.app.api.model.Company
-import com.securedocsshare.app.api.model.CompanyAlreadyExistsException
-import com.securedocsshare.app.api.model.InvalidCompanyRegistrationException
-import com.securedocsshare.app.api.model.InvalidPersonRegistrationException
-import com.securedocsshare.app.api.model.Person
-import com.securedocsshare.app.api.model.PersonAlreadyExistsException
-import com.securedocsshare.app.api.model.PersonIDType
+import com.securedocsshare.app.api.messaging.CompanyVerificationProducer
+import com.securedocsshare.app.api.model.*
 import com.securedocsshare.app.api.repository.CompanyRepository
 import com.securedocsshare.app.api.repository.PersonRepositoryRepository
 import jakarta.enterprise.context.RequestScoped
@@ -22,15 +16,12 @@ import org.slf4j.LoggerFactory
 class EntityRegistrationService @Inject constructor(
     private val personRepository: PersonRepositoryRepository,
     private val companyRepository: CompanyRepository,
-    private val appUserService: AppUserService
+    private val appUserService: AppUserService,
+    private var configurationService: ConfigurationService,
+    private var emailService: EmailService,
+    private val companyVerificationProducer: CompanyVerificationProducer
 )
 {
-    @Inject
-    internal lateinit var configurationService: ConfigurationService
-
-    @Inject
-    internal lateinit var emailService: EmailService
-
     @PersistenceContext
     private lateinit var entityManager: EntityManager
 
@@ -138,6 +129,8 @@ class EntityRegistrationService @Inject constructor(
                     "Please wait for the administrator to approve your request.\n\n" +
                     "Thank you for using ${configurationService.getAppEmailSubjectTitle()}!"
         )
+
+        companyVerificationProducer.sendToQueue(company)
 
         return company
     }

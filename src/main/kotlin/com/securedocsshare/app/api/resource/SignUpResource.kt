@@ -144,7 +144,7 @@ class SignUpResource @Inject constructor(
         return try
         {
             signUpService.regenerateOtp(request.email)
-            val otpRegenerationResponse = SignUpCompletionResponse()
+            val otpRegenerationResponse = SignUpCompletionResponse("OTP regenerated successfully, please check your email for the new OTP.")
             Response.ok(otpRegenerationResponse).build()
 
         }
