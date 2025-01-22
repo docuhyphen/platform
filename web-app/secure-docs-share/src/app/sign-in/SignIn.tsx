@@ -6,7 +6,7 @@ import {useAuth} from '../../context/AuthContext';
 import {useNavigate} from 'react-router-dom';
 import RedirectIfAuthenticated from '../components/RedirectIfAuthenticated';
 import useToken from "../../context/useToken.tsx";
-import {Button, Field, Input} from "@fluentui/react-components";
+import {Button, Field, Input, Link} from "@fluentui/react-components";
 import {AppUser} from "../models/models.tsx";
 
 const SignIn: React.FC = () =>
@@ -87,7 +87,7 @@ const SignIn: React.FC = () =>
     return (
         <RedirectIfAuthenticated element={
             <div>
-                <h1>Sign In</h1>
+                <h1>Sign In | <Link href={"/sign-up"}>Sign Up</Link></h1>
 
                 {responseErrorMessage &&
                     <p>

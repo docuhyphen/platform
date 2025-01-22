@@ -13,12 +13,14 @@ const Landing: React.FC = () =>
         <div>
             <div>
                 {!appUserPersonCompany &&
-                    <Button onClick={() => navigate('/onboarding/company-registration')}> Register Company</Button>
+                    <Button onClick={() => navigate('/onboarding/company-registration')}>
+                        Register Company
+                    </Button>
                 }
 
                 {(appUserPersonCompany && !appUserPersonCompany.registrationComplete) &&
                     <p>
-                        Company registration pending
+                        {appUserPersonCompany?.name} registration pending
                     </p>
                 }
                 <SignOutButton/>

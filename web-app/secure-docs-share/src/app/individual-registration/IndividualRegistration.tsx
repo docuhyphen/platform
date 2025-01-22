@@ -1,4 +1,4 @@
-import React, {ChangeEvent, useState} from 'react';
+import React, {ChangeEvent, useEffect, useState} from 'react';
 import {useAuth} from '../../context/AuthContext';
 import {useNavigate} from 'react-router-dom';
 import {registerIndividual} from '../../services/api';
@@ -32,7 +32,7 @@ const IndividualRegistration: React.FC = () =>
     const [identificationNumber, setIdentificationNumber] = useState('');
     const [idType, setIdType] = useState<string | undefined>('');
     const [alsoRegisterCompany, setAlsoRegisterCompany] = useState(false);
-    const {setAppUser} = useAuth();
+    const {setAppUser, appUser} = useAuth();
     const navigate = useNavigate();
     const token = useToken()
 
@@ -58,11 +58,16 @@ const IndividualRegistration: React.FC = () =>
 
     const onRegisterCompanyCheck = (_e: React.ChangeEvent<HTMLInputElement>, checked: CheckboxOnChangeData) =>
     {
-        return setAlsoRegisterCompany(!!checked);
+        setAlsoRegisterCompany(checked.checked === true);
+
+        console.log("Checked1: ", checked.checked);
     }
 
     const onRegisterIndividual = async () =>
     {
+        console.log("Registering individual");
+        console.log("Checked: ", alsoRegisterCompany);
+
         try
         {
             const person = {firstName, lastName, idNumber: identificationNumber, idType};
@@ -72,10 +77,12 @@ const IndividualRegistration: React.FC = () =>
 
             if (alsoRegisterCompany)
             {
+                alert("Will also register company")
                 navigate('/onboarding/company-registration');
             }
             else
             {
+                alert("Will not register company")
                 navigate('/landing');
             }
         }
@@ -85,6 +92,14 @@ const IndividualRegistration: React.FC = () =>
         }
     };
 
+    useEffect(() =>
+    {
+        console.log("UseEffect of individual registration");
+        if (appUser && appUser.person && !alsoRegisterCompany)
+        {
+            navigate('/landing');
+        }
+    }, [appUser, navigate, alsoRegisterCompany]);
     return (
         <div>
             <h1>Individual Registration</h1>
@@ -120,7 +135,7 @@ const IndividualRegistration: React.FC = () =>
             </Field>
 
             <Field
-                label={"Email"}
+                label={"Type of ID"}
                 validationState={"none"}
                 validationMessage={""}>
 

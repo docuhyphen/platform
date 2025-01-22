@@ -7,35 +7,38 @@ import {Company} from "../models/models.tsx";
 import {useNavigate} from "react-router-dom";
 import {useAuth} from "../../context/AuthContext.tsx";
 
-
 const CompanyRegistration: React.FC = () =>
 {
-    const [companyName, setCompanyName] = useState('')
-    const [registrationNumber, setRegistrationNumber] = useState('')
-    const token = useToken()
-    const navigate = useNavigate()
+    const [companyName, setCompanyName] = useState('');
+    const [registrationNumber, setRegistrationNumber] = useState('');
+    const [isRegistering, setIsRegistering] = useState(false);
+    const token = useToken();
+    const navigate = useNavigate();
 
     const {setAppUserPersonCompany, appUserPersonCompany} = useAuth();
 
     useEffect(() =>
     {
-
-        if (appUserPersonCompany && appUserPersonCompany.registrationComplete)
+        if (!isRegistering && appUserPersonCompany)
         {
-            navigate('/landing')
+            if (appUserPersonCompany.registrationComplete)
+            {
+                navigate('/landing');
+            }
+            else
+            {
+                navigate('/onboarding/company-registration-pending');
+            }
         }
-        else
-        {
-            navigate('/onboarding/company-registration-pending')
-        }
-    }, [])
+    }, [appUserPersonCompany, isRegistering, navigate]);
 
     const onRegisterCompany = async () =>
     {
+        setIsRegistering(true);
         try
         {
             const company = {name: companyName, registrationNumber};
-            const registeredCompany: Company = await registerCompany(company, token); // Assume this API call returns the updated user
+            const registeredCompany: Company = await registerCompany(company, token);
 
             setAppUserPersonCompany(registeredCompany);
             navigate('/onboarding/company-registration-pending');
@@ -44,44 +47,52 @@ const CompanyRegistration: React.FC = () =>
         {
             console.error('Registration failed', error);
         }
+        finally
+        {
+            setIsRegistering(false);
+        }
     };
 
     function onCompanyNameChange(_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData)
     {
-        setCompanyName(newValue.value || '')
+        setCompanyName(newValue.value || '');
     }
 
     function onRegistrationNumberChange(_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData)
     {
-        setRegistrationNumber(newValue.value || '')
+        setRegistrationNumber(newValue.value || '');
     }
 
     return (
-        <div>
-            <h1>Company Registration</h1>
+        <>
+            {(!appUserPersonCompany) &&
+                <div>
+                    <h1>Company Registration</h1>
 
-            <Field
-                label={"Company Name"}
-                validationState={"none"}
-                validationMessage={""}>
+                    <Field
+                        label={"Company Name"}
+                        validationState={"none"}
+                        validationMessage={""}>
 
-                <Input type="text"
-                       value={companyName}
-                       onChange={onCompanyNameChange}/>
-            </Field>
+                        <Input type="text"
+                               value={companyName}
+                               onChange={onCompanyNameChange}/>
+                    </Field>
 
-            <Field
-                label={"Company Registration Number"}
-                validationState={"none"}
-                validationMessage={""}>
+                    <Field
+                        label={"Company Registration Number"}
+                        validationState={"none"}
+                        validationMessage={""}>
 
-                <Input type="text"
-                       value={registrationNumber}
-                       onChange={onRegistrationNumberChange}/>
-            </Field>
+                        <Input type="text"
+                               value={registrationNumber}
+                               onChange={onRegistrationNumberChange}/>
+                    </Field>
 
-            <Button onClick={onRegisterCompany}> Register </Button>
-        </div>
+                    <Button onClick={onRegisterCompany}> Register </Button>
+                </div>
+            }
+        </>
     );
 };
 

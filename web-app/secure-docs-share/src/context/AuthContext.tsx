@@ -28,6 +28,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
     const saveToken = (newToken: string | null) =>
     {
         setToken(newToken);
+
         if (newToken)
         {
             localStorage.setItem('token', newToken);
@@ -41,59 +42,53 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
 
     useEffect(() =>
     {
+        console.log("Current page is ", location.pathname);
         console.log("Token in storage ", token);
 
-        const fetchUserDetails = async () =>
+        const fetchAppUserDetails = async () =>
         {
             if (token && !isTokenExpired(token))
             {
-                if (!appUser)
-                {
-                    const user = await fetchAppUser(token);
-                    setAppUser(user);
-                }
+                console.log("Token is not expired");
 
-                if (appUser && !appUser?.person)
-                {
-                    alert("No Person, Navigating to individual registration");
-                    navigate('/onboarding/individual-registration');
-                    return;
-                }
-
-                if (!appUserPersonCompany && location.pathname === '/onboarding/company-registration')
-                {
-                    return
-                }
+                let user: AppUser | null = null
 
                 try
                 {
-                    const company = await fetchAppUserPersonCompany(appUser?.id, appUser?.person?.id, token);
-                    setAppUserPersonCompany(company);
-
-                    if (company && company.verificationComplete)
-                    {
-                        navigate('/landing');
-                    }
-                    else
-                    {
-                        // navigate('/onboarding/company-registration-pending');
-                    }
+                    user = await fetchAppUser(token);
+                    setAppUser(user);
                 }
                 catch (e)
                 {
-                    console.log("!!!");
-                    console.log(e);
-                    navigate('/landing');
+
                 }
 
+                if (user && !appUserPersonCompany)
+                {
+                    try
+                    {
+                        console.log("There's no company, fetching company");
+                        const company = await fetchAppUserPersonCompany(user?.id, user?.person?.id, token);
+                        setAppUserPersonCompany(company);
+                    }
+                    catch (e)
+                    {
+
+                    }
+                }
             }
             else
             {
-                saveToken(null);
+                saveToken(null)
+
+                if (location.pathname !== "/sign-up" && location.pathname !== "/sign-in")
+                {
+                    navigate("/sign-in")
+                }
             }
         };
 
-        fetchUserDetails();
+        fetchAppUserDetails();
 
         const intervalId = setInterval(() =>
         {
@@ -106,13 +101,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         return () => clearInterval(intervalId);
     }, [token, navigate, location.pathname]);
 
-    // useEffect(() =>
-    // {
-    //     if (appUser && !appUser.person)
-    //     {
-    //         navigate('/onboarding/individual-registration');
-    //     }
-    // }, [appUser, navigate]);
+    useEffect(() =>
+    {
+        if (appUser && !appUser.person)
+        {
+            navigate('/onboarding/individual-registration');
+        }
+    }, [appUser, navigate]);
 
     return (
         <AuthContext.Provider
