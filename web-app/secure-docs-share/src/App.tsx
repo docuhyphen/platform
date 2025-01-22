@@ -19,15 +19,22 @@ const App: React.FC = () => {
         <AuthProvider>
                 <Routes>
                     <Route path="/" element={<Home />} />
+
                     <Route path="/sign-in" element={<RedirectIfAuthenticated element={<SignIn />} />} />
+
                     <Route path="/sign-up" element={<RedirectIfAuthenticated element={<SignUp />} />} />
+
                     <Route path="/onboarding/individual-registration"
                            element={<ProtectedRoute path='/sign-in' element={<Onboarding/>}/>}/>
+
                     <Route path="/onboarding/company-registration"
                            element={<ProtectedRoute path='/sign-in' element={<CompanyRegistration/>}/>}/>
+
                     <Route path="/onboarding/company-registration-pending"
                            element={<ProtectedRoute path='/sign-in' element={<CompanyRegistrationPending/>}/>}/>
+
                     <Route path="/landing" element={<ProtectedRoute path='/sign-in' element={<Landing />} />} />
+
                     <Route path="*" element={<NotFound/>}/>
                 </Routes>
         </AuthProvider>
