@@ -12,6 +12,8 @@ import RedirectIfAuthenticated from "./app/components/RedirectIfAuthenticated.ts
 import NotFound from './app/NotFound.tsx';
 import Onboarding from "./app/onboarding/Onboarding.tsx";
 import CompanyRegistration from "./app/company-registration-pending";
+import Settings from "./app/settings/Settings.tsx";
+import Profile from "./app/profile/Profile.tsx";
 
 const App: React.FC = () => {
     return (
@@ -34,6 +36,10 @@ const App: React.FC = () => {
                            element={<ProtectedRoute path='/sign-in' element={<CompanyRegistrationPending/>}/>}/>
 
                     <Route path="/landing" element={<ProtectedRoute path='/sign-in' element={<Landing />} />} />
+
+                    <Route path="/settings" element={<ProtectedRoute path='/sign-in' element={<Settings />} />} />
+
+                    <Route path="/profile" element={<ProtectedRoute path='/sign-in' element={<Profile />} />} />
 
                     <Route path="*" element={<NotFound/>}/>
                 </Routes>
