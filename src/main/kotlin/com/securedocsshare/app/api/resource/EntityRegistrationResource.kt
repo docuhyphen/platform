@@ -1,14 +1,14 @@
 package com.securedocsshare.app.api.resource
 
-import com.securedocsshare.app.api.model.CompanyAlreadyExistsException
-import com.securedocsshare.app.api.model.CompanyRegistrationRequest
-import com.securedocsshare.app.api.model.CompanyRegistrationResponse
-import com.securedocsshare.app.api.model.InvalidCompanyRegistrationException
-import com.securedocsshare.app.api.model.InvalidPersonRegistrationException
-import com.securedocsshare.app.api.model.PersonAlreadyExistsException
-import com.securedocsshare.app.api.model.PersonRegistrationRequest
-import com.securedocsshare.app.api.model.PersonRegistrationResponse
-import com.securedocsshare.app.api.model.ResponseError
+import com.securedocsshare.app.api.exception.CompanyAlreadyExistsException
+import com.securedocsshare.app.api.exception.InvalidCompanyRegistrationException
+import com.securedocsshare.app.api.exception.InvalidPersonRegistrationException
+import com.securedocsshare.app.api.exception.PersonAlreadyExistsException
+import com.securedocsshare.app.api.resource.model.CompanyRegistrationRequest
+import com.securedocsshare.app.api.resource.model.CompanyRegistrationResponse
+import com.securedocsshare.app.api.resource.model.PersonRegistrationRequest
+import com.securedocsshare.app.api.resource.model.PersonRegistrationResponse
+import com.securedocsshare.app.api.resource.model.ResponseError
 import com.securedocsshare.app.api.service.EntityRegistrationService
 import jakarta.inject.Inject
 import jakarta.ws.rs.POST

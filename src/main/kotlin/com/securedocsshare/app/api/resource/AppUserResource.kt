@@ -1,8 +1,8 @@
 package com.securedocsshare.app.api.resource
 
 import com.securedocsshare.app.api.interceptor.AuthTokenContext
-import com.securedocsshare.app.api.model.CompanyNotFoundException
-import com.securedocsshare.app.api.model.ResponseError
+import com.securedocsshare.app.api.exception.CompanyNotFoundException
+import com.securedocsshare.app.api.resource.model.ResponseError
 import com.securedocsshare.app.api.service.CompanyService
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes

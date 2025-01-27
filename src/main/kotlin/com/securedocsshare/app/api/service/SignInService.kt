@@ -1,5 +1,8 @@
 package com.securedocsshare.app.api.service
 
+import com.securedocsshare.app.api.exception.InvalidOtpException
+import com.securedocsshare.app.api.exception.InvalidSignInCredentialsException
+import com.securedocsshare.app.api.exception.OTPExpiredException
 import com.securedocsshare.app.api.model.*
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -48,7 +51,7 @@ class SignInService @Inject constructor(
 
         val appUser = appUserService.findUserByEmail(email) ?: throw InvalidSignInCredentialsException()
 
-        if (!authenticationService.validatePassword(password, appUser.password))
+        if (!authenticationService.validatePassword(password, appUser.password!!))
         {
             logger.warn("Sign in failed: Invalid password for email $email")
             throw InvalidSignInCredentialsException()

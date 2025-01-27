@@ -1,5 +1,9 @@
 package com.securedocsshare.app.api.service
 
+import com.securedocsshare.app.api.exception.CompanyAlreadyExistsException
+import com.securedocsshare.app.api.exception.InvalidCompanyRegistrationException
+import com.securedocsshare.app.api.exception.InvalidPersonRegistrationException
+import com.securedocsshare.app.api.exception.PersonAlreadyExistsException
 import com.securedocsshare.app.api.interceptor.AuthTokenContext
 import com.securedocsshare.app.api.messaging.CompanyVerificationProducer
 import com.securedocsshare.app.api.model.*

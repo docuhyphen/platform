@@ -1,0 +1,141 @@
+### Sign-Up Initiation
+POST http://localhost:8080/auth/sign-up/initiation
+Content-Type: application/json
+
+{
+  "email": "test5@example.com"
+}
+
+<> 2025-01-16T214842.200.json
+<> 2025-01-15T225156.200.json
+
+### Sign-Up Completion
+POST http://localhost:8080/auth/sign-up/completion
+Content-Type: application/json
+
+{
+  "email": "test5@example.com",
+  "otp": "123456",
+  "password": "StrongPassword1!",
+  "confirmationPassword": "StrongPassword1!"
+}
+
+<> 2025-01-16T214848.200.json
+<> 2025-01-15T225159.200.json
+
+### OTP Regeneration
+POST http://localhost:8080/auth/sign-up/otp-regeneration
+Content-Type: application/json
+
+{
+  "email": "test5@example.com"
+}
+
+### Sign-In Initiation
+POST http://localhost:8080/auth/sign-in/initiate
+Content-Type: application/json
+
+{
+  "email": "test5@example.com",
+  "password": "StrongPassword1!"
+}
+
+<> 2025-01-16T214851.200.json
+<> 2025-01-16T214452.200.json
+<> 2025-01-16T214443.200.json
+<> 2025-01-16T214406.200.json
+<> 2025-01-15T225202.200.json
+<> 2025-01-15T224839.500.json
+<> 2025-01-15T224801.500.json
+<> 2025-01-15T224752.500.json
+
+### Sign-In Completion
+POST http://localhost:8080/auth/sign-in/completion
+Content-Type: application/json
+
+{
+  "email": "test5@example.com",
+  "otp": "123456"
+}
+> {% client.global.set("Authorization", response.body.token) %}
+
+<> 2025-01-16T214855.200.json
+<> 2025-01-16T214458.500.json
+<> 2025-01-16T214455.500.json
+<> 2025-01-16T214446.500.json
+<> 2025-01-16T214428.500.json
+<> 2025-01-16T214418.500.json
+<> 2025-01-15T225207.200.json
+<> 2025-01-15T214200.200.json
+
+### Sign out
+POST http://localhost:8080/auth/sign-out
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
+### Password Reset Initiation
+POST http://localhost:8080/auth/password-reset/initiation
+Content-Type: application/json
+
+{
+  "email": "test5@example.com"
+}
+
+### Password Reset Completion with Valid OTP
+POST http://localhost:8080/auth/password-reset/completion
+Content-Type: application/json
+
+{
+  "email": "test5@example.com",
+  "otp": "123456",
+  "password": "StrongPassword1!",
+  "confirmationPassword": "StrongPassword1!"
+}
+
+### Person Registration
+POST http://localhost:8080/entity-registration/person
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "idType": "ID_NUMBER",
+  "idNumber": "1234567890"
+}
+
+<> 2025-01-16T214936.200.json
+<> 2025-01-16T214930.401.json
+<> 2025-01-15T225231.200.json
+<> 2025-01-15T222026.400.json
+<> 2025-01-15T221816.400.json
+<> 2025-01-15T221803.400.json
+
+
+### Company Registration
+POST http://localhost:8080/entity-registration/company
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
+{
+  "name": "BMZ",
+  "registrationNumber": "12345899"
+}
+
+<> 2025-01-16T220538.500.json
+<> 2025-01-16T220523.500.json
+<> 2025-01-16T220450.500.json
+<> 2025-01-16T220437.500.json
+<> 2025-01-16T220223.500.json
+<> 2025-01-16T220056.409.json
+<> 2025-01-16T215920.200.json
+<> 2025-01-16T214925.500.json
+<> 2025-01-16T214915.401.json
+<> 2025-01-16T214355.401.json
+<> 2025-01-15T225243.200.json
+<> 2025-01-15T224742.401.json
+<> 2025-01-15T223647.200.json
+<> 2025-01-15T222231.500.json
+<> 2025-01-15T222140.500.json
+<> 2025-01-15T222120.500.json
+<> 2025-01-15T222114.500.json

@@ -9,7 +9,7 @@ import kotlinx.serialization.encoding.Encoder
 import java.sql.Timestamp
 import java.util.UUID
 
-object CustomerSerializers : KSerializer<UUID> {
+object UUIDSerializer : KSerializer<UUID> {
     override val descriptor: SerialDescriptor =
         PrimitiveSerialDescriptor("UUID", PrimitiveKind.STRING)
 

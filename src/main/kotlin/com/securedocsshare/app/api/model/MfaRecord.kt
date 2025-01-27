@@ -1,6 +1,6 @@
 package com.securedocsshare.app.api.model
 
-import com.securedocsshare.app.api.hacks.CustomerSerializers
+import com.securedocsshare.app.api.hacks.UUIDSerializer
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType.STRING
@@ -19,7 +19,7 @@ import java.util.UUID
 class MfaRecord {
 
     @Id
-    @Serializable(with = CustomerSerializers::class)
+    @Serializable(with = UUIDSerializer::class)
     var id: UUID = UUID.randomUUID()
 
     @ManyToOne

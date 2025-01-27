@@ -1,6 +1,6 @@
 package com.securedocsshare.app.api.resource
 
-import com.securedocsshare.app.api.model.ResponseError
+import com.securedocsshare.app.api.resource.model.ResponseError
 import com.securedocsshare.app.api.service.SignOutService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*

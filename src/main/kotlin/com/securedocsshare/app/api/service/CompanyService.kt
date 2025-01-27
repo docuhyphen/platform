@@ -1,7 +1,7 @@
 package com.securedocsshare.app.api.service
 
 import com.securedocsshare.app.api.model.Company
-import com.securedocsshare.app.api.model.CompanyNotFoundException
+import com.securedocsshare.app.api.exception.CompanyNotFoundException
 import com.securedocsshare.app.api.repository.CompanyRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject

@@ -1,7 +1,17 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import {Button, Link, Persona} from "@fluentui/react-components";
-import { useAuth } from '../../context/AuthContext';
+import {useNavigate} from 'react-router-dom';
+import {
+    Button,
+    Link,
+    Menu,
+    MenuButton,
+    MenuItem,
+    MenuList,
+    MenuPopover,
+    MenuTrigger,
+    Persona
+} from "@fluentui/react-components";
+import {useAuth} from '../../context/AuthContext';
 import SignOutButton from '../components/SignOutButton';
 
 const MainMenu: React.FC = () => {
@@ -23,7 +33,20 @@ const MainMenu: React.FC = () => {
                     {appUserPersonCompany?.name} registration pending
                 </p>
             }
-            <Button appearance="primary" shape="circular">Share New Document</Button>
+
+            <Menu>
+                <MenuTrigger disableButtonEnhancement>
+                    <MenuButton shape="circular" appearance="primary" >Start Share Session</MenuButton>
+                </MenuTrigger>
+
+                <MenuPopover>
+                    <MenuList>
+                        <MenuItem>Request Documents</MenuItem>
+                        <MenuItem disabled={true}>Send Documents</MenuItem> {/* Feature can be optional*/}
+                    </MenuList>
+                </MenuPopover>
+            </Menu>
+
             <SignOutButton />
             <Persona
                 name={`${appUser?.person?.firstName} ${appUser?.person?.lastName}`}

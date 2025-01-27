@@ -1,6 +1,6 @@
-import com.securedocsshare.app.api.model.SignUpCompletionRequest
-import com.securedocsshare.app.api.model.SignUpInitiateRequest
-import com.securedocsshare.app.api.model.SignUpRegenerationRequest
+import com.securedocsshare.app.api.resource.model.SignUpCompletionRequest
+import com.securedocsshare.app.api.resource.model.SignUpInitiateRequest
+import com.securedocsshare.app.api.resource.model.SignUpRegenerationRequest
 import io.restassured.RestAssured
 import io.restassured.http.ContentType
 import io.restassured.response.Response

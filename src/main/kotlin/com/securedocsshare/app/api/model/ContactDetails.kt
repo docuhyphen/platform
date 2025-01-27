@@ -1,6 +1,6 @@
 package com.securedocsshare.app.api.model
 
-import com.securedocsshare.app.api.hacks.CustomerSerializers
+import com.securedocsshare.app.api.hacks.UUIDSerializer
 import com.securedocsshare.app.api.hacks.TimestampSerializer
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -18,7 +18,7 @@ import java.util.UUID
 class ContactDetails
 {
     @Id
-    @Serializable(with = CustomerSerializers::class)
+    @Serializable(with = UUIDSerializer::class)
     var id: UUID = UUID.randomUUID()
 
     @Column(name = "created_date")

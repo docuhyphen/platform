@@ -7,7 +7,6 @@ import java.util.UUID
 
 abstract class BaseRepository<T>(private val entityClass: Class<T>)
 {
-
     @Inject
     lateinit var entityManager: EntityManager
 

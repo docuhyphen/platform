@@ -1,4 +1,6 @@
-package com.securedocsshare.app.api.model
+package com.securedocsshare.app.api.exception
+
+import com.securedocsshare.app.api.model.SignUpStatus
 
 class EmailNotFoundException() : Exception("Email not found")
 class InvalidOtpException() : RuntimeException("Invalid otp")
@@ -9,7 +11,7 @@ class MaxAttemptsOTPExceededException(minutesTillNextAttempt: String) : RuntimeE
 class IncorrectSignUpCompletionStatusException(status: SignUpStatus) : RuntimeException("Incorrect sign up completion status $status")
 class OTPExpiredException(otp: String) : RuntimeException("OTP $otp expired ")
 class InvalidSignUpStatusException(message: String) : RuntimeException(message)
-class InvalidEmailException() : RuntimeException("Email is invalid")
+class InvalidEmailException(message: String = "Email is invalid") : RuntimeException("")
 class EmailExistsException() : RuntimeException("Email already exists")
 class AppUserExistsException() : RuntimeException("An account with this email already exists. Please sign in.")
 class ExistingSignUpException() : RuntimeException("It seems you've already initiated the sign-up process. Please check your email for the OTP to continue")
@@ -29,3 +31,5 @@ class InvalidCompanyRegistrationException(message: String?) : RuntimeException(m
 class PersonAlreadyExistsException() : RuntimeException("Person already exists")
 class CompanyAlreadyExistsException() : RuntimeException("Company already exists")
 class CompanyNotFoundException(message: String?) : RuntimeException(message)
+class UserNotFoundException(message: String?) : RuntimeException(message)
+class SessionNotFoundException(message: String?) : RuntimeException(message)

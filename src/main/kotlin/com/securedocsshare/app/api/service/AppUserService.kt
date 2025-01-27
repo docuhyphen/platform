@@ -5,7 +5,7 @@ import com.securedocsshare.app.api.model.Person
 import com.securedocsshare.app.api.repository.AppUserRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class AppUserService @Inject constructor(
@@ -26,5 +26,10 @@ class AppUserService @Inject constructor(
     {
         appUser.person = person
         appUserRepository.update(appUser)
+    }
+
+    fun addNewAppUser(user: AppUser): AppUser
+    {
+        return appUserRepository.save(user)
     }
 }

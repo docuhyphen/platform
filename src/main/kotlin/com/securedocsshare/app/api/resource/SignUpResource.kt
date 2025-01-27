@@ -1,27 +1,27 @@
 package com.securedocsshare.app.api.resource
 
-import com.securedocsshare.app.api.model.AppUserExistsException
-import com.securedocsshare.app.api.model.ConfirmationPasswordRequiredException
-import com.securedocsshare.app.api.model.EmailExistsException
-import com.securedocsshare.app.api.model.EmailNotFoundException
-import com.securedocsshare.app.api.model.EmailRequiredException
-import com.securedocsshare.app.api.model.ExistingSignUpException
-import com.securedocsshare.app.api.model.IncorrectSignUpCompletionStatusException
-import com.securedocsshare.app.api.model.InvalidEmailException
-import com.securedocsshare.app.api.model.InvalidOtpException
-import com.securedocsshare.app.api.model.MaxAttemptsOTPExceededException
-import com.securedocsshare.app.api.model.OTPExpiredException
-import com.securedocsshare.app.api.model.OtpRequiredException
-import com.securedocsshare.app.api.model.PasswordContainsEmailException
-import com.securedocsshare.app.api.model.PasswordMismatchException
-import com.securedocsshare.app.api.model.PasswordRequiredException
-import com.securedocsshare.app.api.model.PasswordRequirementsNotMetException
-import com.securedocsshare.app.api.model.SignUpRegenerationRequest
-import com.securedocsshare.app.api.model.ResponseError
-import com.securedocsshare.app.api.model.SignUpCompletionRequest
-import com.securedocsshare.app.api.model.SignUpCompletionResponse
-import com.securedocsshare.app.api.model.SignUpInitiateRequest
-import com.securedocsshare.app.api.model.SignUpInitiateResponse
+import com.securedocsshare.app.api.exception.AppUserExistsException
+import com.securedocsshare.app.api.exception.ConfirmationPasswordRequiredException
+import com.securedocsshare.app.api.exception.EmailExistsException
+import com.securedocsshare.app.api.exception.EmailNotFoundException
+import com.securedocsshare.app.api.exception.EmailRequiredException
+import com.securedocsshare.app.api.exception.ExistingSignUpException
+import com.securedocsshare.app.api.exception.IncorrectSignUpCompletionStatusException
+import com.securedocsshare.app.api.exception.InvalidEmailException
+import com.securedocsshare.app.api.exception.InvalidOtpException
+import com.securedocsshare.app.api.exception.MaxAttemptsOTPExceededException
+import com.securedocsshare.app.api.exception.OTPExpiredException
+import com.securedocsshare.app.api.exception.OtpRequiredException
+import com.securedocsshare.app.api.exception.PasswordContainsEmailException
+import com.securedocsshare.app.api.exception.PasswordMismatchException
+import com.securedocsshare.app.api.exception.PasswordRequiredException
+import com.securedocsshare.app.api.exception.PasswordRequirementsNotMetException
+import com.securedocsshare.app.api.resource.model.ResponseError
+import com.securedocsshare.app.api.resource.model.SignUpCompletionRequest
+import com.securedocsshare.app.api.resource.model.SignUpCompletionResponse
+import com.securedocsshare.app.api.resource.model.SignUpInitiateRequest
+import com.securedocsshare.app.api.resource.model.SignUpInitiateResponse
+import com.securedocsshare.app.api.resource.model.SignUpRegenerationRequest
 import com.securedocsshare.app.api.service.AuthenticationService
 import com.securedocsshare.app.api.service.SignUpService
 import jakarta.inject.Inject
@@ -144,7 +144,8 @@ class SignUpResource @Inject constructor(
         return try
         {
             signUpService.regenerateOtp(request.email)
-            val otpRegenerationResponse = SignUpCompletionResponse("OTP regenerated successfully, please check your email for the new OTP.")
+            val otpRegenerationResponse =
+                SignUpCompletionResponse("OTP regenerated successfully, please check your email for the new OTP.")
             Response.ok(otpRegenerationResponse).build()
 
         }

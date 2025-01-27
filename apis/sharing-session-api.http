@@ -1,0 +1,32 @@
+### Initiate sharing session
+POST http://localhost:8080/sharing-sessions/initiate
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
+{
+  "initialShareMessage": "Please review the attached documents.",
+  "description": "Document sharing session for project review.",
+  "receiverEmail": "receiverasd@example.com",
+  "sessionName": "Project Review Session",
+  "sessionDocuments": [
+    {
+      "title": "Project Plan",
+      "type": "PDF"
+    },
+    {
+      "title": "Budget Report",
+      "type": "WORD"
+    }
+  ],
+  "requestReceiverSignIn": true,
+  "allowDocumentAddition": true,
+  "allowDocumentDeletion": false,
+  "allowDocumentDownload": true,
+  "allowDocumentUpdate": true,
+  "allowDocumentUpload": true
+}
+
+### Get Sharing Session by id
+GET http://localhost:8080/sharing-sessions/initiator/633348af-c705-4911-a71c-3d622ef7824a
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json

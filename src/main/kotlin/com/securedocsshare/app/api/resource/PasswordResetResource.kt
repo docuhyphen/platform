@@ -1,6 +1,18 @@
 package com.securedocsshare.app.api.resource
 
-import com.securedocsshare.app.api.model.*
+import com.securedocsshare.app.api.exception.ConfirmationPasswordRequiredException
+import com.securedocsshare.app.api.exception.EmailNotFoundException
+import com.securedocsshare.app.api.exception.EmailRequiredException
+import com.securedocsshare.app.api.exception.InvalidEmailException
+import com.securedocsshare.app.api.exception.InvalidOtpException
+import com.securedocsshare.app.api.exception.OTPExpiredException
+import com.securedocsshare.app.api.exception.OtpRequiredException
+import com.securedocsshare.app.api.exception.PasswordMismatchException
+import com.securedocsshare.app.api.exception.PasswordRequiredException
+import com.securedocsshare.app.api.exception.PasswordRequirementsNotMetException
+import com.securedocsshare.app.api.resource.model.PasswordResetCompletionRequest
+import com.securedocsshare.app.api.resource.model.PasswordResetRequest
+import com.securedocsshare.app.api.resource.model.ResponseError
 import com.securedocsshare.app.api.service.PasswordResetService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*

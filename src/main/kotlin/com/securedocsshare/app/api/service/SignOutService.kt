@@ -1,7 +1,7 @@
 package com.securedocsshare.app.api.service
 
 import com.securedocsshare.app.api.interceptor.AuthTokenContext
-import com.securedocsshare.app.api.model.AuthTokenNotFoundException
+import com.securedocsshare.app.api.exception.AuthTokenNotFoundException
 import com.securedocsshare.app.api.repository.AuthTokenRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject

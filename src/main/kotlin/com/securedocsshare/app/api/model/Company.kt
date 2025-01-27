@@ -1,16 +1,9 @@
+// Company.kt
 package com.securedocsshare.app.api.model
 
-import com.securedocsshare.app.api.hacks.CustomerSerializers
+import com.securedocsshare.app.api.hacks.UUIDSerializer
 import com.securedocsshare.app.api.hacks.TimestampSerializer
-import jakarta.persistence.CascadeType.ALL
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.FetchType.LAZY
-import jakarta.persistence.Id
-import jakarta.persistence.JoinColumn
-import jakarta.persistence.OneToMany
-import jakarta.persistence.OneToOne
-import jakarta.persistence.Table
+import jakarta.persistence.*
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.time.Instant
@@ -22,7 +15,7 @@ import java.util.UUID
 class Company {
 
     @Id
-    @Serializable(with = CustomerSerializers::class)
+    @Serializable(with = UUIDSerializer::class)
     var id: UUID = UUID.randomUUID()
 
     @Column(name = "is_active", nullable = false)
@@ -41,11 +34,12 @@ class Company {
     @Column(name = "registration_number", nullable = false)
     lateinit var registrationNumber: String
 
-    @OneToOne(cascade = [ALL], fetch = LAZY)
+    @OneToOne(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     @JoinColumn(name = "contact_details_id")
     var contactDetails: ContactDetails? = null
 
-    @OneToMany(cascade = [ALL], fetch = LAZY)
+    @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id")
     var appUsers: MutableList<AppUser> = mutableListOf()
 
     constructor()

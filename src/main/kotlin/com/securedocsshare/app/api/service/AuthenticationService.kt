@@ -2,8 +2,8 @@ package com.securedocsshare.app.api.service
 
 import com.securedocsshare.app.api.model.AppUser
 import com.securedocsshare.app.api.model.AuthToken
-import com.securedocsshare.app.api.model.AuthTokenInvalidException
-import com.securedocsshare.app.api.model.AuthTokenNotFoundException
+import com.securedocsshare.app.api.exception.AuthTokenInvalidException
+import com.securedocsshare.app.api.exception.AuthTokenNotFoundException
 import com.securedocsshare.app.api.repository.AuthTokenRepository
 import io.jsonwebtoken.Jwts
 import jakarta.enterprise.context.RequestScoped
