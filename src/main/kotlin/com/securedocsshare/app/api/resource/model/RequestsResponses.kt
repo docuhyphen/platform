@@ -83,19 +83,35 @@ data class CompanyRegistrationRequest(
 data class CompanyRegistrationResponse(var company: Company)
 
 @Serializable
-data class InitiateShareSessionRequest(
+data class SharingSessionInitiationRequest(
     var initialShareMessage: String? = null,
     var description: String? = null,
     var receiverEmail: String? = null,
     var sessionName: String? = null,
-    var sessionDocuments: List<SharingSessionInitiationDocument>? = null,
+    var sessionDocuments: List<SharingSessionRequestDocument>? = null,
     var requestReceiverSignIn: Boolean = false,
     var allowDocumentAddition: Boolean = false,
     var allowDocumentDeletion: Boolean = false,
     var allowDocumentDownload: Boolean = false,
     var allowDocumentUpdate: Boolean = false,
     var allowDocumentUpload: Boolean = false,
-    var participants: List<SharingSessionParticipant>? = null
+    var participants: List<SharingSessionParticipant>? = null,
+    var status: SharingSessionStatus? = null,
+    var rejectionReason: String? = null
+)
+
+@Serializable
+data class UpdateSharingSessionRequest(
+    var initialShareMessage: String? = null,
+    var description: String? = null,
+    var sessionName: String? = null,
+    var allowDocumentAddition: Boolean = false,
+    var allowDocumentDeletion: Boolean = false,
+    var allowDocumentDownload: Boolean = false,
+    var allowDocumentUpdate: Boolean = false,
+    var allowDocumentUpload: Boolean = false,
+    var status: SharingSessionStatus? = null,
+    var rejectionReason: String? = null
 )
 
 @Serializable
@@ -122,12 +138,7 @@ class DownloadShareSessionDocumentRequest(
 )
 
 @Serializable
-class UpdateSharingSessionStatus(
-    val status: SharingSessionStatus
-)
-
-@Serializable
-class SharingSessionInitiationDocument
+class SharingSessionRequestDocument
 {
     var title: String = ""
     var restrictedType: DocumentType? = null

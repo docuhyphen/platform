@@ -43,11 +43,11 @@ class SharingSession
     @Column(name = "description", nullable = false)
     var description: String? = null
 
-    @ManyToOne(cascade = [CascadeType.PERSIST], fetch = FetchType.LAZY)
+    @ManyToOne(cascade = [CascadeType.PERSIST], fetch = FetchType.EAGER)
     @JoinColumn(name = "initiator_id", unique = false)
     var initiator: AppUser? = null
 
-    @ManyToOne(cascade = [CascadeType.PERSIST], fetch = FetchType.LAZY)
+    @ManyToOne(cascade = [CascadeType.PERSIST], fetch = FetchType.EAGER)
     @JoinColumn(name = "receiver_id", unique = false)
     var receiver: AppUser? = null
 
@@ -55,7 +55,7 @@ class SharingSession
     @Enumerated(EnumType.STRING)
     var status: SharingSessionStatus = SharingSessionStatus.INITIATED
 
-    @OneToMany(cascade = [CascadeType.ALL])
+    @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.EAGER)
     var documents: MutableList<Document> = mutableListOf()
 
     @Column(name = "require_receiver_sign_in", nullable = false)
@@ -76,8 +76,18 @@ class SharingSession
     @Column(name = "allow_document_upload", nullable = false)
     var allowDocumentUpload: Boolean = false
 
-    @OneToMany(cascade = [CascadeType.ALL])
+//    @Column(name = "allow_document_print", nullable = false)
+//    var allowDocumentPrint: Boolean = false
+
+    @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.EAGER)
     var participants: MutableList<SharingSessionParticipant> = mutableListOf()
+
+    @Column(name="expire_date", nullable = true)
+    @Serializable(with = TimestampSerializer::class)
+    var expireDate: Timestamp? = null
+
+    @Column(name="rejection_reason", nullable = true)
+    var rejectionReason: String? = null
 
     constructor()
 }

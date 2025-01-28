@@ -12,6 +12,7 @@ import jakarta.persistence.Table
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType.STRING
 import jakarta.persistence.Enumerated
+import jakarta.persistence.FetchType.EAGER
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.time.Instant
@@ -44,7 +45,7 @@ class Person
     var personIDType: PersonIDType? = null
 
     @JoinColumn(name = "contact_details_id")
-    @OneToOne(cascade = [(ALL)], fetch = LAZY)
+    @OneToOne(cascade = [(ALL)], fetch = EAGER)
     var contactDetails: ContactDetails? = null
 
     constructor()

@@ -9,8 +9,9 @@ import com.securedocsshare.app.api.model.*
 import com.securedocsshare.app.api.repository.AppUserRepository
 import com.securedocsshare.app.api.repository.DocumentCommentRepository
 import com.securedocsshare.app.api.repository.SharingSessionRepository
-import com.securedocsshare.app.api.resource.model.SharingSessionInitiationDocument
 import com.securedocsshare.app.api.resource.model.SharingSessionParticipant
+import com.securedocsshare.app.api.resource.model.SharingSessionRequestDocument
+import com.securedocsshare.app.api.resource.model.UpdateSharingSessionRequest
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
@@ -49,16 +50,16 @@ class SharingSessionService @Inject constructor(
         description: String?,
         receiverEmail: String?,
         sessionName: String?,
-        sessionDocuments: List<SharingSessionInitiationDocument>?,
-        requestReceiverSignIn: Boolean,
-        allowDocumentAddition: Boolean,
-        allowDocumentDeletion: Boolean,
-        allowDocumentDownload: Boolean,
-        allowDocumentUpdate: Boolean,
-        allowDocumentUpload: Boolean,
-        sharingSessionParticipants: List<SharingSessionParticipant>?
+        sessionDocuments: List<SharingSessionRequestDocument>?,
+        requestReceiverSignIn: Boolean? = false,
+        allowDocumentAddition: Boolean? = false,
+        allowDocumentDeletion: Boolean? = false,
+        allowDocumentDownload: Boolean? = false,
+        allowDocumentUpdate: Boolean? = false,
+        allowDocumentUpload: Boolean? = false,
+        sharingSessionParticipants: List<SharingSessionParticipant>? = mutableListOf()
     ): SharingSession
-    {
+    {//ToDo: check if receiver and initiator are the same
         val initiator = authTokenContext.authToken.appUser
         var receiver = receiverEmail?.let { appUserRepository.findByEmail(receiverEmail) }
 
@@ -85,10 +86,9 @@ class SharingSessionService @Inject constructor(
             //ToDo: this logic can be better
             if (receiver.isTemporary)
             {
-                throw IllegalArgumentException("This email still needs to create an account")
+//                throw IllegalArgumentException("This email still needs to create an account")
             }
         }
-
 
         if (sessionDocuments.isNullOrEmpty())
         {
@@ -124,12 +124,12 @@ class SharingSessionService @Inject constructor(
             this.status = SharingSessionStatus.INITIATED
             this.createdDate = Timestamp.from(Instant.now())
             this.lastActivity = Timestamp.from(Instant.now())
-            this.requestReceiverSignIn = requestReceiverSignIn
-            this.allowDocumentAddition = allowDocumentAddition
-            this.allowDocumentDeletion = allowDocumentDeletion
-            this.allowDocumentDownload = allowDocumentDownload
-            this.allowDocumentUpdate = allowDocumentUpdate
-            this.allowDocumentUpload = allowDocumentUpload
+            this.requestReceiverSignIn = requestReceiverSignIn == true
+            this.allowDocumentAddition = allowDocumentAddition == true
+            this.allowDocumentDeletion = allowDocumentDeletion == true
+            this.allowDocumentDownload = allowDocumentDownload == true
+            this.allowDocumentUpdate = allowDocumentUpdate == true
+            this.allowDocumentUpload = allowDocumentUpload == true
             this.participants = participants
         }
 
@@ -146,7 +146,7 @@ class SharingSessionService @Inject constructor(
             sharingSession.documents.add(document)
         }
 
-        sharingSessionRepository.save(sharingSession)
+        var savedSharingSession = sharingSessionRepository.save(sharingSession)
 
         val receiverDetails = receiver
         val initiatorCompany = initiator?.person?.contactDetails?.company?.name ?: "N/A"
@@ -175,7 +175,141 @@ class SharingSessionService @Inject constructor(
 
         logger.info("Sharing session initiated by ${initiator.email} for ${receiverDetails?.email}")
 
-        return sharingSession
+        return savedSharingSession
+    }
+
+    @Transactional
+    fun updateSharingSession(
+        sessionId: String,
+        request: UpdateSharingSessionRequest?
+    )
+    {
+        val sessionUUID = UUID.fromString(sessionId)
+
+        sharingSessionRepository.findById(sessionUUID) ?: throw SessionNotFoundException("Sharing session not found")
+
+        request?.sessionName?.let {
+            sharingSessionRepository.updateSessionName(sessionUUID, it)
+        }
+
+        request?.status?.let {
+            sharingSessionRepository.updateStatus(sessionUUID, it)
+        }
+
+        request?.rejectionReason?.let {
+            sharingSessionRepository.updateRejectionReason(sessionUUID, it)
+        }
+
+        request?.allowDocumentAddition?.let {
+            sharingSessionRepository.updateAllowDocumentAddition(sessionUUID, it)
+        }
+
+        request?.allowDocumentDeletion?.let {
+            sharingSessionRepository.updateAllowDocumentDeletion(sessionUUID, it)
+        }
+
+        request?.allowDocumentDownload?.let {
+            sharingSessionRepository.updateAllowDocumentDownload(sessionUUID, it)
+        }
+
+        request?.allowDocumentUpdate?.let {
+            sharingSessionRepository.updateAllowDocumentUpdate(sessionUUID, it)
+        }
+
+        request?.allowDocumentUpload?.let {
+            sharingSessionRepository.updateAllowDocumentUpload(sessionUUID, it)
+        }
+
+        sharingSessionRepository.updateLastActivity(sessionUUID, Timestamp.from(Instant.now()))
+
+        val updatedSession = sharingSessionRepository.findById(sessionUUID)!!
+
+        val emailMessage = when (request?.status)
+        {
+            SharingSessionStatus.ACCEPTED_STARTED -> "Sharing Session ${updatedSession.sessionName} has been accepted and started"
+            SharingSessionStatus.COMPLETED -> "Session ${updatedSession.sessionName} has completed and further modifications will not be possible."
+            SharingSessionStatus.REJECTED -> "Your request has been rejected by the receiver. Reason: ${request.rejectionReason}"
+            else -> null
+        }
+
+        if (request?.status == SharingSessionStatus.COMPLETED)
+        {
+            emailMessage?.let {
+                emailService.sendEmail(
+                    updatedSession.receiver?.email!!, "Sharing Session Status Update | ${request.status}", emailMessage
+                )
+            }
+        }
+
+        if (request?.status == SharingSessionStatus.COMPLETED ||
+            request?.status == SharingSessionStatus.REJECTED ||
+            request?.status == SharingSessionStatus.ACCEPTED_STARTED
+        )
+        {
+            emailMessage?.let {
+                emailService.sendEmail(
+                    updatedSession.initiator?.email!!, "Sharing Session Status Update | ${request.status}", emailMessage
+                )
+            }
+        }
+        emailMessage?.let {
+            emailService.sendEmail(
+                updatedSession.initiator?.email!!,
+                "Sharing Session Status Update | ${request?.status}",
+                emailMessage
+            )
+        }
+
+        logger.info("Sharing session ${updatedSession.sessionName} completed")
+    }
+
+    @DocumentAuditRequired
+    @Transactional
+    fun uploadDocument(
+        file: File,
+        sessionId: String,
+        documentId: String,
+        performedBy: String
+    )
+    {
+        var appUser = appUserService.findUserByEmail(performedBy)
+
+        if (appUser == null)
+        {
+            logger.error("Failed to upload document, User not found using email: $performedBy")
+        }
+
+        appUser = appUserService.getAppUserById(UUID.fromString(performedBy))
+
+        if (appUser == null)
+        {
+            logger.error("Failed to upload document, User not found using id: $performedBy")
+            throw UserNotFoundException("User not found")
+        }
+
+        val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
+            ?: throw SessionNotFoundException("Sharing session not found")
+
+        //ToDo: check if the uploader is in the session
+
+        //ToDo: End To End encryption
+
+        val document = sharingSession.documents.find { it.id == UUID.fromString(documentId) }
+            ?: throw IllegalArgumentException("Session document not found")
+
+//        val encryptionKey = awsS3Service.uploadDocument(file, bucketName, key)
+
+        //ToDo: Encrypt the document
+        //ToDo: Save the encryption key in the database
+        //ToDo: Save the document in the database
+        //ToDo: Save the document in the S3 bucket
+        //ToDo: Log the action in the audit log
+        //ToDo: Send an email to the receiver
+
+        document.hash = "hash" //ToDo: Create a hash for the document
+
+        sharingSessionRepository.update(sharingSession)
+        documentAuditService.logAction(document, DocumentAuditLogAction.UPLOAD, appUser)
     }
 
     @Transactional
@@ -220,37 +354,6 @@ class SharingSessionService @Inject constructor(
         sharingSessionRepository.update(sharingSession)
 
         logger.info("Participant removed from sharing session ${sharingSession.sessionName}")
-    }
-
-    @Transactional
-    fun updateSharingSessionStatus(
-        sessionId: String, status:
-        SharingSessionStatus
-    )
-    {
-        val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
-            ?: throw SessionNotFoundException("Sharing session not found")
-
-        sharingSession.status = status
-        sharingSession.lastActivity = Timestamp.from(Instant.now())
-
-        sharingSessionRepository.update(sharingSession)
-
-        val emailMessage = when (status)
-        {
-            SharingSessionStatus.ACCEPTED_STARTED -> "Receiver has accepted the document request and will upload the documents shortly"
-            SharingSessionStatus.COMPLETED -> "Session has completed and closed."
-            SharingSessionStatus.REJECTED -> "Your request has been rejected by the receiver"
-            else -> null
-        }
-
-        emailMessage?.let {
-            emailService.sendEmail(
-                sharingSession.receiver?.email!!, "Sharing Session Status Update | $status", emailMessage
-            )
-        }
-
-        logger.info("Sharing session ${sharingSession.sessionName} completed")
     }
 
     fun getSharingSessionsForInitiator(initiatorId: UUID): List<SharingSession>
@@ -308,55 +411,6 @@ class SharingSessionService @Inject constructor(
         sharingSession.documents.add(document)
 
         sharingSessionRepository.update(sharingSession)
-    }
-
-    @DocumentAuditRequired
-    @Transactional
-    fun uploadDocument(
-        file: File,
-        sessionId: String,
-        documentId: String,
-        encryptionMode: DocumentEncryptionMode,
-        performedBy: String
-    )
-    {
-        var appUser = appUserService.findUserByEmail(performedBy)
-
-        if (appUser == null)
-        {
-            logger.error("Failed to upload document, User not found using email: $performedBy")
-        }
-
-        appUser = appUserService.getAppUserById(UUID.fromString(performedBy))
-
-        if (appUser == null)
-        {
-            logger.error("Failed to upload document, User not found using id: $performedBy")
-            throw UserNotFoundException("User not found")
-        }
-
-        val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
-            ?: throw SessionNotFoundException("Sharing session not found")
-
-        //ToDo: check if the uploader is in the session
-
-        //ToDo: End To End encryption
-
-        val document = sharingSession.documents.find { it.id == UUID.fromString(documentId) }
-            ?: throw SessionNotFoundException("Sharing Session not found")
-
-//        val encryptionKey = awsS3Service.uploadDocument(file, bucketName, key)
-
-        //ToDo: Encrypt the document
-        //ToDo: Save the encryption key in the database
-        //ToDo: Save the document in the database
-        //ToDo: Save the document in the S3 bucket
-        //ToDo: Log the action in the audit log
-        //ToDo: Send an email to the receiver
-
-        document.hash = "hash" //ToDo: Create a hash for the document
-
-        documentAuditService.logAction(document, DocumentAuditLogAction.UPLOAD, appUser)
     }
 
     @DocumentAuditRequired

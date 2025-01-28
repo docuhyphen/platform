@@ -1,5 +1,6 @@
 package com.securedocsshare.app.api.model
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.securedocsshare.app.api.model.MultifactorAuthenticationType.EMAIL
 import com.securedocsshare.app.api.hacks.UUIDSerializer
 import com.securedocsshare.app.api.hacks.TimestampSerializer
@@ -38,18 +39,18 @@ class AppUser {
     lateinit var email: String
 
     @Column(name = "password", nullable = true)
-    @JsonbTransient
+    @JsonIgnore
     var password: String? = null
 
     @Column(name = "password_salt", nullable = true)
-    @JsonbTransient
+    @JsonIgnore
     var passwordSalt: String? = null
 
     @Column(name = "email_verification_completed", nullable = false)
     var emailVerificationComplete: Boolean = false
 
     @Column(name = "sign_in_attempts", nullable = false)
-    @JsonbTransient
+    @JsonIgnore
     var signInAttempts: Int = 0
 
     @Column(name = "multifactor_authentication_type", nullable = false)

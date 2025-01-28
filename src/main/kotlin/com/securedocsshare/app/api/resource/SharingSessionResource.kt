@@ -1,11 +1,11 @@
 package com.securedocsshare.app.api.resource
 
 import com.securedocsshare.app.api.exception.InvalidEmailException
+import com.securedocsshare.app.api.exception.SessionNotFoundException
 import com.securedocsshare.app.api.exception.UserNotFoundException
 import com.securedocsshare.app.api.resource.model.*
 import com.securedocsshare.app.api.service.SharingSessionService
 import jakarta.inject.Inject
-import jakarta.transaction.Transactional
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
@@ -26,11 +26,11 @@ class SharingSessionResource @Inject constructor(
 
     @POST
     @Path("/initiate")
-    fun initiateSharingSession(initiateShareSessionRequest: InitiateShareSessionRequest): Response
+    fun initiateSharingSession(sharingSessionInitiationRequest: SharingSessionInitiationRequest): Response
     {
         return try
         {
-            val sharingSession = with(initiateShareSessionRequest) {
+            val sharingSession = with(sharingSessionInitiationRequest) {
                 sharingSessionService.initiateSharingSession(
                     initialShareMessage,
                     description,
@@ -159,23 +159,24 @@ class SharingSessionResource @Inject constructor(
         }
     }
 
-    @PUT
-    @Path("/{sessionId}/status")
+    @PATCH
+    @Path("/{sessionId}")
     fun updateSharingSessionStatus(
         @PathParam("sessionId") sessionId: String,
-        request: UpdateSharingSessionStatus
+        request: UpdateSharingSessionRequest
     ): Response
     {
         return try
         {
-            sharingSessionService.updateSharingSessionStatus(sessionId, request.status)
+            sharingSessionService.updateSharingSession(sessionId, request)
             Response.ok().build()
         }
         catch (exception: Exception)
         {
             when (exception)
             {
-                is IllegalArgumentException ->
+                is IllegalArgumentException,
+                is SessionNotFoundException ->
                 {
                     logger.error("Error initiating sharing session", exception)
 
@@ -386,7 +387,7 @@ class SharingSessionResource @Inject constructor(
         return try
         {
             val encryptionKey = with(uploadShareSessionDocumentRequest) {
-                sharingSessionService.uploadDocument(file, sessionId, documentId, encryptionMode, performedBy)
+                sharingSessionService.uploadDocument(file, sessionId, documentId, performedBy)
             }
             Response.ok(mapOf("encryptionKey" to encryptionKey)).build()
         }

@@ -6,7 +6,7 @@ Content-Type: application/json
 {
   "initialShareMessage": "Please review the attached documents.",
   "description": "Document sharing session for project review.",
-  "receiverEmail": "receiverasd@example.com",
+  "receiverEmail": "receiverasaasadd@example.com",
   "sessionName": "Project Review Session",
   "sessionDocuments": [
     {
@@ -30,3 +30,20 @@ Content-Type: application/json
 GET http://localhost:8080/sharing-sessions/initiator/633348af-c705-4911-a71c-3d622ef7824a
 Authorization: Bearer {{Authorization}}
 Content-Type: application/json
+
+### Update Sharing Session
+PATCH http://localhost:8080/sharing-sessions/18ce9fc8-a831-44a9-a7fa-a478fecdba89
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
+{
+  "sessionName": "Project Review Session 1",
+  "status": "REJECTED",
+  "initialShareMessage": "Please review the attached documents.",
+  "description": "Document sharing session for project review.",
+  "allowDocumentAddition": true,
+  "allowDocumentDeletion": false,
+  "allowDocumentDownload": true,
+  "allowDocumentUpdate": true,
+  "allowDocumentUpload": true
+}

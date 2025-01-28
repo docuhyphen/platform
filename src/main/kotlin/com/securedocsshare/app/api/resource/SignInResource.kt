@@ -43,7 +43,7 @@ class SignInResource @Inject constructor(
                 Response.ok(signInResponse).build()
             }
         }
-        catch (exception: InvalidSignInCredentialsException)
+        catch (exception: Exception)
         {
             when(exception)
             {

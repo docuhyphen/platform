@@ -72,14 +72,14 @@ class Document
     @Column(name = "document_type", nullable = true)
     var documentType: DocumentType? = null
 
-    @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.EAGER)
     @JoinColumn(name = "document_id")
     var auditLogs: MutableList<DocumentAuditLog> = mutableListOf()
 
     @Transient
     var documentContent: ByteArray? = null
 
-    @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.EAGER)
     @JoinColumn(name = "document_id")
     var comments: MutableList<DocumentComment> = mutableListOf()
 
