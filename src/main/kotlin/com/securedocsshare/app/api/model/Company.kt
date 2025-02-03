@@ -1,8 +1,8 @@
 // Company.kt
 package com.securedocsshare.app.api.model
 
-import com.securedocsshare.app.api.hacks.UUIDSerializer
-import com.securedocsshare.app.api.hacks.TimestampSerializer
+import com.securedocsshare.app.api.serializer.UUIDSerializer
+import com.securedocsshare.app.api.serializer.TimestampSerializer
 import jakarta.persistence.*
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp

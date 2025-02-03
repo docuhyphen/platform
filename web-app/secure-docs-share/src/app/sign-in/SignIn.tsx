@@ -8,6 +8,7 @@ import RedirectIfAuthenticated from '../components/RedirectIfAuthenticated';
 import useToken from "../../context/useToken.tsx";
 import {Button, Field, Input, Link} from "@fluentui/react-components";
 import {AppUser} from "../models/models.tsx";
+import {setApiClientAuthToken} from '../../services/apiClient';
 
 const SignIn: React.FC = () =>
 {
@@ -49,6 +50,7 @@ const SignIn: React.FC = () =>
             const signInCompletionRequest = {email, otp};
             const response = await completeSignIn(signInCompletionRequest);
             setToken(response.token);
+            setApiClientAuthToken(response.token);
 
             let appUser: AppUser | null = null
 

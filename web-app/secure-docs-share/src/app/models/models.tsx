@@ -1,4 +1,3 @@
-// Enums
 export enum AppUserRole
 {
     USER = 'USER',
@@ -26,7 +25,49 @@ export enum PersonIDType
     DRIVER_LICENSE = 'DRIVER_LICENSE'
 }
 
-// Models
+export enum SharingSessionStatus
+{
+    INITIATED = "INITIATED",
+    ACCEPTED_STARTED = "ACCEPTED_STARTED",
+    COMPLETED = "COMPLETED",
+    REJECTED = "REJECTED",
+}
+
+export enum DocumentEncryptionMode
+{
+    INTERNAL = "INTERNAL",
+    END_TO_END = "END_TO_END",
+}
+
+export enum DocumentType
+{
+    PDF = 'PDF',
+    DOCX = 'DOCX',
+    DOC = 'DOC',
+    XLSX = 'XLSX',
+    PPTX = 'PPTX',
+    PNG = 'PNG',
+    JPG = 'JPG'
+}
+
+export enum RequiredDocumentType
+{
+    PDF = "PDF",
+    WORD = "WORD",
+    IMAGE = "IMAGE",
+}
+
+export enum SharingSessionParticipantRole
+{
+    VIEWER = "VIEWER",
+    FULL_ACCESS = "FULL_ACCESS",
+    EDITOR = "EDITOR",
+    COMMENTER = "COMMENTER",
+    OWNER = "OWNER",
+    UPLOADER = "UPLOADER",
+    DOWNLOADER = "DOWNLOADER"
+}
+
 export interface AppUser
 {
     id: string;
@@ -68,4 +109,180 @@ export interface Company
     name: string;
     address?: string;
     // Add more fields as needed
+}
+
+export interface ResponseError
+{
+    errorMessage?: string;
+}
+
+export interface SignInRequest
+{
+    email?: string;
+    password?: string;
+}
+
+export interface SignInResponse
+{
+    message: string;
+}
+
+export interface SignInCompletionRequest
+{
+    otp?: string;
+    email?: string;
+}
+
+export interface SignInCompletionResponse
+{
+    token?: string;
+}
+
+export interface SignOutRequest
+{
+    appUser: AppUser;
+}
+
+export interface SignUpCompletionRequest
+{
+    email?: string;
+    otp?: string;
+    password?: string;
+    confirmationPassword?: string;
+}
+
+export interface SignUpCompletionResponse
+{
+    message?: string;
+}
+
+export interface PasswordResetCompletionRequest
+{
+    email?: string;
+    otp?: string;
+    password?: string;
+    confirmationPassword?: string;
+}
+
+export interface SignUpInitiateRequest
+{
+    email?: string;
+}
+
+export interface SignUpInitiateResponse
+{
+    message?: string;
+}
+
+export interface SignUpRegenerationRequest
+{
+    email?: string;
+}
+
+export interface SignUpRegenerationResponse
+{
+    message?: string;
+}
+
+export interface PasswordResetRequest
+{
+    email?: string;
+}
+
+export interface PersonRegistrationRequest
+{
+    firstName?: string;
+    lastName?: string;
+    idNumber?: string;
+    idType?: PersonIDType;
+}
+
+export interface PersonRegistrationResponse
+{
+    person: Person;
+}
+
+export interface CompanyRegistrationRequest
+{
+    name?: string;
+    registrationNumber?: string;
+}
+
+export interface CompanyRegistrationResponse
+{
+    company: Company;
+}
+
+export interface SharingSessionInitiationRequest
+{
+    initialShareMessage?: string;
+    description?: string;
+    receiverEmail?: string;
+    sessionName?: string;
+    sessionDocuments?: SharingSessionRequestDocument[];
+    requestReceiverSignIn: boolean;
+    allowDocumentAddition: boolean;
+    allowDocumentDeletion: boolean;
+    allowDocumentDownload: boolean;
+    allowDocumentUpdate: boolean;
+    allowDocumentUpload: boolean;
+    participants?: SharingSessionParticipant[];
+    status?: SharingSessionStatus;
+    rejectionReason?: string;
+}
+
+export interface UpdateSharingSessionRequest
+{
+    initialShareMessage?: string;
+    description?: string;
+    sessionName?: string;
+    allowDocumentAddition: boolean;
+    allowDocumentDeletion: boolean;
+    allowDocumentDownload: boolean;
+    allowDocumentUpdate: boolean;
+    allowDocumentUpload: boolean;
+    status?: SharingSessionStatus;
+    rejectionReason?: string;
+}
+
+export interface AddSharingSessionDocumentRequest
+{
+    documentId?: string;
+    documentType?: DocumentType;
+    restrictedType?: DocumentType;
+}
+
+export interface UploadShareSessionDocumentRequest
+{
+    file: File;
+    documentId: string;
+    performedBy: string;
+    encryptionMode: DocumentEncryptionMode;
+}
+
+export interface DownloadShareSessionDocumentRequest
+{
+    documentId: string;
+    sessionId: string;
+}
+
+export interface SharingSessionRequestDocument
+{
+    title: string;
+    restrictedType?: DocumentType;
+    type?: DocumentType;
+    restrictType?: boolean;
+}
+
+export interface SharingSessionParticipant
+{
+    id: string;
+    role: SharingSessionParticipantRole;
+}
+
+export interface UpdateShareSessionDocumentRequest
+{
+    title?: string;
+    restrictedType?: DocumentType;
+    type?: DocumentType;
 }

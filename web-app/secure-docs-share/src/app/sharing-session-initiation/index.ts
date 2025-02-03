@@ -1,0 +1,1 @@
+export { default } from '../company-registration-pending/CompanyRegistration.tsx';

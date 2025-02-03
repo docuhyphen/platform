@@ -18,6 +18,16 @@ const MainMenu: React.FC = () => {
     const { appUser, appUserPersonCompany } = useAuth();
     const navigate = useNavigate();
 
+    function onRequestDocuments()
+    {
+        navigate('/sharing-session-initiation?request=true');
+    }
+
+    function onSendDocuments()
+    {
+        navigate('/sharing-session-initiation?request=false');
+    }
+
     return (
         <div>
             <Link onClick={ () => navigate("/profile")}>Profile</Link>
@@ -36,13 +46,13 @@ const MainMenu: React.FC = () => {
 
             <Menu>
                 <MenuTrigger disableButtonEnhancement>
-                    <MenuButton shape="circular" appearance="primary" >Start Share Session</MenuButton>
+                    <MenuButton shape="circular" appearance="primary">Start Sharing Session</MenuButton>
                 </MenuTrigger>
 
                 <MenuPopover>
                     <MenuList>
-                        <MenuItem>Request Documents</MenuItem>
-                        <MenuItem disabled={true}>Send Documents</MenuItem> {/* Feature can be optional*/}
+                        <MenuItem onClick={onRequestDocuments}>Request Documents</MenuItem>
+                        <MenuItem onClick={onSendDocuments}>Send Documents</MenuItem> {/* Feature can be optional*/}
                     </MenuList>
                 </MenuPopover>
             </Menu>

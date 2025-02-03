@@ -146,8 +146,8 @@ const IndividualRegistration: React.FC = () =>
                             <Option key={option.key} value={option.key}>
                                 {option.text}
                             </Option>
-                ))}
-            </Dropdown>
+                        ))}
+                </Dropdown>
             </Field>
 
             <Checkbox label="Register a company"

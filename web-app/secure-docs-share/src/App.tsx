@@ -7,13 +7,15 @@ import {AuthProvider} from './context/AuthContext';
 import './App.css';
 import ProtectedRoute from "./app/components/ProtectedRoutes.tsx";
 import Landing from "./app/landing/Landing.tsx";
+import SharingSession from "./app/sharing-session/SharingSession.tsx";
 import SignUp from "./app/sign-up";
 import RedirectIfAuthenticated from "./app/components/RedirectIfAuthenticated.tsx";
 import NotFound from './app/NotFound.tsx';
 import Onboarding from "./app/onboarding/Onboarding.tsx";
-import CompanyRegistration from "./app/company-registration-pending";
+import SharingSessionInitiation from "./app/company-registration-pending";
 import Settings from "./app/settings/Settings.tsx";
 import Profile from "./app/profile/Profile.tsx";
+import CompanyRegistration from "./app/sharing-session-initiation";
 
 const App: React.FC = () => {
     return (
@@ -34,6 +36,11 @@ const App: React.FC = () => {
 
                     <Route path="/onboarding/company-registration-pending"
                            element={<ProtectedRoute path='/sign-in' element={<CompanyRegistrationPending/>}/>}/>
+
+                    <Route path="/sharing-session-initiation"
+                           element={<ProtectedRoute path='/sign-in' element={<SharingSessionInitiation/>}/>}/>
+
+                    <Route path="/sharing-sessions/:id" element={<ProtectedRoute path='/sign-in' element={<SharingSession />} />} />
 
                     <Route path="/landing" element={<ProtectedRoute path='/sign-in' element={<Landing />} />} />
 

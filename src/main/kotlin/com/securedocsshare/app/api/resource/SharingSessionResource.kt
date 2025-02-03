@@ -25,7 +25,6 @@ class SharingSessionResource @Inject constructor(
     }
 
     @POST
-    @Path("/initiate")
     fun initiateSharingSession(sharingSessionInitiationRequest: SharingSessionInitiationRequest): Response
     {
         return try

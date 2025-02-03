@@ -2,9 +2,8 @@ package com.securedocsshare.app.api.model
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.securedocsshare.app.api.model.MultifactorAuthenticationType.EMAIL
-import com.securedocsshare.app.api.hacks.UUIDSerializer
-import com.securedocsshare.app.api.hacks.TimestampSerializer
-import jakarta.json.bind.annotation.JsonbTransient
+import com.securedocsshare.app.api.serializer.UUIDSerializer
+import com.securedocsshare.app.api.serializer.TimestampSerializer
 import jakarta.persistence.*
 import jakarta.persistence.CascadeType.ALL
 import jakarta.persistence.EnumType.STRING

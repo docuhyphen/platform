@@ -1,4 +1,4 @@
-package com.securedocsshare.app.api.hacks
+package com.securedocsshare.app.api.serializer
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind

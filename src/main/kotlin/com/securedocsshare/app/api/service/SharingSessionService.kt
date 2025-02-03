@@ -90,6 +90,8 @@ class SharingSessionService @Inject constructor(
             }
         }
 
+        //ToDo: check if the receiver is null
+
         if (sessionDocuments.isNullOrEmpty())
         {
             throw IllegalArgumentException("Session documents cannot be empty")
@@ -112,12 +114,19 @@ class SharingSessionService @Inject constructor(
             participants.add(sharingSessionParticipant)
         }
 
-        entityManager.detach(initiator)
-        entityManager.detach(receiver)
+        if (initiator != null)
+        {
+            entityManager.detach(initiator)
+        }
+
+        if (receiver != null)
+        {
+            entityManager.detach(receiver)
+        }
 
         val sharingSession = SharingSession().apply {
             this.initiator = entityManager.merge(initiator)
-            this.receiver = entityManager.merge(receiver)
+            this.receiver = if (receiver == null) null else entityManager.merge(receiver)
             this.sessionName = sessionName
             this.initialShareMessage = initialShareMessage
             this.description = description
@@ -139,8 +148,8 @@ class SharingSessionService @Inject constructor(
                 this.createdDate = Timestamp.from(Instant.now())
                 this.updateDate = Timestamp.from(Instant.now())
                 this.deleted = false
-                this.type = doc.type
-                this.restrictedType = doc.type
+                this.type = null //Type is set on the document upload method
+                this.restrictedType = doc.restrictedType
             }
 
             sharingSession.documents.add(document)
