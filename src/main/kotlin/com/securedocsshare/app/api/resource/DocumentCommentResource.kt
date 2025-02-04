@@ -1,9 +1,8 @@
 package com.securedocsshare.app.api.resource
 
-import com.securedocsshare.app.api.service.SharingSessionService
+import com.securedocsshare.app.api.service.SharingSessionDocumentService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 
@@ -11,7 +10,7 @@ import jakarta.ws.rs.core.Response
 @Produces(APPLICATION_JSON)
 @Consumes(APPLICATION_JSON)
 class DocumentCommentResource @Inject constructor(
-    private val sharingSessionService: SharingSessionService
+    private val sharingSessionDocumentService: SharingSessionDocumentService
 ) {
 
     @POST
@@ -19,13 +18,13 @@ class DocumentCommentResource @Inject constructor(
         @PathParam("documentId") documentId: String,
         commentRequest: CommentRequest
     ): Response {
-        val comment = sharingSessionService.addDocumentComment(documentId, commentRequest.commentText, commentRequest.commentedBy)
+        val comment = sharingSessionDocumentService.addDocumentComment(documentId, commentRequest.commentText, commentRequest.commentedBy)
         return Response.ok(comment).build()
     }
 
     @GET
     fun getComments(@PathParam("documentId") documentId: String): Response {
-        val comments = sharingSessionService.getDocumentComments(documentId)
+        val comments = sharingSessionDocumentService.getDocumentComments(documentId)
         return Response.ok(comments).build()
     }
 }

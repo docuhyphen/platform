@@ -4,7 +4,7 @@ import com.securedocsshare.app.api.exception.InvalidEmailException
 import com.securedocsshare.app.api.exception.SessionNotFoundException
 import com.securedocsshare.app.api.exception.UserNotFoundException
 import com.securedocsshare.app.api.resource.model.*
-import com.securedocsshare.app.api.service.SharingSessionService
+import com.securedocsshare.app.api.service.*
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
@@ -16,7 +16,11 @@ import java.util.*
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 class SharingSessionResource @Inject constructor(
-    private val sharingSessionService: SharingSessionService
+    private val sharingSessionDocumentService: SharingSessionDocumentService,
+    private val sharingSessionInitiationService: SharingSessionInitiationService,
+    private val sharingSessionRetrievalService: SharingSessionRetrievalService,
+    private val sharingSessionUpdateService: SharingSessionUpdateService,
+    private val sharingSessionParticipantService: SharingSessionParticipantService
 )
 {
     companion object
@@ -30,7 +34,7 @@ class SharingSessionResource @Inject constructor(
         return try
         {
             val sharingSession = with(sharingSessionInitiationRequest) {
-                sharingSessionService.initiateSharingSession(
+                sharingSessionInitiationService.initiateSharingSession(
                     initialShareMessage,
                     description,
                     receiverEmail,
@@ -81,12 +85,109 @@ class SharingSessionResource @Inject constructor(
     }
 
     @GET
-    @Path("/initiator/{initiatorId}")
-    fun getSharingSessionsForInitiator(@PathParam("initiatorId") initiatorId: UUID): Response
+    @Path("/{sessionId}")
+    fun getSharingSession(@PathParam("sessionId") sessionId: String): Response
     {
         return try
         {
-            val sessions = sharingSessionService.getSharingSessionsForInitiator(initiatorId)
+            val sharingSession = sharingSessionRetrievalService.getSharingSession(sessionId)
+
+            Response.ok(sharingSession).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is SessionNotFoundException ->
+                {
+
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(Response.Status.NOT_FOUND)
+                        .entity(responseError)
+                        .build()
+                }
+
+                is IllegalArgumentException ->
+                {
+                    logger.error("Error initiating sharing session", exception)
+
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(Response.Status.BAD_REQUEST)
+                        .entity(responseError)
+                        .build()
+                }
+
+                else ->
+                {
+                    logger.error("Error initiating sharing session", exception)
+
+                    val responseError = ResponseError("An error occurred while initiating sharing session")
+                    Response
+                        .status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(responseError)
+                        .build()
+                }
+            }
+        }
+    }
+
+    @PUT
+    @Path("/{sessionId}")
+    fun updateSharingSessionStatus(
+        @PathParam("sessionId") sessionId: String,
+        request: UpdateSharingSessionRequest
+    ): Response
+    {
+        return try
+        {
+            sharingSessionUpdateService.updateSharingSession(sessionId, request)
+            Response.ok().build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is IllegalArgumentException,
+                is SessionNotFoundException ->
+                {
+                    logger.error("Error initiating sharing session", exception)
+
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(Response.Status.BAD_REQUEST)
+                        .entity(responseError)
+                        .build()
+                }
+
+                else ->
+                {
+                    logger.error("Error initiating sharing session", exception)
+
+                    val responseError = ResponseError("An error occurred while initiating sharing session")
+                    Response
+                        .status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(responseError)
+                        .build()
+                }
+            }
+        }
+    }
+
+    @GET
+    @Path("{sessionId}/initiator/{initiatorId}")
+    fun getSharingSessionsForInitiator(
+        @PathParam("sessionId") sessionId: UUID,
+        @PathParam("initiatorId") initiatorId: UUID
+    ): Response
+    {
+        return try
+        {
+            val sessions = sharingSessionRetrievalService.getSharingSessionsForInitiator(initiatorId)
             Response.ok(sessions).build()
         }
         catch (exception: Exception)
@@ -120,12 +221,15 @@ class SharingSessionResource @Inject constructor(
     }
 
     @GET
-    @Path("/receiver/{receiverId}")
-    fun getSharingSessionsForReceiver(@PathParam("receiverId") receiverId: UUID): Response
+    @Path("{sessionId}/receiver/{receiverId}")
+    fun getSharingSessionsForReceiver(
+        @PathParam("sessionId") sessionId: UUID,
+        @PathParam("receiverId") receiverId: UUID
+    ): Response
     {
         return try
         {
-            val sessions = sharingSessionService.getSharingSessionsForReceiver(receiverId)
+            val sessions = sharingSessionRetrievalService.getSharingSessionsForReceiver(receiverId)
             Response.ok(sessions).build()
         }
         catch (exception: Exception)
@@ -133,49 +237,6 @@ class SharingSessionResource @Inject constructor(
             when (exception)
             {
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error initiating sharing session", exception)
-
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
-                }
-
-                else ->
-                {
-                    logger.error("Error initiating sharing session", exception)
-
-                    val responseError = ResponseError("An error occurred while initiating sharing session")
-                    Response
-                        .status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
-                        .build()
-                }
-            }
-        }
-    }
-
-    @PATCH
-    @Path("/{sessionId}")
-    fun updateSharingSessionStatus(
-        @PathParam("sessionId") sessionId: String,
-        request: UpdateSharingSessionRequest
-    ): Response
-    {
-        return try
-        {
-            sharingSessionService.updateSharingSession(sessionId, request)
-            Response.ok().build()
-        }
-        catch (exception: Exception)
-        {
-            when (exception)
-            {
-                is IllegalArgumentException,
-                is SessionNotFoundException ->
                 {
                     logger.error("Error initiating sharing session", exception)
 
@@ -210,7 +271,7 @@ class SharingSessionResource @Inject constructor(
     {
         return try
         {
-            sharingSessionService.addSharingSessionParticipant(sessionId, request.id, request.role)
+            sharingSessionParticipantService.addSharingSessionParticipant(sessionId, request.id, request.role)
             Response.ok().build()
         }
         catch (exception: Exception)
@@ -252,7 +313,7 @@ class SharingSessionResource @Inject constructor(
     {
         return try
         {
-            sharingSessionService.removeSharingSessionParticipant(sessionId, participantId)
+            sharingSessionParticipantService.removeSharingSessionParticipant(sessionId, participantId)
             Response.ok().build()
         }
         catch (exception: Exception)
@@ -295,7 +356,7 @@ class SharingSessionResource @Inject constructor(
         return try
         {
             val document = with(request) {
-                sharingSessionService.addDocument(
+                sharingSessionDocumentService.addDocument(
                     sessionId,
                     documentType,
                     restrictedType
@@ -334,8 +395,8 @@ class SharingSessionResource @Inject constructor(
         }
     }
 
-    @POST
-    @Path("/{sessionId}/documents/{documentId}/delete")
+    @DELETE
+    @Path("/{sessionId}/documents/{documentId}")
     fun deleteDocument(
         @PathParam("sessionId") sessionId: String,
         @PathParam("documentId") documentId: String
@@ -343,7 +404,7 @@ class SharingSessionResource @Inject constructor(
     {
         return try
         {
-            sharingSessionService.deleteDocument(sessionId, documentId)
+            sharingSessionDocumentService.deleteDocument(sessionId, documentId)
             Response.ok().build()
         }
         catch (exception: Exception)
@@ -386,7 +447,7 @@ class SharingSessionResource @Inject constructor(
         return try
         {
             val encryptionKey = with(uploadShareSessionDocumentRequest) {
-                sharingSessionService.uploadDocument(file, sessionId, documentId, performedBy)
+                sharingSessionDocumentService.uploadDocument(file, sessionId, documentId, performedBy)
             }
             Response.ok(mapOf("encryptionKey" to encryptionKey)).build()
         }
@@ -431,7 +492,7 @@ class SharingSessionResource @Inject constructor(
         return try
         {
             val document = with(request) {
-                sharingSessionService.updateDocument(
+                sharingSessionDocumentService.updateDocument(
                     sessionId,
                     documentId,
                     title,
@@ -473,7 +534,7 @@ class SharingSessionResource @Inject constructor(
     }
 
     @GET
-    @Path("/{sessionId}/documents/{documentId}/download")
+    @Path("/{sessionId}/documents/{documentId}/file")
     fun downloadDocument(
         request: DownloadShareSessionDocumentRequest
     ): Response
@@ -481,7 +542,7 @@ class SharingSessionResource @Inject constructor(
         return try
         {
             val file = with(request) {
-                sharingSessionService.downloadDocument(sessionId, documentId)
+                sharingSessionDocumentService.downloadDocument(sessionId, documentId)
             }
 
             Response.ok(file).build()
