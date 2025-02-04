@@ -2,7 +2,6 @@ import React from 'react';
 import {useAuth} from '../../context/AuthContext';
 import {signOut} from '../../services/api';
 import {useNavigate} from 'react-router-dom';
-import {Button} from "@fluentui/react-components";
 
 const SignOutButton: React.FC = () =>
 {
@@ -26,7 +25,7 @@ const SignOutButton: React.FC = () =>
         }
     };
 
-    return <Button onClick={handleSignOut}> Sign Out </Button>;
+    return <span onClick={handleSignOut}> Sign Out </span>;
 };
 
 export default SignOutButton;

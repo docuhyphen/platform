@@ -6,7 +6,7 @@ import {useAuth} from '../../context/AuthContext';
 import {useNavigate} from 'react-router-dom';
 import RedirectIfAuthenticated from '../components/RedirectIfAuthenticated';
 import useToken from "../../context/useToken.tsx";
-import {Button, Field, Input, Link} from "@fluentui/react-components";
+import {Button, Card, CardFooter, Field, Input, Link} from "@fluentui/react-components";
 import {AppUser} from "../models/models.tsx";
 import {setApiClientAuthToken} from '../../services/apiClient';
 
@@ -88,7 +88,8 @@ const SignIn: React.FC = () =>
 
     return (
         <RedirectIfAuthenticated element={
-            <div>
+            <section id="sign-in-section">
+                <Card id="sign-in-card">
                 <h1>Sign In | <Link href={"/sign-up"}>Sign Up</Link></h1>
 
                 {responseErrorMessage &&
@@ -117,13 +118,9 @@ const SignIn: React.FC = () =>
                         onChange={onPasswordChange}/>
                 </Field>
 
-                {!signInInitiationSuccessful &&
-                    <Button onClick={onInitiateSignIn}>Sign In </Button>
-                }
-
                 {signInInitiationSuccessful && (
                     <>
-                        <p>{signInInitiationSuccessfulMsg}</p>
+                        <span>{signInInitiationSuccessfulMsg}</span>
 
                         <Field
                             label={"OTP"}
@@ -134,10 +131,36 @@ const SignIn: React.FC = () =>
                                 autoComplete="false"
                                 onChange={onOtpChange}/>
                         </Field>
-                        <Button onClick={onCompleteSignIn}> Complete Sign In</Button>
+                        <Button appearance="transparent"> Resent OTP</Button>
                     </>
                 )}
-            </div>
+
+                <CardFooter action={
+                    <>
+                        {!signInInitiationSuccessful &&
+                            <Button onClick={onInitiateSignIn}
+                                    appearance="primary">
+                                Sign In
+                            </Button>
+                        }
+
+                        {signInInitiationSuccessful && (
+                            <>
+                                <Button onClick={onCompleteSignIn}
+                                        appearance="primary">
+                                    Complete Sign In
+                                </Button>
+                            </>
+                        )}
+                    </>
+                }>
+                    <Button onClick={() => navigate('/forgot-password')}
+                            appearance="subtle">
+                        Forgot Password
+                    </Button>
+                </CardFooter>
+            </Card>
+            </section>
         }/>
     );
 };

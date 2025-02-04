@@ -41,7 +41,7 @@ darkTheme.colorBrandForeground2 = maintheme[120]; // use brand[120] instead of b
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-      <FluentProvider theme={lightTheme}>
+      <FluentProvider theme={lightTheme} id="fluent-provider">
           <App/>
       </FluentProvider>
   </StrictMode>,

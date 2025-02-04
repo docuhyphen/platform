@@ -27,19 +27,6 @@ import {useAuth} from "../../context/AuthContext.tsx";
 import {DocumentType, SharingSessionInitiationRequest, SharingSessionRequestDocument} from "../models/models.tsx";
 import {initiateSharingSession} from "../../services/api.ts";
 
-//
-// interface SharingSessionDocument
-// {
-//     id?: string;
-//     name?: string;
-//     description?: string;
-//     url?: string;
-//     created?: string;
-//     updated?: string;
-//     restrictType?: boolean;
-//     restrictedType?: DocumentType;
-// }
-
 const SharingSessionInitiation: React.FC = () =>
 {
     const token = useToken();
