@@ -1,7 +1,7 @@
 package com.securedocsshare.app.api.service
 
 import com.securedocsshare.app.api.annotation.DocumentAuditRequired
-import com.securedocsshare.app.api.exception.SessionNotFoundException
+import com.securedocsshare.app.api.exception.SharingSessionNotFoundException
 import com.securedocsshare.app.api.exception.UserNotFoundException
 import com.securedocsshare.app.api.interceptor.AuthTokenContext
 import com.securedocsshare.app.api.model.Document
@@ -60,7 +60,7 @@ class SharingSessionDocumentService @Inject constructor(
         }
 
         val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
-            ?: throw SessionNotFoundException("Sharing session not found")
+            ?: throw SharingSessionNotFoundException("Sharing session not found")
 
         //ToDo: check if the uploader is in the session
 
@@ -94,10 +94,10 @@ class SharingSessionDocumentService @Inject constructor(
         val performedBy = authTokenContext.authToken.appUser!!.id.toString()
 
         val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
-            ?: throw SessionNotFoundException("Sharing session not found")
+            ?: throw SharingSessionNotFoundException("Sharing session not found")
 
         val document = sharingSession.documents.find { it.id == UUID.fromString(documentId) }
-            ?: throw SessionNotFoundException("Document not found")
+            ?: throw SharingSessionNotFoundException("Document not found")
 
         document.deleted = true
         document.updateDate = Timestamp.from(Instant.now())
@@ -115,7 +115,7 @@ class SharingSessionDocumentService @Inject constructor(
     )
     {
         val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
-            ?: throw SessionNotFoundException("Sharing session not found")
+            ?: throw SharingSessionNotFoundException("Sharing session not found")
 
         val document = Document().apply {
             this.createdDate = Timestamp.from(Instant.now())
@@ -154,10 +154,10 @@ class SharingSessionDocumentService @Inject constructor(
     )
     {
         val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
-            ?: throw SessionNotFoundException("Sharing session not found")
+            ?: throw SharingSessionNotFoundException("Sharing session not found")
 
         val document = sharingSession.documents.find { it.id == UUID.fromString(documentId) }
-            ?: throw SessionNotFoundException("Document not found")
+            ?: throw SharingSessionNotFoundException("Document not found")
 
         title ?: throw IllegalArgumentException("Title cannot be null")
 
@@ -182,7 +182,7 @@ class SharingSessionDocumentService @Inject constructor(
     ): DocumentComment
     {
         val sharingSession = sharingSessionRepository.findById(UUID.fromString(documentId))
-            ?: throw SessionNotFoundException("Document not found")
+            ?: throw SharingSessionNotFoundException("Document not found")
 
         val user = appUserRepository.findByEmail(commentedBy)
             ?: throw UserNotFoundException("User not found")

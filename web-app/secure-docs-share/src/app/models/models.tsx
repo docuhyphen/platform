@@ -41,6 +41,7 @@ export enum DocumentEncryptionMode
 
 export enum DocumentType
 {
+    WORD = 'WORD',
     PDF = 'PDF',
     DOCX = 'DOCX',
     DOC = 'DOC',

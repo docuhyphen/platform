@@ -12,7 +12,13 @@ import {
 } from "@fluentui/react-components";
 import {useAuth} from '../../context/AuthContext';
 import SignOutButton from '../components/SignOutButton';
-import {ArrowExitRegular, PersonSettingsRegular, SettingsRegular} from "@fluentui/react-icons";
+import {
+    AlertRegular,
+    ArrowExitRegular,
+    ChannelShareRegular,
+    PersonSettingsRegular,
+    SettingsRegular
+} from "@fluentui/react-icons";
 
 const MainMenu: React.FC = () => {
     const { appUser, appUserPersonCompany } = useAuth();
@@ -30,6 +36,9 @@ const MainMenu: React.FC = () => {
 
     return (
         <section id="main-app-header">
+            <span>
+                <strong> SECURE DOCUMENT SHARING</strong>
+            </span>
             <section id="main-app-header-mid-section">
                 {!appUserPersonCompany &&
                     <Button onClick={() => navigate('/onboarding/company-registration')}>
@@ -57,32 +66,37 @@ const MainMenu: React.FC = () => {
                 </Menu>
             </section>
 
-            <Menu>
-                <MenuTrigger disableButtonEnhancement>
-                    <MenuButton appearance="transparent">
-                        <Persona
-                            name={`${appUser?.person?.firstName} ${appUser?.person?.lastName}`}
-                            secondaryText={appUser?.email}/>
-                    </MenuButton>
-                </MenuTrigger>
+            <section>
+                <Button icon={<ChannelShareRegular/>}
+                        onClick={() => navigate('/landing')}
+                        appearance={"subtle"}></Button>
+                <Button icon={<AlertRegular/>} appearance={"subtle"}></Button>
+                <Menu>
+                    <MenuTrigger disableButtonEnhancement>
+                        <MenuButton appearance="transparent">
+                            <Persona
+                                name={`${appUser?.person?.firstName} ${appUser?.person?.lastName}`}
+                                secondaryText={appUser?.email}/>
+                        </MenuButton>
+                    </MenuTrigger>
 
-                <MenuPopover>
-                    <MenuList>
-                        <MenuItem onClick={() => navigate("/profile")}
-                                  icon={<PersonSettingsRegular/>}>
-                            Profile
-                        </MenuItem>
-                        <MenuItem onClick={() => navigate("/settings")}
-                                  icon={<SettingsRegular/>}>
-                            Settings
-                        </MenuItem>
-                        <MenuItem icon={<ArrowExitRegular/>}>
-                            <SignOutButton/>
-                        </MenuItem>
-                    </MenuList>
-                </MenuPopover>
-            </Menu>
-
+                    <MenuPopover>
+                        <MenuList>
+                            <MenuItem onClick={() => navigate("/profile")}
+                                      icon={<PersonSettingsRegular/>}>
+                                Profile
+                            </MenuItem>
+                            <MenuItem onClick={() => navigate("/settings")}
+                                      icon={<SettingsRegular/>}>
+                                Settings
+                            </MenuItem>
+                            <MenuItem icon={<ArrowExitRegular/>}>
+                                <SignOutButton/>
+                            </MenuItem>
+                        </MenuList>
+                    </MenuPopover>
+                </Menu>
+            </section>
         </section>
     );
 };

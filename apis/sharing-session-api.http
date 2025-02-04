@@ -1,12 +1,12 @@
 ### Initiate sharing session
-POST http://localhost:8080/sharing-sessions/initiate
+POST http://localhost:8080/sharing-sessions
 Authorization: Bearer {{Authorization}}
 Content-Type: application/json
 
 {
   "initialShareMessage": "Please review the attached documents.",
   "description": "Document sharing session for project review.",
-  "receiverEmail": "receiverasaasadd@example.com",
+  "receiverEmail": "receiverasadasd@example.com",
   "sessionName": "Project Review Session",
   "sessionDocuments": [
     {
@@ -26,8 +26,13 @@ Content-Type: application/json
   "allowDocumentUpload": true
 }
 
+### Get logged in user sharing sessions
+GET http://localhost:8080/sharing-sessions
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
 ### Get Sharing Session by id
-GET http://localhost:8080/sharing-sessions/initiator/633348af-c705-4911-a71c-3d622ef7824a
+GET http://localhost:8080/sharing-sessions/b4b502a5-86d0-4e59-ba05-f588a0acb9e6
 Authorization: Bearer {{Authorization}}
 Content-Type: application/json
 

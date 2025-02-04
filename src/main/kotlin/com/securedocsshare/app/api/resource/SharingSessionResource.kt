@@ -1,8 +1,10 @@
 package com.securedocsshare.app.api.resource
 
 import com.securedocsshare.app.api.exception.InvalidEmailException
-import com.securedocsshare.app.api.exception.SessionNotFoundException
+import com.securedocsshare.app.api.exception.SharingSessionNotFoundException
 import com.securedocsshare.app.api.exception.UserNotFoundException
+import com.securedocsshare.app.api.model.SharingSessionModelConverter
+import com.securedocsshare.app.api.model.dto.SharingSessionBasicDto
 import com.securedocsshare.app.api.resource.model.*
 import com.securedocsshare.app.api.service.*
 import jakarta.inject.Inject
@@ -10,7 +12,6 @@ import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
-import java.util.*
 
 @Path("/sharing-sessions")
 @Produces(MediaType.APPLICATION_JSON)
@@ -85,6 +86,54 @@ class SharingSessionResource @Inject constructor(
     }
 
     @GET
+    fun getAllSharingSessions(): Response
+    {
+
+        return try
+        {
+            val sessions = sharingSessionRetrievalService.getAllSessionsForSignInAppUser()
+
+            var sessionDTOs: Array<SharingSessionBasicDto> = arrayOf<SharingSessionBasicDto>()
+
+            if (sessions.isNotEmpty())
+            {
+                sessionDTOs =
+                    sessions.map { SharingSessionModelConverter.Companion.convertToBasicDto(it) }.toTypedArray()
+            }
+
+            Response.ok(sessionDTOs).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is IllegalArgumentException ->
+                {
+                    logger.error("Error getting app user sharing sessions", exception)
+
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(Response.Status.BAD_REQUEST)
+                        .entity(responseError)
+                        .build()
+                }
+
+                else ->
+                {
+                    logger.error("Error getting app user sharing sessions", exception)
+
+                    val responseError = ResponseError("An error occurred while getting app user sharing sessions")
+                    Response
+                        .status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(responseError)
+                        .build()
+                }
+            }
+        }
+    }
+
+    @GET
     @Path("/{sessionId}")
     fun getSharingSession(@PathParam("sessionId") sessionId: String): Response
     {
@@ -92,13 +141,13 @@ class SharingSessionResource @Inject constructor(
         {
             val sharingSession = sharingSessionRetrievalService.getSharingSession(sessionId)
 
-            Response.ok(sharingSession).build()
+            Response.ok(SharingSessionModelConverter.convertToBasicDto(sharingSession)).build()
         }
         catch (exception: Exception)
         {
             when (exception)
             {
-                is SessionNotFoundException ->
+                is SharingSessionNotFoundException ->
                 {
 
                     val responseError = ResponseError(exception.message)
@@ -152,91 +201,7 @@ class SharingSessionResource @Inject constructor(
             when (exception)
             {
                 is IllegalArgumentException,
-                is SessionNotFoundException ->
-                {
-                    logger.error("Error initiating sharing session", exception)
-
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
-                }
-
-                else ->
-                {
-                    logger.error("Error initiating sharing session", exception)
-
-                    val responseError = ResponseError("An error occurred while initiating sharing session")
-                    Response
-                        .status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
-                        .build()
-                }
-            }
-        }
-    }
-
-    @GET
-    @Path("{sessionId}/initiator/{initiatorId}")
-    fun getSharingSessionsForInitiator(
-        @PathParam("sessionId") sessionId: UUID,
-        @PathParam("initiatorId") initiatorId: UUID
-    ): Response
-    {
-        return try
-        {
-            val sessions = sharingSessionRetrievalService.getSharingSessionsForInitiator(initiatorId)
-            Response.ok(sessions).build()
-        }
-        catch (exception: Exception)
-        {
-            when (exception)
-            {
-                is IllegalArgumentException ->
-                {
-                    logger.error("Error initiating sharing session", exception)
-
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
-                }
-
-                else ->
-                {
-                    logger.error("Error initiating sharing session", exception)
-
-                    val responseError = ResponseError("An error occurred while initiating sharing session")
-                    Response
-                        .status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
-                        .build()
-                }
-            }
-        }
-    }
-
-    @GET
-    @Path("{sessionId}/receiver/{receiverId}")
-    fun getSharingSessionsForReceiver(
-        @PathParam("sessionId") sessionId: UUID,
-        @PathParam("receiverId") receiverId: UUID
-    ): Response
-    {
-        return try
-        {
-            val sessions = sharingSessionRetrievalService.getSharingSessionsForReceiver(receiverId)
-            Response.ok(sessions).build()
-        }
-        catch (exception: Exception)
-        {
-            when (exception)
-            {
-                is IllegalArgumentException ->
+                is SharingSessionNotFoundException ->
                 {
                     logger.error("Error initiating sharing session", exception)
 

@@ -178,3 +178,21 @@ export const initiateSharingSession = async (request: SharingSessionInitiationRe
         throw error.response?.data || error.message;
     }
 };
+
+export const fetchSignedInUserAppUserSharingSessions = async (token: string | null) =>
+{
+    try
+    {
+        const response = await apiClient.get(`/sharing-sessions/`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};

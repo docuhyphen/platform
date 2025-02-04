@@ -1,9 +1,8 @@
 package com.securedocsshare.app.api.service
 
+import com.securedocsshare.app.api.exception.SharingSessionNotFoundException
 import com.securedocsshare.app.api.interceptor.AuthTokenContext
 import com.securedocsshare.app.api.model.SharingSession
-import com.securedocsshare.app.api.repository.AppUserRepository
-import com.securedocsshare.app.api.repository.DocumentCommentRepository
 import com.securedocsshare.app.api.repository.SharingSessionRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -14,7 +13,8 @@ import java.util.*
 
 @ApplicationScoped
 class SharingSessionRetrievalService @Inject constructor(
-    private val sharingSessionRepository: SharingSessionRepository
+    private val sharingSessionRepository: SharingSessionRepository,
+    private val authTokenContext: AuthTokenContext
 )
 {
     @PersistenceContext
@@ -25,17 +25,17 @@ class SharingSessionRetrievalService @Inject constructor(
         private val logger = LoggerFactory.getLogger(SharingSessionRetrievalService::class.java)
     }
 
-    fun getSharingSessionsForInitiator(initiatorId: UUID): List<SharingSession>
+    fun getSharingSession(sessionId: String): SharingSession
     {
-        return sharingSessionRepository.findByInitiatorId(initiatorId)
+        return sharingSessionRepository.findById(UUID.fromString(sessionId)) ?: throw SharingSessionNotFoundException("Sharing session not found")
     }
 
-    fun getSharingSessionsForReceiver(receiverId: UUID): List<SharingSession>
+    fun getAllSessionsForSignInAppUser(): List<SharingSession>
     {
-        return sharingSessionRepository.findByReceiverId(receiverId)
-    }
+        val appUserId = authTokenContext.authToken.appUser?.id
+        val initiatedSessions = sharingSessionRepository.findByInitiatorId(appUserId!!)
+        val receivedSessions = sharingSessionRepository.findByReceiverId(appUserId)
 
-    fun getSharingSession(sessionId: String)
-    {
+        return initiatedSessions + receivedSessions
     }
 }

@@ -6,7 +6,9 @@ import com.securedocsshare.app.api.interceptor.AuthTokenContext
 import com.securedocsshare.app.api.model.AppUser
 import com.securedocsshare.app.api.model.Document
 import com.securedocsshare.app.api.model.SharingSession
+import com.securedocsshare.app.api.model.SharingSessionModelConverter
 import com.securedocsshare.app.api.model.SharingSessionStatus
+import com.securedocsshare.app.api.model.dto.SharingSessionBasicDto
 import com.securedocsshare.app.api.repository.AppUserRepository
 import com.securedocsshare.app.api.repository.SharingSessionRepository
 import com.securedocsshare.app.api.resource.model.SharingSessionParticipant
@@ -52,7 +54,7 @@ class SharingSessionInitiationService @Inject constructor(
         allowDocumentUpdate: Boolean? = false,
         allowDocumentUpload: Boolean? = false,
         sharingSessionParticipants: List<SharingSessionParticipant>? = mutableListOf()
-    ): SharingSession
+    ): SharingSessionBasicDto
     {
         val initiator = authTokenContext.authToken.appUser
 
@@ -83,10 +85,10 @@ class SharingSessionInitiationService @Inject constructor(
             throw IllegalArgumentException("Receiver cannot be null")
         }
 
-        if (receiver.isTemporary)
-        {
-            throw IllegalArgumentException("This email still needs to create an account")
-        }
+//        if (receiver.isTemporary)
+//        {
+//            throw IllegalArgumentException("This email still needs to create an account")
+//        }
 
         val participants = sharingSessionParticipants?.map {
             val appUser = appUserService.getAppUserById(UUID.fromString(it.id))
@@ -160,6 +162,6 @@ class SharingSessionInitiationService @Inject constructor(
 
         logger.info("Sharing session initiated by ${initiator?.email} for ${receiver.email}")
 
-        return savedSharingSession
+        return SharingSessionModelConverter.Companion.convertToBasicDto(savedSharingSession)
     }
 }

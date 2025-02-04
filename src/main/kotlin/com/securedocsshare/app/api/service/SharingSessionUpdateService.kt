@@ -1,6 +1,6 @@
 package com.securedocsshare.app.api.service
 
-import com.securedocsshare.app.api.exception.SessionNotFoundException
+import com.securedocsshare.app.api.exception.SharingSessionNotFoundException
 import com.securedocsshare.app.api.model.SharingSessionStatus
 import com.securedocsshare.app.api.repository.SharingSessionRepository
 import com.securedocsshare.app.api.resource.model.UpdateSharingSessionRequest
@@ -36,7 +36,7 @@ class SharingSessionUpdateService @Inject constructor(
     {
         val sessionUUID = UUID.fromString(sessionId)
 
-        sharingSessionRepository.findById(sessionUUID) ?: throw SessionNotFoundException("Sharing session not found")
+        sharingSessionRepository.findById(sessionUUID) ?: throw SharingSessionNotFoundException("Sharing session not found")
 
         request?.sessionName?.let {
             sharingSessionRepository.updateSessionName(sessionUUID, it)

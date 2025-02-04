@@ -17,6 +17,7 @@ enum class DocumentEncryptionMode
 
 enum class DocumentType
 {
+    WORD,
     PDF,
     DOCX,
     DOC,

@@ -1,6 +1,6 @@
 package com.securedocsshare.app.api.service
 
-import com.securedocsshare.app.api.exception.SessionNotFoundException
+import com.securedocsshare.app.api.exception.SharingSessionNotFoundException
 import com.securedocsshare.app.api.exception.UserNotFoundException
 import com.securedocsshare.app.api.model.SharingSessionParticipantRole
 import com.securedocsshare.app.api.repository.AppUserRepository
@@ -37,7 +37,7 @@ class SharingSessionParticipantService @Inject constructor(
     )
     {
         val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
-            ?: throw SessionNotFoundException("Sharing session not found")
+            ?: throw SharingSessionNotFoundException("Sharing session not found")
 
         val participant = appUserRepository.findById(UUID.fromString(participantId))
             ?: throw UserNotFoundException("Participant not found")
@@ -61,7 +61,7 @@ class SharingSessionParticipantService @Inject constructor(
     )
     {
         val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
-            ?: throw SessionNotFoundException("Sharing session not found")
+            ?: throw SharingSessionNotFoundException("Sharing session not found")
 
         val participant = appUserRepository.findById(UUID.fromString(participantId))
             ?: throw UserNotFoundException("Participant not found")

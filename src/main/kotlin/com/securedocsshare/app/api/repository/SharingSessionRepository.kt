@@ -14,10 +14,14 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
     fun findByInitiatorId(initiatorId: UUID): List<SharingSession>
     {
         val query = entityManager.createQuery(
-            "SELECT s FROM SharingSession s WHERE s.initiator.id = :initiatorId",
+            """
+                SELECT s FROM SharingSession s 
+                WHERE s.initiator.id = :initiatorId""".trimIndent(),
             SharingSession::class.java
         )
+
         query.setParameter("initiatorId", initiatorId)
+
         return query.resultList
     }
 

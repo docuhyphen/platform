@@ -23,14 +23,12 @@ import {
 } from "@fluentui/react-components";
 import useToken from "../../context/useToken.tsx";
 import {useLocation, useNavigate} from "react-router-dom";
-import {useAuth} from "../../context/AuthContext.tsx";
 import {DocumentType, SharingSessionInitiationRequest, SharingSessionRequestDocument} from "../models/models.tsx";
 import {initiateSharingSession} from "../../services/api.ts";
 
 const SharingSessionInitiation: React.FC = () =>
 {
     const token = useToken();
-    const {setAppUserPersonCompany, appUserPersonCompany} = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -219,7 +217,7 @@ const SharingSessionInitiation: React.FC = () =>
                 <SearchBox/>
             </Field>
 
-            <Field label="Session Name">
+            <Field label="Session Name" required>
                 <Input type="text" value={sessionName} required onChange={onSessionNameChange}/>
             </Field>
 
@@ -227,34 +225,40 @@ const SharingSessionInitiation: React.FC = () =>
                 <Textarea onChange={onDescriptionChange}/>
             </Field>
 
-            <Field label="Custom message">
+            <Field label="Start message">
                 <Textarea onChange={onInitialShareMessageChange}/>
             </Field>
 
             <Divider/>
 
-            <Field label="Require Sign In">
-                <Switch onChange={(ev) => onRequireSignInChange(ev)}/>
+            <Field>
+                <Switch label="Require Sign In"
+                        onChange={(ev) => onRequireSignInChange(ev)}/>
             </Field>
 
-            <Field label="Allow document additions">
-                <Switch onChange={(ev) => onAllowDocumentAdditionsChange(ev)}/>
+            <Field>
+                <Switch label="Allow document additions"
+                        onChange={(ev) => onAllowDocumentAdditionsChange(ev)}/>
             </Field>
 
-            <Field label="Allow document deletions">
-                <Switch onChange={(ev) => onAllowDocumentDeletionsChange(ev)}/>
+            <Field>
+                <Switch label="Allow document deletions"
+                        onChange={(ev) => onAllowDocumentDeletionsChange(ev)}/>
             </Field>
 
-            <Field label="Allow document Download">
-                <Switch onChange={(ev) => onAllowDocumentDownloadChange(ev)}/>
+            <Field>
+                <Switch label="Allow document Download"
+                        onChange={(ev) => onAllowDocumentDownloadChange(ev)}/>
             </Field>
 
-            <Field label="Allow document update">
-                <Switch onChange={(ev) => onAllowDocumentUpdateChange(ev)}/>
+            <Field>
+                <Switch label="Allow document update"
+                        onChange={(ev) => onAllowDocumentUpdateChange(ev)}/>
             </Field>
 
-            <Field label="Allow document upload">
-                <Switch onChange={(ev) => onAllowDocumentUploadChange(ev)}/>
+            <Field>
+                <Switch label="Allow document upload"
+                        onChange={(ev) => onAllowDocumentUploadChange(ev)}/>
             </Field>
 
             {documents.map((document, index) => (
