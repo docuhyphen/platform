@@ -181,7 +181,6 @@ const SharingSessionInitiation: React.FC = () =>
         setDocuments(updatedDocuments);
     };
 
-
     const onRequireSignInChange = (ev: ChangeEvent<HTMLInputElement>) =>
     {
         setRequireSignIn(ev.target.checked);
@@ -294,7 +293,9 @@ const SharingSessionInitiation: React.FC = () =>
 
             <Button onClick={addNewDocument}
                     icon={<AddRegular/>}
-                    appearance="subtle">Add Document</Button>
+                    appearance="subtle">
+                Add Document
+            </Button>
 
             <Button onClick={onInitiateSession}
                     disabled={isInitiating}
@@ -303,6 +304,10 @@ const SharingSessionInitiation: React.FC = () =>
                     icon={<CheckmarkCircleRegular/>}>
                 Start Session
             </Button>
+            <Button  onClick={() => navigate('/sharing-sessions')} size="large" appearance={"subtle"}>Cancel</Button>
+            {
+                //ChannelShareRegular}
+            }
             <Toaster toasterId={toasterId}/>
         </>
     );

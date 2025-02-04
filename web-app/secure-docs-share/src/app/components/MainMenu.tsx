@@ -30,7 +30,6 @@ const MainMenu: React.FC = () => {
 
     return (
         <section id="main-app-header">
-            <span></span>
             <section id="main-app-header-mid-section">
                 {!appUserPersonCompany &&
                     <Button onClick={() => navigate('/onboarding/company-registration')}>
