@@ -1,12 +1,12 @@
 import * as React from "react";
-import type {SelectTabData, SelectTabEvent, TabValue,} from "@fluentui/react-components";
+import {SelectTabData, SelectTabEvent, Switch, TabValue,} from "@fluentui/react-components";
 import {makeStyles, Tab, TabList, tokens} from "@fluentui/react-components";
 import {
     AirplaneFilled,
     AirplaneRegular,
     AirplaneTakeOffFilled,
     AirplaneTakeOffRegular, BookTemplateRegular,
-    bundleIcon, PersonSettingsRegular,
+    bundleIcon, PersonSettingsRegular, SettingsCogMultipleRegular,
     TimeAndWeatherFilled,
     TimeAndWeatherRegular,
 } from "@fluentui/react-icons";
@@ -56,8 +56,14 @@ const Settings = () =>
         setSelectedValue(data.value);
     };
 
-    const Arrivals = React.memo(() => (
+    const AppUserSettings = React.memo(() => (
         <div role="tabpanel" aria-labelledby="Arrivals">
+
+            <Switch
+                label={"Receive notifications on every sign-in"}
+                onChange={(ev) => {}}
+            />
+
             <table>
                 <thead>
                 <th>Origin</th>
@@ -85,7 +91,7 @@ const Settings = () =>
         </div>
     ));
 
-    const Departures = React.memo(() => (
+    const AppSettings = React.memo(() => (
         <div role="tabpanel" aria-labelledby="Departures">
             <table>
                 <thead>
@@ -114,7 +120,7 @@ const Settings = () =>
         </div>
     ));
 
-    const Conditions = React.memo(() => (
+    const Templates = React.memo(() => (
         <div role="tabpanel" aria-labelledby="Conditions">
             <table className={styles.propsTable}>
                 <tbody>
@@ -142,20 +148,21 @@ const Settings = () =>
     return (
         <div className={styles.root}>
             <TabList selectedValue={selectedValue} onTabSelect={onTabSelect}  size="medium">
-                <Tab id="Arrivals" icon={<Airplane/>} value="arrivals">
+
+                <Tab id="Conditions" icon={<PersonSettingsRegular/>} value="conditions">
+                    Profile
+                </Tab>
+                <Tab id="Arrivals" icon={<SettingsCogMultipleRegular/>} value="arrivals">
                     App Settings
                 </Tab>
                 <Tab id="Departures" icon={<BookTemplateRegular/>} value="departures">
                     Templates
                 </Tab>
-                <Tab id="Conditions" icon={<PersonSettingsRegular/>} value="conditions">
-                    Profile
-                </Tab>
             </TabList>
             <div className={styles.panels}>
-                {selectedValue === "arrivals" && <Arrivals/>}
-                {selectedValue === "departures" && <Departures/>}
-                {selectedValue === "conditions" && <Conditions/>}
+                {selectedValue === "arrivals" && <AppUserSettings/>}
+                {selectedValue === "departures" && <AppSettings/>}
+                {selectedValue === "conditions" && <Templates/>}
             </div>
         </div>
     );

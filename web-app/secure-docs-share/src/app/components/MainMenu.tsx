@@ -15,7 +15,7 @@ import SignOutButton from '../components/SignOutButton';
 import {
     AlertRegular,
     ArrowExitRegular,
-    ChannelShareRegular,
+    ChannelShareRegular, InfoRegular,
     PersonSettingsRegular,
     SettingsRegular
 } from "@fluentui/react-icons";
@@ -58,8 +58,15 @@ const MainMenu: React.FC = () => {
             <section>
                 <Button icon={<ChannelShareRegular/>}
                         onClick={() => navigate('/landing')}
-                        appearance={"subtle"}></Button>
-                <Button icon={<AlertRegular/>} appearance={"subtle"}></Button>
+                        appearance={"subtle"}>
+                </Button>
+                <Button icon={<AlertRegular/>}
+                        appearance={"subtle"}>
+                </Button>
+                <Button icon={<InfoRegular/>}
+                        onClick={() => navigate('/landing')}
+                        appearance={"subtle"}>
+                </Button>
                 <Menu>
                     <MenuTrigger disableButtonEnhancement>
                         <MenuButton appearance="transparent">

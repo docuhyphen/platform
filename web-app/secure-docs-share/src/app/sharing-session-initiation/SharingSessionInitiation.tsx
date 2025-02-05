@@ -27,6 +27,7 @@ import {
     MenuPopover,
     MenuTrigger,
     Option,
+    OptionGroup,
     OptionOnSelectData,
     SearchBox,
     SelectionEvents,
@@ -40,7 +41,12 @@ import {
 } from "@fluentui/react-components";
 import useToken from "../../context/useToken.tsx";
 import {useLocation, useNavigate} from "react-router-dom";
-import {DocumentType, SharingSessionInitiationRequest, SharingSessionRequestDocument} from "../models/models.tsx";
+import {
+    DocumentType,
+    ImageType,
+    SharingSessionInitiationRequest,
+    SharingSessionRequestDocument
+} from "../models/models.tsx";
 import {initiateSharingSession} from "../../services/api.ts";
 
 const SharingSessionInitiation: React.FC = () =>
@@ -181,7 +187,7 @@ const SharingSessionInitiation: React.FC = () =>
         setDocuments(updatedDocuments);
     };
 
-    const onDocumentTypeChange = (index: number, newType: DocumentType) =>
+    const onDocumentTypeChange = (index: number, newType: DocumentType | ImageType) =>
     {
         const updatedDocuments = [...documents];
         updatedDocuments[index].restrictedType = newType;
@@ -247,7 +253,7 @@ const SharingSessionInitiation: React.FC = () =>
                             <Button size={"small"}
                                     ref={ref} {...props}
                                     appearance={"transparent"}> Request
-                            Documents
+                                Documents
                             </Button>
                         </MenuItem>
                         <MenuItem>
@@ -267,6 +273,73 @@ const SharingSessionInitiation: React.FC = () =>
             </Menu>
         );
     });
+
+    const documentsCard = () =>
+    {
+        return <>
+            {documents.map((document, index) => (
+                <Card key={index} id={"shading-session-document-card"}>
+                    <div>
+                        <div id={"shading-session-document-card-header"}>
+                            <Field className={"field"}>
+                                <Input type="text"
+                                       value={document.title || ''}
+                                       required
+                                       onChange={(e) => onDocumentNameChange(index, e.target.value)}
+                                       placeholder={"Document name"}
+                                />
+                            </Field>
+                            <Button icon={<DeleteRegular/>}
+                                    appearance={"subtle"}
+                                    onClick={() =>
+                            {
+                                const updatedDocuments = documents.filter((_, docIndex) => docIndex !== index);
+                                setDocuments(updatedDocuments);
+                            }}/>
+                        </div>
+                        <div id={"shading-session-document-card-doc-type"}>
+                            <Field label="">
+                                <Switch
+                                    label={"Restrict type"}
+                                    checked={document.restrictType}
+                                    onChange={(ev) => onRestrictDocumentTypeChange(index, ev)}
+                                />
+                            </Field>
+                            <Dropdown disabled={!document.restrictType}
+                                      appearance={"underline"}
+                                      placeholder={"Select document type to restrict"}
+                                      onOptionSelect={(_e: SelectionEvents, data: OptionOnSelectData) =>
+                                      {
+                                          onDocumentTypeChange(index, data.optionValue as any);
+                                      }}>
+                                <OptionGroup label="Documents">
+                                    {
+                                        Object.values(DocumentType)
+                                            .map((option) => (
+                                                <Option key={option} value={option}>
+                                                    {option}
+                                                </Option>
+                                            ))
+                                    }
+                                </OptionGroup>
+                                <OptionGroup label="Images">
+
+                                    {
+                                        Object.values(ImageType)
+                                            .map((option) => (
+                                                <Option key={option} value={option}>
+                                                    {option}
+                                                </Option>
+                                            ))
+                                    }
+                                </OptionGroup>
+                            </Dropdown>
+                        </div>
+                    </div>
+                </Card>
+            ))}
+        </>
+    }
 
     return (
         <Dialog modalType="alert">
@@ -340,42 +413,10 @@ const SharingSessionInitiation: React.FC = () =>
                             </AccordionItem>
                             <AccordionItem value="4">
                                 <AccordionHeader>Documents {documents && documents.length > 0 &&
-                                    <span> ({documents.length})</span>}</AccordionHeader>
+                                    <span> ({documents.length})</span>}
+                                </AccordionHeader>
                                 <AccordionPanel>
-                                    {documents.map((document, index) => (
-                                        <Card key={index}>
-                                            <Field label="Document Name">
-                                                <Input type="text" value={document.title || ''} required
-                                                       onChange={(e) => onDocumentNameChange(index, e.target.value)}/>
-                                            </Field>
-                                            <Field label="">
-                                                <Switch
-                                                    label={"Restrict type"}
-                                                    checked={document.restrictType}
-                                                    onChange={(ev) => onRestrictDocumentTypeChange(index, ev)}
-                                                />
-                                            </Field>
-                                            <Dropdown disabled={!document.restrictType}
-                                                      onOptionSelect={(_e: SelectionEvents, data: OptionOnSelectData) =>
-                                                      {
-                                                          onDocumentTypeChange(index, data.optionValue as DocumentType);
-                                                      }}>
-                                                {
-                                                    Object.values(DocumentType).map((option) => (
-                                                        <Option key={option} value={option}>
-                                                            {option}
-                                                        </Option>
-                                                    ))
-                                                }
-                                            </Dropdown>
-                                            <Button onClick={() =>
-                                            {
-                                                const updatedDocuments = documents.filter((_, docIndex) => docIndex !== index);
-                                                setDocuments(updatedDocuments);
-                                            }} icon={<DeleteRegular/>}/>
-                                        </Card>
-                                    ))}
-
+                                    {documentsCard()}
                                     <Button onClick={addNewDocument}
                                             icon={<AddRegular/>}
                                             appearance="subtle">

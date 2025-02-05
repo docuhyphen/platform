@@ -21,6 +21,7 @@ html, body, #root
     border-bottom: 1px solid rgba(0, 0, 0, .1);
     padding: 0 16px;
     box-sizing: border-box;
+    box-shadow: 1px 1px 1px 0 rgba(0, 0, 0, 0.1);
 }
 
 #main-app-header-mid-section
@@ -43,4 +44,27 @@ html, body, #root
     color: white;
     padding: 3px;
     border-radius: 4px;
+}
+
+#shading-session-document-card
+{
+    margin-bottom: 12px;
+}
+
+#shading-session-document-card-header .field
+{
+    flex: 1;
+}
+
+#shading-session-document-card-header
+{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
+}
+
+#shading-session-document-card-doc-type
+{
+    display: flex;
 }

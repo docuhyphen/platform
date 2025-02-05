@@ -46,7 +46,11 @@ export enum DocumentType
     DOCX = 'DOCX',
     DOC = 'DOC',
     XLSX = 'XLSX',
-    PPTX = 'PPTX',
+    PPTX = 'PPTX'
+}
+
+export enum ImageType
+{
     PNG = 'PNG',
     JPG = 'JPG'
 }
@@ -249,8 +253,8 @@ export interface UpdateSharingSessionRequest
 export interface AddSharingSessionDocumentRequest
 {
     documentId?: string;
-    documentType?: DocumentType;
-    restrictedType?: DocumentType;
+    documentType?: DocumentType | ImageType;
+    restrictedType?: DocumentType | ImageType;
 }
 
 export interface UploadShareSessionDocumentRequest
@@ -270,8 +274,8 @@ export interface DownloadShareSessionDocumentRequest
 export interface SharingSessionRequestDocument
 {
     title: string;
-    restrictedType?: DocumentType;
-    type?: DocumentType;
+    restrictedType?: DocumentType | ImageType;
+    type?: DocumentType | ImageType;
     restrictType?: boolean;
 }
 
@@ -284,6 +288,6 @@ export interface SharingSessionParticipant
 export interface UpdateShareSessionDocumentRequest
 {
     title?: string;
-    restrictedType?: DocumentType;
-    type?: DocumentType;
+    restrictedType?: DocumentType | ImageType;
+    type?: DocumentType | ImageType;
 }
