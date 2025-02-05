@@ -2,13 +2,30 @@ import React, {ChangeEvent, useState} from 'react';
 import {AddRegular, CheckmarkCircleRegular, DeleteRegular} from "@fluentui/react-icons";
 import './SharingSessionInitiation.css';
 import {
+    Accordion,
+    AccordionHeader,
+    AccordionItem,
+    AccordionPanel,
     Button,
     Card,
-    Divider,
+    Dialog,
+    DialogActions,
+    DialogBody,
+    DialogContent,
+    DialogSurface,
+    DialogTitle,
+    DialogTrigger,
+    DialogTriggerChildProps,
     Dropdown,
     Field,
     Input,
     InputOnChangeData,
+    Menu,
+    MenuButton,
+    MenuItem,
+    MenuList,
+    MenuPopover,
+    MenuTrigger,
     Option,
     OptionOnSelectData,
     SearchBox,
@@ -209,111 +226,183 @@ const SharingSessionInitiation: React.FC = () =>
         setAllowDocumentUpload(ev.target.checked);
     }
 
+    const CustomDialogTrigger = React.forwardRef<
+        HTMLButtonElement,
+        DialogTriggerChildProps
+    >((props, ref) =>
+    {
+        return (
+            <Menu>
+                <MenuTrigger disableButtonEnhancement>
+                    <MenuButton
+                        shape="circular"
+                        appearance="primary">
+                        Start Sharing Session
+                    </MenuButton>
+                </MenuTrigger>
+
+                <MenuPopover>
+                    <MenuList>
+                        <MenuItem>
+                            <Button size={"small"}
+                                    ref={ref} {...props}
+                                    appearance={"transparent"}> Request
+                            Documents
+                            </Button>
+                        </MenuItem>
+                        <MenuItem>
+                            <Button size={"small"}
+                                    ref={ref}
+                                    {...props}
+                                    appearance={"transparent"}>
+                                Send Documents</Button></MenuItem>
+                        <MenuItem>
+                            <Button size={"small"}
+                                    ref={ref} {...props}
+                                    appearance={"transparent"}> From template
+                            </Button>
+                        </MenuItem>
+                    </MenuList>
+                </MenuPopover>
+            </Menu>
+        );
+    });
+
     return (
-        <>
-            <h1>Sharing Session Initiation</h1>
+        <Dialog modalType="alert">
+            <DialogTrigger disableButtonEnhancement>
+                <CustomDialogTrigger/>
+            </DialogTrigger>
+            <DialogSurface>
+                <DialogBody>
+                    <DialogTitle>Initiating Sharing Session</DialogTitle>
+                    <DialogContent>
+                        <Accordion defaultOpenItems="1" collapsible>
+                            <AccordionItem value="1">
+                                <AccordionHeader>Details</AccordionHeader>
+                                <AccordionPanel>
+                                    <Field label={label}>
+                                        <SearchBox/>
+                                    </Field>
 
-            <Field label={label}>
-                <SearchBox/>
-            </Field>
+                                    <Field label="Session Name" required>
+                                        <Input type="text" value={sessionName} required onChange={onSessionNameChange}/>
+                                    </Field>
 
-            <Field label="Session Name" required>
-                <Input type="text" value={sessionName} required onChange={onSessionNameChange}/>
-            </Field>
+                                    <Field label="Description">
+                                        <Textarea onChange={onDescriptionChange}/>
+                                    </Field>
 
-            <Field label="Description">
-                <Textarea onChange={onDescriptionChange}/>
-            </Field>
+                                    <Field label="Start message">
+                                        <Textarea onChange={onInitialShareMessageChange}/>
+                                    </Field>
+                                </AccordionPanel>
+                            </AccordionItem>
+                            <AccordionItem value="2">
+                                <AccordionHeader>Options</AccordionHeader>
+                                <AccordionPanel>
+                                    <Field>
+                                        <Switch label="Require Sign In"
+                                                onChange={(ev) => onRequireSignInChange(ev)}/>
 
-            <Field label="Start message">
-                <Textarea onChange={onInitialShareMessageChange}/>
-            </Field>
+                                    </Field>
 
-            <Divider/>
+                                    <Field>
+                                        <Switch label="Allow document additions"
+                                                onChange={(ev) => onAllowDocumentAdditionsChange(ev)}/>
+                                    </Field>
 
-            <Field>
-                <Switch label="Require Sign In"
-                        onChange={(ev) => onRequireSignInChange(ev)}/>
-            </Field>
+                                    <Field>
+                                        <Switch label="Allow document deletions"
+                                                onChange={(ev) => onAllowDocumentDeletionsChange(ev)}/>
+                                    </Field>
 
-            <Field>
-                <Switch label="Allow document additions"
-                        onChange={(ev) => onAllowDocumentAdditionsChange(ev)}/>
-            </Field>
+                                    <Field>
+                                        <Switch label="Allow document Download"
+                                                onChange={(ev) => onAllowDocumentDownloadChange(ev)}/>
+                                    </Field>
 
-            <Field>
-                <Switch label="Allow document deletions"
-                        onChange={(ev) => onAllowDocumentDeletionsChange(ev)}/>
-            </Field>
+                                    <Field>
+                                        <Switch label="Allow document update"
+                                                onChange={(ev) => onAllowDocumentUpdateChange(ev)}/>
+                                    </Field>
 
-            <Field>
-                <Switch label="Allow document Download"
-                        onChange={(ev) => onAllowDocumentDownloadChange(ev)}/>
-            </Field>
+                                    <Field>
+                                        <Switch label="Allow document upload"
+                                                onChange={(ev) => onAllowDocumentUploadChange(ev)}/>
+                                    </Field>
+                                </AccordionPanel>
+                            </AccordionItem>
+                            <AccordionItem value="3" disabled>
+                                <AccordionHeader>Participants</AccordionHeader>
+                                <AccordionPanel>
+                                </AccordionPanel>
+                            </AccordionItem>
+                            <AccordionItem value="4">
+                                <AccordionHeader>Documents {documents && documents.length > 0 &&
+                                    <span> ({documents.length})</span>}</AccordionHeader>
+                                <AccordionPanel>
+                                    {documents.map((document, index) => (
+                                        <Card key={index}>
+                                            <Field label="Document Name">
+                                                <Input type="text" value={document.title || ''} required
+                                                       onChange={(e) => onDocumentNameChange(index, e.target.value)}/>
+                                            </Field>
+                                            <Field label="">
+                                                <Switch
+                                                    label={"Restrict type"}
+                                                    checked={document.restrictType}
+                                                    onChange={(ev) => onRestrictDocumentTypeChange(index, ev)}
+                                                />
+                                            </Field>
+                                            <Dropdown disabled={!document.restrictType}
+                                                      onOptionSelect={(_e: SelectionEvents, data: OptionOnSelectData) =>
+                                                      {
+                                                          onDocumentTypeChange(index, data.optionValue as DocumentType);
+                                                      }}>
+                                                {
+                                                    Object.values(DocumentType).map((option) => (
+                                                        <Option key={option} value={option}>
+                                                            {option}
+                                                        </Option>
+                                                    ))
+                                                }
+                                            </Dropdown>
+                                            <Button onClick={() =>
+                                            {
+                                                const updatedDocuments = documents.filter((_, docIndex) => docIndex !== index);
+                                                setDocuments(updatedDocuments);
+                                            }} icon={<DeleteRegular/>}/>
+                                        </Card>
+                                    ))}
 
-            <Field>
-                <Switch label="Allow document update"
-                        onChange={(ev) => onAllowDocumentUpdateChange(ev)}/>
-            </Field>
+                                    <Button onClick={addNewDocument}
+                                            icon={<AddRegular/>}
+                                            appearance="subtle">
+                                        Add Document
+                                    </Button>
 
-            <Field>
-                <Switch label="Allow document upload"
-                        onChange={(ev) => onAllowDocumentUploadChange(ev)}/>
-            </Field>
+                                    <Toaster toasterId={toasterId}/>
+                                </AccordionPanel>
+                            </AccordionItem>
+                        </Accordion>
+                    </DialogContent>
+                    <DialogActions>
 
-            {documents.map((document, index) => (
-                <Card key={index}>
-                    <Field label="Document Name">
-                        <Input type="text" value={document.title || ''} required
-                               onChange={(e) => onDocumentNameChange(index, e.target.value)}/>
-                    </Field>
-                    <Field label="">
-                        <Switch
-                            label={"Restrict type"}
-                            checked={document.restrictType}
-                            onChange={(ev) => onRestrictDocumentTypeChange(index, ev)}
-                        />
-                    </Field>
-                    <Dropdown disabled={!document.restrictType}
-                              onOptionSelect={(_e: SelectionEvents, data: OptionOnSelectData) =>
-                              {
-                                  onDocumentTypeChange(index, data.optionValue as DocumentType);
-                              }}>
-                        {
-                            Object.values(DocumentType).map((option) => (
-                                <Option key={option} value={option}>
-                                    {option}
-                                </Option>
-                            ))
-                        }
-                    </Dropdown>
-                    <Button onClick={() =>
-                    {
-                        const updatedDocuments = documents.filter((_, docIndex) => docIndex !== index);
-                        setDocuments(updatedDocuments);
-                    }} icon={<DeleteRegular/>}/>
-                </Card>
-            ))}
+                        <DialogTrigger>
+                            <Button appearance="secondary">Cancel</Button>
+                        </DialogTrigger>
+                        <Button onClick={onInitiateSession}
+                                disabled={isInitiating}
+                                appearance={"primary"}
+                                icon={<CheckmarkCircleRegular/>}>
+                            Start Session
+                        </Button>
 
-            <Button onClick={addNewDocument}
-                    icon={<AddRegular/>}
-                    appearance="subtle">
-                Add Document
-            </Button>
-
-            <Button onClick={onInitiateSession}
-                    disabled={isInitiating}
-                    size="large"
-                    appearance={"primary"}
-                    icon={<CheckmarkCircleRegular/>}>
-                Start Session
-            </Button>
-            <Button  onClick={() => navigate('/sharing-sessions')} size="large" appearance={"subtle"}>Cancel</Button>
-            {
-                //ChannelShareRegular}
-            }
-            <Toaster toasterId={toasterId}/>
-        </>
+                    </DialogActions>
+                </DialogBody>
+            </DialogSurface>
+        </Dialog>
     );
 };
 

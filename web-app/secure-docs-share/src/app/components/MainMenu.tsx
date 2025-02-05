@@ -19,6 +19,7 @@ import {
     PersonSettingsRegular,
     SettingsRegular
 } from "@fluentui/react-icons";
+import SharingSessionInitiation from "../sharing-session-initiation/SharingSessionInitiation.tsx";
 
 const MainMenu: React.FC = () => {
     const { appUser, appUserPersonCompany } = useAuth();
@@ -36,8 +37,8 @@ const MainMenu: React.FC = () => {
 
     return (
         <section id="main-app-header">
-            <span>
-                <strong> SECURE DOCUMENT SHARING</strong>
+            <span id="app-logo">
+                <span id="logo-doc">DOC</span> <span>-</span><br/>HYPHEN
             </span>
             <section id="main-app-header-mid-section">
                 {!appUserPersonCompany &&
@@ -51,19 +52,7 @@ const MainMenu: React.FC = () => {
                         {appUserPersonCompany?.name} registration pending
                     </p>
                 }
-
-                <Menu>
-                    <MenuTrigger disableButtonEnhancement>
-                        <MenuButton shape="circular" appearance="primary">Start Sharing Session</MenuButton>
-                    </MenuTrigger>
-
-                    <MenuPopover>
-                        <MenuList>
-                            <MenuItem onClick={onRequestDocuments}>Request Documents</MenuItem>
-                            <MenuItem onClick={onSendDocuments}>Send Documents</MenuItem> {/* Feature can be optional*/}
-                        </MenuList>
-                    </MenuPopover>
-                </Menu>
+                <SharingSessionInitiation/>
             </section>
 
             <section>
@@ -82,10 +71,6 @@ const MainMenu: React.FC = () => {
 
                     <MenuPopover>
                         <MenuList>
-                            <MenuItem onClick={() => navigate("/profile")}
-                                      icon={<PersonSettingsRegular/>}>
-                                Profile
-                            </MenuItem>
                             <MenuItem onClick={() => navigate("/settings")}
                                       icon={<SettingsRegular/>}>
                                 Settings
