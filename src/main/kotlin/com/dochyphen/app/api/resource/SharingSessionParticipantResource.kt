@@ -3,7 +3,7 @@ package com.dochyphen.app.api.resource
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.resource.model.SharingSessionParticipantRequest
-import com.dochyphen.app.api.service.SharingSessionParticipantService
+import com.dochyphen.app.api.service.sharingsession.SharingSessionParticipantService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType

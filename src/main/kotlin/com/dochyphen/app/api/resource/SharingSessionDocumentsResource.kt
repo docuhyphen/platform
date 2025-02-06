@@ -4,7 +4,7 @@ import com.dochyphen.app.api.exception.SharingSessionDocumentNotFoundException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.model.BasicModelConverter.Companion.toDto
 import com.dochyphen.app.api.resource.model.*
-import com.dochyphen.app.api.service.SharingSessionDocumentService
+import com.dochyphen.app.api.service.sharingsession.SharingSessionDocumentService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType

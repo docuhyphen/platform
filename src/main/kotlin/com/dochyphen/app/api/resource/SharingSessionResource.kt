@@ -10,6 +10,10 @@ import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.resource.model.SharingSessionInitiationRequest
 import com.dochyphen.app.api.resource.model.UpdateSharingSessionRequest
 import com.dochyphen.app.api.service.*
+import com.dochyphen.app.api.service.sharingsession.SharingSessionDocumentService
+import com.dochyphen.app.api.service.sharingsession.SharingSessionInitiationService
+import com.dochyphen.app.api.service.sharingsession.SharingSessionParticipantService
+import com.dochyphen.app.api.service.sharingsession.SharingSessionRetrievalService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType

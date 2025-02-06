@@ -1,6 +1,6 @@
 package com.dochyphen.app.api.resource
 
-import com.dochyphen.app.api.service.SharingSessionDocumentCommentsService
+import com.dochyphen.app.api.service.sharingsession.SharingSessionDocumentCommentsService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON

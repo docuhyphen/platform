@@ -1,22 +1,17 @@
-package com.dochyphen.app.api.service
+package com.dochyphen.app.api.service.sharingsession
 
-import com.dochyphen.app.api.annotation.DocumentAuditRequired
-import com.dochyphen.app.api.exception.SharingSessionDocumentNotFoundException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.exception.UserNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
-import com.dochyphen.app.api.model.entity.Document
-import com.dochyphen.app.api.model.entity.DocumentAuditLogAction
 import com.dochyphen.app.api.model.entity.DocumentComment
-import com.dochyphen.app.api.model.entity.DocumentType
 import com.dochyphen.app.api.repository.AppUserRepository
 import com.dochyphen.app.api.repository.DocumentCommentRepository
 import com.dochyphen.app.api.repository.SharingSessionRepository
+import com.dochyphen.app.api.service.AppUserService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
-import java.io.File
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
@@ -26,7 +21,7 @@ class SharingSessionDocumentCommentsService @Inject constructor(
     private val sharingSessionRepository: SharingSessionRepository,
     private val appUserRepository: AppUserRepository,
     private val appUserService: AppUserService,
-    private val documentAuditService: DocumentAuditService,
+    private val sharingSessionDocumentAuditService: SharingSessionDocumentAuditService,
     private val authTokenContext: AuthTokenContext,
     private val documentCommentRepository: DocumentCommentRepository,
 )

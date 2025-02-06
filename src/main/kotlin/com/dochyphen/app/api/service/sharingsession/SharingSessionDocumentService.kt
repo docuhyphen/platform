@@ -1,4 +1,4 @@
-package com.dochyphen.app.api.service
+package com.dochyphen.app.api.service.sharingsession
 
 import com.dochyphen.app.api.annotation.DocumentAuditRequired
 import com.dochyphen.app.api.exception.SharingSessionDocumentNotFoundException
@@ -7,11 +7,11 @@ import com.dochyphen.app.api.exception.UserNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.model.entity.Document
 import com.dochyphen.app.api.model.entity.DocumentAuditLogAction
-import com.dochyphen.app.api.model.entity.DocumentComment
 import com.dochyphen.app.api.model.entity.DocumentType
 import com.dochyphen.app.api.repository.AppUserRepository
 import com.dochyphen.app.api.repository.DocumentCommentRepository
 import com.dochyphen.app.api.repository.SharingSessionRepository
+import com.dochyphen.app.api.service.AppUserService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -26,7 +26,7 @@ class SharingSessionDocumentService @Inject constructor(
     private val sharingSessionRepository: SharingSessionRepository,
     private val appUserRepository: AppUserRepository,
     private val appUserService: AppUserService,
-    private val documentAuditService: DocumentAuditService,
+    private val sharingSessionDocumentAuditService: SharingSessionDocumentAuditService,
     private val authTokenContext: AuthTokenContext,
     private val documentCommentRepository: DocumentCommentRepository,
 )
@@ -64,7 +64,7 @@ class SharingSessionDocumentService @Inject constructor(
 
         val savedDocument = sharingSession.documents.last()
 
-        documentAuditService.logAction(
+        sharingSessionDocumentAuditService.logAction(
             savedDocument,
             DocumentAuditLogAction.CREATED,
             authTokenContext.authToken.appUser!!
@@ -73,7 +73,7 @@ class SharingSessionDocumentService @Inject constructor(
         return savedDocument
     }
 
-//    @DocumentAuditRequired
+    @DocumentAuditRequired
     @Transactional
     fun deleteDocument(
         sessionId: String,
@@ -95,7 +95,7 @@ class SharingSessionDocumentService @Inject constructor(
 
         sharingSessionRepository.update(sharingSession)
 
-        documentAuditService.logAction(document, DocumentAuditLogAction.DELETE, authTokenContext.authToken.appUser!!)
+        sharingSessionDocumentAuditService.logAction(document, DocumentAuditLogAction.DELETE, authTokenContext.authToken.appUser!!)
     }
 
     @DocumentAuditRequired
@@ -128,7 +128,7 @@ class SharingSessionDocumentService @Inject constructor(
 
         sharingSessionRepository.update(sharingSession)
 
-        documentAuditService.logAction(
+        sharingSessionDocumentAuditService.logAction(
             document,
             DocumentAuditLogAction.UPDATE,
             authTokenContext.authToken.appUser!!
@@ -188,7 +188,7 @@ class SharingSessionDocumentService @Inject constructor(
         document.hash = "hash" //ToDo: Create a hash for the document
 
         sharingSessionRepository.update(sharingSession)
-        documentAuditService.logAction(document, DocumentAuditLogAction.UPLOAD, appUser)
+        sharingSessionDocumentAuditService.logAction(document, DocumentAuditLogAction.UPLOAD, appUser)
     }
 
     @DocumentAuditRequired

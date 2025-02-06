@@ -1,6 +1,7 @@
 package com.dochyphen.app.api.interceptor
 
 import com.dochyphen.app.api.annotation.DocumentAuditRequired
+import com.dochyphen.app.api.service.sharingsession.SharingSessionDocumentAuditService
 import jakarta.annotation.Priority
 import jakarta.interceptor.AroundInvoke
 import jakarta.interceptor.Interceptor
@@ -19,7 +20,7 @@ class DocumentAuditInterceptor {
     @AroundInvoke
     fun checkAuditUsage(context: InvocationContext): Any {
         val method = context.method
-        val auditServiceUsed = method.declaringClass.declaredFields.any { it.type.simpleName == "DocumentAuditService" }
+        val auditServiceUsed = method.declaringClass.declaredFields.any { it.type.simpleName == SharingSessionDocumentAuditService::class.simpleName }
 
         if (!auditServiceUsed) {
             logger.warn("Audit service not used in method: ${method.name}")

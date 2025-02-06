@@ -1,15 +1,16 @@
-package com.dochyphen.app.api.service
+package com.dochyphen.app.api.service.sharingsession
 
 import com.dochyphen.app.api.exception.InvalidEmailException
 import com.dochyphen.app.api.exception.UserNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
-import com.dochyphen.app.api.model.BasicModelConverter.Companion.toDto
-import com.dochyphen.app.api.model.dto.SharingSessionBasicDto
 import com.dochyphen.app.api.model.entity.*
 import com.dochyphen.app.api.repository.AppUserRepository
 import com.dochyphen.app.api.repository.SharingSessionRepository
 import com.dochyphen.app.api.resource.model.SharingSessionParticipantRequest
 import com.dochyphen.app.api.resource.model.SharingSessionRequestDocumentRequest
+import com.dochyphen.app.api.service.AppUserService
+import com.dochyphen.app.api.service.AuthenticationService
+import com.dochyphen.app.api.service.EmailService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
