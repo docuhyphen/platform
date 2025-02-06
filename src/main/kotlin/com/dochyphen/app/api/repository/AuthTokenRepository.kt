@@ -1,6 +1,6 @@
 package com.dochyphen.app.api.repository
 
-import com.dochyphen.app.api.model.AuthToken
+import com.dochyphen.app.api.model.entity.AuthToken
 import jakarta.enterprise.context.RequestScoped
 
 @RequestScoped

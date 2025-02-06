@@ -1,9 +1,7 @@
 package com.dochyphen.app.api.model
 
-import com.dochyphen.app.api.model.dto.AppUserBasicDto
-import com.dochyphen.app.api.model.dto.ContactDetailsBasicDto
-import com.dochyphen.app.api.model.dto.PersonBasicDto
-import com.dochyphen.app.api.model.dto.SharingSessionBasicDto
+import com.dochyphen.app.api.model.dto.*
+import com.dochyphen.app.api.model.entity.*
 
 class BasicModelConverter
 {
@@ -73,7 +71,15 @@ class BasicModelConverter
                 }
             }
         }
+
+        fun toDto(document: Document?): DocumentBasicDto?
+        {
+            return document?.let {
+                with(document)
+                {
+                    DocumentBasicDto(id, createdDate, title, type.toString(), restrictedType.toString(), hash)
+                }
+            }
+        }
     }
-
-
 }

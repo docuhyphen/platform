@@ -1,6 +1,6 @@
 package com.dochyphen.app.api.repository
 
-import com.dochyphen.app.api.model.Person
+import com.dochyphen.app.api.model.entity.Person
 import jakarta.enterprise.context.RequestScoped
 import jakarta.persistence.TypedQuery
 

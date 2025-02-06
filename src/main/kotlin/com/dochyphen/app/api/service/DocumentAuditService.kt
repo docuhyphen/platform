@@ -1,9 +1,9 @@
 package com.dochyphen.app.api.service
 
-import com.dochyphen.app.api.model.AppUser
-import com.dochyphen.app.api.model.Document
-import com.dochyphen.app.api.model.DocumentAuditLog
-import com.dochyphen.app.api.model.DocumentAuditLogAction
+import com.dochyphen.app.api.model.entity.AppUser
+import com.dochyphen.app.api.model.entity.Document
+import com.dochyphen.app.api.model.entity.DocumentAuditLog
+import com.dochyphen.app.api.model.entity.DocumentAuditLogAction
 import com.dochyphen.app.api.repository.DocumentAuditLogRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

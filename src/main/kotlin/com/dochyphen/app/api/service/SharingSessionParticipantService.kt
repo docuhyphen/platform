@@ -2,7 +2,8 @@ package com.dochyphen.app.api.service
 
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.exception.UserNotFoundException
-import com.dochyphen.app.api.model.SharingSessionParticipantRole
+import com.dochyphen.app.api.model.entity.SharingSessionParticipant
+import com.dochyphen.app.api.model.entity.SharingSessionParticipantRole
 import com.dochyphen.app.api.repository.AppUserRepository
 import com.dochyphen.app.api.repository.SharingSessionRepository
 import jakarta.enterprise.context.ApplicationScoped
@@ -42,7 +43,7 @@ class SharingSessionParticipantService @Inject constructor(
         val participant = appUserRepository.findById(UUID.fromString(participantId))
             ?: throw UserNotFoundException("Participant not found")
 
-        val sharingSessionParticipant = com.dochyphen.app.api.model.SharingSessionParticipant().apply {
+        val sharingSessionParticipant = SharingSessionParticipant().apply {
             this.appUser = participant
             this.role = role
             this.addedDate = Timestamp.from(Instant.now())

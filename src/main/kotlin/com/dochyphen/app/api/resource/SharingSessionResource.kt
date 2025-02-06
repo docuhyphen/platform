@@ -4,8 +4,8 @@ import com.dochyphen.app.api.exception.InvalidEmailException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.exception.UserNotFoundException
 import com.dochyphen.app.api.model.BasicModelConverter.Companion.toDto
-import com.dochyphen.app.api.model.DetailedModelConverter
 import com.dochyphen.app.api.model.dto.SharingSessionBasicDto
+import com.dochyphen.app.api.model.entity.DetailedModelConverter
 import com.dochyphen.app.api.resource.model.*
 import com.dochyphen.app.api.service.*
 import jakarta.inject.Inject
@@ -185,7 +185,7 @@ class SharingSessionResource @Inject constructor(
 
     @PUT
     @Path("/{sessionId}")
-    fun updateSharingSessionStatus(
+    fun updateSharingSession(
         @PathParam("sessionId") sessionId: String,
         request: UpdateSharingSessionRequest
     ): Response
@@ -227,90 +227,6 @@ class SharingSessionResource @Inject constructor(
     }
 
     @POST
-    @Path("/{sessionId}/participants")
-    fun addParticipant(
-        @PathParam("sessionId") sessionId: String,
-        request: SharingSessionParticipant
-    ): Response
-    {
-        return try
-        {
-            sharingSessionParticipantService.addSharingSessionParticipant(sessionId, request.id, request.role)
-            Response.ok().build()
-        }
-        catch (exception: Exception)
-        {
-            when (exception)
-            {
-                is IllegalArgumentException ->
-                {
-                    logger.error("Error initiating sharing session", exception)
-
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
-                }
-
-                else ->
-                {
-                    logger.error("Error initiating sharing session", exception)
-
-                    val responseError = ResponseError("An error occurred while initiating sharing session")
-                    Response
-                        .status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
-                        .build()
-                }
-            }
-        }
-    }
-
-    @DELETE
-    @Path("/{sessionId}/participants/{participantId}")
-    fun removeParticipant(
-        @PathParam("sessionId") sessionId: String,
-        @PathParam("participantId") participantId: String
-    ): Response
-    {
-        return try
-        {
-            sharingSessionParticipantService.removeSharingSessionParticipant(sessionId, participantId)
-            Response.ok().build()
-        }
-        catch (exception: Exception)
-        {
-            when (exception)
-            {
-                is IllegalArgumentException ->
-                {
-                    logger.error("Error initiating sharing session", exception)
-
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
-                }
-
-                else ->
-                {
-                    logger.error("Error initiating sharing session", exception)
-
-                    val responseError = ResponseError("An error occurred while initiating sharing session")
-                    Response
-                        .status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
-                        .build()
-                }
-            }
-        }
-    }
-
-    @POST
     @Path("/{sessionId}/documents")
     fun addSessionDocument(
         request: AddSharingSessionDocumentRequest,
@@ -322,12 +238,13 @@ class SharingSessionResource @Inject constructor(
             val document = with(request) {
                 sharingSessionDocumentService.addDocument(
                     sessionId,
+                    title,
                     documentType,
                     restrictedType
                 )
             }
 
-            Response.ok(document).build()
+            Response.ok(toDto(document)).build()
         }
         catch (exception: Exception)
         {
@@ -335,7 +252,7 @@ class SharingSessionResource @Inject constructor(
             {
                 is IllegalArgumentException ->
                 {
-                    logger.error("Error initiating sharing session", exception)
+                    logger.error("Error adding sharing session document", exception)
 
                     val responseError = ResponseError(exception.message)
 
@@ -510,6 +427,91 @@ class SharingSessionResource @Inject constructor(
             }
 
             Response.ok(file).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is IllegalArgumentException ->
+                {
+                    logger.error("Error initiating sharing session", exception)
+
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(Response.Status.BAD_REQUEST)
+                        .entity(responseError)
+                        .build()
+                }
+
+                else ->
+                {
+                    logger.error("Error initiating sharing session", exception)
+
+                    val responseError = ResponseError("An error occurred while initiating sharing session")
+                    Response
+                        .status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(responseError)
+                        .build()
+                }
+            }
+        }
+    }
+
+
+    @POST
+    @Path("/{sessionId}/participants")
+    fun addParticipant(
+        @PathParam("sessionId") sessionId: String,
+        request: SharingSessionParticipantRequest
+    ): Response
+    {
+        return try
+        {
+            sharingSessionParticipantService.addSharingSessionParticipant(sessionId, request.id, request.role)
+            Response.ok().build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is IllegalArgumentException ->
+                {
+                    logger.error("Error initiating sharing session", exception)
+
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(Response.Status.BAD_REQUEST)
+                        .entity(responseError)
+                        .build()
+                }
+
+                else ->
+                {
+                    logger.error("Error initiating sharing session", exception)
+
+                    val responseError = ResponseError("An error occurred while initiating sharing session")
+                    Response
+                        .status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(responseError)
+                        .build()
+                }
+            }
+        }
+    }
+
+    @DELETE
+    @Path("/{sessionId}/participants/{participantId}")
+    fun removeParticipant(
+        @PathParam("sessionId") sessionId: String,
+        @PathParam("participantId") participantId: String
+    ): Response
+    {
+        return try
+        {
+            sharingSessionParticipantService.removeSharingSessionParticipant(sessionId, participantId)
+            Response.ok().build()
         }
         catch (exception: Exception)
         {

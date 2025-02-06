@@ -1,6 +1,5 @@
-package com.dochyphen.app.api.model
+package com.dochyphen.app.api.model.entity
 
-import com.dochyphen.app.api.model.SignUpStatus.PENDING
 import com.dochyphen.app.api.serializer.UUIDSerializer
 import jakarta.persistence.*
 import kotlinx.serialization.Serializable
@@ -38,7 +37,7 @@ class SignUpEntity
 
     @Column(name = "status", nullable = false)
     @Enumerated(value = EnumType.STRING)
-    var status: SignUpStatus = PENDING
+    var status: SignUpStatus = SignUpStatus.PENDING
 
     constructor()
 }

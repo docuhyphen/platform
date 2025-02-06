@@ -1,6 +1,6 @@
 package com.dochyphen.app.api.messaging
 
-import com.dochyphen.app.api.model.Company
+import com.dochyphen.app.api.model.entity.Company
 import com.dochyphen.app.api.repository.CompanyRepository
 import io.smallrye.reactive.messaging.kafka.KafkaRecord
 import org.eclipse.microprofile.reactive.messaging.Channel

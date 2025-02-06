@@ -1,6 +1,6 @@
 package com.dochyphen.app.api.resource.model
 
-import com.dochyphen.app.api.model.*
+import com.dochyphen.app.api.model.entity.*
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import java.io.File
@@ -88,14 +88,14 @@ data class SharingSessionInitiationRequest(
     var description: String? = null,
     var receiverEmail: String? = null,
     var sessionName: String? = null,
-    var sessionDocuments: List<SharingSessionRequestDocument>? = null,
+    var sessionDocuments: List<SharingSessionRequestDocumentRequest>? = null,
     var requestReceiverSignIn: Boolean = false,
     var allowDocumentAddition: Boolean = false,
     var allowDocumentDeletion: Boolean = false,
     var allowDocumentDownload: Boolean = false,
     var allowDocumentUpdate: Boolean = false,
     var allowDocumentUpload: Boolean = false,
-    var participants: List<SharingSessionParticipant>? = null,
+    var participants: List<SharingSessionParticipantRequest>? = null,
     var status: SharingSessionStatus? = null,
     var rejectionReason: String? = null
 )
@@ -116,8 +116,7 @@ data class UpdateSharingSessionRequest(
 
 @Serializable
 class AddSharingSessionDocumentRequest(
-    @Contextual
-    val documentId: String?,
+    val title: String?,
     val documentType: DocumentType? = null,
     val restrictedType: DocumentType? = null,
 )
@@ -138,7 +137,7 @@ class DownloadShareSessionDocumentRequest(
 )
 
 @Serializable
-class SharingSessionRequestDocument
+class SharingSessionRequestDocumentRequest
 {
     var title: String = ""
     var restrictedType: DocumentType? = null
@@ -146,7 +145,7 @@ class SharingSessionRequestDocument
 }
 
 @Serializable
-class SharingSessionParticipant
+class SharingSessionParticipantRequest
 {
     var id: String = ""
     var role: SharingSessionParticipantRole = SharingSessionParticipantRole.VIEWER

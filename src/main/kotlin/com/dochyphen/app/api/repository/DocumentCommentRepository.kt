@@ -1,6 +1,6 @@
 package com.dochyphen.app.api.repository
 
-import com.dochyphen.app.api.model.DocumentComment
+import com.dochyphen.app.api.model.entity.DocumentComment
 import jakarta.enterprise.context.ApplicationScoped
 import java.util.*
 

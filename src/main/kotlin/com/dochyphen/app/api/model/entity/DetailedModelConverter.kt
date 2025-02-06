@@ -1,4 +1,4 @@
-package com.dochyphen.app.api.model
+package com.dochyphen.app.api.model.entity
 
 import com.dochyphen.app.api.model.dto.AppUserDetailedDto
 import com.dochyphen.app.api.model.dto.ContactDetailsDetailedDto
@@ -39,7 +39,7 @@ class DetailedModelConverter
                         createdDate,
                         isActive,
                         email,
-                        DetailedModelConverter.toDto(person)
+                        toDto(person)
                     )
                 }
             }

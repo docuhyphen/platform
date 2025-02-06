@@ -1,7 +1,7 @@
 package com.dochyphen.app.api.repository
 
-import com.dochyphen.app.api.model.MfaRecord
-import com.dochyphen.app.api.model.MultifactorAuthenticationType
+import com.dochyphen.app.api.model.entity.MfaRecord
+import com.dochyphen.app.api.model.entity.MultifactorAuthenticationType
 import jakarta.enterprise.context.RequestScoped
 import jakarta.persistence.TypedQuery
 

@@ -1,6 +1,6 @@
 package com.dochyphen.app.api.repository
 
-import com.dochyphen.app.api.model.SignUpEntity
+import com.dochyphen.app.api.model.entity.SignUpEntity
 import jakarta.enterprise.context.ApplicationScoped
 
 @ApplicationScoped

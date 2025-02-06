@@ -1,6 +1,6 @@
 package com.dochyphen.app.api.repository
 
-import com.dochyphen.app.api.model.Company
+import com.dochyphen.app.api.model.entity.Company
 import jakarta.enterprise.context.RequestScoped
 import java.util.UUID
 

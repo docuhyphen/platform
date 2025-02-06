@@ -11,6 +11,9 @@ import com.dochyphen.app.api.exception.PasswordMismatchException
 import com.dochyphen.app.api.exception.PasswordRequiredException
 import com.dochyphen.app.api.exception.PasswordRequirementsNotMetException
 import com.dochyphen.app.api.model.*
+import com.dochyphen.app.api.model.entity.MfaRecord
+import com.dochyphen.app.api.model.entity.MultifactorAuthenticationStatus
+import com.dochyphen.app.api.model.entity.MultifactorAuthenticationType
 import com.dochyphen.app.api.repository.AppUserRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject

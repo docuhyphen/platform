@@ -1,7 +1,7 @@
 package com.dochyphen.app.api.repository
 
-import com.dochyphen.app.api.model.SharingSession
-import com.dochyphen.app.api.model.SharingSessionStatus
+import com.dochyphen.app.api.model.entity.SharingSessionStatus
+import com.dochyphen.app.api.model.entity.SharingSession
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.transaction.Transactional
 import java.sql.Timestamp

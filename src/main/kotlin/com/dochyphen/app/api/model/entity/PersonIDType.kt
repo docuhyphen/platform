@@ -1,4 +1,4 @@
-package com.dochyphen.app.api.model
+package com.dochyphen.app.api.model.entity
 
 enum class PersonIDType
 {

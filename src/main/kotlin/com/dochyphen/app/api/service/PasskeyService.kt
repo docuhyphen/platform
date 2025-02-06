@@ -1,6 +1,6 @@
 package com.dochyphen.app.api.service
 
-import com.dochyphen.app.api.model.AppUser
+import com.dochyphen.app.api.model.entity.AppUser
 import jakarta.enterprise.context.ApplicationScoped
 
 @ApplicationScoped

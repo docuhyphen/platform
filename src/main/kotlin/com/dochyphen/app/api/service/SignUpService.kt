@@ -16,6 +16,9 @@ import com.dochyphen.app.api.exception.PasswordMismatchException
 import com.dochyphen.app.api.exception.PasswordRequiredException
 import com.dochyphen.app.api.exception.PasswordRequirementsNotMetException
 import com.dochyphen.app.api.model.*
+import com.dochyphen.app.api.model.entity.AppUser
+import com.dochyphen.app.api.model.entity.SignUpEntity
+import com.dochyphen.app.api.model.entity.SignUpStatus
 import com.dochyphen.app.api.repository.AppUserRepository
 import com.dochyphen.app.api.repository.SignUpRepository
 import jakarta.enterprise.context.ApplicationScoped

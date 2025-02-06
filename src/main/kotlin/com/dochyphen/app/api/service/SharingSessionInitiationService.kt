@@ -3,17 +3,13 @@ package com.dochyphen.app.api.service
 import com.dochyphen.app.api.exception.InvalidEmailException
 import com.dochyphen.app.api.exception.UserNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
-import com.dochyphen.app.api.model.AppUser
-import com.dochyphen.app.api.model.Document
-import com.dochyphen.app.api.model.SharingSession
-import com.dochyphen.app.api.model.BasicModelConverter
 import com.dochyphen.app.api.model.BasicModelConverter.Companion.toDto
-import com.dochyphen.app.api.model.SharingSessionStatus
 import com.dochyphen.app.api.model.dto.SharingSessionBasicDto
+import com.dochyphen.app.api.model.entity.*
 import com.dochyphen.app.api.repository.AppUserRepository
 import com.dochyphen.app.api.repository.SharingSessionRepository
-import com.dochyphen.app.api.resource.model.SharingSessionParticipant
-import com.dochyphen.app.api.resource.model.SharingSessionRequestDocument
+import com.dochyphen.app.api.resource.model.SharingSessionParticipantRequest
+import com.dochyphen.app.api.resource.model.SharingSessionRequestDocumentRequest
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
@@ -47,14 +43,14 @@ class SharingSessionInitiationService @Inject constructor(
         description: String?,
         receiverEmail: String?,
         sessionName: String?,
-        sessionDocuments: List<SharingSessionRequestDocument>?,
+        sessionDocuments: List<SharingSessionRequestDocumentRequest>?,
         requestReceiverSignIn: Boolean? = false,
         allowDocumentAddition: Boolean? = false,
         allowDocumentDeletion: Boolean? = false,
         allowDocumentDownload: Boolean? = false,
         allowDocumentUpdate: Boolean? = false,
         allowDocumentUpload: Boolean? = false,
-        sharingSessionParticipants: List<SharingSessionParticipant>? = mutableListOf()
+        sharingSessionParticipantRequests: List<SharingSessionParticipantRequest>? = mutableListOf()
     ): SharingSessionBasicDto
     {
         val initiator = authTokenContext.authToken.appUser
@@ -91,10 +87,12 @@ class SharingSessionInitiationService @Inject constructor(
 //            throw IllegalArgumentException("This email still needs to create an account")
 //        }
 
-        val participants = sharingSessionParticipants?.map {
+        val participants = sharingSessionParticipantRequests?.map {
+
             val appUser = appUserService.getAppUserById(UUID.fromString(it.id))
                 ?: throw UserNotFoundException("One of the participants not found")
-            com.dochyphen.app.api.model.SharingSessionParticipant().apply {
+
+            SharingSessionParticipant().apply {
                 this.appUser = appUser
                 this.role = it.role
                 this.addedDate = Timestamp.from(Instant.now())

@@ -4,10 +4,10 @@ import com.dochyphen.app.api.annotation.DocumentAuditRequired
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.exception.UserNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
-import com.dochyphen.app.api.model.Document
-import com.dochyphen.app.api.model.DocumentAuditLogAction
-import com.dochyphen.app.api.model.DocumentComment
-import com.dochyphen.app.api.model.DocumentType
+import com.dochyphen.app.api.model.entity.Document
+import com.dochyphen.app.api.model.entity.DocumentAuditLogAction
+import com.dochyphen.app.api.model.entity.DocumentComment
+import com.dochyphen.app.api.model.entity.DocumentType
 import com.dochyphen.app.api.repository.AppUserRepository
 import com.dochyphen.app.api.repository.DocumentCommentRepository
 import com.dochyphen.app.api.repository.SharingSessionRepository
@@ -108,27 +108,38 @@ class SharingSessionDocumentService @Inject constructor(
     }
 
     @Transactional
+    @DocumentAuditRequired
     fun addDocument(
         sessionId: String,
+        title: String?,
         documentType: DocumentType?,
         restrictedType: DocumentType?
-    )
+    ): Document
     {
         val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
             ?: throw SharingSessionNotFoundException("Sharing session not found")
 
+        title ?: throw IllegalArgumentException("Title cannot be null")
+
         val document = Document().apply {
+            this.title = title
             this.createdDate = Timestamp.from(Instant.now())
             this.updateDate = Timestamp.from(Instant.now())
             this.deleted = false
             this.type = documentType
-
             this.restrictedType = restrictedType
         }
 
         sharingSession.documents.add(document)
+        val updatedSession = sharingSessionRepository.update(sharingSession)
 
-        sharingSessionRepository.update(sharingSession)
+        documentAuditService.logAction(
+            document,
+            DocumentAuditLogAction.CREATED,
+            authTokenContext.authToken.appUser!!
+        )
+
+        return updatedSession.documents.last()
     }
 
     @DocumentAuditRequired

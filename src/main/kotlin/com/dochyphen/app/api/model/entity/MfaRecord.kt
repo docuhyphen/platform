@@ -1,8 +1,10 @@
-package com.dochyphen.app.api.model
+package com.dochyphen.app.api.model.entity
 
 import com.dochyphen.app.api.serializer.UUIDSerializer
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType.STRING
+import jakarta.persistence.Enumerated
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
@@ -13,8 +15,8 @@ import java.time.Instant
 import java.util.UUID
 
 @Entity
-@Table(name = "auth_token")
-class AuthToken {
+@Table(name = "mfa_record")
+class MfaRecord {
 
     @Id
     @Serializable(with = UUIDSerializer::class)
@@ -30,11 +32,16 @@ class AuthToken {
     @Column(name = "expiry_date")
     var expiryDateTime: Timestamp? = null
 
-    @Column(name = "token", nullable = false)
-    var token: String? = null
+    @Column(name = "mfa_token")
+    var mfaToken: String? = null
 
-    @Column(name = "otp")
-    var otp: String? = null
+    @Column(name = "mfa_type")
+    @Enumerated(STRING)
+    var mfaType: MultifactorAuthenticationType? = null
+
+    @Column(name = "status")
+    @Enumerated(STRING)
+    var status: MultifactorAuthenticationStatus? = null
 
     constructor()
 }

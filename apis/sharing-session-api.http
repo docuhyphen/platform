@@ -37,12 +37,12 @@ Authorization: Bearer {{Authorization}}
 Content-Type: application/json
 
 ### Update Sharing Session
-PATCH http://localhost:8080/sharing-sessions/18ce9fc8-a831-44a9-a7fa-a478fecdba89
+PUT http://localhost:8080/sharing-sessions/18ce9fc8-a831-44a9-a7fa-a478fecdba89
 Authorization: Bearer {{Authorization}}
 Content-Type: application/json
 
 {
-  "sessionName": "Project Review Session 1",
+  "sessionName": "Project Review Session 2",
   "status": "REJECTED",
   "initialShareMessage": "Please review the attached documents.",
   "description": "Document sharing session for project review.",
@@ -51,4 +51,14 @@ Content-Type: application/json
   "allowDocumentDownload": true,
   "allowDocumentUpdate": true,
   "allowDocumentUpload": true
+}
+
+### Add document to sharing session
+POST http://localhost:8080/sharing-sessions/b4b502a5-86d0-4e59-ba05-f588a0acb9e6/documents
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
+{
+  "title": "Project Plan",
+  "restrictedType": "PDF"
 }

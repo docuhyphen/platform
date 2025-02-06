@@ -1,4 +1,4 @@
-package com.dochyphen.app.api.model
+package com.dochyphen.app.api.model.entity
 
 import com.dochyphen.app.api.serializer.TimestampSerializer
 import com.dochyphen.app.api.serializer.UUIDSerializer

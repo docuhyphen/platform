@@ -1,6 +1,6 @@
 package com.dochyphen.app.api.service
 
-import com.dochyphen.app.api.model.Company
+import com.dochyphen.app.api.model.entity.Company
 import com.dochyphen.app.api.exception.CompanyNotFoundException
 import com.dochyphen.app.api.repository.CompanyRepository
 import jakarta.enterprise.context.RequestScoped

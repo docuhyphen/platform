@@ -4,6 +4,7 @@ import {fetchSignedInUserAppUserSharingSession} from "../../services/api.ts";
 import useToken from "../../context/useToken.tsx";
 import "./Landing.css";
 import PreLanding from "../pre-landing/PreLanding.tsx";
+import {Accordion} from "@fluentui/react-components";
 
 const Landing: React.FC = () =>
 {
@@ -54,7 +55,14 @@ const Landing: React.FC = () =>
                             <p>Session Name: {sessionDetails.sessionName}</p>
                             <p>Description: {sessionDetails.description}</p>
                             <p>Created Date: {sessionDetails.createdDate}</p>
-                            {/* Add more details as needed */}
+                            {
+                                sessionDetails.documents?.map((document: any) =>{
+
+                                    <div>
+                                        {document.title}
+                                    </div>
+                                })
+                            }
                         </div>
                     )}
                 </div>

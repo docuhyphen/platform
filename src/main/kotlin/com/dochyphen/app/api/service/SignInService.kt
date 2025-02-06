@@ -4,6 +4,9 @@ import com.dochyphen.app.api.exception.InvalidOtpException
 import com.dochyphen.app.api.exception.InvalidSignInCredentialsException
 import com.dochyphen.app.api.exception.OTPExpiredException
 import com.dochyphen.app.api.model.*
+import com.dochyphen.app.api.model.entity.AuthToken
+import com.dochyphen.app.api.model.entity.MfaRecord
+import com.dochyphen.app.api.model.entity.MultifactorAuthenticationType
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import org.mindrot.jbcrypt.BCrypt

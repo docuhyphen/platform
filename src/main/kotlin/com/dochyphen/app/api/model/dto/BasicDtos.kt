@@ -29,7 +29,6 @@ data class SharingSessionBasicDto(
 //    val participantIds: List<UUID>
 )
 
-
 @Serializable
 data class ContactDetailsBasicDto(
     @Serializable(with = UUIDSerializer::class)
@@ -54,6 +53,7 @@ data class PersonBasicDto(
     val contactDetailsId: UUID?
 )
 
+@Serializable
 data class AppUserBasicDto(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID?,
@@ -63,4 +63,16 @@ data class AppUserBasicDto(
     val email: String,
     @Serializable(with = UUIDSerializer::class)
     val personId: UUID?
+)
+
+@Serializable
+data class DocumentBasicDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID?,
+    @Serializable(with = TimestampSerializer::class)
+    val createdDate: Timestamp?,
+    val title: String?,
+    val type: String?,
+    val restrictedType: String?,
+    val hash: String?,
 )

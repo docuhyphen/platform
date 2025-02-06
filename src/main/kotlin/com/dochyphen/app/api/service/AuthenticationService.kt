@@ -1,7 +1,7 @@
 package com.dochyphen.app.api.service
 
-import com.dochyphen.app.api.model.AppUser
-import com.dochyphen.app.api.model.AuthToken
+import com.dochyphen.app.api.model.entity.AppUser
+import com.dochyphen.app.api.model.entity.AuthToken
 import com.dochyphen.app.api.exception.AuthTokenInvalidException
 import com.dochyphen.app.api.exception.AuthTokenNotFoundException
 import com.dochyphen.app.api.repository.AuthTokenRepository

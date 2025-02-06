@@ -7,6 +7,10 @@ import com.dochyphen.app.api.exception.PersonAlreadyExistsException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.messaging.CompanyVerificationProducer
 import com.dochyphen.app.api.model.*
+import com.dochyphen.app.api.model.entity.AppUserRole
+import com.dochyphen.app.api.model.entity.Company
+import com.dochyphen.app.api.model.entity.Person
+import com.dochyphen.app.api.model.entity.PersonIDType
 import com.dochyphen.app.api.repository.CompanyRepository
 import com.dochyphen.app.api.repository.PersonRepositoryRepository
 import jakarta.enterprise.context.RequestScoped

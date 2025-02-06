@@ -1,7 +1,7 @@
 package com.dochyphen.app.api.service
 
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
-import com.dochyphen.app.api.model.SharingSessionStatus
+import com.dochyphen.app.api.model.entity.SharingSessionStatus
 import com.dochyphen.app.api.repository.SharingSessionRepository
 import com.dochyphen.app.api.resource.model.UpdateSharingSessionRequest
 import jakarta.enterprise.context.ApplicationScoped

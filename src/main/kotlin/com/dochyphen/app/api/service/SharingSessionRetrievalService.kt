@@ -2,7 +2,7 @@ package com.dochyphen.app.api.service
 
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
-import com.dochyphen.app.api.model.SharingSession
+import com.dochyphen.app.api.model.entity.SharingSession
 import com.dochyphen.app.api.repository.SharingSessionRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

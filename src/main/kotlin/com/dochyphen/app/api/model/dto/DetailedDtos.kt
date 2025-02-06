@@ -1,6 +1,5 @@
 package com.dochyphen.app.api.model.dto
 
-import com.dochyphen.app.api.model.AppUser
 import com.dochyphen.app.api.serializer.TimestampSerializer
 import com.dochyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable

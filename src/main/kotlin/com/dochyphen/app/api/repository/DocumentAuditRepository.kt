@@ -1,6 +1,6 @@
 package com.dochyphen.app.api.repository
 
-import com.dochyphen.app.api.model.DocumentAuditLog
+import com.dochyphen.app.api.model.entity.DocumentAuditLog
 import jakarta.enterprise.context.ApplicationScoped
 
 @ApplicationScoped
