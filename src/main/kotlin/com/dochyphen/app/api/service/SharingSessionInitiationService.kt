@@ -51,7 +51,7 @@ class SharingSessionInitiationService @Inject constructor(
         allowDocumentUpdate: Boolean? = false,
         allowDocumentUpload: Boolean? = false,
         sharingSessionParticipantRequests: List<SharingSessionParticipantRequest>? = mutableListOf()
-    ): SharingSessionBasicDto
+    ): SharingSession
     {
         val initiator = authTokenContext.authToken.appUser
 
@@ -161,6 +161,6 @@ class SharingSessionInitiationService @Inject constructor(
 
         logger.info("Sharing session initiated by ${initiator?.email} for ${receiver.email}")
 
-        return toDto(savedSharingSession)!!
+        return savedSharingSession
     }
 }

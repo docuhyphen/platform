@@ -1,13 +1,14 @@
 package com.dochyphen.app.api.resource
 
 import com.dochyphen.app.api.exception.InvalidEmailException
-import com.dochyphen.app.api.exception.SharingSessionDocumentNotFoundException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.exception.UserNotFoundException
 import com.dochyphen.app.api.model.BasicModelConverter.Companion.toDto
 import com.dochyphen.app.api.model.dto.SharingSessionBasicDto
 import com.dochyphen.app.api.model.entity.DetailedModelConverter
-import com.dochyphen.app.api.resource.model.*
+import com.dochyphen.app.api.resource.model.ResponseError
+import com.dochyphen.app.api.resource.model.SharingSessionInitiationRequest
+import com.dochyphen.app.api.resource.model.UpdateSharingSessionRequest
 import com.dochyphen.app.api.service.*
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
@@ -53,7 +54,7 @@ class SharingSessionResource @Inject constructor(
                 )
             }
 
-            Response.ok(sharingSession).build()
+            Response.ok(toDto(sharingSession)).build()
         }
         catch (exception: Exception)
         {
@@ -88,7 +89,7 @@ class SharingSessionResource @Inject constructor(
     }
 
     @GET
-    fun getAllSharingSessions(): Response
+    fun getSharingSessions(): Response
     {
 
         return try
