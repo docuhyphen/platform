@@ -3,7 +3,8 @@ package com.dochyphen.app.api.resource
 import com.dochyphen.app.api.exception.InvalidEmailException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.exception.UserNotFoundException
-import com.dochyphen.app.api.model.SharingSessionModelConverter
+import com.dochyphen.app.api.model.BasicModelConverter
+import com.dochyphen.app.api.model.DetailedModelConverter
 import com.dochyphen.app.api.model.dto.SharingSessionBasicDto
 import com.dochyphen.app.api.resource.model.*
 import com.dochyphen.app.api.service.*
@@ -92,13 +93,13 @@ class SharingSessionResource @Inject constructor(
         return try
         {
             val sessions = sharingSessionRetrievalService.getAllSessionsForSignInAppUser()
-
-            var sessionDTOs: Array<SharingSessionBasicDto> = arrayOf<SharingSessionBasicDto>()
+            var sessionDTOs = arrayOf<SharingSessionBasicDto?>()
 
             if (sessions.isNotEmpty())
             {
-                sessionDTOs =
-                    sessions.map { SharingSessionModelConverter.Companion.convertToBasicDto(it) }.toTypedArray()
+                sessionDTOs = sessions
+                    .map { BasicModelConverter.Companion.toDto(it) }
+                    .toTypedArray()
             }
 
             Response.ok(sessionDTOs).build()
@@ -141,7 +142,7 @@ class SharingSessionResource @Inject constructor(
         {
             val sharingSession = sharingSessionRetrievalService.getSharingSession(sessionId)
 
-            Response.ok(SharingSessionModelConverter.convertToBasicDto(sharingSession)).build()
+            Response.ok(DetailedModelConverter.toDo(sharingSession)).build()
         }
         catch (exception: Exception)
         {

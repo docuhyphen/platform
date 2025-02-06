@@ -26,10 +26,10 @@ class ContactDetails
     var createdDate: Timestamp = Timestamp.from(Instant.now())
 
     @Column(name = "phone_number")
-    lateinit var phoneNumber: String
+    var phoneNumber: String? = ""
 
     @Column(name = "email")
-    lateinit var email: String
+    var email: String? = ""
 
     @OneToOne
     var company: Company? = null

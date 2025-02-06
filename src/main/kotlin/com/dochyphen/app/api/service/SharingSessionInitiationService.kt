@@ -6,7 +6,8 @@ import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.model.AppUser
 import com.dochyphen.app.api.model.Document
 import com.dochyphen.app.api.model.SharingSession
-import com.dochyphen.app.api.model.SharingSessionModelConverter
+import com.dochyphen.app.api.model.BasicModelConverter
+import com.dochyphen.app.api.model.BasicModelConverter.Companion.toDto
 import com.dochyphen.app.api.model.SharingSessionStatus
 import com.dochyphen.app.api.model.dto.SharingSessionBasicDto
 import com.dochyphen.app.api.repository.AppUserRepository
@@ -162,6 +163,6 @@ class SharingSessionInitiationService @Inject constructor(
 
         logger.info("Sharing session initiated by ${initiator?.email} for ${receiver.email}")
 
-        return SharingSessionModelConverter.Companion.convertToBasicDto(savedSharingSession)
+        return toDto(savedSharingSession)!!
     }
 }

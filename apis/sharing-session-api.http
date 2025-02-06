@@ -6,7 +6,7 @@ Content-Type: application/json
 {
   "initialShareMessage": "Please review the attached documents.",
   "description": "Document sharing session for project review.",
-  "receiverEmail": "receiverasadasd@example.com",
+  "receiverEmail": "receive12adasd@example.com",
   "sessionName": "Project Review Session",
   "sessionDocuments": [
     {
