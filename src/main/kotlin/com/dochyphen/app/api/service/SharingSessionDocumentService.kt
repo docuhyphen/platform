@@ -35,6 +35,42 @@ class SharingSessionDocumentService @Inject constructor(
         private val logger = LoggerFactory.getLogger(SharingSessionDocumentService::class.java)
     }
 
+    @Transactional
+    @DocumentAuditRequired
+    fun addDocument(
+        sessionId: String,
+        title: String?,
+        documentType: DocumentType?,
+        restrictedType: DocumentType?
+    ): Document
+    {
+        val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
+            ?: throw SharingSessionNotFoundException("Sharing session not found")
+
+        title ?: throw IllegalArgumentException("Title cannot be null")
+
+        val document = Document().apply {
+            this.title = title
+            this.createdDate = Timestamp.from(Instant.now())
+            this.updateDate = Timestamp.from(Instant.now())
+            this.deleted = false
+            this.type = documentType
+            this.restrictedType = restrictedType
+        }
+
+        sharingSession.documents.add(document)
+        sharingSessionRepository.update(sharingSession)
+
+        val savedDocument = sharingSession.documents.last()
+
+        documentAuditService.logAction(
+            savedDocument,
+            DocumentAuditLogAction.CREATED,
+            authTokenContext.authToken.appUser!!
+        )
+
+        return savedDocument
+    }
     @DocumentAuditRequired
     @Transactional
     fun uploadDocument(
@@ -107,53 +143,6 @@ class SharingSessionDocumentService @Inject constructor(
         documentAuditService.logAction(document, DocumentAuditLogAction.DELETE, authTokenContext.authToken.appUser!!)
     }
 
-    @Transactional
-    @DocumentAuditRequired
-    fun addDocument(
-        sessionId: String,
-        title: String?,
-        documentType: DocumentType?,
-        restrictedType: DocumentType?
-    ): Document
-    {
-        val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
-            ?: throw SharingSessionNotFoundException("Sharing session not found")
-
-        title ?: throw IllegalArgumentException("Title cannot be null")
-
-        val document = Document().apply {
-            this.title = title
-            this.createdDate = Timestamp.from(Instant.now())
-            this.updateDate = Timestamp.from(Instant.now())
-            this.deleted = false
-            this.type = documentType
-            this.restrictedType = restrictedType
-        }
-
-        sharingSession.documents.add(document)
-        val updatedSession = sharingSessionRepository.update(sharingSession)
-
-        documentAuditService.logAction(
-            document,
-            DocumentAuditLogAction.CREATED,
-            authTokenContext.authToken.appUser!!
-        )
-
-        return updatedSession.documents.last()
-    }
-
-    @DocumentAuditRequired
-    fun downloadDocument(
-        sessionId: String,
-        documentId: String
-    ): File
-    {
-        val document = Document() // Retrieve the document entity as needed
-//        val file = awsS3Service.downloadDocument(bucketName, key, encryptionKey)
-//        documentAuditService.logAction(document, DocumentAuditLogAction.DOWNLOAD, performedBy)
-        return File("file")
-    }
-
     @DocumentAuditRequired
     @Transactional
     fun updateDocument(
@@ -183,6 +172,18 @@ class SharingSessionDocumentService @Inject constructor(
             DocumentAuditLogAction.UPDATE,
             authTokenContext.authToken.appUser!!
         )
+    }
+
+    @DocumentAuditRequired
+    fun downloadDocument(
+        sessionId: String,
+        documentId: String
+    ): File
+    {
+        val document = Document() // Retrieve the document entity as needed
+//        val file = awsS3Service.downloadDocument(bucketName, key, encryptionKey)
+//        documentAuditService.logAction(document, DocumentAuditLogAction.DOWNLOAD, performedBy)
+        return File("file")
     }
 
     @Transactional

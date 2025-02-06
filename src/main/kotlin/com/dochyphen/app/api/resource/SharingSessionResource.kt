@@ -264,9 +264,9 @@ class SharingSessionResource @Inject constructor(
 
                 else ->
                 {
-                    logger.error("Error initiating sharing session", exception)
+                    logger.error("Error adding sharing session document", exception)
 
-                    val responseError = ResponseError("An error occurred while initiating sharing session")
+                    val responseError = ResponseError("An error occurred while adding sharing session")
                     Response
                         .status(Response.Status.INTERNAL_SERVER_ERROR)
                         .entity(responseError)
@@ -276,17 +276,19 @@ class SharingSessionResource @Inject constructor(
         }
     }
 
-    @DELETE
-    @Path("/{sessionId}/documents/{documentId}")
-    fun deleteDocument(
-        @PathParam("sessionId") sessionId: String,
-        @PathParam("documentId") documentId: String
+    @POST
+    @Path("/{sessionId}/upload")
+    fun uploadSessionDocument(
+        uploadShareSessionDocumentRequest: UploadShareSessionDocumentRequest,
+        @PathParam("sessionId") sessionId: String
     ): Response
     {
         return try
         {
-            sharingSessionDocumentService.deleteDocument(sessionId, documentId)
-            Response.ok().build()
+            val encryptionKey = with(uploadShareSessionDocumentRequest) {
+                sharingSessionDocumentService.uploadDocument(file, sessionId, documentId, performedBy)
+            }
+            Response.ok(mapOf("encryptionKey" to encryptionKey)).build()
         }
         catch (exception: Exception)
         {
@@ -318,19 +320,17 @@ class SharingSessionResource @Inject constructor(
         }
     }
 
-    @POST
-    @Path("/{sessionId}/upload")
-    fun uploadDocument(
-        uploadShareSessionDocumentRequest: UploadShareSessionDocumentRequest,
-        @PathParam("sessionId") sessionId: String
+    @DELETE
+    @Path("/{sessionId}/documents/{documentId}")
+    fun deleteSessionDocument(
+        @PathParam("sessionId") sessionId: String,
+        @PathParam("documentId") documentId: String
     ): Response
     {
         return try
         {
-            val encryptionKey = with(uploadShareSessionDocumentRequest) {
-                sharingSessionDocumentService.uploadDocument(file, sessionId, documentId, performedBy)
-            }
-            Response.ok(mapOf("encryptionKey" to encryptionKey)).build()
+            sharingSessionDocumentService.deleteDocument(sessionId, documentId)
+            Response.ok().build()
         }
         catch (exception: Exception)
         {

@@ -35,8 +35,8 @@ class DocumentAuditLog {
     @Enumerated(EnumType.STRING)
     var action: DocumentAuditLogAction = DocumentAuditLogAction.UPLOAD
 
-    @OneToOne(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
-    @JoinColumn(name = "performed_by")
+    @ManyToOne(cascade = [CascadeType.PERSIST], fetch = FetchType.EAGER)
+    @JoinColumn(name = "performed_by_app_user_id", unique = false)
     var performedBy: AppUser? = null
 
     @Column(name = "performed_email", nullable = false)
