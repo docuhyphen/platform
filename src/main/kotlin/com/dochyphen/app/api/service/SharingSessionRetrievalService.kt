@@ -2,6 +2,7 @@ package com.dochyphen.app.api.service
 
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
+import com.dochyphen.app.api.model.entity.Document
 import com.dochyphen.app.api.model.entity.SharingSession
 import com.dochyphen.app.api.repository.SharingSessionRepository
 import jakarta.enterprise.context.ApplicationScoped
@@ -27,15 +28,23 @@ class SharingSessionRetrievalService @Inject constructor(
 
     fun getSharingSession(sessionId: String): SharingSession
     {
-        return sharingSessionRepository.findById(UUID.fromString(sessionId)) ?: throw SharingSessionNotFoundException("Sharing session not found")
+        val session = sharingSessionRepository.findById(UUID.fromString(sessionId)) ?: throw SharingSessionNotFoundException("Sharing session not found")
+
+        session.documents = session.documents.filter { it.isDeleted == false } as MutableList<Document>
+
+        return session
     }
 
-    fun getAllSessionsForSignInAppUser(): List<SharingSession>
+    fun getAllSessionsForSignedInAppUser(): List<SharingSession>
     {
         val appUserId = authTokenContext.authToken.appUser?.id
         val initiatedSessions = sharingSessionRepository.findByInitiatorId(appUserId!!)
         val receivedSessions = sharingSessionRepository.findByReceiverId(appUserId)
 
-        return initiatedSessions + receivedSessions
+        return (initiatedSessions + receivedSessions).map { session ->
+            session.apply {
+                documents = documents.filter { !it.isDeleted } as MutableList<Document>
+            }
+        }
     }
 }

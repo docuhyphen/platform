@@ -7,6 +7,29 @@ import java.sql.Timestamp
 import java.util.*
 
 @Serializable
+data class DocumentCommentDetailedDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID?,
+    @Serializable(with = TimestampSerializer::class)
+    val createdDate: Timestamp?,
+    val text: String?,
+//    val commentedBy: AppUserDetailedDto?
+)
+
+@Serializable
+data class DocumentDetailedDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID?,
+    @Serializable(with = TimestampSerializer::class)
+    val createdDate: Timestamp?,
+    val title: String?,
+    val type: String?,
+    val restrictedType: String?,
+    val hash: String?,
+    val comments: List<DocumentCommentDetailedDto>?
+)
+
+@Serializable
 data class SharingSessionDetailedDto(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID,
@@ -20,6 +43,7 @@ data class SharingSessionDetailedDto(
     val initiator: AppUserDetailedDto? = null,
     val receiver: AppUserDetailedDto? = null,
     val status: String?,
+    val documents: List<DocumentDetailedDto?>
 
 //    val participantIds: List<UUID>
 )

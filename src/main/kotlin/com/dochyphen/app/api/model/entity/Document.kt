@@ -43,8 +43,8 @@ class Document
     @Serializable(with = UUIDSerializer::class)
     var id: UUID = UUID.randomUUID()
 
-    @Column(name = "is_active", nullable = false)
-    var deleted: Boolean = false
+    @Column(name = "is_deleted", nullable = false)
+    var isDeleted: Boolean = false
 
     @Column(name = "created_date", nullable = false)
     @Serializable(with = TimestampSerializer::class)
@@ -73,9 +73,6 @@ class Document
 
     @Column(name = "restricted_type", nullable = true)
     var restrictedType: DocumentType? = null
-
-    @Column(name = "document_type", nullable = true)
-    var documentType: DocumentType? = null
 
     @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.EAGER)
     @JoinColumn(name = "document_id")

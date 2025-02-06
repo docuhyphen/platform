@@ -1,16 +1,16 @@
 package com.dochyphen.app.api.resource
 
-import com.dochyphen.app.api.service.SharingSessionDocumentService
+import com.dochyphen.app.api.service.SharingSessionDocumentCommentsService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 
-@Path("/documents/{documentId}/comments")
+@Path("sharing-sessions/{sessionId}/documents/{documentId}/comments")
 @Produces(APPLICATION_JSON)
 @Consumes(APPLICATION_JSON)
 class DocumentCommentResource @Inject constructor(
-    private val sharingSessionDocumentService: SharingSessionDocumentService
+    private val sessionService: SharingSessionDocumentCommentsService
 ) {
 
     @POST
@@ -18,13 +18,14 @@ class DocumentCommentResource @Inject constructor(
         @PathParam("documentId") documentId: String,
         commentRequest: CommentRequest
     ): Response {
-        val comment = sharingSessionDocumentService.addDocumentComment(documentId, commentRequest.commentText, commentRequest.commentedBy)
+        val comment =
+            sessionService.addDocumentComment(documentId, commentRequest.commentText, commentRequest.commentedBy)
         return Response.ok(comment).build()
     }
 
     @GET
     fun getComments(@PathParam("documentId") documentId: String): Response {
-        val comments = sharingSessionDocumentService.getDocumentComments(documentId)
+        val comments = sessionService.getDocumentComments(documentId)
         return Response.ok(comments).build()
     }
 }

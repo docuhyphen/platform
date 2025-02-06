@@ -1,0 +1,322 @@
+package com.dochyphen.app.api.resource
+
+import com.dochyphen.app.api.exception.SharingSessionDocumentNotFoundException
+import com.dochyphen.app.api.exception.SharingSessionNotFoundException
+import com.dochyphen.app.api.model.BasicModelConverter.Companion.toDto
+import com.dochyphen.app.api.resource.model.*
+import com.dochyphen.app.api.service.SharingSessionDocumentService
+import jakarta.inject.Inject
+import jakarta.ws.rs.*
+import jakarta.ws.rs.core.MediaType
+import jakarta.ws.rs.core.Response
+import org.slf4j.LoggerFactory
+
+@Path("sharing-sessions/{sessionId}/documents")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+class SharingSessionDocumentsResource @Inject constructor(
+    private val sharingSessionDocumentService: SharingSessionDocumentService
+)
+{
+    companion object
+    {
+        private val logger = LoggerFactory.getLogger(SharingSessionDocumentsResource::class.java)
+    }
+
+    @POST
+    fun addSessionDocument(
+        request: AddSharingSessionDocumentRequest,
+        @PathParam("sessionId") sessionId: String
+    ): Response
+    {
+        return try
+        {
+            val document = with(request) {
+                sharingSessionDocumentService.addDocument(
+                    sessionId,
+                    title,
+                    documentType,
+                    restrictedType
+                )
+            }
+
+            Response.ok(toDto(document)).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is SharingSessionNotFoundException ->
+                {
+                    logger.error("Error adding sharing session document", exception)
+
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(Response.Status.NOT_FOUND)
+                        .entity(responseError)
+                        .build()
+
+                }
+                is IllegalArgumentException ->
+                {
+                    logger.error("Error adding sharing session document", exception)
+
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(Response.Status.BAD_REQUEST)
+                        .entity(responseError)
+                        .build()
+                }
+
+                else ->
+                {
+                    logger.error("Error adding sharing session document", exception)
+
+                    val responseError = ResponseError("An error occurred while adding sharing session document")
+                    Response
+                        .status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(responseError)
+                        .build()
+                }
+            }
+        }
+    }
+
+    @DELETE
+    @Path("/{documentId}")
+    fun deleteSessionDocument(
+        @PathParam("sessionId") sessionId: String,
+        @PathParam("documentId") documentId: String
+    ): Response
+    {
+        return try
+        {
+            sharingSessionDocumentService.deleteDocument(sessionId, documentId)
+            Response.ok().build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is SharingSessionNotFoundException,
+                is SharingSessionDocumentNotFoundException ->
+                {
+                    logger.error("Error deleting sharing session document", exception)
+
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(Response.Status.NOT_FOUND)
+                        .entity(responseError)
+                        .build()
+
+                }
+
+                is IllegalArgumentException ->
+                {
+                    logger.error("Error deleting sharing session document", exception)
+
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(Response.Status.BAD_REQUEST)
+                        .entity(responseError)
+                        .build()
+                }
+
+                else ->
+                {
+                    logger.error("Error deleting sharing session document", exception)
+
+                    val responseError = ResponseError("An error occurred while deleting sharing session document")
+                    Response
+                        .status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(responseError)
+                        .build()
+                }
+            }
+        }
+    }
+
+    @PUT
+    @Path("/{documentId}")
+    fun updateSessionDocument(
+        request: UpdateShareSessionDocumentRequest,
+        @PathParam("sessionId") sessionId: String,
+        @PathParam("documentId") documentId: String
+    ): Response
+    {
+        return try
+        {
+            val document = with(request) {
+                sharingSessionDocumentService.updateDocument(
+                    sessionId,
+                    documentId,
+                    title,
+                    type,
+                    restrictedType
+                )
+            }
+
+            Response.ok(toDto(document)).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is SharingSessionNotFoundException,
+                is SharingSessionDocumentNotFoundException ->
+                {
+                    logger.error("Error updating sharing session document", exception)
+
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(Response.Status.NOT_FOUND)
+                        .entity(responseError)
+                        .build()
+
+                }
+                is IllegalArgumentException ->
+                {
+                    logger.error("Error updating sharing session document", exception)
+
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(Response.Status.BAD_REQUEST)
+                        .entity(responseError)
+                        .build()
+                }
+
+                else ->
+                {
+                    logger.error("Error updating sharing session document", exception)
+
+                    val responseError = ResponseError("An error occurred while update sharing session document")
+                    Response
+                        .status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(responseError)
+                        .build()
+                }
+            }
+        }
+    }
+
+    @POST
+    @Path("/{documentId}/file")
+    fun uploadSessionDocument(
+        uploadShareSessionDocumentRequest: UploadShareSessionDocumentRequest,
+        @PathParam("sessionId") sessionId: String
+    ): Response
+    {
+        return try
+        {
+            val encryptionKey = with(uploadShareSessionDocumentRequest) {
+                sharingSessionDocumentService.uploadDocument(file, sessionId, documentId, performedBy)
+            }
+            Response.ok(mapOf("encryptionKey" to encryptionKey)).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is SharingSessionNotFoundException,
+                is SharingSessionDocumentNotFoundException ->
+                {
+                    logger.error("Error uploading sharing session document", exception)
+
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(Response.Status.NOT_FOUND)
+                        .entity(responseError)
+                        .build()
+
+                }
+
+                is IllegalArgumentException ->
+                {
+                    logger.error("Error uploading sharing session document", exception)
+
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(Response.Status.BAD_REQUEST)
+                        .entity(responseError)
+                        .build()
+                }
+
+                else ->
+                {
+                    logger.error("Error uploading sharing session document", exception)
+
+                    val responseError = ResponseError("An error occurred while uploading sharing session document")
+                    Response
+                        .status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(responseError)
+                        .build()
+                }
+            }
+        }
+    }
+
+    @GET
+    @Path("{documentId}/file")
+    fun downloadDocument(
+        request: DownloadShareSessionDocumentRequest
+    ): Response
+    {
+        return try
+        {
+            val file = with(request) {
+                sharingSessionDocumentService.downloadDocument(sessionId, documentId)
+            }
+
+            Response.ok(file).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is SharingSessionNotFoundException,
+                is SharingSessionDocumentNotFoundException ->
+                {
+                    logger.error("Error downloading sharing session document", exception)
+
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(Response.Status.NOT_FOUND)
+                        .entity(responseError)
+                        .build()
+
+                }
+                is IllegalArgumentException ->
+                {
+                    logger.error("Error downloading sharing session document", exception)
+
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(Response.Status.BAD_REQUEST)
+                        .entity(responseError)
+                        .build()
+                }
+
+                else ->
+                {
+                    logger.error("Error downloading sharing session document", exception)
+
+                    val responseError = ResponseError("An error occurred while uploading sharing session document")
+                    Response
+                        .status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(responseError)
+                        .build()
+                }
+            }
+        }
+    }
+}

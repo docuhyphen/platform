@@ -125,7 +125,7 @@ class SharingSessionInitiationService @Inject constructor(
                 this.title = doc.title
                 this.createdDate = Timestamp.from(Instant.now())
                 this.updateDate = Timestamp.from(Instant.now())
-                this.deleted = false
+                this.isDeleted = false
                 this.type = null // Type is set on the document upload method
                 this.restrictedType = doc.restrictedType
             }

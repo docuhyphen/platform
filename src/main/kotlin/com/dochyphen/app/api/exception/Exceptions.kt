@@ -33,3 +33,4 @@ class CompanyAlreadyExistsException() : RuntimeException("Company already exists
 class CompanyNotFoundException(message: String?) : RuntimeException(message)
 class UserNotFoundException(message: String?) : RuntimeException(message)
 class SharingSessionNotFoundException(message: String?) : RuntimeException(message)
+class SharingSessionDocumentNotFoundException(message: String?) : RuntimeException(message)

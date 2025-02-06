@@ -1,6 +1,7 @@
 package com.dochyphen.app.api.service
 
 import com.dochyphen.app.api.annotation.DocumentAuditRequired
+import com.dochyphen.app.api.exception.SharingSessionDocumentNotFoundException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.exception.UserNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
@@ -53,7 +54,7 @@ class SharingSessionDocumentService @Inject constructor(
             this.title = title
             this.createdDate = Timestamp.from(Instant.now())
             this.updateDate = Timestamp.from(Instant.now())
-            this.deleted = false
+            this.isDeleted = false
             this.type = documentType
             this.restrictedType = restrictedType
         }
@@ -71,6 +72,71 @@ class SharingSessionDocumentService @Inject constructor(
 
         return savedDocument
     }
+
+//    @DocumentAuditRequired
+    @Transactional
+    fun deleteDocument(
+        sessionId: String,
+        documentId: String
+    )
+    {
+        val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
+            ?: throw SharingSessionNotFoundException("Sharing session not found")
+
+        val document = sharingSession.documents.find { it.id == UUID.fromString(documentId) }
+            ?: throw SharingSessionNotFoundException("Document not found")
+
+        if(document.isDeleted)
+        {
+            throw SharingSessionDocumentNotFoundException("Document not found")
+        }
+        document.isDeleted = true
+        document.updateDate = Timestamp.from(Instant.now())
+
+        sharingSessionRepository.update(sharingSession)
+
+        documentAuditService.logAction(document, DocumentAuditLogAction.DELETE, authTokenContext.authToken.appUser!!)
+    }
+
+    @DocumentAuditRequired
+    @Transactional
+    fun updateDocument(
+        sessionId: String,
+        documentId: String,
+        title: String?,
+        type: DocumentType?,
+        restrictedType: DocumentType?
+    ): Document
+    {
+        val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
+            ?: throw SharingSessionNotFoundException("Sharing session not found")
+
+        val document = sharingSession.documents
+            .find { it.id == UUID.fromString(documentId) }
+            ?: throw SharingSessionDocumentNotFoundException("Document not found")
+
+        if(document.isDeleted)
+        {
+            throw SharingSessionDocumentNotFoundException("Document not found")
+        }
+
+        title ?: throw IllegalArgumentException("Title cannot be null")
+
+        document.title = title
+        document.type = type
+        document.restrictedType = restrictedType
+
+        sharingSessionRepository.update(sharingSession)
+
+        documentAuditService.logAction(
+            document,
+            DocumentAuditLogAction.UPDATE,
+            authTokenContext.authToken.appUser!!
+        )
+
+        return document
+    }
+
     @DocumentAuditRequired
     @Transactional
     fun uploadDocument(
@@ -105,6 +171,11 @@ class SharingSessionDocumentService @Inject constructor(
         val document = sharingSession.documents.find { it.id == UUID.fromString(documentId) }
             ?: throw IllegalArgumentException("Session document not found")
 
+        if(document.isDeleted)
+        {
+            throw SharingSessionDocumentNotFoundException("Document not found")
+        }
+
 //        val encryptionKey = awsS3Service.uploadDocument(file, bucketName, key)
 
         //ToDo: Encrypt the document
@@ -121,60 +192,6 @@ class SharingSessionDocumentService @Inject constructor(
     }
 
     @DocumentAuditRequired
-    @Transactional
-    fun deleteDocument(
-        sessionId: String,
-        documentId: String
-    )
-    {
-        val performedBy = authTokenContext.authToken.appUser!!.id.toString()
-
-        val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
-            ?: throw SharingSessionNotFoundException("Sharing session not found")
-
-        val document = sharingSession.documents.find { it.id == UUID.fromString(documentId) }
-            ?: throw SharingSessionNotFoundException("Document not found")
-
-        document.deleted = true
-        document.updateDate = Timestamp.from(Instant.now())
-
-        sharingSessionRepository.update(sharingSession)
-
-        documentAuditService.logAction(document, DocumentAuditLogAction.DELETE, authTokenContext.authToken.appUser!!)
-    }
-
-    @DocumentAuditRequired
-    @Transactional
-    fun updateDocument(
-        sessionId: String,
-        documentId: String,
-        title: String?,
-        type: DocumentType?,
-        restrictedType: DocumentType?
-    )
-    {
-        val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
-            ?: throw SharingSessionNotFoundException("Sharing session not found")
-
-        val document = sharingSession.documents.find { it.id == UUID.fromString(documentId) }
-            ?: throw SharingSessionNotFoundException("Document not found")
-
-        title ?: throw IllegalArgumentException("Title cannot be null")
-
-        document.title = title
-        document.type = type
-        document.restrictedType = restrictedType
-
-        sharingSessionRepository.update(sharingSession)
-
-        documentAuditService.logAction(
-            document,
-            DocumentAuditLogAction.UPDATE,
-            authTokenContext.authToken.appUser!!
-        )
-    }
-
-    @DocumentAuditRequired
     fun downloadDocument(
         sessionId: String,
         documentId: String
@@ -184,34 +201,5 @@ class SharingSessionDocumentService @Inject constructor(
 //        val file = awsS3Service.downloadDocument(bucketName, key, encryptionKey)
 //        documentAuditService.logAction(document, DocumentAuditLogAction.DOWNLOAD, performedBy)
         return File("file")
-    }
-
-    @Transactional
-    fun addDocumentComment(
-        documentId: String,
-        commentText: String,
-        commentedBy: String
-    ): DocumentComment
-    {
-        val sharingSession = sharingSessionRepository.findById(UUID.fromString(documentId))
-            ?: throw SharingSessionNotFoundException("Document not found")
-
-        val user = appUserRepository.findByEmail(commentedBy)
-            ?: throw UserNotFoundException("User not found")
-
-        val comment = DocumentComment().apply {
-            this.commentText = commentText
-            this.document = document //TODO: Add the document entity
-            this.commentedBy = user
-            this.createdDate = Timestamp.from(Instant.now())
-        }
-
-        documentCommentRepository.save(comment)
-        return comment
-    }
-
-    fun getDocumentComments(documentId: String): List<DocumentComment>
-    {
-        return documentCommentRepository.findByDocumentId(UUID.fromString(documentId))
     }
 }

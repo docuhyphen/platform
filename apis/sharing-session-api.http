@@ -37,13 +37,13 @@ Authorization: Bearer {{Authorization}}
 Content-Type: application/json
 
 ### Update Sharing Session
-PUT http://localhost:8080/sharing-sessions/18ce9fc8-a831-44a9-a7fa-a478fecdba89
+PUT http://localhost:8080/sharing-sessions/b4b502a5-86d0-4e59-ba05-f588a0acb9e
 Authorization: Bearer {{Authorization}}
 Content-Type: application/json
 
 {
-  "sessionName": "Project Review Session 2",
-  "status": "REJECTED",
+  "sessionName": "Insurance application review2",
+  "status": "ACCEPTED_STARTED",
   "initialShareMessage": "Please review the attached documents.",
   "description": "Document sharing session for project review.",
   "allowDocumentAddition": true,
@@ -53,12 +53,31 @@ Content-Type: application/json
   "allowDocumentUpload": true
 }
 
-### Add document to sharing session
-POST http://localhost:8080/sharing-sessions/b4b502a5-86d0-4e59-ba05-f588a0acb9e6/documents
+### Add sharing session document
+POST http://localhost:8080/sharing-sessions/b4b502a5-86d0-4e59-ba05-f588aacb9e6/documents
 Authorization: Bearer {{Authorization}}
 Content-Type: application/json
 
 {
-  "title": "Project Plan",
+  "title": "Project Plansy",
   "restrictedType": "PDF"
 }
+
+### Get sharing session document
+GET http://localhost:8080/sharing-sessions/b4b502a5-86d0-4e59-ba05-f588a0acb9e6/documents/149da4af-6e5e-41af-a9a1-7f40fbc6e341
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
+### Update sharing session document
+PUT http://localhost:8080/sharing-sessions/b4b502a5-86d0-4e59-ba05-f588a0acb9e6/documents/f48bf983-cc03-4c2f-b389-c748c664953c
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
+{
+  "title": "asdasdasd",
+  "restrictedType": "WORD"
+}
+
+### Delete sharing session document
+DELETE http://localhost:8080/sharing-sessions/b4b502a5-86d0-4e59-ba05-f588a0acb9e6/documents/f48bf983-cc03-4c2f-b389-c748c664953c
+Authorization: Bearer {{Authorization}}

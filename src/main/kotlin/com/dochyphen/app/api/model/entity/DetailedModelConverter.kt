@@ -1,14 +1,30 @@
 package com.dochyphen.app.api.model.entity
 
-import com.dochyphen.app.api.model.dto.AppUserDetailedDto
-import com.dochyphen.app.api.model.dto.ContactDetailsDetailedDto
-import com.dochyphen.app.api.model.dto.PersonDetailedDto
-import com.dochyphen.app.api.model.dto.SharingSessionDetailedDto
+import com.dochyphen.app.api.model.dto.*
 
 class DetailedModelConverter
 {
     companion object
     {
+        fun toDto(document: Document?): DocumentDetailedDto?
+        {
+            return document?.let {
+                with(document)
+                {
+                    DocumentDetailedDto(
+                        id,
+                        createdDate,
+                        title,
+                        type.toString(),
+                        restrictedType.toString(),
+                        hash,
+                        mutableListOf(),
+//                    comments.map { toDto(it) }
+                    )
+                }
+            }
+        }
+
         fun toDo(sharingSession: SharingSession?): SharingSessionDetailedDto?
         {
             return sharingSession?.let {
@@ -23,7 +39,8 @@ class DetailedModelConverter
                         description,
                         toDto(initiator),
                         toDto(receiver),
-                        status.toString()
+                        status.toString(),
+                        documents.map { toDto(it) }
                     )
                 }
             }
