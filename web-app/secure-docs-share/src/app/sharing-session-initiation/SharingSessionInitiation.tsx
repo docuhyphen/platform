@@ -283,6 +283,8 @@ const SharingSessionInitiation: React.FC = () =>
                         <div id={"shading-session-document-card-header"}>
                             <Field className={"field"}>
                                 <Input type="text"
+                                       appearance={"underline"}
+                                       size={"small"}
                                        value={document.title || ''}
                                        required
                                        onChange={(e) => onDocumentNameChange(index, e.target.value)}
@@ -307,6 +309,7 @@ const SharingSessionInitiation: React.FC = () =>
                             </Field>
                             <Dropdown disabled={!document.restrictType}
                                       appearance={"underline"}
+                                      size={"small"}
                                       placeholder={"Select document type to restrict"}
                                       onOptionSelect={(_e: SelectionEvents, data: OptionOnSelectData) =>
                                       {
