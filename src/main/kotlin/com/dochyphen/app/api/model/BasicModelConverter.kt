@@ -23,7 +23,11 @@ class BasicModelConverter
                         description,
                         initiator?.id,
                         receiver?.id,
-                        status.toString()
+                        status.toString(),
+                        receiver?.email,
+                        receiver?.person?.firstName,
+                        receiver?.person?.lastName,
+                        "Company Name",
                     )
                 }
             }

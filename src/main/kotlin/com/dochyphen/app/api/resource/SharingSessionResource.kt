@@ -3,7 +3,7 @@ package com.dochyphen.app.api.resource
 import com.dochyphen.app.api.exception.InvalidEmailException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.exception.UserNotFoundException
-import com.dochyphen.app.api.model.BasicModelConverter
+import com.dochyphen.app.api.model.BasicModelConverter.Companion.toDto
 import com.dochyphen.app.api.model.DetailedModelConverter
 import com.dochyphen.app.api.model.dto.SharingSessionBasicDto
 import com.dochyphen.app.api.resource.model.*
@@ -97,9 +97,7 @@ class SharingSessionResource @Inject constructor(
 
             if (sessions.isNotEmpty())
             {
-                sessionDTOs = sessions
-                    .map { BasicModelConverter.Companion.toDto(it) }
-                    .toTypedArray()
+                sessionDTOs = sessions.map { toDto(it) }.toTypedArray()
             }
 
             Response.ok(sessionDTOs).build()

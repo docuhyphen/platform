@@ -1,0 +1,40 @@
+#sharing-sessions-list-container
+{
+    width: 400px;
+}
+
+.list-card
+{
+    width: 100%;
+    padding: 8px;
+}
+
+#sharing-sessions-list-body
+{
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.list-card-item
+{
+    display: flex;
+    flex-direction: row;
+    gap: 12px
+}
+
+.list-card-item-details
+{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+
+
+.list-card-item-row
+{
+    display: flex;
+    justify-content: space-between;
+}
+

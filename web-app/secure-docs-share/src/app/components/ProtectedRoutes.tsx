@@ -6,12 +6,12 @@ import MainMenu from "./MainMenu.tsx";
 const ProtectedRoute: React.FC<{ element: React.ReactElement, path: string }> = ({ element, path }) => {
     const { token } = useAuth();
     return token ? (
-        <div id="asdasdasdasd">
+        <>
             <MainMenu/>
             <div id="main-section">
-                <div>{element}</div>
+                {element}
             </div>
-        </div>
+        </>
     ) : (
         <Navigate to={path}/>
     );

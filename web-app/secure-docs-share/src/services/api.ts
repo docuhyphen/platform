@@ -196,3 +196,21 @@ export const fetchSignedInUserAppUserSharingSessions = async (token: string | nu
         throw error.response?.data || error.message;
     }
 };
+
+export const fetchSignedInUserAppUserSharingSession = async (sessionId: string | null, token: string | null) =>
+{
+    try
+    {
+        const response = await apiClient.get(`/sharing-sessions/${sessionId}`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};

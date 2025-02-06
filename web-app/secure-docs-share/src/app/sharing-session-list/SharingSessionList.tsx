@@ -1,11 +1,28 @@
 import React, {useEffect, useState} from 'react';
 import useToken from "../../context/useToken.tsx";
 import {fetchSignedInUserAppUserSharingSessions} from "../../services/api.ts";
-import {Card, List, ListItem} from "@fluentui/react-components";
+import {Avatar, Divider, List, ListItem, makeStyles, typographyStyles} from "@fluentui/react-components";
+import "./SharingSessionList.css"
 
-const SharingSessionList: React.FC = () =>
+const useStyles = makeStyles({
+    caption2: typographyStyles.caption2,
+    caption1: typographyStyles.caption1,
+    body1Strong: typographyStyles.body1Strong,
+});
+const formatDate = (dateString: string): string =>
 {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB');
+};
 
+interface SharingSessionListProps
+{
+    onSelectionChange: (sessionId: string) => void;
+}
+
+const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChange}) =>
+{
+    const styles = useStyles();
     const token = useToken()
     const [sharingSessions, setSharingSessions] = useState([]);
     const [loadingSharingSessions, setLoadingSharingSessions] = useState(true);
@@ -33,10 +50,16 @@ const SharingSessionList: React.FC = () =>
         fetchSharingSessions()
     }, [])
 
-    const onSelectionChange = React.useCallback((_, data) =>
+    const handleSelectionChange = (_, data) =>
     {
-        // setSelectedItems(data.selectedItems);
-    }, []);
+        onSelectionChange(data.selectedItems[0]);
+    };
+
+    // const onSelectionChange = React.useCallback((_, data) =>
+    // {
+    //     console.log("Selected item: ", data.selectedItems);
+    //     // setSelectedItems(data.selectedItems);
+    // }, []);
 
     const onFocus = React.useCallback((event) =>
     {
@@ -48,36 +71,61 @@ const SharingSessionList: React.FC = () =>
         // setSelectedItems([event.target.dataset.value]);
     }, []);
 
+    const listItemCard = (session: any) =>
+    {
+        return <div className={"list-card"}>
+            <section className={"list-card-item"}>
+                <span>
+                    <Avatar name={session.receiverEmail}/>
+                </span>
+                <span className={"list-card-item-details"}>
+                    <div className={styles.caption1}>{session.receiverEmail}</div>
+                    <div className={"list-card-item-row"}>
+                        <div className={styles.body1Strong}>{session.sessionName}</div>
+                        <div className={styles.caption2}>{formatDate(session.createdDate)}</div>
+                    </div>
+                    <div>
+                        <div className={styles.caption1}> {session.description} </div>
+                    </div>
+                </span>
+            </section>
+        </div>
+    }
+
     return (
-        <div>
-            <h1>Sharing Session List {sharingSessions.length}</h1>
+        <section id={"sharing-sessions-list-container"}>
+            <div id={"sharing-sessions-list-header"}>
+
+            </div>
             <List
+                id={"sharing-sessions-list-body"}
                 selectionMode="single"
                 navigationMode="composite"
                 // selectedItems={selectedItems}
-                onSelectionChange={onSelectionChange}
+                onSelectionChange={handleSelectionChange}
             >
                 {sharingSessions.map((session: any) => (
-                    <ListItem
+                    <>
+                        <ListItem
+                            className={"sharing-sessions-list-item"}
                         key={session.id}
                         value={session.id}
                         // className={mergeClasses(
-                        //     classes.item,
+                            //     "sharing-sessions-list-item",
                         //     selectedItems.includes(name) && classes.itemSelected
                         // )}
                         data-value={session.id}
                         onFocus={onFocus}
                         checkmark={null}
                     >
-                        <Card>
-                            {session.sessionName}
-                        {/*    ToDo: add mark as read to the item menu*/}
-                        </Card>
+                            {listItemCard(session)}
                     </ListItem>
+                        <Divider/>
+                    </>
                 ))}
             </List>
-        </div>
+        </section>
     );
-};
+}
 
 export default SharingSessionList;

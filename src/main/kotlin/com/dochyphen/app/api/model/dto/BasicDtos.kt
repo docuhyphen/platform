@@ -22,7 +22,10 @@ data class SharingSessionBasicDto(
     @Serializable(with = UUIDSerializer::class)
     val receiverId: UUID?,
     val status: String?,
-
+    var receiverEmail: String? = null,
+    var receiverFirstName: String? = null,
+    var receiverLastName: String? = null,
+    var receiverCompanyName: String? = null,
 //    val participantIds: List<UUID>
 )
 
