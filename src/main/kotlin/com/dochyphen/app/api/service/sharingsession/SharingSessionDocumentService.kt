@@ -3,15 +3,14 @@ package com.dochyphen.app.api.service.sharingsession
 import com.dochyphen.app.api.annotation.DocumentAuditRequired
 import com.dochyphen.app.api.exception.SharingSessionDocumentNotFoundException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
-import com.dochyphen.app.api.exception.UserNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.model.entity.Document
 import com.dochyphen.app.api.model.entity.DocumentAuditLogAction
+import com.dochyphen.app.api.model.entity.DocumentEncryptionMode
 import com.dochyphen.app.api.model.entity.DocumentType
-import com.dochyphen.app.api.repository.AppUserRepository
-import com.dochyphen.app.api.repository.DocumentCommentRepository
 import com.dochyphen.app.api.repository.SharingSessionRepository
-import com.dochyphen.app.api.service.AppUserService
+import com.dochyphen.app.api.service.EmailService
+import com.dochyphen.app.api.service.FileStorageService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -23,12 +22,11 @@ import java.util.*
 
 @ApplicationScoped
 class SharingSessionDocumentService @Inject constructor(
-    private val sharingSessionRepository: SharingSessionRepository,
-    private val appUserRepository: AppUserRepository,
-    private val appUserService: AppUserService,
-    private val sharingSessionDocumentAuditService: SharingSessionDocumentAuditService,
+    private val sessionRepo: SharingSessionRepository,
+    private val auditService: SharingSessionDocumentAuditService,
     private val authTokenContext: AuthTokenContext,
-    private val documentCommentRepository: DocumentCommentRepository,
+    private val emailService: EmailService,
+    private val fileStorageService: FileStorageService
 )
 {
     companion object
@@ -45,7 +43,7 @@ class SharingSessionDocumentService @Inject constructor(
         restrictedType: DocumentType?
     ): Document
     {
-        val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
+        val sharingSession = sessionRepo.findById(UUID.fromString(sessionId))
             ?: throw SharingSessionNotFoundException("Sharing session not found")
 
         title ?: throw IllegalArgumentException("Title cannot be null")
@@ -60,11 +58,11 @@ class SharingSessionDocumentService @Inject constructor(
         }
 
         sharingSession.documents.add(document)
-        sharingSessionRepository.update(sharingSession)
+        sessionRepo.update(sharingSession)
 
         val savedDocument = sharingSession.documents.last()
 
-        sharingSessionDocumentAuditService.logAction(
+        auditService.logAction(
             savedDocument,
             DocumentAuditLogAction.CREATED,
             authTokenContext.authToken.appUser!!
@@ -80,7 +78,7 @@ class SharingSessionDocumentService @Inject constructor(
         documentId: String
     )
     {
-        val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
+        val sharingSession = sessionRepo.findById(UUID.fromString(sessionId))
             ?: throw SharingSessionNotFoundException("Sharing session not found")
 
         val document = sharingSession.documents.find { it.id == UUID.fromString(documentId) }
@@ -93,9 +91,9 @@ class SharingSessionDocumentService @Inject constructor(
         document.isDeleted = true
         document.updateDate = Timestamp.from(Instant.now())
 
-        sharingSessionRepository.update(sharingSession)
+        sessionRepo.update(sharingSession)
 
-        sharingSessionDocumentAuditService.logAction(document, DocumentAuditLogAction.DELETE, authTokenContext.authToken.appUser!!)
+        auditService.logAction(document, DocumentAuditLogAction.DELETE, authTokenContext.authToken.appUser!!)
     }
 
     @DocumentAuditRequired
@@ -108,7 +106,7 @@ class SharingSessionDocumentService @Inject constructor(
         restrictedType: DocumentType?
     ): Document
     {
-        val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
+        val sharingSession = sessionRepo.findById(UUID.fromString(sessionId))
             ?: throw SharingSessionNotFoundException("Sharing session not found")
 
         val document = sharingSession.documents
@@ -126,9 +124,9 @@ class SharingSessionDocumentService @Inject constructor(
         document.type = type
         document.restrictedType = restrictedType
 
-        sharingSessionRepository.update(sharingSession)
+        sessionRepo.update(sharingSession)
 
-        sharingSessionDocumentAuditService.logAction(
+        auditService.logAction(
             document,
             DocumentAuditLogAction.UPDATE,
             authTokenContext.authToken.appUser!!
@@ -137,58 +135,74 @@ class SharingSessionDocumentService @Inject constructor(
         return document
     }
 
-    @DocumentAuditRequired
     @Transactional
+//    @DocumentAuditRequired
     fun uploadDocument(
-        file: File,
-        sessionId: String,
-        documentId: String,
-        performedBy: String
+        file: File?,
+        extension: String?,
+        sessionId: String?,
+        documentId: String?,
+        encryptionMode: DocumentEncryptionMode?
     )
     {
-        var appUser = appUserService.findUserByEmail(performedBy)
-
-        if (appUser == null)
-        {
-            logger.error("Failed to upload document, User not found using email: $performedBy")
-        }
-
-        appUser = appUserService.getAppUserById(UUID.fromString(performedBy))
-
-        if (appUser == null)
-        {
-            logger.error("Failed to upload document, User not found using id: $performedBy")
-            throw UserNotFoundException("User not found")
-        }
-
-        val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
+        val sharingSession = sessionRepo.findById(UUID.fromString(sessionId))
             ?: throw SharingSessionNotFoundException("Sharing session not found")
 
-        //ToDo: check if the uploader is in the session
-
-        //ToDo: End To End encryption
-
         val document = sharingSession.documents.find { it.id == UUID.fromString(documentId) }
-            ?: throw IllegalArgumentException("Session document not found")
+            ?: throw IllegalArgumentException("Sharing Session document not found")
 
-        if(document.isDeleted)
+        if (document.isDeleted)
         {
             throw SharingSessionDocumentNotFoundException("Document not found")
         }
 
-//        val encryptionKey = awsS3Service.uploadDocument(file, bucketName, key)
+        file ?: throw IllegalArgumentException("File cannot be null")
 
-        //ToDo: Encrypt the document
-        //ToDo: Save the encryption key in the database
-        //ToDo: Save the document in the database
-        //ToDo: Save the document in the S3 bucket
-        //ToDo: Log the action in the audit log
-        //ToDo: Send an email to the recipient
+        extension ?: throw IllegalArgumentException("Extension cannot be null")
 
-        document.hash = "hash" //ToDo: Create a hash for the document
 
-        sharingSessionRepository.update(sharingSession)
-        sharingSessionDocumentAuditService.logAction(document, DocumentAuditLogAction.UPLOAD, appUser)
+        val appUser = authTokenContext.authToken.appUser!!
+
+        if (sharingSession.initiator?.id != appUser.id && sharingSession.recipient?.id != appUser.id)
+        {
+            //ToDo: check participant permissions
+            throw IllegalArgumentException("User does not have permission to upload document")
+        }
+
+        if (sharingSession.initiator?.id != appUser.id && !sharingSession.allowDocumentUpload)
+        {
+            throw IllegalArgumentException("User does not have permission to upload document")
+        }
+
+        document.hash = "hash"
+        document.type = DocumentType.fromFileExtension(extension)
+        sessionRepo.update(sharingSession)
+
+        fileStorageService.uploadDocument(file, "${document.id}$extension")
+
+        auditService.logAction(
+            document,
+            DocumentAuditLogAction.UPDATE,
+            appUser
+        )
+
+        if (sharingSession.initiator?.id == appUser.id)
+        {
+            emailService.sendEmail(
+                sharingSession.recipient?.email!!,
+                "Document uploaded",
+                "Document uploaded by ${appUser.email}"
+            )
+        }
+        else
+        {
+            //ToDo: also send to other participants
+            emailService.sendEmail(
+                sharingSession.initiator?.email!!,
+                "Document uploaded",
+                "Document uploaded by ${appUser.email}"
+            )
+        }
     }
 
     @DocumentAuditRequired

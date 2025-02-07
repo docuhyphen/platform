@@ -1,6 +1,6 @@
-// AwsS3Service.kt
 package com.dochyphen.app.api.service
 
+import com.dochyphen.app.api.qualifier.Aws
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -16,9 +16,8 @@ import javax.crypto.KeyGenerator
 import javax.crypto.spec.SecretKeySpec
 
 @ApplicationScoped
-class AwsS3Service @Inject constructor(
-//    private val s3Client: S3Client
-)
+@Aws
+class AwsS3FileStorageService @Inject constructor() : FileStorageService
 {
     companion object
     {
@@ -60,27 +59,27 @@ class AwsS3Service @Inject constructor(
         return decryptedFile
     }
 
-    fun uploadDocument(file: File, bucketName: String, key: String): String
+    override fun uploadDocument(file: File, key: String): String
     {
         val encryptionKey = generateKey()
         val encryptedFile = encryptFile(file, encryptionKey)
         val putObjectRequest = PutObjectRequest.builder()
-            .bucket(bucketName)
+            .bucket("your-bucket-name")
             .key(key)
             .build()
-//        s3Client.putObject(putObjectRequest, encryptedFile.toPath())
+        // s3Client.putObject(putObjectRequest, encryptedFile.toPath())
         return Base64.getEncoder().encodeToString(encryptionKey.encoded)
     }
 
-    fun downloadDocument(bucketName: String, key: String, encryptionKey: String): File
+    override fun downloadDocument(key: String): File
     {
         val getObjectRequest = GetObjectRequest.builder()
-            .bucket(bucketName)
+            .bucket("your-bucket-name")
             .key(key)
             .build()
         val tempFile = File.createTempFile("s3file", null)
-//        s3Client.getObject(getObjectRequest, tempFile.toPath())
-        val decodedKey = Base64.getDecoder().decode(encryptionKey)
+        // s3Client.getObject(getObjectRequest, tempFile.toPath())
+        val decodedKey = Base64.getDecoder().decode("your-encryption-key")
         val secretKey = SecretKeySpec(decodedKey, 0, decodedKey.size, ALGORITHM)
         return decryptFile(tempFile, secretKey)
     }

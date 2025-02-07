@@ -3,13 +3,16 @@ package com.dochyphen.app.api.resource
 import com.dochyphen.app.api.exception.SharingSessionDocumentNotFoundException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.model.BasicModelConverter.Companion.toDto
+import com.dochyphen.app.api.model.entity.DocumentEncryptionMode
 import com.dochyphen.app.api.resource.model.*
 import com.dochyphen.app.api.service.sharingsession.SharingSessionDocumentService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
+import org.jboss.resteasy.reactive.RestForm
 import org.slf4j.LoggerFactory
+import java.io.File
 
 @Path("sharing-sessions/{sessionId}/documents")
 @Produces(MediaType.APPLICATION_JSON)
@@ -207,17 +210,25 @@ class SharingSessionDocumentsResource @Inject constructor(
 
     @POST
     @Path("/{documentId}/file")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
     fun uploadSessionDocument(
-        uploadShareSessionDocumentRequest: UploadShareSessionDocumentRequest,
-        @PathParam("sessionId") sessionId: String
-    ): Response
-    {
+        @RestForm("file") file: File?,
+        @RestForm("extension") extension: String?,
+        @RestForm("encryptionMode") encryptionMode: DocumentEncryptionMode?,
+        @PathParam("sessionId") sessionId: String?,
+        @PathParam("documentId") documentId: String?
+    ): Response {
+
         return try
         {
-            val encryptionKey = with(uploadShareSessionDocumentRequest) {
-                sharingSessionDocumentService.uploadDocument(file, sessionId, documentId, performedBy)
-            }
-            Response.ok(mapOf("encryptionKey" to encryptionKey)).build()
+            sharingSessionDocumentService.uploadDocument(
+                file,
+                extension,
+                sessionId,
+                documentId,
+                encryptionMode
+            )
+            Response.ok().build()
         }
         catch (exception: Exception)
         {
@@ -227,37 +238,22 @@ class SharingSessionDocumentsResource @Inject constructor(
                 is SharingSessionDocumentNotFoundException ->
                 {
                     logger.error("Error uploading sharing session document", exception)
-
                     val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.NOT_FOUND)
-                        .entity(responseError)
-                        .build()
-
+                    Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
                 }
 
                 is IllegalArgumentException ->
                 {
                     logger.error("Error uploading sharing session document", exception)
-
                     val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
+                    Response.status(Response.Status.BAD_REQUEST).entity(responseError).build()
                 }
 
                 else ->
                 {
                     logger.error("Error uploading sharing session document", exception)
-
                     val responseError = ResponseError("An error occurred while uploading sharing session document")
-                    Response
-                        .status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
-                        .build()
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
             }
         }
@@ -266,7 +262,7 @@ class SharingSessionDocumentsResource @Inject constructor(
     @GET
     @Path("{documentId}/file")
     fun downloadDocument(
-        request: DownloadShareSessionDocumentRequest
+        request: DownloadSharingSessionDocumentRequest
     ): Response
     {
         return try

@@ -1,8 +1,8 @@
 package com.dochyphen.app.api.resource.model
 
 import com.dochyphen.app.api.model.entity.*
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import org.jboss.resteasy.reactive.RestForm
 import java.io.File
 
 @Serializable
@@ -122,16 +122,7 @@ class AddSharingSessionDocumentRequest(
 )
 
 @Serializable
-class UploadShareSessionDocumentRequest(
-    @Contextual
-    val file: File,
-    val documentId: String,
-    val performedBy: String,
-    val encryptionMode: DocumentEncryptionMode = DocumentEncryptionMode.INTERNAL,
-)
-
-@Serializable
-class DownloadShareSessionDocumentRequest(
+class DownloadSharingSessionDocumentRequest(
     val documentId: String,
     val sessionId: String,
 )

@@ -23,7 +23,25 @@ enum class DocumentType
     XLSX,
     PPTX,
     PNG,
-    JPG
+    JPG;
+
+    companion object
+    {
+        fun fromFileExtension(extension: String): DocumentType?
+        {
+            return when (extension)
+            {
+                ".pdf" -> PDF
+                ".docx" -> DOCX
+                ".doc" -> DOC
+                ".xlsx" -> XLSX
+                ".pptx" -> PPTX
+                ".png" -> PNG
+                ".jpg" -> JPG
+                else -> null
+            }
+        }
+    }
 }
 
 enum class RequiredDocumentType
