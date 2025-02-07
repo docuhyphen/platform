@@ -48,8 +48,8 @@ class SharingSession
     var initiator: AppUser? = null
 
     @ManyToOne(cascade = [CascadeType.PERSIST], fetch = FetchType.EAGER)
-    @JoinColumn(name = "receiver_id", unique = false)
-    var receiver: AppUser? = null
+    @JoinColumn(name = "recipient_id", unique = false)
+    var recipient: AppUser? = null
 
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
@@ -58,8 +58,8 @@ class SharingSession
     @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.EAGER)
     var documents: MutableList<Document> = mutableListOf()
 
-    @Column(name = "require_receiver_sign_in", nullable = false)
-    var requestReceiverSignIn: Boolean = false
+    @Column(name = "require_recipient_sign_in", nullable = false)
+    var requestRecipientSignIn: Boolean = false
 
     @Column(name = "allow_document_addition", nullable = false)
     var allowDocumentAddition: Boolean = false

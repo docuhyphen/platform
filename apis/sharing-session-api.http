@@ -6,7 +6,7 @@ Content-Type: application/json
 {
   "initialShareMessage": "Please review the attached documents.",
   "description": "Document sharing session for project review.",
-  "receiverEmail": "receive12adasd@example.com",
+  "recipientEmail": "recipient12adasd@example.com",
   "sessionName": "Project Review Session",
   "sessionDocuments": [
     {
@@ -18,7 +18,7 @@ Content-Type: application/json
       "type": "WORD"
     }
   ],
-  "requestReceiverSignIn": true,
+  "requestRecipientSignIn": true,
   "allowDocumentAddition": true,
   "allowDocumentDeletion": false,
   "allowDocumentDownload": true,
@@ -81,7 +81,6 @@ Content-Type: application/json
 ### Delete sharing session document
 DELETE http://localhost:8080/sharing-sessions/b4b502a5-86d0-4e59-ba05-f588a0acb9e6/documents/f48bf983-cc03-4c2f-b389-c748c664953c
 Authorization: Bearer {{Authorization}}
-
 
 ### Get sharing session document audit logs
 GET http://localhost:8080/sharing-sessions/b4b502a5-86d0-4e59-ba05-f588a0acb9e6/documents/f48bf983-cc03-4c2f-b389-c748c664953c/audit

@@ -183,7 +183,7 @@ class SharingSessionDocumentService @Inject constructor(
         //ToDo: Save the document in the database
         //ToDo: Save the document in the S3 bucket
         //ToDo: Log the action in the audit log
-        //ToDo: Send an email to the receiver
+        //ToDo: Send an email to the recipient
 
         document.hash = "hash" //ToDo: Create a hash for the document
 

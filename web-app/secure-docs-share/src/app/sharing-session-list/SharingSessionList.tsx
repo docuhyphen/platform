@@ -76,10 +76,10 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
         return <div className={"list-card"}>
             <section className={"list-card-item"}>
                 <span>
-                    <Avatar name={session.receiverEmail}/>
+                    <Avatar name={session.recipientEmail}/>
                 </span>
                 <span className={"list-card-item-details"}>
-                    <div className={styles.caption1}>{session.receiverEmail}</div>
+                    <div className={styles.caption1}>{session.recipientEmail}</div>
                     <div className={"list-card-item-row"}>
                         <div className={styles.body1Strong}>{session.sessionName}</div>
                         <div className={styles.caption2}>{formatDate(session.createdDate)}</div>

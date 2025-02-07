@@ -42,10 +42,10 @@ class SharingSessionInitiationService @Inject constructor(
     fun initiateSharingSession(
         initialShareMessage: String?,
         description: String?,
-        receiverEmail: String?,
+        recipientEmail: String?,
         sessionName: String?,
         sessionDocuments: List<SharingSessionRequestDocumentRequest>?,
-        requestReceiverSignIn: Boolean? = false,
+        requestRecipientSignIn: Boolean? = false,
         allowDocumentAddition: Boolean? = false,
         allowDocumentDeletion: Boolean? = false,
         allowDocumentDownload: Boolean? = false,
@@ -56,9 +56,9 @@ class SharingSessionInitiationService @Inject constructor(
     {
         val initiator = authTokenContext.authToken.appUser
 
-        if (initiator?.email == receiverEmail)
+        if (initiator?.email == recipientEmail)
         {
-            throw IllegalArgumentException("Receiver and initiator cannot be the same")
+            throw IllegalArgumentException("Recipient and Initiator cannot be the same")
         }
 
         if (sessionDocuments.isNullOrEmpty())
@@ -66,10 +66,10 @@ class SharingSessionInitiationService @Inject constructor(
             throw IllegalArgumentException("Session documents cannot be empty")
         }
 
-        val receiver = receiverEmail?.let {
+        val recipient = recipientEmail?.let {
             if (authenticationService.isEmailInvalid(it))
             {
-                throw InvalidEmailException("Receiver email is invalid")
+                throw InvalidEmailException("Recipient email is invalid")
             }
             appUserRepository.findByEmail(it) ?: AppUser().apply {
                 isTemporary = true
@@ -78,12 +78,12 @@ class SharingSessionInitiationService @Inject constructor(
             }
         }
 
-        if (receiver == null)
+        if (recipient == null)
         {
-            throw IllegalArgumentException("Receiver cannot be null")
+            throw IllegalArgumentException("Recipient cannot be null")
         }
 
-//        if (receiver.isTemporary)
+//        if (recipient.isTemporary)
 //        {
 //            throw IllegalArgumentException("This email still needs to create an account")
 //        }
@@ -101,18 +101,18 @@ class SharingSessionInitiationService @Inject constructor(
         }?.toMutableList() ?: mutableListOf()
 
         entityManager.detach(initiator)
-        entityManager.detach(receiver)
+        entityManager.detach(recipient)
 
         val sharingSession = SharingSession().apply {
             this.initiator = entityManager.merge(initiator)
-            this.receiver = entityManager.merge(receiver)
+            this.recipient = entityManager.merge(recipient)
             this.sessionName = sessionName
             this.initialShareMessage = initialShareMessage
             this.description = description
             this.status = SharingSessionStatus.INITIATED
             this.createdDate = Timestamp.from(Instant.now())
             this.lastActivity = Timestamp.from(Instant.now())
-            this.requestReceiverSignIn = requestReceiverSignIn == true
+            this.requestRecipientSignIn = requestRecipientSignIn == true
             this.allowDocumentAddition = allowDocumentAddition == true
             this.allowDocumentDeletion = allowDocumentDeletion == true
             this.allowDocumentDownload = allowDocumentDownload == true
@@ -138,7 +138,7 @@ class SharingSessionInitiationService @Inject constructor(
         val initiatorCompany = initiator?.person?.contactDetails?.company?.name ?: "N/A"
 
         emailService.sendEmail(
-            receiverEmail,
+            recipientEmail,
             "Document Request from ${initiator?.person?.firstName} ${initiator?.person?.lastName}",
             """
             You have been requested to upload the following documents: ${sessionDocuments.joinToString(", ")}.
@@ -152,15 +152,15 @@ class SharingSessionInitiationService @Inject constructor(
 
         emailService.sendEmail(
             initiator!!.email,
-            "Document Request Sent to ${receiver.email}",
-            "You have successfully requested ${receiver.email} to upload the following documents: ${
+            "Document Request Sent to ${recipient.email}",
+            "You have successfully requested ${recipient.email} to upload the following documents: ${
                 sessionDocuments.joinToString(
                     ", "
                 )
             }."
         )
 
-        logger.info("Sharing session initiated by ${initiator?.email} for ${receiver.email}")
+        logger.info("Sharing session initiated by ${initiator?.email} for ${recipient.email}")
 
         return savedSharingSession
     }

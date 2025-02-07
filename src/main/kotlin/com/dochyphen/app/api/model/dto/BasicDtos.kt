@@ -20,12 +20,12 @@ data class SharingSessionBasicDto(
     @Serializable(with = UUIDSerializer::class)
     val initiator: UUID?,
     @Serializable(with = UUIDSerializer::class)
-    val receiverId: UUID?,
+    val recipientId: UUID?,
     val status: String?,
-    var receiverEmail: String? = null,
-    var receiverFirstName: String? = null,
-    var receiverLastName: String? = null,
-    var receiverCompanyName: String? = null,
+    var recipientEmail: String? = null,
+    var recipientFirstName: String? = null,
+    var recipientLastName: String? = null,
+    var recipientCompanyName: String? = null,
 //    val participantIds: List<UUID>
 )
 

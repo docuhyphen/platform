@@ -86,10 +86,10 @@ data class CompanyRegistrationResponse(var company: Company)
 data class SharingSessionInitiationRequest(
     var initialShareMessage: String? = null,
     var description: String? = null,
-    var receiverEmail: String? = null,
+    var recipientEmail: String? = null,
     var sessionName: String? = null,
     var sessionDocuments: List<SharingSessionRequestDocumentRequest>? = null,
-    var requestReceiverSignIn: Boolean = false,
+    var requestRecipientSignIn: Boolean = false,
     var allowDocumentAddition: Boolean = false,
     var allowDocumentDeletion: Boolean = false,
     var allowDocumentDownload: Boolean = false,

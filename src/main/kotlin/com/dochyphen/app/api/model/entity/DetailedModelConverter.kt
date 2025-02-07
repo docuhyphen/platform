@@ -38,7 +38,7 @@ class DetailedModelConverter
                         initialShareMessage,
                         description,
                         toDto(initiator),
-                        toDto(receiver),
+                        toDto(recipient),
                         status.toString(),
                         documents.map { toDto(it) }
                     )

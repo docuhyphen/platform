@@ -41,7 +41,7 @@ data class SharingSessionDetailedDto(
     val initialShareMessage: String? = null,
     val description: String? = null,
     val initiator: AppUserDetailedDto? = null,
-    val receiver: AppUserDetailedDto? = null,
+    val recipient: AppUserDetailedDto? = null,
     val status: String?,
     val documents: List<DocumentDetailedDto?>
 

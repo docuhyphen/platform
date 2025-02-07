@@ -25,13 +25,13 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
         return query.resultList
     }
 
-    fun findByReceiverId(receiverId: UUID): List<SharingSession>
+    fun findByRecipientId(recipient: UUID): List<SharingSession>
     {
         val query = entityManager.createQuery(
-            "SELECT s FROM SharingSession s WHERE s.receiver.id = :receiverId",
+            "SELECT s FROM SharingSession s WHERE s.recipient.id = :recipientId",
             SharingSession::class.java
         )
-        query.setParameter("receiverId", receiverId)
+        query.setParameter("recipientId", recipient)
         return query.resultList
     }
 

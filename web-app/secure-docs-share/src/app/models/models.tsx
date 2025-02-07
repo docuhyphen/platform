@@ -222,10 +222,10 @@ export interface SharingSessionInitiationRequest
 {
     initialShareMessage?: string;
     description?: string;
-    receiverEmail?: string;
+    recipientEmail?: string;
     sessionName?: string;
     sessionDocuments?: SharingSessionRequestDocument[];
-    requestReceiverSignIn: boolean;
+    requestRecipientSignIn: boolean;
     allowDocumentAddition: boolean;
     allowDocumentDeletion: boolean;
     allowDocumentDownload: boolean;

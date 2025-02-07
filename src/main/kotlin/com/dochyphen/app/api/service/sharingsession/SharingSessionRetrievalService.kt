@@ -39,7 +39,7 @@ class SharingSessionRetrievalService @Inject constructor(
     {
         val appUserId = authTokenContext.authToken.appUser?.id
         val initiatedSessions = sharingSessionRepository.findByInitiatorId(appUserId!!)
-        val receivedSessions = sharingSessionRepository.findByReceiverId(appUserId)
+        val receivedSessions = sharingSessionRepository.findByRecipientId(appUserId)
 
         return (initiatedSessions + receivedSessions).map { session ->
             session.apply {

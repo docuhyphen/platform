@@ -45,10 +45,10 @@ class SharingSessionResource @Inject constructor(
                 sharingSessionInitiationService.initiateSharingSession(
                     initialShareMessage,
                     description,
-                    receiverEmail,
+                    recipientEmail,
                     sessionName,
                     sessionDocuments,
-                    requestReceiverSignIn,
+                    requestRecipientSignIn,
                     allowDocumentAddition,
                     allowDocumentDeletion,
                     allowDocumentDownload,

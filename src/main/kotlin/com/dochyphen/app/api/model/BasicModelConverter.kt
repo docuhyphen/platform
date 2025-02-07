@@ -20,11 +20,11 @@ class BasicModelConverter
                         initialShareMessage,
                         description,
                         initiator?.id,
-                        receiver?.id,
+                        recipient?.id,
                         status.toString(),
-                        receiver?.email,
-                        receiver?.person?.firstName,
-                        receiver?.person?.lastName,
+                        recipient?.email,
+                        recipient?.person?.firstName,
+                        recipient?.person?.lastName,
                         "Company Name",
                     )
                 }

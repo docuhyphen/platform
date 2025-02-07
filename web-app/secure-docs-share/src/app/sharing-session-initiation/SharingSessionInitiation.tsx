@@ -66,7 +66,7 @@ const SharingSessionInitiation: React.FC = () =>
     const [allowDocumentUpdate, setAllowDocumentUpdate] = useState<boolean>(false);
     const [allowDocumentUpload, setAllowDocumentUpload] = useState<boolean>(false);
     const [documents, setDocuments] = useState<SharingSessionRequestDocument[]>([]);
-    const [receiverEmail, setReceiverEmail] = useState<string>('');
+    const [recipientEmail, setRecipientEmail] = useState<string>('');
 
     const queryParams = new URLSearchParams(location.search);
     const request = queryParams.get('request');
@@ -89,9 +89,9 @@ const SharingSessionInitiation: React.FC = () =>
     const onInitiateSession = async () =>
     {
 
-        //ToDo: add the receiver email to the sharingSession object
-        //ToDo: add validation for the receiver email
-        setReceiverEmail('test-reciever-email2@email.com');
+        //ToDo: add the recipient email to the sharingSession object
+        //ToDo: add validation for the recipient email
+        setRecipientEmail('test-reciever-email2@email.com');
 
         //ToDo: when there are no documents added, show an error message dialog
         try
@@ -100,10 +100,10 @@ const SharingSessionInitiation: React.FC = () =>
 
                 sessionName,
                 description,
-                receiverEmail,
+                recipientEmail,
                 initialShareMessage,
                 sessionDocuments: documents,
-                requestReceiverSignIn: requireSignIn,
+                requestRecipientSignIn: requireSignIn,
                 allowDocumentAddition: allowDocumentAdditions,
                 allowDocumentDeletion: allowDocumentDeletions,
                 allowDocumentDownload: allowDocumentDownload,

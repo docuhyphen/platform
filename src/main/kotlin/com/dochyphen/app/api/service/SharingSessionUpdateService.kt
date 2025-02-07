@@ -78,7 +78,7 @@ class SharingSessionUpdateService @Inject constructor(
         {
             SharingSessionStatus.ACCEPTED_STARTED -> "Sharing Session ${updatedSession.sessionName} has been accepted and started"
             SharingSessionStatus.COMPLETED -> "Session ${updatedSession.sessionName} has completed and further modifications will not be possible."
-            SharingSessionStatus.REJECTED -> "Your request has been rejected by the receiver. Reason: ${request.rejectionReason}"
+            SharingSessionStatus.REJECTED -> "Your request has been rejected by the session recipient. Reason: ${request.rejectionReason}"
             else -> null
         }
 
@@ -86,7 +86,7 @@ class SharingSessionUpdateService @Inject constructor(
         {
             emailMessage?.let {
                 emailService.sendEmail(
-                    updatedSession.receiver?.email!!, "Sharing Session Status Update | ${request.status}", emailMessage
+                    updatedSession.recipient?.email!!, "Sharing Session Status Update | ${request.status}", emailMessage
                 )
             }
         }
