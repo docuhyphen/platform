@@ -2,6 +2,7 @@ package com.dochyphen.app.api.resource
 
 import com.dochyphen.app.api.exception.SharingSessionDocumentNotFoundException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
+import com.dochyphen.app.api.model.entity.DetailedModelConverter
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.service.sharingsession.SharingSessionDocumentAuditService
 import jakarta.inject.Inject
@@ -31,6 +32,9 @@ class SharingSessionDocumentAuditResource @Inject constructor(
         return try
         {
             val logs = auditService.getDocumentAuditLogs(sessionId, documentId)
+                .map { DetailedModelConverter.toDto(it) }
+                .toTypedArray()
+
             Response.ok(logs).build()
         }
         catch (exception: Exception)

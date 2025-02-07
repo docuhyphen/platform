@@ -39,8 +39,8 @@ class DocumentAuditLog {
     @JoinColumn(name = "performed_by_app_user_id", unique = false)
     var performedBy: AppUser? = null
 
-    @Column(name = "performed_email", nullable = false)
-    var performedEmail: String? = null
+    @Column(name = "performed_by_email", nullable = false)
+    var performedByEmail: String? = null
 
     @Column(name = "timestamp", nullable = false)
     @Serializable(with = TimestampSerializer::class)

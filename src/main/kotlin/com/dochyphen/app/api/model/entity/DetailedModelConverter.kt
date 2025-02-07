@@ -62,19 +62,6 @@ class DetailedModelConverter
             }
         }
 
-        /*
-        @Serializable
-data class ContactDetailsDetailedDto(
-    @Serializable(with = UUIDSerializer::class)
-    val id: UUID?,
-    @Serializable(with = TimestampSerializer::class)
-    val createdDate: Timestamp?,
-    val email: String?,
-    val phoneNumber: String?
-)
-
-         */
-
         fun toDto(person: Person?): PersonDetailedDto?
         {
             return person?.let {
@@ -107,7 +94,21 @@ data class ContactDetailsDetailedDto(
                 }
             }
         }
+
+        fun toDto(documentAuditLog: DocumentAuditLog?): DocumentAuditDetailedDto?
+        {
+            return documentAuditLog?.let {
+                with(documentAuditLog)
+                {
+                    DocumentAuditDetailedDto(
+                        id,
+                        timestamp,
+                        action.toString(),
+                        toDto(performedBy),
+                        performedByEmail
+                    )
+                }
+            }
+        }
     }
-
-
 }

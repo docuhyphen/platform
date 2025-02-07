@@ -31,7 +31,7 @@ class SharingSessionDocumentAuditService @Inject constructor(
             this.document = document
             this.action = action
             this.performedBy = managedPerformedBy
-            this.performedEmail = managedPerformedBy.email
+            this.performedByEmail = managedPerformedBy.email
             this.timestamp = Timestamp.from(Instant.now())
         }
         documentAuditLogRepository.save(auditLog)

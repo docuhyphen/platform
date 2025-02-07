@@ -82,3 +82,13 @@ data class AppUserDetailedDto(
     val email: String,
     val person: PersonDetailedDto?
 )
+@Serializable
+data class DocumentAuditDetailedDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID?,
+    @Serializable(with = TimestampSerializer::class)
+    val timestamp: Timestamp?,
+    val action: String?,
+    val performedBy: AppUserDetailedDto?,
+    val performedByEmail: String?
+)
