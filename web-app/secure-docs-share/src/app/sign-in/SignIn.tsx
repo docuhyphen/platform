@@ -28,7 +28,7 @@ const SignIn: React.FC = () =>
     const [email, setEmail] = useState('');
     const [otp, setOtp] = useState('');
     const [password, setPassword] = useState('');
-    const [signInInitiating, setSignInInitiating] = useState(false);
+    const [signInInitiating, setsignInInitiating] = useState(false);
     const [signInCompleting, setSignInCompleting] = useState(false);
     const [signInInitiationSuccessfulMsg, setSignInInitiationSuccessfulMsg] = useState<string>('');
     const [signInInitiationSuccessful, setSignInInitiationSuccessful] = useState<boolean>(false);
@@ -44,13 +44,18 @@ const SignIn: React.FC = () =>
 
     const onInitiateSignIn = async () =>
     {
+        if (signInInitiating)
+        {
+            return
+        }
+
         if (!email || !password)
         {
             setResponseErrorMessage("Email and password are required.");
             return;
         }
 
-        setSignInInitiating(true);
+        setsignInInitiating(true);
         setResponseErrorMessage(undefined);
 
         try
@@ -68,12 +73,17 @@ const SignIn: React.FC = () =>
         }
         finally
         {
-            setSignInInitiating(false);
+            setsignInInitiating(false);
         }
     };
 
     const onCompleteSignIn = async () =>
     {
+        if (signInCompleting)
+        {
+            return
+        }
+
         if (!otp)
         {
             setResponseErrorMessage("OTP is required.");
@@ -193,8 +203,13 @@ const SignIn: React.FC = () =>
                             {!signInInitiationSuccessful &&
                                 <Button onClick={onInitiateSignIn}
                                         appearance="primary">
-                                    {signInInitiating && <Spinner size={"extra-small"}/>}
-                                    Sign In
+                                    {signInInitiating &&
+                                        <>
+                                            <Spinner size={"extra-small"}/>
+                                            Initiating Sign In
+                                        </>
+                                    }
+                                    {!signInInitiating && "Sign In"}
                                 </Button>
                             }
 
@@ -202,8 +217,13 @@ const SignIn: React.FC = () =>
                                 <>
                                     <Button onClick={onCompleteSignIn}
                                             appearance="primary">
-                                        {signInCompleting && <Spinner size={"extra-small"}/>}
-                                        Complete Sign In
+                                        {signInCompleting &&
+                                            <>
+                                                <Spinner size={"extra-small"}/>
+                                                Completing Sign In
+                                            </>
+                                        }
+                                        {!signInCompleting && "Complete Sign In"}
                                     </Button>
                                 </>
                             )}
