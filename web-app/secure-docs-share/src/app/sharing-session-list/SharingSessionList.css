@@ -65,3 +65,7 @@
     justify-content: space-between;
 }
 
+.sharing-sessions-list-selected-item
+{
+    background: white;
+}

@@ -2,25 +2,29 @@ import React, {useEffect, useState} from 'react';
 import useToken from "../../context/useToken.tsx";
 import {fetchSignedInUserAppUserSharingSessions} from "../../services/api.ts";
 import {
-    Avatar, Button,
+    Avatar,
+    Button,
     Divider,
     Field,
     List,
     ListItem,
-    makeStyles, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger,
-    SearchBox, Tooltip,
+    makeStyles,
+    Menu,
+    MenuItem,
+    MenuList,
+    MenuPopover,
+    MenuTrigger,
+    SearchBox,
+    Tooltip,
     typographyStyles
 } from "@fluentui/react-components";
 import "./SharingSessionList.css"
 import {
     ArrowSortDownLinesFilled,
     ArrowSortDownLinesRegular,
-    ArrowSortUpLinesFilled, ArrowSortUpLinesRegular,
+    ArrowSortUpLinesFilled,
+    ArrowSortUpLinesRegular,
     bundleIcon,
-    CutFilled,
-    CutRegular,
-    EditFilled,
-    EditRegular,
     FilterFilled,
     FilterRegular
 } from "@fluentui/react-icons";
@@ -47,13 +51,20 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
     const token = useToken()
     const [sharingSessions, setSharingSessions] = useState([]);
     const [loadingSharingSessions, setLoadingSharingSessions] = useState(true);
+    const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
     const fetchSharingSessions = async () =>
     {
         try
         {
             const sharingSessions = await fetchSignedInUserAppUserSharingSessions(token);
-            setSharingSessions(sharingSessions);
+
+            if(sharingSessions && sharingSessions.length)
+            {
+                setSharingSessions(sharingSessions);
+                setSelectedItems([sharingSessions[0].id]);
+                onSelectionChange(sharingSessions[0].id);
+            }
         }
         catch (error)
         {
@@ -67,20 +78,14 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
 
     useEffect(() =>
     {
-
         fetchSharingSessions()
     }, [])
 
     const handleSelectionChange = (_, data) =>
     {
+        setSelectedItems(data.selectedItems);
         onSelectionChange(data.selectedItems[0]);
     };
-
-    // const onSelectionChange = React.useCallback((_, data) =>
-    // {
-    //     console.log("Selected item: ", data.selectedItems);
-    //     // setSelectedItems(data.selectedItems);
-    // }, []);
 
     const FilterIcon = bundleIcon(FilterFilled, FilterRegular);
     const SortDownIcon = bundleIcon(ArrowSortDownLinesFilled, ArrowSortDownLinesRegular);
@@ -88,12 +93,10 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
 
     const onFocus = React.useCallback((event) =>
     {
-        // Ignore bubbled up events from the children
         if (event.target !== event.currentTarget)
         {
             return;
         }
-        // setSelectedItems([event.target.dataset.value]);
     }, []);
 
     const listItemCard = (session: any) =>
@@ -123,19 +126,15 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                 id={"sharing-sessions-list-body"}
                 selectionMode="single"
                 navigationMode="composite"
-                // selectedItems={selectedItems}
+                selectedItems={selectedItems}
                 onSelectionChange={handleSelectionChange}
             >
                 {sharingSessions.map((session: any) => (
                     <>
                         <ListItem
-                            className={"sharing-sessions-list-item"}
+                            className={selectedItems.includes(session.id) ? "sharing-sessions-list-selected-item" : ""}
                             key={session.id}
                             value={session.id}
-                            // className={mergeClasses(
-                            //     "sharing-sessions-list-item",
-                            //     selectedItems.includes(name) && classes.itemSelected
-                            // )}
                             data-value={session.id}
                             onFocus={onFocus}
                             checkmark={null}
