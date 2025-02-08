@@ -13,7 +13,8 @@ import {
     Field,
     Input,
     Link,
-    MessageBar, MessageBarActions,
+    MessageBar,
+    MessageBarActions,
     MessageBarBody,
     MessageBarTitle,
     Spinner
@@ -28,6 +29,7 @@ const SignIn: React.FC = () =>
     const [otp, setOtp] = useState('');
     const [password, setPassword] = useState('');
     const [signInInitiating, setSignInInitiating] = useState(false);
+    const [signInCompleting, setSignInCompleting] = useState(false);
     const [signInInitiationSuccessfulMsg, setSignInInitiationSuccessfulMsg] = useState<string>('');
     const [signInInitiationSuccessful, setSignInInitiationSuccessful] = useState<boolean>(false);
     const [responseErrorMessage, setResponseErrorMessage] = useState<string | undefined>('');
@@ -38,14 +40,21 @@ const SignIn: React.FC = () =>
     const onOtpChange = (_e: any, newValue?: any) => setOtp(newValue.value || '');
     const onPasswordChange = (_e: any, newValue?: any) => setPassword(newValue.value || '');
 
-    const token = useToken()
+    const token = useToken();
 
     const onInitiateSignIn = async () =>
     {
+        if (!email || !password)
+        {
+            setResponseErrorMessage("Email and password are required.");
+            return;
+        }
+
+        setSignInInitiating(true);
+        setResponseErrorMessage(undefined);
+
         try
         {
-            setSignInInitiating(true);
-
             const signInInitiateRequest = {email, password};
             const response = await initiateSignIn(signInInitiateRequest);
 
@@ -65,6 +74,15 @@ const SignIn: React.FC = () =>
 
     const onCompleteSignIn = async () =>
     {
+        if (!otp)
+        {
+            setResponseErrorMessage("OTP is required.");
+            return;
+        }
+
+        setResponseErrorMessage(undefined);
+        setSignInCompleting(true);
+
         try
         {
             const signInCompletionRequest = {email, otp};
@@ -72,7 +90,7 @@ const SignIn: React.FC = () =>
             setToken(response.token);
             setApiClientAuthToken(response.token);
 
-            let appUser: AppUser | null = null
+            let appUser: AppUser | null = null;
 
             try
             {
@@ -81,7 +99,7 @@ const SignIn: React.FC = () =>
             }
             catch (error)
             {
-
+                // Handle error
             }
 
             try
@@ -89,12 +107,12 @@ const SignIn: React.FC = () =>
                 if (appUser)
                 {
                     const company = await fetchAppUserPersonCompany(appUser.id, appUser.person?.id, token?.toString());
-                    setAppUserPersonCompany(company)
+                    setAppUserPersonCompany(company);
                 }
             }
             catch (error)
             {
-
+                // Handle error
             }
 
             navigate('/landing');
@@ -103,96 +121,100 @@ const SignIn: React.FC = () =>
         {
             setResponseErrorMessage((error as ResponseError)?.errorMessage);
         }
-
+        finally
+        {
+            setSignInCompleting()
+        }
     };
 
     return (
         <RedirectIfAuthenticated element={
             <section id="sign-in-section">
                 <Card id="sign-in-card">
-                <h1>Sign In | <Link href={"/sign-up"}>Sign Up</Link></h1>
+                    <h1>Sign In | <Link href={"/sign-up"}>Sign Up</Link></h1>
 
-                {responseErrorMessage &&
-                    <MessageBar intent={"error"}>
-                        <MessageBarBody>
-                            <MessageBarTitle>Error: </MessageBarTitle>
-                            {responseErrorMessage}
-                        </MessageBarBody>
-                        <MessageBarActions
-                            containerAction={
-                                <Button
-                                    onClick={() => setResponseErrorMessage(undefined)}
-                                    appearance="transparent"
-                                    icon={<DismissRegular />}
-                                />
-                            }
-                        />
-                    </MessageBar>
-                }
+                    {responseErrorMessage &&
+                        <MessageBar intent={"error"}>
+                            <MessageBarBody>
+                                <MessageBarTitle>Error: </MessageBarTitle>
+                                {responseErrorMessage}
+                            </MessageBarBody>
+                            <MessageBarActions
+                                containerAction={
+                                    <Button
+                                        onClick={() => setResponseErrorMessage(undefined)}
+                                        appearance="transparent"
+                                        icon={<DismissRegular/>}
+                                    />
+                                }
+                            />
+                        </MessageBar>
+                    }
 
-                <Field
-                    label={"Email"}
-                    validationState={"none"}
-                    validationMessage={""}>
-                    <Input
-                        value={email}
-                        type="email"
-                        onChange={onEmailChange}/>
-                </Field>
+                    <Field
+                        label={"Email"}
+                        validationState={"none"}
+                        validationMessage={""}>
+                        <Input
+                            value={email}
+                            type="email"
+                            onChange={onEmailChange}/>
+                    </Field>
 
-                <Field
-                    label={"Password"}
-                    validationState={"none"}
-                    validationMessage={""}>
-                    <Input
-                        type="password"
-                        value={password}
-                        onChange={onPasswordChange}/>
-                </Field>
+                    <Field
+                        label={"Password"}
+                        validationState={"none"}
+                        validationMessage={""}>
+                        <Input
+                            type="password"
+                            value={password}
+                            onChange={onPasswordChange}/>
+                    </Field>
 
-                {signInInitiationSuccessful && (
-                    <>
-                        <span>{signInInitiationSuccessfulMsg}</span>
+                    {signInInitiationSuccessful && (
+                        <>
+                            <span>{signInInitiationSuccessfulMsg}</span>
 
-                        <Field
-                            label={"OTP"}
-                            validationState={"none"}
-                            validationMessage={""}>
-                            <Input
-                                value={otp}
-                                autoComplete="false"
-                                onChange={onOtpChange}/>
-                        </Field>
-                        <Button appearance="transparent"> Resent OTP</Button>
-                    </>
-                )}
+                            <Field
+                                label={"OTP"}
+                                validationState={"none"}
+                                validationMessage={""}>
+                                <Input
+                                    value={otp}
+                                    autoComplete="false"
+                                    onChange={onOtpChange}/>
+                            </Field>
+                            <Button appearance="transparent"> Resend OTP</Button>
+                        </>
+                    )}
 
-                <CardFooter action={
-                    <>
-                        {!signInInitiationSuccessful &&
-                            <Button onClick={onInitiateSignIn}
-                                    appearance="primary">
-                                {signInInitiating && <Spinner size={"extra-small"}/>}
-                                Sign In
-                            </Button>
-                        }
-
-                        {signInInitiationSuccessful && (
-                            <>
-                                <Button onClick={onCompleteSignIn}
+                    <CardFooter action={
+                        <>
+                            {!signInInitiationSuccessful &&
+                                <Button onClick={onInitiateSignIn}
                                         appearance="primary">
-                                    Complete Sign In
+                                    {signInInitiating && <Spinner size={"extra-small"}/>}
+                                    Sign In
                                 </Button>
-                            </>
-                        )}
-                    </>
-                }>
-                    <Button onClick={() => navigate('/forgot-password')}
-                            appearance="subtle">
-                        Forgot Password
-                    </Button>
-                </CardFooter>
-            </Card>
+                            }
+
+                            {signInInitiationSuccessful && (
+                                <>
+                                    <Button onClick={onCompleteSignIn}
+                                            appearance="primary">
+                                        {signInCompleting && <Spinner size={"extra-small"}/>}
+                                        Complete Sign In
+                                    </Button>
+                                </>
+                            )}
+                        </>
+                    }>
+                        <Button onClick={() => navigate('/forgot-password')}
+                                appearance="subtle">
+                            Forgot Password
+                        </Button>
+                    </CardFooter>
+                </Card>
             </section>
         }/>
     );
