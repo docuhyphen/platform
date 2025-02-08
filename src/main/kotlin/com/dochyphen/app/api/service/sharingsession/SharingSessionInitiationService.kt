@@ -9,8 +9,8 @@ import com.dochyphen.app.api.repository.SharingSessionRepository
 import com.dochyphen.app.api.resource.model.SharingSessionParticipantRequest
 import com.dochyphen.app.api.resource.model.SharingSessionRequestDocumentRequest
 import com.dochyphen.app.api.service.AppUserService
-import com.dochyphen.app.api.service.AuthenticationService
-import com.dochyphen.app.api.service.EmailService
+import com.dochyphen.app.api.service.auth.AuthenticationService
+import com.dochyphen.app.api.service.communication.EmailService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager

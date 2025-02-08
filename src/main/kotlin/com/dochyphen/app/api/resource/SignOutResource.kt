@@ -1,7 +1,7 @@
 package com.dochyphen.app.api.resource
 
 import com.dochyphen.app.api.resource.model.ResponseError
-import com.dochyphen.app.api.service.SignOutService
+import com.dochyphen.app.api.service.auth.SignOutService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType

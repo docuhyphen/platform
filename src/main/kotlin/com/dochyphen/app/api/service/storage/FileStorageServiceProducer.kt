@@ -2,9 +2,9 @@ package com.dochyphen.app.api.config
 
 import com.dochyphen.app.api.qualifier.Aws
 import com.dochyphen.app.api.qualifier.Local
-import com.dochyphen.app.api.service.AwsS3FileStorageService
-import com.dochyphen.app.api.service.FileStorageService
-import com.dochyphen.app.api.service.LocalFileStorageService
+import com.dochyphen.app.api.service.storage.AwsS3FileStorageService
+import com.dochyphen.app.api.service.storage.FileStorageService
+import com.dochyphen.app.api.service.storage.LocalFileStorageService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.inject.Produces
 import jakarta.inject.Inject

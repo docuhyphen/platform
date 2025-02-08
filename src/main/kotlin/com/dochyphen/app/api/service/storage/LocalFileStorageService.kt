@@ -1,4 +1,4 @@
-package com.dochyphen.app.api.service
+package com.dochyphen.app.api.service.storage
 
 import com.dochyphen.app.api.qualifier.Local
 import jakarta.enterprise.context.ApplicationScoped

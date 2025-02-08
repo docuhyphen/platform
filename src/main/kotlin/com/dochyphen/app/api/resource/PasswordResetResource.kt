@@ -13,7 +13,7 @@ import com.dochyphen.app.api.exception.PasswordRequirementsNotMetException
 import com.dochyphen.app.api.resource.model.PasswordResetCompletionRequest
 import com.dochyphen.app.api.resource.model.PasswordResetRequest
 import com.dochyphen.app.api.resource.model.ResponseError
-import com.dochyphen.app.api.service.PasswordResetService
+import com.dochyphen.app.api.service.auth.PasswordResetService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType

@@ -1,4 +1,4 @@
-package com.dochyphen.app.api.service
+package com.dochyphen.app.api.service.config
 
 import jakarta.enterprise.context.RequestScoped
 

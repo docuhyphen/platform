@@ -1,4 +1,4 @@
-package com.dochyphen.app.api.service
+package com.dochyphen.app.api.service.auth
 
 import com.dochyphen.app.api.exception.AppUserExistsException
 import com.dochyphen.app.api.exception.ConfirmationPasswordRequiredException
@@ -15,12 +15,14 @@ import com.dochyphen.app.api.exception.PasswordContainsEmailException
 import com.dochyphen.app.api.exception.PasswordMismatchException
 import com.dochyphen.app.api.exception.PasswordRequiredException
 import com.dochyphen.app.api.exception.PasswordRequirementsNotMetException
-import com.dochyphen.app.api.model.*
 import com.dochyphen.app.api.model.entity.AppUser
 import com.dochyphen.app.api.model.entity.SignUpEntity
 import com.dochyphen.app.api.model.entity.SignUpStatus
 import com.dochyphen.app.api.repository.AppUserRepository
 import com.dochyphen.app.api.repository.SignUpRepository
+import com.dochyphen.app.api.service.config.ConfigurationService
+import com.dochyphen.app.api.service.communication.EmailService
+import com.dochyphen.app.api.service.communication.OtpService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.mindrot.jbcrypt.BCrypt

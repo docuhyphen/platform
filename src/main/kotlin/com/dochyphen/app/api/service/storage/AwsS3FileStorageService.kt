@@ -1,4 +1,4 @@
-package com.dochyphen.app.api.service
+package com.dochyphen.app.api.service.storage
 
 import com.dochyphen.app.api.qualifier.Aws
 import jakarta.enterprise.context.ApplicationScoped
@@ -10,7 +10,7 @@ import java.io.File
 import java.nio.file.Files
 import java.security.Key
 import java.security.Security
-import java.util.*
+import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.spec.SecretKeySpec

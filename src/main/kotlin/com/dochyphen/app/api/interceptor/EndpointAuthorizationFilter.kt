@@ -1,7 +1,7 @@
 package com.dochyphen.app.api.interceptor
 
 import com.dochyphen.app.api.model.entity.AuthToken
-import com.dochyphen.app.api.service.AuthenticationService
+import com.dochyphen.app.api.service.auth.AuthenticationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.enterprise.inject.Produces
 import jakarta.inject.Inject

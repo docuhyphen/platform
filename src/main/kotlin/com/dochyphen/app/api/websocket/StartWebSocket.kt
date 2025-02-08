@@ -1,7 +1,11 @@
-package com.dochyphen.app.api
+package com.dochyphen.app.api.websocket
 
 import jakarta.enterprise.context.ApplicationScoped
-import jakarta.websocket.*
+import jakarta.websocket.OnClose
+import jakarta.websocket.OnError
+import jakarta.websocket.OnMessage
+import jakarta.websocket.OnOpen
+import jakarta.websocket.Session
 import jakarta.websocket.server.PathParam
 import jakarta.websocket.server.ServerEndpoint
 

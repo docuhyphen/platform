@@ -1,4 +1,4 @@
-package com.dochyphen.app.api.service
+package com.dochyphen.app.api.service.communication
 
 import io.quarkus.mailer.Mail
 import io.quarkus.mailer.Mailer

@@ -1,4 +1,4 @@
-package com.dochyphen.app.api.service
+package com.dochyphen.app.api.service.auth
 
 import com.dochyphen.app.api.exception.ConfirmationPasswordRequiredException
 import com.dochyphen.app.api.exception.EmailNotFoundException
@@ -10,11 +10,14 @@ import com.dochyphen.app.api.exception.OtpRequiredException
 import com.dochyphen.app.api.exception.PasswordMismatchException
 import com.dochyphen.app.api.exception.PasswordRequiredException
 import com.dochyphen.app.api.exception.PasswordRequirementsNotMetException
-import com.dochyphen.app.api.model.*
 import com.dochyphen.app.api.model.entity.MfaRecord
 import com.dochyphen.app.api.model.entity.MultifactorAuthenticationStatus
 import com.dochyphen.app.api.model.entity.MultifactorAuthenticationType
 import com.dochyphen.app.api.repository.AppUserRepository
+import com.dochyphen.app.api.service.config.ConfigurationService
+import com.dochyphen.app.api.service.communication.EmailService
+import com.dochyphen.app.api.service.communication.MfaService
+import com.dochyphen.app.api.service.communication.OtpService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory

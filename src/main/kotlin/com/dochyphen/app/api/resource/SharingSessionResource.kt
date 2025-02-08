@@ -14,6 +14,7 @@ import com.dochyphen.app.api.service.sharingsession.SharingSessionDocumentServic
 import com.dochyphen.app.api.service.sharingsession.SharingSessionInitiationService
 import com.dochyphen.app.api.service.sharingsession.SharingSessionParticipantService
 import com.dochyphen.app.api.service.sharingsession.SharingSessionRetrievalService
+import com.dochyphen.app.api.service.sharingsession.SharingSessionUpdateService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType

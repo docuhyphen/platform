@@ -1,9 +1,10 @@
-package com.dochyphen.app.api.service
+package com.dochyphen.app.api.service.sharingsession
 
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.model.entity.SharingSessionStatus
 import com.dochyphen.app.api.repository.SharingSessionRepository
 import com.dochyphen.app.api.resource.model.UpdateSharingSessionRequest
+import com.dochyphen.app.api.service.communication.EmailService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
@@ -12,7 +13,7 @@ import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.*
+import java.util.UUID
 
 @ApplicationScoped
 class SharingSessionUpdateService @Inject constructor(

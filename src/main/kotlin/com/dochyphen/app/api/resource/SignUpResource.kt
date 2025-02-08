@@ -22,8 +22,8 @@ import com.dochyphen.app.api.resource.model.SignUpCompletionResponse
 import com.dochyphen.app.api.resource.model.SignUpInitiateRequest
 import com.dochyphen.app.api.resource.model.SignUpInitiateResponse
 import com.dochyphen.app.api.resource.model.SignUpRegenerationRequest
-import com.dochyphen.app.api.service.AuthenticationService
-import com.dochyphen.app.api.service.SignUpService
+import com.dochyphen.app.api.service.auth.AuthenticationService
+import com.dochyphen.app.api.service.auth.SignUpService
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.POST

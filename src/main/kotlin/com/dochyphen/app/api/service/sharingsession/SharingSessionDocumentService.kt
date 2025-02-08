@@ -9,8 +9,8 @@ import com.dochyphen.app.api.model.entity.DocumentAuditLogAction
 import com.dochyphen.app.api.model.entity.DocumentEncryptionMode
 import com.dochyphen.app.api.model.entity.DocumentType
 import com.dochyphen.app.api.repository.SharingSessionRepository
-import com.dochyphen.app.api.service.EmailService
-import com.dochyphen.app.api.service.FileStorageService
+import com.dochyphen.app.api.service.communication.EmailService
+import com.dochyphen.app.api.service.storage.FileStorageService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional

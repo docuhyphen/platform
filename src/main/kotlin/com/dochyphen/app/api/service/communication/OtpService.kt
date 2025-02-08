@@ -1,4 +1,4 @@
-package com.dochyphen.app.api.service
+package com.dochyphen.app.api.service.communication
 
 import jakarta.enterprise.context.ApplicationScoped
 import org.mindrot.jbcrypt.BCrypt

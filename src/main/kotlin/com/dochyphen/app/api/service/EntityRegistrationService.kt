@@ -6,13 +6,14 @@ import com.dochyphen.app.api.exception.InvalidPersonRegistrationException
 import com.dochyphen.app.api.exception.PersonAlreadyExistsException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.messaging.CompanyVerificationProducer
-import com.dochyphen.app.api.model.*
 import com.dochyphen.app.api.model.entity.AppUserRole
 import com.dochyphen.app.api.model.entity.Company
 import com.dochyphen.app.api.model.entity.Person
 import com.dochyphen.app.api.model.entity.PersonIDType
 import com.dochyphen.app.api.repository.CompanyRepository
 import com.dochyphen.app.api.repository.PersonRepositoryRepository
+import com.dochyphen.app.api.service.communication.EmailService
+import com.dochyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager

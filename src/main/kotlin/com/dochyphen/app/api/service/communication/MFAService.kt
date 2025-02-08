@@ -1,9 +1,10 @@
-package com.dochyphen.app.api.service
+package com.dochyphen.app.api.service.communication
 
 import com.dochyphen.app.api.model.entity.AppUser
 import com.dochyphen.app.api.model.entity.MultifactorAuthenticationType
 import com.dochyphen.app.api.model.entity.MfaRecord
 import com.dochyphen.app.api.repository.MfaRecordRepository
+import com.dochyphen.app.api.service.PasskeyService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.transaction.Transactional
 

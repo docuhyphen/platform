@@ -9,7 +9,7 @@ import com.dochyphen.app.api.resource.model.SignInCompletionRequest
 import com.dochyphen.app.api.resource.model.SignInCompletionResponse
 import com.dochyphen.app.api.resource.model.SignInRequest
 import com.dochyphen.app.api.resource.model.SignInResponse
-import com.dochyphen.app.api.service.SignInService
+import com.dochyphen.app.api.service.auth.SignInService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
