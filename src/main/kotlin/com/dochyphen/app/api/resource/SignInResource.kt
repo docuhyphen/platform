@@ -36,6 +36,8 @@ class SignInResource @Inject constructor(
     {
         return try
         {
+            ResourceEndpointDelayHelper.randomDelay(3000, 6000)
+
             with(payload) {
                 signInService.initiateSignIn(payload.email, payload.password)
                 val signInResponse = SignInResponse("")

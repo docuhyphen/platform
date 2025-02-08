@@ -1,5 +1,6 @@
 package com.dochyphen.app.api.resource
 
+import com.dochyphen.app.api.resource.model.CommentRequest
 import com.dochyphen.app.api.service.sharingsession.SharingSessionDocumentCommentsService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
@@ -29,8 +30,3 @@ class DocumentCommentResource @Inject constructor(
         return Response.ok(comments).build()
     }
 }
-
-data class CommentRequest(
-    val commentText: String,
-    val commentedBy: String
-)

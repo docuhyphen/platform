@@ -6,15 +6,28 @@ import {useAuth} from '../../context/AuthContext';
 import {useNavigate} from 'react-router-dom';
 import RedirectIfAuthenticated from '../components/RedirectIfAuthenticated';
 import useToken from "../../context/useToken.tsx";
-import {Button, Card, CardFooter, Field, Input, Link} from "@fluentui/react-components";
+import {
+    Button,
+    Card,
+    CardFooter,
+    Field,
+    Input,
+    Link,
+    MessageBar, MessageBarActions,
+    MessageBarBody,
+    MessageBarTitle,
+    Spinner
+} from "@fluentui/react-components";
 import {AppUser} from "../models/models.tsx";
 import {setApiClientAuthToken} from '../../services/apiClient';
+import {DismissRegular} from "@fluentui/react-icons";
 
 const SignIn: React.FC = () =>
 {
     const [email, setEmail] = useState('');
     const [otp, setOtp] = useState('');
     const [password, setPassword] = useState('');
+    const [signInInitiating, setSignInInitiating] = useState(false);
     const [signInInitiationSuccessfulMsg, setSignInInitiationSuccessfulMsg] = useState<string>('');
     const [signInInitiationSuccessful, setSignInInitiationSuccessful] = useState<boolean>(false);
     const [responseErrorMessage, setResponseErrorMessage] = useState<string | undefined>('');
@@ -31,8 +44,11 @@ const SignIn: React.FC = () =>
     {
         try
         {
+            setSignInInitiating(true);
+
             const signInInitiateRequest = {email, password};
             const response = await initiateSignIn(signInInitiateRequest);
+
             setSignInInitiationSuccessfulMsg(response?.message);
             setSignInInitiationSuccessful(true);
         }
@@ -40,6 +56,10 @@ const SignIn: React.FC = () =>
         {
             setSignInInitiationSuccessful(false);
             setResponseErrorMessage((error as ResponseError)?.errorMessage);
+        }
+        finally
+        {
+            setSignInInitiating(false);
         }
     };
 
@@ -93,9 +113,21 @@ const SignIn: React.FC = () =>
                 <h1>Sign In | <Link href={"/sign-up"}>Sign Up</Link></h1>
 
                 {responseErrorMessage &&
-                    <p>
-                        {responseErrorMessage}
-                    </p>
+                    <MessageBar intent={"error"}>
+                        <MessageBarBody>
+                            <MessageBarTitle>Error: </MessageBarTitle>
+                            {responseErrorMessage}
+                        </MessageBarBody>
+                        <MessageBarActions
+                            containerAction={
+                                <Button
+                                    onClick={() => setResponseErrorMessage(undefined)}
+                                    appearance="transparent"
+                                    icon={<DismissRegular />}
+                                />
+                            }
+                        />
+                    </MessageBar>
                 }
 
                 <Field
@@ -140,6 +172,7 @@ const SignIn: React.FC = () =>
                         {!signInInitiationSuccessful &&
                             <Button onClick={onInitiateSignIn}
                                     appearance="primary">
+                                {signInInitiating && <Spinner size={"extra-small"}/>}
                                 Sign In
                             </Button>
                         }

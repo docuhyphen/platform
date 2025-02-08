@@ -149,3 +149,9 @@ class UpdateShareSessionDocumentRequest
     var restrictedType: DocumentType? = null
     var type: DocumentType? = null
 }
+
+@Serializable
+data class CommentRequest(
+    val commentText: String,
+    val commentedBy: String
+)
