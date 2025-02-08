@@ -92,10 +92,10 @@ Content-Type: multipart/form-data; boundary=WebAppBoundary
 Authorization: Bearer {{Authorization}}
 
 --WebAppBoundary
-Content-Disposition: form-data; name="file"; filename="UserManual.pdf"
+Content-Disposition: form-data; name="file"; filename="Document.docx"
 Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document
 
-< C:\Users\Black\Downloads\UserManual.pdf
+< C:\Users\Black\Downloads\Document.docx
 --WebAppBoundary
 Content-Disposition: form-data; name="encryptionMode"
 Content-Type: text/plain
@@ -105,5 +105,9 @@ INTERNAL
 Content-Disposition: form-data; name="extension"
 Content-Type: text/plain
 
-.pdf
+.docx
 --WebAppBoundary--
+
+### Download sharing session document
+GET http://localhost:8080/sharing-sessions/b4b502a5-86d0-4e59-ba05-f588a0acb9e6/documents/b4cbefb4-3d94-4864-93b1-2f554b959cca/file
+Authorization: Bearer {{Authorization}}

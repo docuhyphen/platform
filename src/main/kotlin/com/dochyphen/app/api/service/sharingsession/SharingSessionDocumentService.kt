@@ -205,15 +205,29 @@ class SharingSessionDocumentService @Inject constructor(
         }
     }
 
-    @DocumentAuditRequired
+    @Transactional
+//    @DocumentAuditRequired
     fun downloadDocument(
         sessionId: String,
         documentId: String
     ): File
     {
-        val document = Document() // Retrieve the document entity as needed
-//        val file = awsS3Service.downloadDocument(bucketName, key, encryptionKey)
-//        documentAuditService.logAction(document, DocumentAuditLogAction.DOWNLOAD, performedBy)
-        return File("file")
+        val sharingSession = sessionRepo.findById(UUID.fromString(sessionId))
+            ?: throw SharingSessionNotFoundException("Sharing session not found")
+
+        val document = sharingSession.documents.find { it.id == UUID.fromString(documentId) }
+            ?: throw SharingSessionDocumentNotFoundException("Document not found")
+
+        if (document.isDeleted)
+        {
+            throw SharingSessionDocumentNotFoundException("Document not found")
+        }
+
+        val fileKey = "${document.id}${DocumentType.toFileExtension(document.type!!)}"
+        val file = fileStorageService.downloadDocument(fileKey)
+
+//        auditService.logAction(document, DocumentAuditLogAction.DOWNLOAD, authTokenContext.authToken.appUser!!)
+
+        return file
     }
 }

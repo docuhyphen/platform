@@ -41,6 +41,21 @@ enum class DocumentType
                 else -> null
             }
         }
+
+        fun toFileExtension(documentType: DocumentType): String
+        {
+            return when (documentType)
+            {
+                PDF -> ".pdf"
+                DOCX -> ".docx"
+                DOC -> ".doc"
+                XLSX -> ".xlsx"
+                PPTX -> ".pptx"
+                PNG -> ".png"
+                JPG -> ".jpg"
+                else -> ""
+            }
+        }
     }
 }
 

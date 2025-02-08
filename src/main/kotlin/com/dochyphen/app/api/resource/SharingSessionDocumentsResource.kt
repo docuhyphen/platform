@@ -4,7 +4,9 @@ import com.dochyphen.app.api.exception.SharingSessionDocumentNotFoundException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.model.BasicModelConverter.Companion.toDto
 import com.dochyphen.app.api.model.entity.DocumentEncryptionMode
-import com.dochyphen.app.api.resource.model.*
+import com.dochyphen.app.api.resource.model.AddSharingSessionDocumentRequest
+import com.dochyphen.app.api.resource.model.ResponseError
+import com.dochyphen.app.api.resource.model.UpdateShareSessionDocumentRequest
 import com.dochyphen.app.api.service.sharingsession.SharingSessionDocumentService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
@@ -261,17 +263,18 @@ class SharingSessionDocumentsResource @Inject constructor(
 
     @GET
     @Path("{documentId}/file")
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
     fun downloadDocument(
-        request: DownloadSharingSessionDocumentRequest
+        @PathParam("sessionId") sessionId: String,
+        @PathParam("documentId") documentId: String
     ): Response
     {
         return try
         {
-            val file = with(request) {
-                sharingSessionDocumentService.downloadDocument(sessionId, documentId)
-            }
-
-            Response.ok(file).build()
+            val file = sharingSessionDocumentService.downloadDocument(sessionId, documentId)
+            Response.ok(file)
+                .header("Content-Disposition", "attachment; filename=\"${file.name}\"")
+                .build()
         }
         catch (exception: Exception)
         {
@@ -281,36 +284,22 @@ class SharingSessionDocumentsResource @Inject constructor(
                 is SharingSessionDocumentNotFoundException ->
                 {
                     logger.error("Error downloading sharing session document", exception)
-
                     val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.NOT_FOUND)
-                        .entity(responseError)
-                        .build()
-
+                    Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
                 }
+
                 is IllegalArgumentException ->
                 {
                     logger.error("Error downloading sharing session document", exception)
-
                     val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
+                    Response.status(Response.Status.BAD_REQUEST).entity(responseError).build()
                 }
 
                 else ->
                 {
                     logger.error("Error downloading sharing session document", exception)
-
-                    val responseError = ResponseError("An error occurred while uploading sharing session document")
-                    Response
-                        .status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
-                        .build()
+                    val responseError = ResponseError("An error occurred while downloading sharing session document")
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
             }
         }
