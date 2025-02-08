@@ -6,7 +6,7 @@ const PreLanding: React.FC = () => {
         <div id={"pre-loading-container"}>
             <Spinner labelPosition="after"
                      size="small"
-                     label="Loading Sessions" />
+                     label="Loading Sharing Sessions" />
         </div>
     );
 };

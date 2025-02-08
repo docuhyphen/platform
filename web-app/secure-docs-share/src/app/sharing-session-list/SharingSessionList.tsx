@@ -94,9 +94,6 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
 
     return (
         <section id={"sharing-sessions-list-container"}>
-            <div id={"sharing-sessions-list-header"}>
-
-            </div>
             <List
                 id={"sharing-sessions-list-body"}
                 selectionMode="single"
@@ -108,22 +105,25 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                     <>
                         <ListItem
                             className={"sharing-sessions-list-item"}
-                        key={session.id}
-                        value={session.id}
-                        // className={mergeClasses(
+                            key={session.id}
+                            value={session.id}
+                            // className={mergeClasses(
                             //     "sharing-sessions-list-item",
-                        //     selectedItems.includes(name) && classes.itemSelected
-                        // )}
-                        data-value={session.id}
-                        onFocus={onFocus}
-                        checkmark={null}
-                    >
+                            //     selectedItems.includes(name) && classes.itemSelected
+                            // )}
+                            data-value={session.id}
+                            onFocus={onFocus}
+                            checkmark={null}
+                        >
                             {listItemCard(session)}
-                    </ListItem>
+                        </ListItem>
                         <Divider/>
                     </>
                 ))}
             </List>
+            <div id={"sharing-sessions-list-header"}>
+
+            </div>
         </section>
     );
 }

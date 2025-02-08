@@ -22,6 +22,26 @@ html, body, #root
     padding: 0 16px;
     box-sizing: border-box;
     box-shadow: 1px 1px 1px 0 rgba(0, 0, 0, 0.1);
+    position: fixed;
+    z-index: 2;
+    background: white;
+    height: 60px;
+    top: 0
+}
+
+#main-app-section
+{
+    width: 100%;
+    height: calc(100% - 60px); /* Subtract the height of the header */
+    padding-top: 60px;
+    box-sizing: border-box;
+}
+
+
+#main-app-section
+{
+    width:  100%;
+    height: 100%;
 }
 
 #main-app-header-mid-section
@@ -74,11 +94,5 @@ html, body, #root
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100%;
-}
-
-#main-section
-{
-    width:  100%;
     height: 100%;
 }
