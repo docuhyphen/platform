@@ -9,3 +9,28 @@
 {
     padding: 18px 0;
 }
+
+#sharing-session-head-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    padding: 0 16px;
+    height: 100px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, .2);
+    box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
+}
+
+#sharing-session-details-container
+{
+    flex: 1;
+    margin-right: 60px;
+}
+
+#sharing-session-actions
+{
+    display: flex;
+    gap: 8px;
+}

@@ -304,4 +304,48 @@ class SharingSessionDocumentsResource @Inject constructor(
             }
         }
     }
+
+    @Path("{documentId}/preview")
+    @GET
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    fun getDocumentPreviewAsPdf(
+        @PathParam("sessionId") sessionId: String,
+        @PathParam("documentId") documentId: String
+    ): Response
+    {
+        return try
+        {
+            val document = sharingSessionDocumentService.getDocumentFilePreviewAsPdf(sessionId, documentId)
+            Response.ok(document)
+                .header("Content-Disposition", "attachment; filename=\"${document.name}\"")
+                .build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is SharingSessionNotFoundException,
+                is SharingSessionDocumentNotFoundException ->
+                {
+                    logger.error("Error generating document preview", exception)
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
+                }
+
+                is IllegalArgumentException ->
+                {
+                    logger.error("Error generating document preview", exception)
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.BAD_REQUEST).entity(responseError).build()
+                }
+
+                else ->
+                {
+                    logger.error("Error generating document preview", exception)
+                    val responseError = ResponseError("An error occurred while generating document preview")
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
+        }
+    }
 }

@@ -18,7 +18,17 @@
         <skipITs>true</skipITs>
         <surefire-plugin.version>3.5.0</surefire-plugin.version>
     </properties>
+    <repositories>
+        <repository>
+            <id>xpand-it-releases</id>
+            <url>https://maven.xpand-it.com/artifactory/releases/</url>
+        </repository>
 
+        <repository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+    </repositories>
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -167,6 +177,7 @@
             <artifactId>bcprov-jdk15on</artifactId>
             <version>1.68</version>
         </dependency>
+
     </dependencies>
 
     <build>

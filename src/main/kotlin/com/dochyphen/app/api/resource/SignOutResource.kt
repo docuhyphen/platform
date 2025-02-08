@@ -26,7 +26,7 @@ class SignOutResource @Inject constructor(
     {
         return try
         {
-            ResourceEndpointDelayHelper.randomDelay(3000, 6000)
+            ResourceEndpointDelayHelper.delayEndpoint(3000, 6000)
             signOutService.signOut()
             Response.ok().build()
         }

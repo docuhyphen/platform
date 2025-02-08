@@ -28,17 +28,13 @@ import {
     FilterFilled,
     FilterRegular
 } from "@fluentui/react-icons";
+import {formatDate} from "../helpers.ts";
 
 const useStyles = makeStyles({
     caption2: typographyStyles.caption2,
     caption1: typographyStyles.caption1,
     body1Strong: typographyStyles.body1Strong,
 });
-const formatDate = (dateString: string): string =>
-{
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB');
-};
 
 interface SharingSessionListProps
 {

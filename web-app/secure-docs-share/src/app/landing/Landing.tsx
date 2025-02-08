@@ -4,16 +4,49 @@ import {fetchSignedInUserAppUserSharingSession} from "../../services/api.ts";
 import useToken from "../../context/useToken.tsx";
 import "./Landing.css";
 import PreLanding from "../pre-landing/PreLanding.tsx";
+import {
+    Body1,
+    Button,
+    Caption1,
+    Card,
+    CardHeader,
+    Divider,
+    Menu,
+    MenuItem,
+    MenuList,
+    MenuPopover,
+    MenuTrigger,
+    Skeleton,
+    SkeletonItem,
+    Subtitle2,
+    Title3,
+    Tooltip
+} from "@fluentui/react-components";
+import {
+    ArrowDownloadRegular,
+    ArrowUploadRegular,
+    CheckmarkNoteRegular,
+    CommentNoteRegular,
+    DeleteRegular,
+    DocumentAddRegular,
+    DocumentBulletListClockRegular,
+    DocumentPrintRegular,
+    InfoRegular,
+    MoreVerticalRegular
+} from "@fluentui/react-icons";
+import {formatDate} from "../helpers.ts";
+
 const Landing: React.FC = () =>
 {
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
     const [sessionDetails, setSessionDetails] = useState<any>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const token = useToken();
+    const [fetchingDetails, setFetchingDetails] = useState<boolean>(false);
 
     useEffect(() =>
     {
-        const randomDelay = Math.floor(Math.random() * 10000) + 5000;
+        const randomDelay = Math.floor(Math.random() * 1000) + 500;
         setTimeout(() =>
         {
             setIsLoading(false);
@@ -26,14 +59,23 @@ const Landing: React.FC = () =>
         {
             const fetchDetails = async () =>
             {
+                setFetchingDetails(true);
+                setSessionDetails(null);
+
                 try
                 {
                     const details = await fetchSignedInUserAppUserSharingSession(selectedSessionId, token);
                     setSessionDetails(details);
+
+                    console.log(details)
                 }
                 catch (error)
                 {
                     console.error(error);
+                }
+                finally
+                {
+                    setFetchingDetails(false);
                 }
             };
             fetchDetails();
@@ -46,21 +88,97 @@ const Landing: React.FC = () =>
                 <div>
                     <SharingSessionList onSelectionChange={setSelectedSessionId}/>
                 </div>
-                <div>
-                    <h1>Sharing Session Details</h1>
+                <div id="sharing-session-details-container">
+                    <div id={"sharing-session-head-container"}>
+                        {fetchingDetails &&
+                            <Skeleton>
+                                <SkeletonItem/>
+                                <SkeletonItem size={8}/>
+                            </Skeleton>
+                        }
+                        {!fetchingDetails && sessionDetails &&
+                            <>
+                                <div>
+                                    <Caption1>Started {formatDate(sessionDetails.createdDate)}</Caption1> <br/>
+                                    <Title3>{sessionDetails.sessionName}</Title3><br/>
+                                    <Body1>{sessionDetails.description}</Body1>
+                                </div>
+                                <div id={"sharing-session-actions"}>
+                                    <Tooltip content="End Session" relationship={"description"}>
+                                        <Button icon={<CheckmarkNoteRegular/>} appearance={"subtle"}/>
+                                    </Tooltip>
+                                    <Tooltip content="Session Comments" relationship={"description"}>
+                                        <Button icon={<CommentNoteRegular/>} appearance={"subtle"}/>
+                                    </Tooltip>
+                                    <Tooltip content="Session Audit" relationship={"description"}>
+                                        <Button icon={<DocumentBulletListClockRegular/>} appearance={"subtle"}/>
+                                    </Tooltip>
+                                    <Tooltip content="Add Session Document"
+                                             relationship={"description"}>
+                                        <Button icon={<DocumentAddRegular/>}
+                                                appearance={"primary"}/>
+                                    </Tooltip>
+                                </div>
+                            </>
+                        }
+                    </div>
                     {sessionDetails && (
                         <div>
-                            <p>Session Name: {sessionDetails.sessionName}</p>
-                            <p>Description: {sessionDetails.description}</p>
-                            <p>Created Date: {sessionDetails.createdDate}</p>
+                            <p>
+                                <Subtitle2>Session Documents</Subtitle2>
+                            </p>
                             <div>
                                 {
-                                    sessionDetails.documents?.map((document: any) =>{
+                                    sessionDetails.documents?.map((document: any) => (
+                                        <Card key={document.id}>
+                                            <CardHeader
+                                                header={
+                                                    <Body1>
+                                                        <b>{document.title}</b>
+                                                    </Body1>
+                                                }
+                                                description={
+                                                    <>
+                                                        {document.dateUploaded &&
+                                                            <Caption1>Uploaded {document.dateUploaded}</Caption1>
+                                                    }
+                                                    {!document.dateUploaded &&
+                                                        <Button appearance={"transparent"}
+                                                                icon={<DocumentAddRegular/>}>
+                                                            Upload new document
+                                                        </Button>
+                                                    }
+                                                    </>
 
-                                        <div>
-                                            {document.createdDate}
-                                        </div>
-                                    })
+                                                }
+                                                action={
+                                                    <div>
+                                                        <Menu positioning={{autoSize: true}}>
+                                                            <MenuTrigger disableButtonEnhancement>
+                                                                <Button icon={<MoreVerticalRegular/>}
+                                                                        appearance={"subtle"}/>
+                                                            </MenuTrigger>
+
+                                                            <MenuPopover>
+                                                                <MenuList>
+                                                                    <MenuItem
+                                                                        icon={<ArrowUploadRegular/>}> Upload </MenuItem>
+                                                                    <MenuItem
+                                                                        icon={<DeleteRegular/>}> Delete </MenuItem>
+                                                                    <MenuItem icon={
+                                                                        <ArrowDownloadRegular/>}> Download </MenuItem>
+                                                                    <MenuItem icon={
+                                                                        <DocumentPrintRegular/>}> Print </MenuItem>
+                                                                    <Divider/>
+                                                                    <MenuItem icon={<InfoRegular/>}> More info </MenuItem>
+                                                                </MenuList>
+                                                            </MenuPopover>
+                                                        </Menu>
+                                                    </div>
+                                                }
+                                            />
+                                        </Card>
+                                    ))
                                 }
                             </div>
                         </div>

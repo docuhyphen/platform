@@ -9,7 +9,6 @@ import com.dochyphen.app.api.model.entity.DetailedModelConverter
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.resource.model.SharingSessionInitiationRequest
 import com.dochyphen.app.api.resource.model.UpdateSharingSessionRequest
-import com.dochyphen.app.api.service.*
 import com.dochyphen.app.api.service.sharingsession.SharingSessionDocumentService
 import com.dochyphen.app.api.service.sharingsession.SharingSessionInitiationService
 import com.dochyphen.app.api.service.sharingsession.SharingSessionParticipantService
@@ -96,6 +95,7 @@ class SharingSessionResource @Inject constructor(
     @GET
     fun getSharingSessions(): Response
     {
+        ResourceEndpointDelayHelper.delayEndpoint(2000, 4000)
 
         return try
         {
@@ -143,6 +143,8 @@ class SharingSessionResource @Inject constructor(
     @Path("/{sessionId}")
     fun getSharingSession(@PathParam("sessionId") sessionId: String): Response
     {
+//        ResourceEndpointDelayHelper.delayEndpoint(2000, 4000)
+
         return try
         {
             val sharingSession = sharingSessionRetrievalService.getSharingSession(sessionId)

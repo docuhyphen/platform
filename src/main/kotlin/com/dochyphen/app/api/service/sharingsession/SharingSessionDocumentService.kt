@@ -127,6 +127,7 @@ class SharingSessionDocumentService @Inject constructor(
 
         document.hash = "hash"
         document.type = DocumentType.fromFileExtension(extension!!)
+        document.dateUploaded = Timestamp.from(Instant.now())
         sessionRepo.update(sharingSession)
 
         fileStorageService.uploadDocument(file!!, "${document.id}$extension")
@@ -209,5 +210,28 @@ class SharingSessionDocumentService @Inject constructor(
             "Document uploaded",
             "Document titled '$documentTitle' uploaded by ${appUser.email}"
         )
+    }
+
+    fun getDocumentFilePreviewAsPdf(sessionId: String, documentId: String): File
+    {
+        val sharingSession = getSharingSession(sessionId)
+        val document = getDocument(sharingSession, documentId)
+
+        val fileKey = "${document.id}${DocumentType.toFileExtension(document.type!!)}"
+        val originalFile: File = fileStorageService.downloadDocument(fileKey)
+
+        if (fileKey.endsWith(".pdf"))
+        {
+            return originalFile
+        }
+
+        val pdfFile = convertToPdf(originalFile)
+
+        return pdfFile
+    }
+
+    private fun convertToPdf(file: File): File
+    {
+        return file
     }
 }
