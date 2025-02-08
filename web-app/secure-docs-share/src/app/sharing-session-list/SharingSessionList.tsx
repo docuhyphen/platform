@@ -1,8 +1,29 @@
 import React, {useEffect, useState} from 'react';
 import useToken from "../../context/useToken.tsx";
 import {fetchSignedInUserAppUserSharingSessions} from "../../services/api.ts";
-import {Avatar, Divider, List, ListItem, makeStyles, typographyStyles} from "@fluentui/react-components";
+import {
+    Avatar, Button,
+    Divider,
+    Field,
+    List,
+    ListItem,
+    makeStyles, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger,
+    SearchBox, Tooltip,
+    typographyStyles
+} from "@fluentui/react-components";
 import "./SharingSessionList.css"
+import {
+    ArrowSortDownLinesFilled,
+    ArrowSortDownLinesRegular,
+    ArrowSortUpLinesFilled, ArrowSortUpLinesRegular,
+    bundleIcon,
+    CutFilled,
+    CutRegular,
+    EditFilled,
+    EditRegular,
+    FilterFilled,
+    FilterRegular
+} from "@fluentui/react-icons";
 
 const useStyles = makeStyles({
     caption2: typographyStyles.caption2,
@@ -60,6 +81,10 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
     //     console.log("Selected item: ", data.selectedItems);
     //     // setSelectedItems(data.selectedItems);
     // }, []);
+
+    const FilterIcon = bundleIcon(FilterFilled, FilterRegular);
+    const SortDownIcon = bundleIcon(ArrowSortDownLinesFilled, ArrowSortDownLinesRegular);
+    const SortUpIcon = bundleIcon(ArrowSortUpLinesFilled, ArrowSortUpLinesRegular);
 
     const onFocus = React.useCallback((event) =>
     {
@@ -122,7 +147,29 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                 ))}
             </List>
             <div id={"sharing-sessions-list-header"}>
-
+                <Field id={"filter-search-field"}>
+                    <SearchBox/>
+                </Field>
+                <Menu>
+                    <MenuTrigger>
+                        <Tooltip content="Filter sharing sessions" relationship={"description"}>
+                            <Button icon={<FilterIcon/>} appearance={"subtle"}/>
+                        </Tooltip>
+                    </MenuTrigger>
+                    <MenuPopover>
+                        <MenuList>
+                            <MenuItem icon={<FilterIcon />}>
+                                Cut
+                            </MenuItem>
+                            <MenuItem icon={<FilterIcon />}>
+                                Edit
+                            </MenuItem>
+                        </MenuList>
+                    </MenuPopover>
+                </Menu>
+                <Tooltip content="Sort descending" relationship={"description"}>
+                    <Button icon={<SortDownIcon/>} appearance={"subtle"}/>
+                </Tooltip>
             </div>
         </section>
     );
