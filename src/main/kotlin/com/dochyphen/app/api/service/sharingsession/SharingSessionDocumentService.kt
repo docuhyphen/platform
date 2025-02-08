@@ -182,7 +182,7 @@ class SharingSessionDocumentService @Inject constructor(
 
         auditService.logAction(
             document,
-            DocumentAuditLogAction.UPDATE,
+            DocumentAuditLogAction.UPLOAD,
             appUser
         )
 
