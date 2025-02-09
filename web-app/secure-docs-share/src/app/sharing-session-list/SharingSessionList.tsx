@@ -137,7 +137,6 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                         >
                             {listItemCard(session)}
                         </ListItem>
-                        <Divider/>
                     </>
                 ))}
             </List>

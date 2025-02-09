@@ -78,12 +78,12 @@ class SharingSessionUpdateService @Inject constructor(
         val emailMessage = when (request?.status)
         {
             SharingSessionStatus.ACCEPTED_STARTED -> "Sharing Session ${updatedSession.sessionName} has been accepted and started"
-            SharingSessionStatus.COMPLETED -> "Session ${updatedSession.sessionName} has completed and further modifications will not be possible."
+            SharingSessionStatus.ENDED -> "Session ${updatedSession.sessionName} has completed and further modifications will not be possible."
             SharingSessionStatus.REJECTED -> "Your request has been rejected by the session recipient. Reason: ${request.rejectionReason}"
             else -> null
         }
 
-        if (request?.status == SharingSessionStatus.COMPLETED)
+        if (request?.status == SharingSessionStatus.ENDED)
         {
             emailMessage?.let {
                 emailService.sendEmail(
@@ -92,7 +92,7 @@ class SharingSessionUpdateService @Inject constructor(
             }
         }
 
-        if (request?.status == SharingSessionStatus.COMPLETED ||
+        if (request?.status == SharingSessionStatus.ENDED ||
             request?.status == SharingSessionStatus.REJECTED ||
             request?.status == SharingSessionStatus.ACCEPTED_STARTED
         )

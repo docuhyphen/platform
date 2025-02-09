@@ -36,22 +36,10 @@ import {
 } from "@fluentui/react-icons";
 import {formatDate} from "../helpers.ts";
 
-const Landing: React.FC = () =>
+const useSessionDetails = (selectedSessionId: string | null, token: string) =>
 {
-    const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
     const [sessionDetails, setSessionDetails] = useState<any>(null);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
-    const token = useToken();
     const [fetchingDetails, setFetchingDetails] = useState<boolean>(false);
-
-    useEffect(() =>
-    {
-        const randomDelay = Math.floor(Math.random() * 1000) + 500;
-        setTimeout(() =>
-        {
-            setIsLoading(false);
-        }, randomDelay);
-    }, []);
 
     useEffect(() =>
     {
@@ -66,8 +54,6 @@ const Landing: React.FC = () =>
                 {
                     const details = await fetchSignedInUserAppUserSharingSession(selectedSessionId, token);
                     setSessionDetails(details);
-
-                    console.log(details)
                 }
                 catch (error)
                 {
@@ -80,47 +66,79 @@ const Landing: React.FC = () =>
             };
             fetchDetails();
         }
-    }, [selectedSessionId]);
+    }, [selectedSessionId, token]);
+
+    return {sessionDetails, fetchingDetails};
+};
+
+const Landing: React.FC = () =>
+{
+    const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const token = useToken();
+    const {sessionDetails, fetchingDetails} = useSessionDetails(selectedSessionId, token);
+
+    useEffect(() =>
+    {
+        const randomDelay = Math.floor(Math.random() * 1000) + 500;
+        setTimeout(() =>
+        {
+            setIsLoading(false);
+        }, randomDelay);
+    }, []);
 
     return (
         isLoading ? <PreLanding/> :
-            <section id={"sharing-sessions-container"}>
+            <section id="sharing-sessions-container">
                 <div>
                     <SharingSessionList onSelectionChange={setSelectedSessionId}/>
                 </div>
                 <div id="sharing-session-details-container">
-                    <div id={"sharing-session-head-container"}>
-                        {fetchingDetails &&
+                    <div id="sharing-session-head-container">
+                        {fetchingDetails ? (
                             <Skeleton>
                                 <SkeletonItem/>
                                 <SkeletonItem size={8}/>
                             </Skeleton>
-                        }
-                        {!fetchingDetails && sessionDetails &&
-                            <>
-                                <div>
-                                    <Caption1>Started {formatDate(sessionDetails.createdDate)}</Caption1> <br/>
-                                    <Title3>{sessionDetails.sessionName}</Title3><br/>
-                                    <Body1>{sessionDetails.description}</Body1>
-                                </div>
-                                <div id={"sharing-session-actions"}>
-                                    <Tooltip content="End Session" relationship={"description"}>
-                                        <Button icon={<CheckmarkNoteRegular/>} appearance={"subtle"}/>
-                                    </Tooltip>
-                                    <Tooltip content="Session Comments" relationship={"description"}>
-                                        <Button icon={<CommentNoteRegular/>} appearance={"subtle"}/>
-                                    </Tooltip>
-                                    <Tooltip content="Session Audit" relationship={"description"}>
-                                        <Button icon={<DocumentBulletListClockRegular/>} appearance={"subtle"}/>
-                                    </Tooltip>
-                                    <Tooltip content="Add Session Document"
-                                             relationship={"description"}>
-                                        <Button icon={<DocumentAddRegular/>}
-                                                appearance={"primary"}/>
-                                    </Tooltip>
-                                </div>
-                            </>
-                        }
+                        ) : (
+                            sessionDetails && (
+                                <>
+                                    <div>
+                                        <Caption1>
+                                            Started {formatDate(sessionDetails.createdDate)}</Caption1>
+                                        {
+                                            sessionDetails.endDate &&
+                                            <> | Ended {formatDate(sessionDetails.createdDate)} </>
+                                        }
+                                        <br/>
+                                        <Title3>{sessionDetails.sessionName}</Title3><br/>
+                                        <Body1>{sessionDetails.description}</Body1>
+                                    </div>
+                                    <div id="sharing-session-actions">
+                                        <Tooltip content="Session Comments" relationship="description">
+                                            <Button icon={<CommentNoteRegular/>} appearance="subtle"/>
+                                        </Tooltip>
+                                        <Tooltip content="Session Audit" relationship="description">
+                                            <Button icon={<DocumentBulletListClockRegular/>} appearance="subtle"/>
+                                        </Tooltip>
+                                        <Tooltip content="Add Session Document" relationship="description">
+                                            <Button icon={<DocumentAddRegular/>} appearance="primary"/>
+                                        </Tooltip>
+
+                                        <Menu positioning={{autoSize: true}}>
+                                            <MenuTrigger disableButtonEnhancement>
+                                                <Button icon={<MoreVerticalRegular/>} appearance="subtle"/>
+                                            </MenuTrigger>
+                                            <MenuPopover>
+                                                <MenuList>
+                                                    <MenuItem icon={<CheckmarkNoteRegular/>}>End Session</MenuItem>
+                                                </MenuList>
+                                            </MenuPopover>
+                                        </Menu>
+                                    </div>
+                                </>
+                            )
+                        )}
                     </div>
                     {sessionDetails && (
                         <div>
@@ -128,63 +146,45 @@ const Landing: React.FC = () =>
                                 <Subtitle2>Session Documents</Subtitle2>
                             </p>
                             <div>
-                                {
-                                    sessionDetails.documents?.map((document: any) => (
-                                        <Card key={document.id}>
-                                            <CardHeader
-                                                header={
-                                                    <Body1>
-                                                        <b>{document.title}</b>
-                                                    </Body1>
-                                                }
-                                                description={
-                                                    <>
-                                                        {document.uploadDate &&
-                                                            <Caption1>Uploaded { formatDate(document.uploadDate)}</Caption1>
-                                                    }
-                                                    {!document.uploadDate &&
-                                                        <Button appearance={"transparent"}
-                                                                icon={<DocumentAddRegular/>}>
+                                {sessionDetails.documents?.map((document: any) => (
+                                    <Card key={document.id}>
+                                        <CardHeader
+                                            header={<Body1><b>{document.title}</b></Body1>}
+                                            description={
+                                                <>
+                                                    {document.uploadDate ? (
+                                                        <Caption1>Uploaded {formatDate(document.uploadDate)}</Caption1>
+                                                    ) : (
+                                                        <Button appearance="transparent" icon={<DocumentAddRegular/>}>
                                                             Upload new document
                                                         </Button>
-                                                    }
-                                                    </>
-
-                                                }
-                                                action={
-                                                    <div>
-                                                        <Menu positioning={{autoSize: true}}>
-                                                            <MenuTrigger disableButtonEnhancement>
-                                                                <Button icon={<MoreVerticalRegular/>}
-                                                                        appearance={"subtle"}/>
-                                                            </MenuTrigger>
-                                                            <MenuPopover>
-                                                                <MenuList>
-                                                                    <MenuItem
-                                                                        icon={<ArrowUploadRegular/>}>
-                                                                        Upload
-                                                                    </MenuItem>
-                                                                    <MenuItem icon={
-                                                                        <ArrowDownloadRegular/>}> Download </MenuItem>
-                                                                    <MenuItem icon={<DocumentPrintRegular/>}>
-                                                                        Print
-                                                                    </MenuItem>
-                                                                    <MenuItem icon={<DeleteRegular/>}>
-                                                                        Delete
-                                                                    </MenuItem>
-                                                                    <Divider/>
-                                                                    <MenuItem icon={<InfoRegular/>}>
-                                                                        More info
-                                                                    </MenuItem>
-                                                                </MenuList>
-                                                            </MenuPopover>
-                                                        </Menu>
-                                                    </div>
-                                                }
-                                            />
-                                        </Card>
-                                    ))
-                                }
+                                                    )}
+                                                </>
+                                            }
+                                            action={
+                                                <div>
+                                                    <Menu positioning={{autoSize: true}}>
+                                                        <MenuTrigger disableButtonEnhancement>
+                                                            <Button icon={<MoreVerticalRegular/>} appearance="subtle"/>
+                                                        </MenuTrigger>
+                                                        <MenuPopover>
+                                                            <MenuList>
+                                                                <MenuItem icon={<ArrowUploadRegular/>}>Upload</MenuItem>
+                                                                <MenuItem
+                                                                    icon={<ArrowDownloadRegular/>}>Download</MenuItem>
+                                                                <MenuItem
+                                                                    icon={<DocumentPrintRegular/>}>Print</MenuItem>
+                                                                <MenuItem icon={<DeleteRegular/>}>Delete</MenuItem>
+                                                                <Divider/>
+                                                                <MenuItem icon={<InfoRegular/>}>More info</MenuItem>
+                                                            </MenuList>
+                                                        </MenuPopover>
+                                                    </Menu>
+                                                </div>
+                                            }
+                                        />
+                                    </Card>
+                                ))}
                             </div>
                         </div>
                     )}

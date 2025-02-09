@@ -12,7 +12,7 @@ enum class SharingSessionStatus
 {
     INITIATED,
     ACCEPTED_STARTED,
-    COMPLETED,
+    ENDED,
     REJECTED,
 }
 
