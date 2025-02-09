@@ -80,7 +80,7 @@ const Landing: React.FC = () =>
 
     useEffect(() =>
     {
-        const randomDelay = Math.floor(Math.random() * 10000) + 5000;
+        const randomDelay = Math.floor(Math.random() * 5000) + 1000;
         setTimeout(() =>
         {
             setIsLoading(false);

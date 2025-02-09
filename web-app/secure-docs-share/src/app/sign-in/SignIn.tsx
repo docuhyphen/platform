@@ -162,7 +162,10 @@ const SignIn: React.FC = () =>
     };
 
     const renderInitiateSignInButton = () => (
-        <Button onClick={onInitiateSignIn} appearance="primary" className={"button-w-loading"}>
+        <Button onClick={onInitiateSignIn}
+                appearance="primary"
+                className={"button-w-loading"}
+                shape={"circular"}>
             {signInInitiating &&
                 <>
                     <Spinner size={"extra-small"}/>
@@ -174,7 +177,10 @@ const SignIn: React.FC = () =>
     );
 
     const renderCompleteSignInButton = () => (
-        <Button onClick={onCompleteSignIn} appearance="primary" className={"button-w-loading"}>
+        <Button onClick={onCompleteSignIn}
+                appearance="primary"
+                className={"button-w-loading"}
+                shape={"circular"}>
             {signInCompleting &&
                 <>
                     <Spinner size={"extra-small"}/>
@@ -189,7 +195,10 @@ const SignIn: React.FC = () =>
         <>
             <span>{signInInitiationSuccessfulMsg}</span>
 
-            <Field label={"OTP"} validationState={"none"} validationMessage={""}>
+            <Field label={"OTP"}
+                   validationState={"none"}
+                   validationMessage={""}
+                   hint="Please check your email for the OTP.">
                 <Input value={otp} autoComplete="false" onChange={onOtpChange}/>
             </Field>
             <span>
@@ -227,7 +236,9 @@ const SignIn: React.FC = () =>
         <RedirectIfAuthenticated element={
             <section id="sign-in-section">
                 <Card id="sign-in-card">
-                    <Divider appearance={"brand"}> <Subtitle1> Sign in </Subtitle1></Divider>
+                    <Divider appearance={"brand"}>
+                        <Subtitle1> Sign in </Subtitle1>
+                    </Divider>
 
                     {renderErrorMessage()}
 
@@ -247,16 +258,21 @@ const SignIn: React.FC = () =>
                             {signInInitiationSuccessful && renderCompleteSignInButton()}
                         </>
                     }>
-                        <Button onClick={() => navigate('/forgot-password')} appearance="subtle">
-                            Forgot Password
-                        </Button>
                     </CardFooter>
 
                     <Divider appearance={"brand"}> OR </Divider>
 
-                    <Button onClick={() => navigate("/sign-up")} appearance={"subtle"}>
+                    <div id={"sign-in-options"}>
+
+                        <Button onClick={() => navigate('/forgot-password')}
+                                appearance="transparent">
+                            Forgot Password
+                        </Button>
+                        <Button onClick={() => navigate("/sign-up")}
+                                appearance={"transparent"}>
                         Sign Up
                     </Button>
+                    </div>
                 </Card>
             </section>
         }/>

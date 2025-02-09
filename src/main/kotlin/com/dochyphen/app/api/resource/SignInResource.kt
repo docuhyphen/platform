@@ -68,7 +68,7 @@ class SignInResource @Inject constructor(
         return try
         {
 
-            ResourceEndpointDelayHelper.delayEndpoint(3000, 6000)
+            ResourceEndpointDelayHelper.delayEndpoint(1000, 3000)
 
             val signInToken = with(payload) {
                 signInService.completeSignIn(email, otp)

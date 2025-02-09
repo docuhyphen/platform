@@ -10,3 +10,9 @@
 {
     width: 380px;
 }
+
+#sign-in-options
+{
+    display: flex;
+    justify-content: space-between;
+}

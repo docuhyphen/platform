@@ -1,17 +1,24 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {
     Button,
+    Dialog,
+    DialogBody,
+    DialogContent,
+    DialogSurface,
+    DialogTitle,
     Menu,
     MenuButton,
     MenuItem,
     MenuList,
     MenuPopover,
     MenuTrigger,
-    Persona
+    Persona,
+    Spinner
 } from "@fluentui/react-components";
 import {useAuth} from '../../context/AuthContext';
 import SignOutButton from '../components/SignOutButton';
+import SharingSessionInitiation from "../sharing-session-initiation/SharingSessionInitiation.tsx";
 import {
     AlertRegular,
     ArrowExitRegular,
@@ -19,11 +26,11 @@ import {
     PersonSettingsRegular,
     SettingsRegular
 } from "@fluentui/react-icons";
-import SharingSessionInitiation from "../sharing-session-initiation/SharingSessionInitiation.tsx";
 
 const MainMenu: React.FC = () => {
     const { appUser, appUserPersonCompany } = useAuth();
     const navigate = useNavigate();
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     function onRequestDocuments()
     {
@@ -34,6 +41,11 @@ const MainMenu: React.FC = () => {
     {
         navigate('/sharing-session-initiation?request=false');
     }
+
+    const onSignOut = () =>
+    {
+        setIsDialogOpen(true);
+    };
 
     return (
         <section id="main-app-header">
@@ -83,12 +95,23 @@ const MainMenu: React.FC = () => {
                                 Settings
                             </MenuItem>
                             <MenuItem icon={<ArrowExitRegular/>}>
-                                <SignOutButton/>
+                                <SignOutButton onSignOut={onSignOut}/>
                             </MenuItem>
                         </MenuList>
                     </MenuPopover>
                 </Menu>
             </section>
+
+            <Dialog open={isDialogOpen}>
+                <DialogSurface>
+                    <DialogBody>
+                        <DialogTitle></DialogTitle>
+                        <DialogContent>
+                            <Spinner label="Signing out..."/>
+                        </DialogContent>
+                    </DialogBody>
+                </DialogSurface>
+            </Dialog>
         </section>
     );
 };

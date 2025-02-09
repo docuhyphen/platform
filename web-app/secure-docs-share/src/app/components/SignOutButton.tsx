@@ -2,14 +2,17 @@ import React from 'react';
 import {useAuth} from '../../context/AuthContext';
 import {signOut} from '../../services/api';
 import {useNavigate} from 'react-router-dom';
-import {Dialog, DialogBody, DialogContent, DialogSurface, DialogTitle, Spinner} from "@fluentui/react-components";
 
-const SignOutButton: React.FC = () =>
+interface SignOutButtonProps
+{
+    onSignOut: () => void;
+}
+
+const SignOutButton: React.FC<SignOutButtonProps> = ({onSignOut}) =>
 {
     const {token, setToken} = useAuth();
     const navigate = useNavigate();
     const [signingOut, setSigningOut] = React.useState(false);
-    const [isDialogOpen, setIsDialogOpen] = React.useState(false);
 
     const handleSignOut = async () =>
     {
@@ -21,7 +24,7 @@ const SignOutButton: React.FC = () =>
         if (token)
         {
             setSigningOut(true);
-            setIsDialogOpen(true);
+            onSignOut();
             try
             {
                 await signOut(token);
@@ -35,27 +38,14 @@ const SignOutButton: React.FC = () =>
             finally
             {
                 setSigningOut(false);
-                setIsDialogOpen(false);
             }
         }
     };
 
     return (
-        <>
-            <span onClick={handleSignOut}>
-                Sign Out
-            </span>
-            <Dialog open={isDialogOpen}>
-                <DialogSurface>
-                    <DialogBody>
-                        <DialogTitle>Signing Out</DialogTitle>
-                        <DialogContent>
-                            <Spinner label="Signing out..."/>
-                        </DialogContent>
-                    </DialogBody>
-                </DialogSurface>
-            </Dialog>
-        </>
+        <span onClick={handleSignOut}>
+            Sign Out
+        </span>
     );
 };
 

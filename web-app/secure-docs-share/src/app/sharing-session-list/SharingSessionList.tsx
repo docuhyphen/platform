@@ -4,7 +4,6 @@ import {fetchSignedInUserAppUserSharingSessions} from "../../services/api.ts";
 import {
     Avatar,
     Button,
-    Divider,
     Field,
     List,
     ListItem,
@@ -15,6 +14,7 @@ import {
     MenuPopover,
     MenuTrigger,
     SearchBox,
+    Spinner,
     Tooltip,
     typographyStyles
 } from "@fluentui/react-components";
@@ -167,7 +167,15 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
             </div>
             <div id={"sharing-sessions-list-footer"}>
                 <span>
-                    Showing <strong> {sharingSessions.length} </strong> Sharing Sessions
+                    {
+                        loadingSharingSessions &&
+                        <Spinner size={"extra-small"}/>
+                    }
+                    {!loadingSharingSessions &&
+                        <>
+                            Showing <strong> {sharingSessions.length} </strong> Sharing Sessions
+                        </>
+                    }
                 </span>
                 <Button size={"small"} appearance={"primary"} disabled>View All</Button>
             </div>
