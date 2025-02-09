@@ -2,7 +2,7 @@ import {
     CompanyRegistrationRequest,
     PersonRegistrationRequest,
     SignInCompletionRequest,
-    SignInInitiationRequest,
+    SignInInitiationRequest, SignInOtpRegenerationRequest,
     SignUpCompletionRequest,
     SignUpInitiationRequest,
     SignUpOtpRegenerationRequest
@@ -41,6 +41,19 @@ export const regenerateSignUpOtp = async (request: SignUpOtpRegenerationRequest)
     try
     {
         const response = await apiClient.post(`/auth/sign-up/otp-regeneration`, request);
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+export const regenerateSignInOtp = async (request: SignInOtpRegenerationRequest) =>
+{
+    try
+    {
+        const response = await apiClient.post(`/auth/sign-in/otp-regeneration`, request);
         return response.data;
     }
     catch (error: any)

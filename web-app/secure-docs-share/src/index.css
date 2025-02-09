@@ -97,3 +97,9 @@ html, body, #root
     align-items: center;
     height: 100%;
 }
+
+.button-w-loading
+{
+    display: flex;
+    gap: 6px;
+}

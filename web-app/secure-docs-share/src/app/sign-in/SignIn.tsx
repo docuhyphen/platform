@@ -1,6 +1,12 @@
 import React, {useState} from 'react';
 import './SignIn.css';
-import {completeSignIn, fetchAppUser, fetchAppUserPersonCompany, initiateSignIn} from '../../services/api';
+import {
+    completeSignIn,
+    fetchAppUser,
+    fetchAppUserPersonCompany,
+    initiateSignIn,
+    regenerateSignInOtp
+} from '../../services/api';
 import {ResponseError} from '../../services/models/models';
 import {useAuth} from '../../context/AuthContext';
 import {useNavigate} from 'react-router-dom';
@@ -10,14 +16,15 @@ import {
     Button,
     Card,
     CardFooter,
+    Divider,
     Field,
     Input,
-    Link,
     MessageBar,
     MessageBarActions,
     MessageBarBody,
     MessageBarTitle,
-    Spinner
+    Spinner,
+    Subtitle1,
 } from "@fluentui/react-components";
 import {AppUser} from "../models/models.tsx";
 import {setApiClientAuthToken} from '../../services/apiClient';
@@ -28,8 +35,9 @@ const SignIn: React.FC = () =>
     const [email, setEmail] = useState('');
     const [otp, setOtp] = useState('');
     const [password, setPassword] = useState('');
-    const [signInInitiating, setsignInInitiating] = useState(false);
+    const [signInInitiating, setSignInInitiating] = useState(false);
     const [signInCompleting, setSignInCompleting] = useState(false);
+    const [resendingOtp, setResendingOtp] = useState(false);
     const [signInInitiationSuccessfulMsg, setSignInInitiationSuccessfulMsg] = useState<string>('');
     const [signInInitiationSuccessful, setSignInInitiationSuccessful] = useState<boolean>(false);
     const [responseErrorMessage, setResponseErrorMessage] = useState<string | undefined>('');
@@ -55,7 +63,7 @@ const SignIn: React.FC = () =>
             return;
         }
 
-        setsignInInitiating(true);
+        setSignInInitiating(true);
         setResponseErrorMessage(undefined);
 
         try
@@ -73,7 +81,7 @@ const SignIn: React.FC = () =>
         }
         finally
         {
-            setsignInInitiating(false);
+            setSignInInitiating(false);
         }
     };
 
@@ -133,15 +141,35 @@ const SignIn: React.FC = () =>
         }
         finally
         {
-            setSignInCompleting()
+            setSignInCompleting(false)
         }
     };
+
+    const onResendOtp = async () =>
+    {
+        setResponseErrorMessage(undefined);
+        setResendingOtp(true)
+
+        try
+        {
+            await regenerateSignInOtp({email});
+        }
+        catch (error)
+        {
+            setResponseErrorMessage((error as ResponseError)?.errorMessage);
+        }
+        finally
+        {
+            setResendingOtp(false)
+        }
+    }
 
     return (
         <RedirectIfAuthenticated element={
             <section id="sign-in-section">
                 <Card id="sign-in-card">
-                    <h1>Sign In | <Link href={"/sign-up"}>Sign Up</Link></h1>
+
+                    <Divider appearance={"brand"}> <Subtitle1> Sign in </Subtitle1></Divider>
 
                     {responseErrorMessage &&
                         <MessageBar intent={"error"}>
@@ -194,7 +222,17 @@ const SignIn: React.FC = () =>
                                     autoComplete="false"
                                     onChange={onOtpChange}/>
                             </Field>
-                            <Button appearance="transparent"> Resend OTP</Button>
+                            <span>
+                                <Button appearance="outline"
+                                        size={"small"}
+                                        onClick={onResendOtp}
+                                        className={"button-w-loading"}>
+                                    <>
+                                        {resendingOtp && <Spinner size={"tiny"}/>}
+                                        Resend OTP
+                                    </>
+                                </Button>
+                            </span>
                         </>
                     )}
 
@@ -202,7 +240,8 @@ const SignIn: React.FC = () =>
                         <>
                             {!signInInitiationSuccessful &&
                                 <Button onClick={onInitiateSignIn}
-                                        appearance="primary">
+                                        appearance="primary"
+                                        className={"button-w-loading"}>
                                     {signInInitiating &&
                                         <>
                                             <Spinner size={"extra-small"}/>
@@ -216,7 +255,8 @@ const SignIn: React.FC = () =>
                             {signInInitiationSuccessful && (
                                 <>
                                     <Button onClick={onCompleteSignIn}
-                                            appearance="primary">
+                                            appearance="primary"
+                                            className={"button-w-loading"}>
                                         {signInCompleting &&
                                             <>
                                                 <Spinner size={"extra-small"}/>
@@ -234,6 +274,13 @@ const SignIn: React.FC = () =>
                             Forgot Password
                         </Button>
                     </CardFooter>
+
+                    <Divider appearance={"brand"}> OR </Divider>
+
+                    <Button onClick={() => navigate("/sign-up")}
+                            appearance={"subtle"}>
+                        Sign Up
+                    </Button>
                 </Card>
             </section>
         }/>

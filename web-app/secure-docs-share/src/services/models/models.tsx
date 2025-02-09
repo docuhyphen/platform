@@ -21,6 +21,11 @@ export interface SignUpOtpRegenerationRequest
     email: string
 }
 
+export interface SignInOtpRegenerationRequest
+{
+    email: string
+}
+
 export interface SignInInitiationRequest
 {
     email: string,
