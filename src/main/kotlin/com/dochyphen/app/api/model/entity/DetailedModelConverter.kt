@@ -14,6 +14,7 @@ class DetailedModelConverter
                     DocumentDetailedDto(
                         id,
                         createdDate,
+                        uploadDate,
                         title,
                         type.toString(),
                         restrictedType.toString(),

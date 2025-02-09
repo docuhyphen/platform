@@ -139,10 +139,10 @@ const Landing: React.FC = () =>
                                                 }
                                                 description={
                                                     <>
-                                                        {document.dateUploaded &&
-                                                            <Caption1>Uploaded {document.dateUploaded}</Caption1>
+                                                        {document.uploadDate &&
+                                                            <Caption1>Uploaded { formatDate(document.uploadDate)}</Caption1>
                                                     }
-                                                    {!document.dateUploaded &&
+                                                    {!document.uploadDate &&
                                                         <Button appearance={"transparent"}
                                                                 icon={<DocumentAddRegular/>}>
                                                             Upload new document
@@ -158,19 +158,24 @@ const Landing: React.FC = () =>
                                                                 <Button icon={<MoreVerticalRegular/>}
                                                                         appearance={"subtle"}/>
                                                             </MenuTrigger>
-
                                                             <MenuPopover>
                                                                 <MenuList>
                                                                     <MenuItem
-                                                                        icon={<ArrowUploadRegular/>}> Upload </MenuItem>
-                                                                    <MenuItem
-                                                                        icon={<DeleteRegular/>}> Delete </MenuItem>
+                                                                        icon={<ArrowUploadRegular/>}>
+                                                                        Upload
+                                                                    </MenuItem>
                                                                     <MenuItem icon={
                                                                         <ArrowDownloadRegular/>}> Download </MenuItem>
-                                                                    <MenuItem icon={
-                                                                        <DocumentPrintRegular/>}> Print </MenuItem>
+                                                                    <MenuItem icon={<DocumentPrintRegular/>}>
+                                                                        Print
+                                                                    </MenuItem>
+                                                                    <MenuItem icon={<DeleteRegular/>}>
+                                                                        Delete
+                                                                    </MenuItem>
                                                                     <Divider/>
-                                                                    <MenuItem icon={<InfoRegular/>}> More info </MenuItem>
+                                                                    <MenuItem icon={<InfoRegular/>}>
+                                                                        More info
+                                                                    </MenuItem>
                                                                 </MenuList>
                                                             </MenuPopover>
                                                         </Menu>

@@ -127,7 +127,7 @@ class SharingSessionDocumentService @Inject constructor(
 
         document.hash = "hash"
         document.type = DocumentType.fromFileExtension(extension!!)
-        document.dateUploaded = Timestamp.from(Instant.now())
+        document.uploadDate = Timestamp.from(Instant.now())
         sessionRepo.update(sharingSession)
 
         fileStorageService.uploadDocument(file!!, "${document.id}$extension")

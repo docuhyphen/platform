@@ -89,7 +89,7 @@ class Document
 
     @Column(name = "upload_date", nullable = false)
     @Serializable(with = TimestampSerializer::class)
-    var dateUploaded: Timestamp = Timestamp.from(Instant.now())
+    var uploadDate: Timestamp = Timestamp.from(Instant.now())
 
     @Column(name = "title", nullable = false)
     var title: String = ""
