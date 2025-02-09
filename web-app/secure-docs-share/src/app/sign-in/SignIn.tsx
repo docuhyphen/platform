@@ -206,7 +206,7 @@ const SignIn: React.FC = () =>
                                     {signInInitiating &&
                                         <>
                                             <Spinner size={"extra-small"}/>
-                                            Initiating Sign In
+                                            Initiating sign in
                                         </>
                                     }
                                     {!signInInitiating && "Sign In"}
@@ -220,7 +220,7 @@ const SignIn: React.FC = () =>
                                         {signInCompleting &&
                                             <>
                                                 <Spinner size={"extra-small"}/>
-                                                Completing Sign In
+                                                Completing sign in
                                             </>
                                         }
                                         {!signInCompleting && "Complete Sign In"}

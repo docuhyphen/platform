@@ -23,7 +23,8 @@ class SharingSessionDocumentService @Inject constructor(
     private val auditService: SharingSessionDocumentAuditService,
     private val authTokenContext: AuthTokenContext,
     private val emailService: EmailService,
-    private val fileStorageService: FileStorageService
+    private val fileStorageService: FileStorageService,
+    private val appNotificationService: AppNotificationService
 )
 {
     companion object
@@ -206,6 +207,12 @@ class SharingSessionDocumentService @Inject constructor(
         }
 
         emailService.sendEmail(
+            recipientEmail,
+            "Document uploaded",
+            "Document titled '$documentTitle' uploaded by ${appUser.email}"
+        )
+
+        appNotificationService.sendNotification(
             recipientEmail,
             "Document uploaded",
             "Document titled '$documentTitle' uploaded by ${appUser.email}"

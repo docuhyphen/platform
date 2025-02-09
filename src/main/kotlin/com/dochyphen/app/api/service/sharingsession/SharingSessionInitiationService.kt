@@ -28,7 +28,8 @@ class SharingSessionInitiationService @Inject constructor(
     private val appUserService: AppUserService,
     private val emailService: EmailService,
     private val authTokenContext: AuthTokenContext,
-    private val authenticationService: AuthenticationService
+    private val authenticationService: AuthenticationService,
+    private val appNotificationService: AppNotificationService
 )
 {
     @PersistenceContext
@@ -161,6 +162,16 @@ class SharingSessionInitiationService @Inject constructor(
         )
 
         logger.info("Sharing session initiated by ${initiator?.email} for ${recipient.email}")
+
+        appNotificationService.sendNotification(
+            recipient.id.toString(),
+            "Document Request from ${initiator.person?.firstName} ${initiator.person?.lastName}",
+            "You have been requested to upload the following documents: ${
+                sessionDocuments.joinToString(
+                    ", "
+                )
+            }."
+        )
 
         return savedSharingSession
     }
