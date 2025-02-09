@@ -5,7 +5,6 @@
     <groupId>com.dochyphen.app</groupId>
     <artifactId>dochyphene</artifactId>
     <version>1.0-SNAPSHOT</version>
-
     <properties>
         <compiler-plugin.version>3.13.0</compiler-plugin.version>
         <kotlin.version>2.0.21</kotlin.version>
@@ -40,7 +39,6 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-
     <dependencies>
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -179,7 +177,6 @@
         </dependency>
 
     </dependencies>
-
     <build>
         <sourceDirectory>src/main/kotlin</sourceDirectory>
         <testSourceDirectory>src/test/kotlin</testSourceDirectory>
@@ -254,6 +251,21 @@
                             <goal>test-compile</goal>
                         </goals>
                     </execution>
+                    <execution>
+                        <id>generate-ts</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <sourceDirs>
+                                <sourceDir>${project.basedir}/src/main/kotlin/com/dochyphen/app/api/resource/model</sourceDir>
+                            </sourceDirs>
+                            <outputDir>${project.basedir}/web-app/secure-docs-share/src/app/models</outputDir>
+                            <pluginOptions>
+                                <option>plugin:org.jetbrains.kotlinx.serialization:json</option>
+                            </pluginOptions>
+                        </configuration>
+                    </execution>
                 </executions>
                 <dependencies>
                     <dependency>
@@ -282,9 +294,25 @@
                     </pluginOptions>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <id>copy-ts-models</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>${project.basedir}/copy-ts-models.sh</executable>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
-
     <profiles>
         <profile>
             <id>native</id>

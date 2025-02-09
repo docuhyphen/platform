@@ -2,8 +2,6 @@ package com.dochyphen.app.api.resource.model
 
 import com.dochyphen.app.api.model.entity.*
 import kotlinx.serialization.Serializable
-import org.jboss.resteasy.reactive.RestForm
-import java.io.File
 
 @Serializable
 data class ResponseError(var errorMessage: String? = "")
