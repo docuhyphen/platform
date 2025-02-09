@@ -72,7 +72,7 @@ const SharingSessionInitiation: React.FC = () =>
     const request = queryParams.get('request');
 
     const label: string
-        = request === 'true' ? 'Search email to request documents from' : 'Search email to send documents to';
+        = request === 'true' ? 'Enter or search email to request documents from' : 'Enter or search email to send documents to';
 
     const toasterId = useId("toaster");
     const {dispatchToast} = useToastController(toasterId);
@@ -356,7 +356,7 @@ const SharingSessionInitiation: React.FC = () =>
                         <Accordion defaultOpenItems="1" collapsible>
                             <AccordionItem value="1">
                                 <AccordionHeader>Details</AccordionHeader>
-                                <AccordionPanel>
+                                <AccordionPanel id={"sharing-details"}>
                                     <Field label={label}>
                                         <SearchBox/>
                                     </Field>

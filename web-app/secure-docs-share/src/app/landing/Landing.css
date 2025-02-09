@@ -34,3 +34,16 @@
     display: flex;
     gap: 8px;
 }
+
+#documents-card-list
+{
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+#documents-card-list .fui-Card
+{
+    min-width: 300px;
+    max-width: 300px;
+}

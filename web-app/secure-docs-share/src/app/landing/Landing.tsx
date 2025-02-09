@@ -80,7 +80,7 @@ const Landing: React.FC = () =>
 
     useEffect(() =>
     {
-        const randomDelay = Math.floor(Math.random() * 1000) + 500;
+        const randomDelay = Math.floor(Math.random() * 10000) + 5000;
         setTimeout(() =>
         {
             setIsLoading(false);
@@ -145,7 +145,7 @@ const Landing: React.FC = () =>
                             <p>
                                 <Subtitle2>Session Documents</Subtitle2>
                             </p>
-                            <div>
+                            <div id={"documents-card-list"}>
                                 {sessionDetails.documents?.map((document: any) => (
                                     <Card key={document.id}>
                                         <CardHeader

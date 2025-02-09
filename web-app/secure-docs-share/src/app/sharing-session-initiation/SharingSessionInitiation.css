@@ -1,0 +1,11 @@
+#sharing-details
+{
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+#sharing-details input
+{
+    flex: 1;
+}

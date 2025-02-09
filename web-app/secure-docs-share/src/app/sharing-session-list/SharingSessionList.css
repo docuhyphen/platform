@@ -46,6 +46,20 @@
     border-left: 3px solid #4b6496;
 }
 
+#sharing-sessions-list-footer
+{
+    position: absolute;
+    bottom: 0;
+    background: white;
+    padding: 8px;
+    font-size: 12px;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: space-between;
+    box-shadow: -1px -1px 0 1px rgba(0, 0, 0, .1);
+}
+
 #sharing-sessions-list-body
 {
     display: flex;
@@ -55,11 +69,12 @@
     height: 100%;
     padding-top: 56px;
     box-sizing: border-box;
+    padding-bottom: 36px;
 }
 
 #sharing-sessions-list-body {
-    scrollbar-width: thin; /* For Firefox */
-    scrollbar-color: #888 #f1f1f1; /* For Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
 }
 
 /* For WebKit browsers (Chrome, Safari) */

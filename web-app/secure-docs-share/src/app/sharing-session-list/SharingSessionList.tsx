@@ -152,10 +152,10 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                     </MenuTrigger>
                     <MenuPopover>
                         <MenuList>
-                            <MenuItem icon={<FilterIcon />}>
+                            <MenuItem icon={<FilterIcon/>}>
                                 Cut
                             </MenuItem>
-                            <MenuItem icon={<FilterIcon />}>
+                            <MenuItem icon={<FilterIcon/>}>
                                 Edit
                             </MenuItem>
                         </MenuList>
@@ -165,8 +165,14 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                     <Button icon={<SortDownIcon/>} appearance={"subtle"}/>
                 </Tooltip>
             </div>
+            <div id={"sharing-sessions-list-footer"}>
+                <span>
+                    Showing <strong> {sharingSessions.length} </strong> Sharing Sessions
+                </span>
+                <Button size={"small"} appearance={"primary"}>View All</Button>
+            </div>
         </section>
-    );
+);
 }
 
 export default SharingSessionList;
