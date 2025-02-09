@@ -1,4 +1,4 @@
-package com.dochyphen.app.api.service.sharingsession
+package com.dochyphen.app.api.service.communication
 
 class AppNotificationService
 {
