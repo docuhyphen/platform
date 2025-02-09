@@ -169,7 +169,7 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                 <span>
                     Showing <strong> {sharingSessions.length} </strong> Sharing Sessions
                 </span>
-                <Button size={"small"} appearance={"primary"}>View All</Button>
+                <Button size={"small"} appearance={"primary"} disabled>View All</Button>
             </div>
         </section>
 );
