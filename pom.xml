@@ -17,17 +17,6 @@
         <skipITs>true</skipITs>
         <surefire-plugin.version>3.5.0</surefire-plugin.version>
     </properties>
-    <repositories>
-        <repository>
-            <id>xpand-it-releases</id>
-            <url>https://maven.xpand-it.com/artifactory/releases/</url>
-        </repository>
-
-        <repository>
-            <id>central</id>
-            <url>https://repo.maven.apache.org/maven2</url>
-        </repository>
-    </repositories>
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -251,21 +240,6 @@
                             <goal>test-compile</goal>
                         </goals>
                     </execution>
-                    <execution>
-                        <id>generate-ts</id>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                        <configuration>
-                            <sourceDirs>
-                                <sourceDir>${project.basedir}/src/main/kotlin/com/dochyphen/app/api/resource/model</sourceDir>
-                            </sourceDirs>
-                            <outputDir>${project.basedir}/web-app/secure-docs-share/src/app/models</outputDir>
-                            <pluginOptions>
-                                <option>plugin:org.jetbrains.kotlinx.serialization:json</option>
-                            </pluginOptions>
-                        </configuration>
-                    </execution>
                 </executions>
                 <dependencies>
                     <dependency>
@@ -293,23 +267,6 @@
                         <option>all-open:annotation=io.quarkus.test.junit.QuarkusTest</option>
                     </pluginOptions>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.0.0</version>
-                <executions>
-                    <execution>
-                        <id>copy-ts-models</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>${project.basedir}/copy-ts-models.sh</executable>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>
