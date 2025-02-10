@@ -29,7 +29,7 @@ const CompanyRegistrationPending: React.FC = () =>
                 once your registration is approved.
             </p>
             <p>
-                <Button onClick={() => navigate("/landing")}>Home </Button>
+                <Button onClick={() => navigate("/sharing-sessions")}>Home </Button>
             </p>
         </div>
     );

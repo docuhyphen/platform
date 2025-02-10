@@ -1,13 +1,13 @@
 import {
     CompanyRegistrationRequest,
-    PersonRegistrationRequest,
+    PersonRegistrationRequest, ResponseError,
     SignInCompletionRequest,
     SignInInitiationRequest, SignInOtpRegenerationRequest,
     SignUpCompletionRequest,
     SignUpInitiationRequest,
     SignUpOtpRegenerationRequest
 } from "./models/models.tsx";
-import {SharingSessionInitiationRequest} from "../app/models/models.tsx";
+import {SharingSessionBasicDto, SharingSessionInitiationRequest} from "../app/models/models.tsx";
 
 import apiClient from './apiClient';
 
@@ -192,7 +192,7 @@ export const initiateSharingSession = async (request: SharingSessionInitiationRe
     }
 };
 
-export const fetchSignedInUserAppUserSharingSessions = async (token: string | null) =>
+export const fetchSignedInUserAppUserSharingSessions = async (token: string | null):Promise<SharingSessionBasicDto[] | ResponseError> =>
 {
     try
     {

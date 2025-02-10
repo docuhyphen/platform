@@ -30,6 +30,10 @@ class SharingSession
     @Serializable(with = TimestampSerializer::class)
     var createdDate: Timestamp = Timestamp.from(Instant.now())
 
+    @Column(name = "end_date", nullable = false)
+    @Serializable(with = TimestampSerializer::class)
+    var endDate: Timestamp? = Timestamp.from(Instant.now())
+
     @Column(name = "last_activity", nullable = false)
     @Serializable(with = TimestampSerializer::class)
     var lastActivity: Timestamp = Timestamp.from(Instant.now())

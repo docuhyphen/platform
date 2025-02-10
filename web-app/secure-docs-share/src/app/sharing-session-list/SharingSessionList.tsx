@@ -29,6 +29,7 @@ import {
     FilterRegular
 } from "@fluentui/react-icons";
 import {formatDate} from "../helpers.ts";
+import {SharingSessionBasicDto} from "../models/models.tsx";
 
 const useStyles = makeStyles({
     caption2: typographyStyles.caption2,
@@ -45,7 +46,7 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
 {
     const styles = useStyles();
     const token = useToken()
-    const [sharingSessions, setSharingSessions] = useState([]);
+    const [sharingSessions, setSharingSessions] = useState<SharingSessionBasicDto[]>([]);
     const [loadingSharingSessions, setLoadingSharingSessions] = useState(true);
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
@@ -53,13 +54,17 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
     {
         try
         {
-            const sharingSessions = await fetchSignedInUserAppUserSharingSessions(token);
+            const response = await fetchSignedInUserAppUserSharingSessions(token);
 
-            if(sharingSessions && sharingSessions.length)
+            if (Array.isArray(response) && response.length)
             {
-                setSharingSessions(sharingSessions);
-                setSelectedItems([sharingSessions[0].id]);
-                onSelectionChange(sharingSessions[0].id);
+                setSharingSessions(response);
+                setSelectedItems([response[0].id]);
+                onSelectionChange(response[0].id);
+            }
+            else
+            {
+                console.error("Error fetching sharing sessions:", response);
             }
         }
         catch (error)

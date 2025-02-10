@@ -1,67 +1,4 @@
-export enum AppUserRole
-{
-    USER = 'USER',
-    ADMIN = 'ADMIN'
-}
-
-export enum MultifactorAuthenticationType
-{
-    SMS = 'SMS',
-    EMAIL = 'EMAIL',
-    PASSKEY = 'PASSKEY',
-    PASSWORD_RESET = 'PASSWORD_RESET'
-}
-
-export enum MultifactorAuthenticationStatus
-{
-    PENDING = 'PENDING',
-    COMPLETED = 'COMPLETED'
-}
-
-export enum PersonIDType
-{
-    PASSPORT = 'PASSPORT',
-    NATIONAL_ID = 'NATIONAL_ID',
-    DRIVER_LICENSE = 'DRIVER_LICENSE'
-}
-
-export enum SharingSessionStatus
-{
-    INITIATED = "INITIATED",
-    ACCEPTED_STARTED = "ACCEPTED_STARTED",
-    COMPLETED = "COMPLETED",
-    REJECTED = "REJECTED",
-}
-
-export enum DocumentEncryptionMode
-{
-    INTERNAL = "INTERNAL",
-    END_TO_END = "END_TO_END",
-}
-
-export enum DocumentType
-{
-    WORD = 'WORD',
-    PDF = 'PDF',
-    DOCX = 'DOCX',
-    DOC = 'DOC',
-    XLSX = 'XLSX',
-    PPTX = 'PPTX'
-}
-
-export enum ImageType
-{
-    PNG = 'PNG',
-    JPG = 'JPG'
-}
-
-export enum RequiredDocumentType
-{
-    PDF = "PDF",
-    WORD = "WORD",
-    IMAGE = "IMAGE",
-}
-
+// src/app/models/models.ts
 export enum SharingSessionParticipantRole
 {
     VIEWER = "VIEWER",
@@ -71,49 +8,6 @@ export enum SharingSessionParticipantRole
     OWNER = "OWNER",
     UPLOADER = "UPLOADER",
     DOWNLOADER = "DOWNLOADER"
-}
-
-export interface AppUser
-{
-    id: string;
-    isActive: boolean;
-    createdDate: string; // ISO format for Timestamp
-    email: string;
-    password: string;
-    passwordSalt: string;
-    emailVerificationComplete: boolean;
-    signInAttempts: number;
-    mfaType: MultifactorAuthenticationType;
-    person?: Person;
-    role: AppUserRole;
-}
-
-export interface Person
-{
-    id: string;
-    createdDate: string; // ISO format for Timestamp
-    firstName?: string;
-    lastName?: string;
-    identificationNumber?: string;
-    personIDType?: PersonIDType;
-    contactDetails?: ContactDetails;
-}
-
-export interface ContactDetails
-{
-    id: string;
-    createdDate: string; // ISO format for Timestamp
-    phoneNumber: string;
-    email: string;
-}
-
-export interface Company
-{
-    registrationComplete: boolean;
-    id: string;
-    name: string;
-    address?: string;
-    // Add more fields as needed
 }
 
 export interface ResponseError
@@ -202,6 +96,83 @@ export interface PersonRegistrationRequest
     idType?: PersonIDType;
 }
 
+export enum PersonIDType
+{
+    ID_NUMBER = "ID_NUMBER",
+    PASSPORT_NUMBER = "PASSPORT_NUMBER",
+    SOCIAL_SECURITY = "SOCIAL_SECURITY"
+}
+
+export interface Person
+{
+    id: string;
+    createdDate: string;
+    firstName?: string;
+    lastName?: string;
+    identificationNumber?: string;
+    personIDType?: PersonIDType;
+    contactDetails?: ContactDetails;
+}
+
+
+export interface ContactDetails
+{
+    id: string;
+    createdDate: string;
+    phoneNumber?: string;
+    email?: string;
+    company?: Company;
+    person?: Person;
+}
+
+export interface Company
+{
+    id: string;
+    isActive: boolean;
+    verificationComplete: boolean;
+    createdDate: string;
+    name: string;
+    registrationNumber: string;
+    contactDetails?: ContactDetails;
+    appUsers: AppUser[];
+}
+
+export enum AppUserRole
+{
+    USER = "USER",
+    ADMIN = "ADMIN"
+}
+
+export interface AppUser
+{
+    id: string;
+    isActive: boolean;
+    createdDate: string;
+    email: string;
+    password?: string;
+    passwordSalt?: string;
+    emailVerificationComplete: boolean;
+    signInAttempts: number;
+    mfaType: MultifactorAuthenticationType;
+    person?: Person;
+    role: AppUserRole;
+    isTemporary: boolean;
+}
+
+export enum MultifactorAuthenticationType
+{
+    SMS = "SMS",
+    EMAIL = "EMAIL",
+    PASSKEY = "PASSKEY",
+    PASSWORD_RESET = "PASSWORD_RESET"
+}
+
+export enum MultifactorAuthenticationStatus
+{
+    PENDING = "PENDING",
+    COMPLETED = "COMPLETED"
+}
+
 export interface PersonRegistrationResponse
 {
     person: Person;
@@ -224,18 +195,25 @@ export interface SharingSessionInitiationRequest
     description?: string;
     recipientEmail?: string;
     sessionName?: string;
-    sessionDocuments?: SharingSessionRequestDocument[];
+    sessionDocuments?: SharingSessionRequestDocumentRequest[];
     requestRecipientSignIn: boolean;
     allowDocumentAddition: boolean;
     allowDocumentDeletion: boolean;
     allowDocumentDownload: boolean;
     allowDocumentUpdate: boolean;
     allowDocumentUpload: boolean;
-    participants?: SharingSessionParticipant[];
+    participants?: SharingSessionParticipantRequest[];
     status?: SharingSessionStatus;
     rejectionReason?: string;
 }
 
+export enum SharingSessionStatus
+{
+    INITIATED = "INITIATED",
+    ACCEPTED_STARTED = "ACCEPTED_STARTED",
+    ENDED = "ENDED",
+    REJECTED = "REJECTED"
+}
 export interface UpdateSharingSessionRequest
 {
     initialShareMessage?: string;
@@ -252,34 +230,26 @@ export interface UpdateSharingSessionRequest
 
 export interface AddSharingSessionDocumentRequest
 {
-    documentId?: string;
-    documentType?: DocumentType | ImageType;
-    restrictedType?: DocumentType | ImageType;
+    title?: string;
+    documentType?: DocumentType;
+    restrictedType?: DocumentType;
 }
 
-export interface UploadShareSessionDocumentRequest
-{
-    file: File;
-    documentId: string;
-    performedBy: string;
-    encryptionMode: DocumentEncryptionMode;
-}
-
-export interface DownloadShareSessionDocumentRequest
+export interface DownloadSharingSessionDocumentRequest
 {
     documentId: string;
     sessionId: string;
 }
 
-export interface SharingSessionRequestDocument
+export interface SharingSessionRequestDocumentRequest
 {
     title: string;
-    restrictedType?: DocumentType | ImageType;
-    type?: DocumentType | ImageType;
-    restrictType?: boolean;
+    restrictedType?: DocumentType;
+    type?: DocumentType;
+    restrictType?: DocumentType;
 }
 
-export interface SharingSessionParticipant
+export interface SharingSessionParticipantRequest
 {
     id: string;
     role: SharingSessionParticipantRole;
@@ -288,6 +258,156 @@ export interface SharingSessionParticipant
 export interface UpdateShareSessionDocumentRequest
 {
     title?: string;
-    restrictedType?: DocumentType | ImageType;
-    type?: DocumentType | ImageType;
+    restrictedType?: DocumentType;
+    type?: DocumentType;
+}
+
+export interface CommentRequest
+{
+    commentText: string;
+    commentedBy: string;
+}
+
+export interface SharingSessionBasicDto
+{
+    id: string;
+    createdDate: string;
+    lastActivity: string;
+    sessionName?: string;
+    initialShareMessage?: string;
+    description?: string;
+    initiator?: string;
+    recipientId?: string;
+    status?: string;
+    recipientEmail?: string;
+    recipientFirstName?: string;
+    recipientLastName?: string;
+    recipientCompanyName?: string;
+}
+
+export interface ContactDetailsBasicDto
+{
+    id?: string;
+    createdDate?: string;
+    email?: string;
+    phoneNumber?: string;
+}
+
+export interface PersonBasicDto
+{
+    id?: string;
+    createdDate?: string;
+    firstName?: string;
+    lastName?: string;
+    identificationNumber?: string;
+    personIDType?: string;
+    contactDetailsId?: string;
+}
+
+export interface AppUserBasicDto
+{
+    id?: string;
+    createdDate?: string;
+    isActive: boolean;
+    email: string;
+    personId?: string;
+}
+
+export interface DocumentBasicDto
+{
+    id?: string;
+    createdDate?: string;
+    title?: string;
+    type?: string;
+    restrictedType?: string;
+    hash?: string;
+}
+
+// src/app/models/DetailedDtos.ts
+
+export interface DocumentCommentDetailedDto
+{
+    id?: string;
+    createdDate?: string;
+    text?: string;
+}
+
+export interface DocumentDetailedDto
+{
+    id?: string;
+    createdDate?: string;
+    uploadDate?: string;
+    title?: string;
+    type?: string;
+    restrictedType?: string;
+    hash?: string;
+    comments?: DocumentCommentDetailedDto[];
+}
+
+export interface SharingSessionDetailedDto
+{
+    id: string;
+    createdDate: string;
+    endDate: string;
+    lastActivity: string;
+    sessionName?: string;
+    initialShareMessage?: string;
+    description?: string;
+    initiator?: AppUserDetailedDto;
+    recipient?: AppUserDetailedDto;
+    status?: string;
+    documents?: DocumentDetailedDto[];
+}
+
+export interface ContactDetailsDetailedDto
+{
+    id?: string;
+    createdDate?: string;
+    email?: string;
+    phoneNumber?: string;
+}
+
+export interface PersonDetailedDto
+{
+    id?: string;
+    createdDate?: string;
+    firstName?: string;
+    lastName?: string;
+    identificationNumber?: string;
+    personIDType?: string;
+    contactDetails?: ContactDetailsDetailedDto;
+}
+
+export interface AppUserDetailedDto
+{
+    id?: string;
+    createdDate?: string;
+    isActive: boolean;
+    email: string;
+    person?: PersonDetailedDto;
+}
+
+export interface DocumentAuditDetailedDto
+{
+    id?: string;
+    timestamp?: string;
+    action?: string;
+    performedBy?: AppUserDetailedDto;
+    performedByEmail?: string;
+}
+
+export enum DocumentType
+{
+    WORD = "WORD",
+    PDF = "PDF",
+    DOCX = "DOCX",
+    DOC = "DOC",
+    XLSX = "XLSX",
+    PPTX = "PPTX",
+    PNG = "PNG",
+    JPG = "JPG"
+}
+export enum ImageType {
+    PNG = "PNG",
+    JPG = "JPG"
 }

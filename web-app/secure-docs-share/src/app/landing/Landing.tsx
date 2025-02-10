@@ -35,10 +35,11 @@ import {
     MoreVerticalRegular
 } from "@fluentui/react-icons";
 import {formatDate} from "../helpers.ts";
+import {SharingSessionDetailedDto} from "../models/models.tsx";
 
-const useSessionDetails = (selectedSessionId: string | null, token: string) =>
+const useSessionDetails = (selectedSessionId: string | null, token: string | null) =>
 {
-    const [sessionDetails, setSessionDetails] = useState<any>(null);
+    const [sessionDetails, setSessionDetails] = useState<SharingSessionDetailedDto | null>(null);
     const [fetchingDetails, setFetchingDetails] = useState<boolean>(false);
 
     useEffect(() =>

@@ -169,7 +169,7 @@ class SharingSessionResource @Inject constructor(
 
                 is IllegalArgumentException ->
                 {
-                    logger.error("Error initiating sharing session", exception)
+                    logger.error("Error getting sharing session", exception)
 
                     val responseError = ResponseError(exception.message)
 
@@ -181,9 +181,9 @@ class SharingSessionResource @Inject constructor(
 
                 else ->
                 {
-                    logger.error("Error initiating sharing session", exception)
+                    logger.error("Error getting sharing session", exception)
 
-                    val responseError = ResponseError("An error occurred while initiating sharing session")
+                    val responseError = ResponseError("An error occurred while getting sharing session")
                     Response
                         .status(Response.Status.INTERNAL_SERVER_ERROR)
                         .entity(responseError)

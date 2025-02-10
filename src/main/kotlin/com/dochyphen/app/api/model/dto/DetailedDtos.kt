@@ -38,6 +38,8 @@ data class SharingSessionDetailedDto(
     @Serializable(with = TimestampSerializer::class)
     val createdDate: Timestamp,
     @Serializable(with = TimestampSerializer::class)
+    val endDate: Timestamp?,
+    @Serializable(with = TimestampSerializer::class)
     val lastActivity: Timestamp,
     val sessionName: String?,
     val initialShareMessage: String? = null,
@@ -94,3 +96,4 @@ data class DocumentAuditDetailedDto(
     val performedBy: AppUserDetailedDto?,
     val performedByEmail: String?
 )
+

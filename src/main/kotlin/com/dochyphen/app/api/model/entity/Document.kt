@@ -14,6 +14,12 @@ enum class DocumentEncryptionMode
     END_TO_END,
 }
 
+enum class ImageType
+{
+    PNG,
+    JPG,
+}
+
 enum class DocumentType
 {
     WORD,

@@ -34,6 +34,7 @@ class DetailedModelConverter
                     SharingSessionDetailedDto(
                         id,
                         createdDate,
+                        endDate,
                         lastActivity,
                         sessionName,
                         initialShareMessage,
