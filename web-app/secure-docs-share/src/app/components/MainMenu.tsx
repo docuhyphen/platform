@@ -50,7 +50,7 @@ const MainMenu: React.FC = () => {
     return (
         <section id="main-app-header">
             <span id="app-logo">
-                <span id="logo-doc">DOC</span> <span>-</span><br/>HYPHEN
+                <span id="logo-doc">DOC</span> <span id={"logo-hyphne"}>-</span><br/>HYPHEN
             </span>
             <section id="main-app-header-mid-section">
                 {!appUserPersonCompany &&
