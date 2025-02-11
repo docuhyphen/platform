@@ -32,6 +32,7 @@ import {AppUser} from "../../models/models.tsx";
 import {setApiClientAuthToken} from '../../../services/apiClient.ts';
 import {DismissRegular} from "@fluentui/react-icons";
 import AppLogo from "../../components/app-logo/AppLogo.tsx";
+import SignInCarousel from "../carousel/SignInCarousel.tsx";
 
 const SignIn: React.FC = () =>
 {
@@ -289,7 +290,7 @@ const SignIn: React.FC = () =>
                         <span>.</span>
                     </section>
                     <section id="auth-section-2">
-
+                        <SignInCarousel/>
                     </section>
                 </section>
             </section>
