@@ -7,7 +7,7 @@ const AppLogo: React.FC = () =>
         <span id="app-logo">
             <span>
                 <span id="logo-doc">DOC</span>
-                <span id="logo-hyphen">-</span>
+                <span id="logo-hyphen"></span>
             </span>
             <span>HYPHEN</span>
         </span>
