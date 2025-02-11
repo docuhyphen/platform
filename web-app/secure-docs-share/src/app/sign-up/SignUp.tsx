@@ -20,7 +20,7 @@ import {
 } from "@fluentui/react-components";
 import {DismissRegular} from "@fluentui/react-icons";
 import AppLogo from "../components/app-logo/AppLogo.tsx";
-import SignUpCarousel from "../components/SignUpCarousel.tsx";
+import SignUpCarousel from "../components/carousel/SignUpCarousel.tsx";
 
 const SignUp: React.FC = () =>
 {
