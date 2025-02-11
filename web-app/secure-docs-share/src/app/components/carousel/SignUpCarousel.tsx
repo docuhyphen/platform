@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './Carousel.css';
-import {Text} from "@fluentui/react-components";
+import { Text } from "@fluentui/react-components";
 
 const SignUpCarousel: React.FC = () => {
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -23,12 +23,31 @@ const SignUpCarousel: React.FC = () => {
         }
     ];
 
-    const goToSlide = (index: number) => {
-        setCurrentIndex(index);
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    const startAutoPlay = () => {
+        intervalRef.current = setInterval(() => {
+            setCurrentIndex(prevIndex => (prevIndex + 1) % slides.length);
+        }, 3000);
     };
 
+    const stopAutoPlay = () => {
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+        }
+    };
+
+    useEffect(() => {
+        startAutoPlay();
+        return () => stopAutoPlay();
+    }, []);
+
     return (
-        <div className="carousel">
+        <div
+            className="carousel"
+            onMouseEnter={stopAutoPlay}
+            onMouseLeave={startAutoPlay}
+        >
             <div className="carousel-inner" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
                 {slides.map((slide, index) => (
                     <div className="carousel-item" key={index}>
@@ -42,7 +61,7 @@ const SignUpCarousel: React.FC = () => {
                     <span
                         key={index}
                         className={`dot ${currentIndex === index ? 'active' : ''}`}
-                        onClick={() => goToSlide(index)}
+                        onClick={() => setCurrentIndex(index)}
                     ></span>
                 ))}
             </div>

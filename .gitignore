@@ -47,3 +47,5 @@ nb-configuration.xml
 logs
 
 document-uploads
+
+/web-app/node_modules
