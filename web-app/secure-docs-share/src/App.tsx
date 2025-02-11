@@ -1,14 +1,14 @@
 import React from 'react';
 import {BrowserRouter, Route, Routes} from 'react-router-dom';
 import Home from './app/home';
-import SignIn from './app/sign-in';
+import SignIn from './app/authorization/sign-in';
 import CompanyRegistrationPending from './app/company-registration';
 import {AuthProvider} from './context/AuthContext';
 import './App.css';
 import ProtectedRoute from "./app/components/ProtectedRoutes.tsx";
 import Landing from "./app/landing/Landing.tsx";
 import SharingSession from "./app/sharing-session/SharingSession.tsx";
-import SignUp from "./app/sign-up";
+import SignUp from "./app/authorization/sign-up";
 import RedirectIfAuthenticated from "./app/components/RedirectIfAuthenticated.tsx";
 import NotFound from './app/NotFound.tsx';
 import Onboarding from "./app/onboarding/Onboarding.tsx";

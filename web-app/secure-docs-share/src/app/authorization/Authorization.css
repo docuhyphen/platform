@@ -5,7 +5,7 @@
     justify-content: center;
     width: 100%;
     height: 100%;
-    background: #f9f9f9;
+    background: #f3f3f3;
 }
 
 #auth-section
@@ -54,29 +54,4 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-}
-
-#sign-up-completion-form
-{
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-#auth-has-account
-{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-
-}
-
-#sign-up-successful-section
-{
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    align-items: center;
-    justify-content: center;
 }

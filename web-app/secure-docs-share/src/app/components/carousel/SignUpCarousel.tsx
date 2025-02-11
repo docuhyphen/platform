@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import './Carousel.css';
-import { Text } from "@fluentui/react-components";
+import {Text} from "@fluentui/react-components";
 
 const SignUpCarousel: React.FC = () => {
     const [currentIndex, setCurrentIndex] = useState(0);

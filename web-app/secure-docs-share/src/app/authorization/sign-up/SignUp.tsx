@@ -1,7 +1,8 @@
 import React, {ChangeEvent, useState} from 'react';
 import './SignUp.css';
-import {completeSignUp, initiateSignUp, regenerateSignUpOtp} from "../../services/api.ts";
-import {ResponseError} from "../../services/models/models.tsx";
+import '../Authorization.css'
+import {completeSignUp, initiateSignUp, regenerateSignUpOtp} from "../../../services/api.ts";
+import {ResponseError} from "../../../services/models/models.tsx";
 import {useNavigate} from "react-router-dom";
 import {
     Button,
@@ -19,8 +20,8 @@ import {
     Text
 } from "@fluentui/react-components";
 import {DismissRegular} from "@fluentui/react-icons";
-import AppLogo from "../components/app-logo/AppLogo.tsx";
-import SignUpCarousel from "../components/carousel/SignUpCarousel.tsx";
+import AppLogo from "../../components/app-logo/AppLogo.tsx";
+import SignUpCarousel from "../../components/carousel/SignUpCarousel.tsx";
 
 const SignUp: React.FC = () =>
 {
@@ -246,8 +247,9 @@ const SignUp: React.FC = () =>
                                 </Button>}
                             <div id="auth-has-account">
                                 <Caption1> Already have an account? &nbsp;
-                                    <Link onClick={() => navigate("/sign-in")}>
-                                        <Text weight="semibold">Sign In</Text>
+                                    <Link onClick={() => navigate("/sign-in")}
+                                          disabled={initiatingSignUp || completingSignUp}>
+                                        <Text weight="semibold">Sign in</Text>
                                     </Link>
                                 </Caption1>
                             </div>

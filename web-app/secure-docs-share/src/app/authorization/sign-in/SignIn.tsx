@@ -1,35 +1,37 @@
 import React, {useState} from 'react';
 import './SignIn.css';
+import '../Authorization.css';
 import {
     completeSignIn,
     fetchAppUser,
     fetchAppUserPersonCompany,
     initiateSignIn,
     regenerateSignInOtp
-} from '../../services/api';
-import {ResponseError} from '../../services/models/models';
-import {useAuth} from '../../context/AuthContext';
+} from '../../../services/api.ts';
+import {ResponseError} from '../../../services/models/models.tsx';
+import {useAuth} from '../../../context/AuthContext.tsx';
 import {useNavigate} from 'react-router-dom';
-import RedirectIfAuthenticated from '../components/RedirectIfAuthenticated';
-import useToken from "../../context/useToken.tsx";
+import RedirectIfAuthenticated from '../../components/RedirectIfAuthenticated.tsx';
+import useToken from "../../../context/useToken.tsx";
 import {
-    Button,
+    Button, Caption1,
     Card,
     CardFooter,
     Divider,
     Field,
     Input,
-    InputOnChangeData,
+    InputOnChangeData, Link,
     MessageBar,
     MessageBarActions,
     MessageBarBody,
     MessageBarTitle,
     Spinner,
-    Subtitle1,
+    Subtitle1, Text,
 } from "@fluentui/react-components";
-import {AppUser} from "../models/models.tsx";
-import {setApiClientAuthToken} from '../../services/apiClient';
+import {AppUser} from "../../models/models.tsx";
+import {setApiClientAuthToken} from '../../../services/apiClient.ts';
 import {DismissRegular} from "@fluentui/react-icons";
+import AppLogo from "../../components/app-logo/AppLogo.tsx";
 
 const SignIn: React.FC = () =>
 {
@@ -238,46 +240,58 @@ const SignIn: React.FC = () =>
 
     return (
         <RedirectIfAuthenticated element={
-            <section id="sign-in-section">
-                <Card id="sign-in-card">
-                    <Divider appearance={"brand"}>
-                        <Subtitle1> Sign in </Subtitle1>
-                    </Divider>
 
-                    {renderErrorMessage()}
+            <section id="auth">
+                <section id="auth-section">
+                    <section id="auth-section-1">
+                        <div>
+                            <AppLogo/>
+                        </div>
 
-                    <Field label={"Email"} validationState={"none"} validationMessage={""}>
-                        <Input value={email} type="email" onChange={onEmailChange}/>
-                    </Field>
+                        <div id="authorization-form-section">
 
-                    <Field label={"Password"} validationState={"none"} validationMessage={""}>
-                        <Input type="password" value={password} onChange={onPasswordChange}/>
-                    </Field>
+                            <Subtitle1 align={"center"}> Sign in</Subtitle1>
 
-                    {signInInitiationSuccessful && renderOtpSection()}
+                            {renderErrorMessage()}
 
-                    <CardFooter action={
-                        <>
-                            {!signInInitiationSuccessful && renderInitiateSignInButton()}
-                            {signInInitiationSuccessful && renderCompleteSignInButton()}
-                        </>
-                    }>
-                    </CardFooter>
+                            <Field label={"Email"} validationState={"none"} validationMessage={""}>
+                                <Input value={email} type="email" onChange={onEmailChange}/>
+                            </Field>
 
-                    <Divider appearance={"brand"}> OR </Divider>
+                            <Field label={"Password"} validationState={"none"} validationMessage={""}>
+                                <Input type="password" value={password} onChange={onPasswordChange}/>
+                            </Field>
 
-                    <div id={"sign-in-options"}>
+                            {signInInitiationSuccessful && renderOtpSection()}
 
-                        <Button onClick={() => navigate('/forgot-password')}
-                                appearance="transparent">
-                            Forgot Password
-                        </Button>
-                        <Button onClick={() => navigate("/sign-up")}
-                                appearance={"transparent"}>
-                        Sign Up
-                    </Button>
-                    </div>
-                </Card>
+                            <CardFooter action={
+                                <>
+                                    {!signInInitiationSuccessful && renderInitiateSignInButton()}
+                                    {signInInitiationSuccessful && renderCompleteSignInButton()}
+                                </>
+                            }>
+                                <Button onClick={() => navigate('/forgot-password')}
+                                        appearance="transparent">
+                                    Forgot Password
+                                </Button>
+                            </CardFooter>
+
+
+                            <div id="auth-no-account">
+                                <Caption1> Don't have an account? &nbsp;
+                                    <Link onClick={() => navigate("/sign-up")}
+                                    disabled={signInInitiating || signInCompleting}>
+                                        <Text weight="semibold">Sign up</Text>
+                                    </Link>
+                                </Caption1>
+                            </div>
+                        </div>
+                        <span>.</span>
+                    </section>
+                    <section id="auth-section-2">
+
+                    </section>
+                </section>
             </section>
         }/>
     );

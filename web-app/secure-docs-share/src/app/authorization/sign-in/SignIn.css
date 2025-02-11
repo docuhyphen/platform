@@ -16,3 +16,9 @@
     display: flex;
     justify-content: space-between;
 }
+
+#auth-no-account
+{
+    margin-top: 30px;
+    text-align: center;
+}
