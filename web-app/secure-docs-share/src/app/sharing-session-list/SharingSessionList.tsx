@@ -100,7 +100,7 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
         }
     }, []);
 
-    const listItemCard = (session: any) =>
+    const listItemCard = (session: SharingSessionBasicDto) =>
     {
         return <div className={"list-card"}>
             <section className={"list-card-item"}>
@@ -130,7 +130,7 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                 selectedItems={selectedItems}
                 onSelectionChange={handleSelectionChange}
             >
-                {sharingSessions.map((session: any) => (
+                {sharingSessions.map((session: SharingSessionBasicDto) => (
                     <>
                         <ListItem
                             className={selectedItems.includes(session.id) ? "sharing-sessions-list-selected-item" : ""}

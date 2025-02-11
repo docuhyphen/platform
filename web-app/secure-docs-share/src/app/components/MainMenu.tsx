@@ -26,6 +26,7 @@ import {
     PersonSettingsRegular,
     SettingsRegular
 } from "@fluentui/react-icons";
+import AppLogo from "./app-logo/AppLogo.tsx";
 
 const MainMenu: React.FC = () => {
     const { appUser, appUserPersonCompany } = useAuth();
@@ -49,9 +50,7 @@ const MainMenu: React.FC = () => {
 
     return (
         <section id="main-app-header">
-            <span id="app-logo">
-                <span id="logo-doc">DOC</span> <span id={"logo-hyphne"}>-</span><br/>HYPHEN
-            </span>
+            <AppLogo/>
             <section id="main-app-header-mid-section">
                 {!appUserPersonCompany &&
                     <Button onClick={() => navigate('/onboarding/company-registration')}>

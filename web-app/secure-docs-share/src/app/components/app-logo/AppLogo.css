@@ -1,0 +1,28 @@
+#app-logo
+{
+    font-weight: bold;
+    font-size: 12px;
+    line-height: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+#logo-doc
+{
+    background: #4b6496;
+    color: white;
+    padding: 3px;
+    border-radius: 4px;
+}
+
+#logo-hyphen {
+    font-weight: bold;
+    /* font-size: 26px; */
+    margin-left: 4px;
+    line-height: 0;
+    height: 6px;
+    display: inline-block;
+    background: #4b6496;
+    border-radius: 3px;
+    width: 13px;
+}

@@ -52,27 +52,6 @@ html, body, #root
     gap: 16px;
 }
 
-#app-logo
-{
-    font-weight: bold;
-    font-size: 12px;
-    line-height: 20px;
-}
-
-#logo-doc
-{
-    background: #4b6496;
-    color: white;
-    padding: 3px;
-    border-radius: 4px;
-}
-
-#logo-hyphen
-{
-    font-weight: bold;
-    font-size: 20px;
-}
-
 #shading-session-document-card
 {
     margin-bottom: 12px;
@@ -108,4 +87,14 @@ html, body, #root
 {
     display: flex;
     gap: 6px;
+}
+
+.flex-1
+{
+    flex: 1;
+}
+
+.text-center
+{
+    text-align: center;
 }

@@ -49,7 +49,7 @@ class SignUpResourceTest {
             .post("/auth/sign-up/initiation")
 
         assertEquals(400, response.statusCode)
-        assertEquals("An account with this email already exists. Please sign in.", response.jsonPath().getString("errorMessage"))
+        assertEquals("An account with this email already exists.", response.jsonPath().getString("errorMessage"))
     }
 
     @Test

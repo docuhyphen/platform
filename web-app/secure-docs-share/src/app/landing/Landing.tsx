@@ -35,7 +35,7 @@ import {
     MoreVerticalRegular
 } from "@fluentui/react-icons";
 import {formatDate} from "../helpers.ts";
-import {SharingSessionDetailedDto} from "../models/models.tsx";
+import {DocumentBasicDto, DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.tsx";
 
 const useSessionDetails = (selectedSessionId: string | null, token: string | null) =>
 {
@@ -54,7 +54,7 @@ const useSessionDetails = (selectedSessionId: string | null, token: string | nul
                 try
                 {
                     const details = await fetchSignedInUserAppUserSharingSession(selectedSessionId, token);
-                    setSessionDetails(details);
+                    setSessionDetails(details as SharingSessionDetailedDto);
                 }
                 catch (error)
                 {
@@ -147,7 +147,7 @@ const Landing: React.FC = () =>
                                 <Subtitle2>Session Documents</Subtitle2>
                             </p>
                             <div id={"documents-card-list"}>
-                                {sessionDetails.documents?.map((document: any) => (
+                                {sessionDetails.documents?.map((document: DocumentDetailedDto) => (
                                     <Card key={document.id}>
                                         <CardHeader
                                             header={<Body1><b>{document.title}</b></Body1>}

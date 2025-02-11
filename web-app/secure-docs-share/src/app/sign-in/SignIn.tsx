@@ -19,6 +19,7 @@ import {
     Divider,
     Field,
     Input,
+    InputOnChangeData,
     MessageBar,
     MessageBarActions,
     MessageBarBody,
@@ -44,9 +45,9 @@ const SignIn: React.FC = () =>
     const {setToken, setAppUser, setAppUserPersonCompany} = useAuth();
     const navigate = useNavigate();
 
-    const onEmailChange = (_e: any, newValue?: any) => setEmail(newValue.value || '');
-    const onOtpChange = (_e: any, newValue?: any) => setOtp(newValue.value || '');
-    const onPasswordChange = (_e: any, newValue?: any) => setPassword(newValue.value || '');
+    const onEmailChange = (_e: React.ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) => setEmail(newValue.value || '');
+    const onOtpChange = (_e: React.ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) => setOtp(newValue.value || '');
+    const onPasswordChange = (_e: React.ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) => setPassword(newValue.value || '');
 
     const token = useToken();
 

@@ -3,7 +3,23 @@ import './SignUp.css';
 import {completeSignUp, initiateSignUp, regenerateSignUpOtp} from "../../services/api.ts";
 import {ResponseError} from "../../services/models/models.tsx";
 import {useNavigate} from "react-router-dom";
-import {Button, Field, Input, InputOnChangeData, Link} from "@fluentui/react-components";
+import {
+    Button,
+    Caption1,
+    Field,
+    InfoLabel,
+    Input,
+    InputOnChangeData,
+    Link,
+    MessageBar,
+    MessageBarActions,
+    MessageBarBody,
+    Spinner,
+    Subtitle1,
+    Text
+} from "@fluentui/react-components";
+import {DismissRegular} from "@fluentui/react-icons";
+import AppLogo from "../components/app-logo/AppLogo.tsx";
 
 const SignUp: React.FC = () =>
 {
@@ -14,11 +30,14 @@ const SignUp: React.FC = () =>
     const [password, setPassword] = useState<string>('')
     const [confirmationPassword, setConfirmationPassword] = useState<string>('')
     const [initiationSuccessful, setInitiationSuccessful] = useState<boolean>(false)
-    const [initiationSuccessfulMsg, setInitiationSuccessfulMsg] = useState<string>('')
+    const [initiationSuccessfulMsg, setInitiationSuccessfulMsg] = useState<string>()
     const [otpRegenerationSuccessfulMsg, setOtpRegenerationSuccessfulMsg] = useState<string | undefined>('')
     const [otpRegenerationFailedMsg, setOtpRegenerationFailedMsg] = useState<string | undefined>('')
     const [responseErrorMessage, setResponseError] = useState<string | undefined>('')
     const [signUpSuccessful, setSignUpSuccessful] = useState<boolean>(false)
+    const [initiatingSignUp, setInitiatingSignUp] = useState<boolean>(false)
+    const [regeneratingOtp, setRegeneratingOtp] = useState<boolean>(false)
+    const [completingSignUp, setCompletingSignUp] = useState<boolean>(false)
 
     function onEmailChange(_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData)
     {
@@ -44,6 +63,15 @@ const SignUp: React.FC = () =>
 
     const onInitiateSignUp = async () =>
     {
+        if (initiatingSignUp)
+        {
+            return
+        }
+
+        setInitiationSuccessfulMsg("")
+        setResponseError('')
+        setInitiatingSignUp(true)
+
         try
         {
             const signUpInitiateRequest = {email}
@@ -57,12 +85,23 @@ const SignUp: React.FC = () =>
             setInitiationSuccessful(false)
             setResponseError((error as ResponseError)?.errorMessage);
         }
+        finally
+        {
+            setInitiatingSignUp(false)
+        }
     };
 
     const onCompleteSignUp = async () =>
     {
+        if (completingSignUp)
+        {
+            return
+        }
+
         setInitiationSuccessfulMsg('')
         setResponseError('')
+
+        setCompletingSignUp(true)
 
         try
         {
@@ -81,13 +120,24 @@ const SignUp: React.FC = () =>
         {
             setResponseError((error as ResponseError)?.errorMessage);
         }
+        finally
+        {
+            setCompletingSignUp(false)
+        }
     };
 
     const onRegenerateOTP = async () =>
     {
+        if (regeneratingOtp)
+        {
+            return
+        }
+
         setOtp('')
         setOtpRegenerationSuccessfulMsg('')
         setOtpRegenerationFailedMsg('')
+
+        setRegeneratingOtp(true)
 
         try
         {
@@ -100,87 +150,186 @@ const SignUp: React.FC = () =>
         {
             setOtpRegenerationFailedMsg((error as ResponseError)?.errorMessage)
         }
+        finally
+        {
+            setRegeneratingOtp(false)
+        }
     };
 
-    return (
+    const renderFormErrorMessage = () => (
+        responseErrorMessage && (
+            <MessageBar intent={"error"}>
+                <MessageBarBody>
+                    {responseErrorMessage}
+                </MessageBarBody>
+                <MessageBarActions
+                    containerAction={
+                        <Button
+                            onClick={() => (setResponseError(undefined))}
+                            appearance="transparent"
+                            icon={<DismissRegular/>}
+                        />
+                    }
+                />
+            </MessageBar>
+        )
+    );
+
+    const renderOtpSection = () => (
         <>
-            {!signUpSuccessful &&
-                <section>
-                    <h1>Sign up | <Link onClick={() => navigate("/sign-in")}>Sign In</Link></h1>
-
-                    {!initiationSuccessful && <>
-                        <p>
-                            {responseErrorMessage}
-                        </p>
-                    </>
-                    }
-
-                    <Field
-                        label={"Email"}
-                        validationState={"none"}
-                        validationMessage={""}>
-                        <Input type="email"
-                               value={email}
-                               onChange={onEmailChange}/>
-                    </Field>
-
-                    {initiationSuccessful && <>
-                        <p className="success">
-                            {initiationSuccessfulMsg}
-                        </p>
-
-                        <Field
-                            label={"OTP"}
-                            validationState={"none"}
-                            validationMessage={""}>
-                            <Input type="text"
-                                   value={otp}
-                                   autoComplete="false"
-                                   onChange={onOtpChange}/>
-                        </Field>
-
-                        <p>{otpRegenerationSuccessfulMsg}</p>
-
-                        <p>{otpRegenerationFailedMsg}</p>
-
-                        <Button onClick={onRegenerateOTP}> Regenerate OTP</Button>
-
-                        <Field
-                            label={"Password"}
-                            validationState={"none"}
-                            validationMessage={""}>
-                            <Input type="password"
-                                   value={password}
-                                   onChange={onPasswordChange}/>
-                        </Field>
-
-                        <Field
-                            label={"Password Confirmation"}
-                            validationState={"none"}
-                            validationMessage={""}>
-                            <Input type={"password"}
-                                   value={confirmationPassword}
-                                   onChange={onPasswordConfirmationChange}/>
-                        </Field>
-                        <Button onClick={onCompleteSignUp}> Finish Sign up</Button>
-
-                        <p>{responseErrorMessage}</p>
-                    </>
-                    }
-
-                    {!initiationSuccessful &&
-                        <Button onClick={onInitiateSignUp}> Sign Up </Button>
-                    }
-                </section>
-            }
-
-            {signUpSuccessful &&
-                <section>
-                    <p>Sign up successful</p>
-                    <Button onClick={() => navigate("/sign-in")}> Sign In</Button>
-                </section>
-            }
+            <Field
+                label={"OTP"}
+                validationState={otpRegenerationFailedMsg ? "error" : (otpRegenerationSuccessfulMsg ? "success" : "none")}
+                validationMessage={otpRegenerationFailedMsg || otpRegenerationSuccessfulMsg}>
+                <Input type="text"
+                       value={otp}
+                       autoComplete="false"
+                       onChange={onOtpChange}/>
+            </Field>
+            <Button onClick={onRegenerateOTP}
+                    size={"small"}
+                    appearance={"transparent"}
+                    className={"button-w-loading"}>
+                {regeneratingOtp && <Spinner size={"tiny"}/>}
+                Resend OTP
+            </Button>
         </>
+    )
+
+    const renderPasswordsSection = () => (
+        <>
+            <Field
+                label={"Password"}
+                validationState={"none"}
+                validationMessage={""}>
+                <Input type="password"
+                       value={password}
+                       disabled={regeneratingOtp}
+                       onChange={onPasswordChange}
+                       contentAfter={
+                           <InfoLabel info={<>
+                               <strong>Password requirements</strong>
+                               <ul>
+                                   <li>Must be at least 8 characters long</li>
+                                   <li>Must not exceed 30 characters</li>
+                                   <li>Must contain at least one uppercase letter</li>
+                                   <li>Must contain at least one lowercase letter</li>
+                                   <li>Must contain at least one digit</li>
+                                   <li>Must contain at least one special character</li>
+                               </ul>
+                           </>}/>
+                       }/>
+            </Field>
+            <Field
+                label={"Password Confirmation"}
+                validationState={"none"}
+                validationMessage={""}>
+                <Input type={"password"}
+                       disabled={regeneratingOtp}
+                       value={confirmationPassword}
+                       onChange={onPasswordConfirmationChange}/>
+            </Field>
+        </>
+    )
+
+    return (
+        <section id="auth">
+            <section id="auth-section">
+                <section id="auth-section-1">
+
+                    <div>
+                        <AppLogo/>
+                    </div>
+                    {!signUpSuccessful && <>
+                        <div id="authorization-form-section">
+
+                            <Subtitle1 align={"center"}> Create account </Subtitle1>
+
+                            {renderFormErrorMessage()}
+
+                            <Field
+                                label={"Email"}
+                                validationState={initiationSuccessfulMsg ? "success" : "none"}
+                                validationMessage={initiationSuccessfulMsg}>
+                                <Input type="email"
+                                       autoComplete={"false"}
+                                       value={email}
+                                       onChange={onEmailChange}/>
+                            </Field>
+
+                            {initiationSuccessful && <div id={"sign-up-completion-form"}>
+
+                                {renderOtpSection()}
+                                {renderPasswordsSection()}
+                                <Button onClick={onCompleteSignUp}
+                                        appearance={"primary"}
+                                        shape={"circular"}
+                                        disabled={regeneratingOtp}
+                                        className={"button-w-loading"}>
+                                    {completingSignUp &&
+                                        <Spinner size={"extra-small"}/>
+                                    }
+                                    {completingSignUp ? "Completing sign up" : "Complete sign up"}
+                                </Button>
+                            </div>
+                            }
+
+                            {!initiationSuccessful &&
+                                <Button onClick={onInitiateSignUp}
+                                        appearance={"primary"}
+                                        shape={"circular"}
+                                        className={"button-w-loading"}>
+                                    {initiatingSignUp &&
+                                        <Spinner size={"extra-small"}/>
+                                    }
+                                    Sign Up
+                                </Button>
+                            }
+
+                            <div id="auth-has-account">
+                                <Caption1> Already have an account? &nbsp;
+                                    <Link onClick={() => navigate("/sign-in")}>
+                                        <Text weight="semibold">Sign In</Text>
+                                    </Link>
+                                </Caption1>
+                            </div>
+                        </div>
+                        <div>
+
+                        </div>
+                    </>
+                    }
+
+                    {signUpSuccessful && <>
+                        <section id={"sign-up-successful-section"}>
+                            <Text align={"center"}
+                                  size={500}
+                                  font="monospace">
+                                Sign up successful!
+                            </Text>
+                            <Text align={"center"}
+                                  size={300}>
+                                Welcome aboard, your account has been created successfully.
+                            </Text>
+                            <Text align={"center"}
+                                  italic>
+                                Your Security is our priority, remember to setup your 2FA to help us keep your account
+                                secure, also remember to keep your password safe and secure with a trusted password manager.
+                            </Text>
+                            <Button onClick={() => navigate("/sign-in")}
+                                    appearance={"primary"}>
+                                Sign In
+                            </Button>
+                        </section>
+                        <span></span>
+                    </>
+                    }
+                </section>
+                <section id="auth-section-2">
+
+                </section>
+            </section>
+        </section>
     );
 };
 

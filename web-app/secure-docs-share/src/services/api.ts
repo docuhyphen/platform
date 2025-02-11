@@ -1,8 +1,10 @@
 import {
     CompanyRegistrationRequest,
-    PersonRegistrationRequest, ResponseError,
+    PersonRegistrationRequest,
+    ResponseError,
     SignInCompletionRequest,
-    SignInInitiationRequest, SignInOtpRegenerationRequest,
+    SignInInitiationRequest,
+    SignInOtpRegenerationRequest,
     SignUpCompletionRequest,
     SignUpInitiationRequest,
     SignUpOtpRegenerationRequest
@@ -210,7 +212,7 @@ export const fetchSignedInUserAppUserSharingSessions = async (token: string | nu
     }
 };
 
-export const fetchSignedInUserAppUserSharingSession = async (sessionId: string | null, token: string | null) =>
+export const fetchSignedInUserAppUserSharingSession = async (sessionId: string | null, token: string | null): Promise<SharingSessionBasicDto | ResponseError> =>
 {
     try
     {
