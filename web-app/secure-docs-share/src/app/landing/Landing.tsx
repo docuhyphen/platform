@@ -19,7 +19,7 @@ import {
     Skeleton,
     SkeletonItem,
     Subtitle2,
-    Title3,
+    Text,
     Tooltip
 } from "@fluentui/react-components";
 import {
@@ -35,7 +35,7 @@ import {
     MoreVerticalRegular
 } from "@fluentui/react-icons";
 import {formatDate} from "../helpers.ts";
-import {DocumentBasicDto, DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.tsx";
+import {DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.tsx";
 
 const useSessionDetails = (selectedSessionId: string | null, token: string | null) =>
 {
@@ -112,7 +112,7 @@ const Landing: React.FC = () =>
                                             <> | Ended {formatDate(sessionDetails.createdDate)} </>
                                         }
                                         <br/>
-                                        <Title3>{sessionDetails.sessionName}</Title3><br/>
+                                        <Text size={600}>{sessionDetails.sessionName}</Text><br/>
                                         <Body1>{sessionDetails.description}</Body1>
                                     </div>
                                     <div id="sharing-session-actions">

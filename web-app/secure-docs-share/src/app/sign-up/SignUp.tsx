@@ -20,101 +20,74 @@ import {
 } from "@fluentui/react-components";
 import {DismissRegular} from "@fluentui/react-icons";
 import AppLogo from "../components/app-logo/AppLogo.tsx";
+import SignUpCarousel from "../components/SignUpCarousel.tsx";
 
 const SignUp: React.FC = () =>
 {
     const navigate = useNavigate();
 
-    const [email, setEmail] = useState<string>('')
-    const [otp, setOtp] = useState<string>('')
-    const [password, setPassword] = useState<string>('')
-    const [confirmationPassword, setConfirmationPassword] = useState<string>('')
-    const [initiationSuccessful, setInitiationSuccessful] = useState<boolean>(false)
-    const [initiationSuccessfulMsg, setInitiationSuccessfulMsg] = useState<string>()
-    const [otpRegenerationSuccessfulMsg, setOtpRegenerationSuccessfulMsg] = useState<string | undefined>('')
-    const [otpRegenerationFailedMsg, setOtpRegenerationFailedMsg] = useState<string | undefined>('')
-    const [responseErrorMessage, setResponseError] = useState<string | undefined>('')
-    const [signUpSuccessful, setSignUpSuccessful] = useState<boolean>(false)
-    const [initiatingSignUp, setInitiatingSignUp] = useState<boolean>(false)
-    const [regeneratingOtp, setRegeneratingOtp] = useState<boolean>(false)
-    const [completingSignUp, setCompletingSignUp] = useState<boolean>(false)
+    const [formData, setFormData] = useState({
+        email: '',
+        otp: '',
+        password: '',
+        confirmationPassword: ''
+    });
 
-    function onEmailChange(_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData)
-    {
-        return setEmail(newValue.value || '')
-    }
+    const [initiationSuccessful, setInitiationSuccessful] = useState(false);
+    const [initiationSuccessfulMsg, setInitiationSuccessfulMsg] = useState<string>();
+    const [otpRegenerationSuccessfulMsg, setOtpRegenerationSuccessfulMsg] = useState<string | undefined>('');
+    const [otpRegenerationFailedMsg, setOtpRegenerationFailedMsg] = useState<string | undefined>('');
+    const [responseErrorMessage, setResponseError] = useState<string | undefined>('');
+    const [signUpSuccessful, setSignUpSuccessful] = useState(false);
+    const [initiatingSignUp, setInitiatingSignUp] = useState(false);
+    const [regeneratingOtp, setRegeneratingOtp] = useState(false);
+    const [completingSignUp, setCompletingSignUp] = useState(false);
 
-    function onOtpChange(_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData)
+    const handleChange = (e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
     {
-        setOtpRegenerationSuccessfulMsg('')
-        setOtpRegenerationFailedMsg('')
-        return setOtp(newValue.value || '')
-    }
-
-    function onPasswordChange(_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData)
-    {
-        return setPassword(newValue.value || '')
-    }
-
-    function onPasswordConfirmationChange(_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData)
-    {
-        return setConfirmationPassword(newValue.value || '')
-    }
+        setFormData({
+            ...formData,
+            [e.target.name]: newValue.value || ''
+        });
+    };
 
     const onInitiateSignUp = async () =>
     {
-        if (initiatingSignUp)
-        {
-            return
-        }
+        if (initiatingSignUp) return;
 
-        setInitiationSuccessfulMsg("")
-        setResponseError('')
-        setInitiatingSignUp(true)
+        setInitiationSuccessfulMsg("");
+        setResponseError('');
+        setInitiatingSignUp(true);
 
         try
         {
-            const signUpInitiateRequest = {email}
-            const response = await initiateSignUp(signUpInitiateRequest);
-
-            setInitiationSuccessful(true)
-            setInitiationSuccessfulMsg(response?.message)
+            const response = await initiateSignUp({email: formData.email});
+            setInitiationSuccessful(true);
+            setInitiationSuccessfulMsg(response?.message);
         }
         catch (error)
         {
-            setInitiationSuccessful(false)
+            setInitiationSuccessful(false);
             setResponseError((error as ResponseError)?.errorMessage);
         }
         finally
         {
-            setInitiatingSignUp(false)
+            setInitiatingSignUp(false);
         }
     };
 
     const onCompleteSignUp = async () =>
     {
-        if (completingSignUp)
-        {
-            return
-        }
+        if (completingSignUp) return;
 
-        setInitiationSuccessfulMsg('')
-        setResponseError('')
-
-        setCompletingSignUp(true)
+        setInitiationSuccessfulMsg('');
+        setResponseError('');
+        setCompletingSignUp(true);
 
         try
         {
-            const signUpCompletionRequest = {
-                email,
-                otp,
-                password,
-                confirmationPassword: confirmationPassword
-            }
-
-            await completeSignUp(signUpCompletionRequest)
-
-            setSignUpSuccessful(true)
+            await completeSignUp(formData);
+            setSignUpSuccessful(true);
         }
         catch (error)
         {
@@ -122,37 +95,31 @@ const SignUp: React.FC = () =>
         }
         finally
         {
-            setCompletingSignUp(false)
+            setCompletingSignUp(false);
         }
     };
 
     const onRegenerateOTP = async () =>
     {
-        if (regeneratingOtp)
-        {
-            return
-        }
+        if (regeneratingOtp) return;
 
-        setOtp('')
-        setOtpRegenerationSuccessfulMsg('')
-        setOtpRegenerationFailedMsg('')
-
-        setRegeneratingOtp(true)
+        setFormData({...formData, otp: ''});
+        setOtpRegenerationSuccessfulMsg('');
+        setOtpRegenerationFailedMsg('');
+        setRegeneratingOtp(true);
 
         try
         {
-            const otpRegenerationRequest = {email}
-            const response = await regenerateSignUpOtp(otpRegenerationRequest)
-
-            setOtpRegenerationSuccessfulMsg(response?.message)
+            const response = await regenerateSignUpOtp({email: formData.email});
+            setOtpRegenerationSuccessfulMsg(response?.message);
         }
         catch (error)
         {
-            setOtpRegenerationFailedMsg((error as ResponseError)?.errorMessage)
+            setOtpRegenerationFailedMsg((error as ResponseError)?.errorMessage);
         }
         finally
         {
-            setRegeneratingOtp(false)
+            setRegeneratingOtp(false);
         }
     };
 
@@ -165,7 +132,7 @@ const SignUp: React.FC = () =>
                 <MessageBarActions
                     containerAction={
                         <Button
-                            onClick={() => (setResponseError(undefined))}
+                            onClick={() => setResponseError(undefined)}
                             appearance="transparent"
                             icon={<DismissRegular/>}
                         />
@@ -182,19 +149,21 @@ const SignUp: React.FC = () =>
                 validationState={otpRegenerationFailedMsg ? "error" : (otpRegenerationSuccessfulMsg ? "success" : "none")}
                 validationMessage={otpRegenerationFailedMsg || otpRegenerationSuccessfulMsg}>
                 <Input type="text"
-                       value={otp}
+                       name="otp"
+                       value={formData.otp}
                        autoComplete="false"
-                       onChange={onOtpChange}/>
+                       onChange={handleChange}/>
             </Field>
             <Button onClick={onRegenerateOTP}
                     size={"small"}
+                    disabled={completingSignUp}
                     appearance={"transparent"}
                     className={"button-w-loading"}>
                 {regeneratingOtp && <Spinner size={"tiny"}/>}
                 Resend OTP
             </Button>
         </>
-    )
+    );
 
     const renderPasswordsSection = () => (
         <>
@@ -203,9 +172,10 @@ const SignUp: React.FC = () =>
                 validationState={"none"}
                 validationMessage={""}>
                 <Input type="password"
-                       value={password}
+                       name="password"
+                       value={formData.password}
                        disabled={regeneratingOtp}
-                       onChange={onPasswordChange}
+                       onChange={handleChange}
                        contentAfter={
                            <InfoLabel info={<>
                                <strong>Password requirements</strong>
@@ -225,40 +195,36 @@ const SignUp: React.FC = () =>
                 validationState={"none"}
                 validationMessage={""}>
                 <Input type={"password"}
+                       name="confirmationPassword"
+                       value={formData.confirmationPassword}
                        disabled={regeneratingOtp}
-                       value={confirmationPassword}
-                       onChange={onPasswordConfirmationChange}/>
+                       onChange={handleChange}/>
             </Field>
         </>
-    )
+    );
 
     return (
         <section id="auth">
             <section id="auth-section">
                 <section id="auth-section-1">
-
                     <div>
                         <AppLogo/>
                     </div>
                     {!signUpSuccessful && <>
                         <div id="authorization-form-section">
-
                             <Subtitle1 align={"center"}> Create account </Subtitle1>
-
                             {renderFormErrorMessage()}
-
                             <Field
                                 label={"Email"}
                                 validationState={initiationSuccessfulMsg ? "success" : "none"}
                                 validationMessage={initiationSuccessfulMsg}>
                                 <Input type="email"
+                                       name="email"
                                        autoComplete={"false"}
-                                       value={email}
-                                       onChange={onEmailChange}/>
+                                       value={formData.email}
+                                       onChange={handleChange}/>
                             </Field>
-
                             {initiationSuccessful && <div id={"sign-up-completion-form"}>
-
                                 {renderOtpSection()}
                                 {renderPasswordsSection()}
                                 <Button onClick={onCompleteSignUp}
@@ -266,26 +232,18 @@ const SignUp: React.FC = () =>
                                         shape={"circular"}
                                         disabled={regeneratingOtp}
                                         className={"button-w-loading"}>
-                                    {completingSignUp &&
-                                        <Spinner size={"extra-small"}/>
-                                    }
+                                    {completingSignUp && <Spinner size={"extra-small"}/>}
                                     {completingSignUp ? "Completing sign up" : "Complete sign up"}
                                 </Button>
-                            </div>
-                            }
-
+                            </div>}
                             {!initiationSuccessful &&
                                 <Button onClick={onInitiateSignUp}
                                         appearance={"primary"}
                                         shape={"circular"}
                                         className={"button-w-loading"}>
-                                    {initiatingSignUp &&
-                                        <Spinner size={"extra-small"}/>
-                                    }
+                                    {initiatingSignUp && <Spinner size={"extra-small"}/>}
                                     Sign Up
-                                </Button>
-                            }
-
+                                </Button>}
                             <div id="auth-has-account">
                                 <Caption1> Already have an account? &nbsp;
                                     <Link onClick={() => navigate("/sign-in")}>
@@ -294,12 +252,8 @@ const SignUp: React.FC = () =>
                                 </Caption1>
                             </div>
                         </div>
-                        <div>
-
-                        </div>
-                    </>
-                    }
-
+                        <span>.</span>
+                    </>}
                     {signUpSuccessful && <>
                         <section id={"sign-up-successful-section"}>
                             <Text align={"center"}
@@ -321,12 +275,11 @@ const SignUp: React.FC = () =>
                                 Sign In
                             </Button>
                         </section>
-                        <span></span>
-                    </>
-                    }
+                        <div>.</div>
+                    </>}
                 </section>
                 <section id="auth-section-2">
-
+                    <SignUpCarousel/>
                 </section>
             </section>
         </section>

@@ -203,7 +203,10 @@ const SignIn: React.FC = () =>
                 <Input value={otp} autoComplete="false" onChange={onOtpChange}/>
             </Field>
             <span>
-                <Button appearance="outline" size={"small"} onClick={onResendOtp} className={"button-w-loading"}>
+                <Button appearance="transparent"
+                        size={"small"}
+                        onClick={onResendOtp}
+                        className={"button-w-loading"}>
                     <>
                         {resendingOtp && <Spinner size={"tiny"}/>}
                         Resend OTP
