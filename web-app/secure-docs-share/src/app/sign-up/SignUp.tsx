@@ -271,7 +271,8 @@ const SignUp: React.FC = () =>
                                 secure, also remember to keep your password safe and secure with a trusted password manager.
                             </Text>
                             <Button onClick={() => navigate("/sign-in")}
-                                    appearance={"primary"}>
+                                    appearance={"primary"}
+                                    shape={"circular"}>
                                 Sign In
                             </Button>
                         </section>

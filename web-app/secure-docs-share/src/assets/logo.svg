@@ -1,0 +1,17 @@
+<svg width="100%" height="100%" viewBox="0 0 140 80" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background rounded rectangle -->
+    <rect x="0" y="10" rx="8" ry="8" width="60" height="40" fill="#4A5E87" />
+
+    <!-- Text "DOC" -->
+    <text x="10" y="37" font-family="Arial" font-size="18" fill="white" font-weight="bold">
+        DOC
+    </text>
+
+    <!-- Hyphen Symbol -->
+    <rect x="70" y="25" width="20" height="6" rx="3" ry="3" fill="#4A5E87" />
+
+    <!-- "HYPHEN" Text -->
+    <text x="10" y="75" font-family="Arial" font-size="22" fill="#202020" font-weight="bold">
+        HYPHEN
+    </text>
+</svg>
