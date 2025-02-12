@@ -239,8 +239,8 @@ const AccountRecovery: React.FC = () =>
                                                 shape={"circular"}
                                                 disabled={regeneratingOtp}
                                                 className={"button-w-loading"}>
-                                            {initiatingPwdReset && <Spinner size={"extra-small"}/>}
-                                            {initiatingPwdReset ? "Resetting password" : "Reset Password"}
+                                            {completingPwdReset && <Spinner size={"extra-small"}/>}
+                                            {completingPwdReset ? "Resetting password" : "Reset Password"}
                                         </Button>
                                     </div>
                                 }
@@ -251,7 +251,7 @@ const AccountRecovery: React.FC = () =>
                                             shape={"circular"}
                                             className={"button-w-loading"}>
                                         {initiatingPwdReset && <Spinner size={"extra-small"}/>}
-                                        Reset Password
+                                        Initiate Reset Password
                                     </Button>
                                 }
                                 <div id="auth-has-account">
