@@ -40,7 +40,6 @@ const AccountRecovery: React.FC = () =>
     const [otpRegenerationFailedMsg, setOtpRegenerationFailedMsg] = useState<string | undefined>('');
     const [responseErrorMessage, setResponseError] = useState<string | undefined>('');
     const [pwdResetSuccessful, setPwdResetSuccessful] = useState(false);
-
     const [initiatingPwdReset, setInitiatingPwdReset] = useState(false);
     const [regeneratingOtp, setRegeneratingOtp] = useState(false);
     const [completingPwdReset, setCompletingPwdReset] = useState(false);
