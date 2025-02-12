@@ -14,19 +14,20 @@ import {useNavigate} from 'react-router-dom';
 import RedirectIfAuthenticated from '../../components/RedirectIfAuthenticated.tsx';
 import useToken from "../../../context/useToken.tsx";
 import {
-    Button, Caption1,
-    Card,
-    CardFooter,
+    Button,
+    Caption1,
     Divider,
     Field,
     Input,
-    InputOnChangeData, Link,
+    InputOnChangeData,
+    Link,
     MessageBar,
     MessageBarActions,
     MessageBarBody,
     MessageBarTitle,
     Spinner,
-    Subtitle1, Text,
+    Subtitle1,
+    Text,
 } from "@fluentui/react-components";
 import {AppUser} from "../../models/models.tsx";
 import {setApiClientAuthToken} from '../../../services/apiClient.ts';
@@ -206,8 +207,9 @@ const SignIn: React.FC = () =>
                 <Input value={otp} autoComplete="false" onChange={onOtpChange}/>
             </Field>
             <span>
-                <Button appearance="transparent"
+                <Button appearance="outline"
                         size={"small"}
+                        shape={"circular"}
                         onClick={onResendOtp}
                         className={"button-w-loading"}>
                     <>
@@ -265,20 +267,21 @@ const SignIn: React.FC = () =>
 
                             {signInInitiationSuccessful && renderOtpSection()}
 
-                            <CardFooter action={
-                                <>
-                                    {!signInInitiationSuccessful && renderInitiateSignInButton()}
-                                    {signInInitiationSuccessful && renderCompleteSignInButton()}
-                                </>
-                            }>
-                                <Button onClick={() => navigate('/forgot-password')}
-                                        appearance="transparent">
-                                    Forgot Password
-                                </Button>
-                            </CardFooter>
+                            {!signInInitiationSuccessful && renderInitiateSignInButton()}
 
+                            {signInInitiationSuccessful && renderCompleteSignInButton()}
 
                             <div id="auth-no-account">
+
+                                <Caption1> Forgot your sign in credentials? &nbsp;
+                                    <Link onClick={() => navigate("/account-recovery")}
+                                          disabled={signInInitiating || signInCompleting}>
+                                        <Text weight="semibold">Recover account</Text>
+                                    </Link>
+                                </Caption1>
+
+                                <Divider> OR </Divider>
+
                                 <Caption1> Don't have an account? &nbsp;
                                     <Link onClick={() => navigate("/sign-up")}
                                     disabled={signInInitiating || signInCompleting}>
