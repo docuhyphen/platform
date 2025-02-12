@@ -1,11 +1,15 @@
 import React, {ChangeEvent, useState} from 'react';
-import {AddRegular, CheckmarkCircleRegular, DeleteRegular} from "@fluentui/react-icons";
+import {
+    AddRegular,
+    CheckmarkCircleRegular,
+    DeleteRegular,
+    DocumentBulletListMultipleRegular,
+    DocumentOnePageRegular,
+    OptionsRegular,
+    PeopleCommunityAddRegular
+} from "@fluentui/react-icons";
 import './SharingSessionInitiation.css';
 import {
-    Accordion,
-    AccordionHeader,
-    AccordionItem,
-    AccordionPanel,
     Button,
     Card,
     Dialog,
@@ -16,10 +20,11 @@ import {
     DialogTitle,
     DialogTrigger,
     DialogTriggerChildProps,
+    Divider,
     Dropdown,
-    Field, InfoLabel,
+    Field,
     Input,
-    InputOnChangeData, LabelProps,
+    InputOnChangeData,
     Menu,
     MenuButton,
     MenuItem,
@@ -31,10 +36,15 @@ import {
     OptionOnSelectData,
     SearchBox,
     SelectionEvents,
+    SelectTabData,
+    SelectTabEvent,
     Switch,
+    Tab,
+    TabList,
+    TabValue,
+    Text,
     Textarea,
     Toast,
-    Toaster,
     ToastTitle,
     useId,
     useToastController,
@@ -55,11 +65,12 @@ const SharingSessionInitiation: React.FC = () =>
     const navigate = useNavigate();
     const location = useLocation();
 
+    const [choosingTemplate, setChoosingTemplate] = useState(false);
     const [isInitiating, setIsInitiating] = useState(false);
     const [sessionName, setSessionName] = useState<string>('');
     const [description, setDescription] = useState<string>('');
     const [initialShareMessage, setInitialShareMessage] = useState<string>('');
-    const [requireSignIn, setRequireSignIn] = useState<boolean>(false);
+    const [requireSignIn, setRequireSignIn] = useState<boolean>(true);
     const [allowDocumentAdditions, setAllowDocumentAdditions] = useState<boolean>(false);
     const [allowDocumentDeletions, setAllowDocumentDeletions] = useState<boolean>(false);
     const [allowDocumentDownload, setAllowDocumentDownload] = useState<boolean>(false);
@@ -85,6 +96,14 @@ const SharingSessionInitiation: React.FC = () =>
             </Toast>, {intent: 'warning'},
         );
     }
+
+    const [selectedValue, setSelectedValue] =
+        React.useState<TabValue>("recipients");
+
+    const onTabSelect = (event: SelectTabEvent, data: SelectTabData) =>
+    {
+        setSelectedValue(data.value);
+    };
 
     const onInitiateSession = async () =>
     {
@@ -232,6 +251,20 @@ const SharingSessionInitiation: React.FC = () =>
         setAllowDocumentUpload(ev.target.checked);
     }
 
+    const onCancelInitiation = () =>
+    {
+        sessionName && setSessionName('');
+        description && setDescription('');
+        initialShareMessage && setInitialShareMessage('');
+        requireSignIn && setRequireSignIn(false);
+        allowDocumentAdditions && setAllowDocumentAdditions(false);
+        allowDocumentDeletions && setAllowDocumentDeletions(false);
+        allowDocumentDownload && setAllowDocumentDownload(false);
+        allowDocumentUpdate && setAllowDocumentUpdate(false);
+        allowDocumentUpload && setAllowDocumentUpload(false);
+        documents && setDocuments([]);
+    }
+
     const CustomDialogTrigger = React.forwardRef<
         HTMLButtonElement,
         DialogTriggerChildProps
@@ -276,9 +309,9 @@ const SharingSessionInitiation: React.FC = () =>
 
     const documentsCard = () =>
     {
-        return <>
+        return <div id="shading-session-document-cards">
             {documents.map((document, index) => (
-                <Card key={index} id={"shading-session-document-card"}>
+                <Card key={index} className="shading-session-document-card">
                     <div>
                         <div id={"shading-session-document-card-header"}>
                             <Field className={"field"}>
@@ -341,7 +374,15 @@ const SharingSessionInitiation: React.FC = () =>
                     </div>
                 </Card>
             ))}
-        </>
+
+            <div>
+                <Button onClick={addNewDocument}
+                        icon={<AddRegular/>}
+                        appearance="subtle">
+                    Add Document
+                </Button>
+            </div>
+        </div>
     }
 
     return (
@@ -351,46 +392,105 @@ const SharingSessionInitiation: React.FC = () =>
             </DialogTrigger>
             <DialogSurface>
                 <DialogBody>
-                    <DialogTitle>Initiating Sharing Session</DialogTitle>
-                    <DialogContent>
-                        <Accordion defaultOpenItems="0" collapsible>
-                            <AccordionItem value="0">
-                                <AccordionHeader>Recipients</AccordionHeader>
-                                <AccordionPanel id={"sharing-details"}>
-                                    <Field label={label}>
-                                        <SearchBox/>
-                                    </Field>
-                                </AccordionPanel>
-                            </AccordionItem>
-                            <AccordionItem value="1">
-                                <AccordionHeader>Details</AccordionHeader>
-                                <AccordionPanel id={"sharing-details"}>
-                                    <Field label={label}>
-                                        <SearchBox/>
-                                    </Field>
+                    <DialogTitle id="dialog-title">
+                        <div id="dialog-title-1">
+                            <Text size={500}> Initiating Sharing Session </Text>
+                            {!choosingTemplate &&
+                                < Button appearance={"outline"}
+                                         size={"small"}
+                                         onClick={() => setChoosingTemplate(true)}>
+                                    Choose Template
+                                </Button>
+                            }
+                            {choosingTemplate &&
 
+                                <Button appearance={"primary"}
+                                        size={"small"}
+                                        onClick={() => setChoosingTemplate(false)}>
+                                    Cancel template selection
+                                </Button>
+                            }
+                        </div>
+                        {choosingTemplate &&
+                            <div>
+                            </div>
+                        }
+                        {!choosingTemplate &&
+                            <TabList selectedValue={selectedValue} onTabSelect={onTabSelect}>
+                                <Tab id="recipeints" icon={<PeopleCommunityAddRegular/>} value="recipients">
+                                    Recipients & Participants
+                                </Tab>
+                                <Tab id="Details" icon={<DocumentOnePageRegular/>} value="details">
+                                    Details
+                                </Tab>
+                                <Tab id="Documents" icon={<DocumentBulletListMultipleRegular/>} value="documents">
+                                    Documents
+                                </Tab>
+                                <Tab id="Options" icon={<OptionsRegular/>} value="options">
+                                    Options
+                                </Tab>
+                            </TabList>
+                        }
+                    </DialogTitle>
+                    <DialogContent>
+
+                        {choosingTemplate &&
+                            <div>
+                                Choosing Template
+                            </div>
+                        }
+                        {!choosingTemplate &&
+                            <div id="sharing-session-initiation-taps">
+                                {selectedValue === "recipients" && <div>
+                                    <Field label={label}>
+                                        <SearchBox/>
+                                    </Field>
+                                </div>}
+                                {
+                                    selectedValue === "details" &&
+                                    <div id="session-details-tap">
                                     <Field label="Session Name" required>
-                                        <Input type="text" value={sessionName} required onChange={onSessionNameChange}/>
+                                        <Input type="text"
+                                               value={sessionName}
+                                               required
+                                               onChange={onSessionNameChange}
+                                               placeholder={"Required"}/>
                                     </Field>
 
                                     <Field label="Description">
-                                        <Textarea onChange={onDescriptionChange}/>
+                                        <Textarea onChange={onDescriptionChange}
+                                                  value={description}
+                                                  placeholder={"Optional"}/>
                                     </Field>
 
                                     <Field label="Start message">
-                                        <Textarea onChange={onInitialShareMessageChange}/>
+                                        <Textarea onChange={onInitialShareMessageChange}
+                                                  value={initialShareMessage}
+                                                  placeholder={"optional"}/>
                                     </Field>
-                                </AccordionPanel>
-                            </AccordionItem>
-                            <AccordionItem value="2">
-                                <AccordionHeader>Options</AccordionHeader>
-                                <AccordionPanel>
+                                    </div>
+                                }
+
+                                {
+                                    selectedValue === "documents" &&
+                                    <div>
+                                        {documentsCard()}
+                                    </div>
+                                }
+                                {
+                                    selectedValue === "options" &&
+                                    <div id="sharing-options-tap-content">
+                                        <Divider alignContent="start">
+                                            Session options
+                                        </Divider>
+
                                     <Field>
-                                        <Switch label="Require Sign In"
+                                        <Switch label="Require recipient sign in"
                                                 onChange={(ev) => onRequireSignInChange(ev)}/>
 
                                     </Field>
 
+                                        <Divider alignContent="start">Document options</Divider>
                                     <Field>
                                         <Switch label="Allow document additions"
                                                 onChange={(ev) => onAllowDocumentAdditionsChange(ev)}/>
@@ -415,41 +515,27 @@ const SharingSessionInitiation: React.FC = () =>
                                         <Switch label="Allow document upload"
                                                 onChange={(ev) => onAllowDocumentUploadChange(ev)}/>
                                     </Field>
-                                </AccordionPanel>
-                            </AccordionItem>
-                            <AccordionItem value="3" disabled>
-                                <AccordionHeader>Participants</AccordionHeader>
-                                <AccordionPanel>
-                                </AccordionPanel>
-                            </AccordionItem>
-                            <AccordionItem value="4">
-                                <AccordionHeader>Documents {documents && documents.length > 0 &&
-                                    <span> ({documents.length})</span>}
-                                </AccordionHeader>
-                                <AccordionPanel>
-                                    {documentsCard()}
-                                    <Button onClick={addNewDocument}
-                                            icon={<AddRegular/>}
-                                            appearance="subtle">
-                                        Add Document
-                                    </Button>
-
-                                    <Toaster toasterId={toasterId}/>
-                                </AccordionPanel>
-                            </AccordionItem>
-                        </Accordion>
+                                    </div>
+                                }
+                            </div>
+                        }
                     </DialogContent>
                     <DialogActions>
-
                         <DialogTrigger>
-                            <Button appearance="secondary">Cancel</Button>
+                            <Button appearance="transparent"
+                                    onClick={onCancelInitiation}>
+                                Cancel
+                            </Button>
                         </DialogTrigger>
-                        <Button onClick={onInitiateSession}
-                                disabled={isInitiating}
-                                appearance={"primary"}
-                                icon={<CheckmarkCircleRegular/>}>
-                            Start Session
-                        </Button>
+                        {!choosingTemplate &&
+                            <Button onClick={onInitiateSession}
+                                    disabled={isInitiating}
+                                    appearance={"primary"}
+                                    shape={"circular"}
+                                    icon={<CheckmarkCircleRegular/>}>
+                                Start Session
+                            </Button>
+                        }
 
                     </DialogActions>
                 </DialogBody>
