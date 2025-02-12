@@ -353,7 +353,15 @@ const SharingSessionInitiation: React.FC = () =>
                 <DialogBody>
                     <DialogTitle>Initiating Sharing Session</DialogTitle>
                     <DialogContent>
-                        <Accordion defaultOpenItems="1" collapsible>
+                        <Accordion defaultOpenItems="0" collapsible>
+                            <AccordionItem value="0">
+                                <AccordionHeader>Recipients</AccordionHeader>
+                                <AccordionPanel id={"sharing-details"}>
+                                    <Field label={label}>
+                                        <SearchBox/>
+                                    </Field>
+                                </AccordionPanel>
+                            </AccordionItem>
                             <AccordionItem value="1">
                                 <AccordionHeader>Details</AccordionHeader>
                                 <AccordionPanel id={"sharing-details"}>
