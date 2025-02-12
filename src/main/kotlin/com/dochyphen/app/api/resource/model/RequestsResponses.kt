@@ -58,7 +58,7 @@ data class SignUpRegenerationRequest(var email: String? = null)
 data class SignUpRegenerationResponse(var message: String? = null)
 
 @Serializable
-data class PasswordResetRequest(var email: String? = null)
+data class PasswordResetInitiationRequest(var email: String? = null)
 
 @Serializable
 data class PersonRegistrationRequest(

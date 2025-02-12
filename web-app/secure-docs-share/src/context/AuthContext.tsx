@@ -81,7 +81,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
             {
                 saveToken(null)
 
-                if (location.pathname !== "/sign-up" && location.pathname !== "/sign-in")
+                if (location.pathname !== "/sign-up" &&
+                    location.pathname !== "/sign-in" &&
+                    location.pathname !== "/account-recovery" &&
+                    location.pathname !== "/not-found")
                 {
                     navigate("/sign-in")
                 }

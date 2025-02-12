@@ -83,7 +83,7 @@ export interface SignUpRegenerationResponse
     message?: string;
 }
 
-export interface PasswordResetRequest
+export interface PasswordResetInitiationRequest
 {
     email?: string;
 }

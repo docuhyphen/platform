@@ -9,7 +9,12 @@ import {
     SignUpInitiationRequest,
     SignUpOtpRegenerationRequest
 } from "./models/models.tsx";
-import {SharingSessionBasicDto, SharingSessionInitiationRequest} from "../app/models/models.tsx";
+import {
+    PasswordResetCompletionRequest,
+    PasswordResetInitiationRequest,
+    SharingSessionBasicDto,
+    SharingSessionInitiationRequest
+} from "../app/models/models.tsx";
 
 import apiClient from './apiClient';
 
@@ -38,7 +43,46 @@ export const completeSignUp = async (request: SignUpCompletionRequest) =>
     }
 };
 
+export const initiatePasswordReset = async (request: PasswordResetInitiationRequest) =>
+{
+    try
+    {
+        const response = await apiClient.post(`/auth/password-reset/initiation`, request);
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+export const completePasswordReset = async (request: PasswordResetCompletionRequest) =>
+{
+    try
+    {
+        const response = await apiClient.post(`/auth/password-reset/completion`, request);
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
 export const regenerateSignUpOtp = async (request: SignUpOtpRegenerationRequest) =>
+{
+    try
+    {
+        const response = await apiClient.post(`/auth/sign-up/otp-regeneration`, request);
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+
+export const regeneratePasswordResetOtp = async (request: SignUpOtpRegenerationRequest) =>
 {
     try
     {

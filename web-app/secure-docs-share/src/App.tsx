@@ -15,36 +15,82 @@ import Onboarding from "./app/onboarding/Onboarding.tsx";
 import Settings from "./app/settings/Settings.tsx";
 import Profile from "./app/profile/Profile.tsx";
 import CompanyRegistration from "./app/company-registration-pending/CompanyRegistration.tsx";
+import AccountRecovery from "./app/authorization/account-recovery";
 
 const App: React.FC = () => {
     return (
         <BrowserRouter>
         <AuthProvider>
                 <Routes>
-                    <Route path="/" element={<Home />} />
+                    <Route path="/"
+                           element={
+                               <Home/>
+                           }/>
 
-                    <Route path="/sign-in" element={<RedirectIfAuthenticated element={<SignIn />} />} />
+                    <Route path="/sign-in"
+                           element={
+                               <RedirectIfAuthenticated element={<SignIn/>}/>
+                           }/>
 
-                    <Route path="/sign-up" element={<RedirectIfAuthenticated element={<SignUp />} />} />
+                    <Route path="/sign-up"
+                           element={
+                               <RedirectIfAuthenticated element={<SignUp/>
+                               }/>
+                           }/>
+
+                    <Route path="/account-recovery"
+                           element={
+                               <RedirectIfAuthenticated element={
+                                   <AccountRecovery/>
+                               }/>
+                           }/>
 
                     <Route path="/onboarding/individual-registration"
-                           element={<ProtectedRoute path='/sign-in' element={<Onboarding/>}/>}/>
+                           element={
+                               <ProtectedRoute path='/sign-in' element={<Onboarding/>
+                               }/>
+                           }/>
 
                     <Route path="/onboarding/company-registration"
-                           element={<ProtectedRoute path='/sign-in' element={<CompanyRegistration/>}/>}/>
+                           element={
+                               <ProtectedRoute path='/sign-in' element={
+                                   <CompanyRegistration/>
+                               }/>
+                           }/>
 
                     <Route path="/onboarding/company-registration-pending"
-                           element={<ProtectedRoute path='/sign-in' element={<CompanyRegistrationPending/>}/>}/>
+                           element={
+                               <ProtectedRoute path='/sign-in' element={<CompanyRegistrationPending/>}/>
+                           }/>
 
-                    <Route path="/sharing-sessions/:id" element={<ProtectedRoute path='/sign-in' element={<SharingSession />} />} />
+                    <Route path="/sharing-sessions/:id"
+                           element={
+                               <ProtectedRoute path='/sign-in' element={
+                                   <SharingSession/>
+                               }/>
+                           }/>
 
-                    <Route path="/landing" element={<ProtectedRoute path='/sign-in' element={<Landing />} />} />
+                    <Route path="/landing"
+                           element={
+                               <ProtectedRoute path='/sign-in' element={
+                                   <Landing/>
+                               }/>
+                           }/>
 
-                    <Route path="/settings" element={<ProtectedRoute path='/sign-in' element={<Settings />} />} />
+                    <Route path="/settings"
+                           element={
+                               <ProtectedRoute path='/sign-in' element={<Settings/>}/>
+                           }/>
 
-                    <Route path="/profile" element={<ProtectedRoute path='/sign-in' element={<Profile />} />} />
+                    <Route path="/profile"
+                           element={
+                               <ProtectedRoute path='/sign-in' element={<Profile/>}/>
+                           }/>
 
-                    <Route path="*" element={<NotFound/>}/>
+                    <Route path="*"
+                           element={
+                               <NotFound/>
+                           }/>
                 </Routes>
         </AuthProvider>
         </BrowserRouter>

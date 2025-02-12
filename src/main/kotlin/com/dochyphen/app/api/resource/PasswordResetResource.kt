@@ -11,7 +11,7 @@ import com.dochyphen.app.api.exception.PasswordMismatchException
 import com.dochyphen.app.api.exception.PasswordRequiredException
 import com.dochyphen.app.api.exception.PasswordRequirementsNotMetException
 import com.dochyphen.app.api.resource.model.PasswordResetCompletionRequest
-import com.dochyphen.app.api.resource.model.PasswordResetRequest
+import com.dochyphen.app.api.resource.model.PasswordResetInitiationRequest
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.service.auth.PasswordResetService
 import jakarta.inject.Inject
@@ -36,8 +36,10 @@ class PasswordResetResource @Inject constructor(
 
     @POST
     @Path("/initiation")
-    fun initiatePasswordReset(payload: PasswordResetRequest): Response
+    fun initiatePasswordReset(payload: PasswordResetInitiationRequest): Response
     {
+        ResourceEndpointDelayHelper.delayEndpoint(3000, 6000)
+
         return try
         {
             with(payload) {
@@ -76,6 +78,8 @@ class PasswordResetResource @Inject constructor(
     @Path("/completion")
     fun completePasswordReset(payload: PasswordResetCompletionRequest): Response
     {
+        ResourceEndpointDelayHelper.delayEndpoint(3000, 6000)
+
         return try
         {
             with(payload) {
