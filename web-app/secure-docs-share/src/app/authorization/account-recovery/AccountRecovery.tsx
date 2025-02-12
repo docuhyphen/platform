@@ -1,0 +1,302 @@
+import React, {ChangeEvent, useState} from 'react';
+import './AccountRecovery.css';
+import '../Authorization.css'
+import {completePasswordReset, initiatePasswordReset, regeneratePasswordResetOtp} from "../../../services/api.ts";
+import {ResponseError} from "../../../services/models/models.tsx";
+import {useNavigate} from "react-router-dom";
+import {
+    Button,
+    Caption1,
+    Field,
+    InfoLabel,
+    Input,
+    InputOnChangeData,
+    Link,
+    MessageBar,
+    MessageBarActions,
+    MessageBarBody,
+    Spinner,
+    Subtitle1,
+    Text
+} from "@fluentui/react-components";
+import {DismissRegular} from "@fluentui/react-icons";
+import AppLogo from "../../components/app-logo/AppLogo.tsx";
+import AccountRecoveryCarousel from "../carousel/AccountRecoveryCarousel.tsx";
+
+const AccountRecovery: React.FC = () =>
+{
+    const navigate = useNavigate();
+
+    const [formData, setFormData] = useState({
+        email: '',
+        otp: '',
+        password: '',
+        confirmationPassword: ''
+    });
+
+    const [pwdResetInitiationSuccessful, setPwdResetInitiationSuccessful] = useState(false);
+    const [pwdResetSuccessfulMsg, setPwdResetSuccessfulMsg] = useState<string>();
+    const [otpRegenerationSuccessfulMsg, setOtpRegenerationSuccessfulMsg] = useState<string | undefined>('');
+    const [otpRegenerationFailedMsg, setOtpRegenerationFailedMsg] = useState<string | undefined>('');
+    const [responseErrorMessage, setResponseError] = useState<string | undefined>('');
+    const [pwdResetSuccessful, setPwdResetSuccessful] = useState(false);
+
+    const [initiatingPwdReset, setInitiatingPwdReset] = useState(false);
+    const [regeneratingOtp, setRegeneratingOtp] = useState(false);
+    const [completingPwdReset, setCompletingPwdReset] = useState(false);
+
+    const handleChange = (e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
+    {
+        setFormData({
+            ...formData,
+            [e.target.name]: newValue.value || ''
+        });
+    };
+
+    const onInitiatePasswordReset = async () =>
+    {
+        if (initiatingPwdReset) return;
+
+        setPwdResetSuccessfulMsg("");
+        setResponseError('');
+        setInitiatingPwdReset(true);
+
+        try
+        {
+            const response = await initiatePasswordReset({email: formData.email});
+            setPwdResetInitiationSuccessful(true);
+            setPwdResetSuccessfulMsg(response?.message);
+        }
+        catch (error)
+        {
+            setPwdResetInitiationSuccessful(false);
+            setResponseError((error as ResponseError)?.errorMessage);
+        }
+        finally
+        {
+            setInitiatingPwdReset(false);
+        }
+    };
+
+    const onCompletePasswordReset = async () =>
+    {
+        if (completingPwdReset) return;
+
+        setPwdResetSuccessfulMsg('');
+        setResponseError('');
+        setCompletingPwdReset(true);
+
+        try
+        {
+            await completePasswordReset(formData);
+            setPwdResetSuccessful(true);
+        }
+        catch (error)
+        {
+            setResponseError((error as ResponseError)?.errorMessage);
+        }
+        finally
+        {
+            setCompletingPwdReset(false);
+        }
+    };
+
+    const onRegenerateOTP = async () =>
+    {
+        if (regeneratingOtp) return;
+
+        setFormData({...formData, otp: ''});
+        setOtpRegenerationSuccessfulMsg('');
+        setOtpRegenerationFailedMsg('');
+        setRegeneratingOtp(true);
+
+        try
+        {
+            const response = await regeneratePasswordResetOtp({email: formData.email});
+            setOtpRegenerationSuccessfulMsg(response?.message);
+        }
+        catch (error)
+        {
+            setOtpRegenerationFailedMsg((error as ResponseError)?.errorMessage);
+        }
+        finally
+        {
+            setRegeneratingOtp(false);
+        }
+    };
+
+    const renderFormErrorMessage = () => (
+        responseErrorMessage && (
+            <MessageBar intent={"error"}>
+                <MessageBarBody>
+                    {responseErrorMessage}
+                </MessageBarBody>
+                <MessageBarActions
+                    containerAction={
+                        <Button
+                            onClick={() => setResponseError(undefined)}
+                            appearance="transparent"
+                            icon={<DismissRegular/>}
+                        />
+                    }
+                />
+            </MessageBar>
+        )
+    );
+
+    const renderOtpSection = () => (
+        <>
+            <Field
+                label={"OTP"}
+                validationState={otpRegenerationFailedMsg ? "error" : (otpRegenerationSuccessfulMsg ? "success" : "none")}
+                validationMessage={otpRegenerationFailedMsg || otpRegenerationSuccessfulMsg}>
+                <Input type="text"
+                       name="otp"
+                       value={formData.otp}
+                       autoComplete="false"
+                       onChange={handleChange}/>
+            </Field>
+            <Button onClick={onRegenerateOTP}
+                    size={"small"}
+                    disabled={completingPwdReset}
+                    appearance={"transparent"}
+                    className={"button-w-loading"}>
+                {regeneratingOtp && <Spinner size={"tiny"}/>}
+                Resend OTP
+            </Button>
+        </>
+    );
+
+    const renderPasswordsSection = () => (
+        <>
+            <Field
+                label={"Password"}
+                validationState={"none"}
+                validationMessage={""}>
+                <Input type="password"
+                       name="password"
+                       value={formData.password}
+                       disabled={regeneratingOtp}
+                       onChange={handleChange}
+                       contentAfter={
+                           <InfoLabel info={<>
+                               <strong>Password requirements</strong>
+                               <ul>
+                                   <li>Must be at least 8 characters long</li>
+                                   <li>Must not exceed 30 characters</li>
+                                   <li>Must contain at least one uppercase letter</li>
+                                   <li>Must contain at least one lowercase letter</li>
+                                   <li>Must contain at least one digit</li>
+                                   <li>Must contain at least one special character</li>
+                               </ul>
+                           </>}/>
+                       }/>
+            </Field>
+            <Field
+                label={"Password Confirmation"}
+                validationState={"none"}
+                validationMessage={""}>
+                <Input type={"password"}
+                       name="confirmationPassword"
+                       value={formData.confirmationPassword}
+                       disabled={regeneratingOtp}
+                       onChange={handleChange}/>
+            </Field>
+        </>
+    );
+
+    return (
+        <section id="auth">
+            <section id="auth-section">
+
+                <section id="auth-section-1">
+                    <div>
+                        <AppLogo/>
+                    </div>
+                    {!pwdResetSuccessful &&
+                        <>
+                            <div id="authorization-form-section">
+                                <Subtitle1 align={"center"}> Recover account </Subtitle1>
+
+                                {renderFormErrorMessage()}
+
+                                <Field
+                                    label={"Email"}
+                                    validationState={pwdResetSuccessfulMsg ? "success" : "none"}
+                                    validationMessage={pwdResetSuccessfulMsg}>
+                                    <Input type="email"
+                                           name="email"
+                                           autoComplete={"false"}
+                                           value={formData.email}
+                                           onChange={handleChange}/>
+                                </Field>
+
+                                {pwdResetInitiationSuccessful &&
+                                    <div id={"sign-up-completion-form"}>
+                                        {renderOtpSection()}
+                                        {renderPasswordsSection()}
+                                        <Button onClick={onCompletePasswordReset}
+                                                appearance={"primary"}
+                                                shape={"circular"}
+                                                disabled={regeneratingOtp}
+                                                className={"button-w-loading"}>
+                                            {initiatingPwdReset && <Spinner size={"extra-small"}/>}
+                                            {initiatingPwdReset ? "Resetting password" : "Reset Password"}
+                                        </Button>
+                                    </div>
+                                }
+
+                                {!pwdResetInitiationSuccessful &&
+                                    <Button onClick={onInitiatePasswordReset}
+                                            appearance={"primary"}
+                                            shape={"circular"}
+                                            className={"button-w-loading"}>
+                                        {initiatingPwdReset && <Spinner size={"extra-small"}/>}
+                                        Reset Password
+                                    </Button>
+                                }
+                                <div id="auth-has-account">
+                                    <Caption1> Don't have an account? &nbsp;
+                                        <Link onClick={() => navigate("/sign-up")}
+                                              disabled={initiatingPwdReset || completingPwdReset}>
+                                            <Text weight="semibold">Sign up</Text>
+                                        </Link>
+                                    </Caption1>
+                                </div>
+                            </div>
+                            <span>.</span>
+                        </>
+                    }
+                    {
+                        pwdResetSuccessful && (
+                            <>
+                                <section id={"password-reset-successful-section"}>
+                                    <Text align={"center"} size={500} font="monospace">
+                                        Password Reset Successful!
+                                    </Text>
+                                    <Text align={"center"} size={300}>
+                                        Your password has been updated successfully.
+                                    </Text>
+                                    <Text align={"center"} italic>
+                                        For added security, consider enabling 2FA to protect your account. Also, ensure your
+                                        new password is
+                                        strong and stored securely in a trusted password manager.
+                                    </Text>
+                                    <Button onClick={() => navigate("/sign-in")} appearance={"primary"} shape={"circular"}>
+                                        Sign In
+                                    </Button>
+                                </section>
+                                <div>.</div>
+                            </>
+                        )
+                    }
+                </section>
+                <section id="auth-section-2">
+                    <AccountRecoveryCarousel/>
+                </section>
+            </section>
+        </section>
+    );
+};
+
+export default AccountRecovery;
