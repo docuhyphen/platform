@@ -18,6 +18,7 @@ import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
+import kotlinx.coroutines.delay
 import org.slf4j.LoggerFactory
 
 @Path("/sharing-sessions")
@@ -39,6 +40,8 @@ class SharingSessionResource @Inject constructor(
     @POST
     fun initiateSharingSession(sharingSessionInitiationRequest: SharingSessionInitiationRequest): Response
     {
+        ResourceEndpointDelayHelper.delayEndpoint(3000, 4000)
+
         return try
         {
             val sharingSession = with(sharingSessionInitiationRequest) {

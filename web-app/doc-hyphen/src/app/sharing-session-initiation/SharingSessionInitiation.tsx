@@ -1,11 +1,11 @@
-import React, { ChangeEvent, useState } from 'react';
+import React, {ChangeEvent, useState} from 'react';
 import {
     AddRegular,
     CheckmarkCircleRegular,
-    OptionsRegular,
-    PeopleCommunityAddRegular,
     DocumentBulletListMultipleRegular,
-    DocumentOnePageRegular
+    DocumentOnePageRegular,
+    OptionsRegular,
+    PeopleCommunityAddRegular
 } from "@fluentui/react-icons";
 import './SharingSessionInitiation.css';
 import {
@@ -16,35 +16,47 @@ import {
     DialogContent,
     DialogSurface,
     DialogTitle,
-    DialogTrigger, DialogTriggerChildProps,
+    DialogTrigger,
+    DialogTriggerChildProps,
     Divider,
     Field,
-    Input, InputOnChangeData, Menu, MenuButton, MenuItem, MenuList, MenuPopover, MenuTrigger,
-    SearchBox,
+    InfoLabel,
+    Input,
+    InputOnChangeData,
+    Menu,
+    MenuButton,
+    MenuItem,
+    MenuList,
+    MenuPopover,
+    MenuTrigger,
     SelectTabData,
     SelectTabEvent,
+    Spinner,
     Switch,
     Tab,
-    TabList, TabValue,
+    TabList,
+    TabValue,
     Text,
-    Textarea, Toast, ToastTitle,
+    Textarea,
+    Toast,
+    ToastTitle,
     useId,
     useToastController,
 } from "@fluentui/react-components";
 import useToken from "../../context/useToken.tsx";
-import { useLocation, useNavigate } from "react-router-dom";
+import {useLocation, useNavigate} from "react-router-dom";
 import {
     DocumentType,
     ImageType,
     SharingSessionInitiationRequest,
     SharingSessionRequestDocumentRequest
 } from "../models/models.tsx";
-import { initiateSharingSession } from "../../services/api.ts";
+import {initiateSharingSession} from "../../services/api.ts";
 import DocumentCard from './DocumentCard';
 
 const SharingSessionInitiation: React.FC = () => {
+
     const token = useToken();
-    const navigate = useNavigate();
     const location = useLocation();
 
     const [choosingTemplate, setChoosingTemplate] = useState(false);
@@ -58,13 +70,13 @@ const SharingSessionInitiation: React.FC = () => {
     const [allowDocumentDownload, setAllowDocumentDownload] = useState<boolean>(false);
     const [allowDocumentUpdate, setAllowDocumentUpdate] = useState<boolean>(false);
     const [allowDocumentUpload, setAllowDocumentUpload] = useState<boolean>(false);
+    const [initiatingSession, setInitiatingSession] = useState<boolean>(false);
+    const [sessionInitiatedSuccessfully, setSessionInitiatedSuccessfully] = useState<boolean>(true);
     const [documents, setDocuments] = useState<SharingSessionRequestDocumentRequest[]>([]);
     const [recipientEmail, setRecipientEmail] = useState<string>('');
 
     const queryParams = new URLSearchParams(location.search);
     const request = queryParams.get('request');
-
-    const label: string = request === 'true' ? 'Enter or search email to request documents from' : 'Enter or search email to send documents to';
 
     const toasterId = useId("toaster");
     const { dispatchToast } = useToastController(toasterId);
@@ -77,14 +89,20 @@ const SharingSessionInitiation: React.FC = () => {
         );
     }
 
-    const [selectedValue, setSelectedValue] = useState<TabValue>("recipients");
+    const [selectedTab, setSelectedTab] = useState<TabValue>("recipients-tab");
 
     const onTabSelect = (_: SelectTabEvent, data: SelectTabData) => {
-        setSelectedValue(data.value);
+        setSelectedTab(data.value);
     };
 
     const onInitiateSession = async () => {
-        setRecipientEmail('test-reciever-email2@email.com');
+
+        if (initiatingSession)
+        {
+            return;
+        }
+
+        setInitiatingSession(true);
 
         try {
             const sharingSession: SharingSessionInitiationRequest = {
@@ -128,10 +146,15 @@ const SharingSessionInitiation: React.FC = () => {
 
             setIsInitiating(true);
             const createdSharingSession = await initiateSharingSession(sharingSession, token);
-            navigate(`/sharing-sessions/${createdSharingSession.id}`);
+
+            alert("Sharing session initiated successfully");
+            console.log()
+            // navigate(`/sharing-sessions/${createdSharingSession.id}`);
+
         } catch (error) {
             console.error('Session initiation failed', error);
         } finally {
+            setInitiatingSession(false);
             setIsInitiating(false);
         }
     };
@@ -139,6 +162,11 @@ const SharingSessionInitiation: React.FC = () => {
     const addNewDocument = () => {
         setDocuments([...documents, {} as SharingSessionRequestDocumentRequest]);
     };
+
+    const onRecipientEmailChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
+    {
+        setRecipientEmail(newValue.value || '')
+    }
 
     const onSessionNameChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) => {
         setSessionName(newValue.value || '');
@@ -208,24 +236,38 @@ const SharingSessionInitiation: React.FC = () => {
         setDocuments([]);
     }
 
-    const CustomDialogTrigger = React.forwardRef<HTMLButtonElement, DialogTriggerChildProps>((props, ref) => {
+    const RenderSessionDialogTrigger = React.forwardRef<HTMLButtonElement, DialogTriggerChildProps>((props, ref) =>
+    {
         return (
             <Menu>
                 <MenuTrigger disableButtonEnhancement>
-                    <MenuButton shape="circular" appearance="primary">
+                    <MenuButton shape="circular"
+                                appearance="primary">
                         Start Sharing Session
                     </MenuButton>
                 </MenuTrigger>
                 <MenuPopover>
                     <MenuList>
                         <MenuItem>
-                            <Button size={"small"} ref={ref} {...props} appearance={"transparent"}> Request Documents </Button>
+                            <Button size={"small"}
+                                    ref={ref} {...props}
+                                    appearance={"transparent"}>
+                                Request Documents
+                            </Button>
                         </MenuItem>
                         <MenuItem>
-                            <Button size={"small"} ref={ref} {...props} appearance={"transparent"}> Send Documents </Button>
+                            <Button size={"small"}
+                                    ref={ref} {...props}
+                                    appearance={"transparent"}>
+                                Send Documents
+                            </Button>
                         </MenuItem>
                         <MenuItem>
-                            <Button size={"small"} ref={ref} {...props} appearance={"transparent"}> From template </Button>
+                            <Button size={"small"}
+                                    ref={ref} {...props}
+                                    appearance={"transparent"}>
+                                From template
+                            </Button>
                         </MenuItem>
                     </MenuList>
                 </MenuPopover>
@@ -233,8 +275,8 @@ const SharingSessionInitiation: React.FC = () => {
         );
     });
 
-    const documentsCard = () => (
-        <div id="shading-session-document-cards">
+    const renderSharingDocumentsTabContent = () => (
+        <div id="sharing-session-documents-tab-content">
             {documents.map((document, index) => (
                 <DocumentCard
                     key={index}
@@ -244,131 +286,245 @@ const SharingSessionInitiation: React.FC = () => {
                     onDocumentTypeChange={onDocumentTypeChange}
                     onRestrictDocumentTypeChange={onRestrictDocumentTypeChange}
                     onDeleteDocument={(index) => {
-                        const updatedDocuments = documents.filter((_, docIndex) => docIndex !== index);
+                        const updatedDocuments = documents
+                            .filter((_, docIndex) => docIndex !== index);
                         setDocuments(updatedDocuments);
                     }}
                 />
             ))}
             <div>
-                <Button onClick={addNewDocument} icon={<AddRegular />} appearance="subtle">
+                <Button onClick={addNewDocument}
+                        icon={<AddRegular/>}
+                        appearance="subtle">
                     Add Document
                 </Button>
             </div>
         </div>
     );
 
+    const renderSharingOptionsTabContent = () => (
+        <div id="sharing-options-tap-content">
+            <Divider alignContent="start">Session options</Divider>
+            <Field>
+                <Switch label="Require recipient sign in"
+                        onChange={onRequireSignInChange}/>
+            </Field>
+            <Divider alignContent="start">Document options</Divider>
+            <Field>
+                <Switch label="Allow document additions"
+                        checked={allowDocumentAdditions}
+                        onChange={onAllowDocumentAdditionsChange}/>
+            </Field>
+            <Field>
+                <Switch label="Allow document deletions"
+                        checked={allowDocumentDeletions}
+                        onChange={onAllowDocumentDeletionsChange}/>
+            </Field>
+            <Field>
+                <Switch label="Allow document Download"
+                        checked={allowDocumentDownload}
+                        onChange={onAllowDocumentDownloadChange}/>
+            </Field>
+            <Field>
+                <Switch label="Allow document update"
+                        checked={allowDocumentUpdate}
+                        onChange={onAllowDocumentUpdateChange}/>
+            </Field>
+            <Field>
+                <Switch label="Allow document upload"
+                        checked={allowDocumentUpload}
+                        onChange={onAllowDocumentUploadChange}/>
+            </Field>
+        </div>
+    )
+
+    const renderSessionDetailsTapContent = () => (
+        <div id="session-details-tap">
+            <Field label="Session Name" required>
+                <Input type="text"
+                       value={sessionName}
+                       required
+                       onChange={onSessionNameChange}
+                       placeholder={"Required"}/>
+            </Field>
+            <Field label="Description">
+                <Textarea onChange={onDescriptionChange}
+                          value={description}
+                          placeholder={"Optional"}/>
+            </Field>
+            <Field label="Start message">
+                <Textarea onChange={onInitialShareMessageChange}
+                          value={initialShareMessage}
+                          placeholder={"optional"}/>
+            </Field>
+        </div>
+    )
+
+    const renderSessionRecipientsTabContent = () => (
+        <div id="recipients-tab-content">
+            {/*<Divider alignContent="start">Main Recipient</Divider>*/}
+            <InfoLabel
+                info={
+                    <>
+                        The email doesn't have to be a registered user.{" "}
+                    </>
+                }>
+                {request === 'true' ?
+                    'Enter email to request documents from' :
+                    'Enter email to send documents to'}
+            </InfoLabel>
+            <Field>
+                {/*<SearchBox value={recipientEmail}/>*/}
+                <Input type="email"
+                       value={recipientEmail}
+                       onChange={onRecipientEmailChange}
+                       placeholder={"Recipient email"}/>
+            </Field>
+            {/*<Divider alignContent="start">Participants</Divider>*/}
+        </div>)
+
+    const renderSessionTabsHeader = () => (
+        <TabList selectedValue={selectedTab}
+                 onTabSelect={onTabSelect}>
+            <Tab id="recipeints"
+                 icon={<PeopleCommunityAddRegular/>}
+                 value="recipients-tab">
+                Recipients & Participants
+            </Tab>
+            <Tab id="Details"
+                 icon={<DocumentOnePageRegular/>}
+                 value="details-tab">
+                Details
+            </Tab>
+            <Tab id="Documents"
+                 icon={<DocumentBulletListMultipleRegular/>}
+                 value="documents-tab">
+                Documents
+            </Tab>
+            <Tab id="Options"
+                 icon={<OptionsRegular/>}
+                 value="options-tab">
+                Options
+            </Tab>
+        </TabList>
+    )
+
+    const renderSessionTemplateSelection = () => (
+        <div>
+            Choosing Template
+        </div>
+    )
+
+    const renderDialogTitleSection = () => (
+        <>
+            <div id="dialog-title-1">
+                {!sessionInitiatedSuccessfully &&
+                    <Text size={500}> Initiating Sharing Session </Text>
+                }
+
+                {(!choosingTemplate && !sessionInitiatedSuccessfully) &&
+                    <Button appearance={"outline"} size={"small"} onClick={() => setChoosingTemplate(true)}>
+                        Choose Template
+                    </Button>
+                }
+                {choosingTemplate &&
+                    <Button appearance={"primary"} size={"small"}
+                            onClick={() => setChoosingTemplate(false)}>
+                        Cancel template selection
+                    </Button>
+                }
+            </div>
+            {choosingTemplate && renderSessionTemplateSelection()}
+            {(!choosingTemplate && !sessionInitiatedSuccessfully) && renderSessionTabsHeader()}
+        </>
+    )
+
+    const renderDialogActions = () => (
+        <>
+            <DialogTrigger>
+                <Button appearance="transparent"
+                        onClick={onCancelInitiation}>
+                    {(!choosingTemplate && sessionInitiatedSuccessfully) &&
+
+                        "Close"
+                    }
+                    {(!choosingTemplate && !sessionInitiatedSuccessfully) &&
+
+                        "Cancel"
+                    }
+                </Button>
+            </DialogTrigger>
+
+            {(!choosingTemplate && sessionInitiatedSuccessfully) &&
+                <Button appearance={"primary"}
+                        onClick={() =>
+                        {
+                            setSessionInitiatedSuccessfully(false);
+                            onCancelInitiation();
+                        }}>
+                    Create Another
+                </Button>
+            }
+
+            {(!choosingTemplate && !sessionInitiatedSuccessfully) &&
+                <Button onClick={onInitiateSession}
+                        disabled={isInitiating}
+                        appearance={"primary"}
+                        shape={"circular"}
+                        className={"button-w-loading"}
+                        icon={<CheckmarkCircleRegular/>}>
+                    {
+                        !initiatingSession &&
+                        <>
+                            Start Session
+                        </>
+                    }
+                    {
+                        initiatingSession &&
+                        <>
+                            <Spinner size={"extra-small"}/>
+                            Starting Session
+                        </>
+                    }
+                </Button>
+            }
+        </>
+    )
+
     return (
         <Dialog modalType="alert">
             <DialogTrigger disableButtonEnhancement>
-                <CustomDialogTrigger />
+                <RenderSessionDialogTrigger/>
             </DialogTrigger>
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle id="dialog-title">
-                        <div id="dialog-title-1">
-                            <Text size={500}> Initiating Sharing Session </Text>
-                            {!choosingTemplate &&
-                                <Button appearance={"outline"} size={"small"} onClick={() => setChoosingTemplate(true)}>
-                                    Choose Template
-                                </Button>
-                            }
-                            {choosingTemplate &&
-                                <Button appearance={"primary"} size={"small"} onClick={() => setChoosingTemplate(false)}>
-                                    Cancel template selection
-                                </Button>
-                            }
-                        </div>
-                        {choosingTemplate &&
-                            <div>
-                                Choosing Template
-                            </div>
-                        }
-                        {!choosingTemplate &&
-                            <TabList selectedValue={selectedValue} onTabSelect={onTabSelect}>
-                                <Tab id="recipeints" icon={<PeopleCommunityAddRegular />} value="recipients">
-                                    Recipients & Participants
-                                </Tab>
-                                <Tab id="Details" icon={<DocumentOnePageRegular />} value="details">
-                                    Details
-                                </Tab>
-                                <Tab id="Documents" icon={<DocumentBulletListMultipleRegular />} value="documents">
-                                    Documents
-                                </Tab>
-                                <Tab id="Options" icon={<OptionsRegular />} value="options">
-                                    Options
-                                </Tab>
-                            </TabList>
-                        }
+                        {renderDialogTitleSection()}
                     </DialogTitle>
                     <DialogContent>
-                        {choosingTemplate &&
-                            <div>
-                                Choosing Template
+                        {sessionInitiatedSuccessfully &&
+                            <div id="sharing-session-initiation-success">
+                                    <Text size={500}> Sharing Session initiated successfully </Text>
+                                    <Text size={300}> {sessionName} </Text>
+                                    <Button appearance={"outline"}> View </Button>
                             </div>
                         }
-                        {!choosingTemplate &&
-                            <div id="sharing-session-initiation-taps">
-                                {selectedValue === "recipients" && <div>
-                                    <Field label={label}>
-                                        <SearchBox />
-                                    </Field>
-                                </div>}
-                                {selectedValue === "details" &&
-                                    <div id="session-details-tap">
-                                        <Field label="Session Name" required>
-                                            <Input type="text" value={sessionName} required onChange={onSessionNameChange} placeholder={"Required"} />
-                                        </Field>
-                                        <Field label="Description">
-                                            <Textarea onChange={onDescriptionChange} value={description} placeholder={"Optional"} />
-                                        </Field>
-                                        <Field label="Start message">
-                                            <Textarea onChange={onInitialShareMessageChange} value={initialShareMessage} placeholder={"optional"} />
-                                        </Field>
+                        {!sessionInitiatedSuccessfully &&
+                            <>
+                                {choosingTemplate && renderSessionTemplateSelection()}
+                                {!choosingTemplate &&
+                                    <div id="sharing-session-initiation-taps">
+                                        {selectedTab === "recipients-tab" && renderSessionRecipientsTabContent()}
+                                        {selectedTab === "details-tab" && renderSessionDetailsTapContent()}
+                                        {selectedTab === "documents-tab" && renderSharingDocumentsTabContent()}
+                                        {selectedTab === "options-tab" && renderSharingOptionsTabContent()}
                                     </div>
                                 }
-                                {selectedValue === "documents" &&
-                                    <div>
-                                        {documentsCard()}
-                                    </div>
-                                }
-                                {selectedValue === "options" &&
-                                    <div id="sharing-options-tap-content">
-                                        <Divider alignContent="start">Session options</Divider>
-                                        <Field>
-                                            <Switch label="Require recipient sign in" onChange={onRequireSignInChange} />
-                                        </Field>
-                                        <Divider alignContent="start">Document options</Divider>
-                                        <Field>
-                                            <Switch label="Allow document additions" onChange={onAllowDocumentAdditionsChange} />
-                                        </Field>
-                                        <Field>
-                                            <Switch label="Allow document deletions" onChange={onAllowDocumentDeletionsChange} />
-                                        </Field>
-                                        <Field>
-                                            <Switch label="Allow document Download" onChange={onAllowDocumentDownloadChange} />
-                                        </Field>
-                                        <Field>
-                                            <Switch label="Allow document update" onChange={onAllowDocumentUpdateChange} />
-                                        </Field>
-                                        <Field>
-                                            <Switch label="Allow document upload" onChange={onAllowDocumentUploadChange} />
-                                        </Field>
-                                    </div>
-                                }
-                            </div>
+                            </>
                         }
                     </DialogContent>
                     <DialogActions>
-                        <DialogTrigger>
-                            <Button appearance="transparent" onClick={onCancelInitiation}>
-                                Cancel
-                            </Button>
-                        </DialogTrigger>
-                        {!choosingTemplate &&
-                            <Button onClick={onInitiateSession} disabled={isInitiating} appearance={"primary"} shape={"circular"} icon={<CheckmarkCircleRegular />}>
-                                Start Session
-                            </Button>
-                        }
+                        {renderDialogActions()}
                     </DialogActions>
                 </DialogBody>
             </DialogSurface>

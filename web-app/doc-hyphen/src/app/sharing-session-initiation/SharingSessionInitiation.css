@@ -16,7 +16,7 @@
     padding-top: 16px;
 }
 
-#shading-session-document-cards
+#sharing-session-documents-tab-content
 {
     display: flex;
     gap: 16px;
@@ -53,4 +53,21 @@
     display: flex;
     gap: 16px;
     flex-direction: column;
+}
+
+#recipients-tab-content
+{
+    display: flex;
+    flex-direction: column;
+    gap: 16px
+}
+
+#sharing-session-initiation-success
+{
+    min-height: 200px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 16px;
 }
