@@ -244,9 +244,9 @@ export interface DownloadSharingSessionDocumentRequest
 export interface SharingSessionRequestDocumentRequest
 {
     title: string;
-    restrictedType?: DocumentType;
+    restrictedType?: DocumentType | ImageType;
     type?: DocumentType;
-    restrictType?: DocumentType;
+    restrictType?: boolean;
 }
 
 export interface SharingSessionParticipantRequest
