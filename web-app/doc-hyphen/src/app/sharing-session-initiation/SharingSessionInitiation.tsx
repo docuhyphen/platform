@@ -71,7 +71,7 @@ const SharingSessionInitiation: React.FC = () => {
     const [allowDocumentUpdate, setAllowDocumentUpdate] = useState<boolean>(false);
     const [allowDocumentUpload, setAllowDocumentUpload] = useState<boolean>(false);
     const [initiatingSession, setInitiatingSession] = useState<boolean>(false);
-    const [sessionInitiatedSuccessfully, setSessionInitiatedSuccessfully] = useState<boolean>(true);
+    const [sessionInitiatedSuccessfully, setSessionInitiatedSuccessfully] = useState<boolean>(false);
     const [documents, setDocuments] = useState<SharingSessionRequestDocumentRequest[]>([]);
     const [recipientEmail, setRecipientEmail] = useState<string>('');
 
@@ -443,6 +443,7 @@ const SharingSessionInitiation: React.FC = () => {
         <>
             <DialogTrigger>
                 <Button appearance="transparent"
+                        disabled={initiatingSession}
                         onClick={onCancelInitiation}>
                     {(!choosingTemplate && sessionInitiatedSuccessfully) &&
 
@@ -468,11 +469,9 @@ const SharingSessionInitiation: React.FC = () => {
 
             {(!choosingTemplate && !sessionInitiatedSuccessfully) &&
                 <Button onClick={onInitiateSession}
-                        disabled={isInitiating}
                         appearance={"primary"}
                         shape={"circular"}
-                        className={"button-w-loading"}
-                        icon={<CheckmarkCircleRegular/>}>
+                        className={"button-w-loading"}>
                     {
                         !initiatingSession &&
                         <>
