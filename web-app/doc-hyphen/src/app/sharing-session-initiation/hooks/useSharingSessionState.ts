@@ -18,6 +18,7 @@ const useSharingSessionState = () => {
     const [documents, setDocuments] = useState<SharingSessionRequestDocumentRequest[]>([]);
     const [recipientEmail, setRecipientEmail] = useState<string>('');
     const [selectedTab, setSelectedTab] = useState<string>("recipients-tab");
+    const [messageGroupMessages, setMessageGroupMessages] = useState<Array<string, sintrg>>([]);
 
     return {
         choosingTemplate, setChoosingTemplate,
@@ -35,7 +36,8 @@ const useSharingSessionState = () => {
         sessionInitiatedSuccessfully, setSessionInitiatedSuccessfully,
         documents, setDocuments,
         recipientEmail, setRecipientEmail,
-        selectedTab, setSelectedTab
+        selectedTab, setSelectedTab,
+        messageGroupMessages, setMessageGroupMessages
     };
 };
 

@@ -9,14 +9,21 @@ import {
     DialogSurface,
     DialogTitle,
     DialogTrigger,
+    MessageBar,
+    MessageBarActions,
+    MessageBarBody,
+    MessageBarGroup,
+    Toast,
+    Toaster,
+    ToastTitle,
     useId,
     useToastController,
 } from "@fluentui/react-components";
 import useToken from "../../context/useToken.tsx";
-import { useLocation } from "react-router-dom";
-import { initiateSharingSession } from "../../services/api.ts";
+import {useLocation} from "react-router-dom";
+import {initiateSharingSession} from "../../services/api.ts";
 import useSharingSessionState from './hooks/useSharingSessionState.ts';
-import { handleInputChange, handleCheckboxChange, handleDocumentChange } from './components/formHandlers.tsx';
+import {handleCheckboxChange, handleDocumentChange, handleInputChange} from './components/formHandlers.tsx';
 import SharingSessionRecipientsTab from "./components/SessionRecipientsTab.tsx";
 import SharingDocumentsTab from "./components/SessionDocumentsTab.tsx";
 import SessionDetailsTab from "./components/SessionDetailsTab.tsx";
@@ -24,6 +31,7 @@ import SharingOptionsTab from "./components/SessionOptionsTab.tsx";
 import SessionDialogActions from "./components/SessionDialogActions.tsx";
 import SessionDialogTrigger from "./components/SessionDialogTrigger.tsx";
 import SessionDialogTitleSection from "./components/SessionDialogTitleSection.tsx";
+import {DismissRegular} from "@fluentui/react-icons";
 
 const SharingSessionInitiation: React.FC = () => {
     const token = useToken();
@@ -44,13 +52,14 @@ const SharingSessionInitiation: React.FC = () => {
         sessionInitiatedSuccessfully, setSessionInitiatedSuccessfully,
         documents, setDocuments,
         recipientEmail, setRecipientEmail,
-        selectedTab, setSelectedTab
+        selectedTab, setSelectedTab,
+        messageGroupMessages, setMessageGroupMessages,
     } = useSharingSessionState();
 
     const queryParams = new URLSearchParams(location.search);
     const request = queryParams.get('request');
 
-    const toasterId = useId("toaster");
+    const toasterId = useId("toasterrr");
 
     const { dispatchToast } = useToastController(toasterId);
 
@@ -58,17 +67,13 @@ const SharingSessionInitiation: React.FC = () => {
         dispatchToast(
             <Toast>
                 <ToastTitle> {message}</ToastTitle>
-            </Toast>, { intent: 'warning' },
+            </Toast>, {intent: 'warning', timeout: 15000},
         );
     }
 
     const onInitiateSession = async () => {
-        if (initiatingSession) return;
 
-        if (!recipientEmail) {
-            alert('Recipient email is required');
-            return;
-        }
+        if (initiatingSession) return;
 
         setInitiatingSession(true);
 
@@ -88,7 +93,9 @@ const SharingSessionInitiation: React.FC = () => {
             };
 
             if (!sessionName) {
-                showFormWarningToast('Session name is required');
+
+                setMessageGroupMessages(['Session name is required']);
+                setSelectedTab('details-tab');
                 return;
             }
 
@@ -148,6 +155,25 @@ const SharingSessionInitiation: React.FC = () => {
                             selectedTab={selectedTab}
                             onTabSelect={(_, data) => setSelectedTab(data.value)}
                         />
+                        {messageGroupMessages &&
+                            <MessageBarGroup>
+                                {messageGroupMessages.map((message, index) => (
+                                    <MessageBar key={index} intent={"warning"}>
+                                        <MessageBarBody>
+                                            {message}
+                                        </MessageBarBody>
+                                        <MessageBarActions
+                                            containerAction={
+                                                <Button
+                                                    onClick={() => setMessageGroupMessages(messageGroupMessages.filter((_, i) => i !== index))}
+                                                    appearance="transparent"
+                                                    icon={<DismissRegular/>}/>
+                                            }
+                                        />
+                                    </MessageBar>
+                                ))}
+                            </MessageBarGroup>
+                        }
                     </DialogTitle>
                     <DialogContent>
                         {sessionInitiatedSuccessfully ? (
@@ -219,6 +245,7 @@ const SharingSessionInitiation: React.FC = () => {
                             onInitiateSession={onInitiateSession}
                         />
                     </DialogActions>
+                    <Toaster inline toasterId={toasterId} position="bottom"/>
                 </DialogBody>
             </DialogSurface>
         </Dialog>
