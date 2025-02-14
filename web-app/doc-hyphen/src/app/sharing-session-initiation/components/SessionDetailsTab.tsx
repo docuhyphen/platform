@@ -1,9 +1,10 @@
-import React, { ChangeEvent } from 'react';
+import React, {ChangeEvent} from 'react';
 import {Field, Input, InputOnChangeData, Textarea} from "@fluentui/react-components";
 
 interface SessionDetailsTabProps {
     sessionName: string;
     description: string;
+    setMessageGroupMessages: (messages: string[]) => void;
     initialShareMessage: string;
     onSessionNameChange: (e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) => void;
     onDescriptionChange: (e: ChangeEvent<HTMLTextAreaElement>, newValue: InputOnChangeData) => void;
@@ -16,7 +17,8 @@ const SessionDetailsTab: React.FC<SessionDetailsTabProps> = ({
     initialShareMessage,
     onSessionNameChange,
     onDescriptionChange,
-    onInitialShareMessageChange
+                                                                 onInitialShareMessageChange,
+                                                                 setMessageGroupMessages
 }) => {
     return (
         <div id="session-details-tap">
@@ -24,7 +26,12 @@ const SessionDetailsTab: React.FC<SessionDetailsTabProps> = ({
                 <Input type="text"
                        value={sessionName}
                        required
-                       onChange={onSessionNameChange}
+                       onChange={(e, data) =>
+                       {
+                           onSessionNameChange(e, data);
+                           setMessageGroupMessages([]);
+                       }
+                       }
                        placeholder={"Required"}/>
             </Field>
             <Field label="Description">

@@ -131,7 +131,7 @@ class SharingSessionRequestDocumentRequest
     var title: String = ""
     var restrictedType: DocumentType? = null
     var type: DocumentType? = null
-    var restrictType: DocumentType? = null
+    var restrictType: Boolean = false
 }
 
 @Serializable

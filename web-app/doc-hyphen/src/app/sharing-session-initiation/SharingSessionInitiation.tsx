@@ -62,13 +62,15 @@ const SharingSessionInitiation: React.FC = () =>
 
     const { dispatchToast } = useToastController(toasterId);
 
-    const showFormWarningToast = (message: string) => {
+    const showServerErrorToast = (message: string) =>
+    {
         dispatchToast(
             <Toast>
                 <ToastTitle> {message}</ToastTitle>
-            </Toast>, {intent: 'warning', timeout: 15000},
+            </Toast>, {intent: 'error', timeout: 15000},
         );
     }
+
     const handleRequestingDocumentsChange = (isRequesting: boolean) =>
     {
         setRequestingDocuments(isRequesting);
@@ -76,33 +78,23 @@ const SharingSessionInitiation: React.FC = () =>
 
     const onInitiateSession = async () => {
 
-        if (initiatingSession) return;
+        if (initiatingSession)
+        {
+            return;
+        }
 
         setInitiatingSession(true);
 
         try {
-            const sharingSession = {
-                sessionName,
-                description,
-                recipientEmail,
-                initialShareMessage,
-                sessionDocuments: documents,
-                requestRecipientSignIn: requireSignIn,
-                allowDocumentAddition: allowDocumentAdditions,
-                allowDocumentDeletion: allowDocumentDeletions,
-                allowDocumentDownload: allowDocumentDownload,
-                allowDocumentUpdate: allowDocumentUpdate,
-                allowDocumentUpload: allowDocumentUpload
-            };
 
-            if (!sessionName) {
-
+            if (!recipientEmail)
+            {
                 setMessageGroupMessages(['A valid recipient email is required']);
                 setSelectedTab('recipients-tab');
                 return;
             }
 
-            if (!recipientEmail)
+            if (!sessionName)
             {
 
                 setMessageGroupMessages(['Session name is required']);
@@ -112,6 +104,8 @@ const SharingSessionInitiation: React.FC = () =>
 
             if (requestingDocuments && documents.length === 0)
             {
+                setMessageGroupMessages(['At least one document is required when requesting documents']);
+                setSelectedTab('documents-tab');
                 return;
             }
 
@@ -128,25 +122,51 @@ const SharingSessionInitiation: React.FC = () =>
                 return;
             }
 
-            // sharingSession.sessionDocuments.forEach(doc => doc.restrictType = undefined);
+            const sharingSession = {
+                sessionName,
+                description,
+                recipientEmail,
+                initialShareMessage,
+                sessionDocuments: documents,
+                requestRecipientSignIn: requireSignIn,
+                allowDocumentAddition: allowDocumentAdditions,
+                allowDocumentDeletion: allowDocumentDeletions,
+                allowDocumentDownload: allowDocumentDownload,
+                allowDocumentUpdate: allowDocumentUpdate,
+                allowDocumentUpload: allowDocumentUpload
+            };
 
-            setIsInitiating(true);
             const createdSharingSession = await initiateSharingSession(sharingSession, token);
 
             alert("Sharing session initiated successfully");
             // navigate(`/sharing-sessions/${createdSharingSession.id}`);
 
         } catch (error) {
-            console.error('Session initiation failed', error);
-        } finally {
+
+            let errorMessage = error.response?.data || error.message;
+
+            if (!errorMessage)
+            {
+                errorMessage = "An error unknown occurred while initiating the sharing session";
+            }
+
+            showServerErrorToast(errorMessage);
+
+        }
+        finally
+        {
             setInitiatingSession(false);
-            setIsInitiating(false);
         }
     };
 
-    const addNewDocument = () => setDocuments([...documents, {} as any]);
+    const addNewDocument = () =>
+    {
+        setMessageGroupMessages([]);
+        setDocuments([...documents, {} as any]);
+    }
 
     const onCancelInitiation = () => {
+        setRecipientEmail('');
         setSessionName('');
         setDescription('');
         setInitialShareMessage('');
@@ -173,7 +193,12 @@ const SharingSessionInitiation: React.FC = () =>
                             choosingTemplate={choosingTemplate}
                             setChoosingTemplate={setChoosingTemplate}
                             selectedTab={selectedTab}
-                            onTabSelect={(_, data) => setSelectedTab(data.value)}
+                            onTabSelect={(_, data) =>
+                            {
+                                setMessageGroupMessages([]);
+                                setSelectedTab(data.value)
+                            }
+                            }
                         />
                         {messageGroupMessages &&
                             <MessageBarGroup id={"error-messages-group"}>
@@ -224,15 +249,32 @@ const SharingSessionInitiation: React.FC = () =>
                                                 onSessionNameChange={handleInputChange(setSessionName)}
                                                 onDescriptionChange={handleInputChange(setDescription)}
                                                 onInitialShareMessageChange={handleInputChange(setInitialShareMessage)}
+                                                setMessageGroupMessages={setMessageGroupMessages}
                                             />
                                         )}
                                         {selectedTab === "documents-tab" && (
                                             <SharingDocumentsTab
                                                 documents={documents}
-                                                onDocumentNameChange={(index, value) => handleDocumentChange(documents, setDocuments)(index, 'title', value)}
-                                                onDocumentTypeChange={(index, value) => handleDocumentChange(documents, setDocuments)(index, 'restrictedType', value)}
-                                                onRestrictDocumentTypeChange={(index, ev) => handleDocumentChange(documents, setDocuments)(index, 'restrictType', ev.target.checked)}
-                                                onDeleteDocument={(index) => setDocuments(documents.filter((_, i) => i !== index))}
+                                                onDocumentNameChange={(index, value) =>
+                                                {
+                                                    setMessageGroupMessages([]);
+                                                    handleDocumentChange(documents, setDocuments)(index, 'title', value)
+                                                }}
+                                                onDocumentTypeChange={(index, value) =>
+                                                {
+                                                    setMessageGroupMessages([]);
+                                                    handleDocumentChange(documents, setDocuments)(index, 'restrictedType', value)
+                                                }}
+                                                onRestrictDocumentTypeChange={(index, ev) =>
+                                                {
+                                                    setMessageGroupMessages([]);
+                                                    handleDocumentChange(documents, setDocuments)(index, 'restrictType', ev.target.checked)
+                                                }}
+                                                onDeleteDocument={(index) =>
+                                                {
+                                                    setMessageGroupMessages([]);
+                                                    setDocuments(documents.filter((_, i) => i !== index))
+                                                }}
                                                 addNewDocument={addNewDocument}
                                             />
                                         )}
@@ -263,7 +305,7 @@ const SharingSessionInitiation: React.FC = () =>
                             sessionInitiatedSuccessfully={sessionInitiatedSuccessfully}
                             choosingTemplate={choosingTemplate}
                             onCancelInitiation={onCancelInitiation}
-                            onInitiateSession={onInitiateSession}
+                            onInitiateSession={() => onInitiateSession()}
                         />
                     </DialogActions>
                     <Toaster inline toasterId={toasterId} position="bottom"/>
