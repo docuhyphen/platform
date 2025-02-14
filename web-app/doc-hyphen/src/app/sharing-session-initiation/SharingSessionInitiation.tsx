@@ -95,25 +95,40 @@ const SharingSessionInitiation: React.FC = () =>
                 allowDocumentUpload: allowDocumentUpload
             };
 
-            console.log(sessionName)
             if (!sessionName) {
 
-                setMessageGroupMessages(['Session name is required']);
+                setMessageGroupMessages(['A valid recipient email is required']);
                 setSelectedTab('recipients-tab');
                 return;
             }
 
-            if (documents.some(doc => !doc.title)) {
-                showFormWarningToast('All documents must have names');
+            if (!recipientEmail)
+            {
+
+                setMessageGroupMessages(['Session name is required']);
+                setSelectedTab('details-tab');
+                return;
+            }
+
+            if (requestingDocuments && documents.length === 0)
+            {
+                return;
+            }
+
+            if (documents.some(doc => !doc.title))
+            {
+                setMessageGroupMessages(['All documents must have names']);
+                setSelectedTab('documents-tab');
                 return;
             }
 
             if (documents.some(doc => doc.restrictType && !doc.restrictedType)) {
-                showFormWarningToast('All restricted documents must have a type');
+                setMessageGroupMessages(['All restricted documents must have a type']);
+                setSelectedTab('documents-tab');
                 return;
             }
 
-            sharingSession.sessionDocuments.forEach(doc => doc.restrictType = undefined);
+            // sharingSession.sessionDocuments.forEach(doc => doc.restrictType = undefined);
 
             setIsInitiating(true);
             const createdSharingSession = await initiateSharingSession(sharingSession, token);
