@@ -19,6 +19,7 @@ const useSharingSessionState = () => {
     const [recipientEmail, setRecipientEmail] = useState<string>('');
     const [selectedTab, setSelectedTab] = useState<string>("recipients-tab");
     const [messageGroupMessages, setMessageGroupMessages] = useState<Array<string, sintrg>>([]);
+    const [requestingDocuments, setRequestingDocuments] = useState<boolean>(true);
 
     return {
         choosingTemplate, setChoosingTemplate,
@@ -37,7 +38,8 @@ const useSharingSessionState = () => {
         documents, setDocuments,
         recipientEmail, setRecipientEmail,
         selectedTab, setSelectedTab,
-        messageGroupMessages, setMessageGroupMessages
+        messageGroupMessages, setMessageGroupMessages,
+        requestingDocuments, setRequestingDocuments
     };
 };
 

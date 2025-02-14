@@ -24,7 +24,6 @@ import {useLocation} from "react-router-dom";
 import {initiateSharingSession} from "../../services/api.ts";
 import useSharingSessionState from './hooks/useSharingSessionState.ts';
 import {handleCheckboxChange, handleDocumentChange, handleInputChange} from './components/formHandlers.tsx';
-import SharingSessionRecipientsTab from "./components/SessionRecipientsTab.tsx";
 import SharingDocumentsTab from "./components/SessionDocumentsTab.tsx";
 import SessionDetailsTab from "./components/SessionDetailsTab.tsx";
 import SharingOptionsTab from "./components/SessionOptionsTab.tsx";
@@ -32,8 +31,10 @@ import SessionDialogActions from "./components/SessionDialogActions.tsx";
 import SessionDialogTrigger from "./components/SessionDialogTrigger.tsx";
 import SessionDialogTitleSection from "./components/SessionDialogTitleSection.tsx";
 import {DismissRegular} from "@fluentui/react-icons";
+import SessionRecipientsTab from "./components/SessionRecipientsTab.tsx";
 
-const SharingSessionInitiation: React.FC = () => {
+const SharingSessionInitiation: React.FC = () =>
+{
     const token = useToken();
     const location = useLocation();
     const {
@@ -54,10 +55,8 @@ const SharingSessionInitiation: React.FC = () => {
         recipientEmail, setRecipientEmail,
         selectedTab, setSelectedTab,
         messageGroupMessages, setMessageGroupMessages,
+        requestingDocuments, setRequestingDocuments
     } = useSharingSessionState();
-
-    const queryParams = new URLSearchParams(location.search);
-    const request = queryParams.get('request');
 
     const toasterId = useId("toasterrr");
 
@@ -70,6 +69,10 @@ const SharingSessionInitiation: React.FC = () => {
             </Toast>, {intent: 'warning', timeout: 15000},
         );
     }
+    const handleRequestingDocumentsChange = (isRequesting: boolean) =>
+    {
+        setRequestingDocuments(isRequesting);
+    };
 
     const onInitiateSession = async () => {
 
@@ -92,10 +95,11 @@ const SharingSessionInitiation: React.FC = () => {
                 allowDocumentUpload: allowDocumentUpload
             };
 
+            console.log(sessionName)
             if (!sessionName) {
 
                 setMessageGroupMessages(['Session name is required']);
-                setSelectedTab('details-tab');
+                setSelectedTab('recipients-tab');
                 return;
             }
 
@@ -143,20 +147,21 @@ const SharingSessionInitiation: React.FC = () => {
     return (
         <Dialog modalType="alert">
             <DialogTrigger disableButtonEnhancement>
-                <SessionDialogTrigger />
+                <SessionDialogTrigger onRequestingDocumentsChange={handleRequestingDocumentsChange}/>
             </DialogTrigger>
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle id="dialog-title">
                         <SessionDialogTitleSection
                             sessionInitiatedSuccessfully={sessionInitiatedSuccessfully}
+                            requestingDocuments={requestingDocuments}
                             choosingTemplate={choosingTemplate}
                             setChoosingTemplate={setChoosingTemplate}
                             selectedTab={selectedTab}
                             onTabSelect={(_, data) => setSelectedTab(data.value)}
                         />
                         {messageGroupMessages &&
-                            <MessageBarGroup>
+                            <MessageBarGroup id={"error-messages-group"}>
                                 {messageGroupMessages.map((message, index) => (
                                     <MessageBar key={index} intent={"warning"}>
                                         <MessageBarBody>
@@ -189,10 +194,11 @@ const SharingSessionInitiation: React.FC = () => {
                                 ) : (
                                     <div id="sharing-session-initiation-taps">
                                         {selectedTab === "recipients-tab" && (
-                                            <SharingSessionRecipientsTab
+                                            <SessionRecipientsTab
+                                                requestingDocuments={requestingDocuments}
                                                 recipientEmail={recipientEmail}
+                                                setMessageGroupMessages={setMessageGroupMessages}
                                                 onRecipientEmailChange={handleInputChange(setRecipientEmail)}
-                                                request={request}
                                             />
                                         )}
                                         {selectedTab === "details-tab" && (

@@ -2,7 +2,11 @@ import React from 'react';
 import { Menu, MenuButton, MenuItem, MenuList, MenuPopover, MenuTrigger } from "@fluentui/react-components";
 import { Button, DialogTriggerChildProps } from "@fluentui/react-components";
 
-const SessionDialogTrigger = React.forwardRef<HTMLButtonElement, DialogTriggerChildProps>((props, ref) => {
+interface SessionDialogTriggerProps extends DialogTriggerChildProps {
+    onRequestingDocumentsChange: (isRequesting: boolean) => void;
+}
+
+const SessionDialogTrigger = React.forwardRef<HTMLButtonElement, SessionDialogTriggerProps>(({ onRequestingDocumentsChange, ...props }, ref) => {
     return (
         <Menu>
             <MenuTrigger disableButtonEnhancement>
@@ -12,19 +16,14 @@ const SessionDialogTrigger = React.forwardRef<HTMLButtonElement, DialogTriggerCh
             </MenuTrigger>
             <MenuPopover>
                 <MenuList>
-                    <MenuItem>
+                    <MenuItem onClick={() => onRequestingDocumentsChange(true)}>
                         <Button size={"small"} ref={ref} {...props} appearance={"transparent"}>
                             Request Documents
                         </Button>
                     </MenuItem>
-                    <MenuItem>
+                    <MenuItem onClick={() => onRequestingDocumentsChange(false)}>
                         <Button size={"small"} ref={ref} {...props} appearance={"transparent"}>
                             Send Documents
-                        </Button>
-                    </MenuItem>
-                    <MenuItem>
-                        <Button size={"small"} ref={ref} {...props} appearance={"transparent"}>
-                            From template
                         </Button>
                     </MenuItem>
                 </MenuList>

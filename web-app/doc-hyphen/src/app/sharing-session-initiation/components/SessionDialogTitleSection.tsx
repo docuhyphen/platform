@@ -1,11 +1,17 @@
 import React from 'react';
-import { Button, Text } from "@fluentui/react-components";
-import { TabList, Tab, TabValue } from "@fluentui/react-components";
-import { PeopleCommunityAddRegular, DocumentOnePageRegular, DocumentBulletListMultipleRegular, OptionsRegular } from "@fluentui/react-icons";
+import {Button, Tab, TabList, TabValue, Text} from "@fluentui/react-components";
+import {
+    DismissRegular,
+    DocumentBulletListMultipleRegular,
+    DocumentOnePageRegular,
+    OptionsRegular,
+    PeopleCommunityAddRegular
+} from "@fluentui/react-icons";
 
 interface DialogTitleSectionProps {
     sessionInitiatedSuccessfully: boolean;
     choosingTemplate: boolean;
+    requestingDocuments: boolean;
     setChoosingTemplate: (value: boolean) => void;
     selectedTab: TabValue;
     onTabSelect: (event: any, data: any) => void;
@@ -14,6 +20,7 @@ interface DialogTitleSectionProps {
 const SessionDialogTitleSection: React.FC<DialogTitleSectionProps> = ({
     sessionInitiatedSuccessfully,
     choosingTemplate,
+    requestingDocuments,
     setChoosingTemplate,
     selectedTab,
     onTabSelect
@@ -22,16 +29,24 @@ const SessionDialogTitleSection: React.FC<DialogTitleSectionProps> = ({
         <>
             <div id="dialog-title-1">
                 {!sessionInitiatedSuccessfully &&
-                    <Text size={500}> Initiating Sharing Session </Text>
+                    <Text size={500}>
+                        Initiating Sharing Session (
+                        <em>{(requestingDocuments) ? "Requesting" : "Sending"}
+                        </em>)
+                    </Text>
                 }
 
                 {(!choosingTemplate && !sessionInitiatedSuccessfully) &&
-                    <Button appearance={"outline"} size={"small"} onClick={() => setChoosingTemplate(true)}>
+                    <Button appearance={"outline"}
+                            size={"small"}
+                            onClick={() => setChoosingTemplate(true)}>
                         Choose Template
                     </Button>
                 }
                 {choosingTemplate &&
-                    <Button appearance={"primary"} size={"small"} onClick={() => setChoosingTemplate(false)}>
+                    <Button appearance={"primary"}
+                            icon={<DismissRegular/>}
+                            size={"small"} onClick={() => setChoosingTemplate(false)}>
                         Cancel template selection
                     </Button>
                 }
