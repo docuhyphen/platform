@@ -2,7 +2,7 @@ import React from 'react';
 import {Button, InputOnChangeData} from "@fluentui/react-components";
 import { AddRegular } from "@fluentui/react-icons";
 import {DocumentType, ImageType, SharingSessionRequestDocumentRequest} from "../../models/models.tsx";
-import DocumentCard from "../DocumentCard.tsx";
+import SessionDocumentsCard from "./SessionDocumentsCard.tsx";
 
 interface SharingDocumentsTabProps {
     documents: SharingSessionRequestDocumentRequest[];
@@ -24,7 +24,7 @@ const SharingDocumentsTab: React.FC<SharingDocumentsTabProps> = ({
     return (
         <div id="sharing-session-documents-tab-content">
             {documents.map((document, index) => (
-                <DocumentCard
+                <SessionDocumentsCard
                     key={index}
                     document={document}
                     index={index}

@@ -1,7 +1,7 @@
 import React from 'react';
 import {Button, Card, Dropdown, Field, Input, Option, OptionGroup, Switch} from "@fluentui/react-components";
 import {DeleteRegular} from "@fluentui/react-icons";
-import {DocumentType, ImageType, SharingSessionRequestDocumentRequest} from "../models/models.tsx";
+import {DocumentType, ImageType, SharingSessionRequestDocumentRequest} from "../../models/models.tsx";
 
 interface DocumentCardProps
 {
@@ -13,7 +13,7 @@ interface DocumentCardProps
     onDeleteDocument: (index: number) => void;
 }
 
-const DocumentCard: React.FC<DocumentCardProps> = ({
+const SessionDocumentsCard: React.FC<DocumentCardProps> = ({
                                                        document,
                                                        index,
                                                        onDocumentNameChange,
@@ -71,4 +71,4 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
     </Card>
 );
 
-export default DocumentCard;
+export default SessionDocumentsCard;
