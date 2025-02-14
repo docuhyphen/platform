@@ -162,7 +162,11 @@ const SharingSessionInitiation: React.FC = () =>
     const addNewDocument = () =>
     {
         setMessageGroupMessages([]);
-        setDocuments([...documents, {} as any]);
+        setDocuments([...documents, {
+            title: '',
+            restrictedType: 'PDF',
+            restrictType: true
+        } as any]);
     }
 
     const onCancelInitiation = () => {
@@ -273,7 +277,21 @@ const SharingSessionInitiation: React.FC = () =>
                                                 onDeleteDocument={(index) =>
                                                 {
                                                     setMessageGroupMessages([]);
-                                                    setDocuments(documents.filter((_, i) => i !== index))
+                                                    setDocuments(prevDocuments =>
+                                                    {
+                                                        console.log("prevDocuments", prevDocuments);
+
+                                                        const updatedDocuments = prevDocuments.filter((_, i) => i !== index);
+
+                                                        updatedDocuments.map((doc, i) => ({
+                                                            ...doc,
+                                                            restrictedType: prevDocuments[i].restrictedType
+                                                        }));
+
+                                                        console.log("updatedDocuments", updatedDocuments);
+
+                                                        return updatedDocuments
+                                                    });
                                                 }}
                                                 addNewDocument={addNewDocument}
                                             />

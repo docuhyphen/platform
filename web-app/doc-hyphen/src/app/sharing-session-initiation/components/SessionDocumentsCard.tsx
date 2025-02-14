@@ -48,6 +48,11 @@ const SessionDocumentsCard: React.FC<DocumentCardProps> = ({
                 </Field>
                 <Dropdown disabled={!document.restrictType}
                           appearance={"underline"}
+                          onChange={() => {
+
+                              console.log("onchange", document);
+                          }}
+                          value={document.restrictedType}
                           size={"small"}
                           placeholder={"Select document type to restrict"}
                           onOptionSelect={(_e, data) => onDocumentTypeChange(index, data.optionValue as any)}>
