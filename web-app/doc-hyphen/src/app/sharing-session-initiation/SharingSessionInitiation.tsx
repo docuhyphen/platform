@@ -102,7 +102,7 @@ const SharingSessionInitiation: React.FC = () =>
                 return;
             }
 
-            if (requestingDocuments && documents.length === 0)
+            if (documents.length === 0)
             {
                 setMessageGroupMessages(['At least one document is required when requesting documents']);
                 setSelectedTab('documents-tab');
@@ -122,12 +122,17 @@ const SharingSessionInitiation: React.FC = () =>
                 return;
             }
 
+
+
             const sharingSession = {
                 sessionName,
                 description,
                 recipientEmail,
                 initialShareMessage,
-                sessionDocuments: documents,
+                sessionDocuments: documents.map((doc, i) => ({
+                    ...doc,
+                    restrictedType: doc.restrictType ? doc.restrictedType : undefined
+                })),
                 requestRecipientSignIn: requireSignIn,
                 allowDocumentAddition: allowDocumentAdditions,
                 allowDocumentDeletion: allowDocumentDeletions,
@@ -147,7 +152,7 @@ const SharingSessionInitiation: React.FC = () =>
 
             if (!errorMessage)
             {
-                errorMessage = "An error unknown occurred while initiating the sharing session";
+                errorMessage = "An error unknown occurred while initiating sharing session";
             }
 
             showServerErrorToast(errorMessage);
