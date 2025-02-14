@@ -15,8 +15,8 @@ import {
 import useToken from "../../context/useToken.tsx";
 import { useLocation } from "react-router-dom";
 import { initiateSharingSession } from "../../services/api.ts";
-import useSharingSessionState from './useSharingSessionState';
-import { handleInputChange, handleCheckboxChange, handleDocumentChange } from './formHandlers';
+import useSharingSessionState from './hooks/useSharingSessionState.ts';
+import { handleInputChange, handleCheckboxChange, handleDocumentChange } from './components/formHandlers.tsx';
 import SharingSessionRecipientsTab from "./components/SessionRecipientsTab.tsx";
 import SharingDocumentsTab from "./components/SessionDocumentsTab.tsx";
 import SessionDetailsTab from "./components/SessionDetailsTab.tsx";

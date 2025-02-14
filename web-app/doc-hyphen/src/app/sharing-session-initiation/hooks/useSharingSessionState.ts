@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SharingSessionRequestDocumentRequest } from '../models/models.tsx';
+import { SharingSessionRequestDocumentRequest } from '../../models/models.tsx';
 
 const useSharingSessionState = () => {
     const [choosingTemplate, setChoosingTemplate] = useState(false);
