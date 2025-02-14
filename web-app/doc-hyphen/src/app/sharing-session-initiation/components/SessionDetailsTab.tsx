@@ -1,0 +1,44 @@
+import React, { ChangeEvent } from 'react';
+import {Field, Input, InputOnChangeData, Textarea} from "@fluentui/react-components";
+
+interface SessionDetailsTabProps {
+    sessionName: string;
+    description: string;
+    initialShareMessage: string;
+    onSessionNameChange: (e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) => void;
+    onDescriptionChange: (e: ChangeEvent<HTMLTextAreaElement>, newValue: InputOnChangeData) => void;
+    onInitialShareMessageChange: (e: ChangeEvent<HTMLTextAreaElement>, newValue: InputOnChangeData) => void;
+}
+
+const SessionDetailsTab: React.FC<SessionDetailsTabProps> = ({
+    sessionName,
+    description,
+    initialShareMessage,
+    onSessionNameChange,
+    onDescriptionChange,
+    onInitialShareMessageChange
+}) => {
+    return (
+        <div id="session-details-tap">
+            <Field label="Session Name" required>
+                <Input type="text"
+                       value={sessionName}
+                       required
+                       onChange={onSessionNameChange}
+                       placeholder={"Required"}/>
+            </Field>
+            <Field label="Description">
+                <Textarea onChange={onDescriptionChange}
+                          value={description}
+                          placeholder={"Optional"}/>
+            </Field>
+            <Field label="Start message">
+                <Textarea onChange={onInitialShareMessageChange}
+                          value={initialShareMessage}
+                          placeholder={"optional"}/>
+            </Field>
+        </div>
+    );
+};
+
+export default SessionDetailsTab;
