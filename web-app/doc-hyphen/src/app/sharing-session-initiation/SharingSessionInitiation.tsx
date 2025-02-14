@@ -53,6 +53,7 @@ import {
 } from "../models/models.tsx";
 import {initiateSharingSession} from "../../services/api.ts";
 import DocumentCard from './DocumentCard';
+import SharingSessionRecipientsTab from "./components/SharingSessionRecipientsTab.tsx";
 
 const SharingSessionInitiation: React.FC = () => {
 
@@ -96,9 +97,12 @@ const SharingSessionInitiation: React.FC = () => {
     };
 
     const onInitiateSession = async () => {
+        if (initiatingSession) {
+            return;
+        }
 
-        if (initiatingSession)
-        {
+        if (!recipientEmail) {
+            alert('Recipient email is required');
             return;
         }
 
@@ -361,27 +365,12 @@ const SharingSessionInitiation: React.FC = () => {
     )
 
     const renderSessionRecipientsTabContent = () => (
-        <div id="recipients-tab-content">
-            {/*<Divider alignContent="start">Main Recipient</Divider>*/}
-            <InfoLabel
-                info={
-                    <>
-                        The email doesn't have to be a registered user.{" "}
-                    </>
-                }>
-                {request === 'true' ?
-                    'Enter email to request documents from' :
-                    'Enter email to send documents to'}
-            </InfoLabel>
-            <Field>
-                {/*<SearchBox value={recipientEmail}/>*/}
-                <Input type="email"
-                       value={recipientEmail}
-                       onChange={onRecipientEmailChange}
-                       placeholder={"Recipient email"}/>
-            </Field>
-            {/*<Divider alignContent="start">Participants</Divider>*/}
-        </div>)
+        <SharingSessionRecipientsTab
+            recipientEmail={recipientEmail}
+            onRecipientEmailChange={onRecipientEmailChange}
+            request={request}
+        />
+    )
 
     const renderSessionTabsHeader = () => (
         <TabList selectedValue={selectedTab}
