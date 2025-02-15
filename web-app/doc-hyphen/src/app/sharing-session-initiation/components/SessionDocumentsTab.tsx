@@ -21,6 +21,7 @@ const SharingDocumentsTab: React.FC<SharingDocumentsTabProps> = ({
     onDeleteDocument,
     addNewDocument
 }) => {
+
     return (
         <div id="sharing-session-documents-tab-content">
             {documents.map((document, index) => (

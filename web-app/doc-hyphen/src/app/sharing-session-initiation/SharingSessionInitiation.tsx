@@ -32,6 +32,7 @@ import SessionDialogTrigger from "./components/SessionDialogTrigger.tsx";
 import SessionDialogTitleSection from "./components/SessionDialogTitleSection.tsx";
 import {DismissRegular} from "@fluentui/react-icons";
 import SessionRecipientsTab from "./components/SessionRecipientsTab.tsx";
+import {isValidEmail} from "../../utils/helpers.ts";
 
 const SharingSessionInitiation: React.FC = () =>
 {
@@ -87,7 +88,7 @@ const SharingSessionInitiation: React.FC = () =>
 
         try {
 
-            if (!recipientEmail)
+            if (!recipientEmail || !isValidEmail(recipientEmail))
             {
                 setMessageGroupMessages(['A valid recipient email is required']);
                 setSelectedTab('recipients-tab');
@@ -96,7 +97,6 @@ const SharingSessionInitiation: React.FC = () =>
 
             if (!sessionName)
             {
-
                 setMessageGroupMessages(['Session name is required']);
                 setSelectedTab('details-tab');
                 return;
@@ -116,7 +116,8 @@ const SharingSessionInitiation: React.FC = () =>
                 return;
             }
 
-            if (documents.some(doc => doc.restrictType && !doc.restrictedType)) {
+            if (documents.some(doc => doc.restrictType && !doc.restrictedType))
+            {
                 setMessageGroupMessages(['All restricted documents must have a type']);
                 setSelectedTab('documents-tab');
                 return;
@@ -184,6 +185,7 @@ const SharingSessionInitiation: React.FC = () =>
         setAllowDocumentUpdate(false);
         setAllowDocumentUpload(false);
         setDocuments([]);
+        setSelectedTab('recipients-tab');
     };
 
     return (

@@ -1,6 +1,6 @@
 import React from 'react';
-import {Button, Card, Dropdown, Field, Input, Option, OptionGroup, Switch} from "@fluentui/react-components";
-import {DeleteRegular} from "@fluentui/react-icons";
+import {Button, Card, Dropdown, Field, Input, Option, OptionGroup, Switch, makeStyles, shorthands, tokens} from "@fluentui/react-components";
+import {AddRegular, DeleteFilled, DeleteRegular, bundleIcon} from "@fluentui/react-icons";
 import {DocumentType, ImageType, SharingSessionRequestDocumentRequest} from "../../models/models.tsx";
 
 interface DocumentCardProps
@@ -13,6 +13,13 @@ interface DocumentCardProps
     onDeleteDocument: (index: number) => void;
 }
 
+const useClasses = makeStyles({
+
+    iconDeleteFilled: {
+        color: tokens.colorPaletteRedForeground1,
+    }
+});
+
 const SessionDocumentsCard: React.FC<DocumentCardProps> = ({
                                                        document,
                                                        index,
@@ -20,8 +27,12 @@ const SessionDocumentsCard: React.FC<DocumentCardProps> = ({
                                                        onDocumentTypeChange,
                                                        onRestrictDocumentTypeChange,
                                                        onDeleteDocument
-                                                   }) => (
-    <Card key={index} className="shading-session-document-card">
+                                                   }) =>
+{
+    const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular);
+    const classes = useClasses();
+
+    return <Card key={index} className="shading-session-document-card">
         <div>
             <div id={"shading-session-document-card-header"}>
                 <Field className={"field"}>
@@ -34,7 +45,7 @@ const SessionDocumentsCard: React.FC<DocumentCardProps> = ({
                            placeholder={"Document name"}
                     />
                 </Field>
-                <Button icon={<DeleteRegular/>}
+                <Button icon={<DeleteIcon className={classes.iconDeleteFilled}/>}
                         appearance={"subtle"}
                         onClick={() => onDeleteDocument(index)}/>
             </div>
@@ -48,7 +59,8 @@ const SessionDocumentsCard: React.FC<DocumentCardProps> = ({
                 </Field>
                 <Dropdown disabled={!document.restrictType}
                           appearance={"underline"}
-                          onChange={() => {
+                          onChange={() =>
+                          {
 
                               console.log("onchange", document);
                           }}
@@ -74,6 +86,6 @@ const SessionDocumentsCard: React.FC<DocumentCardProps> = ({
             </div>
         </div>
     </Card>
-);
+};
 
 export default SessionDocumentsCard;
