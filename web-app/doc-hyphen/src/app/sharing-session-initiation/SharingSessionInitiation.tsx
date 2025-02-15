@@ -14,6 +14,7 @@ import {
     MessageBarBody,
     MessageBarGroup,
     Toast,
+    Text,
     Toaster,
     ToastTitle,
     useId,
@@ -33,6 +34,7 @@ import SessionDialogTitleSection from "./components/SessionDialogTitleSection.ts
 import {DismissRegular} from "@fluentui/react-icons";
 import SessionRecipientsTab from "./components/SessionRecipientsTab.tsx";
 import {isValidEmail} from "../../utils/helpers.ts";
+import {addNewSession} from '../observable/sharingSessionService.ts';
 
 const SharingSessionInitiation: React.FC = () =>
 {
@@ -70,7 +72,7 @@ const SharingSessionInitiation: React.FC = () =>
                 <ToastTitle> {message}</ToastTitle>
             </Toast>, {intent: 'error', timeout: 15000},
         );
-    }
+    };
 
     const handleRequestingDocumentsChange = (isRequesting: boolean) =>
     {
@@ -78,7 +80,6 @@ const SharingSessionInitiation: React.FC = () =>
     };
 
     const onInitiateSession = async () => {
-
         if (initiatingSession)
         {
             return;
@@ -90,6 +91,7 @@ const SharingSessionInitiation: React.FC = () =>
 
             if (!recipientEmail || !isValidEmail(recipientEmail))
             {
+                //toDo: check if app user isn't sending to themselves
                 setMessageGroupMessages(['A valid recipient email is required']);
                 setSelectedTab('recipients-tab');
                 return;
@@ -142,11 +144,12 @@ const SharingSessionInitiation: React.FC = () =>
 
             const createdSharingSession = await initiateSharingSession(sharingSession, token);
 
-            alert("Sharing session initiated successfully");
-            // navigate(`/sharing-sessions/${createdSharingSession.id}`);
+            addNewSession(createdSharingSession);
 
-        } catch (error) {
-
+            setSessionInitiatedSuccessfully(true);
+        }
+        catch (error)
+        {
             let errorMessage = error.response?.data || error.message;
 
             if (!errorMessage)
@@ -171,9 +174,10 @@ const SharingSessionInitiation: React.FC = () =>
             restrictedType: 'PDF',
             restrictType: true
         } as any]);
-    }
+    };
 
     const onCancelInitiation = () => {
+        setSessionInitiatedSuccessfully(false);
         setRecipientEmail('');
         setSessionName('');
         setDescription('');
@@ -205,9 +209,8 @@ const SharingSessionInitiation: React.FC = () =>
                             onTabSelect={(_, data) =>
                             {
                                 setMessageGroupMessages([]);
-                                setSelectedTab(data.value)
-                            }
-                            }
+                                setSelectedTab(data.value);
+                            }}
                         />
                         {messageGroupMessages &&
                             <MessageBarGroup id={"error-messages-group"}>
@@ -234,7 +237,6 @@ const SharingSessionInitiation: React.FC = () =>
                             <div id="sharing-session-initiation-success">
                                 <Text size={500}> Sharing Session initiated successfully </Text>
                                 <Text size={300}> {sessionName} </Text>
-                                <Button appearance={"outline"}> View </Button>
                             </div>
                         ) : (
                             <>
@@ -267,35 +269,25 @@ const SharingSessionInitiation: React.FC = () =>
                                                 onDocumentNameChange={(index, value) =>
                                                 {
                                                     setMessageGroupMessages([]);
-                                                    handleDocumentChange(documents, setDocuments)(index, 'title', value)
+                                                    handleDocumentChange(documents, setDocuments)(index, 'title', value);
                                                 }}
                                                 onDocumentTypeChange={(index, value) =>
                                                 {
                                                     setMessageGroupMessages([]);
-                                                    handleDocumentChange(documents, setDocuments)(index, 'restrictedType', value)
+                                                    handleDocumentChange(documents, setDocuments)(index, 'restrictedType', value);
                                                 }}
                                                 onRestrictDocumentTypeChange={(index, ev) =>
                                                 {
                                                     setMessageGroupMessages([]);
-                                                    handleDocumentChange(documents, setDocuments)(index, 'restrictType', ev.target.checked)
+                                                    handleDocumentChange(documents, setDocuments)(index, 'restrictType', ev.target.checked);
                                                 }}
                                                 onDeleteDocument={(index) =>
                                                 {
                                                     setMessageGroupMessages([]);
                                                     setDocuments(prevDocuments =>
                                                     {
-                                                        console.log("prevDocuments", prevDocuments);
-
                                                         const updatedDocuments = prevDocuments.filter((_, i) => i !== index);
-
-                                                        updatedDocuments.map((doc, i) => ({
-                                                            ...doc,
-                                                            restrictedType: prevDocuments[i].restrictedType
-                                                        }));
-
-                                                        console.log("updatedDocuments", updatedDocuments);
-
-                                                        return updatedDocuments
+                                                        return updatedDocuments;
                                                     });
                                                 }}
                                                 addNewDocument={addNewDocument}

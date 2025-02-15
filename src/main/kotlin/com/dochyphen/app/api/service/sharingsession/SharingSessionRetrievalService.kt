@@ -41,10 +41,12 @@ class SharingSessionRetrievalService @Inject constructor(
         val initiatedSessions = sharingSessionRepository.findByInitiatorId(appUserId!!)
         val receivedSessions = sharingSessionRepository.findByRecipientId(appUserId)
 
-        return (initiatedSessions + receivedSessions).map { session ->
-            session.apply {
-                documents = documents.filter { !it.isDeleted } as MutableList<Document>
+        return (initiatedSessions + receivedSessions)
+            .sortedByDescending { it.createdDate }
+            .map { session ->
+                session.apply {
+                    documents = documents.filter { !it.isDeleted } as MutableList<Document>
+                }
             }
-        }
     }
 }

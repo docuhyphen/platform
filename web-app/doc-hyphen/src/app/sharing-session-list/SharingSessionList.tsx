@@ -30,6 +30,7 @@ import {
 } from "@fluentui/react-icons";
 import {formatDate} from "../helpers.ts";
 import {SharingSessionBasicDto} from "../models/models.tsx";
+import {addNewSession, sharingSessionInitiationObservable} from "../observable/sharingSessionService.ts";
 
 const useStyles = makeStyles({
     caption2: typographyStyles.caption2,
@@ -82,6 +83,24 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
         fetchSharingSessions()
     }, [])
 
+    useEffect(() =>
+    {
+        addNewSession([]);
+        const subscription = sharingSessionInitiationObservable.subscribe(session =>
+        {
+            console.log("Running subscription", session);
+
+            if (session)
+            {
+                setSharingSessions(prevSessions => [session, ...prevSessions]);
+                setSelectedItems([session.id]);
+                onSelectionChange(session.id);
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
+
     const handleSelectionChange = (_, data) =>
     {
         setSelectedItems(data.selectedItems);
@@ -90,7 +109,6 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
 
     const FilterIcon = bundleIcon(FilterFilled, FilterRegular);
     const SortDownIcon = bundleIcon(ArrowSortDownLinesFilled, ArrowSortDownLinesRegular);
-    const SortUpIcon = bundleIcon(ArrowSortUpLinesFilled, ArrowSortUpLinesRegular);
 
     const onFocus = React.useCallback((event) =>
     {
