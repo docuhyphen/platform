@@ -122,8 +122,6 @@ const SharingSessionInitiation: React.FC = () =>
                 return;
             }
 
-
-
             const sharingSession = {
                 sessionName,
                 description,
