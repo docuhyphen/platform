@@ -32,7 +32,7 @@ import {
     DocumentBulletListClockRegular,
     DocumentPrintRegular,
     InfoRegular,
-    MoreVerticalRegular
+    MoreVerticalRegular, NotepadEditRegular
 } from "@fluentui/react-icons";
 import {formatDate} from "../helpers.ts";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.tsx";
@@ -170,6 +170,8 @@ const Landing: React.FC = () =>
                                                         </MenuTrigger>
                                                         <MenuPopover>
                                                             <MenuList>
+                                                                <MenuItem icon={<NotepadEditRegular/>}>Edit</MenuItem>
+                                                                <Divider/>
                                                                 <MenuItem icon={<ArrowUploadRegular/>}>Upload</MenuItem>
                                                                 <MenuItem
                                                                     icon={<ArrowDownloadRegular/>}>Download</MenuItem>
