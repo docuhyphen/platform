@@ -17,6 +17,7 @@ import {
     OptionOnSelectData,
     SelectionEvents
 } from "@fluentui/react-components";
+import {useIndividualRegistrationStyles} from "./IndividualRegistrationStyles.tsx";
 
 //ToDo: change this based on country
 const idTypes = [
@@ -27,6 +28,8 @@ const idTypes = [
 
 const IndividualRegistration: React.FC = () =>
 {
+    const styles = useIndividualRegistrationStyles();
+
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [identificationNumber, setIdentificationNumber] = useState('');
@@ -139,8 +142,7 @@ const IndividualRegistration: React.FC = () =>
                 validationState={"none"}
                 validationMessage={""}>
 
-                <Dropdown id="idType"
-                          onOptionSelect={onIdTypeSelect}>
+                <Dropdown onOptionSelect={onIdTypeSelect}>
                     {
                         idTypes.map((option) => (
                             <Option key={option.key} value={option.key}>
