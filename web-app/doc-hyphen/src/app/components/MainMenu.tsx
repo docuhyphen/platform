@@ -19,14 +19,9 @@ import {
 import {useAuth} from '../../context/AuthContext';
 import SignOutButton from '../components/SignOutButton';
 import SharingSessionInitiation from "../sharing-session-initiation/SharingSessionInitiation.tsx";
-import {
-    AlertRegular,
-    ArrowExitRegular,
-    ChannelShareRegular, InfoRegular,
-    PersonSettingsRegular,
-    SettingsRegular
-} from "@fluentui/react-icons";
+import {AlertRegular, ArrowExitRegular, ChannelShareRegular, InfoRegular, SettingsRegular} from "@fluentui/react-icons";
 import AppLogo from "./app-logo/AppLogo.tsx";
+import {useGlobalStyles} from "../../GlobalStyles.tsx";
 
 const MainMenu: React.FC = () => {
     const { appUser, appUserPersonCompany } = useAuth();
@@ -48,10 +43,12 @@ const MainMenu: React.FC = () => {
         setIsDialogOpen(true);
     };
 
+    const styles = useGlobalStyles();
+
     return (
-        <section id="main-app-header">
+        <section className={styles.mainAppHeader}>
             <AppLogo/>
-            <section id="main-app-header-mid-section">
+            <section className={styles.mainAppHeaderMidSection}>
                 {!appUserPersonCompany &&
                     <Button onClick={() => navigate('/onboarding/company-registration')}>
                         Register Company

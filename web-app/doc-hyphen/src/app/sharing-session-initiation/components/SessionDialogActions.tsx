@@ -1,5 +1,6 @@
 import React from 'react';
 import {Button, DialogTrigger, Spinner} from "@fluentui/react-components";
+import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 
 interface DialogActionsProps {
     initiatingSession: boolean;
@@ -16,6 +17,9 @@ const SessionDialogActions: React.FC<DialogActionsProps> = ({
     onCancelInitiation,
     onInitiateSession
 }) => {
+
+    const styles = useGlobalStyles()
+
     return (
         <>
             <DialogTrigger>
@@ -39,7 +43,7 @@ const SessionDialogActions: React.FC<DialogActionsProps> = ({
                     onClick={onInitiateSession}
                     appearance="primary"
                     shape="circular"
-                    className="button-w-loading"
+                    className={styles.buttonWithLoading}
                 >
                     {!initiatingSession ? "Start Session" : (
                         <>

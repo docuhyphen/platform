@@ -28,7 +28,7 @@ export const useGlobalStyles = makeStyles({
     },
     mainAppSection: {
         width: "100%",
-        height: "calc(100% - 60px)",
+        height: "100%",
         paddingTop: "60px",
         boxSizing: "border-box",
         background: "#f5f5f5",
