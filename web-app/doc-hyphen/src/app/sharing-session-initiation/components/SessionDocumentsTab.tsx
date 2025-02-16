@@ -16,13 +16,14 @@ interface SessionDocumentsTabProps
 }
 
 const SessionDocumentsTab: React.FC<SessionDocumentsTabProps> = ({
-    documents,
-    onDocumentNameChange,
-    onDocumentTypeChange,
-    onRestrictDocumentTypeChange,
-    onDeleteDocument,
-    addNewDocument
-}) => {
+                                                                     documents,
+                                                                     onDocumentNameChange,
+                                                                     onDocumentTypeChange,
+                                                                     onRestrictDocumentTypeChange,
+                                                                     onDeleteDocument,
+                                                                     addNewDocument
+                                                                 }) =>
+{
     const styles = useSharingSessionInitiationStyles();
 
     return (
@@ -38,7 +39,7 @@ const SessionDocumentsTab: React.FC<SessionDocumentsTabProps> = ({
                     onDeleteDocument={onDeleteDocument}
                 />
             ))}
-            <Button onClick={addNewDocument} icon={<AddRegular />} appearance="subtle">
+            <Button onClick={addNewDocument} icon={<AddRegular/>} appearance="subtle">
                 Add Document
             </Button>
         </div>

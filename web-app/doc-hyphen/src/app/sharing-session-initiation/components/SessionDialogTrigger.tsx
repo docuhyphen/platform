@@ -7,7 +7,11 @@ interface SessionDialogTriggerProps
     onRequestingDocumentsChange: (isRequesting: boolean) => void;
 }
 
-const SessionDialogTrigger = React.forwardRef<HTMLButtonElement, SessionDialogTriggerProps>(({ onRequestingDocumentsChange, ...props }, ref) => {
+const SessionDialogTrigger = React.forwardRef<HTMLButtonElement, SessionDialogTriggerProps>(({
+                                                                                                 onRequestingDocumentsChange,
+                                                                                                 ...props
+                                                                                             }, ref) =>
+{
     const styles = useSharingSessionInitiationStyles();
 
     return (

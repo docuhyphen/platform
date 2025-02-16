@@ -1,6 +1,6 @@
 import React from 'react';
-import { Spinner } from "@fluentui/react-components";
-import { usePreLandingStyles } from './PreLandingStyles';
+import {Spinner} from "@fluentui/react-components";
+import {usePreLandingStyles} from './PreLandingStyles';
 
 const PreLanding: React.FC = () => {
     const styles = usePreLandingStyles();

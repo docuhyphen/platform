@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Text } from "@fluentui/react-components";
-import { useCarouselStyles } from './CarouselStyles';
+import React, {useEffect, useRef, useState} from 'react';
+import {Text} from "@fluentui/react-components";
+import {useCarouselStyles} from './CarouselStyles';
 
 interface Slide {
     title: string;

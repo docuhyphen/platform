@@ -2,7 +2,8 @@ import React, {ChangeEvent} from 'react';
 import {Field, InfoLabel, Input, InputOnChangeData} from "@fluentui/react-components";
 import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
 
-interface SessionRecipientsTabProps {
+interface SessionRecipientsTabProps
+{
     recipientEmail: string;
     onRecipientEmailChange: (e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) => void;
     requestingDocuments: boolean | null;

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import {Navigate} from 'react-router-dom';
+import {useAuth} from '../../context/AuthContext';
 
 const RedirectIfAuthenticated: React.FC<{ element: React.ReactElement }> = ({ element }) => {
     const { token } = useAuth();

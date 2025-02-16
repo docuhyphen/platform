@@ -9,7 +9,8 @@ import {
 } from "@fluentui/react-icons";
 import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
 
-interface DialogTitleSectionProps {
+interface DialogTitleSectionProps
+{
     sessionInitiatedSuccessfully: boolean;
     choosingTemplate: boolean;
     requestingDocuments: boolean;
@@ -19,13 +20,14 @@ interface DialogTitleSectionProps {
 }
 
 const SessionDialogTitleSection: React.FC<DialogTitleSectionProps> = ({
-    sessionInitiatedSuccessfully,
-    choosingTemplate,
-    requestingDocuments,
-    setChoosingTemplate,
-    selectedTab,
-    onTabSelect
-}) => {
+                                                                          sessionInitiatedSuccessfully,
+                                                                          choosingTemplate,
+                                                                          requestingDocuments,
+                                                                          setChoosingTemplate,
+                                                                          selectedTab,
+                                                                          onTabSelect
+                                                                      }) =>
+{
     const styles = useSharingSessionInitiationStyles();
 
     return (
@@ -57,16 +59,16 @@ const SessionDialogTitleSection: React.FC<DialogTitleSectionProps> = ({
             {choosingTemplate && <div>Choosing Template</div>}
             {(!choosingTemplate && !sessionInitiatedSuccessfully) &&
                 <TabList selectedValue={selectedTab} onTabSelect={onTabSelect}>
-                    <Tab id="recipients" icon={<PeopleCommunityAddRegular />} value="recipients-tab">
+                    <Tab id="recipients" icon={<PeopleCommunityAddRegular/>} value="recipients-tab">
                         Recipients & Participants
                     </Tab>
-                    <Tab id="details" icon={<DocumentOnePageRegular />} value="details-tab">
+                    <Tab id="details" icon={<DocumentOnePageRegular/>} value="details-tab">
                         Details
                     </Tab>
-                    <Tab id="documents" icon={<DocumentBulletListMultipleRegular />} value="documents-tab">
+                    <Tab id="documents" icon={<DocumentBulletListMultipleRegular/>} value="documents-tab">
                         Documents
                     </Tab>
-                    <Tab id="options" icon={<OptionsRegular />} value="options-tab">
+                    <Tab id="options" icon={<OptionsRegular/>} value="options-tab">
                         Options
                     </Tab>
                 </TabList>

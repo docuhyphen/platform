@@ -1,7 +1,7 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from "@fluentui/react-components";
-import { useHomeStyles } from './HomeStyles';
+import {useNavigate} from 'react-router-dom';
+import {Button} from "@fluentui/react-components";
+import {useHomeStyles} from './HomeStyles';
 
 const Home: React.FC = () => {
     const navigate = useNavigate();

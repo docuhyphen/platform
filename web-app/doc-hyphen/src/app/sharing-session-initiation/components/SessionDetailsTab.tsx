@@ -1,7 +1,8 @@
 import React, {ChangeEvent} from 'react';
 import {Field, Input, InputOnChangeData, Textarea} from "@fluentui/react-components";
 
-interface SessionDetailsTabProps {
+interface SessionDetailsTabProps
+{
     sessionName: string;
     description: string;
     setMessageGroupMessages: (messages: string[]) => void;
@@ -12,14 +13,15 @@ interface SessionDetailsTabProps {
 }
 
 const SessionDetailsTab: React.FC<SessionDetailsTabProps> = ({
-    sessionName,
-    description,
-    initialShareMessage,
-    onSessionNameChange,
-    onDescriptionChange,
+                                                                 sessionName,
+                                                                 description,
+                                                                 initialShareMessage,
+                                                                 onSessionNameChange,
+                                                                 onDescriptionChange,
                                                                  onInitialShareMessageChange,
                                                                  setMessageGroupMessages
-}) => {
+                                                             }) =>
+{
     const handleSessionNameChange = (e: ChangeEvent<HTMLInputElement>, data: InputOnChangeData) =>
     {
         onSessionNameChange(e, data);

@@ -2,7 +2,8 @@ import React from 'react';
 import {Button, DialogTrigger, Spinner} from "@fluentui/react-components";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 
-interface DialogActionsProps {
+interface DialogActionsProps
+{
     initiatingSession: boolean;
     sessionInitiatedSuccessfully: boolean;
     choosingTemplate: boolean;
@@ -11,12 +12,13 @@ interface DialogActionsProps {
 }
 
 const SessionDialogActions: React.FC<DialogActionsProps> = ({
-    initiatingSession,
-    sessionInitiatedSuccessfully,
-    choosingTemplate,
-    onCancelInitiation,
-    onInitiateSession
-}) => {
+                                                                initiatingSession,
+                                                                sessionInitiatedSuccessfully,
+                                                                choosingTemplate,
+                                                                onCancelInitiation,
+                                                                onInitiateSession
+                                                            }) =>
+{
 
     const styles = useGlobalStyles()
 
