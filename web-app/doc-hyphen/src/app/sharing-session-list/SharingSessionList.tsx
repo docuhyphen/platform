@@ -18,7 +18,6 @@ import {
     Spinner,
     Tooltip
 } from "@fluentui/react-components";
-import "./SharingSessionList.css"
 import {
     ArrowSortDownLinesFilled,
     ArrowSortDownLinesRegular,
@@ -29,7 +28,7 @@ import {
 import {formatDate} from "../helpers.ts";
 import {SharingSessionBasicDto} from "../models/models.tsx";
 import {sharingSessionInitiationObservable} from "../observable/sharingSessionService.ts";
-import {useSharingSessionStyles} from "./Style.tsx";
+import {useSharingSessionStyles} from "./SharingSessionListStyles.tsx";
 
 interface SharingSessionListProps
 {
@@ -112,14 +111,14 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
 
     const listItemCard = (session: SharingSessionBasicDto) =>
     {
-        return <div className={"list-card"}>
-            <section className={"list-card-item"}>
+        return <div className={styles.listCard}>
+            <section className={styles.listCardItem}>
                 <span>
                     <Avatar name={session.recipientEmail}/>
                 </span>
-                <span className={"list-card-item-details"}>
+                <span className={styles.listCardItemDetails}>
                     <div className={styles.caption1}>{session.recipientEmail}</div>
-                    <div className={"list-card-item-row"}>
+                    <div className={styles.listCardItemRow}>
                         <div className={styles.body1Strong}>{session.sessionName}</div>
                         <div className={styles.caption2}>{formatDate(session.createdDate)}</div>
                     </div>
@@ -133,14 +132,14 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
 
     const listItemCardSkeleton = () =>
     {
-        return <div className={"list-card"}>
-            <section className={"list-card-item"}>
+        return <div className={styles.listCard}>
+            <section className={styles.listCardItem}>
                 <span>
                     <SkeletonItem shape="circle" size={36}/>
                 </span>
-                <span className={"list-card-item-details"}>
+                <span className={styles.listCardItemDetails}>
                     <SkeletonItem size={12} className={styles.skeletonRecipientEmail}/>
-                    <div className={"list-card-item-row"}>
+                    <div className={styles.listCardItemRow}>
                         <SkeletonItem size={20}  className={styles.skeletonSessionName}/>
                         <SkeletonItem size={16}  className={styles.skeletonCreatedDate}/>
                     </div>
@@ -153,9 +152,9 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
     }
 
     return (
-        <section id={"sharing-sessions-list-container"}>
+        <section className={styles.sharingSessionsListContainer}>
             <List
-                id={"sharing-sessions-list-body"}
+                className={styles.sharingSessionsListBody}
                 selectionMode="single"
                 navigationMode="composite"
                 selectedItems={selectedItems}
@@ -164,7 +163,7 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                 {loadingSharingSessions && Array.from({length: 10}).map((_, index) => (
                     <>
                         <ListItem
-                            className={index === 2 ? "sharing-sessions-list-selected-item" : ""}
+                            className={index === 2 ? styles.sharingSessionsListSelectedItem : ""}
                             key={index}
                             value={index.toString()}
                             data-value={index.toString()}
@@ -178,7 +177,7 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                 {!loadingSharingSessions && sharingSessions.map((session: SharingSessionBasicDto) => (
                     <>
                         <ListItem
-                            className={selectedItems.includes(session.id) ? "sharing-sessions-list-selected-item" : ""}
+                            className={selectedItems.includes(session.id) ? styles.sharingSessionsListSelectedItem : ""}
                             key={session.id}
                             value={session.id}
                             data-value={session.id}
@@ -190,8 +189,8 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                     </>
                 ))}
             </List>
-            <div id={"sharing-sessions-list-header"}>
-                <Field id={"filter-search-field"}>
+            <div className={styles.sharingSessionsListHeader}>
+                <Field className={styles.filterSearchField}>
                     <SearchBox/>
                 </Field>
                 <Menu>
@@ -227,7 +226,7 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                     </MenuPopover>
                 </Menu>
             </div>
-            <div id={"sharing-sessions-list-footer"}>
+            <div className={styles.sharingSessionsListFooter}>
                 <span>
                     {
                         loadingSharingSessions &&
