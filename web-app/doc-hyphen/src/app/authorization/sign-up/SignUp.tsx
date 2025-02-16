@@ -1,6 +1,4 @@
 import React, {ChangeEvent, useState} from 'react';
-import './SignUp.css';
-import '../Authorization.css'
 import {completeSignUp, initiateSignUp, regenerateSignUpOtp} from "../../../services/api.ts";
 import {ResponseError} from "../../../services/models/models.tsx";
 import {useNavigate} from "react-router-dom";
@@ -22,10 +20,16 @@ import {
 import {DismissRegular} from "@fluentui/react-icons";
 import AppLogo from "../../components/app-logo/AppLogo.tsx";
 import SignUpCarousel from "../carousel/SignUpCarousel.tsx";
+import {useSignUpStyles} from "./SignUpStyles.tsx";
+import {useAuthorizationStyles} from "../AuthorizationStyles.tsx";
+import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 
 const SignUp: React.FC = () =>
 {
     const navigate = useNavigate();
+    const signUpStyles = useSignUpStyles();
+    const authorizationStyles = useAuthorizationStyles();
+    const globalStyles = useGlobalStyles();
 
     const [formData, setFormData] = useState({
         email: '',
@@ -168,7 +172,7 @@ const SignUp: React.FC = () =>
                     size={"small"}
                     disabled={completingSignUp}
                     appearance={"transparent"}
-                    className={"button-w-loading"}>
+                    className={globalStyles.buttonWithLoading}> {/* Use GlobalStyles */}
                 {regeneratingOtp && <Spinner size={"tiny"}/>}
                 Resend OTP
             </Button>
@@ -216,84 +220,79 @@ const SignUp: React.FC = () =>
     );
 
     return (
-        <section id="auth">
-            <section id="auth-section">
-                <section id="auth-section-1">
+        <section className={authorizationStyles.auth}>
+            <section className={authorizationStyles.authSection}>
+                <section className={authorizationStyles.authSection1}>
                     <div>
                         <AppLogo/>
                     </div>
-                    {!signUpSuccessful && <>
-                        <div id="authorization-form-section">
-                            <Subtitle1 align={"center"}> Create account </Subtitle1>
-                            {renderFormErrorMessage()}
-                            <Field
-                                label={"Email"}
-                                validationState={initiationSuccessfulMsg ? "success" : "none"}
-                                validationMessage={initiationSuccessfulMsg}>
-                                <Input type="email"
-                                       name="email"
-                                       autoComplete={"false"}
-                                       value={formData.email}
-                                       onChange={handleChange}
-                                       onKeyDown={(e) => handleKeyDown(e, onInitiateSignUp)}/>
-                            </Field>
-                            {initiationSuccessful && <div id={"sign-up-completion-form"}>
-                                {renderOtpSection()}
-                                {renderPasswordsSection()}
-                                <Button onClick={onCompleteSignUp}
-                                        appearance={"primary"}
-                                        shape={"circular"}
-                                        disabled={regeneratingOtp}
-                                        className={"button-w-loading"}>
-                                    {completingSignUp && <Spinner size={"extra-small"}/>}
-                                    {completingSignUp ? "Completing sign up" : "Complete sign up"}
-                                </Button>
-                            </div>}
-                            {!initiationSuccessful &&
-                                <Button onClick={onInitiateSignUp}
-                                        appearance={"primary"}
-                                        shape={"circular"}
-                                        className={"button-w-loading"}>
-                                    {initiatingSignUp && <Spinner size={"extra-small"}/>}
-                                    Sign Up
-                                </Button>}
-                            <div id="auth-has-account">
-                                <Caption1> Already have an account? &nbsp;
-                                    <Link onClick={() => navigate("/sign-in")}
-                                          disabled={initiatingSignUp || completingSignUp}>
-                                        <Text weight="semibold">Sign in</Text>
-                                    </Link>
-                                </Caption1>
-                            </div>
-                        </div>
-                        <span>.</span>
-                    </>}
-                    {signUpSuccessful && <>
-                        <section id={"sign-up-successful-section"}>
-                            <Text align={"center"}
-                                  size={500}
-                                  font="monospace">
-                                Sign up successful!
-                            </Text>
-                            <Text align={"center"}
-                                  size={300}>
-                                Welcome aboard, your account has been created successfully.
-                            </Text>
-                            <Text align={"center"}
-                                  italic>
-                                Your Security is our priority, remember to setup your 2FA to help us keep your account
-                                secure, also remember to keep your password safe and secure with a trusted password manager.
-                            </Text>
-                            <Button onClick={() => navigate("/sign-in")}
+                    {!signUpSuccessful && <div className={authorizationStyles.authorizationFormSection}>
+                        <Subtitle1 align={"center"}> Create account </Subtitle1>
+                        {renderFormErrorMessage()}
+                        <Field
+                            label={"Email"}
+                            validationState={initiationSuccessfulMsg ? "success" : "none"}
+                            validationMessage={initiationSuccessfulMsg}>
+                            <Input type="email"
+                                   name="email"
+                                   autoComplete={"false"}
+                                   value={formData.email}
+                                   onChange={handleChange}
+                                   onKeyDown={(e) => handleKeyDown(e, onInitiateSignUp)}/>
+                        </Field>
+                        {initiationSuccessful && <div className={signUpStyles.signUpCompletionForm}>
+                            {renderOtpSection()}
+                            {renderPasswordsSection()}
+                            <Button onClick={onCompleteSignUp}
                                     appearance={"primary"}
-                                    shape={"circular"}>
-                                Sign In
+                                    shape={"circular"}
+                                    disabled={regeneratingOtp}
+                                    className={globalStyles.buttonWithLoading}> {/* Use GlobalStyles */}
+                                {completingSignUp && <Spinner size={"extra-small"}/>}
+                                {completingSignUp ? "Completing sign up" : "Complete sign up"}
                             </Button>
-                        </section>
-                        <div>.</div>
-                    </>}
+                        </div>}
+                        {!initiationSuccessful &&
+                            <Button onClick={onInitiateSignUp}
+                                    appearance={"primary"}
+                                    shape={"circular"}
+                                    className={globalStyles.buttonWithLoading}> {/* Use GlobalStyles */}
+                                {initiatingSignUp && <Spinner size={"extra-small"}/>}
+                                Sign Up
+                            </Button>}
+                        <div className={signUpStyles.authHasAccount}>
+                            <Caption1> Already have an account? &nbsp;
+                                <Link onClick={() => navigate("/sign-in")}
+                                      disabled={initiatingSignUp || completingSignUp}>
+                                    <Text weight="semibold">Sign in</Text>
+                                </Link>
+                            </Caption1>
+                        </div>
+                    </div>}
+                    {signUpSuccessful && <div className={signUpStyles.signUpSuccessfulSection}>
+                        <Text align={"center"}
+                              size={500}
+                              font="monospace">
+                            Sign up successful!
+                        </Text>
+                        <Text align={"center"}
+                              size={300}>
+                            Welcome aboard, your account has been created successfully.
+                        </Text>
+                        <Text align={"center"}
+                              italic>
+                            Your Security is our priority, remember to setup your 2FA to help us keep your account
+                            secure, also remember to keep your password safe and secure with a trusted password manager.
+                        </Text>
+                        <Button onClick={() => navigate("/sign-in")}
+                                appearance={"primary"}
+                                shape={"circular"}>
+                            Sign In
+                        </Button>
+                    </div>}
+                    <div>.</div>
                 </section>
-                <section id="auth-section-2">
+                <section className={authorizationStyles.authSection2}>
                     <SignUpCarousel/>
                 </section>
             </section>
