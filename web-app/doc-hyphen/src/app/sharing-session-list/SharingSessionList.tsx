@@ -55,8 +55,29 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
             if (Array.isArray(response) && response.length)
             {
                 setSharingSessions(response);
-                setSelectedItems([response[0].id]);
-                onSelectionChange(response[0].id);
+
+                const urlParams = new URLSearchParams(window.location.search);
+                const sessionId = urlParams.get('s');
+
+                if (sessionId)
+                {
+                    const sessionExists = response.some(session => session.id === sessionId);
+                    if (sessionExists)
+                    {
+                        setSelectedItems([sessionId]);
+                        onSelectionChange(sessionId);
+                    }
+                    else
+                    {
+                        setSelectedItems([response[0].id]);
+                        onSelectionChange(response[0].id);
+                    }
+                }
+                else
+                {
+                    setSelectedItems([response[0].id]);
+                    onSelectionChange(response[0].id);
+                }
             }
             else
             {
@@ -99,6 +120,10 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
     {
         setSelectedItems(data.selectedItems);
         onSelectionChange(data.selectedItems[0]);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('s', data.selectedItems[0]);
+        window.history.replaceState(null, '', `?${urlParams.toString()}`);
     };
 
     const onListItemFocus = React.useCallback((event) =>
