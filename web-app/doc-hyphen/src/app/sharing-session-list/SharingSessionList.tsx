@@ -3,7 +3,8 @@ import useToken from "../../context/useToken.tsx";
 import {fetchSignedInUserAppUserSharingSessions} from "../../services/api.ts";
 import {
     Avatar,
-    Button, Divider,
+    Button,
+    Divider,
     Field,
     List,
     ListItem,
@@ -42,6 +43,9 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
     const [sharingSessions, setSharingSessions] = useState<SharingSessionBasicDto[]>([]);
     const [loadingSharingSessions, setLoadingSharingSessions] = useState(true);
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
+
+    const FilterIcon = bundleIcon(FilterFilled, FilterRegular);
+    const SortDownIcon = bundleIcon(ArrowSortDownLinesFilled, ArrowSortDownLinesRegular);
 
     const fetchSharingSessions = async () =>
     {
@@ -98,10 +102,7 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
         onSelectionChange(data.selectedItems[0]);
     };
 
-    const FilterIcon = bundleIcon(FilterFilled, FilterRegular);
-    const SortDownIcon = bundleIcon(ArrowSortDownLinesFilled, ArrowSortDownLinesRegular);
-
-    const onFocus = React.useCallback((event) =>
+    const onListItemFocus = React.useCallback((event) =>
     {
         if (event.target !== event.currentTarget)
         {
@@ -129,7 +130,8 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
             </section>
         </div>
     }
-    const listSkeletonItemCard = () =>
+
+    const listItemCardSkeleton = () =>
     {
         return <div className={"list-card"}>
             <section className={"list-card-item"}>
@@ -168,7 +170,7 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                             data-value={index.toString()}
                             checkmark={null}
                         >
-                            {listSkeletonItemCard()}
+                            {listItemCardSkeleton()}
                         </ListItem>
                     </>
                 ))}
@@ -180,7 +182,7 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                             key={session.id}
                             value={session.id}
                             data-value={session.id}
-                            onFocus={onFocus}
+                            onFocus={onListItemFocus}
                             checkmark={null}
                         >
                             {listItemCard(session)}
