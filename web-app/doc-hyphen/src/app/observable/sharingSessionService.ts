@@ -1,4 +1,5 @@
 import {Subject} from 'rxjs';
+import {SharingSessionBasicDto} from "../models/models.tsx";
 
 const sharingSessionsSubject = new Subject<SharingSessionBasicDto>();
 

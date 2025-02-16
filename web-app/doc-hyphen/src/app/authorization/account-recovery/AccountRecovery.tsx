@@ -81,6 +81,24 @@ const AccountRecovery: React.FC = () =>
     {
         if (completingPwdReset) return;
 
+        if(!formData.otp || !formData.otp)
+        {
+            setResponseError('Please enter the OTP sent to your email address');
+            return;
+        }
+
+        if(!formData.password || !formData.password.length)
+        {
+            setResponseError('Please enter a new password');
+            return;
+        }
+
+        if(!formData.confirmationPassword || !formData.confirmationPassword.length)
+        {
+            setResponseError('Please confirm your new password');
+            return;
+        }
+
         setPwdResetSuccessfulMsg('');
         setResponseError('');
         setCompletingPwdReset(true);
@@ -124,6 +142,14 @@ const AccountRecovery: React.FC = () =>
         }
     };
 
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>, action: () => void) =>
+    {
+        if (event.key === 'Enter')
+        {
+            action();
+        }
+    };
+
     const renderFormErrorMessage = () => (
         responseErrorMessage && (
             <MessageBar intent={"error"}>
@@ -153,7 +179,8 @@ const AccountRecovery: React.FC = () =>
                        name="otp"
                        value={formData.otp}
                        autoComplete="false"
-                       onChange={handleChange}/>
+                       onChange={handleChange}
+                       onKeyDown={(e) => handleKeyDown(e, onCompletePasswordReset)}/>
             </Field>
             <Button onClick={onRegenerateOTP}
                     size={"small"}
@@ -177,6 +204,7 @@ const AccountRecovery: React.FC = () =>
                        value={formData.password}
                        disabled={regeneratingOtp}
                        onChange={handleChange}
+                       onKeyDown={(e) => handleKeyDown(e, onCompletePasswordReset)}
                        contentAfter={
                            <InfoLabel info={<>
                                <strong>Password requirements</strong>
@@ -199,7 +227,8 @@ const AccountRecovery: React.FC = () =>
                        name="confirmationPassword"
                        value={formData.confirmationPassword}
                        disabled={regeneratingOtp}
-                       onChange={handleChange}/>
+                       onChange={handleChange}
+                       onKeyDown={(e) => handleKeyDown(e, onCompletePasswordReset)}/>
             </Field>
         </>
     );
@@ -227,7 +256,8 @@ const AccountRecovery: React.FC = () =>
                                            name="email"
                                            autoComplete={"false"}
                                            value={formData.email}
-                                           onChange={handleChange}/>
+                                           onChange={handleChange}
+                                           onKeyDown={(e) => handleKeyDown(e, onInitiatePasswordReset)}/>
                                 </Field>
 
                                 {pwdResetInitiationSuccessful &&
@@ -251,7 +281,7 @@ const AccountRecovery: React.FC = () =>
                                             shape={"circular"}
                                             className={"button-w-loading"}>
                                         {initiatingPwdReset && <Spinner size={"extra-small"}/>}
-                                        Initiate Reset Password
+                                        Initiate Password Reset
                                     </Button>
                                 }
                                 <div id="auth-has-account">

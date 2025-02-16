@@ -21,7 +21,6 @@ import {
 } from "@fluentui/react-components";
 import {DismissRegular} from "@fluentui/react-icons";
 import AppLogo from "../../components/app-logo/AppLogo.tsx";
-import SignInSignUpTipsCarousel from "../carousel/SignInSignUpTipsCarousel.tsx";
 import SignUpCarousel from "../carousel/SignUpCarousel.tsx";
 
 const SignUp: React.FC = () =>
@@ -125,6 +124,14 @@ const SignUp: React.FC = () =>
         }
     };
 
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>, action: () => void) =>
+    {
+        if (event.key === 'Enter')
+        {
+            action();
+        }
+    };
+
     const renderFormErrorMessage = () => (
         responseErrorMessage && (
             <MessageBar intent={"error"}>
@@ -154,7 +161,8 @@ const SignUp: React.FC = () =>
                        name="otp"
                        value={formData.otp}
                        autoComplete="false"
-                       onChange={handleChange}/>
+                       onChange={handleChange}
+                       onKeyDown={(e) => handleKeyDown(e, onCompleteSignUp)}/>
             </Field>
             <Button onClick={onRegenerateOTP}
                     size={"small"}
@@ -178,6 +186,7 @@ const SignUp: React.FC = () =>
                        value={formData.password}
                        disabled={regeneratingOtp}
                        onChange={handleChange}
+                       onKeyDown={(e) => handleKeyDown(e, onCompleteSignUp)}
                        contentAfter={
                            <InfoLabel info={<>
                                <strong>Password requirements</strong>
@@ -200,7 +209,8 @@ const SignUp: React.FC = () =>
                        name="confirmationPassword"
                        value={formData.confirmationPassword}
                        disabled={regeneratingOtp}
-                       onChange={handleChange}/>
+                       onChange={handleChange}
+                       onKeyDown={(e) => handleKeyDown(e, onCompleteSignUp)}/>
             </Field>
         </>
     );
@@ -224,7 +234,8 @@ const SignUp: React.FC = () =>
                                        name="email"
                                        autoComplete={"false"}
                                        value={formData.email}
-                                       onChange={handleChange}/>
+                                       onChange={handleChange}
+                                       onKeyDown={(e) => handleKeyDown(e, onInitiateSignUp)}/>
                             </Field>
                             {initiationSuccessful && <div id={"sign-up-completion-form"}>
                                 {renderOtpSection()}

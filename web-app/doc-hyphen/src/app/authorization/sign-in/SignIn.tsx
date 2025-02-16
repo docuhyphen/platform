@@ -166,6 +166,14 @@ const SignIn: React.FC = () =>
         }
     };
 
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>, action: () => void) =>
+    {
+        if (event.key === 'Enter')
+        {
+            action();
+        }
+    };
+
     const renderInitiateSignInButton = () => (
         <Button onClick={onInitiateSignIn}
                 appearance="primary"
@@ -204,7 +212,10 @@ const SignIn: React.FC = () =>
                    validationState={"none"}
                    validationMessage={""}
                    hint="Please check your email for the OTP.">
-                <Input value={otp} autoComplete="false" onChange={onOtpChange}/>
+                <Input value={otp}
+                       autoComplete="false"
+                       onChange={onOtpChange}
+                       onKeyDown={(e) => handleKeyDown(e, onCompleteSignIn)}/>
             </Field>
             <span>
                 <Button appearance="outline"
@@ -257,12 +268,22 @@ const SignIn: React.FC = () =>
 
                             {renderErrorMessage()}
 
-                            <Field label={"Email"} validationState={"none"} validationMessage={""}>
-                                <Input value={email} type="email" onChange={onEmailChange}/>
+                            <Field label={"Email"}
+                                   validationState={"none"}
+                                   validationMessage={""}>
+                                <Input value={email}
+                                       type="email"
+                                       onChange={onEmailChange}
+                                       onKeyDown={(e) => handleKeyDown(e, onInitiateSignIn)}/>
                             </Field>
 
-                            <Field label={"Password"} validationState={"none"} validationMessage={""}>
-                                <Input type="password" value={password} onChange={onPasswordChange}/>
+                            <Field label={"Password"}
+                                   validationState={"none"}
+                                   validationMessage={""}>
+                                <Input type="password"
+                                       value={password}
+                                       onChange={onPasswordChange}
+                                       onKeyDown={(e) => handleKeyDown(e, onInitiateSignIn)}/>
                             </Field>
 
                             {signInInitiationSuccessful && renderOtpSection()}
@@ -284,7 +305,7 @@ const SignIn: React.FC = () =>
 
                                 <Caption1> Don't have an account? &nbsp;
                                     <Link onClick={() => navigate("/sign-up")}
-                                    disabled={signInInitiating || signInCompleting}>
+                                          disabled={signInInitiating || signInCompleting}>
                                         <Text weight="semibold">Sign up</Text>
                                     </Link>
                                 </Caption1>
