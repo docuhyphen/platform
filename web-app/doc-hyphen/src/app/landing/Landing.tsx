@@ -137,7 +137,8 @@ const Landing: React.FC = () =>
                     <SharingSessionList onSelectionChange={setSelectedSessionId}/>
                 </div>
                 <div id="sharing-session-details-container">
-                    <div id="sharing-session-head-container">
+                    <div id="sharing-session-head-container"
+                         className={styles[`sessionHeadStatus${sessionDetails?.status || ''}`]}>
                         {(!sessionDetails || fetchingDetails) ? (
                             renderDetailsSkeleton()
                         ) : (

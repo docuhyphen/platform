@@ -3,7 +3,7 @@ import useToken from "../../context/useToken.tsx";
 import {fetchSignedInUserAppUserSharingSessions} from "../../services/api.ts";
 import {
     Avatar,
-    Button,
+    Button, Divider,
     Field,
     List,
     ListItem,
@@ -200,18 +200,30 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                     </MenuTrigger>
                     <MenuPopover>
                         <MenuList>
-                            <MenuItem icon={<FilterIcon/>}>
-                                Cut
-                            </MenuItem>
-                            <MenuItem icon={<FilterIcon/>}>
-                                Edit
-                            </MenuItem>
+                            <Divider title={"status"}/>
+                            <MenuItem> Started</MenuItem>
+                            <MenuItem> Rejected</MenuItem>
+                            <MenuItem> Ended</MenuItem>
+                            <Divider title={"status"}/>
+                            <MenuItem> Initiated by me </MenuItem>
+                            <MenuItem> Requested by other </MenuItem>
                         </MenuList>
                     </MenuPopover>
                 </Menu>
-                <Tooltip content="Sort descending" relationship={"description"}>
-                    <Button icon={<SortDownIcon/>} appearance={"subtle"}/>
-                </Tooltip>
+                <Menu>
+                    <MenuTrigger>
+                        <Tooltip content="Sort descending" relationship={"description"}>
+                            <Button icon={<SortDownIcon/>} appearance={"subtle"}/>
+                        </Tooltip>
+                    </MenuTrigger>
+                    <MenuPopover>
+                        <MenuList>
+                            <Divider title={"status"}/>
+                            <MenuItem> Date created </MenuItem>
+                            <MenuItem> Session name </MenuItem>
+                        </MenuList>
+                    </MenuPopover>
+                </Menu>
             </div>
             <div id={"sharing-sessions-list-footer"}>
                 <span>

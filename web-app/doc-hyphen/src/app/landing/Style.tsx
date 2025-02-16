@@ -1,4 +1,4 @@
-import {makeStyles,} from "@fluentui/react-components";
+import {makeStyles, tokens,} from "@fluentui/react-components";
 
 export const useSharingSessionDetailsStyles = makeStyles({
 
@@ -56,5 +56,25 @@ export const useSharingSessionDetailsStyles = makeStyles({
 
     skeletonSessionDocumentMore: {
         width: "8px",
+    },
+
+    sessionHeadStatusINITIATED: {
+        borderLeft: "5px solid",
+        borderLeftColor: tokens.colorPaletteGreenForeground1
+    },
+
+    sessionHeadStatusACCEPTED_STARTED: {
+        borderLeft: "5px solid",
+        borderLeftColor: tokens.colorPaletteBlueForeground2
+    },
+
+    sessionHeadStatusENDED: {
+        borderLeft: "5px solid",
+        borderLeftColor: tokens.colorNeutralForeground4
+    },
+
+    sessionHeadStatusREJECTED: {
+        borderLeft: "5px solid",
+        borderLeftColor: tokens.colorPaletteRedForeground1
     },
 });

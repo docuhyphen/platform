@@ -5,7 +5,6 @@ import IndividualRegistration from '../individual-registration/IndividualRegistr
 const Onboarding: React.FC = () => {
     return (
         <div>
-            <SignOutButton />
             <h1>Welcome,</h1>
             <p>Please complete your registration</p>
             <IndividualRegistration />
