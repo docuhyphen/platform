@@ -7,8 +7,8 @@ const AppLogo: React.FC = () =>
     const styles = useAppLogoStyles();
 
     return (
-        <span className={styles.appLogo}>
-            <img src={logo} alt="Doc Hyphen Logo"/>
+        <span>
+            <img src={logo} alt="Doc Hyphen Logo" className={styles.appLogo}/>
         </span>
     );
 };
