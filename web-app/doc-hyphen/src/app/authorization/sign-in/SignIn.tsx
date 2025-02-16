@@ -1,6 +1,4 @@
 import React, {useState} from 'react';
-import './SignIn.css';
-import '../Authorization.css';
 import {
     completeSignIn,
     fetchAppUser,
@@ -24,7 +22,6 @@ import {
     MessageBar,
     MessageBarActions,
     MessageBarBody,
-    MessageBarTitle,
     Spinner,
     Subtitle1,
     Text,
@@ -34,6 +31,9 @@ import {setApiClientAuthToken} from '../../../services/apiClient.ts';
 import {DismissRegular} from "@fluentui/react-icons";
 import AppLogo from "../../components/app-logo/AppLogo.tsx";
 import SignInCarousel from "../carousel/SignInCarousel.tsx";
+import {useSignInStyles} from "./SignInStyles.tsx";
+import {useAuthorizationStyles} from "../AuthorizationStyles.tsx";
+import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 
 const SignIn: React.FC = () =>
 {
@@ -48,6 +48,9 @@ const SignIn: React.FC = () =>
     const [responseErrorMessage, setResponseErrorMessage] = useState<string | undefined>('');
     const {setToken, setAppUser, setAppUserPersonCompany} = useAuth();
     const navigate = useNavigate();
+    const signInStyles = useSignInStyles();
+    const authorizationStyles = useAuthorizationStyles();
+    const globalStyles = useGlobalStyles();
 
     const onEmailChange = (_e: React.ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) => setEmail(newValue.value || '');
     const onOtpChange = (_e: React.ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) => setOtp(newValue.value || '');
@@ -177,7 +180,7 @@ const SignIn: React.FC = () =>
     const renderInitiateSignInButton = () => (
         <Button onClick={onInitiateSignIn}
                 appearance="primary"
-                className={"button-w-loading"}
+                className={globalStyles.buttonWithLoading}
                 shape={"circular"}>
             {signInInitiating &&
                 <>
@@ -192,7 +195,7 @@ const SignIn: React.FC = () =>
     const renderCompleteSignInButton = () => (
         <Button onClick={onCompleteSignIn}
                 appearance="primary"
-                className={"button-w-loading"}
+                className={globalStyles.buttonWithLoading}
                 shape={"circular"}>
             {signInCompleting &&
                 <>
@@ -222,7 +225,7 @@ const SignIn: React.FC = () =>
                         size={"small"}
                         shape={"circular"}
                         onClick={onResendOtp}
-                        className={"button-w-loading"}>
+                        className={globalStyles.buttonWithLoading}>
                     <>
                         {resendingOtp && <Spinner size={"tiny"}/>}
                         Resend OTP
@@ -254,14 +257,14 @@ const SignIn: React.FC = () =>
     return (
         <RedirectIfAuthenticated element={
 
-            <section id="auth">
-                <section id="auth-section">
-                    <section id="auth-section-1">
+            <section className={authorizationStyles.auth}>
+                <section className={authorizationStyles.authSection}>
+                    <section className={authorizationStyles.authSection1}>
                         <div>
                             <AppLogo/>
                         </div>
 
-                        <div id="authorization-form-section">
+                        <div className={authorizationStyles.authorizationFormSection}>
 
                             <Subtitle1 align={"center"}> Sign in</Subtitle1>
 
@@ -291,7 +294,7 @@ const SignIn: React.FC = () =>
 
                             {signInInitiationSuccessful && renderCompleteSignInButton()}
 
-                            <div id="auth-no-account">
+                            <div className={signInStyles.authNoAccount}>
 
                                 <Caption1> Forgot your sign in credentials? &nbsp;
                                     <Link onClick={() => navigate("/account-recovery")}
@@ -312,7 +315,7 @@ const SignIn: React.FC = () =>
                         </div>
                         <span>.</span>
                     </section>
-                    <section id="auth-section-2">
+                    <section className={authorizationStyles.authSection2}>
                         <SignInCarousel/>
                     </section>
                 </section>
