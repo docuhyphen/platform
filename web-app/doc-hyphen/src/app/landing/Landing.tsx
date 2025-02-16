@@ -2,7 +2,6 @@ import React, {useEffect, useState} from 'react';
 import SharingSessionList from "../sharing-session-list/SharingSessionList.tsx";
 import {fetchSignedInUserAppUserSharingSession} from "../../services/api.ts";
 import useToken from "../../context/useToken.tsx";
-import "./Landing.css";
 import PreLanding from "../pre-landing/PreLanding.tsx";
 import {
     Body1,
@@ -35,7 +34,7 @@ import {
 } from "@fluentui/react-icons";
 import {formatDate} from "../helpers.ts";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.tsx";
-import {useSharingSessionDetailsStyles} from "./Style.tsx";
+import {useLandingStyles} from "./LandingStyles.tsx";
 
 const useSessionDetails = (selectedSessionId: string | null, token: string | null) =>
 {
@@ -74,7 +73,7 @@ const useSessionDetails = (selectedSessionId: string | null, token: string | nul
 
 const Landing: React.FC = () =>
 {
-    const styles = useSharingSessionDetailsStyles();
+    const styles = useLandingStyles();
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const token = useToken();
@@ -101,7 +100,7 @@ const Landing: React.FC = () =>
                 <SkeletonItem size={28} className={styles.skeletonSessionName}/>
                 <SkeletonItem size={16} className={styles.skeletonSessionDescription}/>
             </div>
-            <div id="sharing-session-actions">
+            <div id="sharing-session-actions" className={styles.sharingSessionActions}>
                 <SkeletonItem shape={"square"} size={32}/>
                 <SkeletonItem shape={"square"} size={32}/>
                 <SkeletonItem shape={"square"} size={32} className={styles.skeletonSessionActionsMore}/>
@@ -115,7 +114,7 @@ const Landing: React.FC = () =>
             <p>
                 <SkeletonItem size={24} className={styles.skeletonSessionDocumentTitle}/>
             </p>
-            <div id={"documents-card-list"}>
+            <div id={"documents-card-list"} className={styles.documentsCardList}>
                 {Array.from({length: 10}).map((_, index) => (
 
                     <Card key={index} className={styles.skeletonSessionDocument}>
@@ -132,13 +131,13 @@ const Landing: React.FC = () =>
 
     return (
         isLoading ? <PreLanding/> :
-            <section id="sharing-sessions-container">
-                <div>
+            <section id="sharing-sessions-container" className={styles.sharingSessionsContainer}>
+                <div className={styles.sharingSessionsContainerDiv}>
                     <SharingSessionList onSelectionChange={setSelectedSessionId}/>
                 </div>
-                <div id="sharing-session-details-container">
+                <div id="sharing-session-details-container" className={styles.sharingSessionDetailsContainer}>
                     <div id="sharing-session-head-container"
-                         className={styles[`sessionHeadStatus${sessionDetails?.status || ''}`]}>
+                         className={`${styles.sharingSessionHeadContainer} ${styles[`sessionHeadStatus${sessionDetails?.status || ''}`]}`}>
                         {(!sessionDetails || fetchingDetails) ? (
                             renderDetailsSkeleton()
                         ) : (
@@ -155,7 +154,7 @@ const Landing: React.FC = () =>
                                         <Text size={600}>{sessionDetails.sessionName}</Text><br/>
                                         <Body1>{sessionDetails.description}</Body1>
                                     </div>
-                                    <div id="sharing-session-actions">
+                                    <div id="sharing-session-actions" className={styles.sharingSessionActions}>
                                         <Tooltip content="Session Comments" relationship="description">
                                             <Button icon={<CommentNoteRegular/>} appearance="subtle"/>
                                         </Tooltip>
@@ -189,10 +188,10 @@ const Landing: React.FC = () =>
                             <p>
                                 <Text size={400}>Session Documents</Text>
                             </p>
-                            <div id={"documents-card-list"}>
+                            <div id={"documents-card-list"} className={styles.documentsCardList}>
 
                             {sessionDetails.documents?.map((document: DocumentDetailedDto) => (
-                                    <Card key={document.id}>
+                                <Card key={document.id} className={styles.documentsCardListCard}>
                                         <CardHeader
                                             header={<Body1><b>{document.title}</b></Body1>}
                                             description={

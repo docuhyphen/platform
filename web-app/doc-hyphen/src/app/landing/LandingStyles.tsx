@@ -1,6 +1,47 @@
-import {makeStyles, tokens,} from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
 
-export const useSharingSessionDetailsStyles = makeStyles({
+export const useLandingStyles = makeStyles({
+    sharingSessionsContainer: {
+        display: "flex",
+        gap: "16px",
+        height: "100%",
+    },
+    sharingSessionsContainerDiv: {
+        padding: "18px 0",
+    },
+    sharingSessionHeadContainer: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: "8px",
+        background: "white",
+        padding: "0 16px",
+        height: "100px",
+        borderRadius: "4px",
+        borderTop: "1px solid rgba(0, 0, 0, .2)",
+        borderRight: "1px solid rgba(0, 0, 0, .2)",
+        borderBottom: "1px solid rgba(0, 0, 0, .2)",
+        boxShadow: "1px 1px 1px rgba(0, 0, 0, 0.1)",
+    },
+    sharingSessionDetailsContainer: {
+        flex: 1,
+        marginRight: "60px",
+        paddingTop: "16px",
+        paddingBottom: "16px",
+    },
+    sharingSessionActions: {
+        display: "flex",
+        gap: "8px",
+    },
+    documentsCardList: {
+        display: "flex",
+        gap: "16px",
+        flexWrap: "wrap",
+    },
+    documentsCardListCard: {
+        minWidth: "300px",
+        maxWidth: "300px",
+    },
 
     skeletonSessionDetails: {
         display: "flex",

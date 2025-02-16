@@ -146,7 +146,7 @@ class SharingSessionResource @Inject constructor(
     @Path("/{sessionId}")
     fun getSharingSession(@PathParam("sessionId") sessionId: String): Response
     {
-//        ResourceEndpointDelayHelper.delayEndpoint(2000, 4000)
+        ResourceEndpointDelayHelper.delayEndpoint(2000, 4000)
 
         return try
         {
