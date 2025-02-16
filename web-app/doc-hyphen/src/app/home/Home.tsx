@@ -1,10 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import './Home.css';
-import {Button} from "@fluentui/react-components";
+import { Button } from "@fluentui/react-components";
+import { useHomeStyles } from './HomeStyles';
 
 const Home: React.FC = () => {
     const navigate = useNavigate();
+    const styles = useHomeStyles();
 
     const onSignIn = () => {
         navigate('/sign-in');
@@ -15,10 +16,10 @@ const Home: React.FC = () => {
     };
 
     return (
-        <div>
-            <h1>Welcome to Secure Docs Share</h1>
-            <Button  onClick={onSignIn}> Sign In </Button>
-            <Button onClick={signUp}> Sign Up </Button>
+        <div className={styles.container}>
+            <h1 className={styles.heading}>Welcome to doc Hyphen</h1>
+            <Button className={styles.button} onClick={onSignIn}> Sign In </Button>
+            <Button className={styles.button} onClick={signUp}> Sign Up </Button>
         </div>
     );
 };

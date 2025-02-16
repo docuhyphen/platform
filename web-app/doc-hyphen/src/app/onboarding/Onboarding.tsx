@@ -1,16 +1,17 @@
 import React from 'react';
-import SignOutButton from "../components/SignOutButton.tsx";
 import IndividualRegistration from '../individual-registration/IndividualRegistration';
+import {useOnboardingStyles} from './OnboardingStyles';
 
 const Onboarding: React.FC = () => {
+    const styles = useOnboardingStyles();
+
     return (
-        <div>
-            <h1>Welcome,</h1>
-            <p>Please complete your registration</p>
+        <div className={styles.container}>
+            <h1 className={styles.heading}>Welcome,</h1>
+            <p className={styles.paragraph}>Please complete your registration</p>
             <IndividualRegistration />
         </div>
     );
 };
-
 
 export default Onboarding;
