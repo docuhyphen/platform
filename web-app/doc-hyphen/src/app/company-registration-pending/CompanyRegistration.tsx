@@ -1,11 +1,11 @@
 import React, {ChangeEvent, useEffect, useState} from 'react';
-import './CompanyRegistration.css';
 import {Button, Field, Input, InputOnChangeData} from "@fluentui/react-components";
 import {registerCompany} from "../../services/api.ts";
 import useToken from "../../context/useToken.tsx";
 import {Company} from "../models/models.tsx";
 import {useNavigate} from "react-router-dom";
 import {useAuth} from "../../context/AuthContext.tsx";
+import {useCompanyRegistrationStyles} from './CompanyRegistrationStyles';
 
 const CompanyRegistration: React.FC = () =>
 {
@@ -14,8 +14,8 @@ const CompanyRegistration: React.FC = () =>
     const [isRegistering, setIsRegistering] = useState(false);
     const token = useToken();
     const navigate = useNavigate();
-
     const {setAppUserPersonCompany, appUserPersonCompany} = useAuth();
+    const styles = useCompanyRegistrationStyles();
 
     useEffect(() =>
     {
@@ -66,30 +66,28 @@ const CompanyRegistration: React.FC = () =>
     return (
         <>
             {(!appUserPersonCompany) &&
-                <div>
-                    <h1>Company Registration</h1>
+                <div className={styles.container}>
+                    <h1 className={styles.heading}>Company Registration</h1>
 
                     <Field
                         label={"Company Name"}
                         validationState={"none"}
-                        validationMessage={""}>
-
-                        <Input type="text"
-                               value={companyName}
-                               onChange={onCompanyNameChange}/>
+                        validationMessage={""}
+                        className={styles.field}
+                    >
+                        <Input type="text" value={companyName} onChange={onCompanyNameChange}/>
                     </Field>
 
                     <Field
                         label={"Company Registration Number"}
                         validationState={"none"}
-                        validationMessage={""}>
-
-                        <Input type="text"
-                               value={registrationNumber}
-                               onChange={onRegistrationNumberChange}/>
+                        validationMessage={""}
+                        className={styles.field}
+                    >
+                        <Input type="text" value={registrationNumber} onChange={onRegistrationNumberChange}/>
                     </Field>
 
-                    <Button onClick={onRegisterCompany}> Register </Button>
+                    <Button className={styles.button} onClick={onRegisterCompany}> Register </Button>
                 </div>
             }
         </>
