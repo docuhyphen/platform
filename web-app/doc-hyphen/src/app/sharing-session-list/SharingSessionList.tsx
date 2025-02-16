@@ -47,18 +47,18 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
     {
         try
         {
-            // const response = await fetchSignedInUserAppUserSharingSessions(token);
-            //
-            // if (Array.isArray(response) && response.length)
-            // {
-            //     setSharingSessions(response);
-            //     setSelectedItems([response[0].id]);
-            //     onSelectionChange(response[0].id);
-            // }
-            // else
-            // {
-            //     console.error("Error fetching sharing sessions:", response);
-            // }
+            const response = await fetchSignedInUserAppUserSharingSessions(token);
+
+            if (Array.isArray(response) && response.length)
+            {
+                setSharingSessions(response);
+                setSelectedItems([response[0].id]);
+                onSelectionChange(response[0].id);
+            }
+            else
+            {
+                console.error("Error fetching sharing sessions:", response);
+            }
         }
         catch (error)
         {
@@ -66,7 +66,7 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
         }
         finally
         {
-            // setLoadingSharingSessions(false);
+            setLoadingSharingSessions(false);
         }
     }
 

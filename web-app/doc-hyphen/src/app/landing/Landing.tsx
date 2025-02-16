@@ -62,7 +62,7 @@ const useSessionDetails = (selectedSessionId: string | null, token: string | nul
                 }
                 finally
                 {
-                    // setFetchingDetails(false);
+                    setFetchingDetails(false);
                 }
             };
             fetchDetails();

@@ -98,7 +98,7 @@ class SharingSessionResource @Inject constructor(
     @GET
     fun getSharingSessions(): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(2000, 4000)
+        ResourceEndpointDelayHelper.delayEndpoint(4000, 6000)
 
         return try
         {
