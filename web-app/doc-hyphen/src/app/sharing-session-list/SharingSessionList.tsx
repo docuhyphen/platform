@@ -7,36 +7,28 @@ import {
     Field,
     List,
     ListItem,
-    makeStyles,
     Menu,
     MenuItem,
     MenuList,
     MenuPopover,
     MenuTrigger,
     SearchBox,
+    SkeletonItem,
     Spinner,
-    Tooltip,
-    typographyStyles
+    Tooltip
 } from "@fluentui/react-components";
 import "./SharingSessionList.css"
 import {
     ArrowSortDownLinesFilled,
     ArrowSortDownLinesRegular,
-    ArrowSortUpLinesFilled,
-    ArrowSortUpLinesRegular,
     bundleIcon,
     FilterFilled,
     FilterRegular
 } from "@fluentui/react-icons";
 import {formatDate} from "../helpers.ts";
 import {SharingSessionBasicDto} from "../models/models.tsx";
-import {addNewSession, sharingSessionInitiationObservable} from "../observable/sharingSessionService.ts";
-
-const useStyles = makeStyles({
-    caption2: typographyStyles.caption2,
-    caption1: typographyStyles.caption1,
-    body1Strong: typographyStyles.body1Strong,
-});
+import {sharingSessionInitiationObservable} from "../observable/sharingSessionService.ts";
+import {useSharingSessionStyles} from "./Style.tsx";
 
 interface SharingSessionListProps
 {
@@ -45,7 +37,7 @@ interface SharingSessionListProps
 
 const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChange}) =>
 {
-    const styles = useStyles();
+    const styles = useSharingSessionStyles();
     const token = useToken()
     const [sharingSessions, setSharingSessions] = useState<SharingSessionBasicDto[]>([]);
     const [loadingSharingSessions, setLoadingSharingSessions] = useState(true);
@@ -55,18 +47,18 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
     {
         try
         {
-            const response = await fetchSignedInUserAppUserSharingSessions(token);
-
-            if (Array.isArray(response) && response.length)
-            {
-                setSharingSessions(response);
-                setSelectedItems([response[0].id]);
-                onSelectionChange(response[0].id);
-            }
-            else
-            {
-                console.error("Error fetching sharing sessions:", response);
-            }
+            // const response = await fetchSignedInUserAppUserSharingSessions(token);
+            //
+            // if (Array.isArray(response) && response.length)
+            // {
+            //     setSharingSessions(response);
+            //     setSelectedItems([response[0].id]);
+            //     onSelectionChange(response[0].id);
+            // }
+            // else
+            // {
+            //     console.error("Error fetching sharing sessions:", response);
+            // }
         }
         catch (error)
         {
@@ -74,7 +66,7 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
         }
         finally
         {
-            setLoadingSharingSessions(false);
+            // setLoadingSharingSessions(false);
         }
     }
 
@@ -85,7 +77,6 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
 
     useEffect(() =>
     {
-        addNewSession([]);
         const subscription = sharingSessionInitiationObservable.subscribe(session =>
         {
             console.log("Running subscription", session);
@@ -138,6 +129,26 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
             </section>
         </div>
     }
+    const listSkeletonItemCard = () =>
+    {
+        return <div className={"list-card"}>
+            <section className={"list-card-item"}>
+                <span>
+                    <SkeletonItem shape="circle" size={36}/>
+                </span>
+                <span className={"list-card-item-details"}>
+                    <SkeletonItem size={12} className={styles.skeletonRecipientEmail}/>
+                    <div className={"list-card-item-row"}>
+                        <SkeletonItem size={20}  className={styles.skeletonSessionName}/>
+                        <SkeletonItem size={16}  className={styles.skeletonCreatedDate}/>
+                    </div>
+                    <div>
+                        <SkeletonItem size={16}  className={styles.skeletonSessionDescription}/>
+                    </div>
+                </span>
+            </section>
+        </div>
+    }
 
     return (
         <section id={"sharing-sessions-list-container"}>
@@ -146,9 +157,23 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                 selectionMode="single"
                 navigationMode="composite"
                 selectedItems={selectedItems}
-                onSelectionChange={handleSelectionChange}
-            >
-                {sharingSessions.map((session: SharingSessionBasicDto) => (
+                onSelectionChange={handleSelectionChange}>
+
+                {loadingSharingSessions && Array.from({length: 10}).map((_, index) => (
+                    <>
+                        <ListItem
+                            className={index === 2 ? "sharing-sessions-list-selected-item" : ""}
+                            key={index}
+                            value={index.toString()}
+                            data-value={index.toString()}
+                            checkmark={null}
+                        >
+                            {listSkeletonItemCard()}
+                        </ListItem>
+                    </>
+                ))}
+
+                {!loadingSharingSessions && sharingSessions.map((session: SharingSessionBasicDto) => (
                     <>
                         <ListItem
                             className={selectedItems.includes(session.id) ? "sharing-sessions-list-selected-item" : ""}

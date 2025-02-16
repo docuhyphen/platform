@@ -60,8 +60,7 @@ class PasswordResetResource @Inject constructor(
 
                 is EmailNotFoundException ->
                 {
-                    val responseError = ResponseError("No account found with the provided email.")
-                    Response.status(BAD_REQUEST).entity(responseError).build()
+                    Response.ok().build()
                 }
 
                 else ->

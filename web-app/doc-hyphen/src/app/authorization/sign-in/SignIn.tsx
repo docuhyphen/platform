@@ -236,7 +236,6 @@ const SignIn: React.FC = () =>
         responseErrorMessage && (
             <MessageBar intent={"error"}>
                 <MessageBarBody>
-                    <MessageBarTitle>Error: </MessageBarTitle>
                     {responseErrorMessage}
                 </MessageBarBody>
                 <MessageBarActions

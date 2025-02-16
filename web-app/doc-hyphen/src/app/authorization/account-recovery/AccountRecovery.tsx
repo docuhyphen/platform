@@ -62,9 +62,9 @@ const AccountRecovery: React.FC = () =>
 
         try
         {
-            const response = await initiatePasswordReset({email: formData.email});
+            await initiatePasswordReset({email: formData.email});
             setPwdResetInitiationSuccessful(true);
-            setPwdResetSuccessfulMsg(response?.message);
+            setPwdResetSuccessfulMsg("If you have an account with us, an OTP has been sent to your email address.");
         }
         catch (error)
         {

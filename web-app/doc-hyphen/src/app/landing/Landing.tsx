@@ -16,9 +16,7 @@ import {
     MenuList,
     MenuPopover,
     MenuTrigger,
-    Skeleton,
     SkeletonItem,
-    Subtitle2,
     Text,
     Tooltip
 } from "@fluentui/react-components";
@@ -32,10 +30,12 @@ import {
     DocumentBulletListClockRegular,
     DocumentPrintRegular,
     InfoRegular,
-    MoreVerticalRegular, NotepadEditRegular
+    MoreVerticalRegular,
+    NotepadEditRegular
 } from "@fluentui/react-icons";
 import {formatDate} from "../helpers.ts";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.tsx";
+import {useSharingSessionDetailsStyles} from "./Style.tsx";
 
 const useSessionDetails = (selectedSessionId: string | null, token: string | null) =>
 {
@@ -62,7 +62,7 @@ const useSessionDetails = (selectedSessionId: string | null, token: string | nul
                 }
                 finally
                 {
-                    setFetchingDetails(false);
+                    // setFetchingDetails(false);
                 }
             };
             fetchDetails();
@@ -74,6 +74,7 @@ const useSessionDetails = (selectedSessionId: string | null, token: string | nul
 
 const Landing: React.FC = () =>
 {
+    const styles = useSharingSessionDetailsStyles();
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const token = useToken();
@@ -88,6 +89,47 @@ const Landing: React.FC = () =>
         }, randomDelay);
     }, []);
 
+    const renderDetailsSkeleton = () =>
+    {
+        return <>
+            <div className={styles.skeletonSessionDetails}>
+                <div className={styles.skeletonDates}>
+                    <SkeletonItem size={16} className={styles.skeletonCreatedDate}/>
+                    <SkeletonItem size={16} className={styles.skeletonPipe}/>
+                    <SkeletonItem size={16} className={styles.skeletonEndDate}/>
+                </div>
+                <SkeletonItem size={28} className={styles.skeletonSessionName}/>
+                <SkeletonItem size={16} className={styles.skeletonSessionDescription}/>
+            </div>
+            <div id="sharing-session-actions">
+                <SkeletonItem shape={"square"} size={32}/>
+                <SkeletonItem shape={"square"} size={32}/>
+                <SkeletonItem shape={"square"} size={32} className={styles.skeletonSessionActionsMore}/>
+            </div>
+        </>
+    }
+
+    const renderDocumentsSkeleton = () =>
+    {
+        return <div>
+            <p>
+                <SkeletonItem size={24} className={styles.skeletonSessionDocumentTitle}/>
+            </p>
+            <div id={"documents-card-list"}>
+                {Array.from({length: 10}).map((_, index) => (
+
+                    <Card key={index} className={styles.skeletonSessionDocument}>
+                        <div>
+                            <SkeletonItem size={24} className={styles.skeletonSessionDocumentTitle}/>
+                            <SkeletonItem className={styles.skeletonSessionDocumentUploadDate}/>
+                        </div>
+                        <SkeletonItem shape={"square"} size={32} className={styles.skeletonSessionDocumentMore}/>
+                    </Card>
+                ))}
+            </div>
+        </div>
+    }
+
     return (
         isLoading ? <PreLanding/> :
             <section id="sharing-sessions-container">
@@ -96,11 +138,8 @@ const Landing: React.FC = () =>
                 </div>
                 <div id="sharing-session-details-container">
                     <div id="sharing-session-head-container">
-                        {fetchingDetails ? (
-                            <Skeleton>
-                                <SkeletonItem/>
-                                <SkeletonItem size={8}/>
-                            </Skeleton>
+                        {(!sessionDetails || fetchingDetails) ? (
+                            renderDetailsSkeleton()
                         ) : (
                             sessionDetails && (
                                 <>
@@ -141,13 +180,17 @@ const Landing: React.FC = () =>
                             )
                         )}
                     </div>
+
+                    {!sessionDetails && renderDocumentsSkeleton()}
+
                     {sessionDetails && (
                         <div>
                             <p>
-                                <Subtitle2>Session Documents</Subtitle2>
+                                <Text size={400}>Session Documents</Text>
                             </p>
                             <div id={"documents-card-list"}>
-                                {sessionDetails.documents?.map((document: DocumentDetailedDto) => (
+
+                            {sessionDetails.documents?.map((document: DocumentDetailedDto) => (
                                     <Card key={document.id}>
                                         <CardHeader
                                             header={<Body1><b>{document.title}</b></Body1>}
