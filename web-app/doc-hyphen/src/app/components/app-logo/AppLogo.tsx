@@ -1,11 +1,13 @@
 import React from 'react';
-import './AppLogo.css';
 import logo from "../../../assets/logo.svg";
+import {useAppLogoStyles} from "./AppLogoStyles.tsx";
 
 const AppLogo: React.FC = () =>
 {
+    const styles = useAppLogoStyles();
+
     return (
-        <span id="app-logo">
+        <span className={styles.appLogo}>
             <img src={logo} alt="Doc Hyphen Logo"/>
         </span>
     );
