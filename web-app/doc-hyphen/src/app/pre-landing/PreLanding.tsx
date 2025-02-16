@@ -1,15 +1,17 @@
 import React from 'react';
-import {Spinner} from "@fluentui/react-components";
+import { Spinner } from "@fluentui/react-components";
+import { usePreLandingStyles } from './PreLandingStyles';
 
 const PreLanding: React.FC = () => {
+    const styles = usePreLandingStyles();
+
     return (
-        <div id={"pre-loading-container"}>
+        <div className={styles.preLoadingContainer}>
             <Spinner labelPosition="after"
                      size="small"
                      label="Loading Sharing Sessions" />
         </div>
     );
 };
-
 
 export default PreLanding;

@@ -6,13 +6,11 @@ import CompanyRegistrationPending from './app/company-registration';
 import {AuthProvider} from './context/AuthContext';
 import ProtectedRoute from "./app/components/ProtectedRoutes.tsx";
 import Landing from "./app/landing/Landing.tsx";
-import SharingSession from "./app/sharing-session/SharingSession.tsx";
 import SignUp from "./app/authorization/sign-up";
 import RedirectIfAuthenticated from "./app/components/RedirectIfAuthenticated.tsx";
 import NotFound from './app/NotFound.tsx';
 import Onboarding from "./app/onboarding/Onboarding.tsx";
 import Settings from "./app/settings/Settings.tsx";
-import Profile from "./app/profile/Profile.tsx";
 import CompanyRegistration from "./app/company-registration-pending/CompanyRegistration.tsx";
 import AccountRecovery from "./app/authorization/account-recovery";
 
@@ -62,12 +60,7 @@ const App: React.FC = () => {
                                <ProtectedRoute path='/sign-in' element={<CompanyRegistrationPending/>}/>
                            }/>
 
-                    <Route path="/sharing-sessions/:id"
-                           element={
-                               <ProtectedRoute path='/sign-in' element={
-                                   <SharingSession/>
-                               }/>
-                           }/>
+
 
                     <Route path="/landing"
                            element={
@@ -79,11 +72,6 @@ const App: React.FC = () => {
                     <Route path="/settings"
                            element={
                                <ProtectedRoute path='/sign-in' element={<Settings/>}/>
-                           }/>
-
-                    <Route path="/profile"
-                           element={
-                               <ProtectedRoute path='/sign-in' element={<Profile/>}/>
                            }/>
 
                     <Route path="*"
