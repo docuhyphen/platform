@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import './Carousel.css';
 import { Text } from "@fluentui/react-components";
+import { useCarouselStyles } from './CarouselStyles';
 
 interface Slide {
     title: string;
@@ -14,6 +14,7 @@ interface CarouselProps {
 const SignInSignUpTipsCarousel: React.FC<CarouselProps> = ({ slides }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const styles = useCarouselStyles();
 
     const startAutoPlay = () => {
         intervalRef.current = setInterval(() => {
@@ -34,23 +35,23 @@ const SignInSignUpTipsCarousel: React.FC<CarouselProps> = ({ slides }) => {
 
     return (
         <div
-            className="carousel"
+            className={styles.carousel}
             onMouseEnter={stopAutoPlay}
             onMouseLeave={startAutoPlay}
         >
-            <div className="carousel-inner" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
+            <div className={styles.carouselInner} style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
                 {slides.map((slide, index) => (
-                    <div className="carousel-item" key={index}>
+                    <div className={styles.carouselItem} key={index}>
                         <Text size={500}>{slide.title}</Text>
                         <p>{slide.description}</p>
                     </div>
                 ))}
             </div>
-            <div className="carousel-dots">
+            <div className={styles.carouselDots}>
                 {slides.map((_, index) => (
                     <span
                         key={index}
-                        className={`dot ${currentIndex === index ? 'active' : ''}`}
+                        className={`${styles.dot} ${currentIndex === index ? styles.dotActive : ''}`}
                         onClick={() => setCurrentIndex(index)}
                     ></span>
                 ))}
