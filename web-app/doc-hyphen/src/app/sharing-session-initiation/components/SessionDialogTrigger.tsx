@@ -1,12 +1,15 @@
 import React from 'react';
-import { Menu, MenuButton, MenuItem, MenuList, MenuPopover, MenuTrigger } from "@fluentui/react-components";
-import { Button, DialogTriggerChildProps } from "@fluentui/react-components";
+import {Button, Menu, MenuButton, MenuItem, MenuList, MenuPopover, MenuTrigger} from "@fluentui/react-components";
+import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
 
-interface SessionDialogTriggerProps extends DialogTriggerChildProps {
+interface SessionDialogTriggerProps
+{
     onRequestingDocumentsChange: (isRequesting: boolean) => void;
 }
 
 const SessionDialogTrigger = React.forwardRef<HTMLButtonElement, SessionDialogTriggerProps>(({ onRequestingDocumentsChange, ...props }, ref) => {
+    const styles = useSharingSessionInitiationStyles();
+
     return (
         <Menu>
             <MenuTrigger disableButtonEnhancement>
@@ -17,12 +20,14 @@ const SessionDialogTrigger = React.forwardRef<HTMLButtonElement, SessionDialogTr
             <MenuPopover>
                 <MenuList>
                     <MenuItem onClick={() => onRequestingDocumentsChange(true)}>
-                        <Button size={"small"} ref={ref} {...props} appearance={"transparent"}>
+                        <Button size="small" ref={ref} {...props} appearance="transparent"
+                                className={styles.sharingDetailsInput}>
                             Request Documents
                         </Button>
                     </MenuItem>
                     <MenuItem onClick={() => onRequestingDocumentsChange(false)}>
-                        <Button size={"small"} ref={ref} {...props} appearance={"transparent"}>
+                        <Button size="small" ref={ref} {...props} appearance="transparent"
+                                className={styles.sharingDetailsInput}>
                             Send Documents
                         </Button>
                     </MenuItem>

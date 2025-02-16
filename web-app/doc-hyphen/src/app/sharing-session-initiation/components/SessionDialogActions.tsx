@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, DialogTrigger, Spinner } from "@fluentui/react-components";
+import {Button, DialogTrigger, Spinner} from "@fluentui/react-components";
 
 interface DialogActionsProps {
     initiatingSession: boolean;
@@ -19,22 +19,35 @@ const SessionDialogActions: React.FC<DialogActionsProps> = ({
     return (
         <>
             <DialogTrigger>
-                <Button appearance="transparent" disabled={initiatingSession} onClick={onCancelInitiation}>
+                <Button
+                    appearance="transparent"
+                    disabled={initiatingSession}
+                    onClick={onCancelInitiation}
+                >
                     {(!choosingTemplate && sessionInitiatedSuccessfully) ? "Close" : "Cancel"}
                 </Button>
             </DialogTrigger>
 
-            {(!choosingTemplate && sessionInitiatedSuccessfully) &&
-                <Button appearance={"primary"} onClick={onCancelInitiation}>
+            {(!choosingTemplate && sessionInitiatedSuccessfully) && (
+                <Button appearance="primary" onClick={onCancelInitiation}>
                     Create Another
                 </Button>
-            }
+            )}
 
-            {(!choosingTemplate && !sessionInitiatedSuccessfully) &&
-                <Button onClick={onInitiateSession} appearance={"primary"} shape={"circular"} className={"button-w-loading"}>
-                    {!initiatingSession ? "Start Session" : <><Spinner size={"extra-small"} /> Starting Session</>}
+            {(!choosingTemplate && !sessionInitiatedSuccessfully) && (
+                <Button
+                    onClick={onInitiateSession}
+                    appearance="primary"
+                    shape="circular"
+                    className="button-w-loading"
+                >
+                    {!initiatingSession ? "Start Session" : (
+                        <>
+                            <Spinner size="extra-small"/> Starting Session
+                        </>
+                    )}
                 </Button>
-            }
+            )}
         </>
     );
 };

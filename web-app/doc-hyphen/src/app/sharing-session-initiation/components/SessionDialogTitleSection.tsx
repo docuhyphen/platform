@@ -7,6 +7,7 @@ import {
     OptionsRegular,
     PeopleCommunityAddRegular
 } from "@fluentui/react-icons";
+import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
 
 interface DialogTitleSectionProps {
     sessionInitiatedSuccessfully: boolean;
@@ -25,9 +26,11 @@ const SessionDialogTitleSection: React.FC<DialogTitleSectionProps> = ({
     selectedTab,
     onTabSelect
 }) => {
+    const styles = useSharingSessionInitiationStyles();
+
     return (
         <>
-            <div id="dialog-title-1">
+            <div className={styles.dialogTitle1}>
                 {!sessionInitiatedSuccessfully &&
                     <Text size={500}>
                         Initiating Sharing Session (

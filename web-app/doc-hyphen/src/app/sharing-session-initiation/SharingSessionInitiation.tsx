@@ -1,5 +1,4 @@
 import React from 'react';
-import './SharingSessionInitiation.css';
 import {
     Button,
     Dialog,
@@ -13,15 +12,14 @@ import {
     MessageBarActions,
     MessageBarBody,
     MessageBarGroup,
-    Toast,
     Text,
+    Toast,
     Toaster,
     ToastTitle,
     useId,
     useToastController,
 } from "@fluentui/react-components";
 import useToken from "../../context/useToken.tsx";
-import {useLocation} from "react-router-dom";
 import {initiateSharingSession} from "../../services/api.ts";
 import useSharingSessionState from './hooks/useSharingSessionState.ts';
 import {handleCheckboxChange, handleDocumentChange, handleInputChange} from './components/formHandlers.tsx';
@@ -35,14 +33,15 @@ import {DismissRegular} from "@fluentui/react-icons";
 import SessionRecipientsTab from "./components/SessionRecipientsTab.tsx";
 import {isValidEmail} from "../../utils/helpers.ts";
 import {addNewSession} from '../observable/sharingSessionService.ts';
+import {useSharingSessionInitiationStyles} from "./SharingSessionInitiationStyles.tsx";
+import {SharingSessionRequestDocumentRequest} from "../models/models.tsx";
 
 const SharingSessionInitiation: React.FC = () =>
 {
+    const styles = useSharingSessionInitiationStyles();
     const token = useToken();
-    const location = useLocation();
     const {
         choosingTemplate, setChoosingTemplate,
-        isInitiating, setIsInitiating,
         sessionName, setSessionName,
         description, setDescription,
         initialShareMessage, setInitialShareMessage,
@@ -130,7 +129,7 @@ const SharingSessionInitiation: React.FC = () =>
                 description,
                 recipientEmail,
                 initialShareMessage,
-                sessionDocuments: documents.map((doc, i) => ({
+                sessionDocuments: documents.map((doc: SharingSessionRequestDocumentRequest, _: number) => ({
                     ...doc,
                     restrictedType: doc.restrictType ? doc.restrictedType : undefined
                 })),
@@ -199,7 +198,7 @@ const SharingSessionInitiation: React.FC = () =>
             </DialogTrigger>
             <DialogSurface>
                 <DialogBody>
-                    <DialogTitle id="dialog-title">
+                    <DialogTitle className={styles.dialogTitle}>
                         <SessionDialogTitleSection
                             sessionInitiatedSuccessfully={sessionInitiatedSuccessfully}
                             requestingDocuments={requestingDocuments}
@@ -213,8 +212,8 @@ const SharingSessionInitiation: React.FC = () =>
                             }}
                         />
                         {messageGroupMessages &&
-                            <MessageBarGroup id={"error-messages-group"}>
-                                {messageGroupMessages.map((message, index) => (
+                            <MessageBarGroup className={styles.errorMessagesGroup}>
+                                {messageGroupMessages.map((message: string, index: number) => (
                                     <MessageBar key={index} intent={"warning"}>
                                         <MessageBarBody>
                                             {message}
@@ -234,7 +233,7 @@ const SharingSessionInitiation: React.FC = () =>
                     </DialogTitle>
                     <DialogContent>
                         {sessionInitiatedSuccessfully ? (
-                            <div id="sharing-session-initiation-success">
+                            <div className={styles.sharingSessionInitiationSuccess}>
                                 <Text size={500}> Sharing Session initiated successfully </Text>
                                 <Text size={300}> {sessionName} </Text>
                             </div>
@@ -243,7 +242,7 @@ const SharingSessionInitiation: React.FC = () =>
                                 {choosingTemplate ? (
                                     <div>Choosing Template</div>
                                 ) : (
-                                    <div id="sharing-session-initiation-taps">
+                                    <div className={styles.sharingSessionInitiationTaps}>
                                         {selectedTab === "recipients-tab" && (
                                             <SessionRecipientsTab
                                                 requestingDocuments={requestingDocuments}

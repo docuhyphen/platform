@@ -1,5 +1,6 @@
 import React, {ChangeEvent} from 'react';
-import {Divider, Field, Switch,} from "@fluentui/react-components";
+import {Divider, Field, Switch} from "@fluentui/react-components";
+import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
 
 interface SharingOptionsTabProps
 {
@@ -32,39 +33,53 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = ({
                                                                  onAllowDocumentUploadChange
                                                              }) =>
 {
+    const styles = useSharingSessionInitiationStyles();
+
     return (
-        <div id="sharing-options-tap-content">
+        <div className={styles.sharingOptionsTapContent}>
             <Divider alignContent="start">Session options</Divider>
             <Field>
-                <Switch label="Require recipient sign in"
-                        checked={requireSignIn}
-                        onChange={onRequireSignInChange}/>
+                <Switch
+                    label="Require recipient sign in"
+                    checked={requireSignIn}
+                    onChange={onRequireSignInChange}
+                />
             </Field>
             <Divider alignContent="start">Document options</Divider>
             <Field>
-                <Switch label="Allow document additions"
-                        checked={allowDocumentAdditions}
-                        onChange={onAllowDocumentAdditionsChange}/>
+                <Switch
+                    label="Allow document additions"
+                    checked={allowDocumentAdditions}
+                    onChange={onAllowDocumentAdditionsChange}
+                />
             </Field>
             <Field>
-                <Switch label="Allow document deletions"
-                        checked={allowDocumentDeletions}
-                        onChange={onAllowDocumentDeletionsChange}/>
+                <Switch
+                    label="Allow document deletions"
+                    checked={allowDocumentDeletions}
+                    onChange={onAllowDocumentDeletionsChange}
+                />
             </Field>
             <Field>
-                <Switch label="Allow document Download"
-                        checked={allowDocumentDownload}
-                        onChange={onAllowDocumentDownloadChange}/>
+                <Switch
+                    label="Allow document download"
+                    checked={allowDocumentDownload}
+                    onChange={onAllowDocumentDownloadChange}
+                />
             </Field>
             <Field>
-                <Switch label="Allow document update"
-                        checked={allowDocumentUpdate}
-                        onChange={onAllowDocumentUpdateChange}/>
+                <Switch
+                    label="Allow document update"
+                    checked={allowDocumentUpdate}
+                    onChange={onAllowDocumentUpdateChange}
+                />
             </Field>
             <Field>
-                <Switch label="Allow document upload"
-                        checked={allowDocumentUpload}
-                        onChange={onAllowDocumentUploadChange}/>
+                <Switch
+                    label="Allow document upload"
+                    checked={allowDocumentUpload}
+                    onChange={onAllowDocumentUploadChange}
+                />
             </Field>
         </div>
     );

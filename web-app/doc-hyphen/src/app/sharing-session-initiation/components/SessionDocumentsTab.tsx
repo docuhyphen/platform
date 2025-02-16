@@ -1,19 +1,21 @@
 import React from 'react';
-import {Button, InputOnChangeData} from "@fluentui/react-components";
-import { AddRegular } from "@fluentui/react-icons";
-import {DocumentType, ImageType, SharingSessionRequestDocumentRequest} from "../../models/models.tsx";
+import {Button} from "@fluentui/react-components";
+import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
 import SessionDocumentsCard from "./SessionDocumentsCard.tsx";
+import {SharingSessionRequestDocumentRequest} from "../../models/models.tsx";
+import {AddRegular} from "@fluentui/react-icons";
 
-interface SharingDocumentsTabProps {
+interface SessionDocumentsTabProps
+{
     documents: SharingSessionRequestDocumentRequest[];
     onDocumentNameChange: (index: number, newValue: string) => void;
-    onDocumentTypeChange: (index: number, newType: DocumentType | ImageType) => void;
+    onDocumentTypeChange: (index: number, newType: string) => void;
     onRestrictDocumentTypeChange: (index: number, ev: React.ChangeEvent<HTMLInputElement>) => void;
     onDeleteDocument: (index: number) => void;
     addNewDocument: () => void;
 }
 
-const SharingDocumentsTab: React.FC<SharingDocumentsTabProps> = ({
+const SessionDocumentsTab: React.FC<SessionDocumentsTabProps> = ({
     documents,
     onDocumentNameChange,
     onDocumentTypeChange,
@@ -21,9 +23,10 @@ const SharingDocumentsTab: React.FC<SharingDocumentsTabProps> = ({
     onDeleteDocument,
     addNewDocument
 }) => {
+    const styles = useSharingSessionInitiationStyles();
 
     return (
-        <div id="sharing-session-documents-tab-content">
+        <div className={styles.sharingSessionDocumentsTabContent}>
             {documents.map((document, index) => (
                 <SessionDocumentsCard
                     key={index}
@@ -35,13 +38,11 @@ const SharingDocumentsTab: React.FC<SharingDocumentsTabProps> = ({
                     onDeleteDocument={onDeleteDocument}
                 />
             ))}
-            <div>
-                <Button onClick={addNewDocument} icon={<AddRegular />} appearance="subtle">
-                    Add Document
-                </Button>
-            </div>
+            <Button onClick={addNewDocument} icon={<AddRegular />} appearance="subtle">
+                Add Document
+            </Button>
         </div>
     );
 };
 
-export default SharingDocumentsTab;
+export default SessionDocumentsTab;

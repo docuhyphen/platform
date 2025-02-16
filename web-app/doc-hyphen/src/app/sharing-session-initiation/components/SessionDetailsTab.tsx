@@ -20,29 +20,36 @@ const SessionDetailsTab: React.FC<SessionDetailsTabProps> = ({
                                                                  onInitialShareMessageChange,
                                                                  setMessageGroupMessages
 }) => {
+    const handleSessionNameChange = (e: ChangeEvent<HTMLInputElement>, data: InputOnChangeData) =>
+    {
+        onSessionNameChange(e, data);
+        setMessageGroupMessages([]);
+    };
+
     return (
         <div id="session-details-tap">
             <Field label="Session Name" required>
-                <Input type="text"
-                       value={sessionName}
-                       required
-                       onChange={(e, data) =>
-                       {
-                           onSessionNameChange(e, data);
-                           setMessageGroupMessages([]);
-                       }
-                       }
-                       placeholder={"Required"}/>
+                <Input
+                    type="text"
+                    value={sessionName}
+                    required
+                    onChange={handleSessionNameChange}
+                    placeholder="Required"
+                />
             </Field>
             <Field label="Description">
-                <Textarea onChange={onDescriptionChange}
-                          value={description}
-                          placeholder={"Optional"}/>
+                <Textarea
+                    onChange={onDescriptionChange}
+                    value={description}
+                    placeholder="Optional"
+                />
             </Field>
             <Field label="Start message">
-                <Textarea onChange={onInitialShareMessageChange}
-                          value={initialShareMessage}
-                          placeholder={"optional"}/>
+                <Textarea
+                    onChange={onInitialShareMessageChange}
+                    value={initialShareMessage}
+                    placeholder="Optional"
+                />
             </Field>
         </div>
     );

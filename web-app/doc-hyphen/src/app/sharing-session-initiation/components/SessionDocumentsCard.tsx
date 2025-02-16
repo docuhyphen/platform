@@ -1,7 +1,8 @@
 import React from 'react';
-import {Button, Card, Dropdown, Field, Input, Option, OptionGroup, Switch, makeStyles, shorthands, tokens} from "@fluentui/react-components";
-import {AddRegular, DeleteFilled, DeleteRegular, bundleIcon} from "@fluentui/react-icons";
+import {Button, Card, Dropdown, Field, Input, Option, OptionGroup, Switch} from "@fluentui/react-components";
+import {bundleIcon, DeleteFilled, DeleteRegular} from "@fluentui/react-icons";
 import {DocumentType, ImageType, SharingSessionRequestDocumentRequest} from "../../models/models.tsx";
+import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
 
 interface DocumentCardProps
 {
@@ -13,79 +14,74 @@ interface DocumentCardProps
     onDeleteDocument: (index: number) => void;
 }
 
-const useClasses = makeStyles({
-
-    iconDeleteFilled: {
-        color: tokens.colorPaletteRedForeground1,
-    }
-});
-
 const SessionDocumentsCard: React.FC<DocumentCardProps> = ({
-                                                       document,
-                                                       index,
-                                                       onDocumentNameChange,
-                                                       onDocumentTypeChange,
-                                                       onRestrictDocumentTypeChange,
-                                                       onDeleteDocument
-                                                   }) =>
+                                                               document,
+                                                               index,
+                                                               onDocumentNameChange,
+                                                               onDocumentTypeChange,
+                                                               onRestrictDocumentTypeChange,
+                                                               onDeleteDocument
+                                                           }) =>
 {
     const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular);
-    const classes = useClasses();
+    const styles = useSharingSessionInitiationStyles();
 
-    return <Card key={index} className="shading-session-document-card">
-        <div>
-            <div id={"shading-session-document-card-header"}>
-                <Field className={"field"}>
-                    <Input type="text"
-                           appearance={"underline"}
-                           size={"small"}
-                           value={document.title || ''}
-                           required
-                           onChange={(e) => onDocumentNameChange(index, e.target.value)}
-                           placeholder={"Document name"}
+    return (
+        <Card key={index} className={styles.shadingSessionDocumentCard}>
+            <div>
+                <div className={styles.dialogTitle1}>
+                    <Field className={styles.sharingDetailsInput}>
+                        <Input
+                            type="text"
+                            appearance="underline"
+                            size="small"
+                            value={document.title || ''}
+                            required
+                            onChange={(e) => onDocumentNameChange(index, e.target.value)}
+                            placeholder="Document name"
+                        />
+                    </Field>
+                    <Button
+                        icon={<DeleteIcon className={styles.iconDeleteFilled}/>}
+                        appearance="subtle"
+                        onClick={() => onDeleteDocument(index)}
                     />
-                </Field>
-                <Button icon={<DeleteIcon className={classes.iconDeleteFilled}/>}
-                        appearance={"subtle"}
-                        onClick={() => onDeleteDocument(index)}/>
+                </div>
+                <div className={styles.sharingSessionDocumentsTabContent}>
+                    <Field label="">
+                        <Switch
+                            label="Restrict type"
+                            checked={document.restrictType}
+                            onChange={(ev) => onRestrictDocumentTypeChange(index, ev)}
+                        />
+                    </Field>
+                    <Dropdown
+                        disabled={!document.restrictType}
+                        appearance="underline"
+                        value={document.restrictedType}
+                        size="small"
+                        placeholder="Select document type to restrict"
+                        onOptionSelect={(_e, data) => onDocumentTypeChange(index, data.optionValue as any)}
+                    >
+                        <OptionGroup label="Documents">
+                            {Object.values(DocumentType).map((option) => (
+                                <Option key={option} value={option}>
+                                    {option}
+                                </Option>
+                            ))}
+                        </OptionGroup>
+                        <OptionGroup label="Images">
+                            {Object.values(ImageType).map((option) => (
+                                <Option key={option} value={option}>
+                                    {option}
+                                </Option>
+                            ))}
+                        </OptionGroup>
+                    </Dropdown>
+                </div>
             </div>
-            <div id={"shading-session-document-card-doc-type"}>
-                <Field label="">
-                    <Switch
-                        label={"Restrict type"}
-                        checked={document.restrictType}
-                        onChange={(ev) => onRestrictDocumentTypeChange(index, ev)}
-                    />
-                </Field>
-                <Dropdown disabled={!document.restrictType}
-                          appearance={"underline"}
-                          onChange={() =>
-                          {
-
-                              console.log("onchange", document);
-                          }}
-                          value={document.restrictedType}
-                          size={"small"}
-                          placeholder={"Select document type to restrict"}
-                          onOptionSelect={(_e, data) => onDocumentTypeChange(index, data.optionValue as any)}>
-                    <OptionGroup label="Documents">
-                        {Object.values(DocumentType).map((option) => (
-                            <Option key={option} value={option}>
-                                {option}
-                            </Option>
-                        ))}
-                    </OptionGroup>
-                    <OptionGroup label="Images">
-                        {Object.values(ImageType).map((option) => (
-                            <Option key={option} value={option}>
-                                {option}
-                            </Option>
-                        ))}
-                    </OptionGroup>
-                </Dropdown>
-            </div>
-        </div>
-    </Card>
+        </Card>
+    );
 };
 
 export default SessionDocumentsCard;
