@@ -4,7 +4,6 @@ import Home from './app/home';
 import SignIn from './app/authorization/sign-in';
 import CompanyRegistrationPending from './app/company-registration';
 import {AuthProvider} from './context/AuthContext';
-import './App.css';
 import ProtectedRoute from "./app/components/ProtectedRoutes.tsx";
 import Landing from "./app/landing/Landing.tsx";
 import SharingSession from "./app/sharing-session/SharingSession.tsx";

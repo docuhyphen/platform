@@ -1,6 +1,4 @@
 import React, {ChangeEvent, useState} from 'react';
-import './AccountRecovery.css';
-import '../Authorization.css'
 import {completePasswordReset, initiatePasswordReset, regeneratePasswordResetOtp} from "../../../services/api.ts";
 import {ResponseError} from "../../../services/models/models.tsx";
 import {useNavigate} from "react-router-dom";
@@ -22,10 +20,16 @@ import {
 import {DismissRegular} from "@fluentui/react-icons";
 import AppLogo from "../../components/app-logo/AppLogo.tsx";
 import AccountRecoveryCarousel from "../carousel/AccountRecoveryCarousel.tsx";
+import {useAccountRecoveryStyles} from "./AccountRecoveryStyles.tsx";
+import {useAuthorizationStyles} from "../AuthorizationStyles.tsx";
+import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 
 const AccountRecovery: React.FC = () =>
 {
     const navigate = useNavigate();
+    const accountRecoveryStyles = useAccountRecoveryStyles();
+    const authorizationStyles = useAuthorizationStyles();
+    const globalStyles = useGlobalStyles();
 
     const [formData, setFormData] = useState({
         email: '',
@@ -186,7 +190,7 @@ const AccountRecovery: React.FC = () =>
                     size={"small"}
                     disabled={completingPwdReset}
                     appearance={"transparent"}
-                    className={"button-w-loading"}>
+                    className={globalStyles.buttonWithLoading}>
                 {regeneratingOtp && <Spinner size={"tiny"}/>}
                 Resend OTP
             </Button>
@@ -234,16 +238,16 @@ const AccountRecovery: React.FC = () =>
     );
 
     return (
-        <section id="auth">
-            <section id="auth-section">
+        <section className={authorizationStyles.auth}>
+            <section className={authorizationStyles.authSection}>
 
-                <section id="auth-section-1">
+                <section className={authorizationStyles.authSection1}>
                     <div>
                         <AppLogo/>
                     </div>
                     {!pwdResetSuccessful &&
                         <>
-                            <div id="authorization-form-section">
+                            <div className={authorizationStyles.authorizationFormSection}>
                                 <Subtitle1 align={"center"}> Recover account </Subtitle1>
 
                                 {renderFormErrorMessage()}
@@ -261,14 +265,14 @@ const AccountRecovery: React.FC = () =>
                                 </Field>
 
                                 {pwdResetInitiationSuccessful &&
-                                    <div id={"sign-up-completion-form"}>
+                                    <div className={accountRecoveryStyles.signUpCompletionForm}>
                                         {renderOtpSection()}
                                         {renderPasswordsSection()}
                                         <Button onClick={onCompletePasswordReset}
                                                 appearance={"primary"}
                                                 shape={"circular"}
                                                 disabled={regeneratingOtp}
-                                                className={"button-w-loading"}>
+                                                className={globalStyles.buttonWithLoading}>
                                             {completingPwdReset && <Spinner size={"extra-small"}/>}
                                             {completingPwdReset ? "Resetting password" : "Reset Password"}
                                         </Button>
@@ -279,12 +283,12 @@ const AccountRecovery: React.FC = () =>
                                     <Button onClick={onInitiatePasswordReset}
                                             appearance={"primary"}
                                             shape={"circular"}
-                                            className={"button-w-loading"}>
+                                            className={globalStyles.buttonWithLoading}>
                                         {initiatingPwdReset && <Spinner size={"extra-small"}/>}
                                         Initiate Password Reset
                                     </Button>
                                 }
-                                <div id="auth-has-account">
+                                <div className={accountRecoveryStyles.authHasAccount}>
                                     <Caption1> Don't have an account? &nbsp;
                                         <Link onClick={() => navigate("/sign-up")}
                                               disabled={initiatingPwdReset || completingPwdReset}>
@@ -299,7 +303,7 @@ const AccountRecovery: React.FC = () =>
                     {
                         pwdResetSuccessful && (
                             <>
-                                <section id={"password-reset-successful-section"}>
+                                <section className={accountRecoveryStyles.passwordResetSuccessfulSection}>
                                     <Text align={"center"} size={500} font="monospace">
                                         Password Reset Successful!
                                     </Text>
@@ -320,7 +324,7 @@ const AccountRecovery: React.FC = () =>
                         )
                     }
                 </section>
-                <section id="auth-section-2">
+                <section className={authorizationStyles.authSection2}>
                     <AccountRecoveryCarousel/>
                 </section>
             </section>
