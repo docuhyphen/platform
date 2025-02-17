@@ -1,6 +1,9 @@
 import React, {useEffect, useState} from 'react';
 import SharingSessionList from "../sharing-session-list/SharingSessionList.tsx";
-import {fetchSignedInUserAppUserSharingSession} from "../../services/ sharingSessionApi.ts";
+import {
+    fetchSignedInUserAppUserSharingSession,
+    uploadSharingSessionDocument
+} from "../../services/sharingSessionApi.ts";
 import useToken from "../../context/useToken.tsx";
 import PreLanding from "../pre-landing/PreLanding.tsx";
 import {
@@ -9,7 +12,6 @@ import {
     Caption1,
     Card,
     CardHeader,
-    Divider,
     Menu,
     MenuItem,
     MenuList,
@@ -20,21 +22,16 @@ import {
     Tooltip
 } from "@fluentui/react-components";
 import {
-    ArrowDownloadRegular,
-    ArrowUploadRegular,
     CheckmarkNoteRegular,
     CommentNoteRegular,
-    DeleteRegular,
     DocumentAddRegular,
     DocumentBulletListClockRegular,
-    DocumentPrintRegular,
-    InfoRegular,
-    MoreVerticalRegular,
-    NotepadEditRegular
+    MoreVerticalRegular
 } from "@fluentui/react-icons";
 import {formatDate} from "../helpers.ts";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.tsx";
 import {useLandingStyles} from "./LandingStyles.tsx";
+import DocumentActionsMenu from "./components/DocumentActionsMenu.tsx";
 
 const useSessionDetails = (selectedSessionId: string | null, token: string | null) =>
 {
@@ -68,7 +65,7 @@ const useSessionDetails = (selectedSessionId: string | null, token: string | nul
         }
     }, [selectedSessionId, token]);
 
-    return {sessionDetails, fetchingDetails};
+    return {sessionDetails, setSessionDetails, fetchingDetails};
 };
 
 const Landing: React.FC = () =>
@@ -77,7 +74,7 @@ const Landing: React.FC = () =>
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const token = useToken();
-    const {sessionDetails, fetchingDetails} = useSessionDetails(selectedSessionId, token);
+    const {sessionDetails, setSessionDetails, fetchingDetails} = useSessionDetails(selectedSessionId, token);
 
     useEffect(() =>
     {
@@ -87,6 +84,40 @@ const Landing: React.FC = () =>
             setIsLoading(false);
         }, randomDelay);
     }, []);
+
+    const handleUpload = async (sessionId: string, documentId: string) =>
+    {
+        alert("Upload document");
+        const input = window.document.createElement('input');
+        input.type = 'file';
+        input.onchange = async (event: any) =>
+        {
+            const file = event.target.files[0];
+            const formData = new FormData();
+
+            formData.append('file', file, 'UserManual.pdf');
+            formData.append('encryptionMode', 'INTERNAL');
+            formData.append('extension', '.docx');
+
+            try
+            {
+                const uploadData = await uploadSharingSessionDocument(sessionId, documentId, formData, token);
+                console.log(uploadData);
+
+                // Fetch the updated document
+                const updatedDocument = await fetchSignedInUserAppUserSharingSession(sessionId, token);
+                console.log(updatedDocument);
+
+                // Update the session with the updated document
+                setSessionDetails(updatedDocument as SharingSessionDetailedDto);
+            }
+            catch (error)
+            {
+                console.error("Error uploading document:", error);
+            }
+        };
+        input.click();
+    };
 
     const renderDetailsSkeleton = () =>
     {
@@ -137,7 +168,7 @@ const Landing: React.FC = () =>
                 </div>
                 <div id="sharing-session-details-container" className={styles.sharingSessionDetailsContainer}>
                     <div id="sharing-session-head-container"
-                         className={`${styles.sharingSessionHeadContainer} ${styles[`sessionHeadStatus${sessionDetails?.status || ''}`]}`}>
+                         className={`${styles.sharingSessionHeadContainer} ${styles[`sessionHeadStatus${sessionDetails?.status || ''}` as keyof typeof styles]}`}>
                         {(!sessionDetails || fetchingDetails) ? (
                             renderDetailsSkeleton()
                         ) : (
@@ -190,8 +221,8 @@ const Landing: React.FC = () =>
                             </p>
                             <div id={"documents-card-list"} className={styles.documentsCardList}>
 
-                            {sessionDetails.documents?.map((document: DocumentDetailedDto) => (
-                                <Card key={document.id} className={styles.documentsCardListCard}>
+                                {sessionDetails.documents?.map((document: DocumentDetailedDto) => (
+                                    <Card key={document.id} className={styles.documentsCardListCard}>
                                         <CardHeader
                                             header={<Body1><b>{document.title}</b></Body1>}
                                             description={
@@ -199,34 +230,21 @@ const Landing: React.FC = () =>
                                                     {document.uploadDate ? (
                                                         <Caption1>Uploaded {formatDate(document.uploadDate)}</Caption1>
                                                     ) : (
-                                                        <Button appearance="transparent" icon={<DocumentAddRegular/>}>
+                                                        <Button appearance="transparent"
+                                                                icon={<DocumentAddRegular/>}
+                                                                onClick={() => document.id && handleUpload(sessionDetails.id, document.id)}>
+
                                                             Upload new document
                                                         </Button>
                                                     )}
                                                 </>
                                             }
                                             action={
-                                                <div>
-                                                    <Menu positioning={{autoSize: true}}>
-                                                        <MenuTrigger disableButtonEnhancement>
-                                                            <Button icon={<MoreVerticalRegular/>} appearance="subtle"/>
-                                                        </MenuTrigger>
-                                                        <MenuPopover>
-                                                            <MenuList>
-                                                                <MenuItem icon={<NotepadEditRegular/>}>Edit</MenuItem>
-                                                                <Divider/>
-                                                                <MenuItem icon={<ArrowUploadRegular/>}>Upload</MenuItem>
-                                                                <MenuItem
-                                                                    icon={<ArrowDownloadRegular/>}>Download</MenuItem>
-                                                                <MenuItem
-                                                                    icon={<DocumentPrintRegular/>}>Print</MenuItem>
-                                                                <MenuItem icon={<DeleteRegular/>}>Delete</MenuItem>
-                                                                <Divider/>
-                                                                <MenuItem icon={<InfoRegular/>}>More info</MenuItem>
-                                                            </MenuList>
-                                                        </MenuPopover>
-                                                    </Menu>
-                                                </div>
+                                                <DocumentActionsMenu session={sessionDetails}
+                                                                     document={document}
+                                                                     onUpload={() =>
+                                                                         document.id && handleUpload(sessionDetails.id, document.id)}/>
+
                                             }
                                         />
                                     </Card>

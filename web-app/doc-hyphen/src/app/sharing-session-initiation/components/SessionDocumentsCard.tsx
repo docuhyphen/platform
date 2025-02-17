@@ -47,7 +47,7 @@ const SessionDocumentsCard: React.FC<DocumentCardProps> = ({
                         onClick={() => onDeleteDocument(index)}
                     />
                 </div>
-                <div className={styles.sharingSessionDocumentsTabContent}>
+                <div className={styles.sharingSessionDocumentsRestriction}>
                     <Field label="">
                         <Switch
                             label="Restrict type"

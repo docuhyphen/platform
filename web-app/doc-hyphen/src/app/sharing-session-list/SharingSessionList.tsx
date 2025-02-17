@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import useToken from "../../context/useToken.tsx";
-import {fetchSignedInUserAppUserSharingSessions} from "../../services/ sharingSessionApi.ts";
+import {fetchSignedInUserAppUserSharingSessions} from "../../services/sharingSessionApi.ts";
 import {
     Avatar,
     Button,
@@ -232,7 +232,7 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                             <MenuItem> Ended</MenuItem>
                             <Divider title={"status"}/>
                             <MenuItem> Initiated by me </MenuItem>
-                            <MenuItem> Requested by other </MenuItem>
+                            <MenuItem> Requested by others </MenuItem>
                         </MenuList>
                     </MenuPopover>
                 </Menu>

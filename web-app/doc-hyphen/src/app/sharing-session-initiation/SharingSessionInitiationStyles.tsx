@@ -17,6 +17,11 @@ export const useSharingSessionInitiationStyles = makeStyles({
         gap: "16px",
         flexDirection: "column",
     },
+    sharingSessionDocumentsRestriction: {
+        display: "flex",
+        gap: "8px",
+        flexDirection: "row",
+    },
     shadingSessionDocumentCard: {
         flex: 1,
     },

@@ -1,6 +1,5 @@
 package com.dochyphen.app.api.service.sharingsession
 
-import com.dochyphen.app.api.annotation.DocumentAuditRequired
 import com.dochyphen.app.api.exception.SharingSessionDocumentNotFoundException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
@@ -34,7 +33,6 @@ class SharingSessionDocumentService @Inject constructor(
     }
 
     @Transactional
-    @DocumentAuditRequired
     fun addDocument(
         sessionId: String,
         title: String?,
@@ -55,7 +53,6 @@ class SharingSessionDocumentService @Inject constructor(
         return savedDocument
     }
 
-    @DocumentAuditRequired
     @Transactional
     fun deleteDocument(sessionId: String, documentId: String)
     {
@@ -74,7 +71,6 @@ class SharingSessionDocumentService @Inject constructor(
         auditService.logAction(document, DocumentAuditLogAction.DELETE, authTokenContext.authToken.appUser!!)
     }
 
-    @DocumentAuditRequired
     @Transactional
     fun updateDocument(
         sessionId: String,
