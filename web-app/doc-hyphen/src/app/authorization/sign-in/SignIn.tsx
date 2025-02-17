@@ -1,12 +1,6 @@
 import React, {useState} from 'react';
-import {
-    completeSignIn,
-    fetchAppUser,
-    fetchAppUserPersonCompany,
-    initiateSignIn,
-    regenerateSignInOtp
-} from '../../../services/api.ts';
-import {ResponseError} from '../../../services/models/models.tsx';
+import {completeSignIn, initiateSignIn, regenerateSignInOtp} from '../../../services/authApi.ts';
+import {fetchAppUser, fetchAppUserPersonCompany,} from '../../../services/userApi.ts';
 import {useAuth} from '../../../context/AuthContext.tsx';
 import {useNavigate} from 'react-router-dom';
 import RedirectIfAuthenticated from '../../components/RedirectIfAuthenticated.tsx';
@@ -26,7 +20,7 @@ import {
     Subtitle1,
     Text,
 } from "@fluentui/react-components";
-import {AppUser} from "../../models/models.tsx";
+import {AppUser, ResponseError} from "../../models/models.tsx";
 import {setApiClientAuthToken} from '../../../services/apiClient.ts';
 import {DismissRegular} from "@fluentui/react-icons";
 import AppLogo from "../../components/app-logo/AppLogo.tsx";

@@ -1,7 +1,7 @@
 import React, {ChangeEvent, useEffect, useState} from 'react';
 import {useAuth} from '../../context/AuthContext';
 import {useNavigate} from 'react-router-dom';
-import {registerIndividual} from '../../services/api';
+import {registerIndividual} from '../../services/userApi.ts';
 import {AppUser} from '../models/models';
 import useToken from "../../context/useToken.tsx";
 import {

@@ -1,6 +1,6 @@
 import React from 'react';
 import {useAuth} from '../../context/AuthContext';
-import {signOut} from '../../services/api';
+import {signOut} from '../../services/authApi.ts';
 import {useNavigate} from 'react-router-dom';
 
 interface SignOutButtonProps

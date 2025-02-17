@@ -1,6 +1,5 @@
 import React, {ChangeEvent, useState} from 'react';
-import {completeSignUp, initiateSignUp, regenerateSignUpOtp} from "../../../services/api.ts";
-import {ResponseError} from "../../../services/models/models.tsx";
+import {completeSignUp, initiateSignUp, regenerateSignUpOtp} from "../../../services/authApi.ts";
 import {useNavigate} from "react-router-dom";
 import {
     Button,
@@ -23,6 +22,7 @@ import SignUpCarousel from "../carousel/SignUpCarousel.tsx";
 import {useSignUpStyles} from "./SignUpStyles.tsx";
 import {useAuthorizationStyles} from "../AuthorizationStyles.tsx";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
+import {ResponseError} from "../../models/models.tsx";
 
 const SignUp: React.FC = () =>
 {

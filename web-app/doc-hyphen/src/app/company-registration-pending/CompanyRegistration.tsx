@@ -1,6 +1,6 @@
 import React, {ChangeEvent, useEffect, useState} from 'react';
 import {Button, Field, Input, InputOnChangeData} from "@fluentui/react-components";
-import {registerCompany} from "../../services/api.ts";
+import {registerCompany} from "../../services/userApi.ts";
 import useToken from "../../context/useToken.tsx";
 import {Company} from "../models/models.tsx";
 import {useNavigate} from "react-router-dom";

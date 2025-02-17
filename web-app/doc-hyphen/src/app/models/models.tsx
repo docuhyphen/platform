@@ -323,8 +323,6 @@ export interface DocumentBasicDto
     hash?: string;
 }
 
-// src/app/models/DetailedDtos.ts
-
 export interface DocumentCommentDetailedDto
 {
     id?: string;
@@ -407,7 +405,35 @@ export enum DocumentType
     PNG = "PNG",
     JPG = "JPG"
 }
+
 export enum ImageType {
     PNG = "PNG",
     JPG = "JPG"
+}
+
+export interface SignUpInitiationRequest
+{
+    email: string
+}
+
+export interface SignUpOtpRegenerationRequest
+{
+    email: string
+}
+
+export interface SignInOtpRegenerationRequest
+{
+    email: string
+}
+
+export interface SignInInitiationRequest
+{
+    email: string,
+    password: string,
+}
+
+export interface SignInCompletionRequest
+{
+    email: string
+    otp: string
 }

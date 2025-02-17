@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import useToken from "../../context/useToken.tsx";
-import {fetchSignedInUserAppUserSharingSessions} from "../../services/api.ts";
+import {fetchSignedInUserAppUserSharingSessions} from "../../services/ sharingSessionApi.ts";
 import {
     Avatar,
     Button,
@@ -181,7 +181,7 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
             <List
                 className={styles.sharingSessionsListBody}
                 selectionMode="single"
-                navigationMode="composite"
+                navigationMode="items"
                 selectedItems={selectedItems}
                 onSelectionChange={handleSelectionChange}>
 

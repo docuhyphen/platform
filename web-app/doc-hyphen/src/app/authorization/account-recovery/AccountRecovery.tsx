@@ -1,6 +1,5 @@
 import React, {ChangeEvent, useState} from 'react';
-import {completePasswordReset, initiatePasswordReset, regeneratePasswordResetOtp} from "../../../services/api.ts";
-import {ResponseError} from "../../../services/models/models.tsx";
+import {completePasswordReset, initiatePasswordReset, regeneratePasswordResetOtp} from "../../../services/authApi.ts";
 import {useNavigate} from "react-router-dom";
 import {
     Button,
@@ -23,6 +22,7 @@ import AccountRecoveryCarousel from "../carousel/AccountRecoveryCarousel.tsx";
 import {useAccountRecoveryStyles} from "./AccountRecoveryStyles.tsx";
 import {useAuthorizationStyles} from "../AuthorizationStyles.tsx";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
+import {ResponseError} from "../../models/models.tsx";
 
 const AccountRecovery: React.FC = () =>
 {

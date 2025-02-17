@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import SharingSessionList from "../sharing-session-list/SharingSessionList.tsx";
-import {fetchSignedInUserAppUserSharingSession} from "../../services/api.ts";
+import {fetchSignedInUserAppUserSharingSession} from "../../services/ sharingSessionApi.ts";
 import useToken from "../../context/useToken.tsx";
 import PreLanding from "../pre-landing/PreLanding.tsx";
 import {
