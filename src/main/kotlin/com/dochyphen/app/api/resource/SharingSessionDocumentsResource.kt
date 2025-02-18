@@ -96,6 +96,8 @@ class SharingSessionDocumentsResource @Inject constructor(
         @PathParam("documentId") documentId: String
     ): Response
     {
+        ResourceEndpointDelayHelper.delayEndpoint(4000, 6000)
+
         return try
         {
             sharingSessionDocumentService.deleteDocument(sessionId, documentId)

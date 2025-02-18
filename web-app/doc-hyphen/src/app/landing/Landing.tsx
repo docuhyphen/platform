@@ -21,13 +21,7 @@ import {
     Text,
     Tooltip
 } from "@fluentui/react-components";
-import {
-    CheckmarkNoteRegular,
-    CommentNoteRegular,
-    DocumentAddRegular,
-    DocumentBulletListClockRegular,
-    MoreVerticalRegular
-} from "@fluentui/react-icons";
+import {CheckmarkNoteRegular, DocumentAddRegular, MoreVerticalRegular} from "@fluentui/react-icons";
 import {formatDateTimeWithOrdinal} from "../helpers.ts";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.tsx";
 import {useLandingStyles} from "./LandingStyles.tsx";
@@ -173,6 +167,15 @@ const Landing: React.FC = () =>
         document.id && sessionDetails && handleUpload(sessionDetails.id, document.id)
     }
 
+    const onDocumentDeleted = (documentId: string) =>
+    {
+        if (sessionDetails)
+        {
+            const updatedDocuments = sessionDetails.documents?.filter(document => document.id !== documentId);
+            setSessionDetails({...sessionDetails, documents: updatedDocuments});
+        }
+    }
+
     const renderDocumentsListCard = (document: DocumentDetailedDto) =>
     {
         return <> {document &&
@@ -200,7 +203,8 @@ const Landing: React.FC = () =>
                                                      setIsOpen(true)
                                                      setSelectedSessionDocument(document)
                                                  }}
-                                                 document={document}
+                                                 onDocumentDeleted={onDocumentDeleted}
+                                                 sessionDocument={document}
                                                  onUpload={() => onUploadDocument(document)}/>
                         }
                     </>
