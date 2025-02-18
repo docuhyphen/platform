@@ -28,7 +28,7 @@ import {
     DocumentBulletListClockRegular,
     MoreVerticalRegular
 } from "@fluentui/react-icons";
-import {formatDate, formatDateTime, formatDateTimeWithOrdinal} from "../helpers.ts";
+import {formatDateTimeWithOrdinal} from "../helpers.ts";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.tsx";
 import {useLandingStyles} from "./LandingStyles.tsx";
 import DocumentActionsMenu from "./components/DocumentActionsMenu.tsx";
@@ -160,6 +160,43 @@ const Landing: React.FC = () =>
         </div>
     }
 
+    const onUploadDocument = (document: DocumentDetailedDto) =>
+    {
+        document.id && handleUpload(sessionDetails.id, document.id)
+    }
+
+    const renderDocumentsListCard = (document: DocumentDetailedDto) =>
+    {
+        return <> {document &&
+            <Card key={document.id} className={styles.documentsCardListCard}>
+                <CardHeader
+                    header={<Body1><b>{document.title}</b></Body1>}
+                    description={
+                        <>
+                            {document.uploadDate ? (
+                                <Caption1>Uploaded {formatDateTimeWithOrdinal(document.uploadDate)}</Caption1>
+                            ) : (
+                                <Button appearance="transparent"
+                                        icon={<DocumentAddRegular/>}
+                                        onClick={() => onUploadDocument(document)}>
+                                    Upload new document
+                                </Button>
+                            )}
+                        </>
+                    }
+                    action={<>
+                        {sessionDetails &&
+                            <DocumentActionsMenu session={sessionDetails}
+                                                 document={document}
+                                                 onUpload={() => onUploadDocument(document)}/>
+                        }
+                    </>
+                    }
+                />
+            </Card>
+        }</>
+    }
+
     return (
         isLoading ? <PreLanding/> :
             <section id="sharing-sessions-container" className={styles.sharingSessionsContainer}>
@@ -222,32 +259,7 @@ const Landing: React.FC = () =>
                             <div id={"documents-card-list"} className={styles.documentsCardList}>
 
                                 {sessionDetails.documents?.map((document: DocumentDetailedDto) => (
-                                    <Card key={document.id} className={styles.documentsCardListCard}>
-                                        <CardHeader
-                                            header={<Body1><b>{document.title}</b></Body1>}
-                                            description={
-                                                <>
-                                                    {document.uploadDate ? (
-                                                        <Caption1>Uploaded {formatDateTimeWithOrdinal(document.uploadDate)}</Caption1>
-                                                    ) : (
-                                                        <Button appearance="transparent"
-                                                                icon={<DocumentAddRegular/>}
-                                                                onClick={() => document.id && handleUpload(sessionDetails.id, document.id)}>
-
-                                                            Upload new document
-                                                        </Button>
-                                                    )}
-                                                </>
-                                            }
-                                            action={
-                                                <DocumentActionsMenu session={sessionDetails}
-                                                                     document={document}
-                                                                     onUpload={() =>
-                                                                         document.id && handleUpload(sessionDetails.id, document.id)}/>
-
-                                            }
-                                        />
-                                    </Card>
+                                    renderDocumentsListCard(document)
                                 ))}
                             </div>
                         </div>
