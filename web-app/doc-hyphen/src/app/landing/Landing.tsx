@@ -11,7 +11,8 @@ import {
     Button,
     Caption1,
     Card,
-    CardHeader, Divider,
+    CardHeader,
+    Divider,
     Menu,
     MenuItem,
     MenuList,
@@ -29,6 +30,7 @@ import DocumentActionsMenu from "./components/DocumentActionsMenu.tsx";
 import SessionDocumentSidebar from "./components/session-document-sidebar/SessionDocumentSidebar.tsx";
 import AddDocumentDialog from "./components/session-document-add-dialog/DocumentAddDialog.tsx";
 import NoSessionDocuments from "./components/no-session-documents/NoSessionDocuments.tsx";
+import UploadDocumentDialog from "./components/session-document-upload/UploadDocumentDialog.tsx";
 
 const useSessionDetails = (selectedSessionId: string | null, token: string | null) =>
 {
@@ -74,7 +76,8 @@ const Landing: React.FC = () =>
     const {sessionDetails, setSessionDetails, fetchingDetails} = useSessionDetails(selectedSessionId, token);
     const [isDocumentSidebarOpen, setIsDocumentSidebarOpen] = React.useState(false);
     const [isDocumentAddDialogOpen, setIsDocumentAddDialogOpen] = React.useState(false);
-    const [selectedSessionDocument, setSelectedSessionDocument] = React.useState<SharingSessionDetailedDto>();
+    const [isUploadDocumentDialogOpen, setIsUploadDocumentDialogOpen] = React.useState(false);
+    const [selectedSessionDocument, setSelectedSessionDocument] = React.useState<DocumentDetailedDto>({});
 
     useEffect(() =>
     {
@@ -165,11 +168,6 @@ const Landing: React.FC = () =>
         </div>
     }
 
-    const onUploadDocument = (document: DocumentDetailedDto) =>
-    {
-        document.id && sessionDetails && handleUpload(sessionDetails.id, document.id)
-    }
-
     const onDocumentDeleted = (documentId: string) =>
     {
         if (sessionDetails)
@@ -190,20 +188,23 @@ const Landing: React.FC = () =>
         }
     }
 
-    const renderDocumentsListCard = (document: DocumentDetailedDto) =>
+    const renderDocumentsListCard = (sessionDocument: DocumentDetailedDto) =>
     {
-        return <> {document &&
-            <Card key={document.id} className={styles.documentsCardListCard}>
+        return <> {sessionDocument &&
+            <Card key={sessionDocument.id} className={styles.documentsCardListCard}>
                 <CardHeader
-                    header={<Body1><b>{document.title}</b></Body1>}
+                    header={<Body1><b>{sessionDocument.title}</b></Body1>}
                     description={
                         <>
-                            {document.uploadDate ? (
-                                <Caption1>Uploaded {formatDateTimeWithOrdinal(document.uploadDate)}</Caption1>
+                            {sessionDocument.uploadDate ? (
+                                <Caption1>Uploaded {formatDateTimeWithOrdinal(sessionDocument.uploadDate)}</Caption1>
                             ) : (
                                 <Button appearance="transparent"
                                         icon={<DocumentAddRegular/>}
-                                        onClick={() => onUploadDocument(document)}>
+                                        onClick={() => {
+                                            setSelectedSessionDocument(sessionDocument)
+                                            setIsUploadDocumentDialogOpen(true)
+                                        }}>
                                     Upload new document
                                 </Button>
                             )}
@@ -215,11 +216,14 @@ const Landing: React.FC = () =>
                                                  onOpenDetailsSidebar={() =>
                                                  {
                                                      setIsDocumentSidebarOpen(true)
-                                                     setSelectedSessionDocument(document)
+                                                     setSelectedSessionDocument(sessionDocument)
                                                  }}
                                                  onDocumentDeleted={onDocumentDeleted}
-                                                 sessionDocument={document}
-                                                 onUpload={() => onUploadDocument(document)}/>
+                                                 sessionDocument={sessionDocument}
+                                                 onUpload={() => {
+                                                     setSelectedSessionDocument(sessionDocument)
+                                                     setIsUploadDocumentDialogOpen(true)
+                                                 }}/>
                         }
                     </>
                     }
@@ -316,10 +320,18 @@ const Landing: React.FC = () =>
                         </div>
                     </div>
                 </div>
+
                 <AddDocumentDialog isOpen={isDocumentAddDialogOpen}
                                    onDismiss={() => setIsDocumentAddDialogOpen(false)}
                                     sessionId={selectedSessionId}
                                    onDocumentAdded={onNewDocumentAdded}/>
+
+
+                <UploadDocumentDialog isOpen={isUploadDocumentDialogOpen}
+                                      onDismiss={() => setIsUploadDocumentDialogOpen(false)}
+                                      sessionId={selectedSessionId}
+                                      sessionDocument={selectedSessionDocument}
+                                      onDocumentUploaded={() => alert("Document uploaded")}/>
             </section>
     );
 };

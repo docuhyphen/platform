@@ -52,8 +52,6 @@ const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
             link.click();
 
             window.document.getElementById('f-download-link')?.remove();
-
-            alert("Download successful");
         }
         catch (error)
         {

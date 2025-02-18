@@ -142,7 +142,7 @@ export const fetchSharingSessionDocumentAuditLogs = async (sessionId: string, do
     }
 };
 
-export const uploadSharingSessionDocument = async (sessionId: string, documentId?: string, formData?: FormData, token?: string | null) =>
+export const uploadSharingSessionDocument = async (sessionId: string, documentId?: string, formData?: FormData, token?: string | null, onUploadProgress?: (progressEvent: any) => void) =>
 {
     try
     {
@@ -150,7 +150,8 @@ export const uploadSharingSessionDocument = async (sessionId: string, documentId
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'multipart/form-data'
-            }
+            },
+            onUploadProgress
         });
         return response.data;
     }
