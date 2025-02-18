@@ -264,6 +264,13 @@ const Landing: React.FC = () =>
                             </div>
                         </div>
                     )}
+
+                    {
+                        sessionDetails && sessionDetails.documents?.length === 0 &&
+                        <div>
+                            <Text size={400}>No documents available</Text>
+                        </div>
+                    }
                 </div>
             </section>
     );
