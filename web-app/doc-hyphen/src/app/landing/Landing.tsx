@@ -28,7 +28,7 @@ import {
     DocumentBulletListClockRegular,
     MoreVerticalRegular
 } from "@fluentui/react-icons";
-import {formatDate} from "../helpers.ts";
+import {formatDate, formatDateTime, formatDateTimeWithOrdinal} from "../helpers.ts";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.tsx";
 import {useLandingStyles} from "./LandingStyles.tsx";
 import DocumentActionsMenu from "./components/DocumentActionsMenu.tsx";
@@ -176,10 +176,10 @@ const Landing: React.FC = () =>
                                 <>
                                     <div>
                                         <Caption1>
-                                            Started {formatDate(sessionDetails.createdDate)}</Caption1>
+                                            Started {formatDateTimeWithOrdinal(sessionDetails.createdDate)}</Caption1>
                                         {
                                             sessionDetails.endDate &&
-                                            <> | Ended {formatDate(sessionDetails.createdDate)} </>
+                                            <> | Ended {formatDateTimeWithOrdinal(sessionDetails.createdDate)} </>
                                         }
                                         <br/>
                                         <Text size={600}>{sessionDetails.sessionName}</Text><br/>
@@ -228,7 +228,7 @@ const Landing: React.FC = () =>
                                             description={
                                                 <>
                                                     {document.uploadDate ? (
-                                                        <Caption1>Uploaded {formatDate(document.uploadDate)}</Caption1>
+                                                        <Caption1>Uploaded {formatDateTimeWithOrdinal(document.uploadDate)}</Caption1>
                                                     ) : (
                                                         <Button appearance="transparent"
                                                                 icon={<DocumentAddRegular/>}

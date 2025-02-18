@@ -25,7 +25,7 @@ import {
     FilterFilled,
     FilterRegular
 } from "@fluentui/react-icons";
-import {formatDate} from "../helpers.ts";
+import {formatDate, formatDateWithOrdinal} from "../helpers.ts";
 import {SharingSessionBasicDto} from "../models/models.tsx";
 import {sharingSessionInitiationObservable} from "../observable/sharingSessionService.ts";
 import {useSharingSessionStyles} from "./SharingSessionListStyles.tsx";
@@ -145,7 +145,7 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                     <div className={styles.caption1}>{session.recipientEmail}</div>
                     <div className={styles.listCardItemRow}>
                         <div className={styles.body1Strong}>{session.sessionName}</div>
-                        <div className={styles.caption2}>{formatDate(session.createdDate)}</div>
+                        <div className={styles.caption2}>{formatDateWithOrdinal(session.createdDate)}</div>
                     </div>
                     <div>
                         <div className={styles.caption1}> {session.description} </div>
