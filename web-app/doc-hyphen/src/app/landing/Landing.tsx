@@ -27,6 +27,8 @@ import {DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.t
 import {useLandingStyles} from "./LandingStyles.tsx";
 import DocumentActionsMenu from "./components/DocumentActionsMenu.tsx";
 import SessionDocumentSidebar from "./components/session-document-sidebar/SessionDocumentSidebar.tsx";
+import AddDocumentDialog from "./components/DocumentAddDialog.tsx";
+import NoSessionDocuments from "./components/no-session-documents/NoSessionDocuments.tsx";
 
 const useSessionDetails = (selectedSessionId: string | null, token: string | null) =>
 {
@@ -70,7 +72,8 @@ const Landing: React.FC = () =>
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const token = useToken();
     const {sessionDetails, setSessionDetails, fetchingDetails} = useSessionDetails(selectedSessionId, token);
-    const [isOpen, setIsOpen] = React.useState(false);
+    const [isDocumentSidebarOpen, setIsDocumentSidebarOpen] = React.useState(false);
+    const [isDocumentAddDialogOpen, setIsDocumentAddDialogOpen] = React.useState(false);
     const [selectedSessionDocument, setSelectedSessionDocument] = React.useState<SharingSessionDetailedDto>();
 
     useEffect(() =>
@@ -84,7 +87,7 @@ const Landing: React.FC = () =>
 
     useEffect(() =>
     {
-        setIsOpen(false);
+        setIsDocumentSidebarOpen(false);
         setSelectedSessionDocument(undefined);
     }, [selectedSessionId]);
 
@@ -176,6 +179,16 @@ const Landing: React.FC = () =>
         }
     }
 
+    const onNewDocumentAdded = (newSessionDocument: DocumentDetailedDto) =>
+    {
+        if (sessionDetails)
+        {
+            const currentDocuments = (sessionDetails.documents && sessionDetails.documents.length) ? sessionDetails.documents : [];
+            const updatedDocuments = [...currentDocuments, newSessionDocument];
+            setSessionDetails({...sessionDetails, documents: updatedDocuments});
+        }
+    }
+
     const renderDocumentsListCard = (document: DocumentDetailedDto) =>
     {
         return <> {document &&
@@ -200,7 +213,7 @@ const Landing: React.FC = () =>
                             <DocumentActionsMenu session={sessionDetails}
                                                  onOpenDetailsSidebar={() =>
                                                  {
-                                                     setIsOpen(true)
+                                                     setIsDocumentSidebarOpen(true)
                                                      setSelectedSessionDocument(document)
                                                  }}
                                                  onDocumentDeleted={onDocumentDeleted}
@@ -240,8 +253,12 @@ const Landing: React.FC = () =>
                                         <Body1>{sessionDetails.description}</Body1>
                                     </div>
                                     <div id="sharing-session-actions" className={styles.sharingSessionActions}>
-                                        <Tooltip content="Add Session Document" relationship="description">
-                                            <Button icon={<DocumentAddRegular/>} appearance="primary"/>
+                                        <Tooltip content="Add Session Document"
+                                                 relationship="description">
+                                            <Button icon={<DocumentAddRegular/>}
+                                                    appearance="primary"
+                                                    onClick={() => setIsDocumentAddDialogOpen(true)}
+                                            />
                                         </Tooltip>
 
                                         <Menu positioning={{autoSize: true}}>
@@ -264,7 +281,7 @@ const Landing: React.FC = () =>
                         <div className={styles.sharingSessionDocumentsDetails}>
                             {!sessionDetails && renderDocumentsSkeleton()}
 
-                            {sessionDetails && (
+                            {(sessionDetails && sessionDetails?.documents?.length > 0) && (
                                 <div>
                                     <p>
                                         <Text size={400}>Session Documents</Text>
@@ -280,21 +297,23 @@ const Landing: React.FC = () =>
 
                             {
                                 sessionDetails && sessionDetails.documents?.length === 0 &&
-                                <div>
-                                    <Text size={400}>No documents available</Text>
-                                </div>
+                                <NoSessionDocuments setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}/>
+
                             }
                         </div>
                         <div className={styles.sharingSessionDocumentSidebar}>
                             {selectedSessionDocument &&
                                 <SessionDocumentSidebar
-                                    isOpen={isOpen}
-                                    onOpen={setIsOpen}
+                                    isOpen={isDocumentSidebarOpen}
+                                    onOpen={setIsDocumentSidebarOpen}
                                     sessionDocument={selectedSessionDocument}/>
                             }
                         </div>
                     </div>
                 </div>
+                <AddDocumentDialog isOpen={isDocumentAddDialogOpen}
+                                   onDismiss={() => setIsDocumentAddDialogOpen(false)}
+                                   onDocumentAdded={onNewDocumentAdded}/>
             </section>
     );
 };

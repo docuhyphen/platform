@@ -1,21 +1,5 @@
 import React from 'react';
-import {
-    Button,
-    Dialog,
-    DialogActions,
-    DialogBody,
-    DialogContent,
-    DialogSurface,
-    DialogTitle,
-    DialogTrigger,
-    Divider,
-    Menu,
-    MenuItem,
-    MenuList,
-    MenuPopover,
-    MenuTrigger,
-    Spinner
-} from "@fluentui/react-components";
+import {Button, Divider, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger} from "@fluentui/react-components";
 import {
     ArrowDownloadRegular,
     ArrowUploadRegular,
@@ -26,8 +10,8 @@ import {
 } from "@fluentui/react-icons";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../../models/models.tsx";
 import useToken from "../../../context/useToken.tsx";
-import {deleteSharingSessionDocument, downloadSharingSessionDocument} from "../../../services/sharingSessionApi.ts";
-import {useGlobalStyles} from "../../../GlobalStyles.tsx";
+import {downloadSharingSessionDocument} from "../../../services/sharingSessionApi.ts";
+import DeleteDocumentDialog from "./DeleteDocumentDialog.tsx";
 
 
 interface DocumentActionsMenuProps
@@ -37,79 +21,6 @@ interface DocumentActionsMenuProps
     onUpload: () => void;
     onOpenDetailsSidebar: () => void;
     onDocumentDeleted: (documentId: string) => void;
-}
-
-interface DeleteDocumentDialogProps
-{
-    isOpen: boolean;
-    onClose: () => void;
-    sessionDocument: DocumentDetailedDto;
-    session: SharingSessionDetailedDto;
-    onDocumentDeleted: (documentId: string) => void;
-}
-
-const DeleteDocumentDialog: React.FC<DeleteDocumentDialogProps> = (
-    {
-        isOpen,
-        onClose,
-        sessionDocument,
-        session,
-        onDocumentDeleted
-    }) =>
-{
-
-    const token = useToken();
-    const [deletingDocument, setDeletingDocument] = React.useState(false);
-    const globalStyles = useGlobalStyles()
-
-    const onDelete = async () =>
-    {
-        setDeletingDocument(true)
-
-        try
-        {
-            await deleteSharingSessionDocument(session.id, sessionDocument.id, token);
-            onDocumentDeleted(sessionDocument.id);
-        }
-        catch (error)
-        {
-            alert("Error deleting document");
-            console.error("Error deleting document:", error);
-        }
-        finally
-        {
-            setDeletingDocument(false);
-            onClose();
-        }
-    }
-
-    return <>
-        {<Dialog modalType="alert" open={isOpen}>
-            <DialogSurface>
-                <DialogBody>
-                    <DialogTitle>Deleting {sessionDocument && sessionDocument.title}</DialogTitle>
-                    <DialogContent>
-                        Are you sure you want to delete this document?
-                    </DialogContent>
-                    <DialogActions>
-                        <Button appearance="primary"
-                                className={globalStyles.buttonWithLoading}
-                                onClick={onDelete}>
-                            {deletingDocument && <Spinner size={"extra-small"}/>}
-                            Delete
-                        </Button>
-                        <DialogTrigger disableButtonEnhancement>
-                            <Button appearance="secondary"
-                                    onClick={onClose}>
-                                Close
-                            </Button>
-                        </DialogTrigger>
-                    </DialogActions>
-                </DialogBody>
-            </DialogSurface>
-        </Dialog>
-        }
-    </>
 }
 
 const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
