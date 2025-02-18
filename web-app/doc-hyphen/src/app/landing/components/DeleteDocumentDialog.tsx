@@ -76,6 +76,7 @@ const DeleteDocumentDialog: React.FC<DeleteDocumentDialogProps> = (
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
                             <Button appearance="secondary"
+                                    disabled={deletingDocument}
                                     onClick={onClose}>
                                 Close
                             </Button>

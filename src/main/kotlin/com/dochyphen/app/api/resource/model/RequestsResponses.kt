@@ -117,6 +117,7 @@ class AddSharingSessionDocumentRequest(
     val title: String?,
     val documentType: DocumentType? = null,
     val restrictedType: DocumentType? = null,
+    val restrictType: Boolean? = null,
 )
 
 @Serializable

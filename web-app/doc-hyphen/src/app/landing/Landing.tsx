@@ -11,7 +11,7 @@ import {
     Button,
     Caption1,
     Card,
-    CardHeader,
+    CardHeader, Divider,
     Menu,
     MenuItem,
     MenuList,
@@ -21,13 +21,13 @@ import {
     Text,
     Tooltip
 } from "@fluentui/react-components";
-import {CheckmarkNoteRegular, DocumentAddRegular, MoreVerticalRegular} from "@fluentui/react-icons";
+import {CheckmarkNoteRegular, DeleteRegular, DocumentAddRegular, MoreVerticalRegular} from "@fluentui/react-icons";
 import {formatDateTimeWithOrdinal} from "../helpers.ts";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.tsx";
 import {useLandingStyles} from "./LandingStyles.tsx";
 import DocumentActionsMenu from "./components/DocumentActionsMenu.tsx";
 import SessionDocumentSidebar from "./components/session-document-sidebar/SessionDocumentSidebar.tsx";
-import AddDocumentDialog from "./components/DocumentAddDialog.tsx";
+import AddDocumentDialog from "./components/session-document-add-dialog/DocumentAddDialog.tsx";
 import NoSessionDocuments from "./components/no-session-documents/NoSessionDocuments.tsx";
 
 const useSessionDetails = (selectedSessionId: string | null, token: string | null) =>
@@ -174,6 +174,7 @@ const Landing: React.FC = () =>
     {
         if (sessionDetails)
         {
+            setIsDocumentAddDialogOpen(false)
             const updatedDocuments = sessionDetails.documents?.filter(document => document.id !== documentId);
             setSessionDetails({...sessionDetails, documents: updatedDocuments});
         }
@@ -269,6 +270,10 @@ const Landing: React.FC = () =>
                                                 <MenuList>
                                                     <MenuItem icon={<CheckmarkNoteRegular/>}>End Session</MenuItem>
                                                 </MenuList>
+                                                <Divider/>
+                                                <MenuList>
+                                                    <MenuItem icon={<DeleteRegular/>}>Delete</MenuItem>
+                                                </MenuList>
                                             </MenuPopover>
                                         </Menu>
                                     </div>
@@ -313,6 +318,7 @@ const Landing: React.FC = () =>
                 </div>
                 <AddDocumentDialog isOpen={isDocumentAddDialogOpen}
                                    onDismiss={() => setIsDocumentAddDialogOpen(false)}
+                                    sessionId={selectedSessionId}
                                    onDocumentAdded={onNewDocumentAdded}/>
             </section>
     );

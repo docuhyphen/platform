@@ -62,12 +62,6 @@ const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
         }
     };
 
-    const handlePrint = () =>
-    {
-        window.print();
-    };
-
-
     return (
         <>
         <Menu positioning={{autoSize: true}}>
