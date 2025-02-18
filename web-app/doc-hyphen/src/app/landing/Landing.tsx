@@ -32,6 +32,7 @@ import {formatDateTimeWithOrdinal} from "../helpers.ts";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.tsx";
 import {useLandingStyles} from "./LandingStyles.tsx";
 import DocumentActionsMenu from "./components/DocumentActionsMenu.tsx";
+import SessionDocumentSidebar from "./components/session-document-sidebar/SessionDocumentSidebar.tsx";
 
 const useSessionDetails = (selectedSessionId: string | null, token: string | null) =>
 {
@@ -75,6 +76,8 @@ const Landing: React.FC = () =>
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const token = useToken();
     const {sessionDetails, setSessionDetails, fetchingDetails} = useSessionDetails(selectedSessionId, token);
+    const [isOpen, setIsOpen] = React.useState(false);
+    const [selectedSessionDocument, setSelectedSessionDocument] = React.useState<SharingSessionDetailedDto>();
 
     useEffect(() =>
     {
@@ -85,9 +88,14 @@ const Landing: React.FC = () =>
         }, randomDelay);
     }, []);
 
+    useEffect(() =>
+    {
+        setIsOpen(false);
+        setSelectedSessionDocument(undefined);
+    }, [selectedSessionId]);
+
     const handleUpload = async (sessionId: string, documentId: string) =>
     {
-        alert("Upload document");
         const input = window.document.createElement('input');
         input.type = 'file';
         input.onchange = async (event: any) =>
@@ -187,6 +195,11 @@ const Landing: React.FC = () =>
                     action={<>
                         {sessionDetails &&
                             <DocumentActionsMenu session={sessionDetails}
+                                                 onOpenDetailsSidebar={() =>
+                                                 {
+                                                     setIsOpen(true)
+                                                     setSelectedSessionDocument(document)
+                                                 }}
                                                  document={document}
                                                  onUpload={() => onUploadDocument(document)}/>
                         }
@@ -199,13 +212,13 @@ const Landing: React.FC = () =>
 
     return (
         isLoading ? <PreLanding/> :
-            <section id="sharing-sessions-container" className={styles.sharingSessionsContainer}>
+            <section className={styles.sharingSessionsContainer}>
                 <div className={styles.sharingSessionsContainerDiv}>
                     <SharingSessionList onSelectionChange={setSelectedSessionId}/>
                 </div>
-                <div id="sharing-session-details-container" className={styles.sharingSessionDetailsContainer}>
-                    <div id="sharing-session-head-container"
-                         className={`${styles.sharingSessionHeadContainer} ${styles[`sessionHeadStatus${sessionDetails?.status || ''}` as keyof typeof styles]}`}>
+                <div className={styles.sharingSessionDetailsContainer}>
+                    <div
+                        className={`${styles.sharingSessionHeadContainer} ${styles[`sessionHeadStatus${sessionDetails?.status || ''}` as keyof typeof styles]}`}>
                         {(!sessionDetails || fetchingDetails) ? (
                             renderDetailsSkeleton()
                         ) : (
@@ -223,12 +236,6 @@ const Landing: React.FC = () =>
                                         <Body1>{sessionDetails.description}</Body1>
                                     </div>
                                     <div id="sharing-session-actions" className={styles.sharingSessionActions}>
-                                        <Tooltip content="Session Comments" relationship="description">
-                                            <Button icon={<CommentNoteRegular/>} appearance="subtle"/>
-                                        </Tooltip>
-                                        <Tooltip content="Session Audit" relationship="description">
-                                            <Button icon={<DocumentBulletListClockRegular/>} appearance="subtle"/>
-                                        </Tooltip>
                                         <Tooltip content="Add Session Document" relationship="description">
                                             <Button icon={<DocumentAddRegular/>} appearance="primary"/>
                                         </Tooltip>
@@ -248,29 +255,41 @@ const Landing: React.FC = () =>
                             )
                         )}
                     </div>
+                    <div className={styles.sharingSessionDocumentsContainer}>
 
-                    {!sessionDetails && renderDocumentsSkeleton()}
+                        <div className={styles.sharingSessionDocumentsDetails}>
+                            {!sessionDetails && renderDocumentsSkeleton()}
 
-                    {sessionDetails && (
-                        <div>
-                            <p>
-                                <Text size={400}>Session Documents</Text>
-                            </p>
-                            <div id={"documents-card-list"} className={styles.documentsCardList}>
+                            {sessionDetails && (
+                                <div>
+                                    <p>
+                                        <Text size={400}>Session Documents</Text>
+                                    </p>
+                                    <div id={"documents-card-list"} className={styles.documentsCardList}>
 
-                                {sessionDetails.documents?.map((document: DocumentDetailedDto) => (
-                                    renderDocumentsListCard(document)
-                                ))}
-                            </div>
+                                        {sessionDetails.documents?.map((document: DocumentDetailedDto) => (
+                                            renderDocumentsListCard(document)
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {
+                                sessionDetails && sessionDetails.documents?.length === 0 &&
+                                <div>
+                                    <Text size={400}>No documents available</Text>
+                                </div>
+                            }
                         </div>
-                    )}
-
-                    {
-                        sessionDetails && sessionDetails.documents?.length === 0 &&
-                        <div>
-                            <Text size={400}>No documents available</Text>
+                        <div className={styles.sharingSessionDocumentSidebar}>
+                            {selectedSessionDocument &&
+                                <SessionDocumentSidebar
+                                    isOpen={isOpen}
+                                    onOpen={setIsOpen}
+                                    sessionDocument={selectedSessionDocument}/>
+                            }
                         </div>
-                    }
+                    </div>
                 </div>
             </section>
     );

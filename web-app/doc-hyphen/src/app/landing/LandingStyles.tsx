@@ -23,6 +23,21 @@ export const useLandingStyles = makeStyles({
         borderBottom: "1px solid rgba(0, 0, 0, .2)",
         boxShadow: "1px 1px 1px rgba(0, 0, 0, 0.1)",
     },
+
+    sharingSessionDocumentsContainer: {
+        display: "flex",
+        flexDirection: "row",
+        gap: "16px",
+        height: "100%",
+    },
+    sharingSessionDocumentsDetails: {
+        flex: 1,
+    },
+    sharingSessionDocumentSidebar: {
+        // width: "300px",
+        // borderLeft: "1px solid rgba(0, 0, 0, .2)",
+    },
+
     sharingSessionDetailsContainer: {
         flex: 1,
         marginRight: "60px",

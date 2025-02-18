@@ -22,10 +22,11 @@ interface DocumentActionsMenuProps
 {
     session: SharingSessionDetailedDto;
     document: DocumentDetailedDto;
-    onUpload: () => void; // Add this line
+    onUpload: () => void;
+    onOpenDetailsSidebar: () => void;
 }
 
-const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = ({session, document, onUpload}) =>
+const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = ({session, document, onUpload, onOpenDetailsSidebar}) =>
 {
     const token = useToken();
 
@@ -91,7 +92,7 @@ const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = ({session, docum
                     <MenuItem icon={<DocumentPrintRegular/>} onClick={handlePrint}>Print</MenuItem>
                     <MenuItem icon={<DeleteRegular/>} onClick={handleDelete}>Delete</MenuItem>
                     <Divider/>
-                    <MenuItem icon={<InfoRegular/>}>More info</MenuItem>
+                    <MenuItem icon={<InfoRegular/>} onClick={ () => onOpenDetailsSidebar()}>More info</MenuItem>
                 </MenuList>
             </MenuPopover>
         </Menu>
