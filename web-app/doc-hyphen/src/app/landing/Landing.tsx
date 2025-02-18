@@ -162,7 +162,7 @@ const Landing: React.FC = () =>
 
     const onUploadDocument = (document: DocumentDetailedDto) =>
     {
-        document.id && handleUpload(sessionDetails.id, document.id)
+        document.id && sessionDetails && handleUpload(sessionDetails.id, document.id)
     }
 
     const renderDocumentsListCard = (document: DocumentDetailedDto) =>
