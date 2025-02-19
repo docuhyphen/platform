@@ -70,15 +70,17 @@ const DeleteDocumentDialog: React.FC<DeleteDocumentDialogProps> = (
                     <DialogActions>
                         <Button appearance="primary"
                                 className={globalStyles.buttonWithLoading}
+                                shape={"circular"}
                                 onClick={onDelete}>
                             {deletingDocument && <Spinner size={"extra-small"}/>}
-                            Delete
+                            Yes, Delete
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
                             <Button appearance="secondary"
+                                    shape={"circular"}
                                     disabled={deletingDocument}
                                     onClick={onClose}>
-                                Close
+                                No, Cancel
                             </Button>
                         </DialogTrigger>
                     </DialogActions>

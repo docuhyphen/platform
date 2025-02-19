@@ -1,11 +1,12 @@
 import React from 'react';
 import {Button, Divider, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger} from "@fluentui/react-components";
 import {
-    ArrowDownloadRegular,
-    ArrowUploadRegular,
-    DeleteRegular,
+    ArrowDownloadFilled,
+    ArrowDownloadRegular, ArrowUploadFilled,
+    ArrowUploadRegular, bundleIcon, DeleteFilled,
+    DeleteRegular, DocumentAddFilled, DocumentAddRegular, InfoFilled,
     InfoRegular,
-    MoreVerticalRegular,
+    MoreVerticalRegular, NotepadEditFilled,
     NotepadEditRegular
 } from "@fluentui/react-icons";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../../models/models.tsx";
@@ -19,6 +20,7 @@ interface DocumentActionsMenuProps
     session: SharingSessionDetailedDto;
     sessionDocument: DocumentDetailedDto;
     onUpload: () => void;
+    onUpdate: () => void;
     onOpenDetailsSidebar: () => void;
     onDocumentDeleted: (documentId: string) => void;
 }
@@ -28,6 +30,7 @@ const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
         session,
         sessionDocument,
         onUpload,
+        onUpdate,
         onOpenDetailsSidebar,
         onDocumentDeleted
     }) =>
@@ -60,6 +63,12 @@ const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
         }
     };
 
+    const EditIcon = bundleIcon(NotepadEditFilled, NotepadEditRegular)
+    const UploadIcon = bundleIcon(ArrowUploadFilled, ArrowUploadRegular)
+    const DownloadIcon = bundleIcon(ArrowDownloadFilled, ArrowDownloadRegular)
+    const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular)
+    const MoreInfoIcon = bundleIcon(InfoFilled, InfoRegular)
+
     return (
         <>
         <Menu positioning={{autoSize: true}}>
@@ -68,25 +77,26 @@ const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
             </MenuTrigger>
             <MenuPopover>
                 <MenuList>
-                    <MenuItem icon={<NotepadEditRegular/>}>Edit</MenuItem>
+                    <MenuItem icon={<EditIcon/>}
+                              onClick={onUpdate}>Edit</MenuItem>
                     <Divider/>
                     <MenuItem
-                        icon={<ArrowUploadRegular/>}
+                        icon={<UploadIcon/>}
                         onClick={onUpload}>
                         Upload
                     </MenuItem>
-                    <MenuItem icon={<ArrowDownloadRegular/>}
+                    <MenuItem icon={<DownloadIcon/>}
                               onClick={handleDownload}>Download</MenuItem>
                     {/*<MenuItem icon={<DocumentPrintRegular/>}*/}
                     {/*          onClick={handlePrint}>Print</MenuItem>*/}
-                    <MenuItem icon={<DeleteRegular/>} onClick={() =>
+                    <MenuItem icon={<DeleteIcon/>} onClick={() =>
                     {
                         console.log("sessionDocument", sessionDocument)
                         setIsDeleteDialogOpen(true)
                     }}
                     >Delete</MenuItem>
                     <Divider/>
-                    <MenuItem icon={<InfoRegular/>}
+                    <MenuItem icon={<MoreInfoIcon/>}
                               onClick={() =>
                                   onOpenDetailsSidebar()}>More info</MenuItem>
                 </MenuList>

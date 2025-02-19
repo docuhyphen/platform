@@ -32,6 +32,7 @@ export const useSharingSessionStyles = makeStyles({
         border: "1px solid rgba(0, 0, 0, .1)",
         position: "relative",
         borderRadius: "4px",
+        background: "white",
     },
 
     sharingSessionsListHeader: {

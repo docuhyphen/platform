@@ -22,7 +22,14 @@ import {
     Text,
     Tooltip
 } from "@fluentui/react-components";
-import {CheckmarkNoteRegular, DeleteRegular, DocumentAddRegular, MoreVerticalRegular} from "@fluentui/react-icons";
+import {
+    bundleIcon, CheckmarkNoteFilled,
+    CheckmarkNoteRegular, DeleteFilled,
+    DeleteRegular,
+    DocumentAddFilled,
+    DocumentAddRegular, InfoFilled, InfoRegular,
+    MoreVerticalRegular
+} from "@fluentui/react-icons";
 import {formatDateTimeWithOrdinal} from "../helpers.ts";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.tsx";
 import {useLandingStyles} from "./LandingStyles.tsx";
@@ -31,6 +38,7 @@ import SessionDocumentSidebar from "./components/session-document-sidebar/Sessio
 import AddDocumentDialog from "./components/session-document-add-dialog/DocumentAddDialog.tsx";
 import NoSessionDocuments from "./components/no-session-documents/NoSessionDocuments.tsx";
 import UploadDocumentDialog from "./components/session-document-upload/UploadDocumentDialog.tsx";
+import UpdateDocumentDialog from "./components/session-document-update-dialog/UpdateDocumentDialog.tsx";
 
 const useSessionDetails = (selectedSessionId: string | null, token: string | null) =>
 {
@@ -77,6 +85,7 @@ const Landing: React.FC = () =>
     const [isDocumentSidebarOpen, setIsDocumentSidebarOpen] = React.useState(false);
     const [isDocumentAddDialogOpen, setIsDocumentAddDialogOpen] = React.useState(false);
     const [isUploadDocumentDialogOpen, setIsUploadDocumentDialogOpen] = React.useState(false);
+    const [isUpdateDocumentDialogOpen, setIsUpdateDocumentDialogOpen] = React.useState(false);
     const [selectedSessionDocument, setSelectedSessionDocument] = React.useState<DocumentDetailedDto>({});
 
     useEffect(() =>
@@ -187,6 +196,7 @@ const Landing: React.FC = () =>
             setSessionDetails({...sessionDetails, documents: updatedDocuments});
         }
     }
+    const DocumentAddIcon = bundleIcon(DocumentAddFilled, DocumentAddRegular)
 
     const renderDocumentsListCard = (sessionDocument: DocumentDetailedDto) =>
     {
@@ -200,7 +210,7 @@ const Landing: React.FC = () =>
                                 <Caption1>Uploaded {formatDateTimeWithOrdinal(sessionDocument.uploadDate)}</Caption1>
                             ) : (
                                 <Button appearance="transparent"
-                                        icon={<DocumentAddRegular/>}
+                                        icon={<DocumentAddIcon/>}
                                         onClick={() => {
                                             setSelectedSessionDocument(sessionDocument)
                                             setIsUploadDocumentDialogOpen(true)
@@ -223,7 +233,13 @@ const Landing: React.FC = () =>
                                                  onUpload={() => {
                                                      setSelectedSessionDocument(sessionDocument)
                                                      setIsUploadDocumentDialogOpen(true)
-                                                 }}/>
+                                                 }}
+                                                 onUpdate={() => {
+                                                     setSelectedSessionDocument(sessionDocument)
+                                                     setIsUpdateDocumentDialogOpen(true)
+                                                 }}
+
+                            />
                         }
                     </>
                     }
@@ -231,6 +247,9 @@ const Landing: React.FC = () =>
             </Card>
         }</>
     }
+
+    const SessionEndIcon = bundleIcon(CheckmarkNoteFilled, CheckmarkNoteRegular)
+    const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular)
 
     return (
         isLoading ? <PreLanding/> :
@@ -272,11 +291,11 @@ const Landing: React.FC = () =>
                                             </MenuTrigger>
                                             <MenuPopover>
                                                 <MenuList>
-                                                    <MenuItem icon={<CheckmarkNoteRegular/>}>End Session</MenuItem>
+                                                    <MenuItem icon={<SessionEndIcon/>}>End Session</MenuItem>
                                                 </MenuList>
                                                 <Divider/>
                                                 <MenuList>
-                                                    <MenuItem icon={<DeleteRegular/>}>Delete</MenuItem>
+                                                    <MenuItem icon={<DeleteIcon/>}>Delete</MenuItem>
                                                 </MenuList>
                                             </MenuPopover>
                                         </Menu>
@@ -332,6 +351,12 @@ const Landing: React.FC = () =>
                                       sessionId={selectedSessionId}
                                       sessionDocument={selectedSessionDocument}
                                       onDocumentUploaded={() => alert("Document uploaded")}/>
+
+                <UpdateDocumentDialog isOpen={isUpdateDocumentDialogOpen}
+                                      onDismiss={() => setIsUpdateDocumentDialogOpen(false)}
+                                      sessionId={selectedSessionId}
+                                      sessionDocument={selectedSessionDocument}
+                                      onDocumentUpdated={() => alert("Document updated")}/>
             </section>
     );
 };

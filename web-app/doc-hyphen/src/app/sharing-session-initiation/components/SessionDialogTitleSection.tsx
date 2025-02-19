@@ -1,10 +1,11 @@
 import React from 'react';
 import {Button, Tab, TabList, TabValue, Text} from "@fluentui/react-components";
 import {
-    DismissRegular,
-    DocumentBulletListMultipleRegular,
-    DocumentOnePageRegular,
-    OptionsRegular,
+    bundleIcon, DeleteFilled, DeleteRegular,
+    DismissRegular, DocumentBulletListMultipleFilled,
+    DocumentBulletListMultipleRegular, DocumentOnePageFilled,
+    DocumentOnePageRegular, OptionsFilled,
+    OptionsRegular, PeopleCommunityAddFilled,
     PeopleCommunityAddRegular
 } from "@fluentui/react-icons";
 import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
@@ -29,6 +30,11 @@ const SessionDialogTitleSection: React.FC<DialogTitleSectionProps> = ({
                                                                       }) =>
 {
     const styles = useSharingSessionInitiationStyles();
+
+    const RecipientsIcon = bundleIcon(PeopleCommunityAddFilled, PeopleCommunityAddRegular)
+    const DetailsIcon = bundleIcon(DocumentOnePageFilled, DocumentOnePageRegular)
+    const DocumentsIcon = bundleIcon(DocumentBulletListMultipleFilled, DocumentBulletListMultipleRegular)
+    const OptionsIcon = bundleIcon(OptionsFilled, OptionsRegular)
 
     return (
         <>
@@ -59,16 +65,16 @@ const SessionDialogTitleSection: React.FC<DialogTitleSectionProps> = ({
             {choosingTemplate && <div>Choosing Template</div>}
             {(!choosingTemplate && !sessionInitiatedSuccessfully) &&
                 <TabList selectedValue={selectedTab} onTabSelect={onTabSelect}>
-                    <Tab id="recipients" icon={<PeopleCommunityAddRegular/>} value="recipients-tab">
+                    <Tab id="recipients" icon={<RecipientsIcon/>} value="recipients-tab">
                         Recipients & Participants
                     </Tab>
-                    <Tab id="details" icon={<DocumentOnePageRegular/>} value="details-tab">
+                    <Tab id="details" icon={<DetailsIcon/>} value="details-tab">
                         Details
                     </Tab>
-                    <Tab id="documents" icon={<DocumentBulletListMultipleRegular/>} value="documents-tab">
+                    <Tab id="documents" icon={<DocumentsIcon/>} value="documents-tab">
                         Documents
                     </Tab>
-                    <Tab id="options" icon={<OptionsRegular/>} value="options-tab">
+                    <Tab id="options" icon={<OptionsIcon/>} value="options-tab">
                         Options
                     </Tab>
                 </TabList>

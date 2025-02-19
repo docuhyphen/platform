@@ -6,7 +6,7 @@ export const useDocumentAddDialogStyles = makeStyles({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        height: '200px',
+        height: '180px',
         gap: "16px"
     },
 

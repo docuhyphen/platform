@@ -107,12 +107,17 @@ const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = (
                     </DialogContent>
                     <DialogActions>
                         <DialogTrigger disableButtonEnhancement>
-                            <Button appearance="secondary" onClick={onDismissDialog} disabled={uploading}>
+                            <Button appearance="secondary"
+                                    onClick={onDismissDialog}
+                                    disabled={uploading}
+                                    shape={"circular"}>
                                 Close
                             </Button>
                         </DialogTrigger>
-                        <Button appearance="primary" className={globalStyles.buttonWithLoading}
-                                onClick={onUploadDocument}>
+                        <Button appearance="primary"
+                                className={globalStyles.buttonWithLoading}
+                                onClick={onUploadDocument}
+                                shape={"circular"}>
                             {uploading && <Spinner size={"extra-small"}/>}
                             Upload
                         </Button>

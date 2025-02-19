@@ -33,7 +33,6 @@ const SessionDocumentsCard: React.FC<DocumentCardProps> = ({
                     <Field className={styles.sharingDetailsInput}>
                         <Input
                             type="text"
-                            appearance="underline"
                             size="small"
                             value={document.title || ''}
                             required
@@ -56,6 +55,7 @@ const SessionDocumentsCard: React.FC<DocumentCardProps> = ({
                         />
                     </Field>
                     <Dropdown
+                        className={styles.sharingSessionDocumentsDropdown}
                         disabled={!document.restrictType}
                         appearance="underline"
                         value={document.restrictedType}

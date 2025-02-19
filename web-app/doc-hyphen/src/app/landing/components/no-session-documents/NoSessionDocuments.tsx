@@ -1,7 +1,7 @@
 import {Button, Text} from "@fluentui/react-components";
 import React from "react";
 import {useNoSessionDocumentsStyles} from "./NoSessionDocumentsStyles.tsx";
-import {DocumentAddRegular} from "@fluentui/react-icons";
+import {bundleIcon, DocumentAddFilled, DocumentAddRegular} from "@fluentui/react-icons";
 
 interface NoDocumentsProps
 {
@@ -12,11 +12,13 @@ const NoSessionDocuments: React.FC<NoDocumentsProps> = ({setIsDocumentAddDialogO
 {
     const styles = useNoSessionDocumentsStyles()
 
+    const AddDocumentIcon = bundleIcon(DocumentAddFilled, DocumentAddRegular)
+
     return (
         <div className={styles.noDocumentsContainer}>
             <Text size={500}>No documents available</Text>
             <Button onClick={() => setIsDocumentAddDialogOpen(true)}
-                    icon={<DocumentAddRegular/>}
+                    icon={<AddDocumentIcon/>}
                     appearance={"primary"}>
                 Add document
             </Button>
