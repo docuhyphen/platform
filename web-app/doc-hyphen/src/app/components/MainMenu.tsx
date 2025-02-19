@@ -19,7 +19,15 @@ import {
 import {useAuth} from '../../context/AuthContext';
 import SignOutButton from '../components/SignOutButton';
 import SharingSessionInitiation from "../sharing-session-initiation/SharingSessionInitiation.tsx";
-import {AlertRegular, ArrowExitRegular, ChannelShareRegular, InfoRegular, SettingsRegular} from "@fluentui/react-icons";
+import {
+    AlertFilled,
+    AlertRegular, ArrowExitFilled,
+    ArrowExitRegular,
+    bundleIcon, ChannelShareFilled,
+    ChannelShareRegular, DeleteFilled, DeleteRegular, InfoFilled,
+    InfoRegular, SettingsFilled,
+    SettingsRegular
+} from "@fluentui/react-icons";
 import AppLogo from "./app-logo/AppLogo.tsx";
 import {useGlobalStyles} from "../../GlobalStyles.tsx";
 
@@ -45,6 +53,12 @@ const MainMenu: React.FC = () => {
 
     const styles = useGlobalStyles();
 
+    const SharingSessionIcon = bundleIcon(ChannelShareFilled, ChannelShareRegular);
+    const NotificationsIcon = bundleIcon(AlertFilled, AlertRegular);
+    const SignOutButtonIcon = bundleIcon(ArrowExitFilled, ArrowExitRegular);
+    const InfoIcon = bundleIcon(InfoFilled, InfoRegular)
+    const SettingsIcon = bundleIcon(SettingsFilled, SettingsRegular)
+
     return (
         <section className={styles.mainAppHeader}>
             <AppLogo/>
@@ -64,14 +78,14 @@ const MainMenu: React.FC = () => {
             </section>
 
             <section>
-                <Button icon={<ChannelShareRegular/>}
+                <Button icon={<SharingSessionIcon/>}
                         onClick={() => navigate('/landing')}
                         appearance={"subtle"}>
                 </Button>
-                <Button icon={<AlertRegular/>}
+                <Button icon={<NotificationsIcon/>}
                         appearance={"subtle"}>
                 </Button>
-                <Button icon={<InfoRegular/>}
+                <Button icon={<InfoIcon/>}
                         onClick={() => navigate('/landing')}
                         appearance={"subtle"}>
                 </Button>
@@ -87,10 +101,10 @@ const MainMenu: React.FC = () => {
                     <MenuPopover>
                         <MenuList>
                             <MenuItem onClick={() => navigate("/settings")}
-                                      icon={<SettingsRegular/>}>
+                                      icon={<SettingsIcon/>}>
                                 Settings
                             </MenuItem>
-                            <MenuItem icon={<ArrowExitRegular/>}>
+                            <MenuItem icon={<SignOutButtonIcon/>}>
                                 <SignOutButton onSignOut={onSignOut}/>
                             </MenuItem>
                         </MenuList>
