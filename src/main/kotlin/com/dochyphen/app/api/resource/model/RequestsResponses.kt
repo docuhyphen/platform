@@ -147,6 +147,7 @@ class UpdateShareSessionDocumentRequest
 {
     var title: String? = null
     var restrictedType: DocumentType? = null
+    var restrictType: Boolean? = null
     var type: DocumentType? = null
 }
 

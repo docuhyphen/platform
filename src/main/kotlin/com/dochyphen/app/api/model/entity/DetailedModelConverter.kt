@@ -18,6 +18,7 @@ class DetailedModelConverter
                         title,
                         type.toString(),
                         restrictedType.toString(),
+                        restrictedType != null,
                         hash,
                         mutableListOf(),
 //                    comments.map { toDto(it) }

@@ -259,6 +259,7 @@ export interface UpdateShareSessionDocumentRequest
 {
     title?: string;
     restrictedType?: DocumentType;
+    restrictType?: boolean;
     type?: DocumentType;
 }
 
@@ -339,6 +340,7 @@ export interface DocumentDetailedDto
     type?: string;
     restrictedType?: string;
     hash?: string;
+    restrictType?: boolean;
     comments?: DocumentCommentDetailedDto[];
 }
 

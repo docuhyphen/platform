@@ -2,11 +2,16 @@ import React from 'react';
 import {Button, Divider, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger} from "@fluentui/react-components";
 import {
     ArrowDownloadFilled,
-    ArrowDownloadRegular, ArrowUploadFilled,
-    ArrowUploadRegular, bundleIcon, DeleteFilled,
-    DeleteRegular, DocumentAddFilled, DocumentAddRegular, InfoFilled,
+    ArrowDownloadRegular,
+    ArrowUploadFilled,
+    ArrowUploadRegular,
+    bundleIcon,
+    DeleteFilled,
+    DeleteRegular,
+    InfoFilled,
     InfoRegular,
-    MoreVerticalRegular, NotepadEditFilled,
+    MoreVerticalRegular,
+    NotepadEditFilled,
     NotepadEditRegular
 } from "@fluentui/react-icons";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../../models/models.tsx";
@@ -71,37 +76,37 @@ const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
 
     return (
         <>
-        <Menu positioning={{autoSize: true}}>
-            <MenuTrigger disableButtonEnhancement>
-                <Button icon={<MoreVerticalRegular/>} appearance="subtle"/>
-            </MenuTrigger>
-            <MenuPopover>
-                <MenuList>
-                    <MenuItem icon={<EditIcon/>}
-                              onClick={onUpdate}>Edit</MenuItem>
-                    <Divider/>
-                    <MenuItem
-                        icon={<UploadIcon/>}
-                        onClick={onUpload}>
-                        Upload
-                    </MenuItem>
-                    <MenuItem icon={<DownloadIcon/>}
-                              onClick={handleDownload}>Download</MenuItem>
-                    {/*<MenuItem icon={<DocumentPrintRegular/>}*/}
-                    {/*          onClick={handlePrint}>Print</MenuItem>*/}
-                    <MenuItem icon={<DeleteIcon/>} onClick={() =>
-                    {
-                        console.log("sessionDocument", sessionDocument)
-                        setIsDeleteDialogOpen(true)
-                    }}
-                    >Delete</MenuItem>
-                    <Divider/>
-                    <MenuItem icon={<MoreInfoIcon/>}
-                              onClick={() =>
-                                  onOpenDetailsSidebar()}>More info</MenuItem>
-                </MenuList>
-            </MenuPopover>
-        </Menu>
+            <Menu positioning={{autoSize: true}}>
+                <MenuTrigger disableButtonEnhancement>
+                    <Button icon={<MoreVerticalRegular/>} appearance="subtle"/>
+                </MenuTrigger>
+                <MenuPopover>
+                    <MenuList>
+                        <MenuItem icon={<EditIcon/>}
+                                  onClick={onUpdate}>Edit</MenuItem>
+                        <Divider/>
+                        <MenuItem
+                            icon={<UploadIcon/>}
+                            onClick={onUpload}>
+                            Upload
+                        </MenuItem>
+                        <MenuItem icon={<DownloadIcon/>}
+                                  onClick={handleDownload}>Download</MenuItem>
+                        {/*<MenuItem icon={<DocumentPrintRegular/>}*/}
+                        {/*          onClick={handlePrint}>Print</MenuItem>*/}
+                        <MenuItem icon={<DeleteIcon/>} onClick={() =>
+                        {
+                            console.log("sessionDocument", sessionDocument)
+                            setIsDeleteDialogOpen(true)
+                        }}
+                        >Delete</MenuItem>
+                        <Divider/>
+                        <MenuItem icon={<MoreInfoIcon/>}
+                                  onClick={() =>
+                                      onOpenDetailsSidebar()}>More info</MenuItem>
+                    </MenuList>
+                </MenuPopover>
+            </Menu>
             <DeleteDocumentDialog sessionDocument={sessionDocument}
                                   session={session}
                                   isOpen={isDeleteDialogOpen}

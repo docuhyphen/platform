@@ -23,11 +23,13 @@ import {
     Tooltip
 } from "@fluentui/react-components";
 import {
-    bundleIcon, CheckmarkNoteFilled,
-    CheckmarkNoteRegular, DeleteFilled,
+    bundleIcon,
+    CheckmarkNoteFilled,
+    CheckmarkNoteRegular,
+    DeleteFilled,
     DeleteRegular,
     DocumentAddFilled,
-    DocumentAddRegular, InfoFilled, InfoRegular,
+    DocumentAddRegular,
     MoreVerticalRegular
 } from "@fluentui/react-icons";
 import {formatDateTimeWithOrdinal} from "../helpers.ts";
@@ -86,7 +88,8 @@ const Landing: React.FC = () =>
     const [isDocumentAddDialogOpen, setIsDocumentAddDialogOpen] = React.useState(false);
     const [isUploadDocumentDialogOpen, setIsUploadDocumentDialogOpen] = React.useState(false);
     const [isUpdateDocumentDialogOpen, setIsUpdateDocumentDialogOpen] = React.useState(false);
-    const [selectedSessionDocument, setSelectedSessionDocument] = React.useState<DocumentDetailedDto>({});
+    const [selectedSessionDocument, setSelectedSessionDocument] = React.useState<DocumentDetailedDto>(undefined);
+    const [selectedUpdateSessionDocument, setSelectedUpdateSessionDocument] = React.useState<DocumentDetailedDto>(undefined);
 
     useEffect(() =>
     {
@@ -196,6 +199,28 @@ const Landing: React.FC = () =>
             setSessionDetails({...sessionDetails, documents: updatedDocuments});
         }
     }
+
+    const onDocumentUploaded = (uploadedDocument: DocumentDetailedDto) =>
+    {
+        onDocumentUpdated(uploadedDocument);
+    }
+
+    const onDocumentUpdated = (updatedDocument: DocumentDetailedDto) =>
+    {
+        if (sessionDetails)
+        {
+            const updatedDocuments = sessionDetails.documents?.map(document =>
+            {
+                if (document.id === updatedDocument.id)
+                {
+                    return updatedDocument;
+                }
+                return document;
+            });
+            setSessionDetails({...sessionDetails, documents: updatedDocuments});
+        }
+    }
+
     const DocumentAddIcon = bundleIcon(DocumentAddFilled, DocumentAddRegular)
 
     const renderDocumentsListCard = (sessionDocument: DocumentDetailedDto) =>
@@ -235,7 +260,7 @@ const Landing: React.FC = () =>
                                                      setIsUploadDocumentDialogOpen(true)
                                                  }}
                                                  onUpdate={() => {
-                                                     setSelectedSessionDocument(sessionDocument)
+                                                     setSelectedUpdateSessionDocument(sessionDocument)
                                                      setIsUpdateDocumentDialogOpen(true)
                                                  }}
 
@@ -345,18 +370,21 @@ const Landing: React.FC = () =>
                                     sessionId={selectedSessionId}
                                    onDocumentAdded={onNewDocumentAdded}/>
 
-
                 <UploadDocumentDialog isOpen={isUploadDocumentDialogOpen}
                                       onDismiss={() => setIsUploadDocumentDialogOpen(false)}
                                       sessionId={selectedSessionId}
                                       sessionDocument={selectedSessionDocument}
-                                      onDocumentUploaded={() => alert("Document uploaded")}/>
+                                      onDocumentUploaded={onDocumentUploaded}/>
 
                 <UpdateDocumentDialog isOpen={isUpdateDocumentDialogOpen}
-                                      onDismiss={() => setIsUpdateDocumentDialogOpen(false)}
+                                      onDismiss={() =>
+                                      {
+                                          setSelectedUpdateSessionDocument(undefined)
+                                          setIsUpdateDocumentDialogOpen(false)
+                                      }}
                                       sessionId={selectedSessionId}
-                                      sessionDocument={selectedSessionDocument}
-                                      onDocumentUpdated={() => alert("Document updated")}/>
+                                      sessionDocument={selectedUpdateSessionDocument}
+                                      onDocumentUpdated={onDocumentUpdated}/>
             </section>
     );
 };

@@ -233,6 +233,7 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                             <Divider title={"status"}/>
                             <MenuItem> Initiated by me </MenuItem>
                             <MenuItem> Requested by others </MenuItem>
+                            <MenuItem> Participating in </MenuItem>
                         </MenuList>
                     </MenuPopover>
                 </Menu>

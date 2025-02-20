@@ -1,4 +1,9 @@
-import {DocumentDetailedDto, DocumentType, ImageType} from "../../../models/models.tsx";
+import {
+    DocumentDetailedDto,
+    DocumentType,
+    ImageType,
+    UpdateShareSessionDocumentRequest
+} from "../../../models/models.tsx";
 import React, {useEffect} from "react";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {
@@ -43,26 +48,37 @@ const UpdateDocumentDialog: React.FC<UpdateDocumentDialogProps> = (
     const token = useToken();
     const [documentTitle, setDocumentTitle] = React.useState<string>('');
     const [restrictType, setRestrictType] = React.useState<boolean>(false);
-    const [restrictedType, setRestrictedType] = React.useState<DocumentType | ImageType | undefined>();
     const [updatingDocument, setUpdatingDocument] = React.useState<boolean>(false);
     const globalStyles = useGlobalStyles();
     const styles = useDocumentAddDialogStyles();
+    const [restrictedType, setRestrictedType] = React.useState<DocumentType | ImageType | string>("PDF");
 
     useEffect(() =>
     {
+        console.log("selectedUpdateSessionDocument", sessionDocument);
+
         if (sessionDocument)
         {
             setDocumentTitle(sessionDocument.title);
-            setRestrictType(sessionDocument.restrictType);
-            setRestrictedType(sessionDocument.restrictedType);
+
+            if(sessionDocument.restrictedType != 'null')
+            {
+                setRestrictedType(sessionDocument.restrictedType);
+                setRestrictType(true);
+            }
+            else {
+
+                setRestrictedType("PDF"); // Ensures it's always controlled
+            }
         }
+
     }, [sessionDocument]);
 
     const resetState = () =>
     {
         setDocumentTitle('');
         setRestrictType(false);
-        setRestrictedType(undefined);
+        setRestrictedType("PDF");
     }
 
     const onDismissDialog = () =>
@@ -82,7 +98,7 @@ const UpdateDocumentDialog: React.FC<UpdateDocumentDialogProps> = (
 
         try
         {
-            const updatedDocument = {
+            const updatedDocument: UpdateShareSessionDocumentRequest = {
                 title: documentTitle,
                 restrictedType: restrictType ? restrictedType : undefined,
                 restrictType: restrictType
@@ -136,7 +152,7 @@ const UpdateDocumentDialog: React.FC<UpdateDocumentDialogProps> = (
                             </Field>
                             <Dropdown
                                 disabled={!restrictType}
-                                value={restrictedType}
+                                value={restrictedType || DocumentType.PDF}
                                 placeholder="Select document type to restrict"
                                 onOptionSelect={onOptionSelected}>
                                 <OptionGroup label="Documents">

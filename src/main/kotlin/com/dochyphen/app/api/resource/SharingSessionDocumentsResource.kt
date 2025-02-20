@@ -3,6 +3,7 @@ package com.dochyphen.app.api.resource
 import com.dochyphen.app.api.exception.SharingSessionDocumentNotFoundException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.model.BasicModelConverter.Companion.toDto
+import com.dochyphen.app.api.model.entity.DetailedModelConverter
 import com.dochyphen.app.api.model.entity.DocumentEncryptionMode
 import com.dochyphen.app.api.resource.model.AddSharingSessionDocumentRequest
 import com.dochyphen.app.api.resource.model.ResponseError
@@ -157,6 +158,8 @@ class SharingSessionDocumentsResource @Inject constructor(
         @PathParam("documentId") documentId: String
     ): Response
     {
+        ResourceEndpointDelayHelper.delayEndpoint(2000, 3500)
+
         return try
         {
             val document = with(request) {
@@ -169,7 +172,7 @@ class SharingSessionDocumentsResource @Inject constructor(
                 )
             }
 
-            Response.ok(toDto(document)).build()
+            Response.ok(DetailedModelConverter.toDto(document)).build()
         }
         catch (exception: Exception)
         {
@@ -227,14 +230,15 @@ class SharingSessionDocumentsResource @Inject constructor(
 
         return try
         {
-            sharingSessionDocumentService.uploadDocument(
+            val document = sharingSessionDocumentService.uploadDocument(
                 file,
                 extension,
                 sessionId,
                 documentId,
                 encryptionMode
             )
-            Response.ok().build()
+
+            Response.ok(DetailedModelConverter.toDto(document)).build()
         }
         catch (exception: Exception)
         {

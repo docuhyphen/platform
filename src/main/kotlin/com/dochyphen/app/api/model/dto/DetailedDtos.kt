@@ -27,6 +27,7 @@ data class DocumentDetailedDto(
     val title: String?,
     val type: String?,
     val restrictedType: String?,
+    val restrictType: Boolean?,
     val hash: String?,
     val comments: List<DocumentCommentDetailedDto>?
 )

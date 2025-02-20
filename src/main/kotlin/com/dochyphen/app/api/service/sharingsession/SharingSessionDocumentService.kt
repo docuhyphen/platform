@@ -105,7 +105,7 @@ class SharingSessionDocumentService @Inject constructor(
         sessionId: String?,
         documentId: String?,
         encryptionMode: DocumentEncryptionMode?
-    )
+    ): Document
     {
         if (sessionId == null) throw IllegalArgumentException("Session ID cannot be null")
         if (documentId == null) throw IllegalArgumentException("Document ID cannot be null")
@@ -132,6 +132,8 @@ class SharingSessionDocumentService @Inject constructor(
         auditService.logAction(document, DocumentAuditLogAction.UPLOAD, appUser)
 
         sendUploadNotification(sharingSession, appUser, document.title)
+
+        return document
     }
 
     @Transactional
