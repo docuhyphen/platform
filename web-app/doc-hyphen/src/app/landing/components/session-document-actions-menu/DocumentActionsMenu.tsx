@@ -14,10 +14,10 @@ import {
     NotepadEditFilled,
     NotepadEditRegular
 } from "@fluentui/react-icons";
-import {DocumentDetailedDto, SharingSessionDetailedDto} from "../../models/models.tsx";
-import useToken from "../../../context/useToken.tsx";
-import {downloadSharingSessionDocument} from "../../../services/sharingSessionApi.ts";
-import DeleteDocumentDialog from "./DeleteDocumentDialog.tsx";
+import {DocumentDetailedDto, SharingSessionDetailedDto} from "../../../models/models.tsx";
+import useToken from "../../../../context/useToken.tsx";
+import {downloadSharingSessionDocument} from "../../../../services/sharingSessionApi.ts";
+import DeleteDocumentDialog from "../session-document-delete-dialog/DeleteDocumentDialog.tsx";
 
 
 interface DocumentActionsMenuProps

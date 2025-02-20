@@ -35,11 +35,11 @@ import {
 import {formatDateTimeWithOrdinal} from "../helpers.ts";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.tsx";
 import {useLandingStyles} from "./LandingStyles.tsx";
-import DocumentActionsMenu from "./components/DocumentActionsMenu.tsx";
+import DocumentActionsMenu from "./components/session-document-actions-menu/DocumentActionsMenu.tsx";
 import SessionDocumentSidebar from "./components/session-document-sidebar/SessionDocumentSidebar.tsx";
 import AddDocumentDialog from "./components/session-document-add-dialog/DocumentAddDialog.tsx";
-import NoSessionDocuments from "./components/no-session-documents/NoSessionDocuments.tsx";
-import UploadDocumentDialog from "./components/session-document-upload/UploadDocumentDialog.tsx";
+import NoSessionDocuments from "./components/session-documents-none/NoSessionDocuments.tsx";
+import UploadDocumentDialog from "./components/session-document-upload-dialog/UploadDocumentDialog.tsx";
 import UpdateDocumentDialog from "./components/session-document-update-dialog/UpdateDocumentDialog.tsx";
 
 const useSessionDetails = (selectedSessionId: string | null, token: string | null) =>
@@ -223,6 +223,32 @@ const Landing: React.FC = () =>
 
     const DocumentAddIcon = bundleIcon(DocumentAddFilled, DocumentAddRegular)
 
+    const renderDocumentsActionsMenu = (sessionDocument: DocumentDetailedDto) =>
+    {
+        return <>
+            <DocumentActionsMenu session={sessionDetails}
+                                 onOpenDetailsSidebar={() =>
+                                 {
+                                     setIsDocumentSidebarOpen(true)
+                                     setSelectedSessionDocument(sessionDocument)
+                                 }}
+                                 onDocumentDeleted={onDocumentDeleted}
+                                 sessionDocument={sessionDocument}
+                                 onUpload={() =>
+                                 {
+                                     setSelectedSessionDocument(sessionDocument)
+                                     setIsUploadDocumentDialogOpen(true)
+                                 }}
+                                 onUpdate={() =>
+                                 {
+                                     setSelectedUpdateSessionDocument(sessionDocument)
+                                     setIsUpdateDocumentDialogOpen(true)
+                                 }}
+
+            />
+        </>
+    }
+
     const renderDocumentsListCard = (sessionDocument: DocumentDetailedDto) =>
     {
         return <> {sessionDocument &&
@@ -246,26 +272,7 @@ const Landing: React.FC = () =>
                         </>
                     }
                     action={<>
-                        {sessionDetails &&
-                            <DocumentActionsMenu session={sessionDetails}
-                                                 onOpenDetailsSidebar={() =>
-                                                 {
-                                                     setIsDocumentSidebarOpen(true)
-                                                     setSelectedSessionDocument(sessionDocument)
-                                                 }}
-                                                 onDocumentDeleted={onDocumentDeleted}
-                                                 sessionDocument={sessionDocument}
-                                                 onUpload={() => {
-                                                     setSelectedSessionDocument(sessionDocument)
-                                                     setIsUploadDocumentDialogOpen(true)
-                                                 }}
-                                                 onUpdate={() => {
-                                                     setSelectedUpdateSessionDocument(sessionDocument)
-                                                     setIsUpdateDocumentDialogOpen(true)
-                                                 }}
-
-                            />
-                        }
+                        {sessionDetails && renderDocumentsActionsMenu(sessionDocument)}
                     </>
                     }
                 />
@@ -320,7 +327,7 @@ const Landing: React.FC = () =>
                                                 </MenuList>
                                                 <Divider/>
                                                 <MenuList>
-                                                    <MenuItem icon={<DeleteIcon/>}>Delete</MenuItem>
+                                                    <MenuItem icon={<DeleteIcon/>}>Delete Session</MenuItem>
                                                 </MenuList>
                                             </MenuPopover>
                                         </Menu>
