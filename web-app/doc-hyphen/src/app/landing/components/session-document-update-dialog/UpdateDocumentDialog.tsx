@@ -2,9 +2,9 @@ import {
     DocumentDetailedDto,
     DocumentType,
     ImageType,
-    UpdateShareSessionDocumentRequest
+    UpdateShareSessionDocumentRequest,
 } from "../../../models/models.tsx";
-import React, {useEffect} from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {
     Button,
@@ -21,7 +21,7 @@ import {
     Option,
     OptionGroup,
     Spinner,
-    Switch
+    Switch,
 } from "@fluentui/react-components";
 import {updateSharingSessionDocument} from "../../../../services/sharingSessionApi.ts";
 import useToken from "../../../../context/useToken.tsx";
@@ -36,63 +36,58 @@ interface UpdateDocumentDialogProps
     onDocumentUpdated: (document: DocumentDetailedDto) => void;
 }
 
-const UpdateDocumentDialog: React.FC<UpdateDocumentDialogProps> = (
-    {
-        isOpen,
-        onDocumentUpdated,
-        onDismiss,
-        sessionId,
-        sessionDocument
-    }) =>
+const UpdateDocumentDialog: React.FC<UpdateDocumentDialogProps> = ({
+                                                                       isOpen,
+                                                                       sessionId,
+                                                                       sessionDocument,
+                                                                       onDismiss,
+                                                                       onDocumentUpdated,
+                                                                   }) =>
 {
     const token = useToken();
-    const [documentTitle, setDocumentTitle] = React.useState<string>('');
-    const [restrictType, setRestrictType] = React.useState<boolean>(false);
-    const [updatingDocument, setUpdatingDocument] = React.useState<boolean>(false);
+    const [documentTitle, setDocumentTitle] = useState<string>("");
+    const [isRestrictionEnabled, setIsRestrictionEnabled] = useState<boolean>(false);
+    const [updatingDocument, setUpdatingDocument] = useState<boolean>(false);
+    const [selectedRestrictionType, setSelectedRestrictionType] = useState<DocumentType | ImageType | string>("PDF");
+
     const globalStyles = useGlobalStyles();
     const styles = useDocumentAddDialogStyles();
-    const [restrictedType, setRestrictedType] = React.useState<DocumentType | ImageType | string>("PDF");
 
     useEffect(() =>
     {
-        console.log("selectedUpdateSessionDocument", sessionDocument);
-
         if (sessionDocument)
         {
             setDocumentTitle(sessionDocument.title);
 
-            if(sessionDocument.restrictedType != 'null')
+            if (sessionDocument.restrictedType && sessionDocument.restrictedType !== "null")
             {
-                setRestrictedType(sessionDocument.restrictedType);
-                setRestrictType(true);
+                setSelectedRestrictionType(sessionDocument.restrictedType);
+                setIsRestrictionEnabled(true);
             }
-            else {
-
-                setRestrictedType("PDF"); // Ensures it's always controlled
+            else
+            {
+                setSelectedRestrictionType("PDF");
+                setIsRestrictionEnabled(false);
             }
         }
-
     }, [sessionDocument]);
 
-    const resetState = () =>
+    const resetState = useCallback(() =>
     {
-        setDocumentTitle('');
-        setRestrictType(false);
-        setRestrictedType("PDF");
-    }
+        setDocumentTitle("");
+        setIsRestrictionEnabled(false);
+        setSelectedRestrictionType("PDF");
+    }, []);
 
-    const onDismissDialog = () =>
+    const handleDismiss = useCallback(() =>
     {
         resetState();
         onDismiss();
-    }
+    }, [onDismiss, resetState]);
 
-    const onUpdateDocument = async () =>
+    const handleUpdateDocument = async () =>
     {
-        if (updatingDocument)
-        {
-            return;
-        }
+        if (updatingDocument) return;
 
         setUpdatingDocument(true);
 
@@ -100,41 +95,46 @@ const UpdateDocumentDialog: React.FC<UpdateDocumentDialogProps> = (
         {
             const updatedDocument: UpdateShareSessionDocumentRequest = {
                 title: documentTitle,
-                restrictedType: restrictType ? restrictedType : undefined,
-                restrictType: restrictType
+                restrictedType: isRestrictionEnabled ? selectedRestrictionType : undefined,
+                restrictType: isRestrictionEnabled,
             };
 
-            const result = await updateSharingSessionDocument(sessionId, sessionDocument.id, updatedDocument, token);
-
+            const result = await updateSharingSessionDocument(
+                sessionId,
+                sessionDocument.id,
+                updatedDocument,
+                token
+            );
             onDocumentUpdated(result);
             resetState();
             onDismiss();
         }
         catch (error: any)
         {
+            console.error("Error updating document", error);
             alert("Error updating document");
-            console.error(error);
         }
         finally
         {
             setUpdatingDocument(false);
         }
-    }
+    };
 
-    const onOptionSelected = (_e, data) =>
+    const handleOptionSelect = (
+        _event: unknown,
+        data: { optionValue: DocumentType | ImageType }
+    ) =>
     {
-        return setRestrictedType(data.optionValue as DocumentType | ImageType);
-    }
+        setSelectedRestrictionType(data.optionValue);
+    };
 
     return (
-        <Dialog modalType="alert"
-                open={isOpen}>
+        <Dialog modalType="alert" open={isOpen}>
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle>Update session document</DialogTitle>
                     <DialogContent className={styles.documentAddDialogContainer}>
-                        <Field className={styles.documentTitleField}
-                               label={"New document name"}>
+                        <Field className={styles.documentTitleField} label="New document name">
                             <Input
                                 type="text"
                                 value={documentTitle}
@@ -146,15 +146,16 @@ const UpdateDocumentDialog: React.FC<UpdateDocumentDialogProps> = (
                             <Field label="">
                                 <Switch
                                     label="Restrict type"
-                                    checked={restrictType}
-                                    onChange={(ev) => setRestrictType(ev.target.checked)}
+                                    checked={isRestrictionEnabled}
+                                    onChange={(e) => setIsRestrictionEnabled(e.target.checked)}
                                 />
                             </Field>
                             <Dropdown
-                                disabled={!restrictType}
-                                value={restrictedType || DocumentType.PDF}
+                                disabled={!isRestrictionEnabled}
+                                value={selectedRestrictionType}
                                 placeholder="Select document type to restrict"
-                                onOptionSelect={onOptionSelected}>
+                                onOptionSelect={handleOptionSelect}
+                            >
                                 <OptionGroup label="Documents">
                                     {Object.values(DocumentType).map((option) => (
                                         <Option key={option} value={option}>
@@ -174,18 +175,22 @@ const UpdateDocumentDialog: React.FC<UpdateDocumentDialogProps> = (
                     </DialogContent>
                     <DialogActions>
                         <DialogTrigger disableButtonEnhancement>
-                            <Button appearance="secondary"
-                                    onClick={onDismissDialog}
-                                    shape={"circular"}
-                                    disabled={updatingDocument}>
+                            <Button
+                                appearance="secondary"
+                                onClick={handleDismiss}
+                                shape="circular"
+                                disabled={updatingDocument}
+                            >
                                 Close
                             </Button>
                         </DialogTrigger>
-                        <Button appearance="primary"
-                                className={globalStyles.buttonWithLoading}
-                                shape={"circular"}
-                                onClick={onUpdateDocument}>
-                            {updatingDocument && <Spinner size={"extra-small"}/>}
+                        <Button
+                            appearance="primary"
+                            className={globalStyles.buttonWithLoading}
+                            shape="circular"
+                            onClick={handleUpdateDocument}
+                        >
+                            {updatingDocument && <Spinner size="extra-small"/>}
                             Update
                         </Button>
                     </DialogActions>
@@ -193,6 +198,6 @@ const UpdateDocumentDialog: React.FC<UpdateDocumentDialogProps> = (
             </DialogSurface>
         </Dialog>
     );
-}
+};
 
 export default UpdateDocumentDialog;
