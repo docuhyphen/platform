@@ -16,6 +16,7 @@ import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {uploadSharingSessionDocument} from "../../../../services/sharingSessionApi.ts";
 import useToken from "../../../../context/useToken.tsx";
 import {DocumentDetailedDto} from "../../../models/models.tsx";
+import {useDocumentDialogStyles} from "./UploadDocumentDialogStyles.tsx";
 
 interface UploadDocumentDialogProps
 {
@@ -40,6 +41,7 @@ const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = (
     const [uploading, setUploading] = useState<boolean>(false);
     const [progress, setProgress] = useState<number>(0);
     const globalStyles = useGlobalStyles();
+    const styles = useDocumentDialogStyles();
 
     const resetState = () =>
     {
@@ -97,7 +99,7 @@ const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Upload {sessionDocument && sessionDocument.title}</DialogTitle>
                     <DialogContent>
-                        <Field>
+                        <Field className={styles.uploadContainer}>
                             <input
                                 type="file"
                                 onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
@@ -106,6 +108,13 @@ const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = (
                         {uploading && <ProgressBar value={progress}/>}
                     </DialogContent>
                     <DialogActions>
+                        <Button appearance="primary"
+                                className={globalStyles.buttonWithLoading}
+                                onClick={onUploadDocument}
+                                shape={"circular"}>
+                            {uploading && <Spinner size={"extra-small"}/>}
+                            Upload
+                        </Button>
                         <DialogTrigger disableButtonEnhancement>
                             <Button appearance="secondary"
                                     onClick={onDismissDialog}
@@ -114,13 +123,6 @@ const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = (
                                 Close
                             </Button>
                         </DialogTrigger>
-                        <Button appearance="primary"
-                                className={globalStyles.buttonWithLoading}
-                                onClick={onUploadDocument}
-                                shape={"circular"}>
-                            {uploading && <Spinner size={"extra-small"}/>}
-                            Upload
-                        </Button>
                     </DialogActions>
                 </DialogBody>
             </DialogSurface>

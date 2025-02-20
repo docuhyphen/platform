@@ -174,6 +174,15 @@ const UpdateDocumentDialog: React.FC<UpdateDocumentDialogProps> = ({
                         </div>
                     </DialogContent>
                     <DialogActions>
+                        <Button
+                            appearance="primary"
+                            className={globalStyles.buttonWithLoading}
+                            shape="circular"
+                            onClick={handleUpdateDocument}
+                        >
+                            {updatingDocument && <Spinner size="extra-small"/>}
+                            Update
+                        </Button>
                         <DialogTrigger disableButtonEnhancement>
                             <Button
                                 appearance="secondary"
@@ -184,15 +193,6 @@ const UpdateDocumentDialog: React.FC<UpdateDocumentDialogProps> = ({
                                 Close
                             </Button>
                         </DialogTrigger>
-                        <Button
-                            appearance="primary"
-                            className={globalStyles.buttonWithLoading}
-                            shape="circular"
-                            onClick={handleUpdateDocument}
-                        >
-                            {updatingDocument && <Spinner size="extra-small"/>}
-                            Update
-                        </Button>
                     </DialogActions>
                 </DialogBody>
             </DialogSurface>
