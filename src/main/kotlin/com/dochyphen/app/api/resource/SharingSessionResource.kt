@@ -250,4 +250,55 @@ class SharingSessionResource @Inject constructor(
             }
         }
     }
+
+    @DELETE
+    @Path("/{sessionId}")
+    fun deleteSharingSession(@PathParam("sessionId") sessionId: String): Response
+    {
+        return try
+        {
+            sharingSessionUpdateService.deleteSharingSession(sessionId)
+            Response.ok().build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is SharingSessionNotFoundException ->
+                {
+                    logger.error("Error deleting sharing session", exception)
+
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(Response.Status.NOT_FOUND)
+                        .entity(responseError)
+                        .build()
+                }
+
+                is IllegalArgumentException ->
+                {
+                    logger.error("Error deleting sharing session", exception)
+
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(Response.Status.BAD_REQUEST)
+                        .entity(responseError)
+                        .build()
+                }
+
+                else ->
+                {
+                    logger.error("Error deleting sharing session", exception)
+
+                    val responseError = ResponseError("An error occurred while deleting sharing session")
+                    Response
+                        .status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(responseError)
+                        .build()
+                }
+            }
+        }
+    }
 }

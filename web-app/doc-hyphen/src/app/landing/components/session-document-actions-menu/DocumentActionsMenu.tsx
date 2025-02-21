@@ -17,7 +17,7 @@ import {
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../../../models/models.tsx";
 import useToken from "../../../../context/useToken.tsx";
 import {downloadSharingSessionDocument} from "../../../../services/sharingSessionApi.ts";
-import DeleteDocumentDialog from "../session-document-delete-dialog/DeleteDocumentDialog.tsx";
+import SessionDocumentDeleteDialog from "../session-document-delete-dialog/SessionDocumentDeleteDialog.tsx";
 
 
 interface DocumentActionsMenuProps
@@ -51,9 +51,11 @@ const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
             const url = window.URL.createObjectURL(new Blob([data], {type: 'application/octet-stream'}));
             const link = window.document.createElement('a');
 
+            const documentName = `${session?.sessionName?.replace(/\s+/g, '-')}-${sessionDocument?.title?.replace(/\s+/g, '-')}.pdf`
+
             link.id = 'f-download-link';
             link.href = url;
-            link.setAttribute('download', `${sessionDocument.title}.pdf`); // or any other extension
+            link.setAttribute('download', documentName); //ToDo: get type from document
 
             window.document.body.appendChild(link);
 
@@ -107,11 +109,11 @@ const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
                     </MenuList>
                 </MenuPopover>
             </Menu>
-            <DeleteDocumentDialog sessionDocument={sessionDocument}
-                                  session={session}
-                                  isOpen={isDeleteDialogOpen}
-                                  onClose={() => setIsDeleteDialogOpen(false)}
-                                  onDocumentDeleted={onDocumentDeleted}/>
+            <SessionDocumentDeleteDialog sessionDocument={sessionDocument}
+                                         session={session}
+                                         isOpen={isDeleteDialogOpen}
+                                         onClose={() => setIsDeleteDialogOpen(false)}
+                                         onDocumentDeleted={onDocumentDeleted}/>
         </>
     );
 };

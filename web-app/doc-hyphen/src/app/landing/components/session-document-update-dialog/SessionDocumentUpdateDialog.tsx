@@ -36,7 +36,7 @@ interface UpdateDocumentDialogProps
     onDocumentUpdated: (document: DocumentDetailedDto) => void;
 }
 
-const UpdateDocumentDialog: React.FC<UpdateDocumentDialogProps> = ({
+const SessionDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = ({
                                                                        isOpen,
                                                                        sessionId,
                                                                        sessionDocument,
@@ -200,4 +200,4 @@ const UpdateDocumentDialog: React.FC<UpdateDocumentDialogProps> = ({
     );
 };
 
-export default UpdateDocumentDialog;
+export default SessionDocumentUpdateDialog;

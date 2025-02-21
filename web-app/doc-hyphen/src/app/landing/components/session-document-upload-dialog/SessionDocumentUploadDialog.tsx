@@ -27,7 +27,7 @@ interface UploadDocumentDialogProps
     onDocumentUploaded: (document: any) => void;
 }
 
-const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = (
+const SessionDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
     {
         isOpen,
         sessionId,
@@ -130,4 +130,4 @@ const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = (
     );
 };
 
-export default UploadDocumentDialog;
+export default SessionDocumentUploadDialog;

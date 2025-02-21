@@ -113,4 +113,25 @@ class SharingSessionUpdateService @Inject constructor(
 
         logger.info("Sharing session ${updatedSession.sessionName} completed")
     }
+
+    fun deleteSharingSession(sessionId: String?)
+    {
+        if(sessionId == null)
+        {
+            throw IllegalArgumentException("Session ID cannot be null")
+        }
+
+        val sessionUUID = UUID.fromString(sessionId)
+
+        var session = sharingSessionRepository.findById(sessionUUID)?.apply {
+
+            isDeleted = true
+            dateDeleted = Timestamp.from(Instant.now())
+
+        } ?: throw SharingSessionNotFoundException("Sharing session not found")
+
+        sharingSessionRepository.update(session)
+
+        logger.info("Sharing session ${session.sessionName} deleted")
+    }
 }

@@ -91,6 +91,23 @@ export const addSharingSessionDocument = async (sessionId: string, request: Shar
     }
 };
 
+export const deleteSharingSession = async (sessionId: string, token: string | null) =>
+{
+    try
+    {
+        const response = await apiClient.delete(`/sharing-sessions/${sessionId}`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
 export const updateSharingSessionDocument = async (sessionId: string, documentId: string, request: SharingSessionRequestDocumentRequest, token: string | null) =>
 {
     try

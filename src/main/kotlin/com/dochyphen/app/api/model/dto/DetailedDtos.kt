@@ -40,6 +40,7 @@ data class SharingSessionDetailedDto(
     val createdDate: Timestamp,
     @Serializable(with = TimestampSerializer::class)
     val endDate: Timestamp?,
+    val endNote: String?,
     @Serializable(with = TimestampSerializer::class)
     val lastActivity: Timestamp,
     val sessionName: String?,

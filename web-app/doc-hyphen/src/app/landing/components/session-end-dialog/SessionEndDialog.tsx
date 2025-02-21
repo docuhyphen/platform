@@ -18,16 +18,16 @@ import {
 interface DeleteDocumentDialogProps
 {
     isOpen: boolean;
-    onClose: () => void;
+    onDismiss: () => void;
     sessionDocument: DocumentDetailedDto;
     session: SharingSessionDetailedDto;
     onDocumentDeleted: (documentId: string) => void;
 }
 
-const DeleteDocumentDialog: React.FC<DeleteDocumentDialogProps> = (
+const SessionEndDialog: React.FC<DeleteDocumentDialogProps> = (
     {
         isOpen,
-        onClose,
+        onDismiss,
         sessionDocument,
         session,
         onDocumentDeleted
@@ -55,7 +55,7 @@ const DeleteDocumentDialog: React.FC<DeleteDocumentDialogProps> = (
         finally
         {
             setDeletingDocument(false);
-            onClose();
+            onDismiss();
         }
     }
 
@@ -63,9 +63,9 @@ const DeleteDocumentDialog: React.FC<DeleteDocumentDialogProps> = (
         {<Dialog modalType="alert" open={isOpen}>
             <DialogSurface>
                 <DialogBody>
-                    <DialogTitle>Deleting {sessionDocument && sessionDocument.title}</DialogTitle>
+                    <DialogTitle>Ending Session: {sessionDocument && sessionDocument.title}</DialogTitle>
                     <DialogContent>
-                        Are you sure you want to delete this document?
+                        DISPLAY STATUS
                     </DialogContent>
                     <DialogActions>
                         <Button appearance="primary"
@@ -79,7 +79,7 @@ const DeleteDocumentDialog: React.FC<DeleteDocumentDialogProps> = (
                             <Button appearance="secondary"
                                     shape={"circular"}
                                     disabled={deletingDocument}
-                                    onClick={onClose}>
+                                    onClick={onDismiss}>
                                 No, Cancel
                             </Button>
                         </DialogTrigger>
@@ -91,4 +91,4 @@ const DeleteDocumentDialog: React.FC<DeleteDocumentDialogProps> = (
     </>
 }
 
-export default DeleteDocumentDialog;
+export default SessionEndDialog;

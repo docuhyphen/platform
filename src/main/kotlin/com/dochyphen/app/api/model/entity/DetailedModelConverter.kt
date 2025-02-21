@@ -36,6 +36,7 @@ class DetailedModelConverter
                         id,
                         createdDate,
                         endDate,
+                        endNote,
                         lastActivity,
                         sessionName,
                         initialShareMessage,

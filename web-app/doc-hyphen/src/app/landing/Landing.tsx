@@ -1,9 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import SharingSessionList from "../sharing-session-list/SharingSessionList.tsx";
-import {
-    fetchSignedInUserAppUserSharingSession,
-    uploadSharingSessionDocument
-} from "../../services/sharingSessionApi.ts";
+import {fetchSignedInUserAppUserSharingSession} from "../../services/sharingSessionApi.ts";
 import useToken from "../../context/useToken.tsx";
 import PreLanding from "../pre-landing/PreLanding.tsx";
 import {
@@ -37,10 +34,12 @@ import {DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.t
 import {useLandingStyles} from "./LandingStyles.tsx";
 import DocumentActionsMenu from "./components/session-document-actions-menu/DocumentActionsMenu.tsx";
 import SessionDocumentSidebar from "./components/session-document-sidebar/SessionDocumentSidebar.tsx";
-import AddDocumentDialog from "./components/session-document-add-dialog/DocumentAddDialog.tsx";
+import AddDocumentDialog from "./components/session-document-add-dialog/SessionDocumentAddDialog.tsx";
 import NoSessionDocuments from "./components/session-documents-none/NoSessionDocuments.tsx";
-import UploadDocumentDialog from "./components/session-document-upload-dialog/UploadDocumentDialog.tsx";
-import UpdateDocumentDialog from "./components/session-document-update-dialog/UpdateDocumentDialog.tsx";
+import SessionDocumentUploadDialog from "./components/session-document-upload-dialog/SessionDocumentUploadDialog.tsx";
+import SessionDocumentUpdateDialog from "./components/session-document-update-dialog/SessionDocumentUpdateDialog.tsx";
+import SessionEndDialog from "./components/session-end-dialog/SessionEndDialog.tsx";
+import SessionDeleteDialog from "./components/session-delete-dialog/SessionDeleteDialog.tsx";
 
 const useSessionDetails = (selectedSessionId: string | null, token: string | null) =>
 {
@@ -88,6 +87,8 @@ const Landing: React.FC = () =>
     const [isDocumentAddDialogOpen, setIsDocumentAddDialogOpen] = React.useState(false);
     const [isUploadDocumentDialogOpen, setIsUploadDocumentDialogOpen] = React.useState(false);
     const [isUpdateDocumentDialogOpen, setIsUpdateDocumentDialogOpen] = React.useState(false);
+    const [isDeletedSessionDialogOpen, setIsDeletedSessionDialogOpen] = React.useState(false);
+    const [isSessionEndDialogOpen, setIsSessionEndDialogOpen] = React.useState(false);
     const [selectedSessionDocument, setSelectedSessionDocument] = React.useState<DocumentDetailedDto>(undefined);
     const [selectedUpdateSessionDocument, setSelectedUpdateSessionDocument] = React.useState<DocumentDetailedDto>(undefined);
 
@@ -105,39 +106,6 @@ const Landing: React.FC = () =>
         setIsDocumentSidebarOpen(false);
         setSelectedSessionDocument(undefined);
     }, [selectedSessionId]);
-
-    const handleUpload = async (sessionId: string, documentId: string) =>
-    {
-        const input = window.document.createElement('input');
-        input.type = 'file';
-        input.onchange = async (event: any) =>
-        {
-            const file = event.target.files[0];
-            const formData = new FormData();
-
-            formData.append('file', file, 'UserManual.pdf');
-            formData.append('encryptionMode', 'INTERNAL');
-            formData.append('extension', '.docx');
-
-            try
-            {
-                const uploadData = await uploadSharingSessionDocument(sessionId, documentId, formData, token);
-                console.log(uploadData);
-
-                // Fetch the updated document
-                const updatedDocument = await fetchSignedInUserAppUserSharingSession(sessionId, token);
-                console.log(updatedDocument);
-
-                // Update the session with the updated document
-                setSessionDetails(updatedDocument as SharingSessionDetailedDto);
-            }
-            catch (error)
-            {
-                console.error("Error uploading document:", error);
-            }
-        };
-        input.click();
-    };
 
     const renderDetailsSkeleton = () =>
     {
@@ -323,11 +291,17 @@ const Landing: React.FC = () =>
                                             </MenuTrigger>
                                             <MenuPopover>
                                                 <MenuList>
-                                                    <MenuItem icon={<SessionEndIcon/>}>End Session</MenuItem>
+                                                    <MenuItem icon={<SessionEndIcon/>}
+                                                              onClick={() => setIsSessionEndDialogOpen(true)}>
+                                                        End Session
+                                                    </MenuItem>
                                                 </MenuList>
                                                 <Divider/>
                                                 <MenuList>
-                                                    <MenuItem icon={<DeleteIcon/>}>Delete Session</MenuItem>
+                                                    <MenuItem icon={<DeleteIcon/>}
+                                                              onClick={() => setIsDeletedSessionDialogOpen(true)}>
+                                                        Delete Session
+                                                    </MenuItem>
                                                 </MenuList>
                                             </MenuPopover>
                                         </Menu>
@@ -372,26 +346,36 @@ const Landing: React.FC = () =>
                     </div>
                 </div>
 
+                <SessionDeleteDialog isOpen={isDeletedSessionDialogOpen}
+                                     onDismiss={() => setIsDeletedSessionDialogOpen(false)}
+                                     session={sessionDetails}
+                                     onSessionDeleted={() => alert("Session Deleted")}/>
+
+                <SessionEndDialog isOpen={isSessionEndDialogOpen}
+                                  onDismiss={() => setIsSessionEndDialogOpen(false)}
+                                  session={sessionDetails}
+                                  onSessionEnded={() => alert("Session Ended")}/>
+
                 <AddDocumentDialog isOpen={isDocumentAddDialogOpen}
                                    onDismiss={() => setIsDocumentAddDialogOpen(false)}
                                     sessionId={selectedSessionId}
                                    onDocumentAdded={onNewDocumentAdded}/>
 
-                <UploadDocumentDialog isOpen={isUploadDocumentDialogOpen}
-                                      onDismiss={() => setIsUploadDocumentDialogOpen(false)}
-                                      sessionId={selectedSessionId}
-                                      sessionDocument={selectedSessionDocument}
-                                      onDocumentUploaded={onDocumentUploaded}/>
+                <SessionDocumentUploadDialog isOpen={isUploadDocumentDialogOpen}
+                                             onDismiss={() => setIsUploadDocumentDialogOpen(false)}
+                                             sessionId={selectedSessionId}
+                                             sessionDocument={selectedSessionDocument}
+                                             onDocumentUploaded={onDocumentUploaded}/>
 
-                <UpdateDocumentDialog isOpen={isUpdateDocumentDialogOpen}
-                                      onDismiss={() =>
+                <SessionDocumentUpdateDialog isOpen={isUpdateDocumentDialogOpen}
+                                             onDismiss={() =>
                                       {
                                           setSelectedUpdateSessionDocument(undefined)
                                           setIsUpdateDocumentDialogOpen(false)
                                       }}
-                                      sessionId={selectedSessionId}
-                                      sessionDocument={selectedUpdateSessionDocument}
-                                      onDocumentUpdated={onDocumentUpdated}/>
+                                             sessionId={selectedSessionId}
+                                             sessionDocument={selectedUpdateSessionDocument}
+                                             onDocumentUpdated={onDocumentUpdated}/>
             </section>
     );
 };

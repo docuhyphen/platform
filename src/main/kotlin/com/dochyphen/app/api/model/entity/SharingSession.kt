@@ -34,6 +34,9 @@ class SharingSession
     @Serializable(with = TimestampSerializer::class)
     var endDate: Timestamp? = Timestamp.from(Instant.now())
 
+    @Column(name="end_note", nullable = true)
+    var endNote: String? = null
+
     @Column(name = "last_activity", nullable = false)
     @Serializable(with = TimestampSerializer::class)
     var lastActivity: Timestamp = Timestamp.from(Instant.now())
@@ -92,6 +95,13 @@ class SharingSession
 
     @Column(name="rejection_reason", nullable = true)
     var rejectionReason: String? = null
+
+    @Column(name="is_deleted", nullable = false)
+    var isDeleted: Boolean = false
+
+    @Column(name = "date_deleted", nullable = true)
+    @Serializable(with = TimestampSerializer::class)
+    var dateDeleted: Timestamp? = Timestamp.from(Instant.now())
 
     constructor()
 }
