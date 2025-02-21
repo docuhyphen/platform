@@ -145,6 +145,13 @@ const AddDocumentDialog: React.FC<AddDocumentDialogProps> = (
                         </div>
                     </DialogContent>
                     <DialogActions>
+                        <Button appearance="primary"
+                                shape={"circular"}
+                                className={globalStyles.buttonWithLoading}
+                                onClick={onAddDocument}>
+                            {addingDocument && <Spinner size={"extra-small"}/>}
+                            Add
+                        </Button>
                         <DialogTrigger disableButtonEnhancement>
                             <Button appearance="secondary"
                                     onClick={onDismissDialog}
@@ -153,13 +160,6 @@ const AddDocumentDialog: React.FC<AddDocumentDialogProps> = (
                                 Close
                             </Button>
                         </DialogTrigger>
-                        <Button appearance="primary"
-                                shape={"circular"}
-                                className={globalStyles.buttonWithLoading}
-                                onClick={onAddDocument}>
-                            {addingDocument && <Spinner size={"extra-small"}/>}
-                            Add
-                        </Button>
                     </DialogActions>
                 </DialogBody>
             </DialogSurface>

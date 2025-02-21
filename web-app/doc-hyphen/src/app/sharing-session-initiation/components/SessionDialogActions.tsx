@@ -24,15 +24,6 @@ const SessionDialogActions: React.FC<DialogActionsProps> = ({
 
     return (
         <>
-            <DialogTrigger>
-                <Button
-                    appearance="transparent"
-                    disabled={initiatingSession}
-                    onClick={onCancelInitiation}
-                >
-                    {(!choosingTemplate && sessionInitiatedSuccessfully) ? "Close" : "Cancel"}
-                </Button>
-            </DialogTrigger>
 
             {(!choosingTemplate && sessionInitiatedSuccessfully) && (
                 <Button appearance="primary" onClick={onCancelInitiation}>
@@ -54,6 +45,16 @@ const SessionDialogActions: React.FC<DialogActionsProps> = ({
                     )}
                 </Button>
             )}
+
+            <DialogTrigger>
+                <Button
+                    shape={"circular"}
+                    disabled={initiatingSession}
+                    onClick={onCancelInitiation}
+                >
+                    {(!choosingTemplate && sessionInitiatedSuccessfully) ? "Close" : "Cancel"}
+                </Button>
+            </DialogTrigger>
         </>
     );
 };

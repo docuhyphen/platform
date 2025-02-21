@@ -293,10 +293,16 @@ const Landing: React.FC = () =>
                                                 <MenuList>
                                                     <MenuItem icon={<SessionEndIcon/>}
                                                               onClick={() => setIsSessionEndDialogOpen(true)}>
-                                                        End Session
+                                                        Edit Session
                                                     </MenuItem>
                                                 </MenuList>
                                                 <Divider/>
+                                                <MenuList>
+                                                    <MenuItem icon={<SessionEndIcon/>}
+                                                              onClick={() => setIsSessionEndDialogOpen(true)}>
+                                                        End Session
+                                                    </MenuItem>
+                                                </MenuList>
                                                 <MenuList>
                                                     <MenuItem icon={<DeleteIcon/>}
                                                               onClick={() => setIsDeletedSessionDialogOpen(true)}>

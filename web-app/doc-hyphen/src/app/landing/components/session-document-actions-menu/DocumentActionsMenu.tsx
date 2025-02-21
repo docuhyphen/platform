@@ -15,9 +15,8 @@ import {
     NotepadEditRegular
 } from "@fluentui/react-icons";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../../../models/models.tsx";
-import useToken from "../../../../context/useToken.tsx";
-import {downloadSharingSessionDocument} from "../../../../services/sharingSessionApi.ts";
 import SessionDocumentDeleteDialog from "../session-document-delete-dialog/SessionDocumentDeleteDialog.tsx";
+import SessionDocumentDownloadDialog from "../session-document-download-dialog/SessionDocumentDownloadDialog.tsx";
 
 
 interface DocumentActionsMenuProps
@@ -40,35 +39,8 @@ const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
         onDocumentDeleted
     }) =>
 {
-    const token = useToken();
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
-
-    const handleDownload = async () =>
-    {
-        try
-        {
-            const data = await downloadSharingSessionDocument(session.id, sessionDocument.id, token);
-            const url = window.URL.createObjectURL(new Blob([data], {type: 'application/octet-stream'}));
-            const link = window.document.createElement('a');
-
-            const documentName = `${session?.sessionName?.replace(/\s+/g, '-')}-${sessionDocument?.title?.replace(/\s+/g, '-')}.pdf`
-
-            link.id = 'f-download-link';
-            link.href = url;
-            link.setAttribute('download', documentName); //ToDo: get type from document
-
-            window.document.body.appendChild(link);
-
-            link.click();
-
-            window.document.getElementById('f-download-link')?.remove();
-        }
-        catch (error)
-        {
-            alert("Download failed");
-            console.error("Error downloading document:", error);
-        }
-    };
+    const [isDownloadDocumentOpen, setIsDownloadDocumentOpen] = React.useState(false);
 
     const EditIcon = bundleIcon(NotepadEditFilled, NotepadEditRegular)
     const UploadIcon = bundleIcon(ArrowUploadFilled, ArrowUploadRegular)
@@ -93,7 +65,7 @@ const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
                             Upload
                         </MenuItem>
                         <MenuItem icon={<DownloadIcon/>}
-                                  onClick={handleDownload}>Download</MenuItem>
+                                  onClick={setIsDownloadDocumentOpen}>Download</MenuItem>
                         {/*<MenuItem icon={<DocumentPrintRegular/>}*/}
                         {/*          onClick={handlePrint}>Print</MenuItem>*/}
                         <MenuItem icon={<DeleteIcon/>} onClick={() =>
@@ -109,11 +81,17 @@ const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
                     </MenuList>
                 </MenuPopover>
             </Menu>
+
             <SessionDocumentDeleteDialog sessionDocument={sessionDocument}
                                          session={session}
                                          isOpen={isDeleteDialogOpen}
                                          onClose={() => setIsDeleteDialogOpen(false)}
                                          onDocumentDeleted={onDocumentDeleted}/>
+
+            <SessionDocumentDownloadDialog sessionDocument={sessionDocument}
+                                           session={session}
+                                           isOpen={isDownloadDocumentOpen}
+                                           onDismiss={() => setIsDownloadDocumentOpen(false)}/>
         </>
     );
 };

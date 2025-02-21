@@ -1,5 +1,6 @@
 import React, {ChangeEvent} from 'react';
 import {Field, Input, InputOnChangeData, Textarea} from "@fluentui/react-components";
+import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
 
 interface SessionDetailsTabProps
 {
@@ -28,8 +29,10 @@ const SessionDetailsTab: React.FC<SessionDetailsTabProps> = ({
         setMessageGroupMessages([]);
     };
 
+    const styles = useSharingSessionInitiationStyles();
+
     return (
-        <div id="session-details-tap">
+        <div className={styles.sessionDetailsTap}>
             <Field label="Session Name" required>
                 <Input
                     type="text"
