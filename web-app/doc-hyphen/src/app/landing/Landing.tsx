@@ -48,7 +48,7 @@ import SessionDeleteDialog from "./components/session-delete-dialog/SessionDelet
 const useSessionDetails = (selectedSessionId: string | null, token: string | null) =>
 {
     const [sessionDetails, setSessionDetails] = useState<SharingSessionDetailedDto | null>(null);
-    const [fetchingDetails, setFetchingDetails] = useState<boolean>(false);
+    const [fetchingDetails, setFetchingDetails] = useState<boolean>(true);
 
     useEffect(() =>
     {
@@ -89,8 +89,7 @@ const Landing: React.FC = () =>
     const {
         sessionDetails,
         setSessionDetails,
-        fetchingDetails,
-        setFetchingDetails
+        fetchingDetails
     } = useSessionDetails(selectedSessionId, token);
     const [isDocumentSidebarOpen, setIsDocumentSidebarOpen] = React.useState(false);
     const [isDocumentAddDialogOpen, setIsDocumentAddDialogOpen] = React.useState(false);
@@ -336,7 +335,7 @@ const Landing: React.FC = () =>
                 <div className={styles.sharingSessionsContainerDiv}>
                     <SharingSessionList onSelectionChange={setSelectedSessionId}/>
                 </div>
-                {!selectedSessionId &&
+                {!selectedSessionId && !fetchingDetails &&
                     <div className={styles.sharingSessionDetailsNoneContainer}>
                         <Text size={500}> Select a Sharing Session  in the list to view details</Text>
                     </div>
