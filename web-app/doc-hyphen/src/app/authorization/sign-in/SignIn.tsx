@@ -197,7 +197,7 @@ const SignIn: React.FC = () =>
                     Completing sign in
                 </>
             }
-            {!signInCompleting && "Complete Sign In"}
+            {!signInCompleting && "Complete sign in"}
         </Button>
     );
 

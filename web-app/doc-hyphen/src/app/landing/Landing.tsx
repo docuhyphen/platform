@@ -9,13 +9,6 @@ import {
     Caption1,
     Card,
     CardHeader,
-    Divider,
-    Menu,
-    MenuItem,
-    MenuList,
-    MenuPopover,
-    MenuTrigger,
-    SkeletonItem,
     Text,
     Tooltip
 } from "@fluentui/react-components";
@@ -29,7 +22,6 @@ import {
     DocumentAddRegular,
     FolderZipFilled,
     FolderZipRegular,
-    MoreVerticalRegular,
     WindowEditFilled,
     WindowEditRegular
 } from "@fluentui/react-icons";
@@ -38,12 +30,11 @@ import {DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.t
 import {useLandingStyles} from "./LandingStyles.tsx";
 import DocumentActionsMenu from "./components/session-document-actions-menu/DocumentActionsMenu.tsx";
 import SessionDocumentSidebar from "./components/session-document-sidebar/SessionDocumentSidebar.tsx";
-import AddDocumentDialog from "./components/session-document-add-dialog/SessionDocumentAddDialog.tsx";
 import NoSessionDocuments from "./components/session-documents-none/NoSessionDocuments.tsx";
-import SessionDocumentUploadDialog from "./components/session-document-upload-dialog/SessionDocumentUploadDialog.tsx";
-import SessionDocumentUpdateDialog from "./components/session-document-update-dialog/SessionDocumentUpdateDialog.tsx";
-import SessionEndDialog from "./components/session-end-dialog/SessionEndDialog.tsx";
-import SessionDeleteDialog from "./components/session-delete-dialog/SessionDeleteDialog.tsx";
+import DocumentsSkeleton from "./components/skeletons/DocumentsSkeleton.tsx";
+import SessionDialogsGroup from "./components/session-dialog-group/SessionDialogsGroup.tsx";
+import SessionDetailsHeader from "./components/session-details-header/SessionDetailsHeader.tsx";
+import DetailsSkeleton from "./components/skeletons/DetailsSkeleton.tsx";
 
 const useSessionDetails = (selectedSessionId: string | null, token: string | null) =>
 {
@@ -115,47 +106,6 @@ const Landing: React.FC = () =>
         setSelectedSessionDocument(undefined);
     }, [selectedSessionId]);
 
-    const renderDetailsSkeleton = () =>
-    {
-        return <>
-            <div className={styles.skeletonSessionDetails}>
-                <div className={styles.skeletonDates}>
-                    <SkeletonItem size={16} className={styles.skeletonCreatedDate}/>
-                    <SkeletonItem size={16} className={styles.skeletonPipe}/>
-                    <SkeletonItem size={16} className={styles.skeletonEndDate}/>
-                </div>
-                <SkeletonItem size={28} className={styles.skeletonSessionName}/>
-                <SkeletonItem size={16} className={styles.skeletonSessionDescription}/>
-            </div>
-            <div id="sharing-session-actions" className={styles.sharingSessionActions}>
-                <SkeletonItem shape={"square"} size={32}/>
-                <SkeletonItem shape={"square"} size={32}/>
-                <SkeletonItem shape={"square"} size={32} className={styles.skeletonSessionActionsMore}/>
-            </div>
-        </>
-    }
-
-    const renderDocumentsSkeleton = () =>
-    {
-        return <div>
-            <p>
-                <SkeletonItem size={24} className={styles.skeletonSessionDocumentTitle}/>
-            </p>
-            <div id={"documents-card-list"} className={styles.documentsCardList}>
-                {Array.from({length: 10}).map((_, index) => (
-
-                    <Card key={index} className={styles.skeletonSessionDocument}>
-                        <div>
-                            <SkeletonItem size={24} className={styles.skeletonSessionDocumentTitle}/>
-                            <SkeletonItem className={styles.skeletonSessionDocumentUploadDate}/>
-                        </div>
-                        <SkeletonItem shape={"square"} size={32} className={styles.skeletonSessionDocumentMore}/>
-                    </Card>
-                ))}
-            </div>
-        </div>
-    }
-
     const onDocumentDeleted = (documentId: string) =>
     {
         if (sessionDetails)
@@ -206,7 +156,13 @@ const Landing: React.FC = () =>
         }
     }
 
-    const DocumentAddIcon = bundleIcon(DocumentAddFilled, DocumentAddRegular)
+    const onSessionEnded = (sessionId: string) =>
+    {
+        // if (sessionDetails && sessionDetails.id === sessionId)
+        // {
+        //     setSessionDetails({...sessionDetails, status: 'ENDED'})
+        // }
+    }
 
     const renderDocumentsActionsMenu = (sessionDocument: DocumentDetailedDto) =>
     {
@@ -265,60 +221,6 @@ const Landing: React.FC = () =>
         }</>
     }
 
-    const renderDetailsHeader = () =>
-    {
-        return <> {sessionDetails && <>
-            <div>
-                <Caption1>
-                    Started {formatDateTimeWithOrdinal(sessionDetails.createdDate)}</Caption1>
-                {
-                    sessionDetails.endDate &&
-                    <> | Ended {formatDateTimeWithOrdinal(sessionDetails.createdDate)} </>
-                }
-                <br/>
-                <Text size={600}>{sessionDetails.sessionName}</Text><br/>
-                <Body1>{sessionDetails.description}</Body1>
-            </div>
-            <div id="sharing-session-actions" className={styles.sharingSessionActions}>
-                <Tooltip content="Add Session Document"
-                         relationship="description">
-                    <Button icon={<DocumentAddRegular/>}
-                            appearance="primary"
-                            onClick={() => setIsDocumentAddDialogOpen(true)}
-                    />
-                </Tooltip>
-
-                <Menu positioning={{autoSize: true}}>
-                    <MenuTrigger disableButtonEnhancement>
-                        <Button icon={<MoreVerticalRegular/>} appearance="subtle"/>
-                    </MenuTrigger>
-                    <MenuPopover>
-                        <MenuList>
-                            <MenuItem icon={<EditSessionIcon/>}
-                                      onClick={() => setIsSessionEndDialogOpen(true)}>
-                                Edit
-                            </MenuItem>
-                        </MenuList>
-                        <Divider/>
-                        <MenuList>
-                            <MenuItem icon={<SessionEndIcon/>}
-                                      onClick={() => setIsSessionEndDialogOpen(true)}>
-                                End
-                            </MenuItem>
-                        </MenuList>
-                        <MenuList>
-                            <MenuItem icon={<DeleteIcon/>}
-                                      onClick={() => setIsDeletedSessionDialogOpen(true)}>
-                                Delete
-                            </MenuItem>
-                        </MenuList>
-                    </MenuPopover>
-                </Menu>
-            </div>
-        </>
-        }
-        </>
-    }
     const getSessionHeadContainerClass = () =>
     {
         return `${styles.sharingSessionHeadContainer} ${styles[`sessionHeadStatus${sessionDetails?.status || ''}` as keyof typeof styles]}`;
@@ -328,6 +230,7 @@ const Landing: React.FC = () =>
     const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular)
     const EditSessionIcon = bundleIcon(WindowEditFilled, WindowEditRegular)
     const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
+    const DocumentAddIcon = bundleIcon(DocumentAddFilled, DocumentAddRegular)
 
     return (
         isLoading ? <PreLanding/> : <>
@@ -343,82 +246,77 @@ const Landing: React.FC = () =>
                 {selectedSessionId &&
                     <div className={styles.sharingSessionDetailsContainer}>
                         <div className={getSessionHeadContainerClass()}>
-                            {fetchingDetails && !sessionDetails && renderDetailsSkeleton()}
-                            {!fetchingDetails && sessionDetails && renderDetailsHeader()}
-                    </div>
-                    <div className={styles.sharingSessionDocumentsContainer}>
-                        <div className={styles.sharingSessionDocumentsDetails}>
-                            {fetchingDetails && !sessionDetails && renderDocumentsSkeleton()}
-
-                            {!fetchingDetails && (sessionDetails && sessionDetails?.documents?.length > 0) && (
-                                <div>
-                                    <div className={styles.documentListTitle}>
-                                        <Text size={400}>Session Documents</Text>
-                                        <Tooltip content="Zip all documents"
-                                                 relationship="description">
-                                            <Button size={"small"}
-                                                    appearance={"subtle"}
-                                                    icon={<ZipDocumentsIcon/>}>
-
-                                            </Button>
-                                        </Tooltip>
-                                    </div>
-                                    <div className={styles.documentsCardList}>
-
-                                        {sessionDetails.documents?.map((document: DocumentDetailedDto) => (
-                                            renderDocumentsListCard(document)
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {
-                                sessionDetails && sessionDetails.documents?.length === 0 &&
-                                <NoSessionDocuments setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}/>
-
-                            }
+                            {fetchingDetails && !sessionDetails && <DetailsSkeleton/>}
+                            {!fetchingDetails && sessionDetails && <SessionDetailsHeader
+                                sessionDetails={sessionDetails}
+                                setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}
+                                setIsSessionEndDialogOpen={setIsSessionEndDialogOpen}
+                                setIsDeletedSessionDialogOpen={setIsDeletedSessionDialogOpen}
+                            />}
                         </div>
-                        <div className={styles.sharingSessionDocumentSidebar}>
-                            {selectedSessionDocument &&
-                                <SessionDocumentSidebar
-                                    isOpen={isDocumentSidebarOpen}
-                                    onOpen={setIsDocumentSidebarOpen}
-                                    sessionDocument={selectedSessionDocument}/>
-                            }
+                        <div className={styles.sharingSessionDocumentsContainer}>
+                            <div className={styles.sharingSessionDocumentsDetails}>
+                                {fetchingDetails && !sessionDetails && <DocumentsSkeleton/>}
+
+                                {!fetchingDetails && (sessionDetails && sessionDetails?.documents?.length > 0) && (
+                                    <div>
+                                        <div className={styles.documentListTitle}>
+                                            <Text size={400}>Session Documents</Text>
+                                            <Tooltip content="Zip all documents"
+                                                     relationship="description">
+                                                <Button size={"small"}
+                                                        appearance={"subtle"}
+                                                        icon={<ZipDocumentsIcon/>}>
+
+                                                </Button>
+                                            </Tooltip>
+                                        </div>
+                                        <div className={styles.documentsCardList}>
+
+                                            {sessionDetails.documents?.map((document: DocumentDetailedDto) => (
+                                                renderDocumentsListCard(document)
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {
+                                    sessionDetails && sessionDetails.documents?.length === 0 &&
+                                    <NoSessionDocuments setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}/>
+                                }
+                            </div>
+                            <div className={styles.sharingSessionDocumentSidebar}>
+                                {selectedSessionDocument &&
+                                    <SessionDocumentSidebar
+                                        isOpen={isDocumentSidebarOpen}
+                                        onOpen={setIsDocumentSidebarOpen}
+                                        sessionDocument={selectedSessionDocument}/>
+                                }
+                            </div>
                         </div>
                     </div>
-                </div>
                 }
-                <SessionDeleteDialog isOpen={isDeletedSessionDialogOpen}
-                                     onDismiss={() => setIsDeletedSessionDialogOpen(false)}
-                                     session={sessionDetails}
-                                     onSessionDeleted={onSessionDeleted}/>
-
-                <SessionEndDialog isOpen={isSessionEndDialogOpen}
-                                  onDismiss={() => setIsSessionEndDialogOpen(false)}
-                                  session={sessionDetails}
-                                  onSessionEnded={() => alert("Session Ended")}/>
-
-                <AddDocumentDialog isOpen={isDocumentAddDialogOpen}
-                                   onDismiss={() => setIsDocumentAddDialogOpen(false)}
-                                    sessionId={selectedSessionId}
-                                   onDocumentAdded={onNewDocumentAdded}/>
-
-                <SessionDocumentUploadDialog isOpen={isUploadDocumentDialogOpen}
-                                             onDismiss={() => setIsUploadDocumentDialogOpen(false)}
-                                             sessionId={selectedSessionId}
-                                             sessionDocument={selectedSessionDocument}
-                                             onDocumentUploaded={onDocumentUploaded}/>
-
-                <SessionDocumentUpdateDialog isOpen={isUpdateDocumentDialogOpen}
-                                             onDismiss={() =>
-                                      {
-                                          setSelectedUpdateSessionDocument(undefined)
-                                          setIsUpdateDocumentDialogOpen(false)
-                                      }}
-                                             sessionId={selectedSessionId}
-                                             sessionDocument={selectedUpdateSessionDocument}
-                                             onDocumentUpdated={onDocumentUpdated}/>
+                <SessionDialogsGroup
+                    isDeletedSessionDialogOpen={isDeletedSessionDialogOpen}
+                    setIsDeletedSessionDialogOpen={setIsDeletedSessionDialogOpen}
+                    isSessionEndDialogOpen={isSessionEndDialogOpen}
+                    setIsSessionEndDialogOpen={setIsSessionEndDialogOpen}
+                    isDocumentAddDialogOpen={isDocumentAddDialogOpen}
+                    setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}
+                    isUploadDocumentDialogOpen={isUploadDocumentDialogOpen}
+                    setIsUploadDocumentDialogOpen={setIsUploadDocumentDialogOpen}
+                    isUpdateDocumentDialogOpen={isUpdateDocumentDialogOpen}
+                    setIsUpdateDocumentDialogOpen={setIsUpdateDocumentDialogOpen}
+                    sessionDetails={sessionDetails}
+                    selectedSessionId={selectedSessionId}
+                    selectedSessionDocument={selectedSessionDocument}
+                    setSelectedUpdateSessionDocument={setSelectedUpdateSessionDocument}
+                    onNewDocumentAdded={onNewDocumentAdded}
+                    onDocumentUploaded={onDocumentUploaded}
+                    onDocumentUpdated={onDocumentUpdated}
+                    onSessionDeleted={onSessionDeleted}
+                    onSessionEnded={onSessionEnded}
+                />
             </section>
         </>
     );
