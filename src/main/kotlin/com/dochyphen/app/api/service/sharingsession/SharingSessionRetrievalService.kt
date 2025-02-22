@@ -43,6 +43,7 @@ class SharingSessionRetrievalService @Inject constructor(
 
         return (initiatedSessions + receivedSessions)
             .sortedByDescending { it.createdDate }
+            .filter { !it.isDeleted }
             .map { session ->
                 session.apply {
                     documents = documents.filter { !it.isDeleted } as MutableList<Document>

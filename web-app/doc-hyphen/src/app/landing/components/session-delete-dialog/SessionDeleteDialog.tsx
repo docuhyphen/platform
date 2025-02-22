@@ -13,6 +13,7 @@ import {
     DialogTrigger,
     Spinner
 } from "@fluentui/react-components";
+import {deleteSharingSession} from "../../../../services/sharingSessionApi.ts";
 
 interface SessionDeleteDialogProps
 {
@@ -34,15 +35,50 @@ const SessionDeleteDialog: React.FC<SessionDeleteDialogProps> = (
     const token = useToken();
     const [deletingSession, setDeletingSession] = React.useState(false);
     const globalStyles = useGlobalStyles()
+    const [deleteStarted, setDeleteStarted] = React.useState(false);
+    const [countdown, setCountdown] = React.useState(10);
+    const timerRef = React.useRef<NodeJS.Timeout | null>(null);
 
-    const onDelete = async () =>
+    const onDelete = () =>
     {
+        setDeleteStarted(true);
+        setCountdown(10);
+
+        timerRef.current = setInterval(() =>
+        {
+            setCountdown(prevCountdown =>
+            {
+                if (prevCountdown <= 1)
+                {
+                    clearInterval(timerRef.current!);
+                    completeDeletion();
+                    return 0;
+                }
+                return prevCountdown - 1;
+            });
+        }, 1000);
+    }
+
+    const onCancel = () =>
+    {
+        if (timerRef.current)
+        {
+            clearInterval(timerRef.current);
+        }
+        setDeleteStarted(false);
+        setCountdown(5);
+    }
+
+    const completeDeletion = async () =>
+    {
+
         setDeletingSession(true)
 
         try
         {
             await deleteSharingSession(session.id, token);
             onSessionDeleted(session.id);
+            onDismiss();
         }
         catch (error)
         {
@@ -52,7 +88,7 @@ const SessionDeleteDialog: React.FC<SessionDeleteDialogProps> = (
         finally
         {
             setDeletingSession(false);
-            onDismiss();
+            setDeleteStarted(false);
         }
     }
 
@@ -62,24 +98,43 @@ const SessionDeleteDialog: React.FC<SessionDeleteDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Deleting {session && session.sessionName}</DialogTitle>
                     <DialogContent>
-                        Are you sure you want to delete this Sharing Session?
+                        {deleteStarted ? (
+                            <div>
+                                Deleting in {countdown} seconds...
+                            </div>
+                        ) : (
+                            <div>
+                                Are you sure you want to delete this Sharing Session?
+                            </div>
+                        )}
                     </DialogContent>
                     <DialogActions>
-                        <Button appearance="primary"
-                                className={globalStyles.buttonWithLoading}
-                                shape={"circular"}
-                                onClick={onDelete}>
-                            {deletingSession && <Spinner size={"extra-small"}/>}
-                            Yes, Delete
-                        </Button>
-                        <DialogTrigger disableButtonEnhancement>
-                            <Button appearance="secondary"
+                        {deleteStarted ? (
+                            <Button appearance="primary"
+                                    className={globalStyles.buttonWithLoading}
                                     shape={"circular"}
-                                    disabled={deletingSession}
-                                    onClick={onDismiss}>
-                                No, Cancel
+                                    onClick={onCancel}>
+                                Cancel
                             </Button>
-                        </DialogTrigger>
+                        ) : (
+                            <>
+                                <Button appearance="primary"
+                                        className={globalStyles.buttonWithLoading}
+                                        shape={"circular"}
+                                        onClick={onDelete}>
+                                    {deletingSession && <Spinner size={"extra-small"}/>}
+                                    Yes, Delete
+                                </Button>
+                                <DialogTrigger disableButtonEnhancement>
+                                    <Button appearance="secondary"
+                                            shape={"circular"}
+                                            disabled={deletingSession}
+                                            onClick={onDismiss}>
+                                        No, Cancel
+                                    </Button>
+                                </DialogTrigger>
+                            </>
+                        )}
                     </DialogActions>
                 </DialogBody>
             </DialogSurface>

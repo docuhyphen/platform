@@ -26,7 +26,8 @@ import {
     DeleteFilled,
     DeleteRegular,
     DocumentAddFilled,
-    DocumentAddRegular, FolderZipFilled,
+    DocumentAddRegular,
+    FolderZipFilled,
     FolderZipRegular,
     MoreVerticalRegular,
     WindowEditFilled,
@@ -76,7 +77,7 @@ const useSessionDetails = (selectedSessionId: string | null, token: string | nul
         }
     }, [selectedSessionId, token]);
 
-    return {sessionDetails, setSessionDetails, fetchingDetails};
+    return {sessionDetails, setSessionDetails, fetchingDetails, setFetchingDetails};
 };
 
 const Landing: React.FC = () =>
@@ -85,7 +86,12 @@ const Landing: React.FC = () =>
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const token = useToken();
-    const {sessionDetails, setSessionDetails, fetchingDetails} = useSessionDetails(selectedSessionId, token);
+    const {
+        sessionDetails,
+        setSessionDetails,
+        fetchingDetails,
+        setFetchingDetails
+    } = useSessionDetails(selectedSessionId, token);
     const [isDocumentSidebarOpen, setIsDocumentSidebarOpen] = React.useState(false);
     const [isDocumentAddDialogOpen, setIsDocumentAddDialogOpen] = React.useState(false);
     const [isUploadDocumentDialogOpen, setIsUploadDocumentDialogOpen] = React.useState(false);
@@ -192,6 +198,16 @@ const Landing: React.FC = () =>
         }
     }
 
+    const onSessionDeleted = (sessionId: string) =>
+    {
+        if (sessionDetails && sessionDetails.id === sessionId)
+        {
+            alert("Session deleted");
+            setSessionDetails(undefined)
+            setSelectedSessionId(undefined)
+        }
+    }
+
     const DocumentAddIcon = bundleIcon(DocumentAddFilled, DocumentAddRegular)
 
     const renderDocumentsActionsMenu = (sessionDocument: DocumentDetailedDto) =>
@@ -251,82 +267,92 @@ const Landing: React.FC = () =>
         }</>
     }
 
+    const renderDetailsHeader = () =>
+    {
+        return <> {sessionDetails && <>
+            <div>
+                <Caption1>
+                    Started {formatDateTimeWithOrdinal(sessionDetails.createdDate)}</Caption1>
+                {
+                    sessionDetails.endDate &&
+                    <> | Ended {formatDateTimeWithOrdinal(sessionDetails.createdDate)} </>
+                }
+                <br/>
+                <Text size={600}>{sessionDetails.sessionName}</Text><br/>
+                <Body1>{sessionDetails.description}</Body1>
+            </div>
+            <div id="sharing-session-actions" className={styles.sharingSessionActions}>
+                <Tooltip content="Add Session Document"
+                         relationship="description">
+                    <Button icon={<DocumentAddRegular/>}
+                            appearance="primary"
+                            onClick={() => setIsDocumentAddDialogOpen(true)}
+                    />
+                </Tooltip>
+
+                <Menu positioning={{autoSize: true}}>
+                    <MenuTrigger disableButtonEnhancement>
+                        <Button icon={<MoreVerticalRegular/>} appearance="subtle"/>
+                    </MenuTrigger>
+                    <MenuPopover>
+                        <MenuList>
+                            <MenuItem icon={<EditSessionIcon/>}
+                                      onClick={() => setIsSessionEndDialogOpen(true)}>
+                                Edit
+                            </MenuItem>
+                        </MenuList>
+                        <Divider/>
+                        <MenuList>
+                            <MenuItem icon={<SessionEndIcon/>}
+                                      onClick={() => setIsSessionEndDialogOpen(true)}>
+                                End
+                            </MenuItem>
+                        </MenuList>
+                        <MenuList>
+                            <MenuItem icon={<DeleteIcon/>}
+                                      onClick={() => setIsDeletedSessionDialogOpen(true)}>
+                                Delete
+                            </MenuItem>
+                        </MenuList>
+                    </MenuPopover>
+                </Menu>
+            </div>
+        </>
+        }
+        </>
+    }
+    const getSessionHeadContainerClass = () =>
+    {
+        return `${styles.sharingSessionHeadContainer} ${styles[`sessionHeadStatus${sessionDetails?.status || ''}` as keyof typeof styles]}`;
+    };
+
     const SessionEndIcon = bundleIcon(CheckmarkNoteFilled, CheckmarkNoteRegular)
     const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular)
     const EditSessionIcon = bundleIcon(WindowEditFilled, WindowEditRegular)
     const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
 
     return (
-        isLoading ? <PreLanding/> :
+        isLoading ? <PreLanding/> : <>
             <section className={styles.sharingSessionsContainer}>
                 <div className={styles.sharingSessionsContainerDiv}>
                     <SharingSessionList onSelectionChange={setSelectedSessionId}/>
                 </div>
-                <div className={styles.sharingSessionDetailsContainer}>
-                    <div
-                        className={`${styles.sharingSessionHeadContainer} ${styles[`sessionHeadStatus${sessionDetails?.status || ''}` as keyof typeof styles]}`}>
-                        {(!sessionDetails || fetchingDetails) ? (
-                            renderDetailsSkeleton()
-                        ) : (
-                            sessionDetails && (
-                                <>
-                                    <div>
-                                        <Caption1>
-                                            Started {formatDateTimeWithOrdinal(sessionDetails.createdDate)}</Caption1>
-                                        {
-                                            sessionDetails.endDate &&
-                                            <> | Ended {formatDateTimeWithOrdinal(sessionDetails.createdDate)} </>
-                                        }
-                                        <br/>
-                                        <Text size={600}>{sessionDetails.sessionName}</Text><br/>
-                                        <Body1>{sessionDetails.description}</Body1>
-                                    </div>
-                                    <div id="sharing-session-actions" className={styles.sharingSessionActions}>
-                                        <Tooltip content="Add Session Document"
-                                                 relationship="description">
-                                            <Button icon={<DocumentAddRegular/>}
-                                                    appearance="primary"
-                                                    onClick={() => setIsDocumentAddDialogOpen(true)}
-                                            />
-                                        </Tooltip>
-
-                                        <Menu positioning={{autoSize: true}}>
-                                            <MenuTrigger disableButtonEnhancement>
-                                                <Button icon={<MoreVerticalRegular/>} appearance="subtle"/>
-                                            </MenuTrigger>
-                                            <MenuPopover>
-                                                <MenuList>
-                                                    <MenuItem icon={<EditSessionIcon/>}
-                                                              onClick={() => setIsSessionEndDialogOpen(true)}>
-                                                        Edit
-                                                    </MenuItem>
-                                                </MenuList>
-                                                <Divider/>
-                                                <MenuList>
-                                                    <MenuItem icon={<SessionEndIcon/>}
-                                                              onClick={() => setIsSessionEndDialogOpen(true)}>
-                                                        End
-                                                    </MenuItem>
-                                                </MenuList>
-                                                <MenuList>
-                                                    <MenuItem icon={<DeleteIcon/>}
-                                                              onClick={() => setIsDeletedSessionDialogOpen(true)}>
-                                                        Delete
-                                                    </MenuItem>
-                                                </MenuList>
-                                            </MenuPopover>
-                                        </Menu>
-                                    </div>
-                                </>
-                            )
-                        )}
+                {!selectedSessionId &&
+                    <div className={styles.sharingSessionDetailsNoneContainer}>
+                        <Text size={500}> Select a Sharing Session  in the list to view details</Text>
+                    </div>
+                }
+                {selectedSessionId &&
+                    <div className={styles.sharingSessionDetailsContainer}>
+                        <div className={getSessionHeadContainerClass()}>
+                            {fetchingDetails && !sessionDetails && renderDetailsSkeleton()}
+                            {!fetchingDetails && sessionDetails && renderDetailsHeader()}
                     </div>
                     <div className={styles.sharingSessionDocumentsContainer}>
-
                         <div className={styles.sharingSessionDocumentsDetails}>
-                            {!sessionDetails && renderDocumentsSkeleton()}
+                            {fetchingDetails && !sessionDetails && renderDocumentsSkeleton()}
 
-                            {(sessionDetails && sessionDetails?.documents?.length > 0) && (
+                            {!fetchingDetails && (sessionDetails && sessionDetails?.documents?.length > 0) && (
                                 <div>
                                     <div className={styles.documentListTitle}>
                                         <Text size={400}>Session Documents</Text>
@@ -334,7 +360,7 @@ const Landing: React.FC = () =>
                                                  relationship="description">
                                             <Button size={"small"}
                                                     appearance={"subtle"}
-                                                    icon={<FolderZipRegular/>}>
+                                                    icon={<ZipDocumentsIcon/>}>
 
                                             </Button>
                                         </Tooltip>
@@ -364,11 +390,11 @@ const Landing: React.FC = () =>
                         </div>
                     </div>
                 </div>
-
+                }
                 <SessionDeleteDialog isOpen={isDeletedSessionDialogOpen}
                                      onDismiss={() => setIsDeletedSessionDialogOpen(false)}
                                      session={sessionDetails}
-                                     onSessionDeleted={() => alert("Session Deleted")}/>
+                                     onSessionDeleted={onSessionDeleted}/>
 
                 <SessionEndDialog isOpen={isSessionEndDialogOpen}
                                   onDismiss={() => setIsSessionEndDialogOpen(false)}
@@ -396,6 +422,7 @@ const Landing: React.FC = () =>
                                              sessionDocument={selectedUpdateSessionDocument}
                                              onDocumentUpdated={onDocumentUpdated}/>
             </section>
+        </>
     );
 };
 
