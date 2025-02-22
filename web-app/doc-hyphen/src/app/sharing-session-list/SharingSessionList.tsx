@@ -25,20 +25,21 @@ import {
     FilterFilled,
     FilterRegular
 } from "@fluentui/react-icons";
-import {formatDate, formatDateWithOrdinal} from "../helpers.ts";
+import {formatDateWithOrdinal} from "../helpers.ts";
 import {SharingSessionBasicDto} from "../models/models.tsx";
-import {sharingSessionInitiationObservable} from "../observable/sharingSessionService.ts";
 import {useSharingSessionStyles} from "./SharingSessionListStyles.tsx";
+import {
+    sharingSessionDeletionObservable,
+    sharingSessionInitiationObservable
+} from "../observable/sharingSessionObservables.ts";
 
-interface SharingSessionListProps
-{
+interface SharingSessionListProps {
     onSelectionChange: (sessionId: string) => void;
 }
 
-const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChange}) =>
-{
+const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChange}) => {
     const styles = useSharingSessionStyles();
-    const token = useToken()
+    const token = useToken();
     const [sharingSessions, setSharingSessions] = useState<SharingSessionBasicDto[]>([]);
     const [loadingSharingSessions, setLoadingSharingSessions] = useState(true);
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -46,78 +47,63 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
     const FilterIcon = bundleIcon(FilterFilled, FilterRegular);
     const SortDownIcon = bundleIcon(ArrowSortDownLinesFilled, ArrowSortDownLinesRegular);
 
-    const fetchSharingSessions = async () =>
-    {
-        try
-        {
+    const fetchSharingSessions = async () => {
+        try {
             const response = await fetchSignedInUserAppUserSharingSessions(token);
 
-            if (Array.isArray(response) && response.length)
-            {
+            if (Array.isArray(response) && response.length) {
                 setSharingSessions(response);
 
                 const urlParams = new URLSearchParams(window.location.search);
                 const sessionId = urlParams.get('s');
 
-                if (sessionId)
-                {
+                if (sessionId) {
                     const sessionExists = response.some(session => session.id === sessionId);
-                    if (sessionExists)
-                    {
+                    if (sessionExists) {
                         setSelectedItems([sessionId]);
                         onSelectionChange(sessionId);
-                    }
-                    else
-                    {
+                    } else {
                         setSelectedItems([response[0].id]);
                         onSelectionChange(response[0].id);
                     }
-                }
-                else
-                {
+                } else {
                     setSelectedItems([response[0].id]);
                     onSelectionChange(response[0].id);
                 }
-            }
-            else
-            {
+            } else {
                 console.error("Error fetching sharing sessions:", response);
             }
-        }
-        catch (error)
-        {
+        } catch (error) {
             console.error(error);
-        }
-        finally
-        {
+        } finally {
             setLoadingSharingSessions(false);
         }
-    }
+    };
 
-    useEffect(() =>
-    {
-        fetchSharingSessions()
-    }, [])
+    useEffect(() => {
+        fetchSharingSessions();
+    }, []);
 
-    useEffect(() =>
-    {
-        const subscription = sharingSessionInitiationObservable.subscribe(session =>
-        {
-            console.log("Running subscription", session);
-
-            if (session)
-            {
+    useEffect(() => {
+        const initiationSubscription = sharingSessionInitiationObservable.subscribe(session => {
+            if (session) {
                 setSharingSessions(prevSessions => [session, ...prevSessions]);
                 setSelectedItems([session.id]);
                 onSelectionChange(session.id);
             }
         });
 
-        return () => subscription.unsubscribe();
+        const deletionSubscription = sharingSessionDeletionObservable.subscribe(sessionId => {
+            setSharingSessions(prevSessions => prevSessions.filter(session => session.id !== sessionId));
+        });
+
+        return () => {
+            initiationSubscription.unsubscribe();
+            deletionSubscription.unsubscribe();
+        };
     }, []);
 
-    const handleSelectionChange = (_, data) =>
-    {
+    const handleSelectionChange = (_, data) => {
         setSelectedItems(data.selectedItems);
         onSelectionChange(data.selectedItems[0]);
 
@@ -126,16 +112,13 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
         window.history.replaceState(null, '', `?${urlParams.toString()}`);
     };
 
-    const onListItemFocus = React.useCallback((event) =>
-    {
-        if (event.target !== event.currentTarget)
-        {
+    const onListItemFocus = React.useCallback((event) => {
+        if (event.target !== event.currentTarget) {
             return;
         }
     }, []);
 
-    const listItemCard = (session: SharingSessionBasicDto) =>
-    {
+    const listItemCard = (session: SharingSessionBasicDto) => {
         return <div className={styles.listCard}>
             <section className={styles.listCardItem}>
                 <span>
@@ -153,10 +136,9 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                 </span>
             </section>
         </div>
-    }
+    };
 
-    const listItemCardSkeleton = () =>
-    {
+    const listItemCardSkeleton = () => {
         return <div className={styles.listCard}>
             <section className={styles.listCardItem}>
                 <span>
@@ -165,16 +147,16 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                 <span className={styles.listCardItemDetails}>
                     <SkeletonItem size={12} className={styles.skeletonRecipientEmail}/>
                     <div className={styles.listCardItemRow}>
-                        <SkeletonItem size={20}  className={styles.skeletonSessionName}/>
-                        <SkeletonItem size={16}  className={styles.skeletonCreatedDate}/>
+                        <SkeletonItem size={20} className={styles.skeletonSessionName}/>
+                        <SkeletonItem size={16} className={styles.skeletonCreatedDate}/>
                     </div>
                     <div>
-                        <SkeletonItem size={16}  className={styles.skeletonSessionDescription}/>
+                        <SkeletonItem size={16} className={styles.skeletonSessionDescription}/>
                     </div>
                 </span>
             </section>
         </div>
-    }
+    };
 
     return (
         <section className={styles.sharingSessionsListContainer}>
@@ -186,32 +168,28 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                 onSelectionChange={handleSelectionChange}>
 
                 {loadingSharingSessions && Array.from({length: 10}).map((_, index) => (
-                    <>
-                        <ListItem
-                            className={index === 2 ? styles.sharingSessionsListSelectedItem : ""}
-                            key={index}
-                            value={index.toString()}
-                            data-value={index.toString()}
-                            checkmark={null}
-                        >
-                            {listItemCardSkeleton()}
-                        </ListItem>
-                    </>
+                    <ListItem
+                        className={index === 2 ? styles.sharingSessionsListSelectedItem : ""}
+                        key={index}
+                        value={index.toString()}
+                        data-value={index.toString()}
+                        checkmark={null}
+                    >
+                        {listItemCardSkeleton()}
+                    </ListItem>
                 ))}
 
                 {!loadingSharingSessions && sharingSessions.map((session: SharingSessionBasicDto) => (
-                    <>
-                        <ListItem
-                            className={selectedItems.includes(session.id) ? styles.sharingSessionsListSelectedItem : ""}
-                            key={session.id}
-                            value={session.id}
-                            data-value={session.id}
-                            onFocus={onListItemFocus}
-                            checkmark={null}
-                        >
-                            {listItemCard(session)}
-                        </ListItem>
-                    </>
+                    <ListItem
+                        className={selectedItems.includes(session.id) ? styles.sharingSessionsListSelectedItem : ""}
+                        key={session.id}
+                        value={session.id}
+                        data-value={session.id}
+                        onFocus={onListItemFocus}
+                        checkmark={null}
+                    >
+                        {listItemCard(session)}
+                    </ListItem>
                 ))}
             </List>
             <div className={styles.sharingSessionsListHeader}>
@@ -254,20 +232,15 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
             </div>
             <div className={styles.sharingSessionsListFooter}>
                 <span>
-                    {
-                        loadingSharingSessions &&
-                        <Spinner size={"extra-small"}/>
-                    }
-                    {!loadingSharingSessions &&
-                        <>
-                            Showing <strong> {sharingSessions.length} </strong> Sharing Sessions
-                        </>
-                    }
+                    {loadingSharingSessions && <Spinner size={"extra-small"}/>}
+                    {!loadingSharingSessions && <>
+                        Showing <strong> {sharingSessions.length} </strong> Sharing Sessions
+                    </>}
                 </span>
                 <Button size={"small"} appearance={"primary"} disabled>View All</Button>
             </div>
         </section>
-);
-}
+    );
+};
 
 export default SharingSessionList;

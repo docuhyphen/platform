@@ -14,6 +14,7 @@ import {
     Spinner
 } from "@fluentui/react-components";
 import {deleteSharingSession} from "../../../../services/sharingSessionApi.ts";
+import {publishSharingSessionDelete} from "../../../observable/sharingSessionObservables.ts";
 
 interface SessionDeleteDialogProps
 {
@@ -78,6 +79,7 @@ const SessionDeleteDialog: React.FC<SessionDeleteDialogProps> = (
         {
             await deleteSharingSession(session.id, token);
             onSessionDeleted(session.id);
+            publishSharingSessionDelete(session.id);
             onDismiss();
         }
         catch (error)

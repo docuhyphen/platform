@@ -32,7 +32,7 @@ import SessionDialogTitleSection from "./components/SessionDialogTitleSection.ts
 import {DismissRegular} from "@fluentui/react-icons";
 import SessionRecipientsTab from "./components/SessionRecipientsTab.tsx";
 import {isValidEmail} from "../../utils/helpers.ts";
-import {addNewSession} from '../observable/sharingSessionService.ts';
+import {publishNewSharingSessionAddition} from '../observable/sharingSessionObservables.ts';
 import {useSharingSessionInitiationStyles} from "./SharingSessionInitiationStyles.tsx";
 import {SharingSessionRequestDocumentRequest} from "../models/models.tsx";
 
@@ -143,7 +143,7 @@ const SharingSessionInitiation: React.FC = () =>
 
             const createdSharingSession = await initiateSharingSession(sharingSession, token);
 
-            addNewSession(createdSharingSession);
+            publishNewSharingSessionAddition(createdSharingSession);
 
             setSessionInitiatedSuccessfully(true);
         }

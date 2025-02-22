@@ -202,7 +202,6 @@ const Landing: React.FC = () =>
     {
         if (sessionDetails && sessionDetails.id === sessionId)
         {
-            alert("Session deleted");
             setSessionDetails(undefined)
             setSelectedSessionId(undefined)
         }
