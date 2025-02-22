@@ -133,8 +133,6 @@ const Landing: React.FC = () =>
 
     const onSessionEnded = (session: SharingSessionDetailedDto) =>
     {
-        console.log(session)
-        alert()
         setSessionDetails(session)
     }
 
