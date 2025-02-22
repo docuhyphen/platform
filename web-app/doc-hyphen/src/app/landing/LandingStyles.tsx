@@ -40,7 +40,7 @@ export const useLandingStyles = makeStyles({
 
     sharingSessionDetailsContainer: {
         flex: 1,
-        marginRight: "60px",
+        marginRight: "36px",
         paddingTop: "16px",
         paddingBottom: "16px",
     },
@@ -133,4 +133,11 @@ export const useLandingStyles = makeStyles({
         borderLeft: "5px solid",
         borderLeftColor: tokens.colorPaletteRedForeground1
     },
+
+    documentListTitle: {
+        display: "flex",
+        gap: "6px",
+        alignItems: "center",
+        margin: "16px 0",
+    }
 });

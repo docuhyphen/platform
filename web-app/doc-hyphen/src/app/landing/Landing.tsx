@@ -26,8 +26,11 @@ import {
     DeleteFilled,
     DeleteRegular,
     DocumentAddFilled,
-    DocumentAddRegular,
-    MoreVerticalRegular
+    DocumentAddRegular, FolderZipFilled,
+    FolderZipRegular,
+    MoreVerticalRegular,
+    WindowEditFilled,
+    WindowEditRegular
 } from "@fluentui/react-icons";
 import {formatDateTimeWithOrdinal} from "../helpers.ts";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.tsx";
@@ -250,6 +253,8 @@ const Landing: React.FC = () =>
 
     const SessionEndIcon = bundleIcon(CheckmarkNoteFilled, CheckmarkNoteRegular)
     const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular)
+    const EditSessionIcon = bundleIcon(WindowEditFilled, WindowEditRegular)
+    const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
 
     return (
         isLoading ? <PreLanding/> :
@@ -291,22 +296,22 @@ const Landing: React.FC = () =>
                                             </MenuTrigger>
                                             <MenuPopover>
                                                 <MenuList>
-                                                    <MenuItem icon={<SessionEndIcon/>}
+                                                    <MenuItem icon={<EditSessionIcon/>}
                                                               onClick={() => setIsSessionEndDialogOpen(true)}>
-                                                        Edit Session
+                                                        Edit
                                                     </MenuItem>
                                                 </MenuList>
                                                 <Divider/>
                                                 <MenuList>
                                                     <MenuItem icon={<SessionEndIcon/>}
                                                               onClick={() => setIsSessionEndDialogOpen(true)}>
-                                                        End Session
+                                                        End
                                                     </MenuItem>
                                                 </MenuList>
                                                 <MenuList>
                                                     <MenuItem icon={<DeleteIcon/>}
                                                               onClick={() => setIsDeletedSessionDialogOpen(true)}>
-                                                        Delete Session
+                                                        Delete
                                                     </MenuItem>
                                                 </MenuList>
                                             </MenuPopover>
@@ -323,10 +328,18 @@ const Landing: React.FC = () =>
 
                             {(sessionDetails && sessionDetails?.documents?.length > 0) && (
                                 <div>
-                                    <p>
+                                    <div className={styles.documentListTitle}>
                                         <Text size={400}>Session Documents</Text>
-                                    </p>
-                                    <div id={"documents-card-list"} className={styles.documentsCardList}>
+                                        <Tooltip content="Zip all documents"
+                                                 relationship="description">
+                                            <Button size={"small"}
+                                                    appearance={"subtle"}
+                                                    icon={<FolderZipRegular/>}>
+
+                                            </Button>
+                                        </Tooltip>
+                                    </div>
+                                    <div className={styles.documentsCardList}>
 
                                         {sessionDetails.documents?.map((document: DocumentDetailedDto) => (
                                             renderDocumentsListCard(document)

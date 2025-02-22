@@ -1,4 +1,4 @@
-import {makeStyles, typographyStyles,} from "@fluentui/react-components";
+import {makeStyles, tokens, typographyStyles,} from "@fluentui/react-components";
 
 export const useSharingSessionStyles = makeStyles({
     caption2: typographyStyles.caption2,
@@ -104,13 +104,13 @@ export const useSharingSessionStyles = makeStyles({
     },
 
     sharingSessionsListBodyWebkitScrollbarThumb: {
-        backgroundColor: "#888",
+        backgroundColor: `${tokens.colorBrandForeground1}`,
         borderRadius: "10px",
         border: "3px solid #f1f1f1",
     },
 
     sharingSessionsListBodyWebkitScrollbarThumbHover: {
-        backgroundColor: "#555",
+        backgroundColor: `${tokens.colorBrandForeground1}`,
     },
 
     listCardItem: {
@@ -133,6 +133,7 @@ export const useSharingSessionStyles = makeStyles({
 
     sharingSessionsListSelectedItem: {
         background: "white",
-        borderLeft: "3px solid #4b6496",
+        borderLeft: "3px solid",
+        borderLeftColor: tokens.colorBrandForeground1,
     },
 });

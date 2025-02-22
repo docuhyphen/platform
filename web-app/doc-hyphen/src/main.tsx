@@ -8,7 +8,7 @@ import { createDarkTheme, createLightTheme } from '@fluentui/react-components';
 
 import type { BrandVariants, Theme } from '@fluentui/react-components';
 
-const maintheme: BrandVariants = {
+const mainTheme: BrandVariants = {
     10: "#030204",
     20: "#17161E",
     30: "#232433",
@@ -28,15 +28,15 @@ const maintheme: BrandVariants = {
 };
 
 const lightTheme: Theme = {
-    ...createLightTheme(maintheme),
+    ...createLightTheme(mainTheme),
 };
 
 const darkTheme: Theme = {
-    ...createDarkTheme(maintheme),
+    ...createDarkTheme(mainTheme),
 };
 
-darkTheme.colorBrandForeground1 = maintheme[110]; // use brand[110] instead of brand[100]
-darkTheme.colorBrandForeground2 = maintheme[120]; // use brand[120] instead of brand[110]
+darkTheme.colorBrandForeground1 = mainTheme[110];
+darkTheme.colorBrandForeground2 = mainTheme[120];
 
 
 createRoot(document.getElementById('root')!).render(
