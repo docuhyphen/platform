@@ -12,7 +12,7 @@ import {
     DialogSurface,
     DialogTitle,
     DialogTrigger, Field, Input,
-    Spinner
+    Spinner, Text
 } from "@fluentui/react-components";
 import {useSessionDocumentDownloadDialogStyles} from "./SessionDocumentDownloadDialogStyles.tsx";
 
@@ -94,6 +94,11 @@ const SessionDocumentDownloadDialog: React.FC<DownloadDocumentDialogProps> = (
                                 required
                                 onChange={(e) => setDownloadName(e.target.value)}
                                 placeholder="Document name"
+                                contentAfter={
+                                    <Text size={400}>
+                                        .pdf
+                                    </Text>
+                                }
                             />
                         </Field>
                     </DialogContent>

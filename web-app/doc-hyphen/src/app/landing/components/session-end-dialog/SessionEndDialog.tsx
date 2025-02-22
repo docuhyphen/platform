@@ -1,8 +1,7 @@
-import {DocumentDetailedDto, SharingSessionDetailedDto} from "../../../models/models.tsx";
+import {SharingSessionDetailedDto, SharingSessionStatus, UpdateSharingSessionRequest} from "../../../models/models.tsx";
 import React from "react";
 import useToken from "../../../../context/useToken.tsx";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
-import {deleteSharingSessionDocument} from "../../../../services/sharingSessionApi.ts";
 import {
     Button,
     Dialog,
@@ -12,75 +11,99 @@ import {
     DialogSurface,
     DialogTitle,
     DialogTrigger,
-    Spinner
+    Field,
+    Spinner,
+    Textarea
 } from "@fluentui/react-components";
+import {useSessionEndDialogStyles} from "./SessionEndDialogStyles.tsx";
+import {fetchSignedInUserAppUserSharingSession, updateSharingSession} from "../../../../services/sharingSessionApi.ts";
 
-interface DeleteDocumentDialogProps
+interface SessionEndDialogProps
 {
     isOpen: boolean;
     onDismiss: () => void;
-    sessionDocument: DocumentDetailedDto;
     session: SharingSessionDetailedDto;
-    onDocumentDeleted: (documentId: string) => void;
+    onSessionEnded: (session: SharingSessionDetailedDto) => void;
 }
 
-const SessionEndDialog: React.FC<DeleteDocumentDialogProps> = (
+const SessionEndDialog: React.FC<SessionEndDialogProps> = (
     {
         isOpen,
         onDismiss,
-        sessionDocument,
         session,
-        onDocumentDeleted
+        onSessionEnded
     }) =>
 {
 
     const token = useToken();
-    const [deletingDocument, setDeletingDocument] = React.useState(false);
+    const [sessionEndNote, setSessionEndNote] = React.useState('');
+    const [endingSession, setEndingSession] = React.useState(false);
     const globalStyles = useGlobalStyles()
 
-    const onDelete = async () =>
+    const onSessionEnd = async () =>
     {
-        setDeletingDocument(true)
+        setEndingSession(true)
 
         try
         {
-            await deleteSharingSessionDocument(session.id, sessionDocument.id, token);
-            onDocumentDeleted(sessionDocument.id);
+            const request = {
+                status: SharingSessionStatus.ENDED
+            } as UpdateSharingSessionRequest
+
+            await updateSharingSession(session.id, request, token);
+            const updatedSession = await fetchSignedInUserAppUserSharingSession(session.id, token);
+            onSessionEnded(updatedSession as SharingSessionDetailedDto);
+            setSessionEndNote('');
         }
         catch (error)
         {
-            alert("Error deleting document");
-            console.error("Error deleting document:", error);
+            alert("Error ending sharing session");
+            console.error("Error ending sharing session", error);
         }
         finally
         {
-            setDeletingDocument(false);
-            onDismiss();
+            setEndingSession(false);
         }
     }
+
+    const onEndNoteChange = (_, newValue) =>
+    {
+        setSessionEndNote(newValue.value || '')
+    }
+
+    const onCancel = () =>
+    {
+        setSessionEndNote('');
+        onDismiss();
+    }
+
+    const styles = useSessionEndDialogStyles();
 
     return <>
         {<Dialog modalType="alert" open={isOpen}>
             <DialogSurface>
                 <DialogBody>
-                    <DialogTitle>Ending Session: {sessionDocument && sessionDocument.title}</DialogTitle>
+                    <DialogTitle>Ending Session: {session && session.sessionName}</DialogTitle>
                     <DialogContent>
-                        DISPLAY STATUS
+                        <Field label={"End notes"} className={styles.endNoteField}>
+                            <Textarea value={sessionEndNote}
+                                      onChange={onEndNoteChange}/>
+                        </Field>
                     </DialogContent>
                     <DialogActions>
                         <Button appearance="primary"
                                 className={globalStyles.buttonWithLoading}
                                 shape={"circular"}
-                                onClick={onDelete}>
-                            {deletingDocument && <Spinner size={"extra-small"}/>}
-                            Yes, Delete
+                                onClick={onSessionEnd}>
+                            {endingSession && <Spinner size={"extra-small"}/>}
+                            End Session
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
                             <Button appearance="secondary"
                                     shape={"circular"}
-                                    disabled={deletingDocument}
-                                    onClick={onDismiss}>
-                                No, Cancel
+                                    disabled={endingSession}
+                                    onClick={onCancel}>
+                                Cancel
                             </Button>
                         </DialogTrigger>
                     </DialogActions>

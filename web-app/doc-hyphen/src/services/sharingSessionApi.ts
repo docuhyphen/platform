@@ -3,7 +3,7 @@ import {
     ResponseError,
     SharingSessionBasicDto,
     SharingSessionInitiationRequest,
-    SharingSessionRequestDocumentRequest
+    SharingSessionRequestDocumentRequest, UpdateSharingSessionRequest
 } from "../app/models/models.tsx";
 
 export const initiateSharingSession = async (request: SharingSessionInitiationRequest, token: string | null) =>
@@ -57,7 +57,7 @@ export const fetchSignedInUserAppUserSharingSession = async (sessionId: string |
     }
 };
 
-export const updateSharingSession = async (sessionId: string, request: SharingSessionInitiationRequest, token: string | null) =>
+export const updateSharingSession = async (sessionId: string, request: UpdateSharingSessionRequest, token: string | null) =>
 {
     try
     {

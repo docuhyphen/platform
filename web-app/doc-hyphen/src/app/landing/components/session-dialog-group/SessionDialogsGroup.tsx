@@ -25,7 +25,7 @@ interface SessionDialogsGroupProps {
     onDocumentUploaded: (uploadedDocument: DocumentDetailedDto) => void;
     onDocumentUpdated: (updatedDocument: DocumentDetailedDto) => void;
     onSessionDeleted: (sessionId: string) => void;
-    onSessionEnded: (sessionId: string) => void;
+    onSessionEnded: (session: SharingSessionDetailedDto) => void;
 }
 
 const SessionDialogsGroup: React.FC<SessionDialogsGroupProps> = ({

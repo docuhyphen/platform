@@ -26,8 +26,10 @@ const SessionDialogActions: React.FC<DialogActionsProps> = ({
         <>
 
             {(!choosingTemplate && sessionInitiatedSuccessfully) && (
-                <Button appearance="primary" onClick={onCancelInitiation}>
-                    Create Another
+                <Button appearance="primary"
+                        onClick={onCancelInitiation}
+                        shape={"circular"}>
+                    Create another
                 </Button>
             )}
 

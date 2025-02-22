@@ -3,27 +3,13 @@ import SharingSessionList from "../sharing-session-list/SharingSessionList.tsx";
 import {fetchSignedInUserAppUserSharingSession} from "../../services/sharingSessionApi.ts";
 import useToken from "../../context/useToken.tsx";
 import PreLanding from "../pre-landing/PreLanding.tsx";
-import {
-    Body1,
-    Button,
-    Caption1,
-    Card,
-    CardHeader,
-    Text,
-    Tooltip
-} from "@fluentui/react-components";
+import {Body1, Button, Caption1, Card, CardHeader, Text, Tooltip} from "@fluentui/react-components";
 import {
     bundleIcon,
-    CheckmarkNoteFilled,
-    CheckmarkNoteRegular,
-    DeleteFilled,
-    DeleteRegular,
     DocumentAddFilled,
     DocumentAddRegular,
     FolderZipFilled,
-    FolderZipRegular,
-    WindowEditFilled,
-    WindowEditRegular
+    FolderZipRegular
 } from "@fluentui/react-icons";
 import {formatDateTimeWithOrdinal} from "../helpers.ts";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.tsx";
@@ -36,8 +22,20 @@ import SessionDialogsGroup from "./components/session-dialog-group/SessionDialog
 import SessionDetailsHeader from "./components/session-details-header/SessionDetailsHeader.tsx";
 import DetailsSkeleton from "./components/skeletons/DetailsSkeleton.tsx";
 
-const useSessionDetails = (selectedSessionId: string | null, token: string | null) =>
+const Landing: React.FC = () =>
 {
+    const styles = useLandingStyles();
+    const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const token = useToken();
+    const [isDocumentSidebarOpen, setIsDocumentSidebarOpen] = React.useState(false);
+    const [isDocumentAddDialogOpen, setIsDocumentAddDialogOpen] = React.useState(false);
+    const [isUploadDocumentDialogOpen, setIsUploadDocumentDialogOpen] = React.useState(false);
+    const [isUpdateDocumentDialogOpen, setIsUpdateDocumentDialogOpen] = React.useState(false);
+    const [isDeletedSessionDialogOpen, setIsDeletedSessionDialogOpen] = React.useState(false);
+    const [isSessionEndDialogOpen, setIsSessionEndDialogOpen] = React.useState(false);
+    const [selectedSessionDocument, setSelectedSessionDocument] = React.useState<DocumentDetailedDto>(undefined);
+    const [selectedUpdateSessionDocument, setSelectedUpdateSessionDocument] = React.useState<DocumentDetailedDto>(undefined);
     const [sessionDetails, setSessionDetails] = useState<SharingSessionDetailedDto | null>(null);
     const [fetchingDetails, setFetchingDetails] = useState<boolean>(true);
 
@@ -67,29 +65,6 @@ const useSessionDetails = (selectedSessionId: string | null, token: string | nul
             fetchDetails();
         }
     }, [selectedSessionId, token]);
-
-    return {sessionDetails, setSessionDetails, fetchingDetails, setFetchingDetails};
-};
-
-const Landing: React.FC = () =>
-{
-    const styles = useLandingStyles();
-    const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
-    const token = useToken();
-    const {
-        sessionDetails,
-        setSessionDetails,
-        fetchingDetails
-    } = useSessionDetails(selectedSessionId, token);
-    const [isDocumentSidebarOpen, setIsDocumentSidebarOpen] = React.useState(false);
-    const [isDocumentAddDialogOpen, setIsDocumentAddDialogOpen] = React.useState(false);
-    const [isUploadDocumentDialogOpen, setIsUploadDocumentDialogOpen] = React.useState(false);
-    const [isUpdateDocumentDialogOpen, setIsUpdateDocumentDialogOpen] = React.useState(false);
-    const [isDeletedSessionDialogOpen, setIsDeletedSessionDialogOpen] = React.useState(false);
-    const [isSessionEndDialogOpen, setIsSessionEndDialogOpen] = React.useState(false);
-    const [selectedSessionDocument, setSelectedSessionDocument] = React.useState<DocumentDetailedDto>(undefined);
-    const [selectedUpdateSessionDocument, setSelectedUpdateSessionDocument] = React.useState<DocumentDetailedDto>(undefined);
 
     useEffect(() =>
     {
@@ -156,12 +131,11 @@ const Landing: React.FC = () =>
         }
     }
 
-    const onSessionEnded = (sessionId: string) =>
+    const onSessionEnded = (session: SharingSessionDetailedDto) =>
     {
-        // if (sessionDetails && sessionDetails.id === sessionId)
-        // {
-        //     setSessionDetails({...sessionDetails, status: 'ENDED'})
-        // }
+        console.log(session)
+        alert()
+        setSessionDetails(session)
     }
 
     const renderDocumentsActionsMenu = (sessionDocument: DocumentDetailedDto) =>
@@ -226,9 +200,6 @@ const Landing: React.FC = () =>
         return `${styles.sharingSessionHeadContainer} ${styles[`sessionHeadStatus${sessionDetails?.status || ''}` as keyof typeof styles]}`;
     };
 
-    const SessionEndIcon = bundleIcon(CheckmarkNoteFilled, CheckmarkNoteRegular)
-    const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular)
-    const EditSessionIcon = bundleIcon(WindowEditFilled, WindowEditRegular)
     const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
     const DocumentAddIcon = bundleIcon(DocumentAddFilled, DocumentAddRegular)
 

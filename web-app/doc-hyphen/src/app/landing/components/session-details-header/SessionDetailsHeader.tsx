@@ -15,7 +15,7 @@ import {
 import {bundleIcon, CheckmarkNoteFilled, CheckmarkNoteRegular, DeleteFilled, DeleteRegular, DocumentAddRegular, MoreVerticalRegular, WindowEditFilled, WindowEditRegular} from "@fluentui/react-icons";
 import {formatDateTimeWithOrdinal} from "../../../helpers.ts";
 import {useLandingStyles} from "../../LandingStyles.tsx";
-import {SharingSessionDetailedDto} from "../../../models/models.tsx";
+import {SharingSessionDetailedDto, SharingSessionStatus} from "../../../models/models.tsx";
 
 interface SessionDetailsHeaderProps {
     sessionDetails: SharingSessionDetailedDto | null;
@@ -73,6 +73,7 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = ({
                                 <Divider/>
                                 <MenuList>
                                     <MenuItem icon={<SessionEndIcon/>}
+                                              disabled={sessionDetails.status === SharingSessionStatus.ENDED}
                                               onClick={() => setIsSessionEndDialogOpen(true)}>
                                         End
                                     </MenuItem>
