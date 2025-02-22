@@ -32,6 +32,7 @@ const Landing: React.FC = () =>
     const [isDocumentAddDialogOpen, setIsDocumentAddDialogOpen] = React.useState(false);
     const [isUploadDocumentDialogOpen, setIsUploadDocumentDialogOpen] = React.useState(false);
     const [isUpdateDocumentDialogOpen, setIsUpdateDocumentDialogOpen] = React.useState(false);
+    const [isDocumentZipDialogOpen, setIsDocumentZipDialogOpen] = React.useState(false);
     const [isDeletedSessionDialogOpen, setIsDeletedSessionDialogOpen] = React.useState(false);
     const [isSessionEndDialogOpen, setIsSessionEndDialogOpen] = React.useState(false);
     const [selectedSessionDocument, setSelectedSessionDocument] = React.useState<DocumentDetailedDto>(undefined);
@@ -234,6 +235,7 @@ const Landing: React.FC = () =>
                                             <Tooltip content="Zip all documents"
                                                      relationship="description">
                                                 <Button size={"small"}
+                                                        onClick={() => setIsDocumentZipDialogOpen(true)}
                                                         appearance={"subtle"}
                                                         icon={<ZipDocumentsIcon/>}>
 
@@ -276,6 +278,8 @@ const Landing: React.FC = () =>
                     setIsUploadDocumentDialogOpen={setIsUploadDocumentDialogOpen}
                     isUpdateDocumentDialogOpen={isUpdateDocumentDialogOpen}
                     setIsUpdateDocumentDialogOpen={setIsUpdateDocumentDialogOpen}
+                    isDocumentZipDialogOpen={isDocumentZipDialogOpen}
+                    setIsDocumentZipDialogOpen={setIsDocumentZipDialogOpen}
                     sessionDetails={sessionDetails}
                     selectedSessionId={selectedSessionId}
                     selectedSessionDocument={selectedSessionDocument}

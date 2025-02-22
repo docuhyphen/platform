@@ -69,11 +69,11 @@ const MainMenu: React.FC = () => {
                     </Button>
                 }
 
-                {(appUserPersonCompany && !appUserPersonCompany.registrationComplete) &&
-                    <p>
-                        {appUserPersonCompany?.name} registration pending
-                    </p>
-                }
+                {/*{(appUserPersonCompany && !appUserPersonCompany.registrationComplete) &&*/}
+                {/*    <p>*/}
+                {/*        {appUserPersonCompany?.name} registration pending*/}
+                {/*    </p>*/}
+                {/*}*/}
                 <SharingSessionInitiation/>
             </section>
 

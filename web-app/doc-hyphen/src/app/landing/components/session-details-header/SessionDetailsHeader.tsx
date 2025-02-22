@@ -3,7 +3,6 @@ import {
     Body1,
     Button,
     Caption1,
-    Divider,
     Menu,
     MenuItem,
     MenuList,
@@ -12,7 +11,19 @@ import {
     Text,
     Tooltip
 } from "@fluentui/react-components";
-import {bundleIcon, CheckmarkNoteFilled, CheckmarkNoteRegular, DeleteFilled, DeleteRegular, DocumentAddRegular, MoreVerticalRegular, WindowEditFilled, WindowEditRegular} from "@fluentui/react-icons";
+import {
+    bundleIcon,
+    CheckmarkNoteFilled,
+    CheckmarkNoteRegular,
+    DeleteFilled,
+    DeleteRegular,
+    DocumentAddRegular,
+    MoreVerticalRegular,
+    PeopleLockFilled,
+    PeopleLockRegular,
+    WindowEditFilled,
+    WindowEditRegular
+} from "@fluentui/react-icons";
 import {formatDateTimeWithOrdinal} from "../../../helpers.ts";
 import {useLandingStyles} from "../../LandingStyles.tsx";
 import {SharingSessionDetailedDto, SharingSessionStatus} from "../../../models/models.tsx";
@@ -35,6 +46,7 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = ({
     const SessionEndIcon = bundleIcon(CheckmarkNoteFilled, CheckmarkNoteRegular);
     const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular);
     const EditSessionIcon = bundleIcon(WindowEditFilled, WindowEditRegular);
+    const ManageAccessIcon = bundleIcon(PeopleLockFilled, PeopleLockRegular);
 
     return (
         <>
@@ -58,19 +70,24 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = ({
                                     onClick={() => setIsDocumentAddDialogOpen(true)}
                             />
                         </Tooltip>
+                        <Tooltip content="Edit" relationship="description">
+                            <Button icon={<EditSessionIcon/>}
+                                    appearance={"subtle"}
+                                    onClick={() => setIsDocumentAddDialogOpen(true)}
+                            />
+                        </Tooltip>
+                        <Tooltip content="manage access" relationship="description">
+                            <Button icon={<ManageAccessIcon/>}
+                                    appearance={"subtle"}
+                                    onClick={() => setIsDocumentAddDialogOpen(true)}
+                            />
+                        </Tooltip>
 
                         <Menu positioning={{autoSize: true}}>
                             <MenuTrigger disableButtonEnhancement>
                                 <Button icon={<MoreVerticalRegular/>} appearance="subtle"/>
                             </MenuTrigger>
                             <MenuPopover>
-                                <MenuList>
-                                    <MenuItem icon={<EditSessionIcon/>}
-                                              onClick={() => setIsSessionEndDialogOpen(true)}>
-                                        Edit
-                                    </MenuItem>
-                                </MenuList>
-                                <Divider/>
                                 <MenuList>
                                     <MenuItem icon={<SessionEndIcon/>}
                                               disabled={sessionDetails.status === SharingSessionStatus.ENDED}

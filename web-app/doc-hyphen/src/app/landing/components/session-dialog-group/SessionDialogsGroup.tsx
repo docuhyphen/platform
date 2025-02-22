@@ -4,7 +4,9 @@ import SessionEndDialog from '../session-end-dialog/SessionEndDialog.tsx';
 import AddDocumentDialog from '../session-document-add-dialog/SessionDocumentAddDialog.tsx';
 import SessionDocumentUploadDialog from '../session-document-upload-dialog/SessionDocumentUploadDialog.tsx';
 import SessionDocumentUpdateDialog from '../session-document-update-dialog/SessionDocumentUpdateDialog.tsx';
-import { DocumentDetailedDto, SharingSessionDetailedDto } from '../../models/models.tsx';
+import {DocumentDetailedDto, SharingSessionDetailedDto} from '../../models/models.tsx';
+import SessionDocumentZipDownloadDialog
+    from "../session-document-zip-download-dialog/SessionDocumentZipDownloadDialog.tsx";
 
 interface SessionDialogsGroupProps {
     isDeletedSessionDialogOpen: boolean;
@@ -17,6 +19,8 @@ interface SessionDialogsGroupProps {
     setIsUploadDocumentDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     isUpdateDocumentDialogOpen: boolean;
     setIsUpdateDocumentDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    isDocumentZipDialogOpen: boolean;
+    setIsDocumentZipDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     sessionDetails: SharingSessionDetailedDto | null;
     selectedSessionId: string | null;
     selectedSessionDocument: DocumentDetailedDto | undefined;
@@ -39,6 +43,8 @@ const SessionDialogsGroup: React.FC<SessionDialogsGroupProps> = ({
                                                                      setIsUploadDocumentDialogOpen,
                                                                      isUpdateDocumentDialogOpen,
                                                                      setIsUpdateDocumentDialogOpen,
+                                                                     isDocumentZipDialogOpen,
+                                                                     setIsDocumentZipDialogOpen,
                                                                      sessionDetails,
                                                                      selectedSessionId,
                                                                      selectedSessionDocument,
@@ -80,6 +86,10 @@ const SessionDialogsGroup: React.FC<SessionDialogsGroupProps> = ({
                                          sessionId={selectedSessionId}
                                          sessionDocument={selectedSessionDocument}
                                          onDocumentUpdated={onDocumentUpdated}/>
+
+            <SessionDocumentZipDownloadDialog isOpen={isDocumentZipDialogOpen}
+                                              onDismiss={() => setIsDocumentZipDialogOpen(false)}
+                                              session={sessionDetails}/>
         </>
     );
 };

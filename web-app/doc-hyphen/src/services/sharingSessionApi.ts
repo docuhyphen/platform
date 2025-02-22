@@ -196,6 +196,24 @@ export const downloadSharingSessionDocument = async (sessionId: string, document
     }
 };
 
+export const downloadSharingSessionDocumentZip = async (sessionId: string, documentId?: string, token?: string | null) =>
+{
+    try
+    {
+        const response = await apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/file`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            },
+            responseType: 'blob'
+        });
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
 export const downloadPreviewPDFSharingSessionDocument = async (sessionId: string, documentId?: string, token?: string | null) =>
 {
     try
