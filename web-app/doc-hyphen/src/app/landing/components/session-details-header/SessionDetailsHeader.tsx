@@ -33,13 +33,18 @@ interface SessionDetailsHeaderProps {
     setIsDocumentAddDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     setIsSessionEndDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     setIsDeletedSessionDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    setIsSessionEditDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    setIsSessionAccessManagementDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = ({
+const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
+    {
     sessionDetails,
     setIsDocumentAddDialogOpen,
     setIsSessionEndDialogOpen,
-    setIsDeletedSessionDialogOpen
+        setIsDeletedSessionDialogOpen,
+        setIsSessionEditDialogOpen,
+        setIsSessionAccessManagementDialogOpen,
 }) => {
     const styles = useLandingStyles();
     const DocumentAddIcon = bundleIcon(DocumentAddRegular, DocumentAddRegular);
@@ -67,19 +72,22 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = ({
                         <Tooltip content="Add Session Document" relationship="description">
                             <Button icon={<DocumentAddIcon/>}
                                     appearance="primary"
+                                    disabled={sessionDetails.status === SharingSessionStatus.ENDED}
                                     onClick={() => setIsDocumentAddDialogOpen(true)}
                             />
                         </Tooltip>
                         <Tooltip content="Edit" relationship="description">
                             <Button icon={<EditSessionIcon/>}
+                                    disabled={sessionDetails.status === SharingSessionStatus.ENDED}
                                     appearance={"subtle"}
-                                    onClick={() => setIsDocumentAddDialogOpen(true)}
+                                    onClick={() => setIsSessionEditDialogOpen(true)}
                             />
                         </Tooltip>
                         <Tooltip content="manage access" relationship="description">
                             <Button icon={<ManageAccessIcon/>}
+                                    disabled={sessionDetails.status === SharingSessionStatus.ENDED}
                                     appearance={"subtle"}
-                                    onClick={() => setIsDocumentAddDialogOpen(true)}
+                                    onClick={() => setIsSessionAccessManagementDialogOpen(true)}
                             />
                         </Tooltip>
 

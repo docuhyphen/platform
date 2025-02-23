@@ -33,6 +33,8 @@ const Landing: React.FC = () =>
     const [isUploadDocumentDialogOpen, setIsUploadDocumentDialogOpen] = React.useState(false);
     const [isUpdateDocumentDialogOpen, setIsUpdateDocumentDialogOpen] = React.useState(false);
     const [isDocumentZipDialogOpen, setIsDocumentZipDialogOpen] = React.useState(false);
+    const [isSessionEditDialogOpen, setIsSessionEditDialogOpen] = React.useState(false);
+    const [isSessionAccessManagementDialogOpen, setIsSessionAccessManagementDialogOpen] = React.useState(false);
     const [isDeletedSessionDialogOpen, setIsDeletedSessionDialogOpen] = React.useState(false);
     const [isSessionEndDialogOpen, setIsSessionEndDialogOpen] = React.useState(false);
     const [selectedSessionDocument, setSelectedSessionDocument] = React.useState<DocumentDetailedDto>(undefined);
@@ -137,6 +139,16 @@ const Landing: React.FC = () =>
         setSessionDetails(session)
     }
 
+    const onSessionEdited = (session: SharingSessionDetailedDto) =>
+    {
+        onSessionEdited(session)
+    }
+
+    const onSessionAccessManagementUpdated = (session: SharingSessionDetailedDto) =>
+    {
+        setSessionDetails(session)
+    }
+
     const renderDocumentsActionsMenu = (sessionDocument: DocumentDetailedDto) =>
     {
         return <>
@@ -222,6 +234,8 @@ const Landing: React.FC = () =>
                                 setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}
                                 setIsSessionEndDialogOpen={setIsSessionEndDialogOpen}
                                 setIsDeletedSessionDialogOpen={setIsDeletedSessionDialogOpen}
+                                setIsSessionEditDialogOpen={setIsSessionEditDialogOpen}
+                                setIsSessionAccessManagementDialogOpen={setIsSessionAccessManagementDialogOpen}
                             />}
                         </div>
                         <div className={styles.sharingSessionDocumentsContainer}>
@@ -250,7 +264,6 @@ const Landing: React.FC = () =>
                                         </div>
                                     </div>
                                 )}
-
                                 {
                                     sessionDetails && sessionDetails.documents?.length === 0 &&
                                     <NoSessionDocuments setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}/>
@@ -280,6 +293,10 @@ const Landing: React.FC = () =>
                     setIsUpdateDocumentDialogOpen={setIsUpdateDocumentDialogOpen}
                     isDocumentZipDialogOpen={isDocumentZipDialogOpen}
                     setIsDocumentZipDialogOpen={setIsDocumentZipDialogOpen}
+                    isSessionEditDialogOpen={isSessionEditDialogOpen}
+                    setIsSessionEditDialogOpen={setIsSessionEditDialogOpen}
+                    isSessionAccessManagementDialogOpen={isSessionAccessManagementDialogOpen}
+                    setIsSessionAccessManagementDialogOpen={setIsSessionAccessManagementDialogOpen}
                     sessionDetails={sessionDetails}
                     selectedSessionId={selectedSessionId}
                     selectedSessionDocument={selectedSessionDocument}
@@ -289,6 +306,8 @@ const Landing: React.FC = () =>
                     onDocumentUpdated={onDocumentUpdated}
                     onSessionDeleted={onSessionDeleted}
                     onSessionEnded={onSessionEnded}
+                    onSessionEdited={onSessionEdited}
+                    onSessionAccessManagementUpdated={onSessionAccessManagementUpdated}
                 />
             </section>
         </>
