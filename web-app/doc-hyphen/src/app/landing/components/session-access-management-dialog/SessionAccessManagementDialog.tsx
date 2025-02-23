@@ -1,5 +1,5 @@
-import {SharingSessionDetailedDto} from "../../../models/models.tsx";
-import React from "react";
+import {SharingSessionDetailedDto, UpdateSharingSessionRequest} from "../../../models/models.tsx";
+import React, {useEffect, useState} from "react";
 import useToken from "../../../../context/useToken.tsx";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {
@@ -11,17 +11,21 @@ import {
     DialogSurface,
     DialogTitle,
     DialogTrigger,
-    Spinner
+    Divider,
+    Field,
+    Spinner,
+    Switch
 } from "@fluentui/react-components";
-import {deleteSharingSession} from "../../../../services/sharingSessionApi.ts";
-import {publishSharingSessionDelete} from "../../../observable/sharingSessionObservables.ts";
+import {fetchSignedInUserAppUserSharingSession, updateSharingSession} from "../../../../services/sharingSessionApi.ts";
+import {handleCheckboxChange} from "../../../sharing-session-initiation/components/formHandlers.tsx";
+import {useAccessManagementDialogStyles} from "./SessionAccessManagementDialogStyles.tsx";
 
 interface SessionAccessManagementDialogProps
 {
     isOpen: boolean;
     onDismiss: () => void;
     session: SharingSessionDetailedDto;
-    onSessionDeleted: (sessionId: string) => void;
+    onSessionAccessManagementUpdated: (session: SharingSessionDetailedDto) => void;
 }
 
 const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps> = (
@@ -29,57 +33,55 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
         isOpen,
         onDismiss,
         session,
-        onSessionDeleted
+        onSessionAccessManagementUpdated
     }) =>
 {
 
     const token = useToken();
-    const [deletingSession, setDeletingSession] = React.useState(false);
+    const [updatingSession, setUpdatingSession] = React.useState(false);
     const globalStyles = useGlobalStyles()
-    const [deleteStarted, setDeleteStarted] = React.useState(false);
-    const [countdown, setCountdown] = React.useState(10);
-    const timerRef = React.useRef<NodeJS.Timeout | null>(null);
+    const [requireRecipientSignIn, setRequireRecipientSignIn] = useState<boolean>(true);
+    const [allowDocumentAddition, setAllowDocumentAddition] = useState<boolean>(false);
+    const [allowDocumentDeletion, setAllowDocumentDeletion] = useState<boolean>(false);
+    const [allowDocumentDownload, setAllowDocumentDownload] = useState<boolean>(false);
+    const [allowDocumentUpdate, setAllowDocumentUpdate] = useState<boolean>(false);
+    const [allowDocumentUpload, setAllowDocumentUpload] = useState<boolean>(false);
 
-    const onDelete = () =>
+    const styles = useAccessManagementDialogStyles();
+
+    useEffect(() =>
     {
-        setDeleteStarted(true);
-        setCountdown(10);
 
-        timerRef.current = setInterval(() =>
+        if(session)
         {
-            setCountdown(prevCountdown =>
-            {
-                if (prevCountdown <= 1)
-                {
-                    clearInterval(timerRef.current!);
-                    completeDeletion();
-                    return 0;
-                }
-                return prevCountdown - 1;
-            });
-        }, 1000);
-    }
-
-    const onCancel = () =>
-    {
-        if (timerRef.current)
-        {
-            clearInterval(timerRef.current);
+            setRequireRecipientSignIn(session.requestRecipientSignIn);
+            setAllowDocumentAddition(session.allowDocumentAddition);
+            setAllowDocumentDeletion(session.allowDocumentDeletion);
+            setAllowDocumentDownload(session.allowDocumentDownload);
+            setAllowDocumentUpdate(session.allowDocumentUpdate);
+            setAllowDocumentUpload(session.allowDocumentUpload);
         }
-        setDeleteStarted(false);
-        setCountdown(5);
-    }
 
-    const completeDeletion = async () =>
+    }, [session]);
+
+    const onUpdate = async () =>
     {
 
-        setDeletingSession(true)
+        setUpdatingSession(true)
 
         try
         {
-            await deleteSharingSession(session.id, token);
-            onSessionDeleted(session.id);
-            publishSharingSessionDelete(session.id);
+            const request: UpdateSharingSessionRequest = {
+                requireRecipientSignIn,
+                allowDocumentAddition,
+                allowDocumentDeletion,
+                allowDocumentDownload,
+                allowDocumentUpdate,
+                allowDocumentUpload
+            }
+            await updateSharingSession(session.id, request, token);
+            const updatedSession = await fetchSignedInUserAppUserSharingSession(session.id, token);
+            onSessionAccessManagementUpdated(updatedSession as SharingSessionDetailedDto);
             onDismiss();
         }
         catch (error)
@@ -89,8 +91,7 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
         }
         finally
         {
-            setDeletingSession(false);
-            setDeleteStarted(false);
+            setUpdatingSession(false);
         }
     }
 
@@ -98,37 +99,73 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
         {<Dialog modalType="alert" open={isOpen}>
             <DialogSurface>
                 <DialogBody>
-                    <DialogTitle> Sharing Session access management</DialogTitle>
+                    <DialogTitle> Management access</DialogTitle>
                     <DialogContent>
-                        SESSION MANAGEMENT
+                        <div className={styles.switchGroup}>
+                            <Divider alignContent="start">Session options</Divider>
+                            <Field>
+                                <Switch
+                                    label="Require recipient sign in"
+                                    checked={requireRecipientSignIn}
+                                    onChange={handleCheckboxChange(setRequireRecipientSignIn)}
+                                />
+                            </Field>
+                            <Divider alignContent="start">Document options</Divider>
+                            <Field>
+                                <Switch
+                                    label="Allow document additions"
+                                    checked={allowDocumentAddition}
+                                    onChange={handleCheckboxChange(setAllowDocumentAddition)}
+                                />
+                            </Field>
+                            <Field>
+                                <Switch
+                                    label="Allow document deletions"
+                                    checked={allowDocumentDeletion}
+                                    onChange={handleCheckboxChange(setAllowDocumentDeletion)}
+                                />
+                            </Field>
+                            <Field>
+                                <Switch
+                                    label="Allow document download"
+                                    checked={allowDocumentDownload}
+                                    onChange={handleCheckboxChange(setAllowDocumentDownload)}
+                                />
+                            </Field>
+                            <Field>
+                                <Switch
+                                    label="Allow document update"
+                                    checked={allowDocumentUpdate}
+                                    onChange={handleCheckboxChange(setAllowDocumentUpdate)}
+                                />
+                            </Field>
+                            <Field>
+                                <Switch
+                                    label="Allow document upload"
+                                    checked={allowDocumentUpload}
+                                    onChange={handleCheckboxChange(setAllowDocumentUpload)}
+                                />
+                            </Field>
+                        </div>
                     </DialogContent>
                     <DialogActions>
-                        {deleteStarted ? (
-                            <Button appearance="primary"
-                                    className={globalStyles.buttonWithLoading}
-                                    shape={"circular"}
-                                    onClick={onCancel}>
-                                Cancel
-                            </Button>
-                        ) : (
                             <>
                                 <Button appearance="primary"
                                         className={globalStyles.buttonWithLoading}
                                         shape={"circular"}
-                                        onClick={onDelete}>
-                                    {deletingSession && <Spinner size={"extra-small"}/>}
-                                    Yes, Delete
+                                        onClick={onUpdate}>
+                                    {updatingSession && <Spinner size={"extra-small"}/>}
+                                    Update
                                 </Button>
                                 <DialogTrigger disableButtonEnhancement>
                                     <Button appearance="secondary"
                                             shape={"circular"}
-                                            disabled={deletingSession}
+                                            disabled={updatingSession}
                                             onClick={onDismiss}>
-                                        No, Cancel
+                                        Cancel
                                     </Button>
                                 </DialogTrigger>
                             </>
-                        )}
                     </DialogActions>
                 </DialogBody>
             </DialogSurface>

@@ -114,7 +114,7 @@ class SharingSessionInitiationService @Inject constructor(
             this.status = SharingSessionStatus.INITIATED
             this.createdDate = Timestamp.from(Instant.now())
             this.lastActivity = Timestamp.from(Instant.now())
-            this.requestRecipientSignIn = requestRecipientSignIn == true
+            this.requireRecipientSignIn = requestRecipientSignIn == true
             this.allowDocumentAddition = allowDocumentAddition == true
             this.allowDocumentDeletion = allowDocumentDeletion == true
             this.allowDocumentDownload = allowDocumentDownload == true

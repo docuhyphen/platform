@@ -1,5 +1,5 @@
-import {SharingSessionDetailedDto, SharingSessionStatus, UpdateSharingSessionRequest} from "../../../models/models.tsx";
-import React from "react";
+import {SharingSessionDetailedDto, UpdateSharingSessionRequest} from "../../../models/models.tsx";
+import React, {ChangeEvent, useEffect} from "react";
 import useToken from "../../../../context/useToken.tsx";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {
@@ -13,10 +13,12 @@ import {
     DialogTrigger,
     Field,
     Input,
+    InputOnChangeData,
     Spinner,
     Textarea
 } from "@fluentui/react-components";
 import {fetchSignedInUserAppUserSharingSession, updateSharingSession} from "../../../../services/sharingSessionApi.ts";
+import {publishSharingSessionUpdate} from "../../../observable/sharingSessionObservables.ts";
 
 interface SessionDeleteDialogProps
 {
@@ -37,7 +39,18 @@ const SessionEditDialog: React.FC<SessionDeleteDialogProps> = (
 
     const token = useToken();
     const [editingSession, setEditingSession] = React.useState(false);
+    const [sessionName, setSessionName] = React.useState('')
+    const [description, setDescription] = React.useState('')
     const globalStyles = useGlobalStyles()
+
+    useEffect(() =>
+    {
+        if (session)
+        {
+            setSessionName(session.sessionName)
+            setDescription(session.description)
+        }
+    }, [session]);
 
     const onEdit = async () =>
     {
@@ -47,23 +60,42 @@ const SessionEditDialog: React.FC<SessionDeleteDialogProps> = (
         try
         {
             const request = {
-                status: SharingSessionStatus.ENDED
+                sessionName,
+                description
             } as UpdateSharingSessionRequest
 
             await updateSharingSession(session.id, request, token);
             const updatedSession = await fetchSignedInUserAppUserSharingSession(session.id, token);
             onSessionEdited(updatedSession as SharingSessionDetailedDto);
+            publishSharingSessionUpdate(updatedSession as SharingSessionDetailedDto)
             onDismiss();
         }
         catch (error)
         {
-            alert("Error deleting document");
-            console.error("Error deleting document:", error);
+            alert("Error updating session");
+            console.error("Error updating session", error);
         }
         finally
         {
             setEditingSession(false);
         }
+    }
+
+    const onCancel = () =>
+    {
+        setSessionName('')
+        setDescription('')
+        onDismiss()
+    }
+
+    const onSessionNameChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
+    {
+        setSessionName(newValue.value || '');
+    }
+
+    const onDescriptionChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
+    {
+        setDescription(newValue.value || '');
     }
 
     return <>
@@ -73,10 +105,13 @@ const SessionEditDialog: React.FC<SessionDeleteDialogProps> = (
                     <DialogTitle>Edit {session && session.sessionName}</DialogTitle>
                     <DialogContent>
                         <Field label={"Session name"}>
-                            <Input type={"text"}/>
+                            <Input type={"text"}
+                                   value={sessionName}
+                                   onChange={onSessionNameChange}/>
                         </Field>
                         <Field label={"Description"}>
-                            <Textarea/>
+                            <Textarea value={description}
+                                      onChange={onDescriptionChange}/>
                         </Field>
                     </DialogContent>
                     <DialogActions>
@@ -91,7 +126,7 @@ const SessionEditDialog: React.FC<SessionDeleteDialogProps> = (
                             <Button appearance="secondary"
                                     shape={"circular"}
                                     disabled={editingSession}
-                                    onClick={onDismiss}>
+                                    onClick={onCancel}>
                                 Cancel
                             </Button>
                         </DialogTrigger>

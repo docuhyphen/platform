@@ -44,6 +44,12 @@ class DetailedModelConverter
                         toDto(initiator),
                         toDto(recipient),
                         status.toString(),
+                        requireRecipientSignIn,
+                        allowDocumentAddition,
+                        allowDocumentDeletion,
+                        allowDocumentDownload,
+                        allowDocumentUpdate,
+                        allowDocumentUpload,
                         documents.map { toDto(it) }
                     )
                 }

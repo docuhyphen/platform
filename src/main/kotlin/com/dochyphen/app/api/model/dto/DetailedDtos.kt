@@ -49,7 +49,14 @@ data class SharingSessionDetailedDto(
     val initiator: AppUserDetailedDto? = null,
     val recipient: AppUserDetailedDto? = null,
     val status: String?,
-    val documents: List<DocumentDetailedDto?>
+    var requestRecipientSignIn: Boolean = false,
+    var allowDocumentAddition: Boolean = false,
+    var allowDocumentDeletion: Boolean = false,
+    var allowDocumentDownload: Boolean = true,
+    var allowDocumentUpdate: Boolean = false,
+    var allowDocumentUpload: Boolean = false,
+    val documents: List<DocumentDetailedDto?>,
+
 
 //    val participantIds: List<UUID>
 )

@@ -47,6 +47,17 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
     }
 
     @Transactional
+    fun updateDescription(sessionId: UUID, description: String)
+    {
+        val query = entityManager.createQuery(
+            "UPDATE SharingSession s SET s.description = :description WHERE s.id = :sessionId"
+        )
+        query.setParameter("description", description)
+        query.setParameter("sessionId", sessionId)
+        query.executeUpdate()
+    }
+
+    @Transactional
     fun updateStatus(sessionId: UUID, status: SharingSessionStatus)
     {
         val query = entityManager.createQuery(
@@ -75,6 +86,17 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
             "UPDATE SharingSession s SET s.lastActivity = :lastActivity WHERE s.id = :sessionId"
         )
         query.setParameter("lastActivity", lastActivity)
+        query.setParameter("sessionId", sessionId)
+        query.executeUpdate()
+    }
+
+    @Transactional
+    fun updateRequireRecipientSignIn(sessionId: UUID, requestRecipientSignIn: Boolean)
+    {
+        val query = entityManager.createQuery(
+            "UPDATE SharingSession s SET s.requireRecipientSignIn = :requestRecipientSignIn WHERE s.id = :sessionId"
+        )
+        query.setParameter("requestRecipientSignIn", requestRecipientSignIn)
         query.setParameter("sessionId", sessionId)
         query.executeUpdate()
     }

@@ -141,7 +141,7 @@ const Landing: React.FC = () =>
 
     const onSessionEdited = (session: SharingSessionDetailedDto) =>
     {
-        onSessionEdited(session)
+        setSessionDetails(session)
     }
 
     const onSessionAccessManagementUpdated = (session: SharingSessionDetailedDto) =>
@@ -300,6 +300,7 @@ const Landing: React.FC = () =>
                     sessionDetails={sessionDetails}
                     selectedSessionId={selectedSessionId}
                     selectedSessionDocument={selectedSessionDocument}
+                    selectedUpdateSessionDocument={selectedUpdateSessionDocument}
                     setSelectedUpdateSessionDocument={setSelectedUpdateSessionDocument}
                     onNewDocumentAdded={onNewDocumentAdded}
                     onDocumentUploaded={onDocumentUploaded}

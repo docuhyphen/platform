@@ -14,11 +14,9 @@ export const useDocumentAddDialogStyles = makeStyles({
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
-        gap: '8px'
+        gap: '8px',
     },
     documentTitleField: {
         width: '100%',
-        maxWidth: '400px',
     },
-
 });

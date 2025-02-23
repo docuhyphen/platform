@@ -103,11 +103,12 @@ data class UpdateSharingSessionRequest(
     var initialShareMessage: String? = null,
     var description: String? = null,
     var sessionName: String? = null,
-    var allowDocumentAddition: Boolean = false,
-    var allowDocumentDeletion: Boolean = false,
-    var allowDocumentDownload: Boolean = false,
-    var allowDocumentUpdate: Boolean = false,
-    var allowDocumentUpload: Boolean = false,
+    var requireRecipientSignIn: Boolean? = null,
+    var allowDocumentAddition: Boolean? = null,
+    var allowDocumentDeletion: Boolean? = null,
+    var allowDocumentDownload: Boolean? = null,
+    var allowDocumentUpload: Boolean? = null,
+    var allowDocumentUpdate: Boolean? = null,
     var status: SharingSessionStatus? = null,
     var rejectionReason: String? = null
 )

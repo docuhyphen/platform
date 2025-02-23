@@ -1,7 +1,6 @@
 package com.dochyphen.app.api.service.sharingsession
 
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
-import com.dochyphen.app.api.model.entity.SharingSession
 import com.dochyphen.app.api.model.entity.SharingSessionStatus
 import com.dochyphen.app.api.repository.SharingSessionRepository
 import com.dochyphen.app.api.resource.model.UpdateSharingSessionRequest
@@ -44,12 +43,20 @@ class SharingSessionUpdateService @Inject constructor(
             sharingSessionRepository.updateSessionName(sessionUUID, it)
         }
 
+        request?.description?.let {
+            sharingSessionRepository.updateDescription(sessionUUID, it)
+        }
+
         request?.status?.let {
             sharingSessionRepository.updateStatus(sessionUUID, it)
         }
 
         request?.rejectionReason?.let {
             sharingSessionRepository.updateRejectionReason(sessionUUID, it)
+        }
+
+        request?.requireRecipientSignIn?.let {
+            sharingSessionRepository.updateRequireRecipientSignIn(sessionUUID, it)
         }
 
         request?.allowDocumentAddition?.let {

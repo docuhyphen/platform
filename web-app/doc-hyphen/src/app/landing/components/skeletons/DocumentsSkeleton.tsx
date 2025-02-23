@@ -8,9 +8,9 @@ const DocumentsSkeleton: React.FC = () =>
 
     return <>
         <div>
-            <p>
+            <div>
                 <SkeletonItem size={24} className={styles.skeletonSessionDocumentTitle}/>
-            </p>
+            </div>
             <div id="documents-card-list" className={styles.documentsCardList}>
                 {Array.from({length: 10}).map((_, index) => (
                     <Card key={index} className={styles.skeletonSessionDocument}>

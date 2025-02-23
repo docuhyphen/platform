@@ -66,7 +66,7 @@ class SharingSession
     var documents: MutableList<Document> = mutableListOf()
 
     @Column(name = "require_recipient_sign_in", nullable = false)
-    var requestRecipientSignIn: Boolean = false
+    var requireRecipientSignIn: Boolean = false
 
     @Column(name = "allow_document_addition", nullable = false)
     var allowDocumentAddition: Boolean = false

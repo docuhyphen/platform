@@ -55,6 +55,8 @@ const SessionDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = ({
 
     useEffect(() =>
     {
+        console.log("sessionDocument", sessionDocument)
+
         if (sessionDocument)
         {
             setDocumentTitle(sessionDocument.title);

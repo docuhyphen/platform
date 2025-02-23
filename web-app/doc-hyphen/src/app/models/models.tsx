@@ -196,12 +196,12 @@ export interface SharingSessionInitiationRequest
     recipientEmail?: string;
     sessionName?: string;
     sessionDocuments?: SharingSessionRequestDocumentRequest[];
-    requestRecipientSignIn: boolean;
-    allowDocumentAddition: boolean;
-    allowDocumentDeletion: boolean;
-    allowDocumentDownload: boolean;
-    allowDocumentUpdate: boolean;
-    allowDocumentUpload: boolean;
+    requestRecipientSignIn?: boolean;
+    allowDocumentAddition?: boolean;
+    allowDocumentDeletion?: boolean;
+    allowDocumentDownload?: boolean;
+    allowDocumentUpdate?: boolean;
+    allowDocumentUpload?: boolean;
     participants?: SharingSessionParticipantRequest[];
     status?: SharingSessionStatus;
     rejectionReason?: string;
@@ -219,11 +219,12 @@ export interface UpdateSharingSessionRequest
     initialShareMessage?: string;
     description?: string;
     sessionName?: string;
-    allowDocumentAddition: boolean;
-    allowDocumentDeletion: boolean;
-    allowDocumentDownload: boolean;
-    allowDocumentUpdate: boolean;
-    allowDocumentUpload: boolean;
+    requireRecipientSignIn?: boolean;
+    allowDocumentAddition?: boolean;
+    allowDocumentDeletion?: boolean;
+    allowDocumentDownload?: boolean;
+    allowDocumentUpdate?: boolean;
+    allowDocumentUpload?: boolean;
     status?: SharingSessionStatus;
     rejectionReason?: string;
 }
@@ -357,6 +358,12 @@ export interface SharingSessionDetailedDto
     recipient?: AppUserDetailedDto;
     status?: string;
     documents?: DocumentDetailedDto[];
+    requestRecipientSignIn?: boolean;
+    allowDocumentAddition?: boolean;
+    allowDocumentDeletion?: boolean
+    allowDocumentDownload?: boolean
+    allowDocumentUpdate?: boolean
+    allowDocumentUpload?: boolean
 }
 
 export interface ContactDetailsDetailedDto

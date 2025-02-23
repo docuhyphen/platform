@@ -30,7 +30,7 @@ import {SharingSessionBasicDto} from "../models/models.tsx";
 import {useSharingSessionStyles} from "./SharingSessionListStyles.tsx";
 import {
     sharingSessionDeletionObservable,
-    sharingSessionInitiationObservable
+    sharingSessionInitiationObservable, sharingSessionUpdatedObservable
 } from "../observable/sharingSessionObservables.ts";
 
 interface SharingSessionListProps {
@@ -97,9 +97,15 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
             setSharingSessions(prevSessions => prevSessions.filter(session => session.id !== sessionId));
         });
 
+        const updatedSubscription = sharingSessionUpdatedObservable.subscribe(updatedSession => {
+
+
+        });
+
         return () => {
             initiationSubscription.unsubscribe();
             deletionSubscription.unsubscribe();
+            updatedSubscription
         };
     }, []);
 
