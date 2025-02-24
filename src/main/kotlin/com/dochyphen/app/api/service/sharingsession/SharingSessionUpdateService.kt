@@ -48,7 +48,13 @@ class SharingSessionUpdateService @Inject constructor(
         }
 
         request?.status?.let {
+
             sharingSessionRepository.updateStatus(sessionUUID, it)
+
+            if(it == SharingSessionStatus.ENDED)
+            {
+                sharingSessionRepository.updateEndDate(sessionUUID, Timestamp.from(Instant.now()))
+            }
         }
 
         request?.rejectionReason?.let {

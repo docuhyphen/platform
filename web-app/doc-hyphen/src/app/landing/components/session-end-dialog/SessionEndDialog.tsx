@@ -54,6 +54,7 @@ const SessionEndDialog: React.FC<SessionEndDialogProps> = (
             const updatedSession = await fetchSignedInUserAppUserSharingSession(session.id, token);
             onSessionEnded(updatedSession as SharingSessionDetailedDto);
             setSessionEndNote('');
+            onDismiss()
         }
         catch (error)
         {

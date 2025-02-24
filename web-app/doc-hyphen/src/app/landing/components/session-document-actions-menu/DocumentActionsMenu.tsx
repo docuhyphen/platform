@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {Button, Divider, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger} from "@fluentui/react-components";
 import {
     ArrowDownloadFilled,
@@ -14,7 +14,7 @@ import {
     NotepadEditFilled,
     NotepadEditRegular
 } from "@fluentui/react-icons";
-import {DocumentDetailedDto, SharingSessionDetailedDto} from "../../../models/models.tsx";
+import {DocumentDetailedDto, SharingSessionDetailedDto, SharingSessionStatus} from "../../../models/models.tsx";
 import SessionDocumentDeleteDialog from "../session-document-delete-dialog/SessionDocumentDeleteDialog.tsx";
 import SessionDocumentDownloadDialog from "../session-document-download-dialog/SessionDocumentDownloadDialog.tsx";
 
@@ -41,12 +41,22 @@ const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
 {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [isDownloadDocumentOpen, setIsDownloadDocumentOpen] = React.useState(false);
+    const [isSessionEnded, setIsSessionEnded] = React.useState(false);
 
     const EditIcon = bundleIcon(NotepadEditFilled, NotepadEditRegular)
     const UploadIcon = bundleIcon(ArrowUploadFilled, ArrowUploadRegular)
     const DownloadIcon = bundleIcon(ArrowDownloadFilled, ArrowDownloadRegular)
     const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular)
     const MoreInfoIcon = bundleIcon(InfoFilled, InfoRegular)
+
+    useEffect(() =>
+    {
+        if (session)
+        {
+            setIsSessionEnded(session.status == SharingSessionStatus.ENDED)
+        }
+
+    }, [session]);
 
     return (
         <>
@@ -57,27 +67,33 @@ const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
                 <MenuPopover>
                     <MenuList>
                         <MenuItem icon={<EditIcon/>}
-                                  onClick={onUpdate}>Edit</MenuItem>
+                                  disabled={isSessionEnded}
+                                  onClick={onUpdate}>
+                            Edit
+                        </MenuItem>
                         <Divider/>
                         <MenuItem
                             icon={<UploadIcon/>}
+                            disabled={isSessionEnded}
                             onClick={onUpload}>
                             Upload
                         </MenuItem>
                         <MenuItem icon={<DownloadIcon/>}
-                                  onClick={setIsDownloadDocumentOpen}>Download</MenuItem>
+                                  onClick={() => setIsDownloadDocumentOpen(true)}>
+                            Download
+                        </MenuItem>
                         {/*<MenuItem icon={<DocumentPrintRegular/>}*/}
                         {/*          onClick={handlePrint}>Print</MenuItem>*/}
-                        <MenuItem icon={<DeleteIcon/>} onClick={() =>
-                        {
-                            console.log("sessionDocument", sessionDocument)
-                            setIsDeleteDialogOpen(true)
-                        }}
-                        >Delete</MenuItem>
+                        <MenuItem icon={<DeleteIcon/>}
+                                  disabled={isSessionEnded}
+                                  onClick={() => setIsDeleteDialogOpen(true)}>
+                            Delete
+                        </MenuItem>
                         <Divider/>
                         <MenuItem icon={<MoreInfoIcon/>}
-                                  onClick={() =>
-                                      onOpenDetailsSidebar()}>More info</MenuItem>
+                                  onClick={() => onOpenDetailsSidebar()}>
+                            More info
+                        </MenuItem>
                     </MenuList>
                 </MenuPopover>
             </Menu>

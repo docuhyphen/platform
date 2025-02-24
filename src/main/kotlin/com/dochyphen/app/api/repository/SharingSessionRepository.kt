@@ -68,6 +68,18 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
         query.executeUpdate()
     }
 
+
+    @Transactional
+    fun updateEndDate(sessionId: UUID, timestamp: Timestamp)
+    {
+        val query = entityManager.createQuery(
+            "UPDATE SharingSession s SET s.endDate = :timestamp WHERE s.id = :sessionId"
+        )
+        query.setParameter("timestamp", timestamp)
+        query.setParameter("sessionId", sessionId)
+        query.executeUpdate()
+    }
+
     @Transactional
     fun updateRejectionReason(sessionId: UUID, rejectionReason: String?)
     {

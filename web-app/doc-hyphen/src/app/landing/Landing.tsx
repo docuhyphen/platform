@@ -12,7 +12,7 @@ import {
     FolderZipRegular
 } from "@fluentui/react-icons";
 import {formatDateTimeWithOrdinal} from "../helpers.ts";
-import {DocumentDetailedDto, SharingSessionDetailedDto} from "../models/models.tsx";
+import {DocumentDetailedDto, SharingSessionDetailedDto, SharingSessionStatus} from "../models/models.tsx";
 import {useLandingStyles} from "./LandingStyles.tsx";
 import DocumentActionsMenu from "./components/session-document-actions-menu/DocumentActionsMenu.tsx";
 import SessionDocumentSidebar from "./components/session-document-sidebar/SessionDocumentSidebar.tsx";
@@ -41,6 +41,7 @@ const Landing: React.FC = () =>
     const [selectedUpdateSessionDocument, setSelectedUpdateSessionDocument] = React.useState<DocumentDetailedDto>(undefined);
     const [sessionDetails, setSessionDetails] = useState<SharingSessionDetailedDto | null>(null);
     const [fetchingDetails, setFetchingDetails] = useState<boolean>(true);
+    const [isSessionEnded, setIsSessionEnded] = React.useState(false);
 
     useEffect(() =>
     {
@@ -83,6 +84,14 @@ const Landing: React.FC = () =>
         setIsDocumentSidebarOpen(false);
         setSelectedSessionDocument(undefined);
     }, [selectedSessionId]);
+
+    useEffect(() =>
+    {
+        if (sessionDetails)
+        {
+            setIsSessionEnded(sessionDetails.status == SharingSessionStatus.ENDED)
+        }
+    }, [sessionDetails]);
 
     const onDocumentDeleted = (documentId: string) =>
     {

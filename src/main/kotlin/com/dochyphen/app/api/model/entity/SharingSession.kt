@@ -30,9 +30,9 @@ class SharingSession
     @Serializable(with = TimestampSerializer::class)
     var createdDate: Timestamp = Timestamp.from(Instant.now())
 
-    @Column(name = "end_date", nullable = false)
+    @Column(name = "end_date", nullable = true)
     @Serializable(with = TimestampSerializer::class)
-    var endDate: Timestamp? = Timestamp.from(Instant.now())
+    var endDate: Timestamp? = null
 
     @Column(name="end_note", nullable = true)
     var endNote: String? = null
