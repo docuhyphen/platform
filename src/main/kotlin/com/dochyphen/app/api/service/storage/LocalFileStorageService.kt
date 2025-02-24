@@ -2,7 +2,12 @@ package com.dochyphen.app.api.service.storage
 
 import com.dochyphen.app.api.qualifier.Local
 import jakarta.enterprise.context.ApplicationScoped
+import java.io.BufferedOutputStream
 import java.io.File
+import java.io.FileOutputStream
+import java.nio.file.Files
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 @Local
 @ApplicationScoped
@@ -35,5 +40,52 @@ class LocalFileStorageService : FileStorageService
         return targetFile
     }
 
+    override fun downloadDocumentsAsZip(keys: List<String>): File
+    {
+        val tempZipFile = File.createTempFile("documents", ".zip")
+        val uniqueKeys = mutableSetOf<String>()
 
+        ZipOutputStream(BufferedOutputStream(FileOutputStream(tempZipFile))).use { zipOut ->
+            keys.forEach { key ->
+                if (uniqueKeys.add(key))
+                {
+                    val targetFile = File("document-uploads", key)
+                    if (!targetFile.exists())
+                    {
+                        throw IllegalArgumentException("File not found: $key")
+                    }
+                    zipOut.putNextEntry(ZipEntry(key))
+                    Files.copy(targetFile.toPath(), zipOut)
+                    zipOut.closeEntry()
+                }
+                else
+                {
+                    // Handle duplicate entry, e.g., by renaming or skipping
+                    val newKey = generateUniqueKey(key, uniqueKeys)
+                    uniqueKeys.add(newKey)
+                    val targetFile = File("document-uploads", key)
+                    if (!targetFile.exists())
+                    {
+                        throw IllegalArgumentException("File not found: $key")
+                    }
+                    zipOut.putNextEntry(ZipEntry(newKey))
+                    Files.copy(targetFile.toPath(), zipOut)
+                    zipOut.closeEntry()
+                }
+            }
+        }
+        return tempZipFile
+    }
+
+    private fun generateUniqueKey(key: String, existingKeys: Set<String>): String
+    {
+        var newKey = key
+        var counter = 1
+        while (existingKeys.contains(newKey))
+        {
+            newKey = "${key}_$counter"
+            counter++
+        }
+        return newKey
+    }
 }

@@ -157,3 +157,8 @@ data class CommentRequest(
     val commentText: String,
     val commentedBy: String
 )
+
+@Serializable
+data class DownloadDocumentsZipRequest(
+    val documentIds: List<String>
+)

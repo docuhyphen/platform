@@ -146,6 +146,16 @@ class SharingSessionDocumentService @Inject constructor(
         return fileStorageService.downloadDocument(fileKey)
     }
 
+    @Transactional
+    fun downloadDocumentsAsZip(sessionId: String, documentIds: List<String>): File
+    {
+        val sharingSession = getSharingSession(sessionId)
+        val documents = documentIds.map { getDocument(sharingSession, it) }
+
+        val fileKeys = documents.map { "${it.id}${DocumentType.toFileExtension(it.type!!)}" }
+        return fileStorageService.downloadDocumentsAsZip(fileKeys)
+    }
+
     private fun getSharingSession(sessionId: String): SharingSession
     {
         return sessionRepo.findById(UUID.fromString(sessionId))

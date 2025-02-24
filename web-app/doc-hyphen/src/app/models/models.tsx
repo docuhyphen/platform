@@ -250,6 +250,11 @@ export interface SharingSessionRequestDocumentRequest
     restrictType?: boolean;
 }
 
+export interface DownloadDocumentsZipRequest
+{
+    documentIds: string[];
+}
+
 export interface SharingSessionParticipantRequest
 {
     id: string;

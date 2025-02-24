@@ -6,6 +6,7 @@ import com.dochyphen.app.api.model.BasicModelConverter.Companion.toDto
 import com.dochyphen.app.api.model.entity.DetailedModelConverter
 import com.dochyphen.app.api.model.entity.DocumentEncryptionMode
 import com.dochyphen.app.api.resource.model.AddSharingSessionDocumentRequest
+import com.dochyphen.app.api.resource.model.DownloadDocumentsZipRequest
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.resource.model.UpdateShareSessionDocumentRequest
 import com.dochyphen.app.api.service.sharingsession.SharingSessionDocumentService
@@ -263,6 +264,60 @@ class SharingSessionDocumentsResource @Inject constructor(
                 {
                     logger.error("Error uploading sharing session document", exception)
                     val responseError = ResponseError("An error occurred while uploading sharing session document")
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
+        }
+    }
+
+    @POST
+    @Path("/zip-file")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    fun downloadDocumentsAsZip(
+        request: DownloadDocumentsZipRequest,
+        @PathParam("sessionId") sessionId: String
+    ): Response
+    {
+        return try
+        {
+            val zipFile = sharingSessionDocumentService.downloadDocumentsAsZip(sessionId, request.documentIds)
+            Response.ok(zipFile)
+                .header("Content-Disposition", "attachment; filename=\"documents.zip\"")
+                .build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is SharingSessionNotFoundException,
+                is SharingSessionDocumentNotFoundException ->
+                {
+                    logger.error(
+                        "Error downloading documents as zip",
+                        exception
+                    )
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
+                }
+
+                is IllegalArgumentException ->
+                {
+                    logger.error(
+                        "Error downloading documents as zip",
+                        exception
+                    )
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.BAD_REQUEST).entity(responseError).build()
+                }
+
+                else ->
+                {
+                    logger.error(
+                        "Error downloading documents as zip",
+                        exception
+                    )
+                    val responseError = ResponseError("An error occurred while downloading documents as zip")
                     Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
             }

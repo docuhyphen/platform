@@ -27,11 +27,12 @@ interface DownloadDocumentDialogProps
     session: SharingSessionDetailedDto;
 }
 
-const SessionDocumentZipDownloadDialog: React.FC<DownloadDocumentDialogProps> = ({
-                                                                                     isOpen,
-                                                                                     onDismiss,
-                                                                                     session,
-                                                                                 }) =>
+const SessionDocumentZipDownloadDialog: React.FC<DownloadDocumentDialogProps> = (
+    {
+        isOpen,
+        onDismiss,
+        session,
+    }) =>
 {
     const token = useToken();
     const [downloadName, setDownloadName] = React.useState('');
@@ -51,7 +52,7 @@ const SessionDocumentZipDownloadDialog: React.FC<DownloadDocumentDialogProps> = 
 
         try
         {
-            const data = await downloadSharingSessionDocumentZip(session.id, selectedDocuments, token);
+            const data = await downloadSharingSessionDocumentZip(session.id, {documentIds: selectedDocuments}, token);
             const url = window.URL.createObjectURL(new Blob([data], {type: 'application/octet-stream'}));
             const link = window.document.createElement('a');
 
@@ -106,7 +107,7 @@ const SessionDocumentZipDownloadDialog: React.FC<DownloadDocumentDialogProps> = 
                                     contentAfter={<Text size={400}>.zip</Text>}
                                 />
                             </Field>
-                            {session?.documents?.map(document => (
+                            {session?.documents?.filter(d => d.uploadDate).map(document => (
                                 <Checkbox
                                     key={document.id}
                                     label={document.title}

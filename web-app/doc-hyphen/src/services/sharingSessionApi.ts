@@ -1,9 +1,11 @@
 import apiClient from './apiClient';
 import {
+    DownloadDocumentsZipRequest,
     ResponseError,
     SharingSessionBasicDto,
     SharingSessionInitiationRequest,
-    SharingSessionRequestDocumentRequest, UpdateSharingSessionRequest
+    SharingSessionRequestDocumentRequest,
+    UpdateSharingSessionRequest
 } from "../app/models/models.tsx";
 
 export const initiateSharingSession = async (request: SharingSessionInitiationRequest, token: string | null) =>
@@ -196,13 +198,16 @@ export const downloadSharingSessionDocument = async (sessionId: string, document
     }
 };
 
-export const downloadSharingSessionDocumentZip = async (sessionId: string, documentId?: string, token?: string | null) =>
+export const downloadSharingSessionDocumentZip = async (sessionId: string, request: DownloadDocumentsZipRequest, token?: string | null) =>
 {
     try
     {
-        const response = await apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/file`, {
+        const response = await apiClient.post(
+            `/sharing-sessions/${sessionId}/documents/zip-file`,
+            request,
+            {
             headers: {
-                Authorization: `Bearer ${token}`
+                Authorization: `Bearer ${token}`,
             },
             responseType: 'blob'
         });
