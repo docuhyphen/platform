@@ -8,16 +8,12 @@ import {
     UpdateSharingSessionRequest
 } from "../app/models/models.tsx";
 
-export const initiateSharingSession = async (request: SharingSessionInitiationRequest, token: string | null) =>
+const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
 {
     try
     {
-        const response = await apiClient.post(`/sharing-sessions/`, request, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-        return response.data;
+        const {data} = await fn();
+        return data;
     }
     catch (error: any)
     {
@@ -25,214 +21,112 @@ export const initiateSharingSession = async (request: SharingSessionInitiationRe
     }
 };
 
-export const fetchSignedInUserAppUserSharingSessions = async (token: string | null): Promise<SharingSessionBasicDto[] | ResponseError> =>
-{
-    try
-    {
-        const response = await apiClient.get(`/sharing-sessions/`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-        return response.data;
-    }
-    catch (error: any)
-    {
-        throw error.response?.data || error.message;
-    }
-};
+const getAuthHeaders = (token: string | null, extraHeaders: Record<string, string> = {}) => ({
+    Authorization: token ? `Bearer ${token}` : '',
+    ...extraHeaders,
+});
 
-export const fetchSignedInUserAppUserSharingSession = async (sessionId: string | null, token: string | null): Promise<SharingSessionBasicDto | ResponseError> =>
-{
-    try
-    {
-        const response = await apiClient.get(`/sharing-sessions/${sessionId}`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-        return response.data;
-    }
-    catch (error: any)
-    {
-        throw error.response?.data || error.message;
-    }
-};
+export const initiateSharingSession = (request: SharingSessionInitiationRequest, token: string | null) =>
+    executeRequest(() =>
+        apiClient.post(`/sharing-sessions/`, request, {
+            headers: getAuthHeaders(token)
+        })
+    );
 
-export const updateSharingSession = async (sessionId: string, request: UpdateSharingSessionRequest, token: string | null) =>
-{
-    try
-    {
-        const response = await apiClient.put(`/sharing-sessions/${sessionId}`, request, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-        return response.data;
-    }
-    catch (error: any)
-    {
-        throw error.response?.data || error.message;
-    }
-};
+export const fetchSignedInUserAppUserSharingSessions = (token: string | null): Promise<SharingSessionBasicDto[] | ResponseError> =>
+    executeRequest(() =>
+        apiClient.get(`/sharing-sessions/`, {
+            headers: getAuthHeaders(token)
+        })
+    );
 
-export const addSharingSessionDocument = async (sessionId: string, request: SharingSessionRequestDocumentRequest, token: string | null) =>
-{
-    try
-    {
-        const response = await apiClient.post(`/sharing-sessions/${sessionId}/documents`, request, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-        return response.data;
-    }
-    catch (error: any)
-    {
-        throw error.response?.data || error.message;
-    }
-};
+export const fetchSignedInUserAppUserSharingSession = (sessionId: string | null, token: string | null): Promise<SharingSessionBasicDto | ResponseError> =>
+    executeRequest(() =>
+        apiClient.get(`/sharing-sessions/${sessionId}`, {
+            headers: getAuthHeaders(token)
+        })
+    );
 
-export const deleteSharingSession = async (sessionId: string, token: string | null) =>
-{
-    try
-    {
-        const response = await apiClient.delete(`/sharing-sessions/${sessionId}`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-        return response.data;
-    }
-    catch (error: any)
-    {
-        throw error.response?.data || error.message;
-    }
-};
+export const updateSharingSession = (sessionId: string, request: UpdateSharingSessionRequest, token: string | null) =>
+    executeRequest(() =>
+        apiClient.put(`/sharing-sessions/${sessionId}`, request, {
+            headers: getAuthHeaders(token)
+        })
+    );
 
-export const updateSharingSessionDocument = async (sessionId: string, documentId: string, request: SharingSessionRequestDocumentRequest, token: string | null) =>
-{
-    try
-    {
-        const response = await apiClient.put(`/sharing-sessions/${sessionId}/documents/${documentId}`, request, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-        return response.data;
-    }
-    catch (error: any)
-    {
-        throw error.response?.data || error.message;
-    }
-};
+export const addSharingSessionDocument = (sessionId: string, request: SharingSessionRequestDocumentRequest, token: string | null) =>
+    executeRequest(() =>
+        apiClient.post(`/sharing-sessions/${sessionId}/documents`, request, {
+            headers: getAuthHeaders(token)
+        })
+    );
 
-export const deleteSharingSessionDocument = async (sessionId: string, documentId: string, token: string | null) =>
-{
-    try
-    {
-        const response = await apiClient.delete(`/sharing-sessions/${sessionId}/documents/${documentId}`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-        return response.data;
-    }
-    catch (error: any)
-    {
-        throw error.response?.data || error.message;
-    }
-};
+export const deleteSharingSession = (sessionId: string, token: string | null) =>
+    executeRequest(() =>
+        apiClient.delete(`/sharing-sessions/${sessionId}`, {
+            headers: getAuthHeaders(token)
+        })
+    );
 
-export const fetchSharingSessionDocumentAuditLogs = async (sessionId: string, documentId: string, token: string | null) =>
-{
-    try
-    {
-        const response = await apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/audit`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-        return response.data;
-    }
-    catch (error: any)
-    {
-        throw error.response?.data || error.message;
-    }
-};
+export const updateSharingSessionDocument = (sessionId: string, documentId: string, request: SharingSessionRequestDocumentRequest, token: string | null) =>
+    executeRequest(() =>
+        apiClient.put(`/sharing-sessions/${sessionId}/documents/${documentId}`, request, {
+            headers: getAuthHeaders(token)
+        })
+    );
 
-export const uploadSharingSessionDocument = async (sessionId: string, documentId?: string, formData?: FormData, token?: string | null, onUploadProgress?: (progressEvent: any) => void) =>
-{
-    try
-    {
-        const response = await apiClient.post(`/sharing-sessions/${sessionId}/documents/${documentId}/file`, formData, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'multipart/form-data'
-            },
+export const deleteSharingSessionDocument = (sessionId: string, documentId: string, token: string | null) =>
+    executeRequest(() =>
+        apiClient.delete(`/sharing-sessions/${sessionId}/documents/${documentId}`, {
+            headers: getAuthHeaders(token)
+        })
+    );
+
+export const fetchSharingSessionDocumentAuditLogs = (sessionId: string, documentId: string, token: string | null) =>
+    executeRequest(() =>
+        apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/audit`, {
+            headers: getAuthHeaders(token)
+        })
+    );
+
+export const uploadSharingSessionDocument = (
+    sessionId: string,
+    documentId?: string,
+    formData?: FormData,
+    token?: string | null,
+    onUploadProgress?: (progressEvent: any) => void
+) =>
+    executeRequest(() =>
+        apiClient.post(`/sharing-sessions/${sessionId}/documents/${documentId}/file`, formData, {
+            headers: getAuthHeaders(token || null, {'Content-Type': 'multipart/form-data'}),
             onUploadProgress
-        });
-        return response.data;
-    }
-    catch (error: any)
-    {
-        throw error.response?.data || error.message;
-    }
-};
+        })
+    );
 
-export const downloadSharingSessionDocument = async (sessionId: string, documentId?: string, token?: string | null) =>
-{
-    try
-    {
-        const response = await apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/file`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            },
+export const downloadSharingSessionDocument = (sessionId: string, documentId?: string, token?: string | null) =>
+    executeRequest(() =>
+        apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/file`, {
+            headers: getAuthHeaders(token || null),
             responseType: 'blob'
-        });
-        return response.data;
-    }
-    catch (error: any)
-    {
-        throw error.response?.data || error.message;
-    }
-};
+        })
+    );
 
-export const downloadSharingSessionDocumentZip = async (sessionId: string, request: DownloadDocumentsZipRequest, token?: string | null) =>
-{
-    try
-    {
-        const response = await apiClient.post(
+export const downloadSharingSessionDocumentZip = (sessionId: string, request: DownloadDocumentsZipRequest, token?: string | null) =>
+    executeRequest(() =>
+        apiClient.post(
             `/sharing-sessions/${sessionId}/documents/zip-file`,
             request,
             {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-            responseType: 'blob'
-        });
-        return response.data;
-    }
-    catch (error: any)
-    {
-        throw error.response?.data || error.message;
-    }
-};
+                headers: getAuthHeaders(token || null),
+                responseType: 'blob'
+            }
+        )
+    );
 
-export const downloadPreviewPDFSharingSessionDocument = async (sessionId: string, documentId?: string, token?: string | null) =>
-{
-    try
-    {
-        const response = await apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/preview`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            },
+export const downloadPreviewPDFSharingSessionDocument = (sessionId: string, documentId?: string, token?: string | null) =>
+    executeRequest(() =>
+        apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/preview`, {
+            headers: getAuthHeaders(token || null),
             responseType: 'blob'
-        });
-        return response.data;
-    }
-    catch (error: any)
-    {
-        throw error.response?.data || error.message;
-    }
-};
+        })
+    );
