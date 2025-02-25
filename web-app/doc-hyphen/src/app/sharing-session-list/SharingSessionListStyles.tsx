@@ -28,7 +28,6 @@ export const useSharingSessionStyles = makeStyles({
         width: "400px",
         height: "100%",
         overflow: "auto",
-        marginLeft: "24px",
         border: "1px solid rgba(0, 0, 0, .1)",
         position: "relative",
         borderRadius: "4px",

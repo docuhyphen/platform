@@ -12,9 +12,7 @@ const ProtectedRoute: React.FC<{ element: React.ReactElement, path: string }> = 
     return token ? (
         <>
             <MainMenu/>
-            <div className={styles.mainAppSection}>
-                {element}
-            </div>
+            {element}
         </>
     ) : (
         <Navigate to={path}/>

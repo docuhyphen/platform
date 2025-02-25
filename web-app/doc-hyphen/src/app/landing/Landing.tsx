@@ -223,12 +223,46 @@ const Landing: React.FC = () =>
     const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
     const DocumentAddIcon = bundleIcon(DocumentAddFilled, DocumentAddRegular)
 
+    const renderDialogs = () =>
+    {
+        return (
+            <SessionDialogsGroup
+                isDeletedSessionDialogOpen={isDeletedSessionDialogOpen}
+                setIsDeletedSessionDialogOpen={setIsDeletedSessionDialogOpen}
+                isSessionEndDialogOpen={isSessionEndDialogOpen}
+                setIsSessionEndDialogOpen={setIsSessionEndDialogOpen}
+                isDocumentAddDialogOpen={isDocumentAddDialogOpen}
+                setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}
+                isUploadDocumentDialogOpen={isUploadDocumentDialogOpen}
+                setIsUploadDocumentDialogOpen={setIsUploadDocumentDialogOpen}
+                isUpdateDocumentDialogOpen={isUpdateDocumentDialogOpen}
+                setIsUpdateDocumentDialogOpen={setIsUpdateDocumentDialogOpen}
+                isDocumentZipDialogOpen={isDocumentZipDialogOpen}
+                setIsDocumentZipDialogOpen={setIsDocumentZipDialogOpen}
+                isSessionEditDialogOpen={isSessionEditDialogOpen}
+                setIsSessionEditDialogOpen={setIsSessionEditDialogOpen}
+                isSessionAccessManagementDialogOpen={isSessionAccessManagementDialogOpen}
+                setIsSessionAccessManagementDialogOpen={setIsSessionAccessManagementDialogOpen}
+                sessionDetails={sessionDetails}
+                selectedSessionId={selectedSessionId}
+                selectedSessionDocument={selectedSessionDocument}
+                selectedUpdateSessionDocument={selectedUpdateSessionDocument}
+                setSelectedUpdateSessionDocument={setSelectedUpdateSessionDocument}
+                onNewDocumentAdded={onNewDocumentAdded}
+                onDocumentUploaded={onDocumentUploaded}
+                onDocumentUpdated={onDocumentUpdated}
+                onSessionDeleted={onSessionDeleted}
+                onSessionEnded={onSessionEnded}
+                onSessionEdited={onSessionEdited}
+                onSessionAccessManagementUpdated={onSessionAccessManagementUpdated}
+            />
+        )
+    }
+
     return (
         isLoading ? <PreLanding/> : <>
-            <section className={styles.sharingSessionsContainer}>
-                <div className={styles.sharingSessionsContainerDiv}>
-                    <SharingSessionList onSelectionChange={setSelectedSessionId}/>
-                </div>
+            <section className={styles.sharingSessionsContainer} id={"sharingSessionsContainer"}>
+                <SharingSessionList onSelectionChange={setSelectedSessionId}/>
                 {!selectedSessionId && !fetchingDetails &&
                     <div className={styles.sharingSessionDetailsNoneContainer}>
                         <Text size={500}> Select a Sharing Session  in the list to view details</Text>
@@ -247,45 +281,44 @@ const Landing: React.FC = () =>
                                 setIsSessionAccessManagementDialogOpen={setIsSessionAccessManagementDialogOpen}
                             />}
                         </div>
-                        <div className={styles.sharingSessionDocumentsContainer}>
-                            <div className={styles.sharingSessionDocumentsDetails}>
-                                {fetchingDetails && !sessionDetails && <DocumentsSkeleton/>}
+                        {fetchingDetails && !sessionDetails && <DocumentsSkeleton/>}
 
-                                {!fetchingDetails && (sessionDetails && sessionDetails?.documents?.length > 0) && (
-                                    <>
-                                        <div className={styles.documentListTitle}>
-                                            <Text size={400}>Session Documents</Text>
-                                            <Tooltip content="Zip all documents"
-                                                     relationship="description">
-                                                <Button size={"small"}
-                                                        onClick={() => setIsDocumentZipDialogOpen(true)}
-                                                        appearance={"subtle"}
-                                                        icon={<ZipDocumentsIcon/>}>
+                        {!fetchingDetails && (sessionDetails && sessionDetails?.documents?.length > 0) && (
+                            <>
+                                <div className={styles.documentListTitle}>
+                                    <Text size={400}>Session Documents</Text>
+                                    <Tooltip content="Zip all documents"
+                                             relationship="description">
+                                        <Button size={"small"}
+                                                onClick={() => setIsDocumentZipDialogOpen(true)}
+                                                appearance={"subtle"}
+                                                icon={<ZipDocumentsIcon/>}>
 
-                                                </Button>
-                                            </Tooltip>
-                                        </div>
-                                        <div className={styles.documentsCardList}>
+                                        </Button>
+                                    </Tooltip>
+                                </div>
+                                <div className={styles.documentsCardList}>
 
-                                            {sessionDetails.documents?.map((document: DocumentDetailedDto) => (
-                                                renderDocumentsListCard(document)
-                                            ))}
-                                        </div>
-                                    </>
-                                )}
-                                {
-                                    sessionDetails && sessionDetails.documents?.length === 0 &&
-                                    <NoSessionDocuments setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}/>
-                                }
-                            </div>
-                            <div className={styles.sharingSessionDocumentSidebar}>
-                                {selectedSessionDocument &&
-                                    <SessionDocumentSidebar
-                                        isOpen={isDocumentSidebarOpen}
-                                        onOpen={setIsDocumentSidebarOpen}
-                                        sessionDocument={selectedSessionDocument}/>
-                                }
-                            </div>
+                                    <div id={"documentsListCards"}
+                                         className={styles.documentsCardList2}>
+                                        {sessionDetails.documents?.map((document: DocumentDetailedDto) => (
+                                            renderDocumentsListCard(document)
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                        {
+                            sessionDetails && sessionDetails.documents?.length === 0 &&
+                            <NoSessionDocuments setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}/>
+                        }
+                        <div className={styles.sharingSessionDocumentSidebar}>
+                            {selectedSessionDocument &&
+                                <SessionDocumentSidebar
+                                    isOpen={isDocumentSidebarOpen}
+                                    onOpen={setIsDocumentSidebarOpen}
+                                    sessionDocument={selectedSessionDocument}/>
+                            }
                         </div>
                         <div className={styles.sharingSessionDocumentPreview}>
                             <iframe
@@ -293,41 +326,11 @@ const Landing: React.FC = () =>
                                 style={{width: "100%", height: "100%"}}
                                 frameBorder="0"
                             ></iframe>
-
                         </div>
                     </div>
                 }
-                <SessionDialogsGroup
-                    isDeletedSessionDialogOpen={isDeletedSessionDialogOpen}
-                    setIsDeletedSessionDialogOpen={setIsDeletedSessionDialogOpen}
-                    isSessionEndDialogOpen={isSessionEndDialogOpen}
-                    setIsSessionEndDialogOpen={setIsSessionEndDialogOpen}
-                    isDocumentAddDialogOpen={isDocumentAddDialogOpen}
-                    setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}
-                    isUploadDocumentDialogOpen={isUploadDocumentDialogOpen}
-                    setIsUploadDocumentDialogOpen={setIsUploadDocumentDialogOpen}
-                    isUpdateDocumentDialogOpen={isUpdateDocumentDialogOpen}
-                    setIsUpdateDocumentDialogOpen={setIsUpdateDocumentDialogOpen}
-                    isDocumentZipDialogOpen={isDocumentZipDialogOpen}
-                    setIsDocumentZipDialogOpen={setIsDocumentZipDialogOpen}
-                    isSessionEditDialogOpen={isSessionEditDialogOpen}
-                    setIsSessionEditDialogOpen={setIsSessionEditDialogOpen}
-                    isSessionAccessManagementDialogOpen={isSessionAccessManagementDialogOpen}
-                    setIsSessionAccessManagementDialogOpen={setIsSessionAccessManagementDialogOpen}
-                    sessionDetails={sessionDetails}
-                    selectedSessionId={selectedSessionId}
-                    selectedSessionDocument={selectedSessionDocument}
-                    selectedUpdateSessionDocument={selectedUpdateSessionDocument}
-                    setSelectedUpdateSessionDocument={setSelectedUpdateSessionDocument}
-                    onNewDocumentAdded={onNewDocumentAdded}
-                    onDocumentUploaded={onDocumentUploaded}
-                    onDocumentUpdated={onDocumentUpdated}
-                    onSessionDeleted={onSessionDeleted}
-                    onSessionEnded={onSessionEnded}
-                    onSessionEdited={onSessionEdited}
-                    onSessionAccessManagementUpdated={onSessionAccessManagementUpdated}
-                />
             </section>
+            {renderDialogs()}
         </>
     );
 };

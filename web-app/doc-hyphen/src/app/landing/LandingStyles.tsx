@@ -1,4 +1,4 @@
-import {makeStyles, tokens} from "@fluentui/react-components";
+import {makeStyles, tokens, shorthands} from "@fluentui/react-components";
 
 export const useLandingStyles = makeStyles({
 
@@ -6,11 +6,14 @@ export const useLandingStyles = makeStyles({
         display: "flex",
         gap: "16px",
         height: "100%",
+        width: "100%",
+        padding: "76px 16px 16px 16px",
+        boxSizing: "border-box"
     },
 
-    sharingSessionsContainerDiv: {
-        padding: "16px 0",
-    },
+    // sharingSessionsContainerDiv: {
+    //     padding: "16px 0",
+    // },
 
     sharingSessionHeadContainer: {
         display: "flex",
@@ -30,6 +33,7 @@ export const useLandingStyles = makeStyles({
         display: "flex",
         flexDirection: "row",
         gap: "16px",
+        flex: 1
     },
 
     sharingSessionDocumentPreview: {
@@ -39,6 +43,13 @@ export const useLandingStyles = makeStyles({
     },
 
     sharingSessionDocumentsDetails: {
+        width: "100%",
+        border: "1px solid red"
+    },
+
+    sharingSessionDocumentsDetailsList: {
+        width: "100%",
+        border: "2px solid green"
     },
 
     sharingSessionDocumentSidebar: {
@@ -48,11 +59,10 @@ export const useLandingStyles = makeStyles({
 
     sharingSessionDetailsContainer: {
         flex: 1,
-        margin: "16px 0",
-        marginRight: "24px",
         display: "flex",
         flexDirection: "column",
         gap: "16px",
+        width: "480px"
     },
 
     sharingSessionActions: {
@@ -61,14 +71,49 @@ export const useLandingStyles = makeStyles({
     },
 
     documentsCardList: {
+        width: "100%",
+        overflow: "hidden",
+    },
+
+    documentsCardList2: {
         display: "flex",
+        overflowX: "hidden",
+        whiteSpace: "nowrap",
+        ...shorthands.padding("2px"),
         gap: "16px",
-        flexWrap: "wrap",
+        scrollbarWidth: "none", // Firefox
+
+        "&::-webkit-scrollbar": {
+            display: "none", // Chrome, Safari, Edge
+        },
+
+        // Show scrollbar on hover
+        "&:hover": {
+            overflowX: "auto",
+            scrollbarWidth: "thin", // Firefox
+        },
+
+        "&:hover::-webkit-scrollbar": {
+            display: "block",
+            height: "8px",
+        },
+
+        "&:hover::-webkit-scrollbar-thumb": {
+            backgroundColor: tokens.colorNeutralStroke1Hover,
+            borderRadius: "4px",
+        },
+
+        "&:hover::-webkit-scrollbar-track": {
+            backgroundColor: tokens.colorNeutralBackground1,
+        },
     },
 
     documentsCardListCard: {
         minWidth: "300px",
         maxWidth: "300px",
+            flex
+    :
+        "0 0 auto"
     },
 
     skeletonSessionDetails: {
@@ -151,7 +196,6 @@ export const useLandingStyles = makeStyles({
         display: "flex",
         gap: "6px",
         alignItems: "center",
-        marginBottom: "8px"
     },
 
     sharingSessionDetailsNoneContainer: {
