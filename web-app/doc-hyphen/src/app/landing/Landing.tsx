@@ -1,6 +1,9 @@
 import React, {useEffect, useState} from 'react';
 import SharingSessionList from "../sharing-session-list/SharingSessionList.tsx";
-import {fetchSignedInUserAppUserSharingSession} from "../../services/sharingSessionApi.ts";
+import {
+    downloadSharingSessionDocument,
+    fetchSignedInUserAppUserSharingSession
+} from "../../services/sharingSessionApi.ts";
 import useToken from "../../context/useToken.tsx";
 import PreLanding from "../pre-landing/PreLanding.tsx";
 import {Body1, Button, Caption1, Card, CardHeader, Text, Tooltip} from "@fluentui/react-components";
@@ -21,6 +24,36 @@ import DocumentsSkeleton from "./components/skeletons/DocumentsSkeleton.tsx";
 import SessionDialogsGroup from "./components/session-dialog-group/SessionDialogsGroup.tsx";
 import SessionDetailsHeader from "./components/session-details-header/SessionDetailsHeader.tsx";
 import DetailsSkeleton from "./components/skeletons/DetailsSkeleton.tsx";
+import {Document, Page, pdfjs} from 'react-pdf';
+import "react-pdf/dist/esm/Page/AnnotationLayer.css";
+import "react-pdf/dist/esm/Page/TextLayer.css";
+
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+
+// const PdfViewer: React.FC = () => {
+//     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+//
+//     useEffect(() => {
+//         // Set hardcoded URL for testing
+//         setPdfUrl("https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf");
+//     }, []);
+//
+//     return (
+//         <div className="pdf-viewer">
+//             {pdfUrl ? (
+//                 <Document
+//                     file={pdfUrl}
+//                     onLoadSuccess={({ numPages }) => console.log(`Loaded ${numPages} pages.`)}
+//                     onLoadError={(error) => console.error("Failed to load PDF:", error)}
+//                 >
+//                     <Page pageNumber={1} />
+//                 </Document>
+//             ) : (
+//                 <p>Loading PDF...</p>
+//             )}
+//         </div>
+//     );
+// };
 
 const Landing: React.FC = () =>
 {
@@ -42,6 +75,35 @@ const Landing: React.FC = () =>
     const [sessionDetails, setSessionDetails] = useState<SharingSessionDetailedDto | null>(null);
     const [fetchingDetails, setFetchingDetails] = useState<boolean>(true);
     const [isSessionEnded, setIsSessionEnded] = React.useState(false);
+    const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+    const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+    const [numPages, setNumPages] = useState<number>(0);
+
+    useEffect(() =>
+    {
+        const fetchDocument = async () =>
+        {
+            if (selectedSessionDocument && selectedSessionDocument.uploadDate)
+            {
+                try
+                {
+                    const response = await downloadSharingSessionDocument(sessionDetails?.id, selectedSessionDocument.id, token);
+                    const blob = new Blob([response], {type: 'application/pdf'});
+                    setPdfBlob(blob);
+
+                    // Create Object URL for PDF
+                    const url = URL.createObjectURL(blob);
+                    setPdfUrl(url);
+                }
+                catch (error)
+                {
+                    console.error("Error downloading document:", error);
+                }
+            }
+        };
+
+        fetchDocument();
+    }, [selectedSessionDocument, token, sessionDetails]);
 
     useEffect(() =>
     {
@@ -164,7 +226,7 @@ const Landing: React.FC = () =>
             <DocumentActionsMenu session={sessionDetails}
                                  onOpenDetailsSidebar={() =>
                                  {
-                                     setIsDocumentSidebarOpen(true)
+                                     // setIsDocumentSidebarOpen(true)
                                      setSelectedSessionDocument(sessionDocument)
                                  }}
                                  onDocumentDeleted={onDocumentDeleted}
@@ -183,6 +245,10 @@ const Landing: React.FC = () =>
             />
         </>
     }
+
+    const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+        setNumPages(numPages);
+    };
 
     const renderDocumentsListCard = (sessionDocument: DocumentDetailedDto) =>
     {
@@ -321,11 +387,19 @@ const Landing: React.FC = () =>
                             }
                         </div>
                         <div className={styles.sharingSessionDocumentPreview}>
-                            <iframe
-                                src={`http://localhost:5173/document.pdf`}
-                                style={{width: "100%", height: "100%"}}
-                                frameBorder="0"
-                            ></iframe>
+                            {pdfUrl && (
+                                <Document
+                                    file={pdfUrl}
+                                    onLoadSuccess={onDocumentLoadSuccess}
+                                    onLoadError={(error) => console.error("Failed to load PDF:", error)}
+                                >
+                                    {Array.from(new Array(numPages), (el, index) => (
+                                        <div key={`page_${index + 1}`} className={styles.pdfPage}>
+                                            <Page pageNumber={index + 1}/>
+                                        </div>
+                                    ))}
+                                </Document>
+                            )}
                         </div>
                     </div>
                 }
