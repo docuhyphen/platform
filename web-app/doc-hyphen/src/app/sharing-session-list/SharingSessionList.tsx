@@ -211,6 +211,7 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                     <MenuPopover>
                         <MenuList>
                             <Divider title={"status"}/>
+                            <MenuItem> Initiated</MenuItem>
                             <MenuItem> Started</MenuItem>
                             <MenuItem> Rejected</MenuItem>
                             <MenuItem> Ended</MenuItem>

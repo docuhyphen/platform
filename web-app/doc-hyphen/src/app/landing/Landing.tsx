@@ -252,7 +252,7 @@ const Landing: React.FC = () =>
                                 {fetchingDetails && !sessionDetails && <DocumentsSkeleton/>}
 
                                 {!fetchingDetails && (sessionDetails && sessionDetails?.documents?.length > 0) && (
-                                    <div>
+                                    <>
                                         <div className={styles.documentListTitle}>
                                             <Text size={400}>Session Documents</Text>
                                             <Tooltip content="Zip all documents"
@@ -271,7 +271,7 @@ const Landing: React.FC = () =>
                                                 renderDocumentsListCard(document)
                                             ))}
                                         </div>
-                                    </div>
+                                    </>
                                 )}
                                 {
                                     sessionDetails && sessionDetails.documents?.length === 0 &&
@@ -286,6 +286,14 @@ const Landing: React.FC = () =>
                                         sessionDocument={selectedSessionDocument}/>
                                 }
                             </div>
+                        </div>
+                        <div className={styles.sharingSessionDocumentPreview}>
+                            <iframe
+                                src={`http://localhost:5173/document.pdf`}
+                                style={{width: "100%", height: "100%"}}
+                                frameBorder="0"
+                            ></iframe>
+
                         </div>
                     </div>
                 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {
     Body1,
     Button,
@@ -15,6 +15,10 @@ import {
     bundleIcon,
     CheckmarkNoteFilled,
     CheckmarkNoteRegular,
+    ChevronDownFilled,
+    ChevronDownRegular,
+    ChevronUpFilled,
+    ChevronUpRegular,
     DeleteFilled,
     DeleteRegular,
     DocumentAddRegular,
@@ -27,6 +31,7 @@ import {
 import {formatDateTimeWithOrdinal} from "../../../helpers.ts";
 import {useLandingStyles} from "../../LandingStyles.tsx";
 import {SharingSessionDetailedDto, SharingSessionStatus} from "../../../models/models.tsx";
+import {useSessionDetailsHeaderStyles} from "./SessionDetailsHeaderStyles.tsx";
 
 interface SessionDetailsHeaderProps {
     sessionDetails: SharingSessionDetailedDto | null;
@@ -39,80 +44,131 @@ interface SessionDetailsHeaderProps {
 
 const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
     {
-    sessionDetails,
-    setIsDocumentAddDialogOpen,
-    setIsSessionEndDialogOpen,
+        sessionDetails,
+        setIsDocumentAddDialogOpen,
+        setIsSessionEndDialogOpen,
         setIsDeletedSessionDialogOpen,
         setIsSessionEditDialogOpen,
         setIsSessionAccessManagementDialogOpen,
-}) => {
-    const styles = useLandingStyles();
+    }) =>
+{
+    const styles = useSessionDetailsHeaderStyles();
+    const landingStyles = useLandingStyles();
     const DocumentAddIcon = bundleIcon(DocumentAddRegular, DocumentAddRegular);
     const SessionEndIcon = bundleIcon(CheckmarkNoteFilled, CheckmarkNoteRegular);
     const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular);
     const EditSessionIcon = bundleIcon(WindowEditFilled, WindowEditRegular);
     const ManageAccessIcon = bundleIcon(PeopleLockFilled, PeopleLockRegular);
 
+    const [isCollapsed, setIsCollapsed] = React.useState(false);
+
+    useEffect(() =>
+    {
+        setIsCollapsed(false);
+    }, []);
+
+    const toggleHeaderDetails = () =>
+    {
+        setIsCollapsed((prev) => !prev);
+    };
+
+    const ToggleHeaderUpIcon = bundleIcon(ChevronUpFilled, ChevronUpRegular);
+    const ToggleHeaderDownIcon = bundleIcon(ChevronDownFilled, ChevronDownRegular);
+
     return (
         <>
             {sessionDetails && (
-                <>
-                    <div>
-                        <Caption1>
-                            Started {formatDateTimeWithOrdinal(sessionDetails.createdDate)}
-                        </Caption1>
-                        {sessionDetails.endDate && (
-                            <> | Ended {formatDateTimeWithOrdinal(sessionDetails.createdDate)} </>
-                        )}
-                        <br/>
-                        <Text size={600}>{sessionDetails.sessionName}</Text><br/>
-                        <Body1>{sessionDetails.description}</Body1>
-                    </div>
-                    <div id="sharing-session-actions" className={styles.sharingSessionActions}>
-                        <Tooltip content="Add Session Document" relationship="description">
-                            <Button icon={<DocumentAddIcon/>}
+                <div className={styles.header}>
+                    {isCollapsed &&
+                        <div className={styles.headerLine1}>
+                            <div className={styles.headerLine1_2}>
+                                <Caption1>
+                                    Started {formatDateTimeWithOrdinal(sessionDetails.createdDate)}
+                                </Caption1>
+                                {sessionDetails.endDate && (
+                                    <>
+                                        <Caption1>|</Caption1>
+                                        <Caption1>
+                                            Ended {formatDateTimeWithOrdinal(sessionDetails.createdDate)}
+                                        </Caption1>
+                                    </>
+                                )}
+                            </div>
+
+                            <Button
+                                onClick={toggleHeaderDetails}
+                                size={"small"}
+                                appearance={"subtle"}
+                                icon={<ToggleHeaderUpIcon/>}/>
+                        </div>
+                    }
+                    <div className={styles.headerLine2}>
+                        <Text size={isCollapsed ? 600 : 500}>{sessionDetails.sessionName}</Text>
+                        <div className={landingStyles.sharingSessionActions}>
+                            <Tooltip content="Add Session Document" relationship="description">
+                                <Button
+                                    icon={<DocumentAddIcon/>}
                                     appearance="primary"
                                     disabled={sessionDetails.status === SharingSessionStatus.ENDED}
                                     onClick={() => setIsDocumentAddDialogOpen(true)}
-                            />
-                        </Tooltip>
-                        <Tooltip content="Edit" relationship="description">
-                            <Button icon={<EditSessionIcon/>}
+                                />
+                            </Tooltip>
+                            <Tooltip content="Edit" relationship="description">
+                                <Button
+                                    icon={<EditSessionIcon/>}
                                     disabled={sessionDetails.status === SharingSessionStatus.ENDED}
                                     appearance={"subtle"}
                                     onClick={() => setIsSessionEditDialogOpen(true)}
-                            />
-                        </Tooltip>
-                        <Tooltip content="manage access" relationship="description">
-                            <Button icon={<ManageAccessIcon/>}
+                                />
+                            </Tooltip>
+                            <Tooltip content="manage access" relationship="description">
+                                <Button
+                                    icon={<ManageAccessIcon/>}
                                     disabled={sessionDetails.status === SharingSessionStatus.ENDED}
                                     appearance={"subtle"}
                                     onClick={() => setIsSessionAccessManagementDialogOpen(true)}
-                            />
-                        </Tooltip>
+                                />
+                            </Tooltip>
 
-                        <Menu positioning={{autoSize: true}}>
-                            <MenuTrigger disableButtonEnhancement>
-                                <Button icon={<MoreVerticalRegular/>} appearance="subtle"/>
-                            </MenuTrigger>
-                            <MenuPopover>
-                                <MenuList>
-                                    <MenuItem icon={<SessionEndIcon/>}
-                                              disabled={sessionDetails.status === SharingSessionStatus.ENDED}
-                                              onClick={() => setIsSessionEndDialogOpen(true)}>
-                                        End
-                                    </MenuItem>
-                                </MenuList>
-                                <MenuList>
-                                    <MenuItem icon={<DeleteIcon/>}
-                                              onClick={() => setIsDeletedSessionDialogOpen(true)}>
-                                        Delete
-                                    </MenuItem>
-                                </MenuList>
-                            </MenuPopover>
-                        </Menu>
+                            <Menu positioning={{autoSize: true}}>
+                                <MenuTrigger disableButtonEnhancement>
+                                    <Button icon={<MoreVerticalRegular/>} appearance="subtle"/>
+                                </MenuTrigger>
+                                <MenuPopover>
+                                    <MenuList>
+                                        <MenuItem
+                                            icon={<SessionEndIcon/>}
+                                            disabled={sessionDetails.status === SharingSessionStatus.ENDED}
+                                            onClick={() => setIsSessionEndDialogOpen(true)}
+                                        >
+                                            End
+                                        </MenuItem>
+                                    </MenuList>
+                                    <MenuList>
+                                        <MenuItem
+                                            icon={<DeleteIcon/>}
+                                            onClick={() => setIsDeletedSessionDialogOpen(true)}
+                                        >
+                                            Delete
+                                        </MenuItem>
+                                    </MenuList>
+                                </MenuPopover>
+                            </Menu>
+
+                            {!isCollapsed && <Button
+                                onClick={toggleHeaderDetails}
+                                size={"small"}
+                                appearance={"subtle"}
+                                icon={<ToggleHeaderDownIcon/>}/>
+                            }
+                        </div>
                     </div>
-                </>
+                    {isCollapsed && (
+                        <div className={styles.headerLine3}>
+                            <Body1>{sessionDetails.description}</Body1>
+                        </div>
+                    )}
+                </div>
             )}
         </>
     );

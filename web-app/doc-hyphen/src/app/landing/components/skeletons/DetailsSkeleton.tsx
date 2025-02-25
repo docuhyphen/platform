@@ -16,7 +16,7 @@ const DetailsSkeleton: React.FC = () =>
             <SkeletonItem size={28} className={styles.skeletonSessionName}/>
             <SkeletonItem size={16} className={styles.skeletonSessionDescription}/>
         </div>
-        <div id="sharing-session-actions" className={styles.sharingSessionActions}>
+        <div className={styles.sharingSessionActions}>
             <SkeletonItem shape="square" size={32}/>
             <SkeletonItem shape="square" size={32}/>
             <SkeletonItem shape="square" size={32} className={styles.skeletonSessionActionsMore}/>

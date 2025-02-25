@@ -1,22 +1,24 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useLandingStyles = makeStyles({
+
     sharingSessionsContainer: {
         display: "flex",
         gap: "16px",
         height: "100%",
     },
+
     sharingSessionsContainerDiv: {
-        padding: "18px 0",
+        padding: "16px 0",
     },
+
     sharingSessionHeadContainer: {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
         gap: "8px",
         background: "white",
-        padding: "0 16px",
-        height: "100px",
+        padding: "8px 16px",
         borderRadius: "4px",
         borderTop: "1px solid rgba(0, 0, 0, .2)",
         borderRight: "1px solid rgba(0, 0, 0, .2)",
@@ -28,11 +30,17 @@ export const useLandingStyles = makeStyles({
         display: "flex",
         flexDirection: "row",
         gap: "16px",
-        height: "100%",
     },
+
+    sharingSessionDocumentPreview: {
+        flex: "1",
+        background: "white",
+        border: "1px solid rgba(0, 0, 0, .1)"
+    },
+
     sharingSessionDocumentsDetails: {
-        flex: 1,
     },
+
     sharingSessionDocumentSidebar: {
         // width: "300px",
         // borderLeft: "1px solid rgba(0, 0, 0, .2)",
@@ -40,19 +48,24 @@ export const useLandingStyles = makeStyles({
 
     sharingSessionDetailsContainer: {
         flex: 1,
-        marginRight: "36px",
-        paddingTop: "16px",
-        paddingBottom: "16px",
+        margin: "16px 0",
+        marginRight: "24px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "16px",
     },
+
     sharingSessionActions: {
         display: "flex",
         gap: "8px",
     },
+
     documentsCardList: {
         display: "flex",
         gap: "16px",
         flexWrap: "wrap",
     },
+
     documentsCardListCard: {
         minWidth: "300px",
         maxWidth: "300px",
@@ -138,7 +151,7 @@ export const useLandingStyles = makeStyles({
         display: "flex",
         gap: "6px",
         alignItems: "center",
-        margin: "16px 0",
+        marginBottom: "8px"
     },
 
     sharingSessionDetailsNoneContainer: {
@@ -147,5 +160,5 @@ export const useLandingStyles = makeStyles({
         alignItems: "center",
         height: "100%",
         width: "100%",
-    }
+    },
 });
