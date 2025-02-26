@@ -1,12 +1,9 @@
 import React, {useEffect, useState} from 'react';
 import SharingSessionList from "../sharing-session-list/SharingSessionList.tsx";
-import {
-    downloadSharingSessionDocument,
-    fetchSignedInUserAppUserSharingSession
-} from "../../services/sharingSessionApi.ts";
+import {fetchSignedInUserAppUserSharingSession} from "../../services/sharingSessionApi.ts";
 import useToken from "../../context/useToken.tsx";
 import PreLanding from "../pre-landing/PreLanding.tsx";
-import {Body1, Button, Caption1, Card, CardHeader, Text, Tooltip} from "@fluentui/react-components";
+import {Body1, Button, Caption1, Card, CardHeader, Field, SearchBox, Text, Tooltip} from "@fluentui/react-components";
 import {
     bundleIcon,
     DocumentAddFilled,
@@ -24,36 +21,12 @@ import DocumentsSkeleton from "./components/skeletons/DocumentsSkeleton.tsx";
 import SessionDialogsGroup from "./components/session-dialog-group/SessionDialogsGroup.tsx";
 import SessionDetailsHeader from "./components/session-details-header/SessionDetailsHeader.tsx";
 import DetailsSkeleton from "./components/skeletons/DetailsSkeleton.tsx";
-import {Document, Page, pdfjs} from 'react-pdf';
+import {pdfjs} from 'react-pdf';
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
+import SessionDocumentPreviewer from "./components/session-document-preview/SessionDocumentPreviewer.tsx";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
-
-// const PdfViewer: React.FC = () => {
-//     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-//
-//     useEffect(() => {
-//         // Set hardcoded URL for testing
-//         setPdfUrl("https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf");
-//     }, []);
-//
-//     return (
-//         <div className="pdf-viewer">
-//             {pdfUrl ? (
-//                 <Document
-//                     file={pdfUrl}
-//                     onLoadSuccess={({ numPages }) => console.log(`Loaded ${numPages} pages.`)}
-//                     onLoadError={(error) => console.error("Failed to load PDF:", error)}
-//                 >
-//                     <Page pageNumber={1} />
-//                 </Document>
-//             ) : (
-//                 <p>Loading PDF...</p>
-//             )}
-//         </div>
-//     );
-// };
 
 const Landing: React.FC = () =>
 {
@@ -70,40 +43,23 @@ const Landing: React.FC = () =>
     const [isSessionAccessManagementDialogOpen, setIsSessionAccessManagementDialogOpen] = React.useState(false);
     const [isDeletedSessionDialogOpen, setIsDeletedSessionDialogOpen] = React.useState(false);
     const [isSessionEndDialogOpen, setIsSessionEndDialogOpen] = React.useState(false);
-    const [selectedSessionDocument, setSelectedSessionDocument] = React.useState<DocumentDetailedDto>(undefined);
+    const [selectedSessionDocument, setSelectedSessionDocument] = React.useState<DocumentDetailedDto | undefined>(undefined);
     const [selectedUpdateSessionDocument, setSelectedUpdateSessionDocument] = React.useState<DocumentDetailedDto>(undefined);
     const [sessionDetails, setSessionDetails] = useState<SharingSessionDetailedDto | null>(null);
     const [fetchingDetails, setFetchingDetails] = useState<boolean>(true);
     const [isSessionEnded, setIsSessionEnded] = React.useState(false);
-    const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
-    const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-    const [numPages, setNumPages] = useState<number>(0);
+
+    const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
+    const DocumentAddIcon = bundleIcon(DocumentAddFilled, DocumentAddRegular)
 
     useEffect(() =>
     {
-        const fetchDocument = async () =>
+        const randomDelay = Math.floor(Math.random() * 5000) + 1000;
+        setTimeout(() =>
         {
-            if (selectedSessionDocument && selectedSessionDocument.uploadDate)
-            {
-                try
-                {
-                    const response = await downloadSharingSessionDocument(sessionDetails?.id, selectedSessionDocument.id, token);
-                    const blob = new Blob([response], {type: 'application/pdf'});
-                    setPdfBlob(blob);
-
-                    // Create Object URL for PDF
-                    const url = URL.createObjectURL(blob);
-                    setPdfUrl(url);
-                }
-                catch (error)
-                {
-                    console.error("Error downloading document:", error);
-                }
-            }
-        };
-
-        fetchDocument();
-    }, [selectedSessionDocument, token, sessionDetails]);
+            setIsLoading(false);
+        }, randomDelay);
+    }, []);
 
     useEffect(() =>
     {
@@ -131,15 +87,6 @@ const Landing: React.FC = () =>
             fetchDetails();
         }
     }, [selectedSessionId, token]);
-
-    useEffect(() =>
-    {
-        const randomDelay = Math.floor(Math.random() * 5000) + 1000;
-        setTimeout(() =>
-        {
-            setIsLoading(false);
-        }, randomDelay);
-    }, []);
 
     useEffect(() =>
     {
@@ -246,10 +193,6 @@ const Landing: React.FC = () =>
         </>
     }
 
-    const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-        setNumPages(numPages);
-    };
-
     const renderDocumentsListCard = (sessionDocument: DocumentDetailedDto) =>
     {
         return <> {sessionDocument &&
@@ -285,9 +228,6 @@ const Landing: React.FC = () =>
     {
         return `${styles.sharingSessionHeadContainer} ${styles[`sessionHeadStatus${sessionDetails?.status || ''}` as keyof typeof styles]}`;
     };
-
-    const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
-    const DocumentAddIcon = bundleIcon(DocumentAddFilled, DocumentAddRegular)
 
     const renderDialogs = () =>
     {
@@ -347,12 +287,12 @@ const Landing: React.FC = () =>
                                 setIsSessionAccessManagementDialogOpen={setIsSessionAccessManagementDialogOpen}
                             />}
                         </div>
+
                         {fetchingDetails && !sessionDetails && <DocumentsSkeleton/>}
 
                         {!fetchingDetails && (sessionDetails && sessionDetails?.documents?.length > 0) && (
                             <>
                                 <div className={styles.documentListTitle}>
-                                    <Text size={400}>Session Documents</Text>
                                     <Tooltip content="Zip all documents"
                                              relationship="description">
                                         <Button size={"small"}
@@ -362,6 +302,10 @@ const Landing: React.FC = () =>
 
                                         </Button>
                                     </Tooltip>
+                                    <Field className={styles.documentSearchField}>
+                                        <SearchBox placeholder={"Filter documents"}
+                                        appearance={"underline"}/>
+                                    </Field>
                                 </div>
                                 <div className={styles.documentsCardList}>
 
@@ -374,10 +318,12 @@ const Landing: React.FC = () =>
                                 </div>
                             </>
                         )}
+
                         {
                             sessionDetails && sessionDetails.documents?.length === 0 &&
                             <NoSessionDocuments setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}/>
                         }
+
                         <div className={styles.sharingSessionDocumentSidebar}>
                             {selectedSessionDocument &&
                                 <SessionDocumentSidebar
@@ -386,21 +332,10 @@ const Landing: React.FC = () =>
                                     sessionDocument={selectedSessionDocument}/>
                             }
                         </div>
-                        <div className={styles.sharingSessionDocumentPreview}>
-                            {pdfUrl && (
-                                <Document
-                                    file={pdfUrl}
-                                    onLoadSuccess={onDocumentLoadSuccess}
-                                    onLoadError={(error) => console.error("Failed to load PDF:", error)}
-                                >
-                                    {Array.from(new Array(numPages), (el, index) => (
-                                        <div key={`page_${index + 1}`} className={styles.pdfPage}>
-                                            <Page pageNumber={index + 1}/>
-                                        </div>
-                                    ))}
-                                </Document>
-                            )}
-                        </div>
+
+                        {sessionDetails && selectedSessionDocument &&
+                            <SessionDocumentPreviewer document={selectedSessionDocument}
+                                                      sessionId={sessionDetails.id}/>}
                     </div>
                 }
             </section>

@@ -36,17 +36,6 @@ export const useLandingStyles = makeStyles({
         flex: 1
     },
 
-    sharingSessionDocumentPreview: {
-        flex: "1",
-        background: "white",
-        border: "1px solid rgba(0, 0, 0, .1)",
-        overflow: "auto",
-        maxWidth: "100%",
-        margin: "0 auto",
-    },
-    pdfPage: {
-    },
-
     sharingSessionDocumentsDetails: {
         width: "100%",
         border: "1px solid red"
@@ -201,6 +190,10 @@ export const useLandingStyles = makeStyles({
         display: "flex",
         gap: "6px",
         alignItems: "center",
+    },
+
+    documentSearchField: {
+        flex: "1"
     },
 
     sharingSessionDetailsNoneContainer: {
