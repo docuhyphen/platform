@@ -110,7 +110,7 @@ export const useLandingStyles = makeStyles({
 
     documentsCardListCardSelected: {
         borderLeft: "5px solid",
-        borderLeftColor: "red"
+        borderLeftColor: tokens.colorBrandForeground1
     },
 
     skeletonSessionDetails: {

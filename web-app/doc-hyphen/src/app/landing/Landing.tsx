@@ -1,5 +1,4 @@
 import React, {useEffect, useState} from 'react';
-import SharingSessionList from "../sharing-session-list/SharingSessionList.tsx";
 import {fetchSignedInUserAppUserSharingSession} from "../../services/sharingSessionApi.ts";
 import useToken from "../../context/useToken.tsx";
 import PreLanding from "../pre-landing/PreLanding.tsx";
@@ -36,6 +35,7 @@ import {pdfjs} from 'react-pdf';
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 import SessionDocumentPreviewer from "./components/session-document-preview/SessionDocumentPreviewer.tsx";
+import SharingSessionList from "../sharing-session-list/SharingSessionList.tsx";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
@@ -93,7 +93,6 @@ const Landing: React.FC = () =>
                             const document = sessionDetails?.documents[i]
                             if (document.uploadDate)
                             {
-                                alert()
                                 setSelectedSessionDocument(document);
                                 break;
                             }
@@ -218,7 +217,6 @@ const Landing: React.FC = () =>
         </>
     }
 
-
     const getDocumentListCardClasses = (sessionDocument) =>
     {
         if((selectedSessionDocument && selectedSessionDocument.id)
@@ -304,30 +302,29 @@ const Landing: React.FC = () =>
 
     return (
         isLoading ? <PreLanding/> : <>
-            <section className={styles.sharingSessionsContainer} id={"sharingSessionsContainer"}>
+            <section className={styles.sharingSessionsContainer}>
                 <SharingSessionList onSelectionChange={setSelectedSessionId}/>
-                {!selectedSessionId && !fetchingDetails &&
-                    <div className={styles.sharingSessionDetailsNoneContainer}>
-                        <Text size={500}> Select a Sharing Session  in the list to view details</Text>
-                    </div>
+                {fetchingDetails && !sessionDetails &&
+                    <>
+                        <DetailsSkeleton/>
+                        <DocumentsSkeleton/>
+                    </>
                 }
-                {selectedSessionId &&
+
+                {!fetchingDetails && (selectedSessionId && sessionDetails) &&
                     <div className={styles.sharingSessionDetailsContainer}>
                         <div className={getSessionHeadContainerClass()}>
-                            {fetchingDetails && !sessionDetails && <DetailsSkeleton/>}
-                            {!fetchingDetails && sessionDetails && <SessionDetailsHeader
+                            <SessionDetailsHeader
                                 sessionDetails={sessionDetails}
                                 setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}
                                 setIsSessionEndDialogOpen={setIsSessionEndDialogOpen}
                                 setIsDeletedSessionDialogOpen={setIsDeletedSessionDialogOpen}
                                 setIsSessionEditDialogOpen={setIsSessionEditDialogOpen}
                                 setIsSessionAccessManagementDialogOpen={setIsSessionAccessManagementDialogOpen}
-                            />}
+                            />
                         </div>
 
-                        {fetchingDetails && !sessionDetails && <DocumentsSkeleton/>}
-
-                        {!fetchingDetails && (sessionDetails && sessionDetails?.documents?.length > 0) && (
+                        {(sessionDetails?.documents?.length > 0) && (
                             <>
                                 <div className={styles.documentListTitle}>
                                     <Tooltip content="Zip all documents"
@@ -341,7 +338,7 @@ const Landing: React.FC = () =>
                                     </Tooltip>
                                     <Field className={styles.documentSearchField}>
                                         <SearchBox placeholder={"Filter documents"}
-                                        appearance={"underline"}/>
+                                                   appearance={"underline"}/>
                                     </Field>
                                 </div>
                                 <div className={styles.documentsCardList}>
@@ -357,7 +354,7 @@ const Landing: React.FC = () =>
                         )}
 
                         {
-                            sessionDetails && sessionDetails.documents?.length === 0 &&
+                            sessionDetails.documents?.length === 0 &&
                             <NoSessionDocuments setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}/>
                         }
 
@@ -370,12 +367,18 @@ const Landing: React.FC = () =>
                             }
                         </div>
 
-                        {sessionDetails && selectedSessionDocument &&
+                        {selectedSessionDocument &&
                             <SessionDocumentPreviewer document={selectedSessionDocument}
                                                       sessionId={sessionDetails.id}/>}
                     </div>
                 }
+                {!fetchingDetails && (!selectedSessionId && !sessionDetails) &&
+                    <div className={styles.sharingSessionDetailsNoneContainer}>
+                        <Text size={500}> Select a Sharing Session in the list to view details</Text>
+                    </div>
+                }
             </section>
+
             {renderDialogs()}
         </>
     );
