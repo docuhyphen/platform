@@ -21,11 +21,15 @@ import SignOutButton from '../components/SignOutButton';
 import SharingSessionInitiation from "../sharing-session-initiation/SharingSessionInitiation.tsx";
 import {
     AlertFilled,
-    AlertRegular, ArrowExitFilled,
+    AlertRegular,
+    ArrowExitFilled,
     ArrowExitRegular,
-    bundleIcon, ChannelShareFilled,
-    ChannelShareRegular, DeleteFilled, DeleteRegular, InfoFilled,
-    InfoRegular, SettingsFilled,
+    bundleIcon,
+    ChannelShareFilled,
+    ChannelShareRegular,
+    InfoFilled,
+    InfoRegular,
+    SettingsFilled,
     SettingsRegular
 } from "@fluentui/react-icons";
 import AppLogo from "./app-logo/AppLogo.tsx";
@@ -35,16 +39,6 @@ const MainMenu: React.FC = () => {
     const { appUser, appUserPersonCompany } = useAuth();
     const navigate = useNavigate();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-    function onRequestDocuments()
-    {
-        navigate('/sharing-session-initiation?request=true');
-    }
-
-    function onSendDocuments()
-    {
-        navigate('/sharing-session-initiation?request=false');
-    }
 
     const onSignOut = () =>
     {
@@ -61,56 +55,44 @@ const MainMenu: React.FC = () => {
 
     return (
         <section className={styles.mainAppHeader}>
-            <AppLogo/>
-            <section className={styles.mainAppHeaderMidSection}>
-                {!appUserPersonCompany &&
-                    <Button onClick={() => navigate('/onboarding/company-registration')}>
-                        Register Company
-                    </Button>
-                }
+            <span className={styles.mainHeaderAppLogo}>
+                <AppLogo/>
+            </span>
 
-                {/*{(appUserPersonCompany && !appUserPersonCompany.registrationComplete) &&*/}
-                {/*    <p>*/}
-                {/*        {appUserPersonCompany?.name} registration pending*/}
-                {/*    </p>*/}
-                {/*}*/}
-                <SharingSessionInitiation/>
-            </section>
+            <SharingSessionInitiation/>
 
-            <section>
-                <Button icon={<SharingSessionIcon/>}
-                        onClick={() => navigate('/landing')}
-                        appearance={"subtle"}>
-                </Button>
-                <Button icon={<NotificationsIcon/>}
-                        appearance={"subtle"}>
-                </Button>
-                <Button icon={<InfoIcon/>}
-                        onClick={() => navigate('/landing')}
-                        appearance={"subtle"}>
-                </Button>
-                <Menu>
-                    <MenuTrigger disableButtonEnhancement>
-                        <MenuButton appearance="transparent">
-                            <Persona
-                                name={`${appUser?.person?.firstName} ${appUser?.person?.lastName}`}
-                                secondaryText={appUser?.email}/>
-                        </MenuButton>
-                    </MenuTrigger>
+            <Button icon={<SharingSessionIcon/>}
+                    onClick={() => navigate('/landing')}
+                    appearance={"subtle"}>
+            </Button>
+            <Button icon={<NotificationsIcon/>}
+                    appearance={"subtle"}>
+            </Button>
+            <Button icon={<InfoIcon/>}
+                    onClick={() => navigate('/landing')}
+                    appearance={"subtle"}>
+            </Button>
+            <Menu>
+                <MenuTrigger disableButtonEnhancement>
+                    <MenuButton appearance="transparent">
+                        <Persona
+                            name={`${appUser?.person?.firstName} ${appUser?.person?.lastName}`}
+                            secondaryText={appUser?.email}/>
+                    </MenuButton>
+                </MenuTrigger>
 
-                    <MenuPopover>
-                        <MenuList>
-                            <MenuItem onClick={() => navigate("/settings")}
-                                      icon={<SettingsIcon/>}>
-                                Settings
-                            </MenuItem>
-                            <MenuItem icon={<SignOutButtonIcon/>}>
-                                <SignOutButton onSignOut={onSignOut}/>
-                            </MenuItem>
-                        </MenuList>
-                    </MenuPopover>
-                </Menu>
-            </section>
+                <MenuPopover>
+                    <MenuList>
+                        <MenuItem onClick={() => navigate("/settings")}
+                                  icon={<SettingsIcon/>}>
+                            Settings
+                        </MenuItem>
+                        <MenuItem icon={<SignOutButtonIcon/>}>
+                            <SignOutButton onSignOut={onSignOut}/>
+                        </MenuItem>
+                    </MenuList>
+                </MenuPopover>
+            </Menu>
 
             <Dialog open={isDialogOpen}>
                 <DialogSurface>

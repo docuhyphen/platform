@@ -1,4 +1,4 @@
-import {makeStyles, tokens, shorthands} from "@fluentui/react-components";
+import {makeStyles, shorthands, tokens} from "@fluentui/react-components";
 
 export const useLandingStyles = makeStyles({
 
@@ -105,9 +105,12 @@ export const useLandingStyles = makeStyles({
     documentsCardListCard: {
         minWidth: "300px",
         maxWidth: "300px",
-            flex
-    :
-        "0 0 auto"
+        flex : "0 0 auto"
+    },
+
+    documentsCardListCardSelected: {
+        borderLeft: "5px solid",
+        borderLeftColor: "red"
     },
 
     skeletonSessionDetails: {

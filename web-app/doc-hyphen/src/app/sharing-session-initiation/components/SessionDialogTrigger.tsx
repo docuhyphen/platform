@@ -1,11 +1,22 @@
 import React from 'react';
 import {Button, Menu, MenuButton, MenuItem, MenuList, MenuPopover, MenuTrigger} from "@fluentui/react-components";
 import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
+import {
+    bundleIcon,
+    DocumentArrowLeftFilled,
+    DocumentArrowLeftRegular,
+    DocumentArrowRightFilled,
+    DocumentArrowRightRegular
+} from "@fluentui/react-icons";
 
 interface SessionDialogTriggerProps
 {
     onRequestingDocumentsChange: (isRequesting: boolean) => void;
 }
+
+
+const ReceiveDocumentsIcon = bundleIcon(DocumentArrowLeftFilled, DocumentArrowLeftRegular)
+const SendDocumentsIcon = bundleIcon(DocumentArrowRightFilled, DocumentArrowRightRegular)
 
 const SessionDialogTrigger = React.forwardRef<HTMLButtonElement, SessionDialogTriggerProps>(({
                                                                                                  onRequestingDocumentsChange,
@@ -25,13 +36,15 @@ const SessionDialogTrigger = React.forwardRef<HTMLButtonElement, SessionDialogTr
                 <MenuList>
                     <MenuItem onClick={() => onRequestingDocumentsChange(true)}>
                         <Button size="small" ref={ref} {...props} appearance="transparent"
-                                className={styles.sharingDetailsInput}>
+                                className={styles.sharingDetailsInput}
+                                icon={<ReceiveDocumentsIcon/>}>
                             Request Documents
                         </Button>
                     </MenuItem>
                     <MenuItem onClick={() => onRequestingDocumentsChange(false)}>
                         <Button size="small" ref={ref} {...props} appearance="transparent"
-                                className={styles.sharingDetailsInput}>
+                                className={styles.sharingDetailsInput}
+                                icon={<SendDocumentsIcon/>}>
                             Send Documents
                         </Button>
                     </MenuItem>

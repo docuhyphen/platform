@@ -25,7 +25,13 @@ export const useGlobalStyles = makeStyles({
         background: "white",
         height: "60px",
         top: 0,
+        gap: "8px"
     },
+
+    mainHeaderAppLogo: {
+        flex: 1
+    },
+
     mainAppSection: {
         width: "100%",
         height: "100%",
@@ -37,11 +43,7 @@ export const useGlobalStyles = makeStyles({
         width: "100%",
         height: "100%",
     },
-    mainAppHeaderMidSection: {
-        display: "flex",
-        alignItems: "center",
-        gap: "16px",
-    },
+
     shadingSessionDocumentCard: {
         marginBottom: "12px",
     },

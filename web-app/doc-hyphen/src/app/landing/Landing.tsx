@@ -3,7 +3,18 @@ import SharingSessionList from "../sharing-session-list/SharingSessionList.tsx";
 import {fetchSignedInUserAppUserSharingSession} from "../../services/sharingSessionApi.ts";
 import useToken from "../../context/useToken.tsx";
 import PreLanding from "../pre-landing/PreLanding.tsx";
-import {Body1, Button, Caption1, Card, CardHeader, Field, SearchBox, Text, Tooltip} from "@fluentui/react-components";
+import {
+    Body1,
+    Button,
+    Caption1,
+    Card,
+    CardHeader,
+    Field,
+    mergeClasses,
+    SearchBox,
+    Text,
+    Tooltip
+} from "@fluentui/react-components";
 import {
     bundleIcon,
     DocumentAddFilled,
@@ -74,6 +85,20 @@ const Landing: React.FC = () =>
                 {
                     const details = await fetchSignedInUserAppUserSharingSession(selectedSessionId, token);
                     setSessionDetails(details as SharingSessionDetailedDto);
+
+                    if(sessionDetails?.documents?.length > 0)
+                    {
+                        for(let i = 0; i < sessionDetails?.documents?.length; i++)
+                        {
+                            const document = sessionDetails?.documents[i]
+                            if (document.uploadDate)
+                            {
+                                alert()
+                                setSelectedSessionDocument(document);
+                                break;
+                            }
+                        }
+                    }
                 }
                 catch (error)
                 {
@@ -193,10 +218,22 @@ const Landing: React.FC = () =>
         </>
     }
 
+
+    const getDocumentListCardClasses = (sessionDocument) =>
+    {
+        if((selectedSessionDocument && selectedSessionDocument.id)
+            == (sessionDocument && sessionDocument.id)) {
+            return mergeClasses(styles.documentsCardListCard, styles.documentsCardListCardSelected)
+        }
+
+        return styles.documentsCardListCard;
+    }
+
     const renderDocumentsListCard = (sessionDocument: DocumentDetailedDto) =>
     {
         return <> {sessionDocument &&
-            <Card key={sessionDocument.id} className={styles.documentsCardListCard}>
+            <Card key={sessionDocument.id}
+                  className={ getDocumentListCardClasses(sessionDocument)}>
                 <CardHeader
                     header={<Body1><b>{sessionDocument.title}</b></Body1>}
                     description={
