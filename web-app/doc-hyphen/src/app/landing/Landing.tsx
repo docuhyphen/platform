@@ -322,7 +322,7 @@ const Landing: React.FC = () =>
                                              relationship="description">
                                         <Button size={"small"}
                                                 onClick={() => setIsDocumentZipDialogOpen(true)}
-                                                appearance={"subtle"}
+                                                appearance={"transparent"}
                                                 icon={<ZipDocumentsIcon/>}>
 
                                         </Button>

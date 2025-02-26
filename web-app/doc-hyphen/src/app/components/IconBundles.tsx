@@ -35,7 +35,7 @@ import {
     DocumentArrowLeftFilled,
     DocumentArrowLeftRegular,
     DocumentArrowRightFilled,
-    DocumentArrowRightRegular,
+    DocumentArrowRightRegular, DocumentBulletListClockFilled, DocumentBulletListClockRegular,
     DocumentBulletListMultipleFilled,
     DocumentBulletListMultipleRegular,
     DocumentOnePageFilled,
@@ -86,6 +86,7 @@ export const MoreInfoIcon = bundleIcon(InfoFilled, InfoRegular)
 export const ToggleHeaderUpIcon = bundleIcon(ChevronUpFilled, ChevronUpRegular);
 export const ToggleHeaderDownIcon = bundleIcon(ChevronDownFilled, ChevronDownRegular);
 export const CommentIcon = bundleIcon(CommentFilled, CommentRegular);
+export const AuditIcon = bundleIcon(DocumentBulletListClockFilled, DocumentBulletListClockRegular);
 export const RecipientsIcon = bundleIcon(PeopleCommunityAddFilled, PeopleCommunityAddRegular)
 export const DetailsIcon = bundleIcon(DocumentOnePageFilled, DocumentOnePageRegular)
 export const DocumentsIcon = bundleIcon(DocumentBulletListMultipleFilled, DocumentBulletListMultipleRegular)
