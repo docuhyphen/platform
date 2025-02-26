@@ -20,10 +20,9 @@ import {useLandingStyles} from "./LandingStyles.tsx";
 import DocumentActionsMenu from "./components/session-document-actions-menu/DocumentActionsMenu.tsx";
 import SessionDocumentSidebar from "./components/session-document-sidebar/SessionDocumentSidebar.tsx";
 import NoSessionDocuments from "./components/session-documents-none/NoSessionDocuments.tsx";
-import DocumentsSkeleton from "./components/skeletons/DocumentsSkeleton.tsx";
 import SessionDialogsGroup from "./components/session-dialog-group/SessionDialogsGroup.tsx";
 import SessionDetailsHeader from "./components/session-details-header/SessionDetailsHeader.tsx";
-import DetailsSkeleton from "./components/skeletons/DetailsSkeleton.tsx";
+import SessionDetailsLoading from "./components/session-details-loading/SessionDetailsLoading.tsx";
 import {pdfjs} from 'react-pdf';
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
@@ -294,13 +293,10 @@ const Landing: React.FC = () =>
     return (
         isLoading ? <PreLanding/> : <>
             <section className={styles.sharingSessionsContainer}>
+
                 <SharingSessionList onSelectionChange={setSelectedSessionId}/>
-                {fetchingDetails && !sessionDetails &&
-                    <>
-                        <DetailsSkeleton/>
-                        <DocumentsSkeleton/>
-                    </>
-                }
+
+                {fetchingDetails && !sessionDetails && <SessionDetailsLoading/>}
 
                 {!fetchingDetails && (selectedSessionId && sessionDetails) &&
                     <div className={styles.sharingSessionDetailsContainer}>
