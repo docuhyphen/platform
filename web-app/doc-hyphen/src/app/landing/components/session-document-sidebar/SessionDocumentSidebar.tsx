@@ -12,15 +12,10 @@ import {
     TabValue,
     Text
 } from "@fluentui/react-components";
-import {
-    bundleIcon, CommentFilled,
-    CommentRegular,
-    DeleteFilled, DeleteRegular,
-    DismissRegular, DocumentBulletListClockFilled,
-    DocumentBulletListClockRegular
-} from "@fluentui/react-icons";
+import {DismissRegular} from "@fluentui/react-icons";
 import {useSessionDocumentSidebarStyles} from "./SessionDocumentSidebarStyles.tsx";
 import {DocumentDetailedDto} from "../../../models/models.tsx";
+import {AuditIcon, CommentIcon} from "../../../components/IconBundles.tsx";
 
 interface SessionDocumentSidebarProps
 {
@@ -43,9 +38,6 @@ const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
     {
         setSelectedValue(data.value);
     };
-
-    const CommentIcon = bundleIcon(CommentFilled, CommentRegular);
-    const AuditIcon = bundleIcon(DocumentBulletListClockFilled, DocumentBulletListClockRegular);
 
     return (
         <InlineDrawer as="aside"

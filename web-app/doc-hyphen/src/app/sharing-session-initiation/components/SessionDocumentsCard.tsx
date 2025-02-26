@@ -1,8 +1,8 @@
 import React from 'react';
 import {Button, Card, Dropdown, Field, Input, Option, OptionGroup, Switch} from "@fluentui/react-components";
-import {bundleIcon, DeleteFilled, DeleteRegular} from "@fluentui/react-icons";
 import {DocumentType, ImageType, SharingSessionRequestDocumentRequest} from "../../models/models.tsx";
 import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
+import {DeleteIcon} from "../../components/IconBundles.tsx";
 
 interface DocumentCardProps
 {
@@ -23,7 +23,6 @@ const SessionDocumentsCard: React.FC<DocumentCardProps> = ({
                                                                onDeleteDocument
                                                            }) =>
 {
-    const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular);
     const styles = useSharingSessionInitiationStyles();
 
     return (

@@ -11,27 +11,20 @@ import {
     Text,
     Tooltip
 } from "@fluentui/react-components";
-import {
-    bundleIcon,
-    CheckmarkNoteFilled,
-    CheckmarkNoteRegular,
-    ChevronDownFilled,
-    ChevronDownRegular,
-    ChevronUpFilled,
-    ChevronUpRegular,
-    DeleteFilled,
-    DeleteRegular,
-    DocumentAddRegular,
-    MoreVerticalRegular,
-    PeopleLockFilled,
-    PeopleLockRegular,
-    WindowEditFilled,
-    WindowEditRegular
-} from "@fluentui/react-icons";
+import {MoreVerticalRegular} from "@fluentui/react-icons";
 import {formatDateTimeWithOrdinal} from "../../../helpers.ts";
 import {useLandingStyles} from "../../LandingStyles.tsx";
 import {SharingSessionDetailedDto, SharingSessionStatus} from "../../../models/models.tsx";
 import {useSessionDetailsHeaderStyles} from "./SessionDetailsHeaderStyles.tsx";
+import {
+    DeleteIcon,
+    DocumentAddIcon,
+    EditSessionIcon,
+    ManageAccessIcon,
+    SessionEndIcon,
+    ToggleHeaderDownIcon,
+    ToggleHeaderUpIcon
+} from "../../../components/IconBundles.tsx";
 
 interface SessionDetailsHeaderProps {
     sessionDetails: SharingSessionDetailedDto | null;
@@ -54,12 +47,6 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
 {
     const styles = useSessionDetailsHeaderStyles();
     const landingStyles = useLandingStyles();
-    const DocumentAddIcon = bundleIcon(DocumentAddRegular, DocumentAddRegular);
-    const SessionEndIcon = bundleIcon(CheckmarkNoteFilled, CheckmarkNoteRegular);
-    const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular);
-    const EditSessionIcon = bundleIcon(WindowEditFilled, WindowEditRegular);
-    const ManageAccessIcon = bundleIcon(PeopleLockFilled, PeopleLockRegular);
-
     const [isCollapsed, setIsCollapsed] = React.useState(false);
 
     useEffect(() =>
@@ -71,9 +58,6 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
     {
         setIsCollapsed((prev) => !prev);
     };
-
-    const ToggleHeaderUpIcon = bundleIcon(ChevronUpFilled, ChevronUpRegular);
-    const ToggleHeaderDownIcon = bundleIcon(ChevronDownFilled, ChevronDownRegular);
 
     return (
         <>

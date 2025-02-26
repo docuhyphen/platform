@@ -1,22 +1,10 @@
 import React, {useEffect} from 'react';
 import {Button, Divider, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger} from "@fluentui/react-components";
-import {
-    ArrowDownloadFilled,
-    ArrowDownloadRegular,
-    ArrowUploadFilled,
-    ArrowUploadRegular,
-    bundleIcon,
-    DeleteFilled,
-    DeleteRegular,
-    InfoFilled,
-    InfoRegular,
-    MoreVerticalRegular,
-    NotepadEditFilled,
-    NotepadEditRegular
-} from "@fluentui/react-icons";
+import {MoreVerticalRegular} from "@fluentui/react-icons";
 import {DocumentDetailedDto, SharingSessionDetailedDto, SharingSessionStatus} from "../../../models/models.tsx";
 import SessionDocumentDeleteDialog from "../session-document-delete-dialog/SessionDocumentDeleteDialog.tsx";
 import SessionDocumentDownloadDialog from "../session-document-download-dialog/SessionDocumentDownloadDialog.tsx";
+import {DeleteIcon, DownloadIcon, EditIcon, MoreInfoIcon, UploadIcon} from "../../../components/IconBundles.tsx";
 
 
 interface DocumentActionsMenuProps
@@ -42,12 +30,6 @@ const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [isDownloadDocumentOpen, setIsDownloadDocumentOpen] = React.useState(false);
     const [isSessionEnded, setIsSessionEnded] = React.useState(false);
-
-    const EditIcon = bundleIcon(NotepadEditFilled, NotepadEditRegular)
-    const UploadIcon = bundleIcon(ArrowUploadFilled, ArrowUploadRegular)
-    const DownloadIcon = bundleIcon(ArrowDownloadFilled, ArrowDownloadRegular)
-    const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular)
-    const MoreInfoIcon = bundleIcon(InfoFilled, InfoRegular)
 
     useEffect(() =>
     {

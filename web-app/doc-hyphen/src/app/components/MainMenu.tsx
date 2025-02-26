@@ -19,21 +19,9 @@ import {
 import {useAuth} from '../../context/AuthContext';
 import SignOutButton from '../components/SignOutButton';
 import SharingSessionInitiation from "../sharing-session-initiation/SharingSessionInitiation.tsx";
-import {
-    AlertFilled,
-    AlertRegular,
-    ArrowExitFilled,
-    ArrowExitRegular,
-    bundleIcon,
-    ChannelShareFilled,
-    ChannelShareRegular,
-    InfoFilled,
-    InfoRegular,
-    SettingsFilled,
-    SettingsRegular
-} from "@fluentui/react-icons";
 import AppLogo from "./app-logo/AppLogo.tsx";
 import {useGlobalStyles} from "../../GlobalStyles.tsx";
+import {InfoIcon, NotificationsIcon, SettingsIcon, SharingSessionIcon, SignOutButtonIcon} from "./IconBundles.tsx";
 
 const MainMenu: React.FC = () => {
     const { appUser, appUserPersonCompany } = useAuth();
@@ -46,12 +34,6 @@ const MainMenu: React.FC = () => {
     };
 
     const styles = useGlobalStyles();
-
-    const SharingSessionIcon = bundleIcon(ChannelShareFilled, ChannelShareRegular);
-    const NotificationsIcon = bundleIcon(AlertFilled, AlertRegular);
-    const SignOutButtonIcon = bundleIcon(ArrowExitFilled, ArrowExitRegular);
-    const InfoIcon = bundleIcon(InfoFilled, InfoRegular)
-    const SettingsIcon = bundleIcon(SettingsFilled, SettingsRegular)
 
     return (
         <section className={styles.mainAppHeader}>

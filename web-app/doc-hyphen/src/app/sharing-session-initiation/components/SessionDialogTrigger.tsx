@@ -1,27 +1,18 @@
 import React from 'react';
 import {Button, Menu, MenuButton, MenuItem, MenuList, MenuPopover, MenuTrigger} from "@fluentui/react-components";
 import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
-import {
-    bundleIcon,
-    DocumentArrowLeftFilled,
-    DocumentArrowLeftRegular,
-    DocumentArrowRightFilled,
-    DocumentArrowRightRegular
-} from "@fluentui/react-icons";
+import {ReceiveDocumentsIcon, SendDocumentsIcon} from "../../components/IconBundles.tsx";
 
 interface SessionDialogTriggerProps
 {
     onRequestingDocumentsChange: (isRequesting: boolean) => void;
 }
 
-
-const ReceiveDocumentsIcon = bundleIcon(DocumentArrowLeftFilled, DocumentArrowLeftRegular)
-const SendDocumentsIcon = bundleIcon(DocumentArrowRightFilled, DocumentArrowRightRegular)
-
-const SessionDialogTrigger = React.forwardRef<HTMLButtonElement, SessionDialogTriggerProps>(({
-                                                                                                 onRequestingDocumentsChange,
-                                                                                                 ...props
-                                                                                             }, ref) =>
+const SessionDialogTrigger = React.forwardRef<HTMLButtonElement, SessionDialogTriggerProps>((
+    {
+        onRequestingDocumentsChange,
+        ...props
+    }, ref) =>
 {
     const styles = useSharingSessionInitiationStyles();
 

@@ -29,12 +29,7 @@ import SharingOptionsTab from "./components/SessionOptionsTab.tsx";
 import SessionDialogActions from "./components/SessionDialogActions.tsx";
 import SessionDialogTrigger from "./components/SessionDialogTrigger.tsx";
 import SessionDialogTitleSection from "./components/SessionDialogTitleSection.tsx";
-import {
-    ArrowOutlineDownLeftFilled,
-    ArrowOutlineDownLeftRegular, ArrowOutlineUpRightFilled, ArrowOutlineUpRightRegular,
-    bundleIcon,
-    DismissRegular
-} from "@fluentui/react-icons";
+import {DismissRegular} from "@fluentui/react-icons";
 import SessionRecipientsTab from "./components/SessionRecipientsTab.tsx";
 import {isValidEmail} from "../../utils/helpers.ts";
 import {publishNewSharingSessionAddition} from '../observable/sharingSessionObservables.ts';

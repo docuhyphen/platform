@@ -14,13 +14,6 @@ import {
     Text,
     Tooltip
 } from "@fluentui/react-components";
-import {
-    bundleIcon,
-    DocumentAddFilled,
-    DocumentAddRegular,
-    FolderZipFilled,
-    FolderZipRegular
-} from "@fluentui/react-icons";
 import {formatDateTimeWithOrdinal} from "../helpers.ts";
 import {DocumentDetailedDto, SharingSessionDetailedDto, SharingSessionStatus} from "../models/models.tsx";
 import {useLandingStyles} from "./LandingStyles.tsx";
@@ -36,6 +29,7 @@ import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 import SessionDocumentPreviewer from "./components/session-document-preview/SessionDocumentPreviewer.tsx";
 import SharingSessionList from "../sharing-session-list/SharingSessionList.tsx";
+import {DocumentAddIcon, ZipDocumentsIcon} from "../components/IconBundles.tsx";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
@@ -59,9 +53,6 @@ const Landing: React.FC = () =>
     const [sessionDetails, setSessionDetails] = useState<SharingSessionDetailedDto | null>(null);
     const [fetchingDetails, setFetchingDetails] = useState<boolean>(true);
     const [isSessionEnded, setIsSessionEnded] = React.useState(false);
-
-    const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
-    const DocumentAddIcon = bundleIcon(DocumentAddFilled, DocumentAddRegular)
 
     useEffect(() =>
     {

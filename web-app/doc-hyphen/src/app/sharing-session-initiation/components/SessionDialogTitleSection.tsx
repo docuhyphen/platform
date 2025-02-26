@@ -1,14 +1,8 @@
 import React from 'react';
 import {Button, Tab, TabList, TabValue, Text} from "@fluentui/react-components";
-import {
-    bundleIcon, DeleteFilled, DeleteRegular,
-    DismissRegular, DocumentBulletListMultipleFilled,
-    DocumentBulletListMultipleRegular, DocumentOnePageFilled,
-    DocumentOnePageRegular, OptionsFilled,
-    OptionsRegular, PeopleCommunityAddFilled,
-    PeopleCommunityAddRegular
-} from "@fluentui/react-icons";
+import {DismissRegular} from "@fluentui/react-icons";
 import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
+import {DetailsIcon, DocumentsIcon, OptionsIcon, RecipientsIcon} from "../../components/IconBundles.tsx";
 
 interface DialogTitleSectionProps
 {
@@ -30,11 +24,6 @@ const SessionDialogTitleSection: React.FC<DialogTitleSectionProps> = ({
                                                                       }) =>
 {
     const styles = useSharingSessionInitiationStyles();
-
-    const RecipientsIcon = bundleIcon(PeopleCommunityAddFilled, PeopleCommunityAddRegular)
-    const DetailsIcon = bundleIcon(DocumentOnePageFilled, DocumentOnePageRegular)
-    const DocumentsIcon = bundleIcon(DocumentBulletListMultipleFilled, DocumentBulletListMultipleRegular)
-    const OptionsIcon = bundleIcon(OptionsFilled, OptionsRegular)
 
     return (
         <>

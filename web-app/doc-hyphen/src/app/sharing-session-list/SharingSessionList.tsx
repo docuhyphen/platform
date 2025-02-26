@@ -18,20 +18,15 @@ import {
     Spinner,
     Tooltip
 } from "@fluentui/react-components";
-import {
-    ArrowSortDownLinesFilled,
-    ArrowSortDownLinesRegular,
-    bundleIcon,
-    FilterFilled,
-    FilterRegular
-} from "@fluentui/react-icons";
 import {formatDateWithOrdinal} from "../helpers.ts";
 import {SharingSessionBasicDto} from "../models/models.tsx";
 import {useSharingSessionStyles} from "./SharingSessionListStyles.tsx";
 import {
     sharingSessionDeletionObservable,
-    sharingSessionInitiationObservable, sharingSessionUpdatedObservable
+    sharingSessionInitiationObservable,
+    sharingSessionUpdatedObservable
 } from "../observable/sharingSessionObservables.ts";
+import {FilterIcon, SortDownIcon} from "../components/IconBundles.tsx";
 
 interface SharingSessionListProps {
     onSelectionChange: (sessionId: string) => void;
@@ -44,8 +39,6 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
     const [loadingSharingSessions, setLoadingSharingSessions] = useState(true);
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
-    const FilterIcon = bundleIcon(FilterFilled, FilterRegular);
-    const SortDownIcon = bundleIcon(ArrowSortDownLinesFilled, ArrowSortDownLinesRegular);
 
     const fetchSharingSessions = async () => {
         try {

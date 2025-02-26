@@ -3,14 +3,7 @@ import {Button} from "@fluentui/react-components";
 import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
 import SessionDocumentsCard from "./SessionDocumentsCard.tsx";
 import {SharingSessionRequestDocumentRequest} from "../../models/models.tsx";
-import {
-    AddRegular,
-    bundleIcon,
-    DocumentAddFilled,
-    DocumentAddRegular,
-    OptionsFilled,
-    OptionsRegular
-} from "@fluentui/react-icons";
+import {DocumentAddIcon} from "../../components/IconBundles.tsx";
 
 interface SessionDocumentsTabProps
 {
@@ -33,7 +26,6 @@ const SessionDocumentsTab: React.FC<SessionDocumentsTabProps> = ({
 {
     const styles = useSharingSessionInitiationStyles();
 
-    const AddDocumentIcon = bundleIcon(DocumentAddFilled, DocumentAddRegular)
 
     return (
         <div className={styles.sharingSessionDocumentsTabContent}>
@@ -49,7 +41,7 @@ const SessionDocumentsTab: React.FC<SessionDocumentsTabProps> = ({
                 />
             ))}
             <Button onClick={addNewDocument}
-                    icon={<AddDocumentIcon/>}
+                    icon={<DocumentAddIcon/>}
                     appearance="subtle">
                 Add Document
             </Button>

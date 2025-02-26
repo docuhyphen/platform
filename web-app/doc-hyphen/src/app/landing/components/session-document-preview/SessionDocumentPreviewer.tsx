@@ -1,4 +1,3 @@
-// SessionDocumentPreviewer.tsx
 import React, {useEffect, useState} from 'react';
 import {Document, Page, pdfjs} from 'react-pdf';
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
@@ -8,15 +7,7 @@ import {DocumentDetailedDto} from "../../../models/models";
 import useToken from "../../../../context/useToken";
 import {downloadSharingSessionDocument} from "../../../../services/sharingSessionApi";
 import {Button, Input, Text} from "@fluentui/react-components";
-import {
-    ArrowExpandFilled,
-    ArrowExpandRegular, ArrowMoveInwardFilled, ArrowMoveInwardRegular,
-    ArrowNextFilled,
-    ArrowNextRegular,
-    ArrowPreviousFilled,
-    ArrowPreviousRegular,
-    bundleIcon
-} from "@fluentui/react-icons";
+import {CollapseIcon, ExpandIcon, LastPageIcon, PreviousPageIcon} from "../../../components/IconBundles.tsx";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
@@ -91,11 +82,6 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document, s
             setCurrentPage(value);
         }
     };
-
-    const LastPageIcon = bundleIcon(ArrowNextFilled, ArrowNextRegular)
-    const PreviousPageIcon = bundleIcon(ArrowPreviousFilled, ArrowPreviousRegular)
-    const ExpandIcon = bundleIcon(ArrowExpandFilled, ArrowExpandRegular)
-    const CollapseIcon = bundleIcon(ArrowMoveInwardFilled, ArrowMoveInwardRegular)
 
     return (
         <section className={isEnlarged ? styles.enlargedPreviewContainer : styles.previewContainer}>
