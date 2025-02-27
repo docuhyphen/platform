@@ -3,7 +3,7 @@ import {Document, Page, pdfjs} from 'react-pdf';
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 import {useSessionDocumentPreviewerStyles} from "./SessionDocumentPreviewerStyles";
-import {DocumentDetailedDto} from "../../../models/models";
+import {DocumentDetailedDto, SharingSessionDetailedDto} from "../../../models/models";
 import useToken from "../../../../context/useToken";
 import {downloadSharingSessionDocument} from "../../../../services/sharingSessionApi";
 import {Button, Input, Text} from "@fluentui/react-components";
@@ -14,10 +14,10 @@ pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pd
 interface DocumentPreviewerProps
 {
     document: DocumentDetailedDto;
-    sessionId: string;
+    session: SharingSessionDetailedDto;
 }
 
-const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: sessionDocument, sessionId}) =>
+const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: sessionDocument, session}) =>
 {
     const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -37,7 +37,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: s
             {
                 try
                 {
-                    const response = await downloadSharingSessionDocument(sessionId, sessionDocument.id, token);
+                    const response = await downloadSharingSessionDocument(session.id, sessionDocument.id, token);
                     const blob = new Blob([response as Blob], {type: 'application/pdf'});
                     setPdfBlob(blob);
 
@@ -87,43 +87,62 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: s
     return (
         <section className={isEnlarged ? styles.enlargedPreviewContainer : styles.previewContainer}>
             <div className={isEnlarged ? styles.enlargedPreviewHeader : styles.previewHeader}>
+                {isEnlarged &&
+                    <div className={styles.documentName}>
+                        <Text size={200}>
+                            {session.sessionName}
+                        </Text>
+                        <Text size={500}>
+                            {sessionDocument.title}
+                        </Text>
+                    </div>
+                }
+                <div className={isEnlarged ? styles.enlargedPreviewHeaderActions : styles.previewHeaderActions}>
 
-                <Button onClick={goToFirstPage}
-                        icon={<PreviousPageIcon/>}
-                        appearance={"transparent"}/>
 
-                {/*<Button onClick={goToPreviousPage}*/}
-                {/*        icon={<PreviousPageIcon/>}*/}
-                {/*        appearance={"transparent"}/>*/}
-                <Input
-                    type="text"
-                    value={currentPage.toString()}
-                    onChange={handlePageInputChange}
-                    className={styles.pagesInput}
-                    contentAfter={<Text>/{numPages}</Text>}
-                />
+                    {!isEnlarged &&
+                        <Button onClick={toggleEnlarge}
+                                appearance={"transparent"}
+                                icon={isEnlarged ? <CollapseIcon/> : <ExpandIcon/>}>
+                        </Button>
+                    }
+                    <div>
+                        <Button onClick={goToFirstPage}
+                                icon={<PreviousPageIcon/>}
+                                appearance={"transparent"}/>
 
-                {/*<Button onClick={goToNextPage}*/}
-                {/*        icon={<LastPageIcon/>}*/}
-                {/*        appearance={"transparent"}/>*/}
+                        <Input
+                            type="text"
+                            value={currentPage.toString()}
+                            onChange={handlePageInputChange}
+                            className={styles.pagesInput}
+                            contentAfter={<Text>/{numPages}</Text>}
+                        />
 
-                <Button onClick={goToLastPage}
-                        icon={<LastPageIcon/>}
-                        appearance={"transparent"}/>
+                        <Button onClick={goToLastPage}
+                                icon={<LastPageIcon/>}
+                                appearance={"transparent"}/>
 
-                <Button onClick={toggleEnlarge}
-                        appearance={"transparent"}
-                        icon={isEnlarged ? <CollapseIcon/> : <ExpandIcon/>}>
-                </Button>
+                    </div>
+
+                    {isEnlarged &&
+                        <Button onClick={toggleEnlarge}
+                                appearance={"transparent"}
+                                icon={isEnlarged ? <CollapseIcon/> : <ExpandIcon/>}>
+                        </Button>
+                    }
+                </div>
             </div>
-            <div className={styles.pdfDocumentContainer}>
+            <div className={isEnlarged ? styles.enlargedPdfDocumentContainer : styles.pdfDocumentContainer}
+                 id={"pdfDocumentContainer"}>
                 {pdfUrl && (
                     <Document
+                        className={isEnlarged ? styles.enlargedPdfDocument : styles.pdfDocument}
                         file={pdfUrl}
                         onLoadSuccess={onDocumentLoadSuccess}
                         onLoadError={(error) => console.error("Failed to load PDF:", error)}
                     >
-                        <Page pageNumber={currentPage} scale={isEnlarged ? 1.5 : 1.0}/>
+                        <Page pageNumber={currentPage} scale={isEnlarged ? 1.0 : 1.0}/>
                     </Document>
                 )}
             </div>

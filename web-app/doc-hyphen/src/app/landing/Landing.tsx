@@ -345,18 +345,19 @@ const Landing: React.FC = () =>
                             <NoSessionDocuments setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}/>
                         }
 
-                        <div className={styles.sharingSessionDocumentSidebar}>
-                            {selectedSessionDocument &&
+                        {selectedSessionDocument && isDocumentSidebarOpen &&
+                            <div className={styles.sharingSessionDocumentSidebar}>
+                                &&
                                 <SessionDocumentSidebar
                                     isOpen={isDocumentSidebarOpen}
                                     onOpen={setIsDocumentSidebarOpen}
                                     sessionDocument={selectedSessionDocument}/>
-                            }
-                        </div>
+                            </div>
+                        }
 
                         {selectedSessionDocument &&
                             <SessionDocumentPreviewer document={selectedSessionDocument}
-                                                      sessionId={sessionDetails.id}/>}
+                                                      session={sessionDetails}/>}
                     </div>
                 }
                 {!fetchingDetails && (!selectedSessionId && !sessionDetails) &&
