@@ -17,7 +17,7 @@ interface DocumentPreviewerProps
     sessionId: string;
 }
 
-const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document, sessionId}) =>
+const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: sessionDocument, sessionId}) =>
 {
     const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -32,11 +32,11 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document, s
     {
         const fetchDocument = async () =>
         {
-            if (document && document.uploadDate)
+            if (sessionDocument && sessionDocument.uploadDate)
             {
                 try
                 {
-                    const response = await downloadSharingSessionDocument(sessionId, document.id, token);
+                    const response = await downloadSharingSessionDocument(sessionId, sessionDocument.id, token);
                     const blob = new Blob([response as Blob], {type: 'application/pdf'});
                     setPdfBlob(blob);
 
@@ -52,7 +52,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document, s
         };
 
         fetchDocument();
-    }, [document, token, sessionId]);
+    }, [sessionDocument]);
 
     const onDocumentLoadSuccess = ({numPages}: { numPages: number }) =>
     {

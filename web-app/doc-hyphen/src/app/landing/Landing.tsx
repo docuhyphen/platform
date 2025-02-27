@@ -187,7 +187,7 @@ const Landing: React.FC = () =>
             <DocumentActionsMenu session={sessionDetails}
                                  onOpenDetailsSidebar={() =>
                                  {
-                                     // setIsDocumentSidebarOpen(true)
+                                     setIsDocumentSidebarOpen(true)
                                      setSelectedSessionDocument(sessionDocument)
                                  }}
                                  onDocumentDeleted={onDocumentDeleted}
@@ -202,8 +202,8 @@ const Landing: React.FC = () =>
                                      setSelectedUpdateSessionDocument(sessionDocument)
                                      setIsUpdateDocumentDialogOpen(true)
                                  }}
+                                 onPreviewDocument={() => setSelectedSessionDocument(sessionDocument)}/>
 
-            />
         </>
     }
 

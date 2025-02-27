@@ -35,11 +35,14 @@ import {
     DocumentArrowLeftFilled,
     DocumentArrowLeftRegular,
     DocumentArrowRightFilled,
-    DocumentArrowRightRegular, DocumentBulletListClockFilled, DocumentBulletListClockRegular,
+    DocumentArrowRightRegular,
+    DocumentBulletListClockFilled,
+    DocumentBulletListClockRegular,
     DocumentBulletListMultipleFilled,
     DocumentBulletListMultipleRegular,
     DocumentOnePageFilled,
-    DocumentOnePageRegular,
+    DocumentOnePageRegular, DocumentSearchFilled,
+    DocumentSearchRegular,
     FilterFilled,
     FilterRegular,
     FolderZipFilled,
@@ -83,6 +86,7 @@ export const EditIcon = bundleIcon(NotepadEditFilled, NotepadEditRegular)
 export const UploadIcon = bundleIcon(ArrowUploadFilled, ArrowUploadRegular)
 export const DownloadIcon = bundleIcon(ArrowDownloadFilled, ArrowDownloadRegular)
 export const MoreInfoIcon = bundleIcon(InfoFilled, InfoRegular)
+export const DocumentPreviewIcon = bundleIcon(DocumentSearchFilled, DocumentSearchRegular)
 export const ToggleHeaderUpIcon = bundleIcon(ChevronUpFilled, ChevronUpRegular);
 export const ToggleHeaderDownIcon = bundleIcon(ChevronDownFilled, ChevronDownRegular);
 export const CommentIcon = bundleIcon(CommentFilled, CommentRegular);
