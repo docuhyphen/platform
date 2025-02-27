@@ -73,14 +73,14 @@ const Landing: React.FC = () =>
 
                 try
                 {
-                    const details = await fetchSignedInUserAppUserSharingSession(selectedSessionId, token);
-                    setSessionDetails(details as SharingSessionDetailedDto);
+                    const details = (await fetchSignedInUserAppUserSharingSession(selectedSessionId, token)) as SharingSessionDetailedDto;
+                    setSessionDetails(details);
 
-                    if(sessionDetails?.documents?.length > 0)
+                    if (details?.documents?.length > 0)
                     {
-                        for(let i = 0; i < sessionDetails?.documents?.length; i++)
+                        for (let i = 0; i < details?.documents?.length; i++)
                         {
-                            const document = sessionDetails?.documents[i]
+                            const document = details?.documents[i]
                             if (document.uploadDate)
                             {
                                 setSelectedSessionDocument(document);

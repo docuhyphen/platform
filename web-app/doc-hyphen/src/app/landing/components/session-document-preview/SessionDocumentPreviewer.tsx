@@ -30,6 +30,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: s
 
     useEffect(() =>
     {
+        console.log("Sesstion document changed", sessionDocument.title);
         const fetchDocument = async () =>
         {
             if (sessionDocument && sessionDocument.uploadDate)
