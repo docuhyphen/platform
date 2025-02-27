@@ -73,21 +73,21 @@ const Landing: React.FC = () =>
 
                 try
                 {
-                    // const details = await fetchSignedInUserAppUserSharingSession(selectedSessionId, token);
-                    // setSessionDetails(details as SharingSessionDetailedDto);
-                    //
-                    // if(sessionDetails?.documents?.length > 0)
-                    // {
-                    //     for(let i = 0; i < sessionDetails?.documents?.length; i++)
-                    //     {
-                    //         const document = sessionDetails?.documents[i]
-                    //         if (document.uploadDate)
-                    //         {
-                    //             setSelectedSessionDocument(document);
-                    //             break;
-                    //         }
-                    //     }
-                    // }
+                    const details = await fetchSignedInUserAppUserSharingSession(selectedSessionId, token);
+                    setSessionDetails(details as SharingSessionDetailedDto);
+
+                    if(sessionDetails?.documents?.length > 0)
+                    {
+                        for(let i = 0; i < sessionDetails?.documents?.length; i++)
+                        {
+                            const document = sessionDetails?.documents[i]
+                            if (document.uploadDate)
+                            {
+                                setSelectedSessionDocument(document);
+                                break;
+                            }
+                        }
+                    }
                 }
                 catch (error)
                 {
@@ -95,7 +95,7 @@ const Landing: React.FC = () =>
                 }
                 finally
                 {
-                    // setFetchingDetails(false);
+                    setFetchingDetails(false);
                 }
             };
             fetchDetails();

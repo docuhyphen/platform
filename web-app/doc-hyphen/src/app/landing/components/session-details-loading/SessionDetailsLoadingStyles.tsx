@@ -117,4 +117,13 @@ export const useSessionDetailsLoadingStyles = makeStyles({
     documentMoreOptions: {
         width: "8px",
     },
+
+    pdfPreviewSection: {
+        border: "1px solid rgba(0, 0, 0, .2)",
+        borderRadius: "4px",
+        margin: "auto",
+        width: "100%",
+        maxWidth: "500px",
+        flex: 1,
+    },
 });

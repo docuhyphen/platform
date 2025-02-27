@@ -45,8 +45,7 @@ const SessionDetailsLoading: React.FC = () =>
                 ))}
             </div>
         </div>
-        <div className={styles.pdfPreviewSesion}>
-
+        <div className={styles.pdfPreviewSection}>
         </div>
     </section>
 };
