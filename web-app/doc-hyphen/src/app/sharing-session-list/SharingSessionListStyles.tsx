@@ -26,21 +26,19 @@ export const useSharingSessionStyles = makeStyles({
 
     sharingSessionsListContainer: {
         width: "400px",
-        height: "100%",
-        overflow: "auto",
         border: "1px solid rgba(0, 0, 0, .1)",
         position: "relative",
         borderRadius: "4px",
         background: "white",
+        display: "flex",
+        flexDirection: "column"
     },
 
     sharingSessionsListHeader: {
         background: "white",
         boxShadow: "1px 1px 0px 1px rgba(0, 0, 0, .1)",
-        position: "absolute",
         width: "100%",
         height: "48px",
-        top: "0",
         padding: "8px",
         boxSizing: "border-box",
         display: "flex",
@@ -69,8 +67,6 @@ export const useSharingSessionStyles = makeStyles({
     },
 
     sharingSessionsListFooter: {
-        position: "absolute",
-        bottom: "0",
         background: "white",
         padding: "8px",
         fontSize: "12px",
@@ -87,11 +83,11 @@ export const useSharingSessionStyles = makeStyles({
         gap: "4px",
         overflow: "auto",
         height: "100%",
-        paddingTop: "56px",
+        paddingTop: "2px",
         boxSizing: "border-box",
-        paddingBottom: "36px",
         scrollbarWidth: "thin",
         scrollbarColor: "#888 #f1f1f1",
+        flex: 1,
     },
 
     sharingSessionsListBodyWebkitScrollbar: {

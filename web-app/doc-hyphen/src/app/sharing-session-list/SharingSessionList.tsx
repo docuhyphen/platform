@@ -32,13 +32,13 @@ interface SharingSessionListProps {
     onSelectionChange: (sessionId: string) => void;
 }
 
-const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChange}) => {
+const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChange}) =>
+{
     const styles = useSharingSessionStyles();
     const token = useToken();
     const [sharingSessions, setSharingSessions] = useState<SharingSessionBasicDto[]>([]);
     const [loadingSharingSessions, setLoadingSharingSessions] = useState(true);
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
-
 
     const fetchSharingSessions = async () => {
         try {
@@ -159,38 +159,6 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
 
     return (
         <section className={styles.sharingSessionsListContainer}>
-            <List
-                className={styles.sharingSessionsListBody}
-                selectionMode="single"
-                navigationMode="items"
-                selectedItems={selectedItems}
-                onSelectionChange={handleSelectionChange}>
-
-                {loadingSharingSessions && Array.from({length: 10}).map((_, index) => (
-                    <ListItem
-                        className={index === 2 ? styles.sharingSessionsListSelectedItem : ""}
-                        key={index}
-                        value={index.toString()}
-                        data-value={index.toString()}
-                        checkmark={null}
-                    >
-                        {listItemCardSkeleton()}
-                    </ListItem>
-                ))}
-
-                {!loadingSharingSessions && sharingSessions.map((session: SharingSessionBasicDto) => (
-                    <ListItem
-                        className={selectedItems.includes(session.id) ? styles.sharingSessionsListSelectedItem : ""}
-                        key={session.id}
-                        value={session.id}
-                        data-value={session.id}
-                        onFocus={onListItemFocus}
-                        checkmark={null}
-                    >
-                        {listItemCard(session)}
-                    </ListItem>
-                ))}
-            </List>
             <div className={styles.sharingSessionsListHeader}>
                 <Field className={styles.filterSearchField}>
                     <SearchBox/>
@@ -230,6 +198,38 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                     </MenuPopover>
                 </Menu>
             </div>
+            <List
+                className={styles.sharingSessionsListBody}
+                selectionMode="single"
+                navigationMode="items"
+                selectedItems={selectedItems}
+                onSelectionChange={handleSelectionChange}>
+
+                {loadingSharingSessions && Array.from({length: 10}).map((_, index) => (
+                    <ListItem
+                        className={index === 2 ? styles.sharingSessionsListSelectedItem : ""}
+                        key={index}
+                        value={index.toString()}
+                        data-value={index.toString()}
+                        checkmark={null}
+                    >
+                        {listItemCardSkeleton()}
+                    </ListItem>
+                ))}
+
+                {!loadingSharingSessions && sharingSessions.map((session: SharingSessionBasicDto) => (
+                    <ListItem
+                        className={selectedItems.includes(session.id) ? styles.sharingSessionsListSelectedItem : ""}
+                        key={session.id}
+                        value={session.id}
+                        data-value={session.id}
+                        onFocus={onListItemFocus}
+                        checkmark={null}
+                    >
+                        {listItemCard(session)}
+                    </ListItem>
+                ))}
+            </List>
             <div className={styles.sharingSessionsListFooter}>
                 <span>
                     {loadingSharingSessions && <Spinner size={"extra-small"}/>}
@@ -237,7 +237,11 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
                         Showing <strong> {sharingSessions.length} </strong> Sharing Sessions
                     </>}
                 </span>
-                <Button size={"small"} appearance={"primary"} disabled>View All</Button>
+                <Button size={"small"}
+                        appearance={"primary"}
+                        disabled>
+                    View All
+                </Button>
             </div>
         </section>
     );
