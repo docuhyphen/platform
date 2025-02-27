@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import {Document, Page, pdfjs} from 'react-pdf';
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
@@ -22,15 +22,14 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: s
     const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
     const [numPages, setNumPages] = useState<number>(0);
-    const [currentPage, setCurrentPage] = useState<number>(1);
     const [isEnlarged, setIsEnlarged] = useState<boolean>(false);
     const token = useToken();
-
     const styles = useSessionDocumentPreviewerStyles();
+    const pdfContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() =>
     {
-        console.log("Sesstion document changed", sessionDocument.title);
+        console.log("Session document changed", sessionDocument.title);
         const fetchDocument = async () =>
         {
             if (sessionDocument && sessionDocument.uploadDate)
@@ -60,19 +59,13 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: s
         setNumPages(numPages);
     };
 
-    const goToFirstPage = () =>
+    const goToPage = (pageNumber: number) =>
     {
-        setCurrentPage(1);
-    };
-
-    const goToLastPage = () =>
-    {
-        setCurrentPage(numPages);
-    };
-
-    const toggleEnlarge = () =>
-    {
-        setIsEnlarged(prev => !prev);
+        const pageElement = pdfContainerRef.current?.querySelector(`[data-page-number="${pageNumber}"]`);
+        if (pageElement)
+        {
+            pageElement.scrollIntoView({behavior: 'smooth'});
+        }
     };
 
     const handlePageInputChange = (event: React.ChangeEvent<HTMLInputElement>) =>
@@ -80,8 +73,13 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: s
         const value = parseInt(event.target.value, 10);
         if (!isNaN(value) && value >= 1 && value <= numPages)
         {
-            setCurrentPage(value);
+            goToPage(value);
         }
+    };
+
+    const toggleEnlarge = () =>
+    {
+        setIsEnlarged(prev => !prev);
     };
 
     return (
@@ -98,8 +96,6 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: s
                     </div>
                 }
                 <div className={isEnlarged ? styles.enlargedPreviewHeaderActions : styles.previewHeaderActions}>
-
-
                     {!isEnlarged &&
                         <Button onClick={toggleEnlarge}
                                 appearance={"transparent"}
@@ -107,19 +103,18 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: s
                         </Button>
                     }
                     <div>
-                        <Button onClick={goToFirstPage}
+                        <Button onClick={() => goToPage(1)}
                                 icon={<PreviousPageIcon/>}
                                 appearance={"transparent"}/>
 
                         <Input
                             type="text"
-                            value={currentPage.toString()}
                             onChange={handlePageInputChange}
                             className={styles.pagesInput}
                             contentAfter={<Text>/{numPages}</Text>}
                         />
 
-                        <Button onClick={goToLastPage}
+                        <Button onClick={() => goToPage(numPages)}
                                 icon={<LastPageIcon/>}
                                 appearance={"transparent"}/>
 
@@ -134,7 +129,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: s
                 </div>
             </div>
             <div className={isEnlarged ? styles.enlargedPdfDocumentContainer : styles.pdfDocumentContainer}
-                 id={"pdfDocumentContainer"}>
+                 id={"pdfDocumentContainer"} ref={pdfContainerRef}>
                 {pdfUrl && (
                     <Document
                         className={isEnlarged ? styles.enlargedPdfDocument : styles.pdfDocument}
@@ -142,7 +137,9 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: s
                         onLoadSuccess={onDocumentLoadSuccess}
                         onLoadError={(error) => console.error("Failed to load PDF:", error)}
                     >
-                        <Page pageNumber={currentPage} scale={isEnlarged ? 1.0 : 1.0}/>
+                        {Array.from(new Array(numPages), (el, index) => (
+                            <Page key={`page_${index + 1}`} pageNumber={index + 1} scale={isEnlarged ? 1.3 : 1.0}/>
+                        ))}
                     </Document>
                 )}
             </div>
