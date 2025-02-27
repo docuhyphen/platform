@@ -25,7 +25,7 @@ export const useSharingSessionStyles = makeStyles({
     },
 
     sharingSessionsListContainer: {
-        width: "400px",
+        minWidth: "400px",
         border: "1px solid rgba(0, 0, 0, .1)",
         position: "relative",
         borderRadius: "4px",
