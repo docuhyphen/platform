@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useRef} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {Document, Page, pdfjs} from 'react-pdf';
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
@@ -42,7 +42,8 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: s
 
                     // Create Object URL for PDF
                     const url = URL.createObjectURL(blob);
-                    setPdfUrl(url);
+                    console.log(url)
+                    setTimeout(() => setPdfUrl(url), 2000);
                 }
                 catch (error)
                 {
@@ -138,7 +139,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: s
                         onLoadError={(error) => console.error("Failed to load PDF:", error)}
                     >
                         {Array.from(new Array(numPages), (el, index) => (
-                            <Page key={`page_${index + 1}`} pageNumber={index + 1} scale={isEnlarged ? 1.3 : 1.0}/>
+                            <Page key={`page_${index + 1}`} pageNumber={index + 1} scale={isEnlarged ? 1.1 : 1.0}/>
                         ))}
                     </Document>
                 )}
