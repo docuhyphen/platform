@@ -9,8 +9,10 @@ import {
     Card,
     CardHeader,
     Field,
+    InputOnChangeData,
     mergeClasses,
     SearchBox,
+    SearchBoxChangeEvent,
     Text,
     Tooltip
 } from "@fluentui/react-components";
@@ -52,6 +54,7 @@ const Landing: React.FC = () =>
     const [sessionDetails, setSessionDetails] = useState<SharingSessionDetailedDto | null>(null);
     const [fetchingDetails, setFetchingDetails] = useState<boolean>(true);
     const [isSessionEnded, setIsSessionEnded] = React.useState(false);
+    const [filteredDocuments, setFilteredDocuments] = useState<DocumentDetailedDto[]>([]);
 
     useEffect(() =>
     {
@@ -75,6 +78,7 @@ const Landing: React.FC = () =>
                 {
                     const details = (await fetchSignedInUserAppUserSharingSession(selectedSessionId, token)) as SharingSessionDetailedDto;
                     setSessionDetails(details);
+                    setFilteredDocuments(details.documents || []);
 
                     if (details?.documents?.length > 0)
                     {
@@ -123,6 +127,7 @@ const Landing: React.FC = () =>
             setIsDocumentAddDialogOpen(false)
             const updatedDocuments = sessionDetails.documents?.filter(document => document.id !== documentId);
             setSessionDetails({...sessionDetails, documents: updatedDocuments});
+            setFilteredDocuments(updatedDocuments || []);
         }
     }
 
@@ -133,6 +138,7 @@ const Landing: React.FC = () =>
             const currentDocuments = (sessionDetails.documents && sessionDetails.documents.length) ? sessionDetails.documents : [];
             const updatedDocuments = [...currentDocuments, newSessionDocument];
             setSessionDetails({...sessionDetails, documents: updatedDocuments});
+            setFilteredDocuments(updatedDocuments);
         }
     }
 
@@ -154,6 +160,7 @@ const Landing: React.FC = () =>
                 return document;
             });
             setSessionDetails({...sessionDetails, documents: updatedDocuments});
+            setFilteredDocuments(updatedDocuments || []);
         }
     }
 
@@ -290,6 +297,23 @@ const Landing: React.FC = () =>
         )
     }
 
+    const onFilterDocuments = (event: SearchBoxChangeEvent, data: InputOnChangeData) =>
+    {
+        const query = data.value.toLowerCase();
+
+        if (query === "")
+        {
+            setFilteredDocuments(sessionDetails?.documents || []);
+            return;
+        }
+
+        const filtered = sessionDetails?.documents?.filter(document =>
+            document.title.toLowerCase().includes(query)
+        );
+
+        setFilteredDocuments(filtered || []);
+    }
+
     return (
         isLoading ? <PreLanding/> : <>
             <section className={styles.sharingSessionsContainer}>
@@ -325,6 +349,7 @@ const Landing: React.FC = () =>
                                     </Tooltip>
                                     <Field className={styles.documentSearchField}>
                                         <SearchBox placeholder={"Filter documents"}
+                                                   onChange={onFilterDocuments}
                                                    appearance={"underline"}/>
                                     </Field>
                                 </div>
@@ -332,7 +357,7 @@ const Landing: React.FC = () =>
 
                                     <div id={"documentsListCards"}
                                          className={styles.documentsCardList2}>
-                                        {sessionDetails.documents?.map((document: DocumentDetailedDto) => (
+                                        {filteredDocuments.map((document: DocumentDetailedDto) => (
                                             renderDocumentsListCard(document)
                                         ))}
                                     </div>
