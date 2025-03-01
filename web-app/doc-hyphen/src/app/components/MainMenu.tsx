@@ -24,13 +24,13 @@ import {useGlobalStyles} from "../../GlobalStyles.tsx";
 import {InfoIcon, NotificationsIcon, SettingsIcon, SharingSessionIcon, SignOutButtonIcon} from "./IconBundles.tsx";
 
 const MainMenu: React.FC = () => {
-    const { appUser, appUserPersonCompany } = useAuth();
+    const {appUser} = useAuth();
     const navigate = useNavigate();
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isSignOutDialogOpen, setIsSignOutDialogOpen] = useState(false);
 
     const onSignOut = () =>
     {
-        setIsDialogOpen(true);
+        setIsSignOutDialogOpen(true);
     };
 
     const styles = useGlobalStyles();
@@ -76,7 +76,7 @@ const MainMenu: React.FC = () => {
                 </MenuPopover>
             </Menu>
 
-            <Dialog open={isDialogOpen}>
+            <Dialog open={isSignOutDialogOpen}>
                 <DialogSurface>
                     <DialogBody>
                         <DialogTitle></DialogTitle>

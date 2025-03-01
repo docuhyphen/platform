@@ -84,6 +84,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
                 if (location.pathname !== "/sign-up" &&
                     location.pathname !== "/sign-in" &&
                     location.pathname !== "/account-recovery" &&
+                    location.pathname !== "/nas" &&
                     location.pathname !== "/not-found")
                 {
                     navigate("/sign-in")

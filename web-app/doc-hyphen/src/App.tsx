@@ -13,6 +13,7 @@ import Onboarding from "./app/onboarding/Onboarding.tsx";
 import Settings from "./app/settings/Settings.tsx";
 import CompanyRegistration from "./app/company-registration-pending/CompanyRegistration.tsx";
 import AccountRecovery from "./app/authorization/account-recovery";
+import NoAuthSharingSession from "./app/no-auth-sharing-session/NoAuthSharingSession.tsx";
 
 const App: React.FC = () => {
     return (
@@ -64,6 +65,12 @@ const App: React.FC = () => {
                            element={
                                <ProtectedRoute path='/sign-in' element={
                                    <SharingSessions/>
+                               }/>
+                           }/>
+
+                    <Route path="/nas"
+                           element={
+                               <RedirectIfAuthenticated element={<NoAuthSharingSession/>
                                }/>
                            }/>
 
