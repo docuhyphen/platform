@@ -1,43 +1,22 @@
-// web-app/doc-hyphen/src/app/landing/Landing.tsx
-
 import React, {useEffect, useState} from 'react';
 import {fetchSignedInUserAppUserSharingSession} from "../../services/sharingSessionApi.ts";
 import useToken from "../../context/useToken.tsx";
 import PreLanding from "../pre-landing/PreLanding.tsx";
-import {
-    Body1,
-    Button,
-    Caption1,
-    Card,
-    CardHeader,
-    Field,
-    InputOnChangeData,
-    mergeClasses,
-    SearchBox,
-    SearchBoxChangeEvent,
-    Text,
-    Tooltip
-} from "@fluentui/react-components";
-import {formatDateTimeWithOrdinal} from "../helpers.ts";
+import {InputOnChangeData, SearchBoxChangeEvent, Text} from "@fluentui/react-components";
 import {DocumentDetailedDto, SharingSessionDetailedDto, SharingSessionStatus} from "../models/models.tsx";
 import {useLandingStyles} from "./LandingStyles.tsx";
-import DocumentActionsMenu from "./components/session-document-actions-menu/DocumentActionsMenu.tsx";
 import SessionDocumentSidebar from "./components/session-document-sidebar/SessionDocumentSidebar.tsx";
 import NoSessionDocuments from "./components/session-documents-none/NoSessionDocuments.tsx";
 import SessionDialogsGroup from "./components/session-dialog-group/SessionDialogsGroup.tsx";
 import SessionDetailsHeader from "./components/session-details-header/SessionDetailsHeader.tsx";
 import SessionDetailsLoading from "./components/session-details-loading/SessionDetailsLoading.tsx";
-import {pdfjs} from 'react-pdf';
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 import SessionDocumentPreviewer from "./components/session-document-preview/SessionDocumentPreviewer.tsx";
 import SharingSessionList from "../sharing-session-list/SharingSessionList.tsx";
-import {DocumentAddIcon, ZipDocumentsIcon} from "../components/IconBundles.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {getPermissions, SharingSessionPermissions} from "./SessionPermissions.ts";
 import SessionDocumentsList from "./components/session-document-list/SessionDocumentsList.tsx";
-
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
 const Landing: React.FC = () =>
 {
