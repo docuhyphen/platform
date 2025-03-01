@@ -85,7 +85,7 @@ const IndividualRegistration: React.FC = () =>
             else
             {
                 alert("Will not register company")
-                navigate('/landing');
+                navigate('/sharing-sessions');
             }
         }
         catch (error)
@@ -99,7 +99,7 @@ const IndividualRegistration: React.FC = () =>
         console.log("UseEffect of individual registration");
         if (appUser && appUser.person && !alsoRegisterCompany)
         {
-            navigate('/landing');
+            navigate('/sharing-sessions');
         }
     }, [appUser, navigate, alsoRegisterCompany]);
     return (

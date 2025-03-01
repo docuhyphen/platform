@@ -44,14 +44,14 @@ const MainMenu: React.FC = () => {
             <SharingSessionInitiation/>
 
             <Button icon={<SharingSessionIcon/>}
-                    onClick={() => navigate('/landing')}
+                    onClick={() => navigate('/sharing-sessions')}
                     appearance={"subtle"}>
             </Button>
             <Button icon={<NotificationsIcon/>}
                     appearance={"subtle"}>
             </Button>
             <Button icon={<InfoIcon/>}
-                    onClick={() => navigate('/landing')}
+                    onClick={() => navigate('/sharing-sessions')}
                     appearance={"subtle"}>
             </Button>
             <Menu>

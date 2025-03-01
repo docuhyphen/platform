@@ -1,5 +1,3 @@
-// web-app/doc-hyphen/src/app/landing/components/session-documents-list/SessionDocumentsList.tsx
-
 import React from 'react';
 import {
     Body1,

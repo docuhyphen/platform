@@ -132,7 +132,7 @@ const SignIn: React.FC = () =>
                 // Handle error
             }
 
-            navigate('/landing');
+            navigate('/sharing-sessions');
         }
         catch (error)
         {

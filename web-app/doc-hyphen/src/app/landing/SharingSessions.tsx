@@ -18,7 +18,7 @@ import {useAuth} from "../../context/AuthContext.tsx";
 import {getPermissions, SharingSessionPermissions} from "./SessionPermissions.ts";
 import SessionDocumentsList from "./components/session-document-list/SessionDocumentsList.tsx";
 
-const Landing: React.FC = () =>
+const SharingSessions: React.FC = () =>
 {
     const styles = useLandingStyles();
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
@@ -300,4 +300,4 @@ const Landing: React.FC = () =>
     );
 };
 
-export default Landing;
+export default SharingSessions;

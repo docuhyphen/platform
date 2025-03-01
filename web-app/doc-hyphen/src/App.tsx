@@ -5,7 +5,7 @@ import SignIn from './app/authorization/sign-in';
 import CompanyRegistrationPending from './app/company-registration';
 import {AuthProvider} from './context/AuthContext';
 import ProtectedRoute from "./app/components/ProtectedRoutes.tsx";
-import Landing from "./app/landing/Landing.tsx";
+import SharingSessions from "./app/landing/SharingSessions.tsx";
 import SignUp from "./app/authorization/sign-up";
 import RedirectIfAuthenticated from "./app/components/RedirectIfAuthenticated.tsx";
 import NotFound from './app/NotFound.tsx';
@@ -62,10 +62,10 @@ const App: React.FC = () => {
 
 
 
-                    <Route path="/landing"
+                    <Route path="/sharing-sessions"
                            element={
                                <ProtectedRoute path='/sign-in' element={
-                                   <Landing/>
+                                   <SharingSessions/>
                                }/>
                            }/>
 
