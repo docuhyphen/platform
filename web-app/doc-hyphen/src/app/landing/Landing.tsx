@@ -35,6 +35,7 @@ import SharingSessionList from "../sharing-session-list/SharingSessionList.tsx";
 import {DocumentAddIcon, ZipDocumentsIcon} from "../components/IconBundles.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {getPermissions, SharingSessionPermissions} from "./SessionPermissions.ts";
+import SessionDocumentsList from "./components/session-document-list/SessionDocumentsList.tsx";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
@@ -198,79 +199,6 @@ const Landing: React.FC = () =>
         setSessionDetails(session);
     };
 
-    const renderDocumentsActionsMenu = (sessionDocument: DocumentDetailedDto) =>
-    {
-        return <>
-            <DocumentActionsMenu session={sessionDetails}
-                                 onOpenDetailsSidebar={() =>
-                                 {
-                                     setIsDocumentSidebarOpen(true);
-                                     setSelectedSessionDocument(sessionDocument);
-                                 }}
-                                 onDocumentDeleted={onDocumentDeleted}
-                                 sessionDocument={sessionDocument}
-                                 onUpload={() =>
-                                 {
-                                     alert() //Todo: change document preview
-                                     setSelectedSessionDocument(sessionDocument);
-                                     setIsUploadDocumentDialogOpen(true);
-                                 }}
-                                 onUpdate={() =>
-                                 {
-                                     setSelectedUpdateSessionDocument(sessionDocument);
-                                     setIsUpdateDocumentDialogOpen(true);
-                                 }}
-                                 onPreviewDocument={() => setSelectedSessionDocument(sessionDocument)}/>
-        </>;
-    };
-
-    const getDocumentListCardClasses = (sessionDocument) =>
-    {
-        if ((selectedSessionDocument && selectedSessionDocument.id)
-            == (sessionDocument && sessionDocument.id)) {
-            return mergeClasses(styles.documentsCardListCard, styles.documentsCardListCardSelected);
-        }
-
-        return styles.documentsCardListCard;
-    };
-
-    const renderDocumentsListCard = (sessionDocument: DocumentDetailedDto) =>
-    {
-        return <> {sessionDocument &&
-            <Card key={sessionDocument.id}
-                  className={getDocumentListCardClasses(sessionDocument)}>
-                <CardHeader
-                    header={<Body1><b>{sessionDocument.title}</b></Body1>}
-                    description={
-                        <>
-                            {sessionDocument.uploadDate ? (
-                                <Caption1>Uploaded {formatDateTimeWithOrdinal(sessionDocument.uploadDate)}</Caption1>
-                            ) : (
-                                <Button appearance="transparent"
-                                        icon={<DocumentAddIcon/>}
-                                        onClick={() => {
-                                            setSelectedSessionDocument(sessionDocument);
-                                            setIsUploadDocumentDialogOpen(true);
-                                        }}>
-                                    Upload new document
-                                </Button>
-                            )}
-                        </>
-                    }
-                    action={<>
-                        {sessionDetails && renderDocumentsActionsMenu(sessionDocument)}
-                    </>
-                    }
-                />
-            </Card>
-        }</>;
-    };
-
-    const getSessionHeadContainerClass = () =>
-    {
-        return `${styles.sharingSessionHeadContainer} ${styles[`sessionHeadStatus${sessionDetails?.status || ''}` as keyof typeof styles]}`;
-    };
-
     const renderDialogs = () =>
     {
         return (
@@ -326,55 +254,39 @@ const Landing: React.FC = () =>
 
     return (
         isLoading ? <PreLanding/> : <>
-            <section className={styles.sharingSessionsContainer}>
+            <section className={styles.container}>
 
                 <SharingSessionList onSelectionChange={setSelectedSessionId}/>
 
                 {fetchingDetails && !sessionDetails && <SessionDetailsLoading/>}
 
                 {!fetchingDetails && (selectedSessionId && sessionDetails) &&
-                    <div className={styles.sharingSessionDetailsContainer}>
-                        <div className={getSessionHeadContainerClass()}>
-                            <SessionDetailsHeader
-                                sessionDetails={sessionDetails}
-                                setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}
-                                setIsSessionEndDialogOpen={setIsSessionEndDialogOpen}
-                                setIsDeletedSessionDialogOpen={setIsDeletedSessionDialogOpen}
-                                setIsSessionEditDialogOpen={setIsSessionEditDialogOpen}
-                                setIsSessionAccessManagementDialogOpen={setIsSessionAccessManagementDialogOpen}
-                                sessionPermissions={permissions}
-                            />
-                        </div>
+                    <div className={styles.detailsContainer}>
+                        <SessionDetailsHeader
+                            sessionDetails={sessionDetails}
+                            setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}
+                            setIsSessionEndDialogOpen={setIsSessionEndDialogOpen}
+                            setIsDeletedSessionDialogOpen={setIsDeletedSessionDialogOpen}
+                            setIsSessionEditDialogOpen={setIsSessionEditDialogOpen}
+                            setIsSessionAccessManagementDialogOpen={setIsSessionAccessManagementDialogOpen}
+                            sessionPermissions={permissions}
+                        />
 
                         {(sessionDetails?.documents?.length > 0) && (
-                            <>
-                                <div className={styles.documentListTitle}>
-                                    <Tooltip content="Zip all documents"
-                                             relationship="description">
-                                        <Button size={"small"}
-                                                disabled={!permissions?.canDownloadDocumentsZip}
-                                                onClick={() => setIsDocumentZipDialogOpen(true)}
-                                                appearance={"transparent"}
-                                                icon={<ZipDocumentsIcon/>}>
-
-                                        </Button>
-                                    </Tooltip>
-                                    <Field className={styles.documentSearchField}>
-                                        <SearchBox placeholder={"Filter documents"}
-                                                   onChange={onFilterDocuments}
-                                                   appearance={"underline"}/>
-                                    </Field>
-                                </div>
-                                <div className={styles.documentsCardList}>
-
-                                    <div id={"documentsListCards"}
-                                         className={styles.documentsCardList2}>
-                                        {filteredDocuments.map((document: DocumentDetailedDto) => (
-                                            renderDocumentsListCard(document)
-                                        ))}
-                                    </div>
-                                </div>
-                            </>
+                            <SessionDocumentsList
+                                sessionDetails={sessionDetails}
+                                filteredDocuments={filteredDocuments}
+                                setSelectedSessionDocument={setSelectedSessionDocument}
+                                setIsUploadDocumentDialogOpen={setIsUploadDocumentDialogOpen}
+                                onDocumentDeleted={onDocumentDeleted}
+                                onDocumentUpdated={onDocumentUpdated}
+                                onNewDocumentAdded={onNewDocumentAdded}
+                                onDocumentUploaded={onDocumentUploaded}
+                                permissions={permissions}
+                                onFilterDocuments={onFilterDocuments}
+                                setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}
+                                setIsDocumentZipDialogOpen={setIsDocumentZipDialogOpen}
+                            />
                         )}
 
                         {
@@ -383,7 +295,7 @@ const Landing: React.FC = () =>
                         }
 
                         {selectedSessionDocument && isDocumentSidebarOpen &&
-                            <div className={styles.sharingSessionDocumentSidebar}>
+                            <div className={styles.documentInfoSidebar}>
                                 &&
                                 <SessionDocumentSidebar
                                     isOpen={isDocumentSidebarOpen}
@@ -398,7 +310,7 @@ const Landing: React.FC = () =>
                     </div>
                 }
                 {!fetchingDetails && (!selectedSessionId && !sessionDetails) &&
-                    <div className={styles.sharingSessionDetailsNoneContainer}>
+                    <div className={styles.noSessionSelectedSection}>
                         <Text size={500}> Select a Sharing Session in the list to view details</Text>
                     </div>
                 }

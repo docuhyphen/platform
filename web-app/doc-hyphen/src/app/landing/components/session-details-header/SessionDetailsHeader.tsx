@@ -13,7 +13,6 @@ import {
 } from "@fluentui/react-components";
 import {MoreVerticalRegular} from "@fluentui/react-icons";
 import {formatDateTimeWithOrdinal} from "../../../helpers.ts";
-import {useLandingStyles} from "../../LandingStyles.tsx";
 import {SharingSessionDetailedDto, SharingSessionStatus} from "../../../models/models.tsx";
 import {useSessionDetailsHeaderStyles} from "./SessionDetailsHeaderStyles.tsx";
 import {
@@ -49,7 +48,6 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
     }) =>
 {
     const styles = useSessionDetailsHeaderStyles();
-    const landingStyles = useLandingStyles();
     const [isCollapsed, setIsCollapsed] = React.useState(false);
 
     useEffect(() =>
@@ -62,8 +60,13 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
         setIsCollapsed((prev) => !prev);
     };
 
+    const getSessionHeadContainerClass = () =>
+    {
+        return `${styles.container} ${styles[`containerStatus${sessionDetails?.status || ''}` as keyof typeof styles]}`;
+    };
+
     return (
-        <>
+        <section className={getSessionHeadContainerClass()}>
             {sessionDetails && (
                 <div className={styles.header}>
                     {isCollapsed &&
@@ -91,7 +94,7 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                     }
                     <div className={styles.headerLine2}>
                         <Text size={isCollapsed ? 600 : 500}>{sessionDetails.sessionName}</Text>
-                        <div className={landingStyles.sharingSessionActions}>
+                        <div className={styles.actions}>
                             <Tooltip content="Add Session Document" relationship="description">
                                 <Button
                                     icon={<DocumentAddIcon/>}
@@ -157,7 +160,7 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                     )}
                 </div>
             )}
-        </>
+        </section>
     );
 };
 

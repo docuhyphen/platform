@@ -1,6 +1,5 @@
 import React from "react";
 import {Card, SkeletonItem} from "@fluentui/react-components";
-import {useLandingStyles} from "../../LandingStyles.tsx";
 import {useSessionDetailsLoadingStyles} from "./SessionDetailsLoadingStyles.tsx";
 
 const SessionDetailsLoading: React.FC = () =>
