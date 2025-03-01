@@ -129,8 +129,7 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
                 </Tooltip>
                 <Field className={styles.searchField}>
                     <SearchBox placeholder={"Filter documents"}
-                               onChange={onFilterDocuments}
-                               appearance={"underline"}/>
+                               onChange={onFilterDocuments}/>
                 </Field>
             </div>
             <div id={"documentsListCards"}
