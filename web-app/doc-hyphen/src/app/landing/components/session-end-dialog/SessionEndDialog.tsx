@@ -81,7 +81,8 @@ const SessionEndDialog: React.FC<SessionEndDialogProps> = (
     const styles = useSessionEndDialogStyles();
 
     return <>
-        {<Dialog modalType="alert" open={isOpen}>
+        {<Dialog modalType="alert"
+                 open={isOpen}>
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle>Ending Session: {session && session.sessionName}</DialogTitle>

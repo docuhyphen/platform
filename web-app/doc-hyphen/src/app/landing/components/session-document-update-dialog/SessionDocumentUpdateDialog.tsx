@@ -55,8 +55,6 @@ const SessionDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = ({
 
     useEffect(() =>
     {
-        console.log("sessionDocument", sessionDocument)
-
         if (sessionDocument)
         {
             setDocumentTitle(sessionDocument.title);
@@ -136,7 +134,8 @@ const SessionDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = ({
                 <DialogBody>
                     <DialogTitle>Update session document</DialogTitle>
                     <DialogContent className={styles.documentAddDialogContainer}>
-                        <Field className={styles.documentTitleField} label="New document name">
+                        <Field className={styles.documentTitleField}
+                               label="New document name">
                             <Input
                                 type="text"
                                 value={documentTitle}
@@ -180,8 +179,7 @@ const SessionDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = ({
                             appearance="primary"
                             className={globalStyles.buttonWithLoading}
                             shape="circular"
-                            onClick={handleUpdateDocument}
-                        >
+                            onClick={handleUpdateDocument}>
                             {updatingDocument && <Spinner size="extra-small"/>}
                             Update
                         </Button>

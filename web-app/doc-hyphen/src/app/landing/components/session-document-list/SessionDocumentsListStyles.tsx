@@ -59,7 +59,7 @@ export const useSessionDocumentsListStyles = makeStyles({
         borderLeftColor: tokens.colorBrandForeground1
     },
 
-    documentSearchField: {
+    searchField: {
         flex: "1"
     },
 });

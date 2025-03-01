@@ -129,7 +129,7 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
                             onClick={() => setIsDocumentZipDialogOpen(true)} appearance={"transparent"}
                             icon={<ZipDocumentsIcon/>}/>
                 </Tooltip>
-                <Field className={styles.documentSearchField}>
+                <Field className={styles.searchField}>
                     <SearchBox placeholder={"Filter documents"}
                                onChange={onFilterDocuments}
                                appearance={"underline"}/>
