@@ -122,6 +122,31 @@ const Settings = () =>
         </div>
     ));
 
+    const Teams = React.memo(() => (
+        <div role="tabpanel" aria-labelledby="Conditions">
+            <table className={styles.propsTable}>
+                <tbody>
+                <tr>
+                    <td>Time</td>
+                    <td>6:45 AM</td>
+                </tr>
+                <tr>
+                    <td>Temperature</td>
+                    <td>68F / 20C</td>
+                </tr>
+                <tr>
+                    <td>Forecast</td>
+                    <td>Overcast</td>
+                </tr>
+                <tr>
+                    <td>Visibility</td>
+                    <td>0.5 miles, 1800 ft runway visual range</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    ));
+
     return (
         <div className={styles.root}>
             <TabList selectedValue={selectedValue} onTabSelect={onTabSelect}  size="medium">
@@ -132,6 +157,9 @@ const Settings = () =>
                 <Tab id="Arrivals" icon={<SettingsCogMultipleRegular/>} value="arrivals">
                     App Settings
                 </Tab>
+                <Tab id="Teams" icon={<SettingsCogMultipleRegular/>} value="teams">
+                    Teams
+                </Tab>
                 <Tab id="Departures" icon={<BookTemplateRegular/>} value="departures">
                     Templates
                 </Tab>
@@ -140,6 +168,7 @@ const Settings = () =>
                 {selectedValue === "arrivals" && <AppUserSettings/>}
                 {selectedValue === "departures" && <AppSettings/>}
                 {selectedValue === "conditions" && <Templates/>}
+                {selectedValue === "teams" && <Templates/>}
             </div>
         </div>
     );

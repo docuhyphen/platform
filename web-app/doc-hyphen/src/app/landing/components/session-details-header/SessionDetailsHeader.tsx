@@ -25,6 +25,7 @@ import {
     ToggleHeaderDownIcon,
     ToggleHeaderUpIcon
 } from "../../../components/IconBundles.tsx";
+import {SharingSessionPermissions} from "../../SessionPermissions.ts";
 
 interface SessionDetailsHeaderProps {
     sessionDetails: SharingSessionDetailedDto | null;
@@ -33,6 +34,7 @@ interface SessionDetailsHeaderProps {
     setIsDeletedSessionDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     setIsSessionEditDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     setIsSessionAccessManagementDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    sessionPermissions: SharingSessionPermissions;
 }
 
 const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
@@ -43,6 +45,7 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
         setIsDeletedSessionDialogOpen,
         setIsSessionEditDialogOpen,
         setIsSessionAccessManagementDialogOpen,
+        sessionPermissions
     }) =>
 {
     const styles = useSessionDetailsHeaderStyles();
@@ -93,14 +96,14 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                                 <Button
                                     icon={<DocumentAddIcon/>}
                                     appearance="primary"
-                                    disabled={sessionDetails.status === SharingSessionStatus.ENDED}
+                                    disabled={ sessionDetails.status === SharingSessionStatus.ENDED || !sessionPermissions.canAddSessionDocument}
                                     onClick={() => setIsDocumentAddDialogOpen(true)}
                                 />
                             </Tooltip>
                             <Tooltip content="Edit" relationship="description">
                                 <Button
                                     icon={<EditSessionIcon/>}
-                                    disabled={sessionDetails.status === SharingSessionStatus.ENDED}
+                                    disabled={ sessionDetails.status === SharingSessionStatus.ENDED || !sessionPermissions.canEditSessionDocument}
                                     appearance={"subtle"}
                                     onClick={() => setIsSessionEditDialogOpen(true)}
                                 />
@@ -108,7 +111,7 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                             <Tooltip content="manage access" relationship="description">
                                 <Button
                                     icon={<ManageAccessIcon/>}
-                                    disabled={sessionDetails.status === SharingSessionStatus.ENDED}
+                                    disabled={sessionDetails.status === SharingSessionStatus.ENDED || !sessionPermissions.canEditSharingOptions}
                                     appearance={"subtle"}
                                     onClick={() => setIsSessionAccessManagementDialogOpen(true)}
                                 />
@@ -122,7 +125,7 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                                     <MenuList>
                                         <MenuItem
                                             icon={<SessionEndIcon/>}
-                                            disabled={sessionDetails.status === SharingSessionStatus.ENDED}
+                                            disabled={sessionDetails.status === SharingSessionStatus.ENDED || !sessionPermissions.canEndSession}
                                             onClick={() => setIsSessionEndDialogOpen(true)}
                                         >
                                             End
@@ -131,8 +134,8 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                                     <MenuList>
                                         <MenuItem
                                             icon={<DeleteIcon/>}
-                                            onClick={() => setIsDeletedSessionDialogOpen(true)}
-                                        >
+                                            disabled={!sessionPermissions.canDeleteSession}
+                                            onClick={() => setIsDeletedSessionDialogOpen(true)}>
                                             Delete
                                         </MenuItem>
                                     </MenuList>

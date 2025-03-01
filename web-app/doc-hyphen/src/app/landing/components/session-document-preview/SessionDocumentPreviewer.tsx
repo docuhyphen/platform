@@ -11,14 +11,18 @@ import {CollapseIcon, ExpandIcon, LastPageIcon, PreviousPageIcon} from "../../..
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
-interface DocumentPreviewerProps
-{
+interface DocumentPreviewerProps {
     document: DocumentDetailedDto;
     session: SharingSessionDetailedDto;
 }
 
-const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: sessionDocument, session}) =>
-{
+const CustomLoadingComponent: React.FC = () => (
+    <div className="custom-loading">
+        <Text>Loading...</Text>
+    </div>
+);
+
+const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: sessionDocument, session}) => {
     const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
     const [numPages, setNumPages] = useState<number>(0);
@@ -27,15 +31,11 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: s
     const styles = useSessionDocumentPreviewerStyles();
     const pdfContainerRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() =>
-    {
+    useEffect(() => {
         console.log("Session document changed", sessionDocument.title);
-        const fetchDocument = async () =>
-        {
-            if (sessionDocument && sessionDocument.uploadDate)
-            {
-                try
-                {
+        const fetchDocument = async () => {
+            if (sessionDocument && sessionDocument.uploadDate) {
+                try {
                     const response = await downloadSharingSessionDocument(session.id, sessionDocument.id, token);
                     const blob = new Blob([response as Blob], {type: 'application/pdf'});
                     setPdfBlob(blob);
@@ -44,9 +44,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: s
                     const url = URL.createObjectURL(blob);
                     console.log(url)
                     setTimeout(() => setPdfUrl(url), 2000);
-                }
-                catch (error)
-                {
+                } catch (error) {
                     console.error("Error downloading document:", error);
                 }
             }
@@ -55,31 +53,25 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: s
         fetchDocument();
     }, [sessionDocument]);
 
-    const onDocumentLoadSuccess = ({numPages}: { numPages: number }) =>
-    {
+    const onDocumentLoadSuccess = ({numPages}: { numPages: number }) => {
         setNumPages(numPages);
     };
 
-    const goToPage = (pageNumber: number) =>
-    {
+    const goToPage = (pageNumber: number) => {
         const pageElement = pdfContainerRef.current?.querySelector(`[data-page-number="${pageNumber}"]`);
-        if (pageElement)
-        {
+        if (pageElement) {
             pageElement.scrollIntoView({behavior: 'smooth'});
         }
     };
 
-    const handlePageInputChange = (event: React.ChangeEvent<HTMLInputElement>) =>
-    {
+    const handlePageInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const value = parseInt(event.target.value, 10);
-        if (!isNaN(value) && value >= 1 && value <= numPages)
-        {
+        if (!isNaN(value) && value >= 1 && value <= numPages) {
             goToPage(value);
         }
     };
 
-    const toggleEnlarge = () =>
-    {
+    const toggleEnlarge = () => {
         setIsEnlarged(prev => !prev);
     };
 
@@ -139,7 +131,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: s
                         onLoadError={(error) => console.error("Failed to load PDF:", error)}
                     >
                         {Array.from(new Array(numPages), (el, index) => (
-                            <Page key={`page_${index + 1}`} pageNumber={index + 1} scale={isEnlarged ? 1.1 : 1.0}/>
+                            <Page key={`page_${index + 1}`} pageNumber={index + 1} scale={isEnlarged ? 1.1 : 1.0} loading={<CustomLoadingComponent />} />
                         ))}
                     </Document>
                 )}

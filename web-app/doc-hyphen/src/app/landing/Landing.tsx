@@ -1,3 +1,5 @@
+// web-app/doc-hyphen/src/app/landing/Landing.tsx
+
 import React, {useEffect, useState} from 'react';
 import {fetchSignedInUserAppUserSharingSession} from "../../services/sharingSessionApi.ts";
 import useToken from "../../context/useToken.tsx";
@@ -31,6 +33,8 @@ import "react-pdf/dist/esm/Page/TextLayer.css";
 import SessionDocumentPreviewer from "./components/session-document-preview/SessionDocumentPreviewer.tsx";
 import SharingSessionList from "../sharing-session-list/SharingSessionList.tsx";
 import {DocumentAddIcon, ZipDocumentsIcon} from "../components/IconBundles.tsx";
+import {useAuth} from "../../context/AuthContext.tsx";
+import {getPermissions, SharingSessionPermissions} from "./SessionPermissions.ts";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
@@ -40,6 +44,7 @@ const Landing: React.FC = () =>
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const token = useToken();
+    const {appUser} = useAuth();
     const [isDocumentSidebarOpen, setIsDocumentSidebarOpen] = React.useState(false);
     const [isDocumentAddDialogOpen, setIsDocumentAddDialogOpen] = React.useState(false);
     const [isUploadDocumentDialogOpen, setIsUploadDocumentDialogOpen] = React.useState(false);
@@ -55,6 +60,8 @@ const Landing: React.FC = () =>
     const [fetchingDetails, setFetchingDetails] = useState<boolean>(true);
     const [isSessionEnded, setIsSessionEnded] = React.useState(false);
     const [filteredDocuments, setFilteredDocuments] = useState<DocumentDetailedDto[]>([]);
+
+    const [permissions, setPermissions] = useState<SharingSessionPermissions>();
 
     useEffect(() =>
     {
@@ -84,7 +91,7 @@ const Landing: React.FC = () =>
                     {
                         for (let i = 0; i < details?.documents?.length; i++)
                         {
-                            const document = details?.documents[i]
+                            const document = details?.documents[i];
                             if (document.uploadDate)
                             {
                                 setSelectedSessionDocument(document);
@@ -92,6 +99,9 @@ const Landing: React.FC = () =>
                             }
                         }
                     }
+
+                    const newPermissions = getPermissions(details, appUser);
+                    setPermissions(newPermissions);
                 }
                 catch (error)
                 {
@@ -116,7 +126,7 @@ const Landing: React.FC = () =>
     {
         if (sessionDetails)
         {
-            setIsSessionEnded(sessionDetails.status == SharingSessionStatus.ENDED)
+            setIsSessionEnded(sessionDetails.status == SharingSessionStatus.ENDED);
         }
     }, [sessionDetails]);
 
@@ -124,12 +134,12 @@ const Landing: React.FC = () =>
     {
         if (sessionDetails)
         {
-            setIsDocumentAddDialogOpen(false)
+            setIsDocumentAddDialogOpen(false);
             const updatedDocuments = sessionDetails.documents?.filter(document => document.id !== documentId);
             setSessionDetails({...sessionDetails, documents: updatedDocuments});
             setFilteredDocuments(updatedDocuments || []);
         }
-    }
+    };
 
     const onNewDocumentAdded = (newSessionDocument: DocumentDetailedDto) =>
     {
@@ -140,12 +150,12 @@ const Landing: React.FC = () =>
             setSessionDetails({...sessionDetails, documents: updatedDocuments});
             setFilteredDocuments(updatedDocuments);
         }
-    }
+    };
 
     const onDocumentUploaded = (uploadedDocument: DocumentDetailedDto) =>
     {
         onDocumentUpdated(uploadedDocument);
-    }
+    };
 
     const onDocumentUpdated = (updatedDocument: DocumentDetailedDto) =>
     {
@@ -162,31 +172,31 @@ const Landing: React.FC = () =>
             setSessionDetails({...sessionDetails, documents: updatedDocuments});
             setFilteredDocuments(updatedDocuments || []);
         }
-    }
+    };
 
     const onSessionDeleted = (sessionId: string) =>
     {
         if (sessionDetails && sessionDetails.id === sessionId)
         {
-            setSessionDetails(undefined)
-            setSelectedSessionId(undefined)
+            setSessionDetails(undefined);
+            setSelectedSessionId(undefined);
         }
-    }
+    };
 
     const onSessionEnded = (session: SharingSessionDetailedDto) =>
     {
-        setSessionDetails(session)
-    }
+        setSessionDetails(session);
+    };
 
     const onSessionEdited = (session: SharingSessionDetailedDto) =>
     {
-        setSessionDetails(session)
-    }
+        setSessionDetails(session);
+    };
 
     const onSessionAccessManagementUpdated = (session: SharingSessionDetailedDto) =>
     {
-        setSessionDetails(session)
-    }
+        setSessionDetails(session);
+    };
 
     const renderDocumentsActionsMenu = (sessionDocument: DocumentDetailedDto) =>
     {
@@ -194,41 +204,41 @@ const Landing: React.FC = () =>
             <DocumentActionsMenu session={sessionDetails}
                                  onOpenDetailsSidebar={() =>
                                  {
-                                     setIsDocumentSidebarOpen(true)
-                                     setSelectedSessionDocument(sessionDocument)
+                                     setIsDocumentSidebarOpen(true);
+                                     setSelectedSessionDocument(sessionDocument);
                                  }}
                                  onDocumentDeleted={onDocumentDeleted}
                                  sessionDocument={sessionDocument}
                                  onUpload={() =>
                                  {
-                                     setSelectedSessionDocument(sessionDocument)
-                                     setIsUploadDocumentDialogOpen(true)
+                                     alert() //Todo: change document preview
+                                     setSelectedSessionDocument(sessionDocument);
+                                     setIsUploadDocumentDialogOpen(true);
                                  }}
                                  onUpdate={() =>
                                  {
-                                     setSelectedUpdateSessionDocument(sessionDocument)
-                                     setIsUpdateDocumentDialogOpen(true)
+                                     setSelectedUpdateSessionDocument(sessionDocument);
+                                     setIsUpdateDocumentDialogOpen(true);
                                  }}
                                  onPreviewDocument={() => setSelectedSessionDocument(sessionDocument)}/>
-
-        </>
-    }
+        </>;
+    };
 
     const getDocumentListCardClasses = (sessionDocument) =>
     {
-        if((selectedSessionDocument && selectedSessionDocument.id)
+        if ((selectedSessionDocument && selectedSessionDocument.id)
             == (sessionDocument && sessionDocument.id)) {
-            return mergeClasses(styles.documentsCardListCard, styles.documentsCardListCardSelected)
+            return mergeClasses(styles.documentsCardListCard, styles.documentsCardListCardSelected);
         }
 
         return styles.documentsCardListCard;
-    }
+    };
 
     const renderDocumentsListCard = (sessionDocument: DocumentDetailedDto) =>
     {
         return <> {sessionDocument &&
             <Card key={sessionDocument.id}
-                  className={ getDocumentListCardClasses(sessionDocument)}>
+                  className={getDocumentListCardClasses(sessionDocument)}>
                 <CardHeader
                     header={<Body1><b>{sessionDocument.title}</b></Body1>}
                     description={
@@ -239,8 +249,8 @@ const Landing: React.FC = () =>
                                 <Button appearance="transparent"
                                         icon={<DocumentAddIcon/>}
                                         onClick={() => {
-                                            setSelectedSessionDocument(sessionDocument)
-                                            setIsUploadDocumentDialogOpen(true)
+                                            setSelectedSessionDocument(sessionDocument);
+                                            setIsUploadDocumentDialogOpen(true);
                                         }}>
                                     Upload new document
                                 </Button>
@@ -253,8 +263,8 @@ const Landing: React.FC = () =>
                     }
                 />
             </Card>
-        }</>
-    }
+        }</>;
+    };
 
     const getSessionHeadContainerClass = () =>
     {
@@ -294,8 +304,8 @@ const Landing: React.FC = () =>
                 onSessionEdited={onSessionEdited}
                 onSessionAccessManagementUpdated={onSessionAccessManagementUpdated}
             />
-        )
-    }
+        );
+    };
 
     const onFilterDocuments = (event: SearchBoxChangeEvent, data: InputOnChangeData) =>
     {
@@ -312,7 +322,7 @@ const Landing: React.FC = () =>
         );
 
         setFilteredDocuments(filtered || []);
-    }
+    };
 
     return (
         isLoading ? <PreLanding/> : <>
@@ -332,6 +342,7 @@ const Landing: React.FC = () =>
                                 setIsDeletedSessionDialogOpen={setIsDeletedSessionDialogOpen}
                                 setIsSessionEditDialogOpen={setIsSessionEditDialogOpen}
                                 setIsSessionAccessManagementDialogOpen={setIsSessionAccessManagementDialogOpen}
+                                sessionPermissions={permissions}
                             />
                         </div>
 
@@ -341,6 +352,7 @@ const Landing: React.FC = () =>
                                     <Tooltip content="Zip all documents"
                                              relationship="description">
                                         <Button size={"small"}
+                                                disabled={!permissions?.canDownloadDocumentsZip}
                                                 onClick={() => setIsDocumentZipDialogOpen(true)}
                                                 appearance={"transparent"}
                                                 icon={<ZipDocumentsIcon/>}>
