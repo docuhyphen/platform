@@ -16,7 +16,7 @@ const CompanyRegistrationPending: React.FC = () =>
         {
             if (appUserPersonCompany.registrationComplete)
             {
-                navigate('/landing');
+                navigate('/sharing-sessions');
             }
         }
     }, [appUserPersonCompany]);

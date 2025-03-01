@@ -7,7 +7,7 @@ const RedirectIfAuthenticated: React.FC<{ element: React.ReactElement }> = ({ el
 
     // If user is authenticated, redirect to the landing page
     if (token) {
-        return <Navigate to="/landing" replace />;
+        return <Navigate to="/sharing-sessions" replace />;
     }
 
     // Otherwise, render the wrapped element

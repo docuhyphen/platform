@@ -23,7 +23,7 @@ const CompanyRegistration: React.FC = () =>
         {
             if (appUserPersonCompany.registrationComplete)
             {
-                navigate('/landing');
+                navigate('/sharing-sessions');
             }
             else
             {

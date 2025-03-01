@@ -1,6 +1,6 @@
 import {makeStyles} from "@fluentui/react-components";
 
-export const useLandingStyles = makeStyles({
+export const useSharingSessionsStyles = makeStyles({
 
     container: {
         display: "flex",

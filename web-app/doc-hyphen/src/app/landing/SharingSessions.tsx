@@ -4,7 +4,7 @@ import useToken from "../../context/useToken.tsx";
 import PreLanding from "../pre-landing/PreLanding.tsx";
 import {InputOnChangeData, SearchBoxChangeEvent, Text} from "@fluentui/react-components";
 import {DocumentDetailedDto, SharingSessionDetailedDto, SharingSessionStatus} from "../models/models.tsx";
-import {useLandingStyles} from "./LandingStyles.tsx";
+import {useSharingSessionsStyles} from "./SharingSessionsStyles.tsx";
 import SessionDocumentSidebar from "./components/session-document-sidebar/SessionDocumentSidebar.tsx";
 import NoSessionDocuments from "./components/session-documents-none/NoSessionDocuments.tsx";
 import SessionDialogsGroup from "./components/session-dialog-group/SessionDialogsGroup.tsx";
@@ -20,7 +20,7 @@ import SessionDocumentsList from "./components/session-document-list/SessionDocu
 
 const SharingSessions: React.FC = () =>
 {
-    const styles = useLandingStyles();
+    const styles = useSharingSessionsStyles();
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const token = useToken();
