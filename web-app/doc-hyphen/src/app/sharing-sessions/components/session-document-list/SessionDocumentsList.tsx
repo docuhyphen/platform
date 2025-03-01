@@ -11,7 +11,7 @@ import {
     Tooltip
 } from "@fluentui/react-components";
 import {DocumentAddIcon, ZipDocumentsIcon} from "../../../components/IconBundles.tsx";
-import DocumentActionsMenu from "../session-document-actions-menu/DocumentActionsMenu.tsx";
+import SessionDocumentActionsMenu from "../session-document-actions-menu/SessionDocumentActionsMenu.tsx";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../../../models/models.tsx";
 import {formatDateTimeWithOrdinal} from "../../../helpers.ts";
 import {useSessionDocumentsListStyles} from "./SessionDocumentsListStyles.tsx";
@@ -54,7 +54,7 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
     const renderDocumentsActionsMenu = (sessionDocument: DocumentDetailedDto) =>
     {
         return (
-            <DocumentActionsMenu
+            <SessionDocumentActionsMenu
                 session={sessionDetails}
                 onOpenDetailsSidebar={() =>
                 {

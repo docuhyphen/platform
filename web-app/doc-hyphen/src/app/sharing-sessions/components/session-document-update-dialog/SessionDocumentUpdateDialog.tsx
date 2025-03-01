@@ -25,7 +25,7 @@ import {
 } from "@fluentui/react-components";
 import {updateSharingSessionDocument} from "../../../../services/sharingSessionApi.ts";
 import useToken from "../../../../context/useToken.tsx";
-import {useDocumentAddDialogStyles} from "../session-document-add-dialog/DocumentAddDialogStyles.tsx";
+import {useSessionDocumentAddDialogStyles} from "../session-document-add-dialog/SessionDocumentAddDialogStyles.tsx";
 
 interface UpdateDocumentDialogProps
 {
@@ -52,7 +52,7 @@ const SessionDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
     const [selectedRestrictionType, setSelectedRestrictionType] = useState<DocumentType | ImageType | string>("PDF");
 
     const globalStyles = useGlobalStyles();
-    const styles = useDocumentAddDialogStyles();
+    const styles = useSessionDocumentAddDialogStyles();
 
     useEffect(() =>
     {

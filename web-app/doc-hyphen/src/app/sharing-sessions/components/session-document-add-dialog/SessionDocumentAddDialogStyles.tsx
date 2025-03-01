@@ -1,6 +1,6 @@
 import {makeStyles} from "@fluentui/react-components";
 
-export const useDocumentAddDialogStyles = makeStyles({
+export const useSessionDocumentAddDialogStyles = makeStyles({
     documentAddDialogContainer: {
         display: 'flex',
         flexDirection: 'column',

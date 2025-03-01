@@ -9,11 +9,11 @@ import SessionDocumentSidebar from "./components/session-document-sidebar/Sessio
 import NoSessionDocuments from "./components/session-documents-none/NoSessionDocuments.tsx";
 import SessionDialogsGroup from "./components/session-dialog-group/SessionDialogsGroup.tsx";
 import SessionDetailsHeader from "./components/session-details-header/SessionDetailsHeader.tsx";
-import SessionDetailsLoading from "./components/session-details-loading/SessionDetailsLoading.tsx";
+import SessionDetailsLoading from "./components/sharing-sessions-loading/SessionDetailsLoading.tsx";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 import SessionDocumentPreviewer from "./components/session-document-preview/SessionDocumentPreviewer.tsx";
-import SharingSessionList from "./components/sharing-session-list/SharingSessionList.tsx";
+import SessionList from "./components/session-list/SessionList.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {getPermissions, SharingSessionPermissions} from "./SessionPermissions.ts";
 import SessionDocumentsList from "./components/session-document-list/SessionDocumentsList.tsx";
@@ -22,7 +22,7 @@ const SharingSessions: React.FC = () =>
 {
     const styles = useSharingSessionsStyles();
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [preparingSharingSessions, setPreparingSharingSessions] = useState<boolean>(true);
     const token = useToken();
     const {appUser} = useAuth();
     const [isDocumentSidebarOpen, setIsDocumentSidebarOpen] = React.useState(false);
@@ -48,7 +48,7 @@ const SharingSessions: React.FC = () =>
         const randomDelay = Math.floor(Math.random() * 5000) + 1000;
         setTimeout(() =>
         {
-            setIsLoading(false);
+            setPreparingSharingSessions(false);
         }, randomDelay);
     }, []);
 
@@ -232,10 +232,10 @@ const SharingSessions: React.FC = () =>
     };
 
     return (
-        isLoading ? <PreLanding/> : <>
+        preparingSharingSessions ? <PreLanding/> :
             <section className={styles.container}>
 
-                <SharingSessionList onSelectionChange={setSelectedSessionId}/>
+                <SessionList onSelectionChange={setSelectedSessionId}/>
 
                 {fetchingDetails && !sessionDetails && <SessionDetailsLoading/>}
 
@@ -293,10 +293,8 @@ const SharingSessions: React.FC = () =>
                         <Text size={500}> Select a Sharing Session in the list to view details</Text>
                     </div>
                 }
+                {renderDialogs()}
             </section>
-
-            {renderDialogs()}
-        </>
     );
 };
 

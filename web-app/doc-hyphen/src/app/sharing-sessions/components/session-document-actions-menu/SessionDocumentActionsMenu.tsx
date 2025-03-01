@@ -24,7 +24,7 @@ interface DocumentActionsMenuProps
     onPreviewDocument: () => void;
 }
 
-const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
+const SessionDocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
     {
         session,
         sessionDocument,
@@ -104,4 +104,4 @@ const DocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
     );
 };
 
-export default DocumentActionsMenu;
+export default SessionDocumentActionsMenu;

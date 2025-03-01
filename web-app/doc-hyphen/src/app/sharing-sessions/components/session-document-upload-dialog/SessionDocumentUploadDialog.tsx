@@ -64,10 +64,13 @@ const SessionDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
 
         setUploading(true);
 
+        const fileName = file.name;
+        const fileExtension = fileName.substring(fileName.lastIndexOf(".")) || "";
+
         const formData = new FormData();
-        formData.append('file', file, 'UserManual.pdf');
-        formData.append('encryptionMode', 'INTERNAL');
-        formData.append('extension', '.docx');
+        formData.append("file", file, fileName);
+        formData.append("encryptionMode", "INTERNAL");
+        formData.append("extension", fileExtension);
 
         try
         {
@@ -77,7 +80,6 @@ const SessionDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
                 setProgress(percentCompleted);
             });
 
-            //ToDo: fetch the sign document to update the list
             onDocumentUploaded(uploadData);
             resetState();
             onDismiss();
@@ -97,7 +99,7 @@ const SessionDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
         <Dialog modalType="alert" open={isOpen}>
             <DialogSurface>
                 <DialogBody>
-                    <DialogTitle>Upload {sessionDocument && sessionDocument.title}</DialogTitle>
+                    <DialogTitle>Upload {sessionDocument?.title}</DialogTitle>
                     <DialogContent>
                         <Field className={styles.uploadContainer}>
                             <input
@@ -108,18 +110,22 @@ const SessionDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
                         {uploading && <ProgressBar value={progress}/>}
                     </DialogContent>
                     <DialogActions>
-                        <Button appearance="primary"
-                                className={globalStyles.buttonWithLoading}
-                                onClick={onUploadDocument}
-                                shape={"circular"}>
-                            {uploading && <Spinner size={"extra-small"}/>}
-                            Upload
+                        <Button
+                            appearance="primary"
+                            className={globalStyles.buttonWithLoading}
+                            onClick={onUploadDocument}
+                            shape="circular"
+                            disabled={!file || uploading}
+                        >
+                            {uploading && <Spinner size="extra-small"/>} Upload
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
-                            <Button appearance="secondary"
-                                    onClick={onDismissDialog}
-                                    disabled={uploading}
-                                    shape={"circular"}>
+                            <Button
+                                appearance="secondary"
+                                onClick={onDismissDialog}
+                                disabled={uploading}
+                                shape="circular"
+                            >
                                 Close
                             </Button>
                         </DialogTrigger>

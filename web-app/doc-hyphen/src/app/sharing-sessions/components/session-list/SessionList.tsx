@@ -20,7 +20,7 @@ import {
 } from "@fluentui/react-components";
 import {formatDateWithOrdinal} from "../../../helpers.ts";
 import {SharingSessionBasicDto} from "../../../models/models.tsx";
-import {useSharingSessionStyles} from "./SharingSessionListStyles.tsx";
+import {useSharingSessionStyles} from "./SessionListStyles.tsx";
 import {
     sharingSessionDeletionObservable,
     sharingSessionInitiationObservable,
@@ -32,7 +32,10 @@ interface SharingSessionListProps {
     onSelectionChange: (sessionId: string) => void;
 }
 
-const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChange}) =>
+const SessionList: React.FC<SharingSessionListProps> = (
+    {
+        onSelectionChange
+    }) =>
 {
     const styles = useSharingSessionStyles();
     const token = useToken();
@@ -247,4 +250,4 @@ const SharingSessionList: React.FC<SharingSessionListProps> = ({onSelectionChang
     );
 };
 
-export default SharingSessionList;
+export default SessionList;

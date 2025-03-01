@@ -8,7 +8,10 @@ interface NoDocumentsProps
     setIsDocumentAddDialogOpen: (isOpen: boolean) => void;
 }
 
-const NoSessionDocuments: React.FC<NoDocumentsProps> = ({setIsDocumentAddDialogOpen}) =>
+const NoSessionDocuments: React.FC<NoDocumentsProps> = (
+    {
+        setIsDocumentAddDialogOpen
+    }) =>
 {
     const styles = useNoSessionDocumentsStyles()
 

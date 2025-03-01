@@ -18,7 +18,7 @@ import {
     Spinner,
     Switch
 } from "@fluentui/react-components";
-import {useDocumentAddDialogStyles} from "./DocumentAddDialogStyles.tsx";
+import {useSessionDocumentAddDialogStyles} from "./SessionDocumentAddDialogStyles.tsx";
 import {addSharingSessionDocument} from "../../../../services/sharingSessionApi.ts";
 import useToken from "../../../../context/useToken.tsx";
 
@@ -44,7 +44,7 @@ const AddDocumentDialog: React.FC<AddDocumentDialogProps> = (
     const [restrictedType, setRestrictedType] = React.useState<DocumentType | ImageType | undefined>(DocumentType.PDF);
     const [addingDocument, setAddingDocument] = React.useState<boolean>(false);
     const globalStyles = useGlobalStyles();
-    const styles = useDocumentAddDialogStyles();
+    const styles = useSessionDocumentAddDialogStyles();
 
     const resetState = () =>
     {
