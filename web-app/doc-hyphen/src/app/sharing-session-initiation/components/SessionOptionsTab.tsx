@@ -18,20 +18,21 @@ interface SharingOptionsTabProps
     onAllowDocumentUploadChange: (ev: ChangeEvent<HTMLInputElement>) => void;
 }
 
-const SharingOptionsTab: React.FC<SharingOptionsTabProps> = ({
-                                                                 requireSignIn,
-                                                                 allowDocumentAdditions,
-                                                                 allowDocumentDeletions,
-                                                                 allowDocumentDownload,
-                                                                 allowDocumentUpdate,
-                                                                 allowDocumentUpload,
-                                                                 onRequireSignInChange,
-                                                                 onAllowDocumentAdditionsChange,
-                                                                 onAllowDocumentDeletionsChange,
-                                                                 onAllowDocumentDownloadChange,
-                                                                 onAllowDocumentUpdateChange,
-                                                                 onAllowDocumentUploadChange
-                                                             }) =>
+const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
+    {
+        requireSignIn,
+        allowDocumentAdditions,
+        allowDocumentDeletions,
+        allowDocumentDownload,
+        allowDocumentUpdate,
+        allowDocumentUpload,
+        onRequireSignInChange,
+        onAllowDocumentAdditionsChange,
+        onAllowDocumentDeletionsChange,
+        onAllowDocumentDownloadChange,
+        onAllowDocumentUpdateChange,
+        onAllowDocumentUploadChange
+    }) =>
 {
     const styles = useSharingSessionInitiationStyles();
 

@@ -14,14 +14,15 @@ interface DocumentCardProps
     onDeleteDocument: (index: number) => void;
 }
 
-const SessionDocumentsCard: React.FC<DocumentCardProps> = ({
-                                                               document,
-                                                               index,
-                                                               onDocumentNameChange,
-                                                               onDocumentTypeChange,
-                                                               onRestrictDocumentTypeChange,
-                                                               onDeleteDocument
-                                                           }) =>
+const SessionDocumentsCard: React.FC<DocumentCardProps> = (
+    {
+        document,
+        index,
+        onDocumentNameChange,
+        onDocumentTypeChange,
+        onRestrictDocumentTypeChange,
+        onDeleteDocument
+    }) =>
 {
     const styles = useSharingSessionInitiationStyles();
 

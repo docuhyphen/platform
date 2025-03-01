@@ -14,14 +14,15 @@ interface DialogTitleSectionProps
     onTabSelect: (event: any, data: any) => void;
 }
 
-const SessionDialogTitleSection: React.FC<DialogTitleSectionProps> = ({
-                                                                          sessionInitiatedSuccessfully,
-                                                                          choosingTemplate,
-                                                                          requestingDocuments,
-                                                                          setChoosingTemplate,
-                                                                          selectedTab,
-                                                                          onTabSelect
-                                                                      }) =>
+const SessionDialogTitleSection: React.FC<DialogTitleSectionProps> = (
+    {
+        sessionInitiatedSuccessfully,
+        choosingTemplate,
+        requestingDocuments,
+        setChoosingTemplate,
+        selectedTab,
+        onTabSelect
+    }) =>
 {
     const styles = useSharingSessionInitiationStyles();
 

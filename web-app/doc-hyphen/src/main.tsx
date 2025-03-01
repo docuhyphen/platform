@@ -2,11 +2,8 @@ import {StrictMode} from 'react'
 import {createRoot} from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import {FluentProvider} from "@fluentui/react-components";
-
-import { createDarkTheme, createLightTheme } from '@fluentui/react-components';
-
-import type { BrandVariants, Theme } from '@fluentui/react-components';
+import type {BrandVariants, Theme} from '@fluentui/react-components';
+import {createDarkTheme, createLightTheme, FluentProvider} from "@fluentui/react-components";
 
 const mainTheme: BrandVariants = {
     10: "#030204",
@@ -38,8 +35,7 @@ const darkTheme: Theme = {
 darkTheme.colorBrandForeground1 = mainTheme[110];
 darkTheme.colorBrandForeground2 = mainTheme[120];
 
-
-createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById('doc-hyphen-app')!).render(
   <StrictMode>
       <FluentProvider theme={lightTheme} id="fluent-provider">
           <App/>

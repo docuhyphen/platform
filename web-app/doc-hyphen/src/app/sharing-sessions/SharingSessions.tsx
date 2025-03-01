@@ -13,7 +13,7 @@ import SessionDetailsLoading from "./components/session-details-loading/SessionD
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 import SessionDocumentPreviewer from "./components/session-document-preview/SessionDocumentPreviewer.tsx";
-import SharingSessionList from "../sharing-session-list/SharingSessionList.tsx";
+import SharingSessionList from "./components/sharing-session-list/SharingSessionList.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {getPermissions, SharingSessionPermissions} from "./SessionPermissions.ts";
 import SessionDocumentsList from "./components/session-document-list/SessionDocumentsList.tsx";

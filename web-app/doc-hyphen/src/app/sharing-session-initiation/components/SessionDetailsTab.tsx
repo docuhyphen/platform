@@ -13,15 +13,16 @@ interface SessionDetailsTabProps
     onInitialShareMessageChange: (e: ChangeEvent<HTMLTextAreaElement>, newValue: InputOnChangeData) => void;
 }
 
-const SessionDetailsTab: React.FC<SessionDetailsTabProps> = ({
-                                                                 sessionName,
-                                                                 description,
-                                                                 initialShareMessage,
-                                                                 onSessionNameChange,
-                                                                 onDescriptionChange,
-                                                                 onInitialShareMessageChange,
-                                                                 setMessageGroupMessages
-                                                             }) =>
+const SessionDetailsTab: React.FC<SessionDetailsTabProps> = (
+    {
+        sessionName,
+        description,
+        initialShareMessage,
+        onSessionNameChange,
+        onDescriptionChange,
+        onInitialShareMessageChange,
+        setMessageGroupMessages
+    }) =>
 {
     const handleSessionNameChange = (e: ChangeEvent<HTMLInputElement>, data: InputOnChangeData) =>
     {

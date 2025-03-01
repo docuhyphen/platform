@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
-import useToken from "../../context/useToken.tsx";
-import {fetchSignedInUserAppUserSharingSessions} from "../../services/sharingSessionApi.ts";
+import useToken from "../../../../context/useToken.tsx";
+import {fetchSignedInUserAppUserSharingSessions} from "../../../../services/sharingSessionApi.ts";
 import {
     Avatar,
     Button,
@@ -18,15 +18,15 @@ import {
     Spinner,
     Tooltip
 } from "@fluentui/react-components";
-import {formatDateWithOrdinal} from "../helpers.ts";
-import {SharingSessionBasicDto} from "../models/models.tsx";
+import {formatDateWithOrdinal} from "../../../helpers.ts";
+import {SharingSessionBasicDto} from "../../../models/models.tsx";
 import {useSharingSessionStyles} from "./SharingSessionListStyles.tsx";
 import {
     sharingSessionDeletionObservable,
     sharingSessionInitiationObservable,
     sharingSessionUpdatedObservable
-} from "../observable/sharingSessionObservables.ts";
-import {FilterIcon, SortDownIcon} from "../components/IconBundles.tsx";
+} from "../../../observable/sharingSessionObservables.ts";
+import {FilterIcon, SortDownIcon} from "../../../components/IconBundles.tsx";
 
 interface SharingSessionListProps {
     onSelectionChange: (sessionId: string) => void;

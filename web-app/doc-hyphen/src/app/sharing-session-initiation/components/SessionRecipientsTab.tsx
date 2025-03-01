@@ -10,12 +10,13 @@ interface SessionRecipientsTabProps
     setMessageGroupMessages: (messages: string[]) => void;
 }
 
-const SessionRecipientsTab: React.FC<SessionRecipientsTabProps> = ({
-                                                                       recipientEmail,
-                                                                       onRecipientEmailChange,
-                                                                       requestingDocuments,
-                                                                       setMessageGroupMessages
-                                                                   }) =>
+const SessionRecipientsTab: React.FC<SessionRecipientsTabProps> = (
+    {
+        recipientEmail,
+        onRecipientEmailChange,
+        requestingDocuments,
+        setMessageGroupMessages
+    }) =>
 {
     const styles = useSharingSessionInitiationStyles();
 

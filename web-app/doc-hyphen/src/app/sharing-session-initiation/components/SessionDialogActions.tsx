@@ -11,13 +11,14 @@ interface DialogActionsProps
     onInitiateSession: () => void;
 }
 
-const SessionDialogActions: React.FC<DialogActionsProps> = ({
-                                                                initiatingSession,
-                                                                sessionInitiatedSuccessfully,
-                                                                choosingTemplate,
-                                                                onCancelInitiation,
-                                                                onInitiateSession
-                                                            }) =>
+const SessionDialogActions: React.FC<DialogActionsProps> = (
+    {
+        initiatingSession,
+        sessionInitiatedSuccessfully,
+        choosingTemplate,
+        onCancelInitiation,
+        onInitiateSession
+    }) =>
 {
 
     const styles = useGlobalStyles()
@@ -38,8 +39,7 @@ const SessionDialogActions: React.FC<DialogActionsProps> = ({
                     onClick={onInitiateSession}
                     appearance="primary"
                     shape="circular"
-                    className={styles.buttonWithLoading}
-                >
+                    className={styles.buttonWithLoading}>
                     {!initiatingSession ? "Start Session" : (
                         <>
                             <Spinner size="extra-small"/> Starting Session
