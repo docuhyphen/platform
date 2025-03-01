@@ -5,7 +5,7 @@ import SignIn from './app/authorization/sign-in';
 import CompanyRegistrationPending from './app/company-registration';
 import {AuthProvider} from './context/AuthContext';
 import ProtectedRoute from "./app/components/ProtectedRoutes.tsx";
-import SharingSessions from "./app/landing/SharingSessions.tsx";
+import SharingSessions from "./app/sharing-sessions/SharingSessions.tsx";
 import SignUp from "./app/authorization/sign-up";
 import RedirectIfAuthenticated from "./app/components/RedirectIfAuthenticated.tsx";
 import NotFound from './app/NotFound.tsx';
