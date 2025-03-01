@@ -60,8 +60,6 @@ const App: React.FC = () => {
                                <ProtectedRoute path='/sign-in' element={<CompanyRegistrationPending/>}/>
                            }/>
 
-
-
                     <Route path="/sharing-sessions"
                            element={
                                <ProtectedRoute path='/sign-in' element={
