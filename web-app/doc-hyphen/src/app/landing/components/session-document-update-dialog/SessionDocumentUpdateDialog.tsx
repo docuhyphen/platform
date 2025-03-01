@@ -36,13 +36,14 @@ interface UpdateDocumentDialogProps
     onDocumentUpdated: (document: DocumentDetailedDto) => void;
 }
 
-const SessionDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = ({
-                                                                       isOpen,
-                                                                       sessionId,
-                                                                       sessionDocument,
-                                                                       onDismiss,
-                                                                       onDocumentUpdated,
-                                                                   }) =>
+const SessionDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
+{
+    isOpen,
+    sessionId,
+    sessionDocument,
+    onDismiss,
+    onDocumentUpdated,
+}) =>
 {
     const token = useToken();
     const [documentTitle, setDocumentTitle] = useState<string>("");

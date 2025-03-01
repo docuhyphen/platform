@@ -13,7 +13,6 @@ import {
     UploadIcon
 } from "../../../components/IconBundles.tsx";
 
-
 interface DocumentActionsMenuProps
 {
     session: SharingSessionDetailedDto;

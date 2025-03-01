@@ -11,8 +11,11 @@ import {
     DialogContent,
     DialogSurface,
     DialogTitle,
-    DialogTrigger, Field, Input,
-    Spinner, Text
+    DialogTrigger,
+    Field,
+    Input,
+    Spinner,
+    Text
 } from "@fluentui/react-components";
 import {useSessionDocumentDownloadDialogStyles} from "./SessionDocumentDownloadDialogStyles.tsx";
 
