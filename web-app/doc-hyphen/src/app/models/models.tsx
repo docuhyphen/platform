@@ -285,7 +285,7 @@ export interface SharingSessionBasicDto
     description?: string;
     initiator?: string;
     recipientId?: string;
-    status?: string;
+    status?: SharingSessionStatus;
     recipientEmail?: string;
     recipientFirstName?: string;
     recipientLastName?: string;

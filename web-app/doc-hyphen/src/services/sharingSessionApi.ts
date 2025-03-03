@@ -47,6 +47,13 @@ export const fetchSignedInUserAppUserSharingSession = (sessionId: string | null,
         })
     );
 
+export const fetchNoAuthSharingSession = (sessionId: string | null, token: string | null): Promise<SharingSessionBasicDto | ResponseError> =>
+    executeRequest(() =>
+        apiClient.get(`no-auth/sharing-sessions/${sessionId}`, {
+            headers: getAuthHeaders(token)
+        })
+    );
+
 export const updateSharingSession = (sessionId: string, request: UpdateSharingSessionRequest, token: string | null) =>
     executeRequest(() =>
         apiClient.put(`/sharing-sessions/${sessionId}`, request, {
