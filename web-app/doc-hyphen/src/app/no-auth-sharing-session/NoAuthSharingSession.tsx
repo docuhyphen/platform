@@ -1,40 +1,45 @@
 import React, {useEffect, useState} from "react";
 import {useNavigate} from "react-router-dom";
-import {DocumentBasicDto, SharingSessionBasicDto, SharingSessionStatus} from "../models/models.tsx";
+import {NoAuthSharingSessionBasicDto, SharingSessionBasicDto, SharingSessionStatus} from "../models/models.tsx";
 import NoAuthSessionHeader from "./components/header/NoAuthSessionHeader.tsx";
 import {useNoAuthSharingSessionStyles} from "./NoAuthSharingSessionStyles.tsx";
 import NoAuthSessionUserDecision from "./components/session-use-decision/NoAuthSessionUserDecision.tsx";
 import NoAuthSessionDocumentList from "./components/document-list/NoAuthSessionDocumentList.tsx";
-import {Spinner} from "@fluentui/react-components";
+import {Spinner, Text} from "@fluentui/react-components";
 import {fetchNoAuthSharingSession} from "../../services/sharingSessionApi.ts";
-import useToken from "../../context/useToken.tsx";
 
 const NoAuthSharingSession: React.FC = () =>
 {
     const styles = useNoAuthSharingSessionStyles();
     const navigate = useNavigate();
-    const token = useToken();
 
     const [isLoadingSession, setIsLoadingSession] = useState(false);
-    const [sessionId, setSessionId] = useState('');
+    const [sessionId, setSessionId] = useState<string | null>(null);
     const [sessionAccepted, setSessionAccepted] = useState(false);
-    const [session, setSession] = useState<SharingSessionBasicDto>();
-    const [sessionDocuments, setSessionDocuments] = useState<DocumentBasicDto[]>([]);
+    const [session, setSession] = useState<SharingSessionBasicDto>(null);
 
     useEffect(() =>
     {
         const queryParams = new URLSearchParams(window.location.search);
-        if (!queryParams.has('s') || !queryParams.get('s') || !queryParams.get('s')?.length)
+        const sessionIdParam = queryParams.get('s');
+
+        if (!sessionIdParam)
         {
             navigate('/sign-in');
         }
-
-        setSessionId(queryParams.get('s'));
-
+        else
+        {
+            setSessionId(sessionIdParam);
+        }
     }, [navigate]);
 
     const fetchSession = async () =>
     {
+        if (!sessionId)
+        {
+            return;
+        }
+
         if (isLoadingSession)
         {
             return;
@@ -44,7 +49,7 @@ const NoAuthSharingSession: React.FC = () =>
 
         try
         {
-            const session = (await fetchNoAuthSharingSession(sessionId, token)) as SharingSessionBasicDto;
+            const session = await fetchNoAuthSharingSession(sessionId) as NoAuthSharingSessionBasicDto;
 
             if (session.status === SharingSessionStatus.INITIATED)
             {
@@ -60,56 +65,61 @@ const NoAuthSharingSession: React.FC = () =>
             }
 
             setSession(session);
-
         }
         catch (error)
         {
             console.error(error);
+            navigate('/sign-in');
         }
         finally
         {
             setIsLoadingSession(false);
         }
-    }
+    };
 
     useEffect(() =>
     {
-        setIsLoadingSession(true);
-
-        setTimeout(() =>
+        if (sessionId)
         {
-            setIsLoadingSession(false);
-        }, 4000);
+            fetchSession();
+        }
+    }, [sessionId]);
 
-    }, []);
+    const onSessionAccepted = (session: NoAuthSharingSessionBasicDto) =>
+    {
+        setSession(session);
+        setSessionAccepted(true)
+    }
 
     return (
         <section className={styles.container}>
             <NoAuthSessionHeader/>
 
-            {isLoadingSession &&
+            {isLoadingSession && (
                 <div className={styles.sessionLoadingContainer}>
                     <Spinner size={"small"} label={"Loading..."}/>
                 </div>
-            }
+            )}
 
-            {!isLoadingSession && <>
-
-                {sessionAccepted &&
-                    <>
-                        <NoAuthSessionDocumentList/>
-                    </>
-                }
-                    {!sessionAccepted &&
+            {!isLoadingSession && session && (
+                <>
+                    {sessionAccepted ? (
+                        <>
+                            <Text>{session.sessionName}</Text>
+                            <NoAuthSessionDocumentList
+                                session={session}/>
+                        </>
+                    ) : (
                         <NoAuthSessionUserDecision
-                            sessionId={session}
-                            onAccepted={() => setSessionAccepted(true)}
-                            onDeclined={() => navigate("/sign-in/")}/>
-                    }
-            </>
-            }
+                            session={session}
+                            onAccepted={onSessionAccepted}
+                            onDeclined={() => navigate("/sign-in/")}
+                        />
+                    )}
+                </>
+            )}
         </section>
     );
-}
+};
 
 export default NoAuthSharingSession;

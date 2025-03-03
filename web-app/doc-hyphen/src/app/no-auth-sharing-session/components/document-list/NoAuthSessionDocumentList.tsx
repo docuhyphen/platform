@@ -1,6 +1,6 @@
 import React from "react";
 import {useNoAuthSessionDocumentListStyles} from "./NoAuthSessionDocumentListStyles.tsx";
-import {SharingSessionDetailedDto} from "../../../models/models.tsx";
+import {NoAuthSharingSessionBasicDto, SharingSessionDetailedDto} from "../../../models/models.tsx";
 import {Body1, Button, Caption1, Card, CardHeader} from "@fluentui/react-components";
 import {formatDateTimeWithOrdinal} from "../../../helpers.ts";
 import {DocumentAddIcon} from "../../../components/IconBundles.tsx";
@@ -8,7 +8,7 @@ import {DocumentAddIcon} from "../../../components/IconBundles.tsx";
 interface NoAuthSessionDocumentListProps
 {
 
-    session: SharingSessionDetailedDto;
+    session: NoAuthSharingSessionBasicDto;
 }
 
 const NoAuthSessionDocumentList: React.FC<NoAuthSessionDocumentListProps> = (

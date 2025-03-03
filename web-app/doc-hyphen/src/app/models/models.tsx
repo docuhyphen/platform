@@ -214,6 +214,7 @@ export enum SharingSessionStatus
     ENDED = "ENDED",
     REJECTED = "REJECTED"
 }
+
 export interface UpdateSharingSessionRequest
 {
     initialShareMessage?: string;
@@ -225,6 +226,13 @@ export interface UpdateSharingSessionRequest
     allowDocumentDownload?: boolean;
     allowDocumentUpdate?: boolean;
     allowDocumentUpload?: boolean;
+    status?: SharingSessionStatus;
+    rejectionReason?: string;
+}
+
+export interface UpdateNoAuthSharingSessionRequest
+{
+    otp?: string;
     status?: SharingSessionStatus;
     rejectionReason?: string;
 }
@@ -290,6 +298,22 @@ export interface SharingSessionBasicDto
     recipientFirstName?: string;
     recipientLastName?: string;
     recipientCompanyName?: string;
+}
+
+export interface NoAuthSharingSessionBasicDto
+{
+    id: string;
+    createdDate: string;
+    lastActivity: string;
+    sessionName?: string;
+    initialShareMessage?: string;
+    status?: SharingSessionStatus;
+    recipientEmail?: string;
+    recipientFirstName?: string;
+    recipientLastName?: string;
+    recipientCompanyName?: string;
+    initiatorFirstName?: string;
+    initiatorLastName?: string;
 }
 
 export interface ContactDetailsBasicDto

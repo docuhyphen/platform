@@ -19,17 +19,19 @@ import {
 } from "@fluentui/react-components";
 import {useNoAuthSessionDocumentListStyles} from "./NoAuthSessionUserDecisionStyles.tsx";
 import {DismissRegular} from "@fluentui/react-icons";
+import {NoAuthSharingSessionBasicDto, SharingSessionStatus} from "../../../models/models.tsx";
+import {updateNoAuthSharingSession} from "../../../../services/sharingSessionApi.ts";
 
 interface NoAuthSessionUserDecisionProps
 {
-    sessionId: string;
-    onAccepted: () => void;
+    session: NoAuthSharingSessionBasicDto;
+    onAccepted: (session: NoAuthSharingSessionBasicDto) => void;
     onDeclined: () => void;
 }
 
 const NoAuthSessionUserDecision: React.FC<NoAuthSessionUserDecisionProps> = (
     {
-        sessionId,
+        session,
         onAccepted,
         onDeclined
     }) =>
@@ -37,19 +39,10 @@ const NoAuthSessionUserDecision: React.FC<NoAuthSessionUserDecisionProps> = (
     const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
     const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState<boolean>(false);
     const [isDeclineDialogOpen, setIsDeclineDialogOpen] = useState<boolean>(false);
-    const [sessionInitiator, setSessionInitiator] = useState<string>('');
-    const [sharingMessage, setSharingMessage] = useState<string>('');
     const [isAcceptingSession, setIsAcceptingSession] = useState<boolean>(false);
     const [isDecliningSession, setIsDecliningSession] = useState<boolean>(false);
     const [acceptOTP, setAcceptOTP] = useState<string[]>(['', '', '', '', '']);
     const styles = useNoAuthSessionDocumentListStyles();
-
-    useEffect(() =>
-    {
-        // Fetch session initiator
-        setSessionInitiator('Christopher Mahlangu');
-        setSharingMessage('Hey Jane doe, I would like to share some documents with you. Please accept the request to view the documents.');
-    }, []);
 
     const onAccept = async () =>
     {
@@ -74,7 +67,7 @@ const NoAuthSessionUserDecision: React.FC<NoAuthSessionUserDecisionProps> = (
         setIsDeclineDialogOpen(false);
     }
 
-    const onContinueAccept = () =>
+    const onContinueAccept = async () =>
     {
         if (isAcceptingSession)
         {
@@ -86,15 +79,19 @@ const NoAuthSessionUserDecision: React.FC<NoAuthSessionUserDecisionProps> = (
 
         try
         {
-            const request = {
-                otp: acceptOTP.join('')
+            const acceptRequest = {
+                otp: acceptOTP.join(''),
+                status: SharingSessionStatus.ACCEPTED_STARTED
             };
 
-            onAccepted();
+            const acceptedSession = await updateNoAuthSharingSession(session.id, acceptRequest);
+
+            onAccepted(acceptedSession as NoAuthSharingSessionBasicDto);
             setIsAcceptDialogOpen(false);
         }
         catch (error)
         {
+            alert('Failed to accept the request. Please try again later.');
             setErrorMessage('Failed to accept the request. Please try again later.');
         }
         finally
@@ -103,7 +100,7 @@ const NoAuthSessionUserDecision: React.FC<NoAuthSessionUserDecisionProps> = (
         }
     }
 
-    const onContinueDecline = () =>
+    const onContinueDecline = async () =>
     {
         if (isDecliningSession)
         {
@@ -115,6 +112,13 @@ const NoAuthSessionUserDecision: React.FC<NoAuthSessionUserDecisionProps> = (
 
         try
         {
+            const declineRequest = {
+                otp: acceptOTP.join(''),
+                rejectReason: '',
+                status: SharingSessionStatus.REJECTED
+            }
+
+            await updateNoAuthSharingSession(session.id, declineRequest);
             onDeclined();
             setIsDeclineDialogOpen(false);
         }
@@ -159,11 +163,11 @@ const NoAuthSessionUserDecision: React.FC<NoAuthSessionUserDecisionProps> = (
             <section className={styles.container}>
                 <Text size={500}
                       align={"center"}>
-                    {sessionInitiator} has requested to share documents with you.
+                    {session.initiatorFirstName} {session.initiatorLastName} has requested to share documents with you.
                 </Text>
-                {sharingMessage &&
+                {session.initialShareMessage &&
                     <Text size={300} align={"center"}>
-                        {sharingMessage}
+                        {session.initialShareMessage}
                     </Text>
                 }
                 <div className={styles.decisionActions}>

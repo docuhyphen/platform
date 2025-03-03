@@ -30,6 +30,23 @@ data class SharingSessionBasicDto(
 )
 
 @Serializable
+data class NoAuthSharingSessionBasicDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID,
+    @Serializable(with = TimestampSerializer::class)
+    val createdDate: Timestamp,
+    @Serializable(with = TimestampSerializer::class)
+    val lastActivity: Timestamp,
+    val sessionName: String?,
+    val initialShareMessage: String? = null,
+    val status: String?,
+    var recipientEmail: String? = null,
+    var initiatorFirstName: String? = null,
+    var initiatorLastName: String? = null,
+    val documents: List<DocumentBasicDto?>,
+)
+
+@Serializable
 data class ContactDetailsBasicDto(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID?,

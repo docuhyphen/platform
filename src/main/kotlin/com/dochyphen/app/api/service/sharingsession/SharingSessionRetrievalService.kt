@@ -4,6 +4,9 @@ import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.model.entity.Document
 import com.dochyphen.app.api.model.entity.SharingSession
+import com.dochyphen.app.api.model.entity.SharingSessionStatus
+import com.dochyphen.app.api.model.entity.SharingSessionStatus.ACCEPTED_STARTED
+import com.dochyphen.app.api.model.entity.SharingSessionStatus.INITIATED
 import com.dochyphen.app.api.repository.SharingSessionRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -49,5 +52,26 @@ class SharingSessionRetrievalService @Inject constructor(
                     documents = documents.filter { !it.isDeleted } as MutableList<Document>
                 }
             }
+    }
+
+    fun getNoAuthSharingSession(sessionId: String): SharingSession
+    {
+        val session = sharingSessionRepository.findById(UUID.fromString(sessionId)) ?: throw SharingSessionNotFoundException("Sharing session not found")
+
+        session.documents = session.documents.filter { it.isDeleted == false } as MutableList<Document>
+
+        if (session.requireRecipientSignIn)
+        {
+            logger.error("Attempted to access a sharing session that requires recipient sign-in")
+            throw SharingSessionNotFoundException("Sharing session not found")
+        }
+
+        if(session.status != ACCEPTED_STARTED && session.status != INITIATED)
+        {
+            logger.error("Attempted to access a sharing session that is not in the correct status")
+            throw SharingSessionNotFoundException("Sharing session not found")
+        }
+
+        return session
     }
 }

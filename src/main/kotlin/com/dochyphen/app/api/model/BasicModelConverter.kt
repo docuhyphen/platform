@@ -31,6 +31,27 @@ class BasicModelConverter
             }
         }
 
+        fun toNoAuthDto(sharingSession: SharingSession?): NoAuthSharingSessionBasicDto?
+        {
+            return sharingSession?.let {
+                with(sharingSession)
+                {
+                    NoAuthSharingSessionBasicDto(
+                        id,
+                        createdDate,
+                        lastActivity,
+                        sessionName,
+                        initialShareMessage,
+                        status.toString(),
+                        recipient?.email,
+                        initiator?.person?.firstName,
+                        initiator?.person?.lastName,
+                        documents.map { toDto(it) }
+                    )
+                }
+            }
+        }
+
         fun toDto(appUser: AppUser): AppUserBasicDto?
         {
             return appUser.person?.let {

@@ -114,6 +114,14 @@ data class UpdateSharingSessionRequest(
 )
 
 @Serializable
+data class UpdateNoAuthSharingSession(
+    var status: SharingSessionStatus? = null,
+    var otp: String? = null,
+    var rejectReason: String? = null
+)
+
+
+@Serializable
 class AddSharingSessionDocumentRequest(
     val title: String?,
     val documentType: DocumentType? = null,

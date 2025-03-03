@@ -1,10 +1,12 @@
 import apiClient from './apiClient';
 import {
     DownloadDocumentsZipRequest,
+    NoAuthSharingSessionBasicDto,
     ResponseError,
     SharingSessionBasicDto,
     SharingSessionInitiationRequest,
     SharingSessionRequestDocumentRequest,
+    UpdateNoAuthSharingSessionRequest,
     UpdateSharingSessionRequest
 } from "../app/models/models.tsx";
 
@@ -47,11 +49,14 @@ export const fetchSignedInUserAppUserSharingSession = (sessionId: string | null,
         })
     );
 
-export const fetchNoAuthSharingSession = (sessionId: string | null, token: string | null): Promise<SharingSessionBasicDto | ResponseError> =>
+export const fetchNoAuthSharingSession = (sessionId: string | null): Promise<NoAuthSharingSessionBasicDto | ResponseError> =>
     executeRequest(() =>
-        apiClient.get(`no-auth/sharing-sessions/${sessionId}`, {
-            headers: getAuthHeaders(token)
-        })
+        apiClient.get(`no-auth/sharing-sessions/${sessionId}`)
+    );
+
+export const updateNoAuthSharingSession = (sessionId: string, request: UpdateNoAuthSharingSessionRequest) =>
+    executeRequest(() =>
+        apiClient.put(`no-auth/sharing-sessions/${sessionId}`, request)
     );
 
 export const updateSharingSession = (sessionId: string, request: UpdateSharingSessionRequest, token: string | null) =>

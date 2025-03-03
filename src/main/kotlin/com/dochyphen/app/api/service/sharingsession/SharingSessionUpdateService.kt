@@ -1,10 +1,12 @@
 package com.dochyphen.app.api.service.sharingsession
 
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
+import com.dochyphen.app.api.model.entity.SharingSession
 import com.dochyphen.app.api.model.entity.SharingSessionStatus
 import com.dochyphen.app.api.repository.SharingSessionRepository
 import com.dochyphen.app.api.resource.model.UpdateSharingSessionRequest
 import com.dochyphen.app.api.service.communication.EmailService
+import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
@@ -13,7 +15,7 @@ import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class SharingSessionUpdateService @Inject constructor(
@@ -147,5 +149,57 @@ class SharingSessionUpdateService @Inject constructor(
         sharingSessionRepository.update(session)
 
         logger.info("Sharing session ${session.sessionName} deleted")
+    }
+
+    fun updateNoAuthSharingSession(
+        sessionId: String,
+        sessionStatus: SharingSessionStatus?,
+        otp: String?,
+        rejectReason: String?
+    ): SharingSession
+    {
+        val sessionUUID = UUID.fromString(sessionId)
+
+        val session = sharingSessionRepository.findById(sessionUUID)
+            ?: throw SharingSessionNotFoundException("Sharing session not found")
+
+        if (session.requireRecipientSignIn)
+        {
+            logger.error("Attempted to access a sharing session that requires recipient sign-in")
+            throw ForbiddenException("Sharing session not found")
+        }
+
+        if (session.status != SharingSessionStatus.ACCEPTED_STARTED && session.status != SharingSessionStatus.INITIATED)
+        {
+            logger.error("Attempted to update a sharing session with an invalid status")
+            throw IllegalArgumentException("Sharing session not found")
+        }
+
+        if (session.status == SharingSessionStatus.ENDED || session.status == SharingSessionStatus.REJECTED)
+        {
+            logger.error("Attempted to update a sharing session that has ended or rejected: $sessionStatus")
+            throw IllegalArgumentException("Sharing session not found")
+        }
+
+        //ToDo: validate otp
+
+        sessionStatus?.let {
+            sharingSessionRepository.updateStatus(sessionUUID, it)
+
+            if (it == SharingSessionStatus.REJECTED)
+            {
+                rejectReason?.let {
+                    sharingSessionRepository.updateRejectionReason(sessionUUID, it)
+                }
+
+                sharingSessionRepository.updateEndDate(sessionUUID, Timestamp.from(Instant.now()))
+            }
+        }
+
+        sharingSessionRepository.updateLastActivity(sessionUUID, Timestamp.from(Instant.now()))
+
+        logger.info("Sharing session ${session.sessionName} updated")
+
+        return sharingSessionRepository.findById(sessionUUID)!!
     }
 }
