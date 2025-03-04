@@ -4,13 +4,35 @@ export const useNoAuthSessionDocumentListStyles = makeStyles({
 
     container: {
         display: "flex",
-        flexDirection: "row",
+        flexDirection: "column",
         justifyContent: "space-between",
-        padding: "8px 16px",
-        borderBottom: "1px solid rgba(0, 0, 0, .1)",
-        boxShadow: "1px 1px 0px 1px rgba(0, 0, 0, .25)",
+        gap: "16px",
     },
 
     documentContainer: {
+        background: "white"
+    },
+
+    documentCard: {
+        flex: 1,
+    },
+
+    documentCardHeader: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+        alignItems: "normal",
+    },
+
+    documentName: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        flex: 1
+    },
+    documentActions: {
+        display: "flex",
+        gap: "8px",
+        justifyContent: "space-between",
     }
 })

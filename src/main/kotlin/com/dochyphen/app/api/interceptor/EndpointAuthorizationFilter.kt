@@ -59,7 +59,7 @@ class EndpointVerificationFilter @Inject constructor(
         "/auth/sign-in/completion",
         "/auth/password-reset/initiation",
         "/auth/password-reset/completion",
-        "/no-auth/sharing-sessions/",
+        "/no-auth/sharing-sessions",
     )
 
     @Inject

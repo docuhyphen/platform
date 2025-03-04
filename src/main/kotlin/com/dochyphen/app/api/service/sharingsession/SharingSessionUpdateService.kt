@@ -1,6 +1,11 @@
 package com.dochyphen.app.api.service.sharingsession
 
+import com.dochyphen.app.api.exception.SharingSessionDocumentNotFoundException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
+import com.dochyphen.app.api.model.entity.Document
+import com.dochyphen.app.api.model.entity.DocumentAuditLogAction
+import com.dochyphen.app.api.model.entity.DocumentEncryptionMode
+import com.dochyphen.app.api.model.entity.DocumentType
 import com.dochyphen.app.api.model.entity.SharingSession
 import com.dochyphen.app.api.model.entity.SharingSessionStatus
 import com.dochyphen.app.api.repository.SharingSessionRepository
@@ -13,6 +18,7 @@ import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
+import java.io.File
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*

@@ -7,8 +7,11 @@ export const useNoAuthSessionHeaderStyles = makeStyles({
         flexDirection: "row",
         justifyContent: "space-between",
         padding: "8px 16px",
-        boxShadow: "1px 1px 0px 1px rgba(0, 0, 0, .1)",
+        boxShadow: "rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px",
         background: "white",
+        position: "fixed",
+        width: "100%",
+        boxSizing: "border-box",
     },
 
     signInButtonContainer: {

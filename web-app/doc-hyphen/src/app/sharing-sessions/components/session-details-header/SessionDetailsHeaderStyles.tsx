@@ -13,7 +13,7 @@ export const useSessionDetailsHeaderStyles = makeStyles({
         borderTop: "1px solid rgba(0, 0, 0, .2)",
         borderRight: "1px solid rgba(0, 0, 0, .2)",
         borderBottom: "1px solid rgba(0, 0, 0, .2)",
-        boxShadow: "1px 1px 1px rgba(0, 0, 0, 0.1)",
+        boxShadow: "rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px",
     },
     
     header: {

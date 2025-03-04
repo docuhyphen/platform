@@ -115,6 +115,23 @@ export const uploadSharingSessionDocument = (
         })
     );
 
+export const uploadNoAuthSharingSessionDocument = (
+    sessionId: string,
+    documentId?: string,
+    formData?: FormData,
+    onUploadProgress?: (progressEvent: any) => void
+) => {
+
+    alert("Uploading document")
+
+    return executeRequest(() =>
+        apiClient.post(`no-auth/sharing-sessions/${sessionId}/documents/${documentId}/file`, formData, {
+            headers: {'Content-Type': 'multipart/form-data'},
+            // onUploadProgress
+        })
+    );
+}
+
 export const downloadSharingSessionDocument = (sessionId: string, documentId?: string, token?: string | null) =>
     executeRequest(() =>
         apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/file`, {

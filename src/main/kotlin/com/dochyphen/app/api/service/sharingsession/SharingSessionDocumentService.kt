@@ -8,6 +8,7 @@ import com.dochyphen.app.api.repository.SharingSessionRepository
 import com.dochyphen.app.api.service.communication.AppNotificationService
 import com.dochyphen.app.api.service.communication.EmailService
 import com.dochyphen.app.api.service.storage.FileStorageService
+import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -132,6 +133,60 @@ class SharingSessionDocumentService @Inject constructor(
         auditService.logAction(document, DocumentAuditLogAction.UPLOAD, appUser)
 
         sendUploadNotification(sharingSession, appUser, document.title)
+
+        return document
+    }
+
+    @Transactional
+    fun uploadNoAuthDocument(
+        file: File?,
+        extension: String?,
+        sessionId: String?,
+        documentId: String?,
+        encryptionMode: DocumentEncryptionMode?
+    ): Document
+    {
+        if (sessionId == null) throw IllegalArgumentException("Session ID cannot be null")
+        if (documentId == null) throw IllegalArgumentException("Document ID cannot be null")
+
+        val sessionUUID = UUID.fromString(sessionId)
+        val sharingSession = getSharingSession(sessionId)
+        val document = getDocument(sharingSession, documentId)
+
+        if (sharingSession.requireRecipientSignIn)
+        {
+            logger.error("Attempted to access a sharing session that requires recipient sign-in")
+            throw ForbiddenException("Sharing session not found")
+        }
+
+        if (sharingSession.status != SharingSessionStatus.ACCEPTED_STARTED && sharingSession.status != SharingSessionStatus.INITIATED)
+        {
+            logger.error("Attempted to update a sharing session with an invalid status")
+            throw IllegalArgumentException("Sharing session not found")
+        }
+
+        if (sharingSession.status == SharingSessionStatus.ENDED || sharingSession.status == SharingSessionStatus.REJECTED)
+        {
+            logger.error("Attempted to update a sharing session that has ended or rejected: ${sharingSession.status}")
+            throw IllegalArgumentException("Sharing session not found")
+        }
+
+        if (document.isDeleted)
+        {
+            throw SharingSessionDocumentNotFoundException("Document not found")
+        }
+
+        validateFileAndExtension(file, extension)
+
+
+        document.hash = "hash"
+        document.type = DocumentType.fromFileExtension(extension!!)
+        document.uploadDate = Timestamp.from(Instant.now())
+        sessionRepo.update(sharingSession)
+
+        fileStorageService.uploadDocument(file!!, "${document.id}$extension")
+        sharingSession.recipient?.email?.let { auditService.logAction(document, DocumentAuditLogAction.UPLOAD, it) }
+//        sendUploadNotification(sharingSession, appUser, document.title)
 
         return document
     }

@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from "react";
 import {useNavigate} from "react-router-dom";
-import {NoAuthSharingSessionBasicDto, SharingSessionBasicDto, SharingSessionStatus} from "../models/models.tsx";
+import {NoAuthSharingSessionBasicDto, SharingSessionStatus} from "../models/models.tsx";
 import NoAuthSessionHeader from "./components/header/NoAuthSessionHeader.tsx";
 import {useNoAuthSharingSessionStyles} from "./NoAuthSharingSessionStyles.tsx";
 import NoAuthSessionUserDecision from "./components/session-use-decision/NoAuthSessionUserDecision.tsx";
@@ -16,7 +16,7 @@ const NoAuthSharingSession: React.FC = () =>
     const [isLoadingSession, setIsLoadingSession] = useState(false);
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [sessionAccepted, setSessionAccepted] = useState(false);
-    const [session, setSession] = useState<SharingSessionBasicDto>(null);
+    const [session, setSession] = useState<NoAuthSharingSessionBasicDto>(null);
 
     useEffect(() =>
     {
@@ -104,11 +104,18 @@ const NoAuthSharingSession: React.FC = () =>
             {!isLoadingSession && session && (
                 <>
                     {sessionAccepted ? (
-                        <>
-                            <Text>{session.sessionName}</Text>
+                        <section className={styles.sessionContainer}>
+                            <div className={styles.sessionName}>
+                                {(session.initiatorLastName && session.initiatorFirstName) &&
+                                    <Text>
+                                        From {session.initiatorFirstName} {session.initiatorLastName}
+                                    </Text>
+                                }
+                                <Text size={600}>{session.sessionName}</Text>
+                            </div>
                             <NoAuthSessionDocumentList
                                 session={session}/>
-                        </>
+                        </section>
                     ) : (
                         <NoAuthSessionUserDecision
                             session={session}

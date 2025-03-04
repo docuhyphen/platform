@@ -34,6 +34,19 @@ class SharingSessionDocumentAuditService @Inject constructor(
             this.performedByEmail = managedPerformedBy.email
             this.timestamp = Timestamp.from(Instant.now())
         }
+
+        documentAuditLogRepository.save(auditLog)
+    }
+
+    fun logAction(document: Document, action: DocumentAuditLogAction, performedByEmail: String)
+    {
+        val auditLog = DocumentAuditLog().apply {
+            this.document = document
+            this.action = action
+            this.timestamp = Timestamp.from(Instant.now())
+            this.performedByEmail = performedByEmail
+        }
+
         documentAuditLogRepository.save(auditLog)
     }
 

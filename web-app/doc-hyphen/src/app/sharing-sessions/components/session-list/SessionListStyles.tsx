@@ -36,7 +36,7 @@ export const useSharingSessionStyles = makeStyles({
 
     sharingSessionsListHeader: {
         background: "white",
-        boxShadow: "1px 1px 0px 1px rgba(0, 0, 0, .1)",
+        boxShadow: "rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px",
         width: "100%",
         height: "48px",
         padding: "8px",
@@ -74,7 +74,7 @@ export const useSharingSessionStyles = makeStyles({
         boxSizing: "border-box",
         display: "flex",
         justifyContent: "space-between",
-        boxShadow: "-1px -1px 0 1px rgba(0, 0, 0, .1)",
+        boxShadow: "rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px -2px 4px",
     },
 
     sharingSessionsListBody: {
