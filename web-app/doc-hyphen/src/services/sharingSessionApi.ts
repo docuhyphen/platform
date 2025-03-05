@@ -140,9 +140,10 @@ export const downloadNoAuthSharingSessionDocument = (sessionId: string, document
         })
     );
 
-export const downloadSharingSessionDocument = (sessionId: string, documentId?: string) =>
+export const downloadSharingSessionDocument = (sessionId: string, documentId?: string, token?: string | null) =>
     executeRequest(() =>
         apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/file`, {
+            headers: getAuthHeaders(token || null),
             responseType: 'blob'
         })
     );

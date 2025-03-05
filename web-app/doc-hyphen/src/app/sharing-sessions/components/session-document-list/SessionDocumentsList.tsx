@@ -22,7 +22,9 @@ interface SessionDocumentsListProps
     sessionDetails: SharingSessionDetailedDto | null;
     filteredDocuments: DocumentDetailedDto[];
     setSelectedSessionDocument: (document: DocumentDetailedDto) => void;
+    setSelectedUpdateSessionDocument: (document: DocumentDetailedDto) => void;
     setIsUploadDocumentDialogOpen: (isOpen: boolean) => void;
+    setIsDocumentUpdateDialogOpen: (isOpen: boolean) => void;
     onDocumentDeleted: (documentId: string) => void;
     onDocumentUpdated: (document: DocumentDetailedDto) => void;
     onNewDocumentAdded: (document: DocumentDetailedDto) => void;
@@ -38,6 +40,7 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
         sessionDetails,
         filteredDocuments,
         setSelectedSessionDocument,
+        setSelectedUpdateSessionDocument,
         setIsUploadDocumentDialogOpen,
         onDocumentDeleted,
         onDocumentUpdated,
@@ -46,6 +49,7 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
         permissions,
         onFilterDocuments,
         setIsDocumentAddDialogOpen,
+        setIsDocumentUpdateDialogOpen,
         setIsDocumentZipDialogOpen
     }) =>
 {
@@ -69,7 +73,8 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
                 }}
                 onUpdate={() =>
                 {
-                    setSelectedSessionDocument(sessionDocument);
+                    setSelectedUpdateSessionDocument(sessionDocument);
+                    setIsDocumentUpdateDialogOpen(true);
                 }}
                 onPreviewDocument={() => setSelectedSessionDocument(sessionDocument)}
             />

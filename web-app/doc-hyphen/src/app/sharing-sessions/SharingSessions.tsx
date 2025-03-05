@@ -254,17 +254,19 @@ const SharingSessions: React.FC = () =>
                         {(sessionDetails?.documents?.length > 0) && (
                             <SessionDocumentsList
                                 sessionDetails={sessionDetails}
+                                permissions={permissions}
+                                onFilterDocuments={onFilterDocuments}
                                 filteredDocuments={filteredDocuments}
                                 setSelectedSessionDocument={setSelectedSessionDocument}
+                                setSelectedUpdateSessionDocument={setSelectedUpdateSessionDocument}
                                 setIsUploadDocumentDialogOpen={setIsUploadDocumentDialogOpen}
+                                setIsDocumentUpdateDialogOpen={setIsUpdateDocumentDialogOpen}
+                                setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}
+                                setIsDocumentZipDialogOpen={setIsDocumentZipDialogOpen}
                                 onDocumentDeleted={onDocumentDeleted}
                                 onDocumentUpdated={onDocumentUpdated}
                                 onNewDocumentAdded={onNewDocumentAdded}
                                 onDocumentUploaded={onDocumentUploaded}
-                                permissions={permissions}
-                                onFilterDocuments={onFilterDocuments}
-                                setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}
-                                setIsDocumentZipDialogOpen={setIsDocumentZipDialogOpen}
                             />
                         )}
 

@@ -71,6 +71,9 @@ const SessionDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
                 setIsRestrictionEnabled(false);
             }
         }
+
+        console.log("Updating document", sessionDocument);
+
     }, [sessionDocument]);
 
     const resetState = useCallback(() =>
