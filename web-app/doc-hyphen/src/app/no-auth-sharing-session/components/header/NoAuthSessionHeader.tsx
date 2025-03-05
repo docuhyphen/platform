@@ -27,6 +27,7 @@ const NoAuthSessionHeader: React.FC = () =>
             <div className={styles.signInButtonContainer}>
                 Already have an account?
                 <Button onClick={onSignIn}
+                        disabled={signingIn}
                         className={styles.signInButton}
                         appearance={"primary"}
                         shape={"circular"}>

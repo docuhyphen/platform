@@ -23,7 +23,7 @@ export const useNoAuthSessionDocumentListStyles = makeStyles({
         flexDirection: "column",
         gap: "8px",
         alignItems: "normal",
-        border: "4px"
+        border: "4px",
     },
 
     documentName: {
