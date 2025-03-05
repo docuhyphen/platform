@@ -94,7 +94,7 @@ const SharingSessions: React.FC = () =>
             };
             fetchDetails();
         }
-    }, [selectedSessionId, token]);
+    }, [selectedSessionId, token, appUser]);
 
     useEffect(() =>
     {
@@ -285,9 +285,9 @@ const SharingSessions: React.FC = () =>
                             </div>
                         }
 
-                        {selectedSessionDocument &&
-                            <SessionDocumentPreviewer document={selectedSessionDocument}
-                                                      session={sessionDetails}/>}
+                        {/*{selectedSessionDocument &&*/}
+                        {/*    <SessionDocumentPreviewer document={selectedSessionDocument}*/}
+                        {/*                              session={sessionDetails}/>}*/}
                     </div>
                 }
                 {!fetchingDetails && (!selectedSessionId && !sessionDetails) &&
