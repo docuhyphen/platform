@@ -15,6 +15,8 @@ import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
+import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
+import jakarta.ws.rs.core.Response.Status.NOT_FOUND
 import org.jboss.resteasy.reactive.RestForm
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -56,7 +58,7 @@ class NoAuthSharingSessionResource @Inject constructor(
                     val responseError = ResponseError(exception.message)
 
                     Response
-                        .status(Response.Status.NOT_FOUND)
+                        .status(NOT_FOUND)
                         .entity(responseError)
                         .build()
                 }
@@ -79,7 +81,7 @@ class NoAuthSharingSessionResource @Inject constructor(
 
                     val responseError = ResponseError("An error occurred while getting sharing session")
                     Response
-                        .status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .status(INTERNAL_SERVER_ERROR)
                         .entity(responseError)
                         .build()
                 }
@@ -125,7 +127,7 @@ class NoAuthSharingSessionResource @Inject constructor(
                     val responseError = ResponseError(exception.message)
 
                     Response
-                        .status(Response.Status.NOT_FOUND)
+                        .status(NOT_FOUND)
                         .entity(responseError)
                         .build()
                 }
@@ -148,7 +150,7 @@ class NoAuthSharingSessionResource @Inject constructor(
 
                     val responseError = ResponseError("An error occurred while updating sharing session")
                     Response
-                        .status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .status(INTERNAL_SERVER_ERROR)
                         .entity(responseError)
                         .build()
                 }
@@ -188,7 +190,7 @@ class NoAuthSharingSessionResource @Inject constructor(
                 {
                     logger.error("Error uploading sharing session document", exception)
                     val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
+                    Response.status(NOT_FOUND).entity(responseError).build()
                 }
 
                 is IllegalArgumentException ->
@@ -202,7 +204,54 @@ class NoAuthSharingSessionResource @Inject constructor(
                 {
                     logger.error("Error uploading sharing session document", exception)
                     val responseError = ResponseError("An error occurred while uploading sharing session document")
-                    Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseError).build()
+                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
+        }
+    }
+
+    @GET
+    @Path("{sessionId}/documents/{documentId}/file")
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    fun downloadDocument(
+        @PathParam("sessionId") sessionId: String,
+        @PathParam("documentId") documentId: String
+    ): Response
+    {
+        return try
+        {
+            val file = sharingSessionDocumentService.downloadNoAuthSessionDocument(sessionId, documentId)
+            Response.ok(file)
+                .header("Content-Disposition", "attachment; filename=\"${file.name}\"")
+                .build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is SharingSessionNotFoundException,
+                is SharingSessionDocumentNotFoundException ->
+                {
+                    logger.error("Error downloading sharing session document", exception)
+
+                    val responseError = ResponseError(exception.message)
+                    Response.status(NOT_FOUND).entity(responseError).build()
+                }
+
+                is IllegalArgumentException ->
+                {
+                    logger.error("Error downloading sharing session document", exception)
+
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.BAD_REQUEST).entity(responseError).build()
+                }
+
+                else ->
+                {
+                    logger.error("Error downloading sharing session document", exception)
+
+                    val responseError = ResponseError("An error occurred while downloading sharing session document")
+                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
             }
         }

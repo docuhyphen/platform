@@ -149,7 +149,6 @@ class SharingSessionDocumentService @Inject constructor(
         if (sessionId == null) throw IllegalArgumentException("Session ID cannot be null")
         if (documentId == null) throw IllegalArgumentException("Document ID cannot be null")
 
-        val sessionUUID = UUID.fromString(sessionId)
         val sharingSession = getSharingSession(sessionId)
         val document = getDocument(sharingSession, documentId)
 
@@ -196,6 +195,42 @@ class SharingSessionDocumentService @Inject constructor(
     {
         val sharingSession = getSharingSession(sessionId)
         val document = getDocument(sharingSession, documentId)
+
+        val fileKey = "${document.id}${DocumentType.toFileExtension(document.type!!)}"
+        return fileStorageService.downloadDocument(fileKey)
+    }
+
+    @Transactional
+    fun downloadNoAuthSessionDocument(sessionId: String?, documentId: String?): File
+    {
+        if (sessionId == null) throw IllegalArgumentException("Session ID cannot be null")
+        if (documentId == null) throw IllegalArgumentException("Document ID cannot be null")
+
+        val sharingSession = getSharingSession(sessionId)
+        val document = getDocument(sharingSession, documentId)
+
+        if (sharingSession.requireRecipientSignIn)
+        {
+            logger.error("Attempted to access a sharing session that requires recipient sign-in")
+            throw ForbiddenException("Sharing session not found")
+        }
+
+        if (sharingSession.status != SharingSessionStatus.ACCEPTED_STARTED && sharingSession.status != SharingSessionStatus.INITIATED)
+        {
+            logger.error("Attempted to update a sharing session with an invalid status")
+            throw IllegalArgumentException("Sharing session not found")
+        }
+
+        if (sharingSession.status == SharingSessionStatus.ENDED || sharingSession.status == SharingSessionStatus.REJECTED)
+        {
+            logger.error("Attempted to update a sharing session that has ended or rejected: ${sharingSession.status}")
+            throw IllegalArgumentException("Sharing session not found")
+        }
+
+        if (document.isDeleted)
+        {
+            throw SharingSessionDocumentNotFoundException("Document not found")
+        }
 
         val fileKey = "${document.id}${DocumentType.toFileExtension(document.type!!)}"
         return fileStorageService.downloadDocument(fileKey)

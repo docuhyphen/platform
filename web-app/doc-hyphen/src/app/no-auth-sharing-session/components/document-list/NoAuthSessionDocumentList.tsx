@@ -1,10 +1,13 @@
 import React, {useState} from "react";
 import {useNoAuthSessionDocumentListStyles} from "./NoAuthSessionDocumentListStyles.tsx";
-import {NoAuthSharingSessionBasicDto} from "../../../models/models.tsx";
+import {DocumentBasicDto, NoAuthSharingSessionBasicDto} from "../../../models/models.tsx";
 import {Button, Card, CardHeader, ProgressBar, Spinner, Text} from "@fluentui/react-components";
-import {DocumentAddIcon, UploadIcon} from "../../../components/IconBundles.tsx";
+import {DocumentAddIcon, DownloadIcon, UploadIcon} from "../../../components/IconBundles.tsx";
 import {formatDateTimeWithOrdinal} from "../../../helpers.ts";
-import {uploadNoAuthSharingSessionDocument} from "../../../../services/sharingSessionApi.ts";
+import {
+    downloadNoAuthSharingSessionDocument,
+    uploadNoAuthSharingSessionDocument
+} from "../../../../services/sharingSessionApi.ts";
 
 interface NoAuthSessionDocumentListProps
 {
@@ -18,6 +21,7 @@ const NoAuthSessionDocumentList: React.FC<NoAuthSessionDocumentListProps> = ({se
     const [progress, setProgress] = useState<{ [key: string]: number }>({});
     const [selectedFileName, setSelectedFileName] = useState<string>('');
     const [selectedFile, setSelectedFile] = useState<any>();
+    const [downloadingDocument, setDownloadingDocument] = useState<boolean>();
 
     const onUploadDocument = async (sessionDocumentId: string, file: File) =>
     {
@@ -72,7 +76,38 @@ const NoAuthSessionDocumentList: React.FC<NoAuthSessionDocumentListProps> = ({se
         }
     }
 
-    const renderDocumentCard = (sessionDocument: any) =>
+    const onDownload = async (sessionDocument: DocumentBasicDto) =>
+    {
+        setDownloadingDocument(true)
+
+        try
+        {
+            const data = await downloadNoAuthSharingSessionDocument(session.id, sessionDocument.id);
+            const url = window.URL.createObjectURL(new Blob([data], {type: 'application/octet-stream'}));
+            const link = window.document.createElement('a');
+
+            link.id = 'f-download-link';
+            link.href = url;
+            link.setAttribute('download', `${sessionDocument.title}.pdf`); //ToDo: get type from document
+
+            window.document.body.appendChild(link);
+
+            link.click();
+
+            window.document.getElementById('f-download-link')?.remove();
+        }
+        catch (error)
+        {
+            alert("Download failed");
+            console.error("Error deleting document:", error);
+        }
+        finally
+        {
+            setDownloadingDocument(false);
+        }
+    }
+
+    const renderDocumentCard = (sessionDocument: DocumentBasicDto) =>
     {
 
         return (
@@ -93,30 +128,51 @@ const NoAuthSessionDocumentList: React.FC<NoAuthSessionDocumentListProps> = ({se
                     }
                 />
                 <div className={styles.documentActions}>
-                    <div>
+                    <div className={styles.documentActionsLine1}>
+                        <div>
+                            <Button appearance="subtle"
+                                    icon={<DocumentAddIcon/>}
+                                    shape={"circular"}
+                                    disabled={uploading[sessionDocument.id]}
+                                    className={styles.uploadButton1}>
+                                {selectedFileName && "Choose another file"}
+                                {!selectedFileName && "Choose file"}
+                                <input type="file"
+                                       onChange={onFileSelectChange}
+                                       className={styles.uploadButton2}
+                                       disabled={uploading[sessionDocument.id]}/>
+                            </Button>
+                            <Button appearance="subtle"
+                                    icon={<UploadIcon/>}
+                                    shape={"circular"}
+                                    onClick={() => onDocumentUpload(sessionDocument.id)}
+                                    disabled={uploading[sessionDocument.id]}>
+                                {uploading[sessionDocument.id] ? <Spinner size="extra-small"/> : "Upload new document"}
+                            </Button>
+                        </div>
+                        {sessionDocument && sessionDocument.uploadDate &&
 
+                            <Button appearance="subtle"
+                                    disabled={downloadingDocument}
+                                    shape={"circular"}
+                                    icon={<DownloadIcon/>}
+                                    onClick={() => onDownload(sessionDocument)}>
+                                Download
+                            </Button>
+                            }
+                    </div>
+                    <div className={styles.documentActionsLine2}>
                         {selectedFileName &&
-                            <Text size={300}>
+                            <Text size={300}
+                                  weight={"semibold"}>
                                 Chosen file: {selectedFileName}
                             </Text>
                         }
-                        <Button icon={<DocumentAddIcon/>} disabled={uploading[sessionDocument.id]}>
-                            {selectedFileName && "Choose another file"}
-                            {!selectedFileName && "Choose file"}
-                            <input type="file"
-                                   onChange={onFileSelectChange}
-                                   disabled={uploading[sessionDocument.id]}/>
-                        </Button>
-                        <Button appearance="transparent"
-                                icon={<UploadIcon/>}
-                                onClick={() => onDocumentUpload(sessionDocument.id)}
-                                disabled={uploading[sessionDocument.id]}>
-                            {uploading[sessionDocument.id] ? <Spinner size="extra-small"/> : "Upload new document"}
-                        </Button>
                     </div>
-                    <Button appearance="subtle">Download</Button>
                 </div>
-                {uploading[sessionDocument.id] && <ProgressBar value={progress[sessionDocument.id] / 100}/>}
+                {uploading[sessionDocument.id] &&
+                    <ProgressBar value={progress[sessionDocument.id] / 100}/>
+                }
             </Card>
         );
     };

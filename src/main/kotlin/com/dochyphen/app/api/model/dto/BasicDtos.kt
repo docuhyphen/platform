@@ -88,6 +88,8 @@ data class DocumentBasicDto(
     val id: UUID?,
     @Serializable(with = TimestampSerializer::class)
     val createdDate: Timestamp?,
+    @Serializable(with = TimestampSerializer::class)
+    val uploadDate: Timestamp?,
     val title: String?,
     val type: String?,
     val restrictedType: String?,

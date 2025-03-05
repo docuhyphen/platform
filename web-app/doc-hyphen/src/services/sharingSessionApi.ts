@@ -127,15 +127,22 @@ export const uploadNoAuthSharingSessionDocument = (
     return executeRequest(() =>
         apiClient.post(`no-auth/sharing-sessions/${sessionId}/documents/${documentId}/file`, formData, {
             headers: {'Content-Type': 'multipart/form-data'},
-            // onUploadProgress
+            onUploadProgress
         })
     );
 }
 
-export const downloadSharingSessionDocument = (sessionId: string, documentId?: string, token?: string | null) =>
+export const downloadNoAuthSharingSessionDocument = (sessionId: string, documentId?: string, token?: string | null) =>
+    executeRequest(() =>
+        apiClient.get(`no-auth/sharing-sessions/${sessionId}/documents/${documentId}/file`, {
+            headers: getAuthHeaders(token || null),
+            responseType: 'blob'
+        })
+    );
+
+export const downloadSharingSessionDocument = (sessionId: string, documentId?: string) =>
     executeRequest(() =>
         apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/file`, {
-            headers: getAuthHeaders(token || null),
             responseType: 'blob'
         })
     );

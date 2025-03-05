@@ -348,6 +348,7 @@ export interface DocumentBasicDto
 {
     id?: string;
     createdDate?: string;
+    uploadDate?: string;
     title?: string;
     type?: string;
     restrictedType?: string;
