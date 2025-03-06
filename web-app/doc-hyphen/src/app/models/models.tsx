@@ -149,8 +149,6 @@ export interface AppUser
     isActive: boolean;
     createdDate: string;
     email: string;
-    password?: string;
-    passwordSalt?: string;
     emailVerificationComplete: boolean;
     signInAttempts: number;
     mfaType: MultifactorAuthenticationType;

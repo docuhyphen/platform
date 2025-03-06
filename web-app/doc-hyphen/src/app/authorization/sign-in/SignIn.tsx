@@ -20,7 +20,7 @@ import {
     Subtitle1,
     Text,
 } from "@fluentui/react-components";
-import {AppUser, ResponseError} from "../../models/models.tsx";
+import {AppUser, AppUserDetailedDto, ResponseError} from "../../models/models.tsx";
 import {setApiClientAuthToken} from '../../../services/apiClient.ts';
 import {DismissRegular} from "@fluentui/react-icons";
 import AppLogo from "../../components/app-logo/AppLogo.tsx";
@@ -104,7 +104,7 @@ const SignIn: React.FC = () =>
             setToken(response.token);
             setApiClientAuthToken(response.token);
 
-            let appUser: AppUser | null = null;
+            let appUser: AppUserDetailedDto | null = null;
 
             try
             {
@@ -208,7 +208,7 @@ const SignIn: React.FC = () =>
             <Field label={"OTP"}
                    validationState={"none"}
                    validationMessage={""}
-                   hint="Please check your email for the OTP.">
+                   hint="The OTP has been sent to your email">
                 <Input value={otp}
                        autoComplete="false"
                        onChange={onOtpChange}

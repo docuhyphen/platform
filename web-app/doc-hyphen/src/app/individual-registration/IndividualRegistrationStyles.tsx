@@ -1,9 +1,10 @@
 import {makeStyles} from "@fluentui/react-components";
 
 export const useIndividualRegistrationStyles = makeStyles({
-    sharingSessionsContainer: {
+    container: {
         display: "flex",
+        flexDirection: "column",
         gap: "16px",
-        height: "100%",
+        flex: 1,
     }
 });

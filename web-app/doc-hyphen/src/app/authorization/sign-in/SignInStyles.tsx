@@ -15,7 +15,7 @@ export const useSignInStyles = makeStyles({
         justifyContent: "space-between",
     },
     authNoAccount: {
-        marginTop: "30px",
+        marginTop: "8px",
         textAlign: "center",
         display: "flex",
         flexDirection: "column",

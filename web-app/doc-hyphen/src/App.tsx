@@ -2,7 +2,7 @@ import React from 'react';
 import {BrowserRouter, Route, Routes} from 'react-router-dom';
 import Home from './app/home';
 import SignIn from './app/authorization/sign-in';
-import CompanyRegistrationPending from './app/company-registration';
+import CompanyRegistrationPending from './app/company-registration-pending';
 import {AuthProvider} from './context/AuthContext';
 import ProtectedRoute from "./app/components/ProtectedRoutes.tsx";
 import SharingSessions from "./app/sharing-sessions/SharingSessions.tsx";
@@ -11,9 +11,10 @@ import RedirectIfAuthenticated from "./app/components/RedirectIfAuthenticated.ts
 import NotFound from './app/NotFound.tsx';
 import Onboarding from "./app/onboarding/Onboarding.tsx";
 import Settings from "./app/settings/Settings.tsx";
-import CompanyRegistration from "./app/company-registration-pending/CompanyRegistration.tsx";
+import CompanyRegistration from "./app/company-registration/CompanyRegistration.tsx";
 import AccountRecovery from "./app/authorization/account-recovery";
 import NoAuthSharingSession from "./app/no-auth-sharing-session/NoAuthSharingSession.tsx";
+import NoMenuProtectedRoutes from "./app/components/NoMenuProtectedRoutes.tsx";
 
 const App: React.FC = () => {
     return (
@@ -45,7 +46,7 @@ const App: React.FC = () => {
 
                     <Route path="/onboarding/individual-registration"
                            element={
-                               <ProtectedRoute path='/sign-in' element={<Onboarding/>
+                               <NoMenuProtectedRoutes path='/sign-in' element={<Onboarding/>
                                }/>
                            }/>
 
@@ -58,7 +59,7 @@ const App: React.FC = () => {
 
                     <Route path="/onboarding/company-registration-pending"
                            element={
-                               <ProtectedRoute path='/sign-in' element={<CompanyRegistrationPending/>}/>
+                               <NoMenuProtectedRoutes path='/sign-in' element={<CompanyRegistrationPending/>}/>
                            }/>
 
                     <Route path="/sharing-sessions"

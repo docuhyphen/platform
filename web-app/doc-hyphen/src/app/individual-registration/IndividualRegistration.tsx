@@ -1,8 +1,8 @@
 import React, {ChangeEvent, useEffect, useState} from 'react';
 import {useAuth} from '../../context/AuthContext';
 import {useNavigate} from 'react-router-dom';
-import {registerIndividual} from '../../services/userApi.ts';
-import {AppUser} from '../models/models';
+import {fetchAppUser, registerIndividual} from '../../services/userApi.ts';
+import {AppUserDetailedDto, PersonDetailedDto} from '../models/models';
 import useToken from "../../context/useToken.tsx";
 import {
     Button,
@@ -12,11 +12,17 @@ import {
     Field,
     Input,
     InputOnChangeData,
+    MessageBar,
+    MessageBarActions,
+    MessageBarBody,
     Option,
     OptionOnSelectData,
-    SelectionEvents
+    SelectionEvents,
+    Spinner,
+    Text
 } from "@fluentui/react-components";
 import {useIndividualRegistrationStyles} from "./IndividualRegistrationStyles.tsx";
+import {DismissRegular} from "@fluentui/react-icons";
 
 //ToDo: change this based on country
 const idTypes = [
@@ -25,7 +31,16 @@ const idTypes = [
     {key: 'SOCIAL_SECURITY', text: 'Social Security'},
 ];
 
-const IndividualRegistration: React.FC = () =>
+interface IndividualRegistrationProps
+{
+    onRegisterOrganizationChange: (registerOrganization: boolean) => void;
+}
+
+const IndividualRegistration: React.FC<IndividualRegistrationProps> = (
+    {
+        onRegisterOrganizationChange
+    }
+) =>
 {
     const styles = useIndividualRegistrationStyles();
 
@@ -34,9 +49,20 @@ const IndividualRegistration: React.FC = () =>
     const [identificationNumber, setIdentificationNumber] = useState('');
     const [idType, setIdType] = useState<string | undefined>('');
     const [alsoRegisterCompany, setAlsoRegisterCompany] = useState(false);
+    const [registeringProfile, setRegisteringProfile] = useState(false);
+    const [errorMessage, setErrorMessage] = useState("This is an error");
     const {setAppUser, appUser} = useAuth();
     const navigate = useNavigate();
     const token = useToken()
+
+    useEffect(() =>
+    {
+        console.log("UseEffect of individual registration");
+        if (appUser && appUser.person && !alsoRegisterCompany)
+        {
+            navigate('/sharing-sessions');
+        }
+    }, [appUser, navigate, alsoRegisterCompany]);
 
     const onFirstNameChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
     {
@@ -61,21 +87,30 @@ const IndividualRegistration: React.FC = () =>
     const onRegisterCompanyCheck = (_e: React.ChangeEvent<HTMLInputElement>, checked: CheckboxOnChangeData) =>
     {
         setAlsoRegisterCompany(checked.checked === true);
-
-        console.log("Checked1: ", checked.checked);
+        onRegisterOrganizationChange(checked.checked === true);
     }
 
     const onRegisterIndividual = async () =>
     {
-        console.log("Registering individual");
-        console.log("Checked: ", alsoRegisterCompany);
+        if (registeringProfile)
+        {
+            return;
+        }
+
+        setErrorMessage('');
+        setRegisteringProfile(true);
 
         try
         {
             const person = {firstName, lastName, idNumber: identificationNumber, idType};
-            const updatedUser: AppUser = await registerIndividual(person, token); // Assume this API call returns the updated user
+            const personDetailedDto: PersonDetailedDto = (await registerIndividual(person, token)) as PersonDetailedDto;
 
-            setAppUser(updatedUser);
+            // const appUser = await fetchAppUser(token);
+            //
+            // setAppUser((prev: AppUserDetailedDto) => ({
+            //     ...prev,
+            //     person: personDetailedDto
+            // }));
 
             if (alsoRegisterCompany)
             {
@@ -92,20 +127,34 @@ const IndividualRegistration: React.FC = () =>
         {
             console.error('Registration failed', error);
         }
+        finally
+        {
+            setRegisteringProfile(false);
+        }
     };
 
-    useEffect(() =>
-    {
-        console.log("UseEffect of individual registration");
-        if (appUser && appUser.person && !alsoRegisterCompany)
-        {
-            navigate('/sharing-sessions');
-        }
-    }, [appUser, navigate, alsoRegisterCompany]);
-    return (
-        <div>
-            <h1>Individual Registration</h1>
+    const renderErrorMessage = () => (
+        errorMessage && (
+            <MessageBar intent={"error"}>
+                <MessageBarBody>
+                    {errorMessage}
+                </MessageBarBody>
+                <MessageBarActions
+                    containerAction={
+                        <Button
+                            onClick={() => setErrorMessage(undefined)}
+                            appearance="transparent"
+                            icon={<DismissRegular/>}
+                        />
+                    }
+                />
+            </MessageBar>
+        )
+    );
 
+    return (
+        <div className={styles.container}>
+            {renderErrorMessage()}
             <Field
                 label={"First Name"}
                 validationState={"none"}
@@ -126,15 +175,19 @@ const IndividualRegistration: React.FC = () =>
                        onChange={onLastNameChange}/>
             </Field>
 
-            <Field
-                label={"Identification Number"}
-                validationState={"none"}
-                validationMessage={""}>
+            {alsoRegisterCompany &&
+                <Field
+                    label={"Identification Number"}
+                    validationState={"none"}
+                    validationMessage={""}>
 
-                <Input type="text"
-                       value={identificationNumber}
-                       onChange={onIdentificationNumberChange}/>
-            </Field>
+                    <Input type="text"
+                           value={identificationNumber}
+                           onChange={onIdentificationNumberChange}/>
+                </Field>
+            }
+            {alsoRegisterCompany &&
+
 
             <Field
                 label={"Type of ID"}
@@ -150,12 +203,28 @@ const IndividualRegistration: React.FC = () =>
                         ))}
                 </Dropdown>
             </Field>
+            }
 
-            <Checkbox label="Register a company"
+            <Checkbox label="Register your organization as well"
                       checked={alsoRegisterCompany}
                       onChange={onRegisterCompanyCheck}/>
 
-            <Button onClick={onRegisterIndividual}> Register </Button>
+            <Button onClick={onRegisterIndividual}
+                    shape={"circular"}
+                    appearance={"primary"}
+                    disabled={registeringProfile}>
+                {registeringProfile &&
+                    <Spinner size={"tiny"}/>
+                }
+                {
+                    !registeringProfile &&
+                    <Text>Register profile</Text>
+                }
+                {
+                    registeringProfile &&
+                    <Text>Registering profile</Text>
+                }
+            </Button>
         </div>
     );
 };

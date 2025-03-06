@@ -1,6 +1,6 @@
 import React, {createContext, ReactNode, useContext, useEffect, useState} from 'react';
 import {fetchAppUser, fetchAppUserPersonCompany} from '../services/userApi.ts';
-import {AppUser, Company} from "../app/models/models.tsx";
+import {AppUser, AppUserDetailedDto, Company} from "../app/models/models.tsx";
 import {isTokenExpired} from "../utils/helpers.ts";
 import {useLocation, useNavigate} from "react-router-dom";
 
@@ -8,8 +8,8 @@ interface AuthContextType
 {
     token: string | null;
     setToken: (token: string | null) => void;
-    appUser: AppUser | null;
-    setAppUser: (user: AppUser | null) => void;
+    appUser: AppUserDetailedDto | null;
+    setAppUser: (user: AppUserDetailedDto | null) => void;
     appUserPersonCompany: Company | null;
     setAppUserPersonCompany: (company: Company | null) => void;
 }
@@ -19,7 +19,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
 {
     const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
-    const [appUser, setAppUser] = useState<AppUser | null>(null);
+    const [appUser, setAppUser] = useState<AppUserDetailedDto | null>(null);
     const [appUserPersonCompany, setAppUserPersonCompany] = useState<Company | null>(null);
 
     const navigate = useNavigate();

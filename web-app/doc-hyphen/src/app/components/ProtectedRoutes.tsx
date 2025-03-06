@@ -7,8 +7,6 @@ import {useGlobalStyles} from "../../GlobalStyles";
 const ProtectedRoute: React.FC<{ element: React.ReactElement, path: string }> = ({ element, path }) => {
     const { token } = useAuth();
 
-    const styles = useGlobalStyles();
-
     return token ? (
         <>
             <MainMenu/>

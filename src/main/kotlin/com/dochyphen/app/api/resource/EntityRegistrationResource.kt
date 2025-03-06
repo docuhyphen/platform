@@ -4,10 +4,10 @@ import com.dochyphen.app.api.exception.CompanyAlreadyExistsException
 import com.dochyphen.app.api.exception.InvalidCompanyRegistrationException
 import com.dochyphen.app.api.exception.InvalidPersonRegistrationException
 import com.dochyphen.app.api.exception.PersonAlreadyExistsException
+import com.dochyphen.app.api.model.BasicModelConverter
 import com.dochyphen.app.api.resource.model.CompanyRegistrationRequest
 import com.dochyphen.app.api.resource.model.CompanyRegistrationResponse
 import com.dochyphen.app.api.resource.model.PersonRegistrationRequest
-import com.dochyphen.app.api.resource.model.PersonRegistrationResponse
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.service.EntityRegistrationService
 import jakarta.inject.Inject
@@ -16,9 +16,7 @@ import jakarta.ws.rs.Path
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
-import jakarta.ws.rs.core.Response.Status.CONFLICT
-import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
 @Path("/entity-registration")
@@ -36,6 +34,8 @@ class EntityRegistrationResource @Inject constructor(
     @Produces(APPLICATION_JSON)
     fun registerPerson(personRegistrationRequest: PersonRegistrationRequest?): Response
     {
+        ResourceEndpointDelayHelper.delayEndpoint(3500, 6000)
+
         return try
         {
             personRegistrationRequest?.let {
@@ -44,7 +44,7 @@ class EntityRegistrationResource @Inject constructor(
                     entityRegistrationService.registerPerson(firstName, lastName, idNumber, idType)
                 }
 
-                Response.ok(PersonRegistrationResponse(person)).build()
+                Response.ok(BasicModelConverter.toDto(person)).build()
             } ?: Response.status(BAD_REQUEST).build()
 
         }

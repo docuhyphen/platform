@@ -1,1 +1,1 @@
-export { default } from './CompanyRegistrationPending.tsx';
+export { default } from '../sharing-session-initiation/SharingSessionInitiation.tsx';
