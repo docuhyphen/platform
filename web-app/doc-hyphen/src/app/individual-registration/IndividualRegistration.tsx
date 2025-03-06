@@ -1,8 +1,8 @@
 import React, {ChangeEvent, useEffect, useState} from 'react';
 import {useAuth} from '../../context/AuthContext';
 import {useNavigate} from 'react-router-dom';
-import {fetchAppUser, registerIndividual} from '../../services/userApi.ts';
-import {AppUserDetailedDto, PersonDetailedDto, ResponseError} from '../models/models';
+import {registerIndividual} from '../../services/userApi.ts';
+import {PersonDetailedDto, ResponseError} from '../models/models';
 import useToken from "../../context/useToken.tsx";
 import {
     Button,
@@ -25,7 +25,6 @@ import {useIndividualRegistrationStyles} from "./IndividualRegistrationStyles.ts
 import {DismissRegular} from "@fluentui/react-icons";
 import {useGlobalStyles} from "../../GlobalStyles.tsx";
 
-//ToDo: change this based on country
 const idTypes = [
     {key: 'ID_NUMBER', text: 'ID Number'},
     {key: 'PASSPORT_NUMBER', text: 'Passport Number'},
@@ -37,11 +36,7 @@ interface IndividualRegistrationProps
     onRegisterOrganizationChange: (registerOrganization: boolean) => void;
 }
 
-const IndividualRegistration: React.FC<IndividualRegistrationProps> = (
-    {
-        onRegisterOrganizationChange
-    }
-) =>
+const IndividualRegistration: React.FC<IndividualRegistrationProps> = ({onRegisterOrganizationChange}) =>
 {
     const styles = useIndividualRegistrationStyles();
     const globalStyles = useGlobalStyles();
@@ -55,11 +50,10 @@ const IndividualRegistration: React.FC<IndividualRegistrationProps> = (
     const [errorMessage, setErrorMessage] = useState("");
     const {setAppUser, appUser} = useAuth();
     const navigate = useNavigate();
-    const token = useToken()
+    const token = useToken();
 
     useEffect(() =>
     {
-        console.log("UseEffect of individual registration");
         if (appUser && appUser.person && !alsoRegisterCompany)
         {
             navigate('/sharing-sessions');
@@ -68,33 +62,63 @@ const IndividualRegistration: React.FC<IndividualRegistrationProps> = (
 
     const onFirstNameChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
     {
-        setFirstName(newValue.value || '')
-    }
+        setFirstName(newValue.value || '');
+    };
 
     const onLastNameChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
     {
-        setLastName(newValue.value || '')
-    }
+        setLastName(newValue.value || '');
+    };
 
     const onIdentificationNumberChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
     {
-        setIdentificationNumber(newValue.value || '')
-    }
+        setIdentificationNumber(newValue.value || '');
+    };
 
     const onIdTypeSelect = (_e: SelectionEvents, data: OptionOnSelectData) =>
     {
-        setIdType(data.optionValue)
-    }
+        setIdType(data.optionValue);
+    };
 
     const onRegisterCompanyCheck = (_e: React.ChangeEvent<HTMLInputElement>, checked: CheckboxOnChangeData) =>
     {
         setAlsoRegisterCompany(checked.checked === true);
         onRegisterOrganizationChange(checked.checked === true);
-    }
+    };
+
+    const validateInputs = () =>
+    {
+        if (!firstName.trim())
+        {
+            setErrorMessage("First name is required.");
+            return false;
+        }
+        if (!lastName.trim())
+        {
+            setErrorMessage("Last name is required.");
+            return false;
+        }
+        if (alsoRegisterCompany && !identificationNumber.trim())
+        {
+            setErrorMessage("Identification number is required.");
+            return false;
+        }
+        if (alsoRegisterCompany && !idType)
+        {
+            setErrorMessage("ID type is required.");
+            return false;
+        }
+        return true;
+    };
 
     const onRegisterIndividual = async () =>
     {
         if (registeringProfile)
+        {
+            return;
+        }
+
+        if (!validateInputs())
         {
             return;
         }
@@ -109,19 +133,17 @@ const IndividualRegistration: React.FC<IndividualRegistrationProps> = (
 
             if (alsoRegisterCompany)
             {
-                alert("Will also register company")
                 navigate('/onboarding/company-registration');
             }
             else
             {
-                alert("Will not register company")
-                navigate('/sharing-sessions');
+                navigate('/');
             }
         }
         catch (error)
         {
             console.error('Registration failed', error);
-            // setErrorMessage((error as ResponseError)?.errorMessage);
+            setErrorMessage((error as ResponseError)?.errorMessage || "Registration failed.");
         }
         finally
         {
@@ -138,7 +160,7 @@ const IndividualRegistration: React.FC<IndividualRegistrationProps> = (
                 <MessageBarActions
                     containerAction={
                         <Button
-                            onClick={() => setErrorMessage(undefined)}
+                            onClick={() => setErrorMessage('')}
                             appearance="transparent"
                             icon={<DismissRegular/>}
                         />
@@ -151,75 +173,39 @@ const IndividualRegistration: React.FC<IndividualRegistrationProps> = (
     return (
         <div className={styles.container}>
             {renderErrorMessage()}
-            <Field
-                label={"First Name"}
-                validationState={"none"}
-                validationMessage={""}>
-
-                <Input type="text"
-                       value={firstName}
-                       onChange={onFirstNameChange}/>
+            <Field label={"First Name"} validationState={"none"} validationMessage={""}>
+                <Input type="text" value={firstName} onChange={onFirstNameChange}/>
             </Field>
 
-            <Field
-                label={"Last Name"}
-                validationState={"none"}
-                validationMessage={""}>
-
-                <Input type="text"
-                       value={lastName}
-                       onChange={onLastNameChange}/>
+            <Field label={"Last Name"} validationState={"none"} validationMessage={""}>
+                <Input type="text" value={lastName} onChange={onLastNameChange}/>
             </Field>
 
             {alsoRegisterCompany &&
-                <Field
-                    label={"Identification Number"}
-                    validationState={"none"}
-                    validationMessage={""}>
-
-                    <Input type="text"
-                           value={identificationNumber}
-                           onChange={onIdentificationNumberChange}/>
+                <Field label={"Identification Number"} validationState={"none"} validationMessage={""}>
+                    <Input type="text" value={identificationNumber} onChange={onIdentificationNumberChange}/>
                 </Field>
             }
             {alsoRegisterCompany &&
-
-
-            <Field
-                label={"Type of ID"}
-                validationState={"none"}
-                validationMessage={""}>
-
-                <Dropdown onOptionSelect={onIdTypeSelect}>
-                    {
-                        idTypes.map((option) => (
+                <Field label={"Type of ID"} validationState={"none"} validationMessage={""}>
+                    <Dropdown onOptionSelect={onIdTypeSelect}>
+                        {idTypes.map((option) => (
                             <Option key={option.key} value={option.key}>
                                 {option.text}
                             </Option>
                         ))}
-                </Dropdown>
-            </Field>
+                    </Dropdown>
+                </Field>
             }
 
-            <Checkbox label="Register your organization as well"
-                      checked={alsoRegisterCompany}
+            <Checkbox label="Register your organization as well" checked={alsoRegisterCompany}
                       onChange={onRegisterCompanyCheck}/>
 
-            <Button onClick={onRegisterIndividual}
-                    shape={"circular"}
-                    appearance={"primary"}
+            <Button onClick={onRegisterIndividual} shape={"circular"} appearance={"primary"}
                     className={globalStyles.buttonWithLoading}>
-                {registeringProfile &&
-                    <Spinner size={"tiny"}/>
-                }
-                {
-                    !registeringProfile &&
-                    <Text>Register profile</Text>
-                }
-                {
-                    registeringProfile &&
-                    <Text>Registering profile</Text>
-                }
+                {registeringProfile && <Spinner size={"tiny"}/>}
+                {!registeringProfile && <Text>Register profile</Text>}
+                {registeringProfile && <Text>Registering profile</Text>}
             </Button>
         </div>
     );
