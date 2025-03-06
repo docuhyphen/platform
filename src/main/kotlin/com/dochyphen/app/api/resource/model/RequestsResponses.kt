@@ -65,7 +65,7 @@ data class PersonRegistrationRequest(
     var firstName: String? = null,
     var lastName: String? = null,
     var idNumber: String? = null,
-    var idType: PersonIDType? = null
+    var idType: String? = null
 )
 
 @Serializable

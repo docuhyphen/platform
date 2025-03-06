@@ -83,7 +83,7 @@ class DetailedModelConverter
                         firstName,
                         lastName,
                         identificationNumber,
-                        personIDType.toString(),
+                        personIDType?.toString(),
                         toDto(contactDetails)
                     )
                 }

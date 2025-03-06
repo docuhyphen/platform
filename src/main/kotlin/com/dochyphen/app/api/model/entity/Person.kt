@@ -30,10 +30,10 @@ class Person
     @Serializable(with = TimestampSerializer::class)
     var createdDate: Timestamp = Timestamp.from(Instant.now())
 
-    @Column(name = "first_name")
+    @Column(name = "first_name", nullable = false)
     var firstName: String? = null
 
-    @Column(name = "last_name")
+    @Column(name = "last_name", nullable = false)
     var lastName: String? = null
 
     @Column(name = "identification_number")

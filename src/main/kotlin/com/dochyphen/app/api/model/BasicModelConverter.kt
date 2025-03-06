@@ -75,7 +75,7 @@ class BasicModelConverter
                         firstName,
                         lastName,
                         identificationNumber,
-                        personIDType.toString(),
+                        personIDType?.toString(),
                         person.contactDetails?.id
                     )
                 }

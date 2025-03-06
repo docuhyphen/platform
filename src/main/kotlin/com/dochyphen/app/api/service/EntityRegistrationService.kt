@@ -44,7 +44,7 @@ class EntityRegistrationService @Inject constructor(
 
     @Transactional
     fun registerPerson(
-        firstName: String?, lastName: String?, identificationNumber: String?, idType: PersonIDType?
+        firstName: String?, lastName: String?, identificationNumber: String?, idType: String?
     ): Person
     {
         if (firstName.isNullOrBlank() || lastName.isNullOrBlank())
@@ -59,6 +59,8 @@ class EntityRegistrationService @Inject constructor(
             throw InvalidPersonRegistrationException(errorMessage)
         }
 
+        var personIDType: PersonIDType? = null
+
         if (!identificationNumber.isNullOrBlank())
         {
             if (personRepository.existsByIdentificationNumber(identificationNumber))
@@ -72,12 +74,13 @@ class EntityRegistrationService @Inject constructor(
                 logger.warn("Person registration failed: ID type is null.")
                 throw InvalidPersonRegistrationException("ID type is null.")
             }
+            personIDType = PersonIDType.valueOf(idType)
         }
 
         val person = Person().apply {
             this.firstName = firstName
             this.lastName = lastName
-            this.personIDType = idType
+            this.personIDType = personIDType
             this.identificationNumber = identificationNumber
         }
 

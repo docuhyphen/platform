@@ -2,7 +2,7 @@ import React, {ChangeEvent, useEffect, useState} from 'react';
 import {useAuth} from '../../context/AuthContext';
 import {useNavigate} from 'react-router-dom';
 import {fetchAppUser, registerIndividual} from '../../services/userApi.ts';
-import {AppUserDetailedDto, PersonDetailedDto} from '../models/models';
+import {AppUserDetailedDto, PersonDetailedDto, ResponseError} from '../models/models';
 import useToken from "../../context/useToken.tsx";
 import {
     Button,
@@ -23,6 +23,7 @@ import {
 } from "@fluentui/react-components";
 import {useIndividualRegistrationStyles} from "./IndividualRegistrationStyles.tsx";
 import {DismissRegular} from "@fluentui/react-icons";
+import {useGlobalStyles} from "../../GlobalStyles.tsx";
 
 //ToDo: change this based on country
 const idTypes = [
@@ -43,6 +44,7 @@ const IndividualRegistration: React.FC<IndividualRegistrationProps> = (
 ) =>
 {
     const styles = useIndividualRegistrationStyles();
+    const globalStyles = useGlobalStyles();
 
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -50,7 +52,7 @@ const IndividualRegistration: React.FC<IndividualRegistrationProps> = (
     const [idType, setIdType] = useState<string | undefined>('');
     const [alsoRegisterCompany, setAlsoRegisterCompany] = useState(false);
     const [registeringProfile, setRegisteringProfile] = useState(false);
-    const [errorMessage, setErrorMessage] = useState("This is an error");
+    const [errorMessage, setErrorMessage] = useState("");
     const {setAppUser, appUser} = useAuth();
     const navigate = useNavigate();
     const token = useToken()
@@ -105,13 +107,6 @@ const IndividualRegistration: React.FC<IndividualRegistrationProps> = (
             const person = {firstName, lastName, idNumber: identificationNumber, idType};
             const personDetailedDto: PersonDetailedDto = (await registerIndividual(person, token)) as PersonDetailedDto;
 
-            // const appUser = await fetchAppUser(token);
-            //
-            // setAppUser((prev: AppUserDetailedDto) => ({
-            //     ...prev,
-            //     person: personDetailedDto
-            // }));
-
             if (alsoRegisterCompany)
             {
                 alert("Will also register company")
@@ -126,6 +121,7 @@ const IndividualRegistration: React.FC<IndividualRegistrationProps> = (
         catch (error)
         {
             console.error('Registration failed', error);
+            // setErrorMessage((error as ResponseError)?.errorMessage);
         }
         finally
         {
@@ -212,7 +208,7 @@ const IndividualRegistration: React.FC<IndividualRegistrationProps> = (
             <Button onClick={onRegisterIndividual}
                     shape={"circular"}
                     appearance={"primary"}
-                    disabled={registeringProfile}>
+                    className={globalStyles.buttonWithLoading}>
                 {registeringProfile &&
                     <Spinner size={"tiny"}/>
                 }
