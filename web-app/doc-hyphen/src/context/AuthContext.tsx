@@ -148,8 +148,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
 
     useEffect(() =>
     {
-        console.log("AppUser in AuthContext", appUser);
-
         if (appUser)
         {
             if (!appUser.person)
@@ -161,7 +159,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
 
     return (
         <AuthContext.Provider
-            value={{token, setToken, appUser, setAppUser, appUserPersonCompany, setAppUserPersonCompany}}>
+            value={
+                {
+                    token,
+                    setToken,
+                    appUser,
+                    setAppUser,
+                    appUserPersonCompany,
+                    setAppUserPersonCompany
+                }}>
             {children}
         </AuthContext.Provider>
     );
@@ -170,6 +176,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
 export const useAuth = (): AuthContextType =>
 {
     const context = useContext(AuthContext);
+
     if (!context)
     {
         throw new Error('useAuth must be used within an AuthProvider');
