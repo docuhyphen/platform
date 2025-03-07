@@ -173,21 +173,35 @@ const IndividualRegistration: React.FC<IndividualRegistrationProps> = ({onRegist
     return (
         <div className={styles.container}>
             {renderErrorMessage()}
-            <Field label={"First Name"} validationState={"none"} validationMessage={""}>
-                <Input type="text" value={firstName} onChange={onFirstNameChange}/>
+            <Field label={"First Name"}
+                   validationState={"none"}
+                   validationMessage={""}>
+                <Input type="text"
+                       value={firstName}
+                       onChange={onFirstNameChange}/>
             </Field>
 
-            <Field label={"Last Name"} validationState={"none"} validationMessage={""}>
-                <Input type="text" value={lastName} onChange={onLastNameChange}/>
+            <Field label={"Last Name"}
+                   validationState={"none"}
+                   validationMessage={""}>
+                <Input type="text"
+                       value={lastName}
+                       onChange={onLastNameChange}/>
             </Field>
 
             {alsoRegisterCompany &&
-                <Field label={"Identification Number"} validationState={"none"} validationMessage={""}>
-                    <Input type="text" value={identificationNumber} onChange={onIdentificationNumberChange}/>
+                <Field label={"Identification Number"}
+                       validationState={"none"}
+                       validationMessage={""}>
+                    <Input type="text"
+                           value={identificationNumber}
+                           onChange={onIdentificationNumberChange}/>
                 </Field>
             }
             {alsoRegisterCompany &&
-                <Field label={"Type of ID"} validationState={"none"} validationMessage={""}>
+                <Field label={"Type of ID"}
+                       validationState={"none"}
+                       validationMessage={""}>
                     <Dropdown onOptionSelect={onIdTypeSelect}>
                         {idTypes.map((option) => (
                             <Option key={option.key} value={option.key}>
@@ -198,10 +212,13 @@ const IndividualRegistration: React.FC<IndividualRegistrationProps> = ({onRegist
                 </Field>
             }
 
-            <Checkbox label="Register your organization as well" checked={alsoRegisterCompany}
+            <Checkbox label="Register your organization as well"
+                      checked={alsoRegisterCompany}
                       onChange={onRegisterCompanyCheck}/>
 
-            <Button onClick={onRegisterIndividual} shape={"circular"} appearance={"primary"}
+            <Button onClick={onRegisterIndividual}
+                    shape={"circular"}
+                    appearance={"primary"}
                     className={globalStyles.buttonWithLoading}>
                 {registeringProfile && <Spinner size={"tiny"}/>}
                 {!registeringProfile && <Text>Register profile</Text>}
