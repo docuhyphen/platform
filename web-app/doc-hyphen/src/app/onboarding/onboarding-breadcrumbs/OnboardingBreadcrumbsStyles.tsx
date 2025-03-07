@@ -52,5 +52,6 @@ export const useOnboardingBreadcrumbsStyles = makeStyles({
 
     onBoardingBreadcrumbItemCurrent: {
         border: "1px solid rgba(255, 255, 255, 0.5)",
+        boxShadow: "2px 6px 8px 1px rgba(0, 0, 0, 0.4);",
     }
 });

@@ -26,7 +26,20 @@ const BreadcrumbItem: React.FC<BreadcrumbItemProps> = (
             className={mergeClasses(
                 styles.onBoardingBreadcrumbItem,
                 disabled && styles.onBoardingBreadcrumbItemDisabled)}>
-            {icon}
+            {icon && icon}
+            {!icon &&
+                <>
+
+                    {isCurrentStep &&
+                        <LocationRippleFilled className={styles.onBoardingBreadcrumbItemIcon}/>
+                    }
+                    {
+                        !isCurrentStep &&
+                        <LocationFilled className={styles.onBoardingBreadcrumbItemIcon}/>
+                    }
+                </>
+            }
+
             <Text className={mergeClasses(
                 styles.onBoardingBreadcrumbItemText,
                 isCurrentStep && styles.onBoardingBreadcrumbItemCurrent)}>
@@ -56,30 +69,24 @@ const OnBoardingBreadcrumbs: React.FC<OnBoardingBreadcrumbsProps> = (
 
     return (
         <div className={styles.onBoardingBreadcrumbs}>
+            <BreadcrumbItem text="Sign Up"/>
             <BreadcrumbItem
-                text="Sign Up" icon={
-                <LocationFilled
-                    className={styles.onBoardingBreadcrumbItemIcon}/>}/>
-            <BreadcrumbItem
-                text="Sign In" icon={<LocationFilled
-                className={styles.onBoardingBreadcrumbItemIcon}/>}/>
+                text="Sign In"/>
             <BreadcrumbItem
                 text="Your Profile"
-                isCurrentStep={isIndividualOnboarding}
-                icon={<LocationRippleFilled
-                    className={styles.onBoardingBreadcrumbItemIcon}/>}/>
+                isCurrentStep={isIndividualOnboarding}/>
             <BreadcrumbItem
-                text="Your Organization"
+                text="Your Organizationn"
                 weight={isOrgOnboarding ? "regular" : "semibold"}
                 disabled={!registerOrganization}
                 isCurrentStep={isOrgOnboarding}
-                icon={<LocationRippleRegular
-                    className={styles.onBoardingBreadcrumbItemIcon}/>}/>
+                icon={isIndividualOnboarding ?
+                    <LocationRippleRegular className={styles.onBoardingBreadcrumbItemIcon}/> : null}
+            />
             <BreadcrumbItem
                 text="Start Sharing"
                 isCurrentStep={isOnboardingComplete}
-                icon={<LocationRippleRegular
-                    className={styles.onBoardingBreadcrumbItemIcon}/>}/>
+                icon={<LocationRippleRegular className={styles.onBoardingBreadcrumbItemIcon}/>}/>
         </div>
     );
 };

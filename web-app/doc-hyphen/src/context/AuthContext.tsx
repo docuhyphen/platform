@@ -91,7 +91,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
             // If user has no `person` object, redirect to individual onboarding
             if (appUser && !appUser.person)
             {
-                navigate("/onboarding/individual-registration");
+                navigate("/onboarding/individual");
                 return;
             }
 
@@ -152,7 +152,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         {
             if (!appUser.person)
             {
-                navigate('/onboarding/individual-registration');
+                navigate('/onboarding/individual');
             }
         }
     }, [appUser, navigate]);

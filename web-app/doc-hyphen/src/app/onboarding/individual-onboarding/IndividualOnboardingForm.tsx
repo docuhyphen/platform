@@ -1,9 +1,9 @@
 import React, {ChangeEvent, useEffect, useState} from 'react';
-import {useAuth} from '../../context/AuthContext';
+import {useAuth} from '../../../context/AuthContext.tsx';
 import {useNavigate} from 'react-router-dom';
-import {registerIndividual} from '../../services/userApi.ts';
-import {AppUserDetailedDto, PersonDetailedDto, PersonRegistrationRequest, ResponseError} from '../models/models';
-import useToken from "../../context/useToken.tsx";
+import {registerIndividual} from '../../../services/userApi.ts';
+import {AppUserDetailedDto, PersonDetailedDto, PersonRegistrationRequest, ResponseError} from '../../models/models.tsx';
+import useToken from "../../../context/useToken.tsx";
 import {
     Button,
     Checkbox,
@@ -21,9 +21,9 @@ import {
     Spinner,
     Text
 } from "@fluentui/react-components";
-import {useIndividualRegistrationStyles} from "./IndividualRegistrationStyles.tsx";
+import {useIndividualOnboardingFormStyles} from "./IndividualOnboardingFormStyles.tsx";
 import {DismissRegular} from "@fluentui/react-icons";
-import {useGlobalStyles} from "../../GlobalStyles.tsx";
+import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 
 const idTypes = [
     {key: 'ID_NUMBER', text: 'ID Number'},
@@ -36,9 +36,9 @@ interface IndividualRegistrationProps
     onRegisterOrganizationChange: (registerOrganization: boolean) => void;
 }
 
-const IndividualRegistration: React.FC<IndividualRegistrationProps> = ({onRegisterOrganizationChange}) =>
+const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegisterOrganizationChange}) =>
 {
-    const styles = useIndividualRegistrationStyles();
+    const styles = useIndividualOnboardingFormStyles();
     const globalStyles = useGlobalStyles();
 
     const [firstName, setFirstName] = useState('');
@@ -144,7 +144,7 @@ const IndividualRegistration: React.FC<IndividualRegistrationProps> = ({onRegist
 
             if (alsoRegisterCompany)
             {
-                navigate('/onboarding/company-registration');
+                navigate('/onboarding/organization');
             }
             else
             {
@@ -239,4 +239,4 @@ const IndividualRegistration: React.FC<IndividualRegistrationProps> = ({onRegist
     );
 };
 
-export default IndividualRegistration;
+export default IndividualOnboardingForm;

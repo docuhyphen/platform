@@ -1,12 +1,12 @@
 import React, {useState} from 'react';
-import IndividualRegistration from '../individual-registration/IndividualRegistration';
-import {useOnboardingStyles} from './OnboardingStyles';
-import AppLogo from "../components/app-logo/AppLogo.tsx";
+import IndividualOnboardingForm from './IndividualOnboardingForm.tsx';
+import {useOnboardingStyles} from '../OnboardingStyles.tsx';
+import AppLogo from "../../components/app-logo/AppLogo.tsx";
 import {Text} from "@fluentui/react-components";
-import OnBoardingBreadcrumbs from "./onboarding-breadcrumbs/OnBoardingBreadcrumbs.tsx";
+import OnBoardingBreadcrumbs from "../onboarding-breadcrumbs/OnBoardingBreadcrumbs.tsx";
 
 
-const Onboarding: React.FC = () =>
+const IndividualOnboarding: React.FC = () =>
 {
     const styles = useOnboardingStyles();
     const [registerOrganization, setRegisterOrganization] = useState(false);
@@ -24,7 +24,7 @@ const Onboarding: React.FC = () =>
                         <AppLogo/>
                     </div>
                     <div>
-                        <IndividualRegistration onRegisterOrganizationChange={onRegisterOrganizationChange}/>
+                        <IndividualOnboardingForm onRegisterOrganizationChange={onRegisterOrganizationChange}/>
                     </div>
                     <div></div>
                 </div>
@@ -51,4 +51,4 @@ const Onboarding: React.FC = () =>
     );
 };
 
-export default Onboarding;
+export default IndividualOnboarding;

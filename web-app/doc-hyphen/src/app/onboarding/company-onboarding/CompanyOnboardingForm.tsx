@@ -1,38 +1,23 @@
-import React, {ChangeEvent, useEffect, useState} from 'react';
+import React, {ChangeEvent, useState} from 'react';
 import {Button, Checkbox, Field, Input, InputOnChangeData} from "@fluentui/react-components";
-import {registerCompany} from "../../services/userApi.ts";
-import useToken from "../../context/useToken.tsx";
-import {Company} from "../models/models.tsx";
+import {registerCompany} from "../../../services/userApi.ts";
+import useToken from "../../../context/useToken.tsx";
+import {Company} from "../../models/models.tsx";
 import {useNavigate} from "react-router-dom";
-import {useAuth} from "../../context/AuthContext.tsx";
-import {useCompanyRegistrationStyles} from './CompanyRegistrationStyles';
+import {useAuth} from "../../../context/AuthContext.tsx";
+import {useOrganizationOnboardingForm} from './OrganizationOnboardingFormStyles.tsx';
 
-const CompanyRegistration: React.FC = () =>
+const CompanyOnboardingForm: React.FC = () =>
 {
     const [companyName, setCompanyName] = useState('');
+    const [companyEmail, setCompanyEmail] = useState('');
     const [registrationNumber, setRegistrationNumber] = useState('');
+    const [companyPhone, setCompanyPhone] = useState('');
     const [isRegistering, setIsRegistering] = useState(false);
     const token = useToken();
     const navigate = useNavigate();
-    const {setAppUserPersonCompany, appUserPersonCompany} = useAuth();
-    const styles = useCompanyRegistrationStyles();
-
-    useEffect(() =>
-    {
-        console.log("CompanyRegistration useEffect appUserPersonCompany", appUserPersonCompany);
-        // if (!isRegistering && appUserPersonCompany)
-        // {
-        //     if (appUserPersonCompany.registrationComplete)
-        //     {
-        //         navigate('/sharing-sessions');
-        //     }
-        //     else
-        //     {
-        //         navigate('/onboarding/company-registration-pending');
-        //     }
-        // }
-    }, [appUserPersonCompany]);
-    // }, [appUserPersonCompany, isRegistering, navigate]);
+    const {setAppUserPersonCompany, appUserPersonCompany, appUser} = useAuth();
+    const styles = useOrganizationOnboardingForm();
 
     const onRegisterCompany = async () =>
     {
@@ -43,7 +28,6 @@ const CompanyRegistration: React.FC = () =>
             const registeredCompany: Company = await registerCompany(company, token);
 
             setAppUserPersonCompany(registeredCompany);
-            navigate('/onboarding/company-registration-pending');
         }
         catch (error)
         {
@@ -60,9 +44,20 @@ const CompanyRegistration: React.FC = () =>
         setCompanyName(newValue.value || '');
     }
 
+
     const onRegistrationNumberChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
     {
         setRegistrationNumber(newValue.value || '');
+    }
+
+    const onCompanyEmailChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
+    {
+        setCompanyEmail(newValue.value || '');
+    }
+
+    const onCompanyPhoneChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
+    {
+        setCompanyPhone(newValue.value || '');
     }
 
     const onSkipRegistration = () =>
@@ -70,55 +65,61 @@ const CompanyRegistration: React.FC = () =>
         navigate('/sharing-sessions');
     }
 
+    const onUseAppUserEmailCheck = (ev: React.FormEvent<HTMLInputElement>, data: CheckboxOnChangeData) =>
+    {
+        if (data.checked)
+        {
+            setCompanyEmail(appUser.email);
+        }
+        else
+        {
+            setCompanyEmail('');
+        }
+    }
+
     return (
         <>
             {(!appUserPersonCompany) &&
                 <div className={styles.container}>
-                    <h1 className={styles.heading}>Organization</h1>
-
                     <Field
-                        label={"Company Name"}
+                        label={"Organization Name"}
                         validationState={"none"}
-                        validationMessage={""}
-                        className={styles.field}
-                    >
+                        validationMessage={""}>
                         <Input type="text" value={companyName} onChange={onCompanyNameChange}/>
                     </Field>
 
                     <Field
-                        label={"Company Registration Number"}
+                        label={"Registration Number"}
                         validationState={"none"}
-                        validationMessage={""}
-                        className={styles.field}
-                    >
+                        validationMessage={""}>
                         <Input type="text" value={registrationNumber} onChange={onRegistrationNumberChange}/>
                     </Field>
 
-                    <Field
-                        label={"Email"}
-                        validationState={"none"}
-                        validationMessage={""}
-                        className={styles.field}
-                    >
-                        <Input type="text" value={registrationNumber} onChange={onRegistrationNumberChange}/>
-                    </Field>
-                    <Field label={"Use my email"}>
-                        <Checkbox/>
-                    </Field>
 
                     <Field
                         label={"Phone Number"}
                         validationState={"none"}
-                        validationMessage={""}
-                        className={styles.field}>
+                        validationMessage={""}>
                         <Input type="text" value={registrationNumber} onChange={onRegistrationNumberChange}/>
                     </Field>
 
-                    <Button className={styles.button}
-                            appearance={"transparent"}
+                    <div>
+
+                        <Field
+                            label={"Email"}
+                            validationState={"none"}
+                            validationMessage={""}>
+                            <Input type="text"
+                                   value={companyEmail}
+                                   onChange={onCompanyEmailChange}/>
+                        </Field>
+                        <Checkbox label={"Use my email"}
+                                  onChange={onUseAppUserEmailCheck}/>
+                    </div>
+
+                    <Button appearance={"transparent"}
                             onClick={onSkipRegistration}> Skip for later </Button>
-                    <Button className={styles.button}
-                            appearance={"primary"}
+                    <Button appearance={"primary"}
                             shape={"circular"}
                             onClick={onRegisterCompany}>
                         Register
@@ -129,4 +130,4 @@ const CompanyRegistration: React.FC = () =>
     );
 };
 
-export default CompanyRegistration;
+export default CompanyOnboardingForm;

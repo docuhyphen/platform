@@ -1,10 +1,10 @@
 import {makeStyles} from "@fluentui/react-components";
 
-export const useIndividualRegistrationStyles = makeStyles({
+export const useOrganizationOnboardingForm = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
+        gap: "8px",
         flex: 1,
     }
 });

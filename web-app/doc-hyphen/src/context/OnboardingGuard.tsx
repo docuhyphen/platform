@@ -9,7 +9,7 @@ const OnboardingProtectedRoute: React.FC<{ element: JSX.Element }> = ({ element 
     }
 
     if (!appUser || !appUser.person) {
-        return <Navigate to="/onboarding/individual-registration" replace />;
+        return <Navigate to="/onboarding/individual" replace />;
     }
 
     return element;

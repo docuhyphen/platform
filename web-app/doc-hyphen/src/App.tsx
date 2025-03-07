@@ -7,14 +7,14 @@ import SharingSessions from "./app/sharing-sessions/SharingSessions.tsx";
 import SignUp from "./app/authorization/sign-up";
 import RedirectIfNotAuthenticated from "./app/components/RedirectIfAuthenticated.tsx";
 import NotFound from './app/NotFound.tsx';
-import Onboarding from "./app/onboarding/Onboarding.tsx";
+import IndividualOnboarding from "./app/onboarding/individual-onboarding/IndividualOnboarding.tsx";
 import Settings from "./app/settings/Settings.tsx";
-import CompanyRegistration from "./app/company-registration/CompanyRegistration.tsx";
 import AccountRecovery from "./app/authorization/account-recovery";
 import NoAuthSharingSession from "./app/no-auth-sharing-session/NoAuthSharingSession.tsx";
 import NoMenuProtectedRoute from "./app/components/NoMenuProtectedRoutes.tsx";
-import OnboardingProtectedRoute from "./context/OnboardingGuard.tsx";
+import PersonRegistrationProtectedRoute from "./context/OnboardingGuard.tsx";
 import {CompanyRegistrationProtectedRoute} from "./context/CompanyRegistrationProtectedRoute.tsx";
+import OrganizationOnboarding from "./app/onboarding/company-onboarding/OrganizationOnboarding.tsx";
 
 const App: React.FC = () => {
     return (
@@ -50,25 +50,26 @@ const App: React.FC = () => {
                                    }/>
                            }/>
 
-                    <Route path="/onboarding/individual-registration"
+                    <Route path="/onboarding/individual"
                            element={
                                <NoMenuProtectedRoute path='/sign-in'
-                                                     element={<Onboarding/>}/>
+                                                     element={<IndividualOnboarding/>}/>
                            }/>
 
-                    <Route path="/onboarding/company-registration"
+                    <Route path="/onboarding/organization"
                            element={
-                               <CompanyRegistrationProtectedRoute element={<CompanyRegistration/>}/>
+                               <CompanyRegistrationProtectedRoute
+                                   element={<OrganizationOnboarding/>}/>
                            }/>
 
                     <Route path="/sharing-sessions"
                            element={
-                               <OnboardingProtectedRoute element={<SharingSessions/>}/>
+                               <PersonRegistrationProtectedRoute element={<SharingSessions/>}/>
                            }/>
 
                     <Route path="/settings"
                            element={
-                               <OnboardingProtectedRoute element={<Settings/>}/>
+                               <PersonRegistrationProtectedRoute element={<Settings/>}/>
                            }/>
                     <Route path="*"
                            element={

@@ -12,7 +12,7 @@ export const CompanyRegistrationProtectedRoute: React.FC<{ element: JSX.Element 
 
     if (!appUser || !appUser.person)
     {
-        return <Navigate to="/onboarding/individual-registration" replace/>;
+        return <Navigate to="/onboarding/individual" replace/>;
     }
 
     if (appUserPersonCompany)
