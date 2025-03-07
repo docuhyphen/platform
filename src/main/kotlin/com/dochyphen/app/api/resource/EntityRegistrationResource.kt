@@ -5,6 +5,7 @@ import com.dochyphen.app.api.exception.InvalidCompanyRegistrationException
 import com.dochyphen.app.api.exception.InvalidPersonRegistrationException
 import com.dochyphen.app.api.exception.PersonAlreadyExistsException
 import com.dochyphen.app.api.model.BasicModelConverter
+import com.dochyphen.app.api.model.entity.DetailedModelConverter
 import com.dochyphen.app.api.resource.model.CompanyRegistrationRequest
 import com.dochyphen.app.api.resource.model.CompanyRegistrationResponse
 import com.dochyphen.app.api.resource.model.PersonRegistrationRequest
@@ -44,9 +45,8 @@ class EntityRegistrationResource @Inject constructor(
                     entityRegistrationService.registerPerson(firstName, lastName, idNumber, idType)
                 }
 
-                Response.ok(BasicModelConverter.toDto(person)).build()
+                Response.ok(DetailedModelConverter.toDto(person)).build()
             } ?: Response.status(BAD_REQUEST).build()
-
         }
         catch (exception: Exception)
         {

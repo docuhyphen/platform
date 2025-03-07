@@ -1,5 +1,5 @@
 import React, {ChangeEvent, useEffect, useState} from 'react';
-import {Button, Field, Input, InputOnChangeData} from "@fluentui/react-components";
+import {Button, Checkbox, Field, Input, InputOnChangeData} from "@fluentui/react-components";
 import {registerCompany} from "../../services/userApi.ts";
 import useToken from "../../context/useToken.tsx";
 import {Company} from "../models/models.tsx";
@@ -19,18 +19,20 @@ const CompanyRegistration: React.FC = () =>
 
     useEffect(() =>
     {
-        if (!isRegistering && appUserPersonCompany)
-        {
-            if (appUserPersonCompany.registrationComplete)
-            {
-                navigate('/sharing-sessions');
-            }
-            else
-            {
-                navigate('/onboarding/company-registration-pending');
-            }
-        }
-    }, [appUserPersonCompany, isRegistering, navigate]);
+        console.log("CompanyRegistration useEffect appUserPersonCompany", appUserPersonCompany);
+        // if (!isRegistering && appUserPersonCompany)
+        // {
+        //     if (appUserPersonCompany.registrationComplete)
+        //     {
+        //         navigate('/sharing-sessions');
+        //     }
+        //     else
+        //     {
+        //         navigate('/onboarding/company-registration-pending');
+        //     }
+        // }
+    }, [appUserPersonCompany]);
+    // }, [appUserPersonCompany, isRegistering, navigate]);
 
     const onRegisterCompany = async () =>
     {
@@ -53,21 +55,26 @@ const CompanyRegistration: React.FC = () =>
         }
     };
 
-    function onCompanyNameChange(_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData)
+    const onCompanyNameChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
     {
         setCompanyName(newValue.value || '');
     }
 
-    function onRegistrationNumberChange(_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData)
+    const onRegistrationNumberChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
     {
         setRegistrationNumber(newValue.value || '');
+    }
+
+    const onSkipRegistration = () =>
+    {
+        navigate('/sharing-sessions');
     }
 
     return (
         <>
             {(!appUserPersonCompany) &&
                 <div className={styles.container}>
-                    <h1 className={styles.heading}>Company Registration</h1>
+                    <h1 className={styles.heading}>Organization</h1>
 
                     <Field
                         label={"Company Name"}
@@ -87,7 +94,35 @@ const CompanyRegistration: React.FC = () =>
                         <Input type="text" value={registrationNumber} onChange={onRegistrationNumberChange}/>
                     </Field>
 
-                    <Button className={styles.button} onClick={onRegisterCompany}> Register </Button>
+                    <Field
+                        label={"Email"}
+                        validationState={"none"}
+                        validationMessage={""}
+                        className={styles.field}
+                    >
+                        <Input type="text" value={registrationNumber} onChange={onRegistrationNumberChange}/>
+                    </Field>
+                    <Field label={"Use my email"}>
+                        <Checkbox/>
+                    </Field>
+
+                    <Field
+                        label={"Phone Number"}
+                        validationState={"none"}
+                        validationMessage={""}
+                        className={styles.field}>
+                        <Input type="text" value={registrationNumber} onChange={onRegistrationNumberChange}/>
+                    </Field>
+
+                    <Button className={styles.button}
+                            appearance={"transparent"}
+                            onClick={onSkipRegistration}> Skip for later </Button>
+                    <Button className={styles.button}
+                            appearance={"primary"}
+                            shape={"circular"}
+                            onClick={onRegisterCompany}>
+                        Register
+                    </Button>
                 </div>
             }
         </>

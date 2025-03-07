@@ -2,7 +2,7 @@ import React, {ChangeEvent, useEffect, useState} from 'react';
 import {useAuth} from '../../context/AuthContext';
 import {useNavigate} from 'react-router-dom';
 import {registerIndividual} from '../../services/userApi.ts';
-import {PersonDetailedDto, ResponseError} from '../models/models';
+import {AppUserDetailedDto, PersonDetailedDto, PersonRegistrationRequest, ResponseError} from '../models/models';
 import useToken from "../../context/useToken.tsx";
 import {
     Button,
@@ -56,7 +56,8 @@ const IndividualRegistration: React.FC<IndividualRegistrationProps> = ({onRegist
     {
         if (appUser && appUser.person && !alsoRegisterCompany)
         {
-            navigate('/sharing-sessions');
+            console.log("Back")
+            navigate('/');
         }
     }, [appUser, navigate, alsoRegisterCompany]);
 
@@ -82,8 +83,16 @@ const IndividualRegistration: React.FC<IndividualRegistrationProps> = ({onRegist
 
     const onRegisterCompanyCheck = (_e: React.ChangeEvent<HTMLInputElement>, checked: CheckboxOnChangeData) =>
     {
-        setAlsoRegisterCompany(checked.checked === true);
-        onRegisterOrganizationChange(checked.checked === true);
+        const isChecked = checked.checked === true;
+
+        setAlsoRegisterCompany(isChecked);
+        onRegisterOrganizationChange(isChecked);
+
+        if(!isChecked)
+        {
+            setIdType(undefined);
+            setIdentificationNumber('');
+        }
     };
 
     const validateInputs = () =>
@@ -128,8 +137,10 @@ const IndividualRegistration: React.FC<IndividualRegistrationProps> = ({onRegist
 
         try
         {
-            const person = {firstName, lastName, idNumber: identificationNumber, idType};
-            const personDetailedDto: PersonDetailedDto = (await registerIndividual(person, token)) as PersonDetailedDto;
+            const person = {firstName, lastName, idNumber: identificationNumber, idType} as PersonRegistrationRequest;
+            const registeredPerson = (await registerIndividual(person, token)) as PersonDetailedDto;
+
+            setAppUser({...(appUser as AppUserDetailedDto), person: registeredPerson});
 
             if (alsoRegisterCompany)
             {
@@ -137,7 +148,7 @@ const IndividualRegistration: React.FC<IndividualRegistrationProps> = ({onRegist
             }
             else
             {
-                navigate('/');
+                navigate('/sharing-sessions');
             }
         }
         catch (error)

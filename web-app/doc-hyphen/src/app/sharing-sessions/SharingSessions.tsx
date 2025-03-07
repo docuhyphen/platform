@@ -17,6 +17,7 @@ import SessionList from "./components/session-list/SessionList.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {getPermissions, SharingSessionPermissions} from "./SessionPermissions.ts";
 import SessionDocumentsList from "./components/session-document-list/SessionDocumentsList.tsx";
+import MainMenu from "../components/MainMenu.tsx";
 
 const SharingSessions: React.FC = () =>
 {
@@ -231,8 +232,9 @@ const SharingSessions: React.FC = () =>
         setFilteredDocuments(filtered || []);
     };
 
-    return (
-        preparingSharingSessions ? <PreLanding/> :
+    const renderSessionsSection = () =>
+    {
+        return (
             <section className={styles.container}>
 
                 <SessionList onSelectionChange={setSelectedSessionId}/>
@@ -297,6 +299,15 @@ const SharingSessions: React.FC = () =>
                 }
                 {renderDialogs()}
             </section>
+        )
+    }
+
+    return (
+        <>
+            <MainMenu/>
+            {preparingSharingSessions && <PreLanding/>}
+            {!preparingSharingSessions && renderSessionsSection()}
+        </>
     );
 };
 

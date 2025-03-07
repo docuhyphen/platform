@@ -121,7 +121,7 @@ const SignIn: React.FC = () =>
 
             try
             {
-                if (appUser)
+                if (appUser && appUser.person)
                 {
                     const company = await fetchAppUserPersonCompany(appUser.id, appUser.person?.id, token?.toString());
                     setAppUserPersonCompany(company);
@@ -132,7 +132,7 @@ const SignIn: React.FC = () =>
                 // Handle error
             }
 
-            navigate('/sharing-sessions');
+            navigate('/');
         }
         catch (error)
         {

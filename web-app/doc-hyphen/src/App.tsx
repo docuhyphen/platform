@@ -2,19 +2,19 @@ import React from 'react';
 import {BrowserRouter, Route, Routes} from 'react-router-dom';
 import Home from './app/home';
 import SignIn from './app/authorization/sign-in';
-import CompanyRegistrationPending from './app/company-registration-pending';
 import {AuthProvider} from './context/AuthContext';
-import ProtectedRoute from "./app/components/ProtectedRoutes.tsx";
 import SharingSessions from "./app/sharing-sessions/SharingSessions.tsx";
 import SignUp from "./app/authorization/sign-up";
-import RedirectIfAuthenticated from "./app/components/RedirectIfAuthenticated.tsx";
+import RedirectIfNotAuthenticated from "./app/components/RedirectIfAuthenticated.tsx";
 import NotFound from './app/NotFound.tsx';
 import Onboarding from "./app/onboarding/Onboarding.tsx";
 import Settings from "./app/settings/Settings.tsx";
 import CompanyRegistration from "./app/company-registration/CompanyRegistration.tsx";
 import AccountRecovery from "./app/authorization/account-recovery";
 import NoAuthSharingSession from "./app/no-auth-sharing-session/NoAuthSharingSession.tsx";
-import NoMenuProtectedRoutes from "./app/components/NoMenuProtectedRoutes.tsx";
+import NoMenuProtectedRoute from "./app/components/NoMenuProtectedRoutes.tsx";
+import OnboardingProtectedRoute from "./context/OnboardingGuard.tsx";
+import {CompanyRegistrationProtectedRoute} from "./context/CompanyRegistrationProtectedRoute.tsx";
 
 const App: React.FC = () => {
     return (
@@ -28,58 +28,48 @@ const App: React.FC = () => {
 
                     <Route path="/sign-in"
                            element={
-                               <RedirectIfAuthenticated element={<SignIn/>}/>
+                               <RedirectIfNotAuthenticated element={<SignIn/>}/>
                            }/>
 
                     <Route path="/sign-up"
                            element={
-                               <RedirectIfAuthenticated element={<SignUp/>
+                               <RedirectIfNotAuthenticated element={<SignUp/>
                                }/>
                            }/>
 
                     <Route path="/account-recovery"
                            element={
-                               <RedirectIfAuthenticated element={
-                                   <AccountRecovery/>
-                               }/>
-                           }/>
-
-                    <Route path="/onboarding/individual-registration"
-                           element={
-                               <NoMenuProtectedRoutes path='/sign-in' element={<Onboarding/>
-                               }/>
-                           }/>
-
-                    <Route path="/onboarding/company-registration"
-                           element={
-                               <ProtectedRoute path='/sign-in' element={
-                                   <CompanyRegistration/>
-                               }/>
-                           }/>
-
-                    <Route path="/onboarding/company-registration-pending"
-                           element={
-                               <NoMenuProtectedRoutes path='/sign-in' element={<CompanyRegistrationPending/>}/>
-                           }/>
-
-                    <Route path="/sharing-sessions"
-                           element={
-                               <ProtectedRoute path='/sign-in' element={
-                                   <SharingSessions/>
-                               }/>
+                               <RedirectIfNotAuthenticated
+                                   element={<AccountRecovery/>}/>
                            }/>
 
                     <Route path="/nas"
                            element={
-                               <RedirectIfAuthenticated element={<NoAuthSharingSession/>
-                               }/>
+                               <RedirectIfNotAuthenticated
+                                   element={<NoAuthSharingSession/>
+                                   }/>
+                           }/>
+
+                    <Route path="/onboarding/individual-registration"
+                           element={
+                               <NoMenuProtectedRoute path='/sign-in'
+                                                     element={<Onboarding/>}/>
+                           }/>
+
+                    <Route path="/onboarding/company-registration"
+                           element={
+                               <CompanyRegistrationProtectedRoute element={<CompanyRegistration/>}/>
+                           }/>
+
+                    <Route path="/sharing-sessions"
+                           element={
+                               <OnboardingProtectedRoute element={<SharingSessions/>}/>
                            }/>
 
                     <Route path="/settings"
                            element={
-                               <ProtectedRoute path='/sign-in' element={<Settings/>}/>
+                               <OnboardingProtectedRoute element={<Settings/>}/>
                            }/>
-
                     <Route path="*"
                            element={
                                <NotFound/>
