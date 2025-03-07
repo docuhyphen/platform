@@ -52,7 +52,7 @@ export const registerIndividual = async (request: PersonRegistrationRequest, tok
     }
 };
 
-export const registerCompany = async (request: CompanyRegistrationRequest, token: string | null) =>
+export const registerOrganization = async (request: CompanyRegistrationRequest, token: string | null) =>
 {
     try
     {

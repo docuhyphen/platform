@@ -4,7 +4,7 @@ import {useOnboardingStyles} from '../OnboardingStyles.tsx';
 import AppLogo from "../../components/app-logo/AppLogo.tsx";
 import {Text} from "@fluentui/react-components";
 import OnboardingBreadcrumbs from "../onboarding-breadcrumbs/OnBoardingBreadcrumbs.tsx";
-import OrganizationOnboardingForm from "./CompanyOnboardingForm.tsx";
+import OrganizationOnboardingForm from "./OrganizationOnboardingForm.tsx";
 
 
 const OrganizationOnboarding: React.FC = () =>

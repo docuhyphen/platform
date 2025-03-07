@@ -1,33 +1,33 @@
 import React, {ChangeEvent, useState} from 'react';
 import {Button, Checkbox, Field, Input, InputOnChangeData} from "@fluentui/react-components";
-import {registerCompany} from "../../../services/userApi.ts";
+import {registerOrganization} from "../../../services/userApi.ts";
 import useToken from "../../../context/useToken.tsx";
 import {Company} from "../../models/models.tsx";
 import {useNavigate} from "react-router-dom";
 import {useAuth} from "../../../context/AuthContext.tsx";
 import {useOrganizationOnboardingForm} from './OrganizationOnboardingFormStyles.tsx';
 
-const CompanyOnboardingForm: React.FC = () =>
+const OrganizationOnboardingForm: React.FC = () =>
 {
-    const [companyName, setCompanyName] = useState('');
-    const [companyEmail, setCompanyEmail] = useState('');
+    const [organizationName, setOrganizationName] = useState('');
+    const [organizationEmail, setOrganizationEmail] = useState('');
     const [registrationNumber, setRegistrationNumber] = useState('');
-    const [companyPhone, setCompanyPhone] = useState('');
+    const [organizationPhone, setOrganizationPhone] = useState('');
     const [isRegistering, setIsRegistering] = useState(false);
     const token = useToken();
     const navigate = useNavigate();
     const {setAppUserPersonCompany, appUserPersonCompany, appUser} = useAuth();
     const styles = useOrganizationOnboardingForm();
 
-    const onRegisterCompany = async () =>
+    const onRegisterOrganization = async () =>
     {
         setIsRegistering(true);
         try
         {
-            const company = {name: companyName, registrationNumber};
-            const registeredCompany: Company = await registerCompany(company, token);
+            const organization = {name: organizationName, registrationNumber};
+            const registeredOrganization: Company = await registerOrganization(organization, token);
 
-            setAppUserPersonCompany(registeredCompany);
+            setAppUserPersonCompany(registeredOrganization);
         }
         catch (error)
         {
@@ -39,9 +39,9 @@ const CompanyOnboardingForm: React.FC = () =>
         }
     };
 
-    const onCompanyNameChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
+    const onOrganizationNameChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
     {
-        setCompanyName(newValue.value || '');
+        setOrganizationName(newValue.value || '');
     }
 
 
@@ -50,14 +50,14 @@ const CompanyOnboardingForm: React.FC = () =>
         setRegistrationNumber(newValue.value || '');
     }
 
-    const onCompanyEmailChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
+    const onOrganizationEmailChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
     {
-        setCompanyEmail(newValue.value || '');
+        setOrganizationEmail(newValue.value || '');
     }
 
-    const onCompanyPhoneChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
+    const onOrganizationPhoneChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
     {
-        setCompanyPhone(newValue.value || '');
+        setOrganizationPhone(newValue.value || '');
     }
 
     const onSkipRegistration = () =>
@@ -65,15 +65,15 @@ const CompanyOnboardingForm: React.FC = () =>
         navigate('/sharing-sessions');
     }
 
-    const onUseAppUserEmailCheck = (ev: React.FormEvent<HTMLInputElement>, data: CheckboxOnChangeData) =>
+    const onUseAppUserEmailCheck = (ev: React.FormEvent<HTMLInputElement>, data) =>
     {
         if (data.checked)
         {
-            setCompanyEmail(appUser.email);
+            setOrganizationEmail(appUser.email);
         }
         else
         {
-            setCompanyEmail('');
+            setOrganizationEmail('');
         }
     }
 
@@ -85,7 +85,7 @@ const CompanyOnboardingForm: React.FC = () =>
                         label={"Organization Name"}
                         validationState={"none"}
                         validationMessage={""}>
-                        <Input type="text" value={companyName} onChange={onCompanyNameChange}/>
+                        <Input type="text" value={organizationName} onChange={onOrganizationNameChange}/>
                     </Field>
 
                     <Field
@@ -100,7 +100,7 @@ const CompanyOnboardingForm: React.FC = () =>
                         label={"Phone Number"}
                         validationState={"none"}
                         validationMessage={""}>
-                        <Input type="text" value={registrationNumber} onChange={onRegistrationNumberChange}/>
+                        <Input type="text" value={registrationNumber} onChange={onOrganizationPhoneChange}/>
                     </Field>
 
                     <div>
@@ -110,8 +110,8 @@ const CompanyOnboardingForm: React.FC = () =>
                             validationState={"none"}
                             validationMessage={""}>
                             <Input type="text"
-                                   value={companyEmail}
-                                   onChange={onCompanyEmailChange}/>
+                                   value={organizationEmail}
+                                   onChange={onOrganizationEmailChange}/>
                         </Field>
                         <Checkbox label={"Use my email"}
                                   onChange={onUseAppUserEmailCheck}/>
@@ -121,7 +121,7 @@ const CompanyOnboardingForm: React.FC = () =>
                             onClick={onSkipRegistration}> Skip for later </Button>
                     <Button appearance={"primary"}
                             shape={"circular"}
-                            onClick={onRegisterCompany}>
+                            onClick={onRegisterOrganization}>
                         Register
                     </Button>
                 </div>
@@ -130,4 +130,4 @@ const CompanyOnboardingForm: React.FC = () =>
     );
 };
 
-export default CompanyOnboardingForm;
+export default OrganizationOnboardingForm;

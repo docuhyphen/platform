@@ -45,7 +45,7 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
     const [lastName, setLastName] = useState('');
     const [identificationNumber, setIdentificationNumber] = useState('');
     const [idType, setIdType] = useState<string | undefined>('');
-    const [alsoRegisterCompany, setAlsoRegisterCompany] = useState(false);
+    const [alsoRegisterOrganization, setAlsoRegisterOrganization] = useState(false);
     const [registeringProfile, setRegisteringProfile] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const {setAppUser, appUser} = useAuth();
@@ -54,12 +54,12 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
 
     useEffect(() =>
     {
-        if (appUser && appUser.person && !alsoRegisterCompany)
+        if (appUser && appUser.person && !alsoRegisterOrganization)
         {
             console.log("Back")
             navigate('/');
         }
-    }, [appUser, navigate, alsoRegisterCompany]);
+    }, [appUser, navigate, alsoRegisterOrganization]);
 
     const onFirstNameChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
     {
@@ -81,11 +81,11 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
         setIdType(data.optionValue);
     };
 
-    const onRegisterCompanyCheck = (_e: React.ChangeEvent<HTMLInputElement>, checked: CheckboxOnChangeData) =>
+    const onRegisterOrganizationCheck = (_e: React.ChangeEvent<HTMLInputElement>, checked: CheckboxOnChangeData) =>
     {
         const isChecked = checked.checked === true;
 
-        setAlsoRegisterCompany(isChecked);
+        setAlsoRegisterOrganization(isChecked);
         onRegisterOrganizationChange(isChecked);
 
         if(!isChecked)
@@ -107,12 +107,12 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
             setErrorMessage("Last name is required.");
             return false;
         }
-        if (alsoRegisterCompany && !identificationNumber.trim())
+        if (alsoRegisterOrganization && !identificationNumber.trim())
         {
             setErrorMessage("Identification number is required.");
             return false;
         }
-        if (alsoRegisterCompany && !idType)
+        if (alsoRegisterOrganization && !idType)
         {
             setErrorMessage("ID type is required.");
             return false;
@@ -142,7 +142,7 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
 
             setAppUser({...(appUser as AppUserDetailedDto), person: registeredPerson});
 
-            if (alsoRegisterCompany)
+            if (alsoRegisterOrganization)
             {
                 navigate('/onboarding/organization');
             }
@@ -200,7 +200,7 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
                        onChange={onLastNameChange}/>
             </Field>
 
-            {alsoRegisterCompany &&
+            {alsoRegisterOrganization &&
                 <Field label={"Identification Number"}
                        validationState={"none"}
                        validationMessage={""}>
@@ -209,7 +209,7 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
                            onChange={onIdentificationNumberChange}/>
                 </Field>
             }
-            {alsoRegisterCompany &&
+            {alsoRegisterOrganization &&
                 <Field label={"Type of ID"}
                        validationState={"none"}
                        validationMessage={""}>
@@ -224,8 +224,8 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
             }
 
             <Checkbox label="Register your organization as well"
-                      checked={alsoRegisterCompany}
-                      onChange={onRegisterCompanyCheck}/>
+                      checked={alsoRegisterOrganization}
+                      onChange={onRegisterOrganizationCheck}/>
 
             <Button onClick={onRegisterIndividual}
                     shape={"circular"}
