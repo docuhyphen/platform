@@ -97,7 +97,7 @@ const SessionEndDialog: React.FC<SessionEndDialogProps> = (
                                 className={globalStyles.buttonWithLoading}
                                 shape={"circular"}
                                 onClick={onSessionEnd}>
-                            {endingSession && <Spinner size={"extra-small"}/>}
+                            {endingSession && <Spinner size={"tiny"}/>}
                             End Session
                         </Button>
                         <DialogTrigger disableButtonEnhancement>

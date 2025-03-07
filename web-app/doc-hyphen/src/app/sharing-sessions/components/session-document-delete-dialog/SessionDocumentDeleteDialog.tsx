@@ -72,7 +72,7 @@ const SessionDocumentDeleteDialog: React.FC<DeleteDocumentDialogProps> = (
                                 className={globalStyles.buttonWithLoading}
                                 shape={"circular"}
                                 onClick={onDelete}>
-                            {deletingDocument && <Spinner size={"extra-small"}/>}
+                            {deletingDocument && <Spinner size={"tiny"}/>}
                             Yes, Delete
                         </Button>
                         <DialogTrigger disableButtonEnhancement>

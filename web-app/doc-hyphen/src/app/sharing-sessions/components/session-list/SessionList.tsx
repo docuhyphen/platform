@@ -235,7 +235,7 @@ const SessionList: React.FC<SharingSessionListProps> = (
             </List>
             <div className={styles.sharingSessionsListFooter}>
                 <span>
-                    {loadingSharingSessions && <Spinner size={"extra-small"}/>}
+                    {loadingSharingSessions && <Spinner size={"tiny"}/>}
                     {!loadingSharingSessions && <>
                         Showing <strong> {sharingSessions.length} </strong> Sharing Sessions
                     </>}

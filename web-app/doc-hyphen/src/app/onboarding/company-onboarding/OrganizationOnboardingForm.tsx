@@ -60,11 +60,6 @@ const OrganizationOnboardingForm: React.FC = () =>
         setOrganizationPhone(newValue.value || '');
     }
 
-    const onSkipRegistration = () =>
-    {
-        navigate('/sharing-sessions');
-    }
-
     const onUseAppUserEmailCheck = (ev: React.FormEvent<HTMLInputElement>, data) =>
     {
         if (data.checked)
@@ -117,8 +112,6 @@ const OrganizationOnboardingForm: React.FC = () =>
                                   onChange={onUseAppUserEmailCheck}/>
                     </div>
 
-                    <Button appearance={"transparent"}
-                            onClick={onSkipRegistration}> Skip for later </Button>
                     <Button appearance={"primary"}
                             shape={"circular"}
                             onClick={onRegisterOrganization}>

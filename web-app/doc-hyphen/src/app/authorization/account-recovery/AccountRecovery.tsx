@@ -273,7 +273,7 @@ const AccountRecovery: React.FC = () =>
                                                 shape={"circular"}
                                                 disabled={regeneratingOtp}
                                                 className={globalStyles.buttonWithLoading}>
-                                            {completingPwdReset && <Spinner size={"extra-small"}/>}
+                                            {completingPwdReset && <Spinner size={"tiney"}/>}
                                             {completingPwdReset ? "Resetting password" : "Reset Password"}
                                         </Button>
                                     </div>
@@ -284,7 +284,7 @@ const AccountRecovery: React.FC = () =>
                                             appearance={"primary"}
                                             shape={"circular"}
                                             className={globalStyles.buttonWithLoading}>
-                                        {initiatingPwdReset && <Spinner size={"extra-small"}/>}
+                                        {initiatingPwdReset && <Spinner size={"tiney"}/>}
                                         Initiate Password Reset
                                     </Button>
                                 }

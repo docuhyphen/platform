@@ -119,7 +119,7 @@ const SessionEditDialog: React.FC<SessionDeleteDialogProps> = (
                                 className={globalStyles.buttonWithLoading}
                                 shape={"circular"}
                                 onClick={onEdit}>
-                            {editingSession && <Spinner size={"extra-small"}/>}
+                            {editingSession && <Spinner size={"tiny"}/>}
                             Edit
                         </Button>
                         <DialogTrigger disableButtonEnhancement>

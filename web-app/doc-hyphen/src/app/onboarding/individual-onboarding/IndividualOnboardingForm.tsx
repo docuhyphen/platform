@@ -107,16 +107,16 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
             setErrorMessage("Last name is required.");
             return false;
         }
-        if (alsoRegisterOrganization && !identificationNumber.trim())
-        {
-            setErrorMessage("Identification number is required.");
-            return false;
-        }
-        if (alsoRegisterOrganization && !idType)
-        {
-            setErrorMessage("ID type is required.");
-            return false;
-        }
+        // if (alsoRegisterOrganization && !identificationNumber.trim())
+        // {
+        //     setErrorMessage("Identification number is required.");
+        //     return false;
+        // }
+        // if (alsoRegisterOrganization && !idType)
+        // {
+        //     setErrorMessage("ID type is required.");
+        //     return false;
+        // }
         return true;
     };
 
@@ -200,28 +200,28 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
                        onChange={onLastNameChange}/>
             </Field>
 
-            {alsoRegisterOrganization &&
-                <Field label={"Identification Number"}
-                       validationState={"none"}
-                       validationMessage={""}>
-                    <Input type="text"
-                           value={identificationNumber}
-                           onChange={onIdentificationNumberChange}/>
-                </Field>
-            }
-            {alsoRegisterOrganization &&
-                <Field label={"Type of ID"}
-                       validationState={"none"}
-                       validationMessage={""}>
-                    <Dropdown onOptionSelect={onIdTypeSelect}>
-                        {idTypes.map((option) => (
-                            <Option key={option.key} value={option.key}>
-                                {option.text}
-                            </Option>
-                        ))}
-                    </Dropdown>
-                </Field>
-            }
+            {/*{alsoRegisterOrganization &&*/}
+            {/*    <Field label={"Identification Number"}*/}
+            {/*           validationState={"none"}*/}
+            {/*           validationMessage={""}>*/}
+            {/*        <Input type="text"*/}
+            {/*               value={identificationNumber}*/}
+            {/*               onChange={onIdentificationNumberChange}/>*/}
+            {/*    </Field>*/}
+            {/*}*/}
+            {/*{alsoRegisterOrganization &&*/}
+            {/*    <Field label={"Type of ID"}*/}
+            {/*           validationState={"none"}*/}
+            {/*           validationMessage={""}>*/}
+            {/*        <Dropdown onOptionSelect={onIdTypeSelect}>*/}
+            {/*            {idTypes.map((option) => (*/}
+            {/*                <Option key={option.key} value={option.key}>*/}
+            {/*                    {option.text}*/}
+            {/*                </Option>*/}
+            {/*            ))}*/}
+            {/*        </Dropdown>*/}
+            {/*    </Field>*/}
+            {/*}*/}
 
             <Checkbox label="Register your organization as well"
                       checked={alsoRegisterOrganization}

@@ -124,7 +124,7 @@ const SessionDeleteDialog: React.FC<SessionDeleteDialogProps> = (
                                         className={globalStyles.buttonWithLoading}
                                         shape={"circular"}
                                         onClick={onDelete}>
-                                    {deletingSession && <Spinner size={"extra-small"}/>}
+                                    {deletingSession && <Spinner size={"tiny"}/>}
                                     Yes, Delete
                                 </Button>
                                 <DialogTrigger disableButtonEnhancement>

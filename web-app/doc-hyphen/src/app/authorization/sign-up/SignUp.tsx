@@ -248,7 +248,7 @@ const SignUp: React.FC = () =>
                                     shape={"circular"}
                                     disabled={regeneratingOtp}
                                     className={globalStyles.buttonWithLoading}> {/* Use GlobalStyles */}
-                                {completingSignUp && <Spinner size={"extra-small"}/>}
+                                {completingSignUp && <Spinner size={"tiny"}/>}
                                 {completingSignUp ? "Completing sign up" : "Complete sign up"}
                             </Button>
                         </div>}
@@ -257,7 +257,7 @@ const SignUp: React.FC = () =>
                                     appearance={"primary"}
                                     shape={"circular"}
                                     className={globalStyles.buttonWithLoading}> {/* Use GlobalStyles */}
-                                {initiatingSignUp && <Spinner size={"extra-small"}/>}
+                                {initiatingSignUp && <Spinner size={"tiny"}/>}
                                 Sign Up
                             </Button>}
                         <div className={signUpStyles.authHasAccount}>

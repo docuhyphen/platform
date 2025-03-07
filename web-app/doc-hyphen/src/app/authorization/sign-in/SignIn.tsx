@@ -178,7 +178,7 @@ const SignIn: React.FC = () =>
                 shape={"circular"}>
             {signInInitiating &&
                 <>
-                    <Spinner size={"extra-small"}/>
+                    <Spinner size={"tiny"}/>
                     Initiating sign in
                 </>
             }
@@ -193,7 +193,7 @@ const SignIn: React.FC = () =>
                 shape={"circular"}>
             {signInCompleting &&
                 <>
-                    <Spinner size={"extra-small"}/>
+                    <Spinner size={"tiny"}/>
                     Completing sign in
                 </>
             }

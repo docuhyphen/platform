@@ -149,7 +149,7 @@ const AddDocumentDialog: React.FC<AddDocumentDialogProps> = (
                                 shape={"circular"}
                                 className={globalStyles.buttonWithLoading}
                                 onClick={onAddDocument}>
-                            {addingDocument && <Spinner size={"extra-small"}/>}
+                            {addingDocument && <Spinner size={"tiny"}/>}
                             Add
                         </Button>
                         <DialogTrigger disableButtonEnhancement>

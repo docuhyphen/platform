@@ -154,7 +154,7 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
                                         className={globalStyles.buttonWithLoading}
                                         shape={"circular"}
                                         onClick={onUpdate}>
-                                    {updatingSession && <Spinner size={"extra-small"}/>}
+                                    {updatingSession && <Spinner size={"tiny"}/>}
                                     Update
                                 </Button>
                                 <DialogTrigger disableButtonEnhancement>

@@ -111,7 +111,7 @@ const SessionDocumentDownloadDialog: React.FC<DownloadDocumentDialogProps> = (
                                 shape={"circular"}
                                 disabled={(downloadingDocument || !downloadName || !downloadName.trim())}
                                 onClick={onDownload}>
-                            {downloadingDocument && <Spinner size={"extra-small"}/>}
+                            {downloadingDocument && <Spinner size={"tiny"}/>}
                             Download
                         </Button>
                         <DialogTrigger disableButtonEnhancement>

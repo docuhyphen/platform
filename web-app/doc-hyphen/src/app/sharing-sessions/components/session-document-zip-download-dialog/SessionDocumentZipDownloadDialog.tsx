@@ -124,7 +124,7 @@ const SessionDocumentZipDownloadDialog: React.FC<DownloadDocumentDialogProps> = 
                             disabled={downloadingDocumentsZip || !downloadName.trim()}
                             onClick={onDownload}
                         >
-                            {downloadingDocumentsZip && <Spinner size={"extra-small"}/>}
+                            {downloadingDocumentsZip && <Spinner size={"tiny"}/>}
                             Download
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
