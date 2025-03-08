@@ -1,5 +1,5 @@
 import React, {createContext, ReactNode, useContext, useEffect, useRef, useState} from 'react';
-import {fetchAppUser, fetchAppUserPersonCompany} from '../services/userApi.ts';
+import {fetchAppUser, fetchAppUserPersonOrganization} from '../services/userApi.ts';
 import {AppUserDetailedDto, Company} from "../app/models/models.tsx";
 import {isTokenExpired} from "../utils/helpers.ts";
 import {useLocation, useNavigate} from "react-router-dom";
@@ -99,7 +99,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
             {
                 try
                 {
-                    setAppUserPersonCompany(await fetchAppUserPersonCompany(appUser?.id, appUser?.person?.id, token!));
+                    setAppUserPersonCompany(await fetchAppUserPersonOrganization(appUser?.id, appUser?.person?.id, token!));
                 }
                 catch (error)
                 {

@@ -176,13 +176,13 @@ export interface PersonRegistrationResponse
     person: Person;
 }
 
-export interface CompanyRegistrationRequest
+export interface OrganizationRegistrationRequest
 {
     name?: string;
     registrationNumber?: string;
 }
 
-export interface CompanyRegistrationResponse
+export interface OrganizationRegistrationResponse
 {
     company: Company;
 }

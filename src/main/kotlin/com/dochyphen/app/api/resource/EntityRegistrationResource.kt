@@ -1,13 +1,12 @@
 package com.dochyphen.app.api.resource
 
-import com.dochyphen.app.api.exception.CompanyAlreadyExistsException
-import com.dochyphen.app.api.exception.InvalidCompanyRegistrationException
+import com.dochyphen.app.api.exception.OrganizationAlreadyExistsException
+import com.dochyphen.app.api.exception.InvalidOrganizationRegistrationException
 import com.dochyphen.app.api.exception.InvalidPersonRegistrationException
 import com.dochyphen.app.api.exception.PersonAlreadyExistsException
-import com.dochyphen.app.api.model.BasicModelConverter
 import com.dochyphen.app.api.model.entity.DetailedModelConverter
-import com.dochyphen.app.api.resource.model.CompanyRegistrationRequest
-import com.dochyphen.app.api.resource.model.CompanyRegistrationResponse
+import com.dochyphen.app.api.resource.model.OrganizationRegistrationRequest
+import com.dochyphen.app.api.resource.model.OrganizationRegistrationResponse
 import com.dochyphen.app.api.resource.model.PersonRegistrationRequest
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.service.EntityRegistrationService
@@ -74,20 +73,20 @@ class EntityRegistrationResource @Inject constructor(
     }
 
     @POST
-    @Path("/company")
+    @Path("/organization")
     @Produces(APPLICATION_JSON)
-    fun registerCompany(companyRegistrationRequest: CompanyRegistrationRequest?): Response
+    fun registerCompany(organizationRegistrationRequest: OrganizationRegistrationRequest?): Response
     {
         return try
         {
-            companyRegistrationRequest?.let {
+            organizationRegistrationRequest?.let {
 
                 val company = with(it) {
                     entityRegistrationService.registerCompany(name, registrationNumber)
                 }
 
-                val companyRegistrationResponse = CompanyRegistrationResponse(company)
-                Response.ok(companyRegistrationResponse).build()
+                val organizationRegistrationResponse = OrganizationRegistrationResponse(company)
+                Response.ok(organizationRegistrationResponse).build()
 
             } ?: Response.status(BAD_REQUEST).build()
         }
@@ -95,13 +94,13 @@ class EntityRegistrationResource @Inject constructor(
         {
             when (exception)
             {
-                is InvalidCompanyRegistrationException ->
+                is InvalidOrganizationRegistrationException ->
                 {
                     val responseError = ResponseError(exception.message)
                     Response.status(BAD_REQUEST).entity(responseError).build()
                 }
 
-                is CompanyAlreadyExistsException ->
+                is OrganizationAlreadyExistsException ->
                 {
                     val responseError = ResponseError(exception.message)
                     Response.status(CONFLICT).entity(responseError).build()

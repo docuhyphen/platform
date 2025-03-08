@@ -72,13 +72,13 @@ data class PersonRegistrationRequest(
 data class PersonRegistrationResponse(var person: Person)
 
 @Serializable
-data class CompanyRegistrationRequest(
+data class OrganizationRegistrationRequest(
     var name: String? = null,
     var registrationNumber: String? = null
 )
 
 @Serializable
-data class CompanyRegistrationResponse(var company: Company)
+data class OrganizationRegistrationResponse(var company: Company)
 
 @Serializable
 data class SharingSessionInitiationRequest(

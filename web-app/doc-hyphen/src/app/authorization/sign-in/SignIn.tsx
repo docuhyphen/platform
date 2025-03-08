@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
 import {completeSignIn, initiateSignIn, regenerateSignInOtp} from '../../../services/authApi.ts';
-import {fetchAppUser, fetchAppUserPersonCompany,} from '../../../services/userApi.ts';
+import {fetchAppUser, fetchAppUserPersonOrganization,} from '../../../services/userApi.ts';
 import {useAuth} from '../../../context/AuthContext.tsx';
 import {useNavigate} from 'react-router-dom';
 import RedirectIfAuthenticated from '../../components/RedirectIfAuthenticated.tsx';
@@ -123,7 +123,7 @@ const SignIn: React.FC = () =>
             {
                 if (appUser && appUser.person)
                 {
-                    const company = await fetchAppUserPersonCompany(appUser.id, appUser.person?.id, token?.toString());
+                    const company = await fetchAppUserPersonOrganization(appUser.id, appUser.person?.id, token?.toString());
                     setAppUserPersonCompany(company);
                 }
             }

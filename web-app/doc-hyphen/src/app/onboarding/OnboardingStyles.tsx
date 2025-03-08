@@ -55,4 +55,11 @@ export const useOnboardingStyles = makeStyles({
         flexDirection: "column",
         gap: "12px",
     },
+
+    orgOnboardingContainer: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "16px",
+        justifyContent: "space-between",
+    }
 });

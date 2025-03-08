@@ -13,8 +13,8 @@ import AccountRecovery from "./app/authorization/account-recovery";
 import NoAuthSharingSession from "./app/no-auth-sharing-session/NoAuthSharingSession.tsx";
 import NoMenuProtectedRoute from "./app/components/NoMenuProtectedRoutes.tsx";
 import PersonRegistrationProtectedRoute from "./context/OnboardingGuard.tsx";
-import {CompanyRegistrationProtectedRoute} from "./context/CompanyRegistrationProtectedRoute.tsx";
-import OrganizationOnboarding from "./app/onboarding/company-onboarding/OrganizationOnboarding.tsx";
+import {OrganizationRegistrationProtectedRoute} from "./context/OrganizationRegistrationProtectedRoute.tsx";
+import OrganizationOnboarding from "./app/onboarding/organization-onboarding/OrganizationOnboarding.tsx";
 
 const App: React.FC = () => {
     return (
@@ -58,7 +58,7 @@ const App: React.FC = () => {
 
                     <Route path="/onboarding/organization"
                            element={
-                               <CompanyRegistrationProtectedRoute
+                               <OrganizationRegistrationProtectedRoute
                                    element={<OrganizationOnboarding/>}/>
                            }/>
 

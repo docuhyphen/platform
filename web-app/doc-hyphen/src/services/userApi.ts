@@ -1,5 +1,5 @@
 import apiClient from './apiClient';
-import {CompanyRegistrationRequest, PersonRegistrationRequest} from "../app/models/models.tsx";
+import {OrganizationRegistrationRequest, PersonRegistrationRequest} from "../app/models/models.tsx";
 
 export const fetchAppUser = async (token: string | null) =>
 {
@@ -18,11 +18,11 @@ export const fetchAppUser = async (token: string | null) =>
     }
 };
 
-export const fetchAppUserPersonCompany = async (appUserId?: string, personId?: string, token?: string) =>
+export const fetchAppUserPersonOrganization = async (appUserId?: string, personId?: string, token?: string) =>
 {
     try
     {
-        const response = await apiClient.get(`/app-user/${appUserId}/person/${personId}/company`, {
+        const response = await apiClient.get(`/app-user/${appUserId}/person/${personId}/organization`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
@@ -52,11 +52,11 @@ export const registerIndividual = async (request: PersonRegistrationRequest, tok
     }
 };
 
-export const registerOrganization = async (request: CompanyRegistrationRequest, token: string | null) =>
+export const registerOrganization = async (request: OrganizationRegistrationRequest, token: string | null) =>
 {
     try
     {
-        const response = await apiClient.post(`/entity-registration/company`, request, {
+        const response = await apiClient.post(`/entity-registration/organization`, request, {
             headers: {
                 Authorization: `Bearer ${token}`
             }

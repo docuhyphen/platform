@@ -113,7 +113,7 @@ Content-Type: application/json
 
 
 ### Company Registration
-POST http://localhost:8080/entity-registration/company
+POST http://localhost:8080/entity-registration/organization
 Authorization: Bearer {{Authorization}}
 Content-Type: application/json
 

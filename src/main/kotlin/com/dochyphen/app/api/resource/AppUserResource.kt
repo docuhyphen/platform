@@ -1,9 +1,9 @@
 package com.dochyphen.app.api.resource
 
 import com.dochyphen.app.api.interceptor.AuthTokenContext
-import com.dochyphen.app.api.exception.CompanyNotFoundException
+import com.dochyphen.app.api.exception.OrganizationNotFoundException
 import com.dochyphen.app.api.resource.model.ResponseError
-import com.dochyphen.app.api.service.CompanyService
+import com.dochyphen.app.api.service.OrganizationService
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.GET
@@ -22,7 +22,7 @@ import java.util.UUID
 @Consumes(MediaType.APPLICATION_JSON)
 class AppUserResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
-    private val companyService: CompanyService
+    private val organizationService: OrganizationService
 
 )
 {
@@ -53,7 +53,7 @@ class AppUserResource @Inject constructor(
 
     @GET
     @Path("{appUserId}/person/{personId}/company")
-    fun getAppUserPersonCompany(
+    fun getAppUserPersonOrganization(
         @PathParam("appUserId") appUserId: String,
         @PathParam("personId") personId: String
     ): Response
@@ -61,16 +61,16 @@ class AppUserResource @Inject constructor(
 
         return try
         {
-            val company =
-                companyService.getCompanyByAppUserIdAndPersonId(UUID.fromString(appUserId), UUID.fromString(personId))
+            val organization =
+                organizationService.getOrganizationByAppUserIdAndPersonId(UUID.fromString(appUserId), UUID.fromString(personId))
 
-            Response.ok(company).build()
+            Response.ok(organization).build()
         }
         catch (exception: Exception)
         {
             when (exception)
             {
-                is CompanyNotFoundException ->
+                is OrganizationNotFoundException ->
                 {
                     val responseError = ResponseError(exception.message)
                     Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
@@ -78,8 +78,8 @@ class AppUserResource @Inject constructor(
 
                 else ->
                 {
-                    logger.error("Error fetching company", exception)
-                    val responseError = ResponseError("A server error occurred while fetching the company.")
+                    logger.error("Error fetching organization", exception)
+                    val responseError = ResponseError("A server error occurred while fetching the organization.")
                     Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
             }

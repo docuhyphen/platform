@@ -1,16 +1,16 @@
 package com.dochyphen.app.api.service
 
-import com.dochyphen.app.api.exception.CompanyAlreadyExistsException
-import com.dochyphen.app.api.exception.InvalidCompanyRegistrationException
+import com.dochyphen.app.api.exception.OrganizationAlreadyExistsException
+import com.dochyphen.app.api.exception.InvalidOrganizationRegistrationException
 import com.dochyphen.app.api.exception.InvalidPersonRegistrationException
 import com.dochyphen.app.api.exception.PersonAlreadyExistsException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
-import com.dochyphen.app.api.messaging.CompanyVerificationProducer
+import com.dochyphen.app.api.messaging.OrganizationVerificationProducer
 import com.dochyphen.app.api.model.entity.AppUserRole
 import com.dochyphen.app.api.model.entity.Company
 import com.dochyphen.app.api.model.entity.Person
 import com.dochyphen.app.api.model.entity.PersonIDType
-import com.dochyphen.app.api.repository.CompanyRepository
+import com.dochyphen.app.api.repository.OrganizationRepository
 import com.dochyphen.app.api.repository.PersonRepositoryRepository
 import com.dochyphen.app.api.service.communication.EmailService
 import com.dochyphen.app.api.service.config.ConfigurationService
@@ -24,11 +24,11 @@ import org.slf4j.LoggerFactory
 @RequestScoped
 class EntityRegistrationService @Inject constructor(
     private val personRepository: PersonRepositoryRepository,
-    private val companyRepository: CompanyRepository,
+    private val organizationRepository: OrganizationRepository,
     private val appUserService: AppUserService,
     private var configurationService: ConfigurationService,
     private var emailService: EmailService,
-    private val companyVerificationProducer: CompanyVerificationProducer
+    private val organizationVerificationProducer: OrganizationVerificationProducer
 )
 {
     @PersistenceContext
@@ -106,13 +106,13 @@ class EntityRegistrationService @Inject constructor(
                     .joinToString(" ")
 
             logger.warn("Company registration failed: $errorMessage")
-            throw InvalidCompanyRegistrationException(errorMessage)
+            throw InvalidOrganizationRegistrationException(errorMessage)
         }
 
-        if (companyRepository.existsByRegistrationNumber(registrationNumber))
+        if (organizationRepository.existsByRegistrationNumber(registrationNumber))
         {
             logger.warn("Company registration failed: Registration number $registrationNumber already exists.")
-            throw CompanyAlreadyExistsException()
+            throw OrganizationAlreadyExistsException()
         }
 
         val appUser = authTokenContext.authToken.appUser!!
@@ -130,7 +130,7 @@ class EntityRegistrationService @Inject constructor(
             this.appUsers = mutableListOf(managedAppUser)
         }
 
-        companyRepository.save(company)
+        organizationRepository.save(company)
         logger.info("Company registration successful for registration number $registrationNumber.")
 
         emailService.sendEmail(
@@ -142,7 +142,7 @@ class EntityRegistrationService @Inject constructor(
                     "Thank you for using ${configurationService.getAppEmailSubjectTitle()}!"
         )
 
-        companyVerificationProducer.sendToQueue(company)
+        organizationVerificationProducer.sendToQueue(company)
 
         return company
     }
