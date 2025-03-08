@@ -1,6 +1,6 @@
 import React, {createContext, ReactNode, useContext, useEffect, useRef, useState} from 'react';
 import {fetchAppUser, fetchAppUserPersonOrganization} from '../services/userApi.ts';
-import {AppUserDetailedDto, Company} from "../app/models/models.tsx";
+import {AppUserDetailedDto, Organization} from "../app/models/models.tsx";
 import {isTokenExpired} from "../utils/helpers.ts";
 import {useLocation, useNavigate} from "react-router-dom";
 
@@ -10,8 +10,8 @@ interface AuthContextType
     setToken: (token: string | null) => void;
     appUser: AppUserDetailedDto | null;
     setAppUser: (user: AppUserDetailedDto | null) => void;
-    appUserPersonCompany: Company | null;
-    setAppUserPersonCompany: (company: Company | null) => void;
+    appUserPersonOrganization: Organization | null;
+    setAppUserPersonOrganization: (organization: Organization | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,7 +23,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
     const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
     const tokenExpirationIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const [appUser, setAppUser] = useState<AppUserDetailedDto | null>(null);
-    const [appUserPersonCompany, setAppUserPersonCompany] = useState<Company | null>(null);
+    const [appUserPersonOrganization, setAppUserPersonOrganization] = useState<Organization | null>(null);
 
     useEffect(() =>
     {
@@ -95,23 +95,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
                 return;
             }
 
-            if (appUser?.person && !appUserPersonCompany)
+            if (appUser?.person && !appUserPersonOrganization)
             {
                 try
                 {
-                    setAppUserPersonCompany(await fetchAppUserPersonOrganization(appUser?.id, appUser?.person?.id, token!));
+                    setAppUserPersonOrganization(await fetchAppUserPersonOrganization(appUser?.id, appUser?.person?.id, token!));
                 }
                 catch (error)
                 {
                     if (error.response.status === 404)
                     {
-                        console.log("Company not found for user");
+                        console.log("Organization not found for user");
                     }
                 }
             }
 
             // If everything exists, navigate to the main page
-            if (appUser && appUser.person && appUserPersonCompany)
+            if (appUser && appUser.person && appUserPersonOrganization)
             {
                 navigate("/sharing-sessions");
             }
@@ -165,8 +165,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
                     setToken,
                     appUser,
                     setAppUser,
-                    appUserPersonCompany,
-                    setAppUserPersonCompany
+                    appUserPersonOrganization: appUserPersonOrganization,
+                    setAppUserPersonOrganization: setAppUserPersonOrganization
                 }}>
             {children}
         </AuthContext.Provider>

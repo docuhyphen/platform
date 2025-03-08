@@ -32,7 +32,7 @@ class ContactDetails
     var email: String? = ""
 
     @OneToOne
-    var company: Company? = null
+    var organization: Organization? = null
 
     @OneToOne
     var person: Person? = null

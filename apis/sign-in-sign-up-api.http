@@ -112,7 +112,7 @@ Content-Type: application/json
 <> 2025-01-15T221803.400.json
 
 
-### Company Registration
+### Organization Registration
 POST http://localhost:8080/entity-registration/organization
 Authorization: Bearer {{Authorization}}
 Content-Type: application/json

@@ -2,7 +2,7 @@ import React, {ChangeEvent, useState} from 'react';
 import {Button, Checkbox, Field, Input, InputOnChangeData} from "@fluentui/react-components";
 import {registerOrganization} from "../../../services/userApi.ts";
 import useToken from "../../../context/useToken.tsx";
-import {Company} from "../../models/models.tsx";
+import {Organization} from "../../models/models.tsx";
 import {useNavigate} from "react-router-dom";
 import {useAuth} from "../../../context/AuthContext.tsx";
 import {useOrganizationOnboardingForm} from './OrganizationOnboardingFormStyles.tsx';
@@ -16,7 +16,7 @@ const OrganizationOnboardingForm: React.FC = () =>
     const [isRegistering, setIsRegistering] = useState(false);
     const token = useToken();
     const navigate = useNavigate();
-    const {setAppUserPersonCompany, appUserPersonCompany, appUser} = useAuth();
+    const {setAppUserPersonOrganization, appUserPersonOrganization, appUser} = useAuth();
     const styles = useOrganizationOnboardingForm();
 
     const onRegisterOrganization = async () =>
@@ -25,9 +25,9 @@ const OrganizationOnboardingForm: React.FC = () =>
         try
         {
             const organization = {name: organizationName, registrationNumber};
-            const registeredOrganization: Company = await registerOrganization(organization, token);
+            const registeredOrganization: Organization = await registerOrganization(organization, token);
 
-            setAppUserPersonCompany(registeredOrganization);
+            setAppUserPersonOrganization(registeredOrganization);
         }
         catch (error)
         {
@@ -73,7 +73,7 @@ const OrganizationOnboardingForm: React.FC = () =>
 
     return (
         <>
-            {(!appUserPersonCompany) &&
+            {(!appUserPersonOrganization) &&
                 <div className={styles.container}>
                     <Field
                         label={"Organization Name"}

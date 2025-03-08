@@ -121,11 +121,11 @@ export interface ContactDetails
     createdDate: string;
     phoneNumber?: string;
     email?: string;
-    company?: Company;
+    organization?: Organization;
     person?: Person;
 }
 
-export interface Company
+export interface Organization
 {
     id: string;
     isActive: boolean;
@@ -184,7 +184,7 @@ export interface OrganizationRegistrationRequest
 
 export interface OrganizationRegistrationResponse
 {
-    company: Company;
+    organization: Organization;
 }
 
 export interface SharingSessionInitiationRequest
@@ -295,7 +295,7 @@ export interface SharingSessionBasicDto
     recipientEmail?: string;
     recipientFirstName?: string;
     recipientLastName?: string;
-    recipientCompanyName?: string;
+    recipientOrganizationName?: string;
 }
 
 export interface NoAuthSharingSessionBasicDto
@@ -309,7 +309,7 @@ export interface NoAuthSharingSessionBasicDto
     recipientEmail?: string;
     recipientFirstName?: string;
     recipientLastName?: string;
-    recipientCompanyName?: string;
+    recipientOrganizationName?: string;
     initiatorFirstName?: string;
     initiatorLastName?: string;
 }

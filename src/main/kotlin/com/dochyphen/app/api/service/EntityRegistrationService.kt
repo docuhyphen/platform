@@ -7,7 +7,7 @@ import com.dochyphen.app.api.exception.PersonAlreadyExistsException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.messaging.OrganizationVerificationProducer
 import com.dochyphen.app.api.model.entity.AppUserRole
-import com.dochyphen.app.api.model.entity.Company
+import com.dochyphen.app.api.model.entity.Organization
 import com.dochyphen.app.api.model.entity.Person
 import com.dochyphen.app.api.model.entity.PersonIDType
 import com.dochyphen.app.api.repository.OrganizationRepository
@@ -93,25 +93,25 @@ class EntityRegistrationService @Inject constructor(
     }
 
     @Transactional
-    fun registerCompany(companyName: String?, registrationNumber: String?): Company
+    fun registerOrganization(organizationName: String?, registrationNumber: String?): Organization
     {
-        if (companyName.isNullOrBlank() || registrationNumber.isNullOrBlank())
+        if (organizationName.isNullOrBlank() || registrationNumber.isNullOrBlank())
         {
-            val companyNameErrorMessage = if (companyName.isNullOrBlank()) "Company name is blank." else ""
+            val organizationNameErrorMessage = if (organizationName.isNullOrBlank()) "Organization name is blank." else ""
             val registrationNumberErrorMessage =
                 if (registrationNumber.isNullOrBlank()) "Registration number is blank." else ""
 
             val errorMessage =
-                listOf(companyNameErrorMessage, registrationNumberErrorMessage).filter { it.isNotEmpty() }
+                listOf(organizationNameErrorMessage, registrationNumberErrorMessage).filter { it.isNotEmpty() }
                     .joinToString(" ")
 
-            logger.warn("Company registration failed: $errorMessage")
+            logger.warn("Organization registration failed: $errorMessage")
             throw InvalidOrganizationRegistrationException(errorMessage)
         }
 
         if (organizationRepository.existsByRegistrationNumber(registrationNumber))
         {
-            logger.warn("Company registration failed: Registration number $registrationNumber already exists.")
+            logger.warn("Organization registration failed: Registration number $registrationNumber already exists.")
             throw OrganizationAlreadyExistsException()
         }
 
@@ -122,28 +122,28 @@ class EntityRegistrationService @Inject constructor(
         managedAppUser.role = AppUserRole.ADMIN
         entityManager.merge(managedAppUser)
 
-        val company = Company().apply {
-            this.name = companyName
+        val organization = Organization().apply {
+            this.name = organizationName
             this.registrationNumber = registrationNumber
             this.isActive = false
             this.verificationComplete = false
             this.appUsers = mutableListOf(managedAppUser)
         }
 
-        organizationRepository.save(company)
-        logger.info("Company registration successful for registration number $registrationNumber.")
+        organizationRepository.save(organization)
+        logger.info("Organization registration successful for registration number $registrationNumber.")
 
         emailService.sendEmail(
             appUser.email,
-            "${configurationService.getAppEmailSubjectTitle()} | Company registration",
+            "${configurationService.getAppEmailSubjectTitle()} | Organization registration",
             "Hi ${appUser.person!!.firstName} ${appUser.person!!.lastName},\n\n" +
-                    "Your company registration request has been received. " +
+                    "Your Organization registration request has been received. " +
                     "Please wait for the administrator to approve your request.\n\n" +
                     "Thank you for using ${configurationService.getAppEmailSubjectTitle()}!"
         )
 
-        organizationVerificationProducer.sendToQueue(company)
+        organizationVerificationProducer.sendToQueue(organization)
 
-        return company
+        return organization
     }
 }

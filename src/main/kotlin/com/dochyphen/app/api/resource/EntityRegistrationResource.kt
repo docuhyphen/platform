@@ -65,7 +65,7 @@ class EntityRegistrationResource @Inject constructor(
 
                 else ->
                 {
-                    val responseError = ResponseError("An error occurred while registering company.")
+                    val responseError = ResponseError("An error occurred while registering organization.")
                     Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
             }
@@ -75,17 +75,17 @@ class EntityRegistrationResource @Inject constructor(
     @POST
     @Path("/organization")
     @Produces(APPLICATION_JSON)
-    fun registerCompany(organizationRegistrationRequest: OrganizationRegistrationRequest?): Response
+    fun registerOrganization(organizationRegistrationRequest: OrganizationRegistrationRequest?): Response
     {
         return try
         {
             organizationRegistrationRequest?.let {
 
-                val company = with(it) {
-                    entityRegistrationService.registerCompany(name, registrationNumber)
+                val organization = with(it) {
+                    entityRegistrationService.registerOrganization(name, registrationNumber)
                 }
 
-                val organizationRegistrationResponse = OrganizationRegistrationResponse(company)
+                val organizationRegistrationResponse = OrganizationRegistrationResponse(organization)
                 Response.ok(organizationRegistrationResponse).build()
 
             } ?: Response.status(BAD_REQUEST).build()
@@ -108,7 +108,7 @@ class EntityRegistrationResource @Inject constructor(
 
                 else ->
                 {
-                    val responseError = ResponseError("An error occurred while registering company.")
+                    val responseError = ResponseError("An error occurred while registering organization.")
                     Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
             }

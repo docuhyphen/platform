@@ -52,7 +52,7 @@ class AppUserResource @Inject constructor(
     }
 
     @GET
-    @Path("{appUserId}/person/{personId}/company")
+    @Path("{appUserId}/person/{personId}/organization")
     fun getAppUserPersonOrganization(
         @PathParam("appUserId") appUserId: String,
         @PathParam("personId") personId: String

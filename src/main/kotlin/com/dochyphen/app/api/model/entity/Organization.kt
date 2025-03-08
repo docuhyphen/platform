@@ -1,4 +1,3 @@
-// Company.kt
 package com.dochyphen.app.api.model.entity
 
 import com.dochyphen.app.api.serializer.UUIDSerializer
@@ -10,9 +9,9 @@ import java.time.Instant
 import java.util.UUID
 
 @Entity
-@Table(name = "company")
+@Table(name = "organization")
 @Serializable
-class Company {
+class Organization {
 
     @Id
     @Serializable(with = UUIDSerializer::class)
@@ -39,7 +38,7 @@ class Company {
     var contactDetails: ContactDetails? = null
 
     @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
-    @JoinColumn(name = "company_id")
+    @JoinColumn(name = "organization_id")
     var appUsers: MutableList<AppUser> = mutableListOf()
 
     constructor()

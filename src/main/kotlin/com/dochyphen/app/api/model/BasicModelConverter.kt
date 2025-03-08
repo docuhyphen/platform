@@ -25,7 +25,7 @@ class BasicModelConverter
                         recipient?.email,
                         recipient?.person?.firstName,
                         recipient?.person?.lastName,
-                        "Company Name",
+                        "Organization Name",
                     )
                 }
             }

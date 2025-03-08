@@ -25,7 +25,7 @@ data class SharingSessionBasicDto(
     var recipientEmail: String? = null,
     var recipientFirstName: String? = null,
     var recipientLastName: String? = null,
-    var recipientCompanyName: String? = null,
+    var recipientOrganizationName: String? = null,
 //    val participantIds: List<UUID>
 )
 

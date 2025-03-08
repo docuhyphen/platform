@@ -78,7 +78,7 @@ data class OrganizationRegistrationRequest(
 )
 
 @Serializable
-data class OrganizationRegistrationResponse(var company: Company)
+data class OrganizationRegistrationResponse(var organization: Organization)
 
 @Serializable
 data class SharingSessionInitiationRequest(

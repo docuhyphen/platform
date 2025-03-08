@@ -138,7 +138,7 @@ class SharingSessionInitiationService @Inject constructor(
 
         val savedSharingSession = sharingSessionRepository.save(sharingSession)
 
-        val initiatorCompany = initiator?.person?.contactDetails?.company?.name ?: "N/A"
+        val initiatorOrganization = initiator?.person?.contactDetails?.organization?.name ?: "N/A"
 
         emailService.sendEmail(
             recipientEmail,
@@ -147,7 +147,7 @@ class SharingSessionInitiationService @Inject constructor(
             You have been requested to upload the following documents: ${sessionDocuments.joinToString(", ")}.
             Please use the following link to upload your documents: [link]
 
-            Company Details: $initiatorCompany
+            Organization Details: $initiatorOrganization
 
             If you do not recognize this request, please report it here: [report_link]
         """.trimIndent()

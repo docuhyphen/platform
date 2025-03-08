@@ -40,7 +40,7 @@ const SignIn: React.FC = () =>
     const [signInInitiationSuccessfulMsg, setSignInInitiationSuccessfulMsg] = useState<string>('');
     const [signInInitiationSuccessful, setSignInInitiationSuccessful] = useState<boolean>(false);
     const [responseErrorMessage, setResponseErrorMessage] = useState<string | undefined>('');
-    const {setToken, setAppUser, setAppUserPersonCompany} = useAuth();
+    const {setToken, setAppUser, setAppUserPersonOrganization} = useAuth();
     const navigate = useNavigate();
     const signInStyles = useSignInStyles();
     const authorizationStyles = useAuthorizationStyles();
@@ -123,8 +123,8 @@ const SignIn: React.FC = () =>
             {
                 if (appUser && appUser.person)
                 {
-                    const company = await fetchAppUserPersonOrganization(appUser.id, appUser.person?.id, token?.toString());
-                    setAppUserPersonCompany(company);
+                    const organization = await fetchAppUserPersonOrganization(appUser.id, appUser.person?.id, token?.toString());
+                    setAppUserPersonOrganization(organization);
                 }
             }
             catch (error)

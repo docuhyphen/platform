@@ -3,7 +3,7 @@ import {useAuth} from "./AuthContext.tsx";
 
 export const OrganizationRegistrationProtectedRoute: React.FC<{ element: JSX.Element }> = ({element}) =>
 {
-    const {token, appUser, appUserPersonCompany} = useAuth();
+    const {token, appUser, appUserPersonOrganization} = useAuth();
 
     if (!token)
     {
@@ -15,7 +15,7 @@ export const OrganizationRegistrationProtectedRoute: React.FC<{ element: JSX.Ele
         return <Navigate to="/onboarding/individual" replace/>;
     }
 
-    if (appUserPersonCompany)
+    if (appUserPersonOrganization)
     {
         return <Navigate to="/sharing-sessions" replace/>;
     }

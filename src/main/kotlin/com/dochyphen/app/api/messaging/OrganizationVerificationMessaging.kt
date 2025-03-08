@@ -1,6 +1,6 @@
 package com.dochyphen.app.api.messaging
 
-import com.dochyphen.app.api.model.entity.Company
+import com.dochyphen.app.api.model.entity.Organization
 import com.dochyphen.app.api.repository.OrganizationRepository
 import io.smallrye.reactive.messaging.kafka.KafkaRecord
 import org.eclipse.microprofile.reactive.messaging.Channel
@@ -12,15 +12,15 @@ import jakarta.enterprise.context.ApplicationScoped
 
 @ApplicationScoped
 class OrganizationVerificationProducer(
-    @Channel("company-verification-out") private val emitter: Emitter<KafkaRecord<String, Company>>
+    @Channel("organization-verification-out") private val emitter: Emitter<KafkaRecord<String, Organization>>
 )
 {
     private val logger = LoggerFactory.getLogger(OrganizationVerificationProducer::class.java)
 
-    fun sendToQueue(company: Company)
+    fun sendToQueue(organization: Organization)
     {
-        logger.info("Sending company to verification queue: ${company.registrationNumber}")
-//        emitter.send(KafkaRecord.of(company.registrationNumber, company))
+        logger.info("Sending organization to verification queue: ${organization.registrationNumber}")
+//        emitter.send(KafkaRecord.of(organization.registrationNumber, organization))
     }
 }
 
@@ -31,17 +31,17 @@ class OrganizationVerificationConsumer(
 {
     private val logger = LoggerFactory.getLogger(OrganizationVerificationConsumer::class.java)
 
-    @Incoming("company-verification-in")
+    @Incoming("organization-verification-in")
     @Blocking // Ensures processing does not block the reactive pipeline
-    fun verifyCompany(company: Company)
+    fun verifyOrganization(organization: Organization)
     {
-        logger.info("Received company for verification: ${company.registrationNumber}")
+        logger.info("Received organization for verification: ${organization.registrationNumber}")
 
         // Simulate verification process
-        company.isActive = true
-        company.verificationComplete = true
-        organizationRepository.save(company)
+        organization.isActive = true
+        organization.verificationComplete = true
+        organizationRepository.save(organization)
 
-        logger.info("Company verification complete: ${company.registrationNumber}")
+        logger.info("Organization verification complete: ${organization.registrationNumber}")
     }
 }
