@@ -19,6 +19,7 @@ const NoSessionDocuments: React.FC<NoDocumentsProps> = (
         <div className={styles.noDocumentsContainer}>
             <Text size={500}>No documents available</Text>
             <Button onClick={() => setIsDocumentAddDialogOpen(true)}
+                    shape={"circular"}
                     icon={<DocumentAddIcon/>}
                     appearance={"primary"}>
                 Add document

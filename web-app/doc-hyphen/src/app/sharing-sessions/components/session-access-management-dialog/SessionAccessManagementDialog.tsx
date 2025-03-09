@@ -104,21 +104,23 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
                     <DialogContent>
                         <div className={styles.switchGroup}>
                             <Divider alignContent="start">Session options</Divider>
-                            <Field>
-                                <Switch
-                                    label="Require recipient sign in"
-                                    checked={requireRecipientSignIn}
-                                    onChange={handleCheckboxChange(setRequireRecipientSignIn)}
-                                />
-                            </Field>
-                            {!requireRecipientSignIn &&
-                                <Button icon={<RegenerateOTPIcon/>}
-                                        className={globalStyles.buttonWithLoading}
-                                        appearance={"transparent"}>
-                                    {/*<Spinner size={"tiny"}/>*/}
-                                    Resend OTP
-                                </Button>
-                            }
+                            <div className={styles.requireSignInField}>
+                                <Field>
+                                    <Switch
+                                        label="Require recipient sign in"
+                                        checked={requireRecipientSignIn}
+                                        onChange={handleCheckboxChange(setRequireRecipientSignIn)}
+                                    />
+                                </Field>
+                                {!requireRecipientSignIn &&
+                                    <Button icon={<RegenerateOTPIcon/>}
+                                            className={globalStyles.buttonWithLoading}
+                                            appearance={"transparent"}>
+                                        {/*<Spinner size={"tiny"}/>*/}
+                                        Resend OTP
+                                    </Button>
+                                }
+                            </div>
                             <Divider alignContent="start">Document options</Divider>
                             <Field>
                                 <Switch

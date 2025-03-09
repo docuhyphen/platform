@@ -6,5 +6,10 @@ export const useAccessManagementDialogStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: "16px",
+    },
+
+    requireSignInField: {
+        display: "flex",
+        justifyContent: "space-between",
     }
 });
