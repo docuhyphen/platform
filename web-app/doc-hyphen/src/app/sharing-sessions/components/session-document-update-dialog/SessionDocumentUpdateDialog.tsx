@@ -184,7 +184,7 @@ const SessionDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
                             className={globalStyles.buttonWithLoading}
                             shape="circular"
                             onClick={handleUpdateDocument}>
-                            {updatingDocument && <Spinner size="extra-small"/>}
+                            {updatingDocument && <Spinner size="tiny"/>}
                             Update
                         </Button>
                         <DialogTrigger disableButtonEnhancement>

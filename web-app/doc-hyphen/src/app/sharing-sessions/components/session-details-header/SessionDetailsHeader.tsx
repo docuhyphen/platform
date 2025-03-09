@@ -19,7 +19,7 @@ import {
     DeleteIcon,
     DocumentAddIcon,
     EditSessionIcon,
-    ManageAccessIcon,
+    ManageAccessIcon, RegenerateOTPIcon,
     SessionEndIcon,
     ToggleHeaderDownIcon,
     ToggleHeaderUpIcon

@@ -19,6 +19,7 @@ import {
 import {fetchSignedInUserAppUserSharingSession, updateSharingSession} from "../../../../services/sharingSessionApi.ts";
 import {handleCheckboxChange} from "../../../sharing-session-initiation/components/formHandlers.tsx";
 import {useAccessManagementDialogStyles} from "./SessionAccessManagementDialogStyles.tsx";
+import {RegenerateOTPIcon} from "../../../components/IconBundles.tsx";
 
 interface SessionAccessManagementDialogProps
 {
@@ -110,6 +111,14 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
                                     onChange={handleCheckboxChange(setRequireRecipientSignIn)}
                                 />
                             </Field>
+                            {!requireRecipientSignIn &&
+                                <Button icon={<RegenerateOTPIcon/>}
+                                        className={globalStyles.buttonWithLoading}
+                                        appearance={"transparent"}>
+                                    {/*<Spinner size={"tiny"}/>*/}
+                                    Resend OTP
+                                </Button>
+                            }
                             <Divider alignContent="start">Document options</Divider>
                             <Field>
                                 <Switch

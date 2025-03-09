@@ -1,15 +1,12 @@
 package com.dochyphen.app.api.service
 
-import com.dochyphen.app.api.exception.OrganizationAlreadyExistsException
 import com.dochyphen.app.api.exception.InvalidOrganizationRegistrationException
 import com.dochyphen.app.api.exception.InvalidPersonRegistrationException
+import com.dochyphen.app.api.exception.OrganizationAlreadyExistsException
 import com.dochyphen.app.api.exception.PersonAlreadyExistsException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.messaging.OrganizationVerificationProducer
-import com.dochyphen.app.api.model.entity.AppUserRole
-import com.dochyphen.app.api.model.entity.Organization
-import com.dochyphen.app.api.model.entity.Person
-import com.dochyphen.app.api.model.entity.PersonIDType
+import com.dochyphen.app.api.model.entity.*
 import com.dochyphen.app.api.repository.OrganizationRepository
 import com.dochyphen.app.api.repository.PersonRepositoryRepository
 import com.dochyphen.app.api.service.communication.EmailService
@@ -93,7 +90,12 @@ class EntityRegistrationService @Inject constructor(
     }
 
     @Transactional
-    fun registerOrganization(organizationName: String?, registrationNumber: String?): Organization
+    fun registerOrganization(
+        organizationName: String?,
+        registrationNumber: String?,
+        phoneNumber: String?,
+        email: String?
+    ): Organization
     {
         if (organizationName.isNullOrBlank() || registrationNumber.isNullOrBlank())
         {
@@ -127,6 +129,10 @@ class EntityRegistrationService @Inject constructor(
             this.registrationNumber = registrationNumber
             this.isActive = false
             this.verificationComplete = false
+            this.contactDetails = ContactDetails().apply {
+                this.email = email
+                this.phoneNumber = phoneNumber
+            }
             this.appUsers = mutableListOf(managedAppUser)
         }
 

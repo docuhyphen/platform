@@ -236,6 +236,7 @@ const SharingSessionInitiation: React.FC = () =>
                             <div className={styles.sharingSessionInitiationSuccess}>
                                 <Text size={500}> Sharing Session initiated successfully </Text>
                                 <Text size={300}> {sessionName} </Text>
+                                <Button appearance={"transparent"}>Copy Link</Button>
                             </div>
                         ) : (
                             <>

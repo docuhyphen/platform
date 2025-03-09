@@ -102,5 +102,15 @@ class BasicModelConverter
                 }
             }
         }
+
+        fun toDto(organization: Organization?): OrganizationBasicDto?
+        {
+            return organization?.let {
+                with(organization)
+                {
+                    OrganizationBasicDto(id, createdDate, name, registrationNumber)
+                }
+            }
+        }
     }
 }

@@ -1,6 +1,6 @@
 import React, {createContext, ReactNode, useContext, useEffect, useRef, useState} from 'react';
 import {fetchAppUser, fetchAppUserPersonOrganization} from '../services/userApi.ts';
-import {AppUserDetailedDto, Organization} from "../app/models/models.tsx";
+import {AppUserDetailedDto, OrganizationBasicDto} from "../app/models/models.tsx";
 import {isTokenExpired} from "../utils/helpers.ts";
 import {useLocation, useNavigate} from "react-router-dom";
 
@@ -10,8 +10,8 @@ interface AuthContextType
     setToken: (token: string | null) => void;
     appUser: AppUserDetailedDto | null;
     setAppUser: (user: AppUserDetailedDto | null) => void;
-    appUserPersonOrganization: Organization | null;
-    setAppUserPersonOrganization: (organization: Organization | null) => void;
+    appUserPersonOrganization: OrganizationBasicDto | null;
+    setAppUserPersonOrganization: (organization: OrganizationBasicDto | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,7 +23,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
     const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
     const tokenExpirationIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const [appUser, setAppUser] = useState<AppUserDetailedDto | null>(null);
-    const [appUserPersonOrganization, setAppUserPersonOrganization] = useState<Organization | null>(null);
+    const [appUserPersonOrganization, setAppUserPersonOrganization] = useState<OrganizationBasicDto | null>(null);
 
     useEffect(() =>
     {

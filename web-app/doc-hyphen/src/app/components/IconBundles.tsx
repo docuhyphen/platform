@@ -17,7 +17,7 @@ import {
     ArrowSortDownLinesRegular,
     ArrowUploadFilled,
     ArrowUploadRegular,
-    bundleIcon,
+    bundleIcon, CalculatorArrowClockwiseFilled, CalculatorArrowClockwiseRegular,
     ChannelShareFilled,
     ChannelShareRegular,
     CheckmarkNoteFilled,
@@ -80,6 +80,7 @@ export const ExpandIcon = bundleIcon(ArrowExpandFilled, ArrowExpandRegular)
 export const CollapseIcon = bundleIcon(ArrowMoveInwardFilled, ArrowMoveInwardRegular)
 export const SessionEndIcon = bundleIcon(CheckmarkNoteFilled, CheckmarkNoteRegular);
 export const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular);
+export const RegenerateOTPIcon = bundleIcon(CalculatorArrowClockwiseFilled, CalculatorArrowClockwiseRegular);
 export const EditSessionIcon = bundleIcon(WindowEditFilled, WindowEditRegular);
 export const ManageAccessIcon = bundleIcon(PeopleLockFilled, PeopleLockRegular);
 export const EditIcon = bundleIcon(NotepadEditFilled, NotepadEditRegular)

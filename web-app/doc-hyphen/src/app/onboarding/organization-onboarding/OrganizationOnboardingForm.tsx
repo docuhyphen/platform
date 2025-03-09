@@ -2,7 +2,7 @@ import React, {ChangeEvent, useState} from 'react';
 import {Button, Checkbox, Field, Input, InputOnChangeData} from "@fluentui/react-components";
 import {registerOrganization} from "../../../services/userApi.ts";
 import useToken from "../../../context/useToken.tsx";
-import {Organization} from "../../models/models.tsx";
+import {OrganizationBasicDto} from "../../models/models.tsx";
 import {useNavigate} from "react-router-dom";
 import {useAuth} from "../../../context/AuthContext.tsx";
 import {useOrganizationOnboardingForm} from './OrganizationOnboardingFormStyles.tsx';
@@ -22,10 +22,14 @@ const OrganizationOnboardingForm: React.FC = () =>
     const onRegisterOrganization = async () =>
     {
         setIsRegistering(true);
+
         try
         {
-            const organization = {name: organizationName, registrationNumber};
-            const registeredOrganization: Organization = await registerOrganization(organization, token);
+            const organization = {
+                name: organizationName,
+                registrationNumber
+            };
+            const registeredOrganization: OrganizationBasicDto = await registerOrganization(organization, token);
 
             setAppUserPersonOrganization(registeredOrganization);
         }

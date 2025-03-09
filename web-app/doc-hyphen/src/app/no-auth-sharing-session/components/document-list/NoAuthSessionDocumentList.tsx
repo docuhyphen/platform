@@ -144,7 +144,7 @@ const NoAuthSessionDocumentList: React.FC<NoAuthSessionDocumentListProps> = ({se
                                 onClick={() => handleDocumentUpload(doc.id)}
                                 disabled={uploading[doc.id]}
                             >
-                                {uploading[doc.id] ? <Spinner size="extra-small"/> : "Upload new document"}
+                                {uploading[doc.id] ? <Spinner size="tiny"/> : "Upload new document"}
                             </Button>
                         </div>
                         {doc.uploadDate && (

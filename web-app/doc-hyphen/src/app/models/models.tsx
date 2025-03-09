@@ -180,11 +180,8 @@ export interface OrganizationRegistrationRequest
 {
     name?: string;
     registrationNumber?: string;
-}
-
-export interface OrganizationRegistrationResponse
-{
-    organization: Organization;
+    phoneNumber?: string;
+    email?: string;
 }
 
 export interface SharingSessionInitiationRequest
@@ -279,6 +276,15 @@ export interface CommentRequest
 {
     commentText: string;
     commentedBy: string;
+}
+
+
+export interface OrganizationBasicDto
+{
+    id?: string,
+    createdDate?: string,
+    name: string,
+    registrationNumber: string
 }
 
 export interface SharingSessionBasicDto

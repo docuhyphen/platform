@@ -117,7 +117,7 @@ const SessionDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
                             shape="circular"
                             disabled={!file || uploading}
                         >
-                            {uploading && <Spinner size="extra-small"/>} Upload
+                            {uploading && <Spinner size="tiny"/>} Upload
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
                             <Button

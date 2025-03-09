@@ -57,6 +57,16 @@ data class ContactDetailsBasicDto(
 )
 
 @Serializable
+data class OrganizationBasicDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID?,
+    @Serializable(with = TimestampSerializer::class)
+    val createdDate: Timestamp?,
+    val name: String?,
+    val registrationNumber: String?
+)
+
+@Serializable
 data class PersonBasicDto(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID?,

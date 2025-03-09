@@ -68,5 +68,5 @@ export const useSharingSessionInitiationStyles = makeStyles({
     },
     iconDeleteFilled: {
         color: tokens.colorPaletteRedForeground1,
-    }
+    },
 });

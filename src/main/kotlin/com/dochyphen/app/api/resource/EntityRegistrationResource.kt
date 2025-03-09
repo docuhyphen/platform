@@ -1,12 +1,12 @@
 package com.dochyphen.app.api.resource
 
-import com.dochyphen.app.api.exception.OrganizationAlreadyExistsException
 import com.dochyphen.app.api.exception.InvalidOrganizationRegistrationException
 import com.dochyphen.app.api.exception.InvalidPersonRegistrationException
+import com.dochyphen.app.api.exception.OrganizationAlreadyExistsException
 import com.dochyphen.app.api.exception.PersonAlreadyExistsException
+import com.dochyphen.app.api.model.BasicModelConverter
 import com.dochyphen.app.api.model.entity.DetailedModelConverter
 import com.dochyphen.app.api.resource.model.OrganizationRegistrationRequest
-import com.dochyphen.app.api.resource.model.OrganizationRegistrationResponse
 import com.dochyphen.app.api.resource.model.PersonRegistrationRequest
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.service.EntityRegistrationService
@@ -77,16 +77,17 @@ class EntityRegistrationResource @Inject constructor(
     @Produces(APPLICATION_JSON)
     fun registerOrganization(organizationRegistrationRequest: OrganizationRegistrationRequest?): Response
     {
+        ResourceEndpointDelayHelper.delayEndpoint(3500, 6000)
+
         return try
         {
             organizationRegistrationRequest?.let {
 
                 val organization = with(it) {
-                    entityRegistrationService.registerOrganization(name, registrationNumber)
+                    entityRegistrationService.registerOrganization(name, registrationNumber, phoneNumber, email)
                 }
 
-                val organizationRegistrationResponse = OrganizationRegistrationResponse(organization)
-                Response.ok(organizationRegistrationResponse).build()
+                Response.ok(BasicModelConverter.toDto(organization)).build()
 
             } ?: Response.status(BAD_REQUEST).build()
         }
