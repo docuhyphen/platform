@@ -10,7 +10,17 @@ export const useSharingSessionsStyles = makeStyles({
         padding: "76px 16px 16px 16px",
         boxSizing: "border-box"
     },
-
+    containerNoSessions: {
+        display: "flex",
+        gap: "16px",
+        height: "100%",
+        width: "100%",
+        padding: "76px 16px 16px 16px",
+        boxSizing: "border-box",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+    },
     sharingSessionDocumentsContainer: {
         display: "flex",
         flexDirection: "row",

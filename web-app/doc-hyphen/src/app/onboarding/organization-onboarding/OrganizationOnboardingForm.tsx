@@ -1,11 +1,12 @@
 import React, {ChangeEvent, useState} from 'react';
-import {Button, Checkbox, Field, Input, InputOnChangeData} from "@fluentui/react-components";
+import {Button, Checkbox, Field, Input, InputOnChangeData, Spinner} from "@fluentui/react-components";
 import {registerOrganization} from "../../../services/userApi.ts";
 import useToken from "../../../context/useToken.tsx";
 import {OrganizationBasicDto} from "../../models/models.tsx";
 import {useNavigate} from "react-router-dom";
 import {useAuth} from "../../../context/AuthContext.tsx";
 import {useOrganizationOnboardingForm} from './OrganizationOnboardingFormStyles.tsx';
+import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 
 const OrganizationOnboardingForm: React.FC = () =>
 {
@@ -13,21 +14,24 @@ const OrganizationOnboardingForm: React.FC = () =>
     const [organizationEmail, setOrganizationEmail] = useState('');
     const [registrationNumber, setRegistrationNumber] = useState('');
     const [organizationPhone, setOrganizationPhone] = useState('');
-    const [isRegistering, setIsRegistering] = useState(false);
+    const [registeringOrg, setRegisteringOrg] = useState(false);
     const token = useToken();
     const navigate = useNavigate();
     const {setAppUserPersonOrganization, appUserPersonOrganization, appUser} = useAuth();
     const styles = useOrganizationOnboardingForm();
+    const globalStyles = useGlobalStyles();
 
     const onRegisterOrganization = async () =>
     {
-        setIsRegistering(true);
+        setRegisteringOrg(true);
 
         try
         {
             const organization = {
                 name: organizationName,
-                registrationNumber
+                registrationNumber,
+                email: organizationEmail,
+                phoneNumber: organizationPhone,
             };
             const registeredOrganization: OrganizationBasicDto = await registerOrganization(organization, token);
 
@@ -39,7 +43,7 @@ const OrganizationOnboardingForm: React.FC = () =>
         }
         finally
         {
-            setIsRegistering(false);
+            setRegisteringOrg(false);
         }
     };
 
@@ -102,7 +106,7 @@ const OrganizationOnboardingForm: React.FC = () =>
                         validationState={"none"}
                         validationMessage={""}>
                         <Input type="text"
-                               value={registrationNumber}
+                               value={organizationPhone}
                                onChange={onOrganizationPhoneChange}/>
                     </Field>
 
@@ -121,8 +125,15 @@ const OrganizationOnboardingForm: React.FC = () =>
 
                     <Button appearance={"primary"}
                             shape={"circular"}
+                            className={globalStyles.buttonWithLoading}
                             onClick={onRegisterOrganization}>
-                        Register
+                        {registeringOrg && <>
+                            <Spinner size={"tiny"}/>
+                            Register
+                            </>
+                        }
+                        {!registeringOrg && "Register"}
+
                     </Button>
                 </div>
             }

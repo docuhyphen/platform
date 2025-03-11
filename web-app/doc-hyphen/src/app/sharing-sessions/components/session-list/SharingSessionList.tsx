@@ -28,13 +28,14 @@ import {
 } from "../../../observable/sharingSessionObservables.ts";
 import {FilterIcon, SortDownIcon} from "../../../components/IconBundles.tsx";
 
-interface SharingSessionListProps {
+interface SharingSessionListProps
+{
     onSelectionChange: (sessionId: string) => void;
 }
 
-const SessionList: React.FC<SharingSessionListProps> = (
+const SharingSessionList: React.FC<SharingSessionListProps> = (
     {
-        onSelectionChange
+        onSelectionChange,
     }) =>
 {
     const styles = useSharingSessionStyles();
@@ -43,69 +44,94 @@ const SessionList: React.FC<SharingSessionListProps> = (
     const [loadingSharingSessions, setLoadingSharingSessions] = useState(true);
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
-    const fetchSharingSessions = async () => {
-        try {
+    const fetchSharingSessions = async () =>
+    {
+        try
+        {
             const response = await fetchSignedInUserAppUserSharingSessions(token);
 
-            if (Array.isArray(response) && response.length) {
+            if (Array.isArray(response) && response.length)
+            {
                 setSharingSessions(response);
 
                 const urlParams = new URLSearchParams(window.location.search);
                 const sessionId = urlParams.get('s');
 
-                if (sessionId) {
+                if (sessionId)
+                {
                     const sessionExists = response.some(session => session.id === sessionId);
-                    if (sessionExists) {
+                    if (sessionExists)
+                    {
                         setSelectedItems([sessionId]);
                         onSelectionChange(sessionId);
-                    } else {
+                    }
+                    else
+                    {
                         setSelectedItems([response[0].id]);
                         onSelectionChange(response[0].id);
                     }
-                } else {
+                }
+                else
+                {
                     setSelectedItems([response[0].id]);
                     onSelectionChange(response[0].id);
                 }
-            } else {
+            }
+            else
+            {
                 console.error("Error fetching sharing sessions:", response);
             }
-        } catch (error) {
+        }
+        catch (error)
+        {
             console.error(error);
-        } finally {
+        }
+        finally
+        {
             setLoadingSharingSessions(false);
         }
     };
 
-    useEffect(() => {
+    useEffect(() =>
+    {
         fetchSharingSessions();
     }, []);
 
-    useEffect(() => {
-        const initiationSubscription = sharingSessionInitiationObservable.subscribe(session => {
-            if (session) {
+    useEffect(() =>
+    {
+        const initiationSubscription = sharingSessionInitiationObservable.subscribe(session =>
+        {
+            if (session)
+            {
                 setSharingSessions(prevSessions => [session, ...prevSessions]);
                 setSelectedItems([session.id]);
                 onSelectionChange(session.id);
             }
         });
 
-        const deletionSubscription = sharingSessionDeletionObservable.subscribe(sessionId => {
+        const deletionSubscription = sharingSessionDeletionObservable.subscribe(sessionId =>
+        {
             setSharingSessions(prevSessions => prevSessions.filter(session => session.id !== sessionId));
         });
 
-        const updatedSubscription = sharingSessionUpdatedObservable.subscribe(updatedSession => {
+        const updatedSubscription = sharingSessionUpdatedObservable.subscribe(updatedSession =>
+        {
+            if (updatedSession)
+            {
 
-
+            }
         });
 
-        return () => {
+        return () =>
+        {
             initiationSubscription.unsubscribe();
             deletionSubscription.unsubscribe();
             updatedSubscription
         };
     }, []);
 
-    const handleSelectionChange = (_, data) => {
+    const handleSelectionChange = (_, data) =>
+    {
         setSelectedItems(data.selectedItems);
         onSelectionChange(data.selectedItems[0]);
 
@@ -114,13 +140,16 @@ const SessionList: React.FC<SharingSessionListProps> = (
         window.history.replaceState(null, '', `?${urlParams.toString()}`);
     };
 
-    const onListItemFocus = React.useCallback((event) => {
-        if (event.target !== event.currentTarget) {
+    const onListItemFocus = React.useCallback((event) =>
+    {
+        if (event.target !== event.currentTarget)
+        {
             return;
         }
     }, []);
 
-    const listItemCard = (session: SharingSessionBasicDto) => {
+    const listItemCard = (session: SharingSessionBasicDto) =>
+    {
         return <div className={styles.listCard}>
             <section className={styles.listCardItem}>
                 <span>
@@ -140,7 +169,8 @@ const SessionList: React.FC<SharingSessionListProps> = (
         </div>
     };
 
-    const listItemCardSkeleton = () => {
+    const listItemCardSkeleton = () =>
+    {
         return <div className={styles.listCard}>
             <section className={styles.listCardItem}>
                 <span>
@@ -250,4 +280,4 @@ const SessionList: React.FC<SharingSessionListProps> = (
     );
 };
 
-export default SessionList;
+export default SharingSessionList;

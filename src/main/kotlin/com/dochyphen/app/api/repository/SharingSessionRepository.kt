@@ -10,6 +10,19 @@ import java.util.*
 @ApplicationScoped
 class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::class.java)
 {
+    fun userHasSharingSessions(userId: UUID): Boolean {
+        val query = entityManager.createQuery(
+            """
+            SELECT COUNT(s) FROM SharingSession s 
+            WHERE (s.initiator.id = :userId OR s.recipient.id = :userId) 
+            AND s.isDeleted = false
+        """.trimIndent(),
+            Long::class.javaObjectType
+        )
+        query.setParameter("userId", userId)
+        val count = query.singleResult
+        return count > 0
+    }
 
     fun findByInitiatorId(initiatorId: UUID): List<SharingSession>
     {

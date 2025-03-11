@@ -54,6 +54,11 @@ class SharingSessionRetrievalService @Inject constructor(
             }
     }
 
+    fun checkUserHasSharingSessions(): Boolean {
+        val appUserId = authTokenContext.authToken.appUser?.id
+        return sharingSessionRepository.userHasSharingSessions(appUserId!!)
+    }
+
     fun getNoAuthSharingSession(sessionId: String): SharingSession
     {
         val session = sharingSessionRepository.findById(UUID.fromString(sessionId)) ?: throw SharingSessionNotFoundException("Sharing session not found")

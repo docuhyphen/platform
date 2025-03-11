@@ -49,6 +49,42 @@ export const fetchSignedInUserAppUserSharingSession = (sessionId: string | null,
         })
     );
 
+export const checkSignedInAppUserHasSharingSessions = async (token: string | null): Promise<boolean> => {
+    try {
+        const response = await apiClient.head("/sharing-sessions", {
+            headers: getAuthHeaders(token),
+        });
+
+        // If the response status is 204 (No Content), return false
+        if (response.status === 204) {
+            return false;
+        }
+
+        // If the status is within the 2xx range (excluding 204), return true
+        if (response.status >= 200 && response.status < 300) {
+            return true;
+        }
+
+        // For other non-2xx statuses, throw an error
+        throw new Error(`Request failed with status: ${response.status}`);
+    } catch (error: any) {
+        // Log the error and handle it appropriately
+        console.error("Error during API request:", error);
+
+        // Handle network or unexpected errors
+        if (error.response) {
+            console.error("Error response data:", error.response.data);
+        }
+
+        alert("Failed to check for sharing sessions");
+        throw error; // Rethrow error to propagate it further if needed
+    }
+};
+
+
+
+
+
 export const fetchNoAuthSharingSession = (sessionId: string | null): Promise<NoAuthSharingSessionBasicDto | ResponseError> =>
     executeRequest(() =>
         apiClient.get(`no-auth/sharing-sessions/${sessionId}`)

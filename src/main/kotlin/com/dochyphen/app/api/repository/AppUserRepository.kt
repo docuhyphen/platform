@@ -3,6 +3,7 @@ package com.dochyphen.app.api.repository
 import com.dochyphen.app.api.model.entity.AppUser
 import jakarta.enterprise.context.RequestScoped
 import jakarta.persistence.TypedQuery
+import java.util.UUID
 
 @RequestScoped
 class AppUserRepository : BaseRepository<AppUser>(AppUser::class.java)

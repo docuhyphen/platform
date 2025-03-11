@@ -1,9 +1,17 @@
 import React, {useEffect, useState} from 'react';
-import {fetchSignedInUserAppUserSharingSession} from "../../services/sharingSessionApi.ts";
+import {
+    checkSignedInAppUserHasSharingSessions,
+    fetchSignedInUserAppUserSharingSession
+} from "../../services/sharingSessionApi.ts";
 import useToken from "../../context/useToken.tsx";
 import PreLanding from "../pre-landing/PreLanding.tsx";
 import {InputOnChangeData, SearchBoxChangeEvent, Text} from "@fluentui/react-components";
-import {DocumentDetailedDto, SharingSessionDetailedDto, SharingSessionStatus} from "../models/models.tsx";
+import {
+    DocumentDetailedDto,
+    SharingSessionBasicDto,
+    SharingSessionDetailedDto,
+    SharingSessionStatus
+} from "../models/models.tsx";
 import {useSharingSessionsStyles} from "./SharingSessionsStyles.tsx";
 import SessionDocumentSidebar from "./components/session-document-sidebar/SessionDocumentSidebar.tsx";
 import NoSessionDocuments from "./components/session-documents-none/NoSessionDocuments.tsx";
@@ -12,16 +20,20 @@ import SessionDetailsHeader from "./components/session-details-header/SessionDet
 import SessionDetailsLoading from "./components/sharing-sessions-loading/SessionDetailsLoading.tsx";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
-import SessionDocumentPreviewer from "./components/session-document-preview/SessionDocumentPreviewer.tsx";
-import SessionList from "./components/session-list/SessionList.tsx";
+import SharingSessionList from "./components/session-list/SharingSessionList.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {getPermissions, SharingSessionPermissions} from "./SessionPermissions.ts";
 import SessionDocumentsList from "./components/session-document-list/SessionDocumentsList.tsx";
 import MainMenu from "../components/MainMenu.tsx";
+import {
+    sharingSessionDeletionObservable,
+    sharingSessionInitiationObservable, sharingSessionUpdatedObservable
+} from "../observable/sharingSessionObservables.ts";
 
 const SharingSessions: React.FC = () =>
 {
     const styles = useSharingSessionsStyles();
+    const [sharingSessionList, setSharingSessionList] = useState<SharingSessionBasicDto[]>([]);
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
     const [preparingSharingSessions, setPreparingSharingSessions] = useState<boolean>(true);
     const token = useToken();
@@ -41,15 +53,33 @@ const SharingSessions: React.FC = () =>
     const [fetchingDetails, setFetchingDetails] = useState<boolean>(true);
     const [isSessionEnded, setIsSessionEnded] = React.useState(false);
     const [filteredDocuments, setFilteredDocuments] = useState<DocumentDetailedDto[]>([]);
-
+    const [appUserHasSessions, setAppUserHasSessions] = useState<boolean>(false);
     const [permissions, setPermissions] = useState<SharingSessionPermissions>();
+
+    const checkAppUserSessions = async () =>
+    {
+        try
+        {
+            const hasSessions = await checkSignedInAppUserHasSharingSessions(token);
+            setAppUserHasSessions(hasSessions);
+        }
+        catch (error)
+        {
+            console.log(error)
+            alert("Failed to check for sharing sessions");
+        }
+        finally
+        {
+            setPreparingSharingSessions(false);
+        }
+    }
 
     useEffect(() =>
     {
         const randomDelay = Math.floor(Math.random() * 5000) + 1000;
-        setTimeout(() =>
+        setTimeout( async () =>
         {
-            setPreparingSharingSessions(false);
+            await checkAppUserSessions();
         }, randomDelay);
     }, []);
 
@@ -110,6 +140,25 @@ const SharingSessions: React.FC = () =>
             setIsSessionEnded(sessionDetails.status == SharingSessionStatus.ENDED);
         }
     }, [sessionDetails]);
+
+    useEffect(() =>
+    {
+        const initiationSubscription = sharingSessionInitiationObservable.subscribe(session =>
+        {
+            checkAppUserSessions();
+        });
+
+        const deletionSubscription = sharingSessionDeletionObservable.subscribe(sessionId =>
+        {
+            checkAppUserSessions();
+        });
+
+        return () =>
+        {
+            initiationSubscription.unsubscribe();
+            deletionSubscription.unsubscribe();
+        };
+    }, []);
 
     const onDocumentDeleted = (documentId: string) =>
     {
@@ -237,7 +286,7 @@ const SharingSessions: React.FC = () =>
         return (
             <section className={styles.container}>
 
-                <SessionList onSelectionChange={setSelectedSessionId}/>
+                <SharingSessionList onSelectionChange={setSelectedSessionId}/>
 
                 {fetchingDetails && !sessionDetails && <SessionDetailsLoading/>}
 
@@ -297,6 +346,7 @@ const SharingSessions: React.FC = () =>
                         <Text size={500}> Select a Sharing Session in the list to view details</Text>
                     </div>
                 }
+
                 {renderDialogs()}
             </section>
         )
@@ -306,7 +356,16 @@ const SharingSessions: React.FC = () =>
         <>
             <MainMenu/>
             {preparingSharingSessions && <PreLanding/>}
-            {!preparingSharingSessions && renderSessionsSection()}
+            {!preparingSharingSessions && (appUserHasSessions) && renderSessionsSection()}
+            {!preparingSharingSessions && (!appUserHasSessions) &&
+                <div className={styles.containerNoSessions}>
+                    <Text size={500}>You don’t have any sharing sessions yet.</Text>
+                    <Text size={500}>
+                        To get started, click <Text italic>Start Sharing Session</Text> in the main menu and securely
+                        share your documents.
+                    </Text>
+                </div>
+            }
         </>
     );
 };

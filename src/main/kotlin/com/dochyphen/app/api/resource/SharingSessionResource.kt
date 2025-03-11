@@ -3,22 +3,18 @@ package com.dochyphen.app.api.resource
 import com.dochyphen.app.api.exception.InvalidEmailException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.exception.UserNotFoundException
+import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.model.BasicModelConverter.Companion.toDto
 import com.dochyphen.app.api.model.dto.SharingSessionBasicDto
 import com.dochyphen.app.api.model.entity.DetailedModelConverter
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.resource.model.SharingSessionInitiationRequest
 import com.dochyphen.app.api.resource.model.UpdateSharingSessionRequest
-import com.dochyphen.app.api.service.sharingsession.SharingSessionDocumentService
-import com.dochyphen.app.api.service.sharingsession.SharingSessionInitiationService
-import com.dochyphen.app.api.service.sharingsession.SharingSessionParticipantService
-import com.dochyphen.app.api.service.sharingsession.SharingSessionRetrievalService
-import com.dochyphen.app.api.service.sharingsession.SharingSessionUpdateService
+import com.dochyphen.app.api.service.sharingsession.*
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import kotlinx.coroutines.delay
 import org.slf4j.LoggerFactory
 
 @Path("/sharing-sessions")
@@ -29,7 +25,9 @@ class SharingSessionResource @Inject constructor(
     private val sharingSessionInitiationService: SharingSessionInitiationService,
     private val sharingSessionRetrievalService: SharingSessionRetrievalService,
     private val sharingSessionUpdateService: SharingSessionUpdateService,
-    private val sharingSessionParticipantService: SharingSessionParticipantService
+    private val sharingSessionParticipantService: SharingSessionParticipantService,
+    private val authTokenContext: AuthTokenContext,
+
 )
 {
     companion object
@@ -92,6 +90,29 @@ class SharingSessionResource @Inject constructor(
                         .build()
                 }
             }
+        }
+    }
+
+    @HEAD
+    fun checkUserHasSharingSessions(): Response
+    {
+        return try
+        {
+            val hasSessions = sharingSessionRetrievalService.checkUserHasSharingSessions()
+            if (hasSessions)
+            {
+                Response.ok().build()
+            }
+            else
+            {
+                Response.status(Response.Status.NO_CONTENT).build()
+            }
+        }
+        catch (exception: Exception)
+        {
+            logger.error("Error checking if user has sharing sessions", exception)
+            val responseError = ResponseError("An error occurred while checking if user has sharing sessions")
+            Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseError).build()
         }
     }
 
