@@ -1,9 +1,9 @@
 package com.dochyphen.app.api.model.entity
 
-import com.fasterxml.jackson.annotation.JsonIgnore
 import com.dochyphen.app.api.model.entity.MultifactorAuthenticationType.EMAIL
-import com.dochyphen.app.api.serializer.UUIDSerializer
 import com.dochyphen.app.api.serializer.TimestampSerializer
+import com.dochyphen.app.api.serializer.UUIDSerializer
+import com.fasterxml.jackson.annotation.JsonIgnore
 import jakarta.persistence.*
 import jakarta.persistence.CascadeType.ALL
 import jakarta.persistence.EnumType.STRING

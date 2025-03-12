@@ -1,20 +1,20 @@
 package com.dochyphen.app.api.service.auth
 
-import com.dochyphen.app.api.model.entity.AppUser
-import com.dochyphen.app.api.model.entity.AuthToken
 import com.dochyphen.app.api.exception.AuthTokenInvalidException
 import com.dochyphen.app.api.exception.AuthTokenNotFoundException
+import com.dochyphen.app.api.model.entity.AppUser
+import com.dochyphen.app.api.model.entity.AuthToken
 import com.dochyphen.app.api.repository.AuthTokenRepository
 import com.dochyphen.app.api.service.AppUserService
 import com.dochyphen.app.api.service.config.ConfigurationService
 import io.jsonwebtoken.Jwts
+import io.jsonwebtoken.security.Keys
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import org.mindrot.jbcrypt.BCrypt
 import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.TimeUnit
-import io.jsonwebtoken.security.Keys
 import javax.crypto.SecretKey
 
 @RequestScoped

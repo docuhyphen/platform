@@ -5,7 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import java.util.*
 
 @ApplicationScoped
-class DocumentCommentRepository: BaseRepository<DocumentComment>(DocumentComment::class.java)
+class DocumentCommentRepository : BaseRepository<DocumentComment>(DocumentComment::class.java)
 {
     fun findByDocumentId(documentId: UUID): List<DocumentComment>
     {

@@ -99,7 +99,8 @@ class EntityRegistrationService @Inject constructor(
     {
         if (organizationName.isNullOrBlank() || registrationNumber.isNullOrBlank())
         {
-            val organizationNameErrorMessage = if (organizationName.isNullOrBlank()) "Organization name is blank." else ""
+            val organizationNameErrorMessage =
+                if (organizationName.isNullOrBlank()) "Organization name is blank." else ""
             val registrationNumberErrorMessage =
                 if (registrationNumber.isNullOrBlank()) "Registration number is blank." else ""
 

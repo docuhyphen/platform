@@ -4,14 +4,13 @@ import com.dochyphen.app.api.exception.EmailRequiredException
 import com.dochyphen.app.api.exception.InvalidOtpException
 import com.dochyphen.app.api.exception.InvalidSignInCredentialsException
 import com.dochyphen.app.api.exception.OTPExpiredException
-import com.dochyphen.app.api.resource.model.ResponseError
-import com.dochyphen.app.api.resource.model.SignInCompletionRequest
-import com.dochyphen.app.api.resource.model.SignInCompletionResponse
-import com.dochyphen.app.api.resource.model.SignInRequest
-import com.dochyphen.app.api.resource.model.SignInResponse
+import com.dochyphen.app.api.resource.model.*
 import com.dochyphen.app.api.service.auth.SignInService
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
+import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.POST
+import jakarta.ws.rs.Path
+import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
@@ -46,13 +45,14 @@ class SignInResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            when(exception)
+            when (exception)
             {
                 is InvalidSignInCredentialsException ->
                 {
                     val responseError = ResponseError(exception.message)
                     Response.status(UNAUTHORIZED).entity(responseError).build()
                 }
+
                 else ->
                 {
                     Response.status(INTERNAL_SERVER_ERROR).entity(mapOf("error" to exception.message)).build()
@@ -87,6 +87,7 @@ class SignInResource @Inject constructor(
                     val responseError = ResponseError(exception.message)
                     Response.status(UNAUTHORIZED).entity(responseError).build()
                 }
+
                 else ->
                 {
                     val responseError = ResponseError("Something went wrong while trying to complete sign-in.")

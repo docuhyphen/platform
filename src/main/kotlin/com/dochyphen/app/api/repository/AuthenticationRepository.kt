@@ -5,6 +5,3 @@ import jakarta.enterprise.context.RequestScoped
 
 @RequestScoped
 class AuthenticationRepository : BaseRepository<AppUser>(AppUser::class.java)
-{
-
-}

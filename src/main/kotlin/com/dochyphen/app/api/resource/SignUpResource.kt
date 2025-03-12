@@ -1,27 +1,7 @@
 package com.dochyphen.app.api.resource
 
-import com.dochyphen.app.api.exception.AppUserExistsException
-import com.dochyphen.app.api.exception.ConfirmationPasswordRequiredException
-import com.dochyphen.app.api.exception.EmailExistsException
-import com.dochyphen.app.api.exception.EmailNotFoundException
-import com.dochyphen.app.api.exception.EmailRequiredException
-import com.dochyphen.app.api.exception.ExistingSignUpException
-import com.dochyphen.app.api.exception.IncorrectSignUpCompletionStatusException
-import com.dochyphen.app.api.exception.InvalidEmailException
-import com.dochyphen.app.api.exception.InvalidOtpException
-import com.dochyphen.app.api.exception.MaxAttemptsOTPExceededException
-import com.dochyphen.app.api.exception.OTPExpiredException
-import com.dochyphen.app.api.exception.OtpRequiredException
-import com.dochyphen.app.api.exception.PasswordContainsEmailException
-import com.dochyphen.app.api.exception.PasswordMismatchException
-import com.dochyphen.app.api.exception.PasswordRequiredException
-import com.dochyphen.app.api.exception.PasswordRequirementsNotMetException
-import com.dochyphen.app.api.resource.model.ResponseError
-import com.dochyphen.app.api.resource.model.SignUpCompletionRequest
-import com.dochyphen.app.api.resource.model.SignUpCompletionResponse
-import com.dochyphen.app.api.resource.model.SignUpInitiateRequest
-import com.dochyphen.app.api.resource.model.SignUpInitiateResponse
-import com.dochyphen.app.api.resource.model.SignUpRegenerationRequest
+import com.dochyphen.app.api.exception.*
+import com.dochyphen.app.api.resource.model.*
 import com.dochyphen.app.api.service.auth.AuthenticationService
 import com.dochyphen.app.api.service.auth.SignUpService
 import jakarta.inject.Inject
@@ -58,7 +38,8 @@ class SignUpResource @Inject constructor(
         {
             signUpService.initiateSignUp(payload.email.toString())
 
-            val signUpInitiateResponse = SignUpInitiateResponse(message = "We have sent you an OTP to confirm your email.")
+            val signUpInitiateResponse =
+                SignUpInitiateResponse(message = "We have sent you an OTP to confirm your email.")
             Response.ok(signUpInitiateResponse).build()
         }
         catch (exception: Exception)

@@ -1,21 +1,15 @@
 package com.dochyphen.app.api.model.entity
 
-import com.dochyphen.app.api.serializer.UUIDSerializer
 import com.dochyphen.app.api.serializer.TimestampSerializer
+import com.dochyphen.app.api.serializer.UUIDSerializer
+import jakarta.persistence.*
 import jakarta.persistence.CascadeType.ALL
-import jakarta.persistence.Column
-import jakarta.persistence.Id
-import jakarta.persistence.JoinColumn
-import jakarta.persistence.OneToOne
-import jakarta.persistence.Table
-import jakarta.persistence.Entity
 import jakarta.persistence.EnumType.STRING
-import jakarta.persistence.Enumerated
 import jakarta.persistence.FetchType.EAGER
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @Entity
 @Table(name = "person")

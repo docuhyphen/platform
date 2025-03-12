@@ -12,20 +12,23 @@ import jakarta.ws.rs.core.Response
 @Consumes(APPLICATION_JSON)
 class DocumentCommentResource @Inject constructor(
     private val sessionService: SharingSessionDocumentCommentsService
-) {
+)
+{
 
     @POST
     fun addComment(
         @PathParam("documentId") documentId: String,
         commentRequest: CommentRequest
-    ): Response {
+    ): Response
+    {
         val comment =
             sessionService.addDocumentComment(documentId, commentRequest.commentText, commentRequest.commentedBy)
         return Response.ok(comment).build()
     }
 
     @GET
-    fun getComments(@PathParam("documentId") documentId: String): Response {
+    fun getComments(@PathParam("documentId") documentId: String): Response
+    {
         val comments = sessionService.getDocumentComments(documentId)
         return Response.ok(comments).build()
     }

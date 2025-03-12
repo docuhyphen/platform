@@ -38,7 +38,7 @@ class SharingSessionDocumentCommentsService @Inject constructor(
         commentedBy: String
     ): DocumentComment
     {
-        val sharingSession = sharingSessionRepository.findById(UUID.fromString(documentId))
+        sharingSessionRepository.findById(UUID.fromString(documentId))
             ?: throw SharingSessionNotFoundException("Document not found")
 
         val user = appUserRepository.findByEmail(commentedBy)

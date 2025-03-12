@@ -2,7 +2,7 @@ package com.dochyphen.app.api.repository
 
 import com.dochyphen.app.api.model.entity.Organization
 import jakarta.enterprise.context.RequestScoped
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class OrganizationRepository : BaseRepository<Organization>(Organization::class.java)

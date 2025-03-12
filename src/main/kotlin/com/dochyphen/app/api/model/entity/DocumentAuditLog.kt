@@ -7,7 +7,7 @@ import jakarta.persistence.*
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 enum class DocumentAuditLogAction {
     UPLOAD,

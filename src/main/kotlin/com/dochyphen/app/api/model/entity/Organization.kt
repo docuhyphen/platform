@@ -1,12 +1,12 @@
 package com.dochyphen.app.api.model.entity
 
-import com.dochyphen.app.api.serializer.UUIDSerializer
 import com.dochyphen.app.api.serializer.TimestampSerializer
+import com.dochyphen.app.api.serializer.UUIDSerializer
 import jakarta.persistence.*
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @Entity
 @Table(name = "organization")

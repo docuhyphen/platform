@@ -1,9 +1,9 @@
 package com.dochyphen.app.api.repository
 
+import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
 import jakarta.transaction.Transactional
-import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 abstract class BaseRepository<T>(private val entityClass: Class<T>)
 {

@@ -40,6 +40,7 @@ class SharingSessionInitiationService @Inject constructor(
     {
         private val logger = LoggerFactory.getLogger(SharingSessionInitiationService::class.java)
     }
+
     @Transactional
     fun initiateSharingSession(
         initialShareMessage: String?,

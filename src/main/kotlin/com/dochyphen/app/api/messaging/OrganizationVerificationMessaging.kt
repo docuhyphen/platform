@@ -2,13 +2,13 @@ package com.dochyphen.app.api.messaging
 
 import com.dochyphen.app.api.model.entity.Organization
 import com.dochyphen.app.api.repository.OrganizationRepository
+import io.smallrye.reactive.messaging.annotations.Blocking
 import io.smallrye.reactive.messaging.kafka.KafkaRecord
+import jakarta.enterprise.context.ApplicationScoped
 import org.eclipse.microprofile.reactive.messaging.Channel
 import org.eclipse.microprofile.reactive.messaging.Emitter
 import org.eclipse.microprofile.reactive.messaging.Incoming
 import org.slf4j.LoggerFactory
-import io.smallrye.reactive.messaging.annotations.Blocking
-import jakarta.enterprise.context.ApplicationScoped
 
 @ApplicationScoped
 class OrganizationVerificationProducer(

@@ -28,7 +28,7 @@ class SharingSessionResource @Inject constructor(
     private val sharingSessionParticipantService: SharingSessionParticipantService,
     private val authTokenContext: AuthTokenContext,
 
-)
+    )
 {
     companion object
     {

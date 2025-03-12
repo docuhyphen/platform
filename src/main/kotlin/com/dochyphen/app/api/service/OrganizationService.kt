@@ -1,12 +1,12 @@
 package com.dochyphen.app.api.service
 
-import com.dochyphen.app.api.model.entity.Organization
 import com.dochyphen.app.api.exception.OrganizationNotFoundException
+import com.dochyphen.app.api.model.entity.Organization
 import com.dochyphen.app.api.repository.OrganizationRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class OrganizationService @Inject constructor(

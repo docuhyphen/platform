@@ -4,7 +4,6 @@ import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.model.entity.Document
 import com.dochyphen.app.api.model.entity.SharingSession
-import com.dochyphen.app.api.model.entity.SharingSessionStatus
 import com.dochyphen.app.api.model.entity.SharingSessionStatus.ACCEPTED_STARTED
 import com.dochyphen.app.api.model.entity.SharingSessionStatus.INITIATED
 import com.dochyphen.app.api.repository.SharingSessionRepository
@@ -31,7 +30,8 @@ class SharingSessionRetrievalService @Inject constructor(
 
     fun getSharingSession(sessionId: String): SharingSession
     {
-        val session = sharingSessionRepository.findById(UUID.fromString(sessionId)) ?: throw SharingSessionNotFoundException("Sharing session not found")
+        val session = sharingSessionRepository.findById(UUID.fromString(sessionId))
+            ?: throw SharingSessionNotFoundException("Sharing session not found")
 
         session.documents = session.documents.filter { it.isDeleted == false } as MutableList<Document>
 
@@ -54,14 +54,16 @@ class SharingSessionRetrievalService @Inject constructor(
             }
     }
 
-    fun checkUserHasSharingSessions(): Boolean {
+    fun checkUserHasSharingSessions(): Boolean
+    {
         val appUserId = authTokenContext.authToken.appUser?.id
         return sharingSessionRepository.userHasSharingSessions(appUserId!!)
     }
 
     fun getNoAuthSharingSession(sessionId: String): SharingSession
     {
-        val session = sharingSessionRepository.findById(UUID.fromString(sessionId)) ?: throw SharingSessionNotFoundException("Sharing session not found")
+        val session = sharingSessionRepository.findById(UUID.fromString(sessionId))
+            ?: throw SharingSessionNotFoundException("Sharing session not found")
 
         session.documents = session.documents.filter { it.isDeleted == false } as MutableList<Document>
 
@@ -71,7 +73,7 @@ class SharingSessionRetrievalService @Inject constructor(
             throw SharingSessionNotFoundException("Sharing session not found")
         }
 
-        if(session.status != ACCEPTED_STARTED && session.status != INITIATED)
+        if (session.status != ACCEPTED_STARTED && session.status != INITIATED)
         {
             logger.error("Attempted to access a sharing session that is not in the correct status")
             throw SharingSessionNotFoundException("Sharing session not found")

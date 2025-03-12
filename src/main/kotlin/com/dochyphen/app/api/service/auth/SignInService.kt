@@ -7,10 +7,10 @@ import com.dochyphen.app.api.model.entity.AuthToken
 import com.dochyphen.app.api.model.entity.MfaRecord
 import com.dochyphen.app.api.model.entity.MultifactorAuthenticationType
 import com.dochyphen.app.api.service.AppUserService
-import com.dochyphen.app.api.service.config.ConfigurationService
 import com.dochyphen.app.api.service.communication.EmailService
 import com.dochyphen.app.api.service.communication.MfaService
 import com.dochyphen.app.api.service.communication.OtpService
+import com.dochyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import org.mindrot.jbcrypt.BCrypt

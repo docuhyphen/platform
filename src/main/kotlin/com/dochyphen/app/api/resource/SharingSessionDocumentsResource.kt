@@ -67,6 +67,7 @@ class SharingSessionDocumentsResource @Inject constructor(
                         .build()
 
                 }
+
                 is IllegalArgumentException ->
                 {
                     logger.error("Error adding sharing session document", exception)
@@ -192,6 +193,7 @@ class SharingSessionDocumentsResource @Inject constructor(
                         .build()
 
                 }
+
                 is IllegalArgumentException ->
                 {
                     logger.error("Error updating sharing session document", exception)
@@ -227,7 +229,8 @@ class SharingSessionDocumentsResource @Inject constructor(
         @RestForm("encryptionMode") encryptionMode: DocumentEncryptionMode?,
         @PathParam("sessionId") sessionId: String?,
         @PathParam("documentId") documentId: String?
-    ): Response {
+    ): Response
+    {
 
         return try
         {

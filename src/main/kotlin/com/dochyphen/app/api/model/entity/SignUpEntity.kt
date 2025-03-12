@@ -4,7 +4,7 @@ import com.dochyphen.app.api.serializer.UUIDSerializer
 import jakarta.persistence.*
 import kotlinx.serialization.Serializable
 import java.time.LocalDateTime
-import java.util.UUID
+import java.util.*
 
 enum class SignUpStatus {
     PENDING,

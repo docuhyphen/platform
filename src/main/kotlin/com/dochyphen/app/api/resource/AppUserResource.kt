@@ -1,21 +1,17 @@
 package com.dochyphen.app.api.resource
 
-import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.exception.OrganizationNotFoundException
+import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.service.OrganizationService
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
 import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 @Path("/app-user")
 @Produces(MediaType.APPLICATION_JSON)
@@ -62,7 +58,10 @@ class AppUserResource @Inject constructor(
         return try
         {
             val organization =
-                organizationService.getOrganizationByAppUserIdAndPersonId(UUID.fromString(appUserId), UUID.fromString(personId))
+                organizationService.getOrganizationByAppUserIdAndPersonId(
+                    UUID.fromString(appUserId),
+                    UUID.fromString(personId)
+                )
 
             Response.ok(organization).build()
         }
@@ -80,7 +79,7 @@ class AppUserResource @Inject constructor(
                 {
                     logger.error("Error fetching organization", exception)
                     val responseError = ResponseError("A server error occurred while fetching the organization.")
-                    Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseError).build()
+                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
             }
         }

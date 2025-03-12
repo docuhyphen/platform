@@ -98,7 +98,15 @@ class BasicModelConverter
             return document?.let {
                 with(document)
                 {
-                    DocumentBasicDto(id, createdDate, uploadDate, title, type.toString(), restrictedType.toString(), hash)
+                    DocumentBasicDto(
+                        id,
+                        createdDate,
+                        uploadDate,
+                        title,
+                        type.toString(),
+                        restrictedType.toString(),
+                        hash
+                    )
                 }
             }
         }

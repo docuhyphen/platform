@@ -1,7 +1,7 @@
 package com.dochyphen.app.api.repository
 
-import com.dochyphen.app.api.model.entity.SharingSessionStatus
 import com.dochyphen.app.api.model.entity.SharingSession
+import com.dochyphen.app.api.model.entity.SharingSessionStatus
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
@@ -10,7 +10,8 @@ import java.util.*
 @ApplicationScoped
 class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::class.java)
 {
-    fun userHasSharingSessions(userId: UUID): Boolean {
+    fun userHasSharingSessions(userId: UUID): Boolean
+    {
         val query = entityManager.createQuery(
             """
             SELECT COUNT(s) FROM SharingSession s 

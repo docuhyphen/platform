@@ -1,25 +1,19 @@
 package com.dochyphen.app.api.resource
 
-import com.dochyphen.app.api.exception.ConfirmationPasswordRequiredException
-import com.dochyphen.app.api.exception.EmailNotFoundException
-import com.dochyphen.app.api.exception.EmailRequiredException
-import com.dochyphen.app.api.exception.InvalidEmailException
-import com.dochyphen.app.api.exception.InvalidOtpException
-import com.dochyphen.app.api.exception.OTPExpiredException
-import com.dochyphen.app.api.exception.OtpRequiredException
-import com.dochyphen.app.api.exception.PasswordMismatchException
-import com.dochyphen.app.api.exception.PasswordRequiredException
-import com.dochyphen.app.api.exception.PasswordRequirementsNotMetException
+import com.dochyphen.app.api.exception.*
 import com.dochyphen.app.api.resource.model.PasswordResetCompletionRequest
 import com.dochyphen.app.api.resource.model.PasswordResetInitiationRequest
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.service.auth.PasswordResetService
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
+import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.POST
+import jakarta.ws.rs.Path
+import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
 import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
+import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
 import org.slf4j.LoggerFactory
 
 @Path("/auth/password-reset")
