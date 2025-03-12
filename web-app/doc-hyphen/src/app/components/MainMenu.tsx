@@ -21,7 +21,7 @@ import SignOutButton from '../components/SignOutButton';
 import SharingSessionInitiation from "../sharing-session-initiation/SharingSessionInitiation.tsx";
 import AppLogo from "./app-logo/AppLogo.tsx";
 import {useGlobalStyles} from "../../GlobalStyles.tsx";
-import {NotificationsIcon, SettingsIcon, SignOutButtonIcon} from "./IconBundles.tsx";
+import {NotificationsIcon, SettingsIcon, SharingSessionIcon, SignOutButtonIcon} from "./IconBundles.tsx";
 
 const MainMenu: React.FC = () =>
 {
@@ -44,10 +44,10 @@ const MainMenu: React.FC = () =>
 
             <SharingSessionInitiation/>
 
-            {/*<Button icon={<SharingSessionIcon/>}*/}
-            {/*        onClick={() => navigate('/')}*/}
-            {/*        appearance={"subtle"}>*/}
-            {/*</Button>*/}
+            <Button icon={<SharingSessionIcon/>}
+                    onClick={() => navigate('/')}
+                    appearance={"subtle"}>
+            </Button>
             <Button icon={<NotificationsIcon/>}
                     appearance={"subtle"}>
             </Button>

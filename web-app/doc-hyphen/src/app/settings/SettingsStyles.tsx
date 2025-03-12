@@ -1,12 +1,13 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useSettingsStyles = makeStyles({
-    root: {
+    container: {
         alignItems: "flex-start",
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-start",
-        padding: "50px 20px",
+        padding: "80px 60px",
+        maxWidth: "300px",
         rowGap: "20px",
     },
     panels: {

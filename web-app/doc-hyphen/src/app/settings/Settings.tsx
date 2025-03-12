@@ -1,11 +1,11 @@
 import * as React from "react";
-import {SelectTabData, SelectTabEvent, Switch, Tab, TabList, TabValue,} from "@fluentui/react-components";
+import {SelectTabData, SelectTabEvent, Switch, Tab, TabList, TabValue, Text,} from "@fluentui/react-components";
 import {
     AirplaneFilled,
     AirplaneRegular,
     AirplaneTakeOffFilled,
     AirplaneTakeOffRegular,
-    BookTemplateRegular,
+    BookTemplateRegular, BuildingPeopleRegular, BuildingRegular,
     bundleIcon,
     PersonSettingsRegular,
     SettingsCogMultipleRegular,
@@ -13,6 +13,7 @@ import {
     TimeAndWeatherRegular,
 } from "@fluentui/react-icons";
 import {useSettingsStyles} from "./SettingsStyles.tsx";
+import MainMenu from "../components/MainMenu.tsx";
 
 const Airplane = bundleIcon(AirplaneFilled, AirplaneRegular);
 const AirplaneTakeOff = bundleIcon(
@@ -33,146 +34,38 @@ const Settings = () =>
         setSelectedValue(data.value);
     };
 
-    const AppUserSettings = React.memo(() => (
-        <div role="tabpanel" aria-labelledby="Arrivals">
-
-            <Switch
-                label={"Receive notifications on every sign-in"}
-                onChange={(ev) =>
-                {
-                }}
-            />
-
-            <table>
-                <thead>
-                <th>Origin</th>
-                <th>Gate</th>
-                <th>ETA</th>
-                </thead>
-                <tbody>
-                <tr>
-                    <td>DEN</td>
-                    <td>C3</td>
-                    <td>12:40 PM</td>
-                </tr>
-                <tr>
-                    <td>SMF</td>
-                    <td>D1</td>
-                    <td>1:18 PM</td>
-                </tr>
-                <tr>
-                    <td>SFO</td>
-                    <td>E18</td>
-                    <td>1:42 PM</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-    ));
-
-    const AppSettings = React.memo(() => (
-        <div role="tabpanel" aria-labelledby="Departures">
-            <table>
-                <thead>
-                <th>Destination</th>
-                <th>Gate</th>
-                <th>ETD</th>
-                </thead>
-                <tbody>
-                <tr>
-                    <td>MSP</td>
-                    <td>A7</td>
-                    <td>8:26 AM</td>
-                </tr>
-                <tr>
-                    <td>DCA</td>
-                    <td>N2</td>
-                    <td>9:03 AM</td>
-                </tr>
-                <tr>
-                    <td>LAS</td>
-                    <td>E15</td>
-                    <td>2:36 PM</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-    ));
-
-    const Templates = React.memo(() => (
-        <div role="tabpanel" aria-labelledby="Conditions">
-            <table className={styles.propsTable}>
-                <tbody>
-                <tr>
-                    <td>Time</td>
-                    <td>6:45 AM</td>
-                </tr>
-                <tr>
-                    <td>Temperature</td>
-                    <td>68F / 20C</td>
-                </tr>
-                <tr>
-                    <td>Forecast</td>
-                    <td>Overcast</td>
-                </tr>
-                <tr>
-                    <td>Visibility</td>
-                    <td>0.5 miles, 1800 ft runway visual range</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-    ));
-
-    const Teams = React.memo(() => (
-        <div role="tabpanel" aria-labelledby="Conditions">
-            <table className={styles.propsTable}>
-                <tbody>
-                <tr>
-                    <td>Time</td>
-                    <td>6:45 AM</td>
-                </tr>
-                <tr>
-                    <td>Temperature</td>
-                    <td>68F / 20C</td>
-                </tr>
-                <tr>
-                    <td>Forecast</td>
-                    <td>Overcast</td>
-                </tr>
-                <tr>
-                    <td>Visibility</td>
-                    <td>0.5 miles, 1800 ft runway visual range</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-    ));
 
     return (
-        <div className={styles.root}>
-            <TabList selectedValue={selectedValue} onTabSelect={onTabSelect} size="medium">
+        <>
+            <MainMenu/>
+            <div className={styles.container}>
+                <TabList selectedValue={selectedValue} onTabSelect={onTabSelect} size="medium">
 
-                <Tab id="Conditions" icon={<PersonSettingsRegular/>} value="conditions">
-                    Profile
-                </Tab>
-                <Tab id="Arrivals" icon={<SettingsCogMultipleRegular/>} value="arrivals">
-                    App Settings
-                </Tab>
-                <Tab id="Teams" icon={<SettingsCogMultipleRegular/>} value="teams">
-                    Teams
-                </Tab>
-                <Tab id="Departures" icon={<BookTemplateRegular/>} value="departures">
-                    Templates
-                </Tab>
-            </TabList>
-            <div className={styles.panels}>
-                {selectedValue === "arrivals" && <AppUserSettings/>}
-                {selectedValue === "departures" && <AppSettings/>}
-                {selectedValue === "conditions" && <Templates/>}
-                {selectedValue === "teams" && <Templates/>}
+                    <Tab id="ProfileTab" icon={<PersonSettingsRegular/>} value="profile">
+                        Profile
+                    </Tab>
+                    <Tab id="OrganizationTab" icon={<BuildingRegular/>} value="organization">
+                        Your Organization
+                    </Tab>
+                    <Tab id="PeopleTab" icon={<BuildingPeopleRegular/>} value="people">
+                        People
+                    </Tab>
+                    <Tab id="AppSettingsTab" icon={<SettingsCogMultipleRegular/>} value="appSettings">
+                        App Settings
+                    </Tab>
+                    <Tab id="TemplatesTab" icon={<BookTemplateRegular/>} value="templates">
+                        Templates
+                    </Tab>
+                </TabList>
+                <div className={styles.panels}>
+                    {selectedValue === "profile" && <div> <Text> Profile Tab</Text></div>}
+                    {selectedValue === "organization" && <div><Text> Organization Tab</Text></div>}
+                    {selectedValue === "appSettings" && <div><Text> App Settings Tab</Text></div>}
+                    {selectedValue === "people" && <div><Text> People Tab</Text></div>}
+                    {selectedValue === "templates" && <div><Text> Templates Tab</Text></div>}
+                </div>
             </div>
-        </div>
+        </>
     );
 }
 
