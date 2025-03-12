@@ -1,7 +1,8 @@
 import React from 'react';
 import SignInSignUpTipsCarousel from "./SignInSignUpTipsCarousel.tsx";
 
-const SignUpCarousel: React.FC = () => {
+const SignUpCarousel: React.FC = () =>
+{
     const slides = [
         {
             title: "Secure & Compliant Document Sharing",
@@ -21,7 +22,7 @@ const SignUpCarousel: React.FC = () => {
         }
     ];
 
-    return <SignInSignUpTipsCarousel slides={slides} />;
+    return <SignInSignUpTipsCarousel slides={slides}/>;
 };
 
 export default SignUpCarousel;

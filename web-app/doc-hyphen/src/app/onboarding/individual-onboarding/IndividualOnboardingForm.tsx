@@ -8,14 +8,12 @@ import {
     Button,
     Checkbox,
     CheckboxOnChangeData,
-    Dropdown,
     Field,
     Input,
     InputOnChangeData,
     MessageBar,
     MessageBarActions,
     MessageBarBody,
-    Option,
     OptionOnSelectData,
     SelectionEvents,
     Spinner,
@@ -88,7 +86,7 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
         setAlsoRegisterOrganization(isChecked);
         onRegisterOrganizationChange(isChecked);
 
-        if(!isChecked)
+        if (!isChecked)
         {
             setIdType(undefined);
             setIdentificationNumber('');

@@ -62,7 +62,7 @@ const SharingSessionInitiation: React.FC = () =>
 
     const toasterId = useId("toasterrr");
 
-    const { dispatchToast } = useToastController(toasterId);
+    const {dispatchToast} = useToastController(toasterId);
 
     const showServerErrorToast = (message: string) =>
     {
@@ -78,7 +78,8 @@ const SharingSessionInitiation: React.FC = () =>
         setRequestingDocuments(isRequesting);
     };
 
-    const onInitiateSession = async () => {
+    const onInitiateSession = async () =>
+    {
         if (initiatingSession)
         {
             return;
@@ -86,7 +87,8 @@ const SharingSessionInitiation: React.FC = () =>
 
         setInitiatingSession(true);
 
-        try {
+        try
+        {
 
             if (!recipientEmail || !isValidEmail(recipientEmail))
             {
@@ -175,7 +177,8 @@ const SharingSessionInitiation: React.FC = () =>
         } as any]);
     };
 
-    const onCancelInitiation = () => {
+    const onCancelInitiation = () =>
+    {
         setSessionInitiatedSuccessfully(false);
         setRecipientEmail('');
         setSessionName('');

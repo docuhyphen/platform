@@ -9,14 +9,17 @@ export const sharingSessionInitiationObservable = sharingSessionsSubject.asObser
 export const sharingSessionDeletionObservable = sharingSessionDeletionSubject.asObservable();
 export const sharingSessionUpdatedObservable = sharingSessionUpdatedSubject.asObservable();
 
-export const publishNewSharingSessionAddition = (session: SharingSessionBasicDto) => {
+export const publishNewSharingSessionAddition = (session: SharingSessionBasicDto) =>
+{
     sharingSessionsSubject.next(session);
 };
 
-export const publishSharingSessionDelete = (sessionId: string) => {
+export const publishSharingSessionDelete = (sessionId: string) =>
+{
     sharingSessionDeletionSubject.next(sessionId);
 };
 
-export const publishSharingSessionUpdate = (session: SharingSessionDetailedDto) => {
+export const publishSharingSessionUpdate = (session: SharingSessionDetailedDto) =>
+{
     sharingSessionUpdatedSubject.next(session);
 };

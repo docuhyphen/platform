@@ -1,7 +1,8 @@
 import React from 'react';
 import SignInSignUpTipsCarousel from "./SignInSignUpTipsCarousel.tsx";
 
-const SignInCarousel: React.FC = () => {
+const SignInCarousel: React.FC = () =>
+{
     const slides = [
         {
             title: "Use Strong & Unique Passwords",
@@ -25,7 +26,7 @@ const SignInCarousel: React.FC = () => {
         }
     ];
 
-    return <SignInSignUpTipsCarousel slides={slides} />;
+    return <SignInSignUpTipsCarousel slides={slides}/>;
 };
 
 export default SignInCarousel;

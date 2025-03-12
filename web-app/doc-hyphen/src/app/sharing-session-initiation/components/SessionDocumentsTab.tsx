@@ -16,14 +16,14 @@ interface SessionDocumentsTabProps
 }
 
 const SessionDocumentsTab: React.FC<SessionDocumentsTabProps> = (
-{
-    documents,
-    onDocumentNameChange,
-    onDocumentTypeChange,
-    onRestrictDocumentTypeChange,
-    onDeleteDocument,
-    addNewDocument
-}) =>
+    {
+        documents,
+        onDocumentNameChange,
+        onDocumentTypeChange,
+        onRestrictDocumentTypeChange,
+        onDeleteDocument,
+        addNewDocument
+    }) =>
 {
     const styles = useSharingSessionInitiationStyles();
 

@@ -85,19 +85,19 @@ const AccountRecovery: React.FC = () =>
     {
         if (completingPwdReset) return;
 
-        if(!formData.otp || !formData.otp)
+        if (!formData.otp || !formData.otp)
         {
             setResponseError('Please enter the OTP sent to your email address');
             return;
         }
 
-        if(!formData.password || !formData.password.length)
+        if (!formData.password || !formData.password.length)
         {
             setResponseError('Please enter a new password');
             return;
         }
 
-        if(!formData.confirmationPassword || !formData.confirmationPassword.length)
+        if (!formData.confirmationPassword || !formData.confirmationPassword.length)
         {
             setResponseError('Please confirm your new password');
             return;

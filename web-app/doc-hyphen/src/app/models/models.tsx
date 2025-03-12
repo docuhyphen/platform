@@ -449,7 +449,8 @@ export enum DocumentType
     JPG = "JPG"
 }
 
-export enum ImageType {
+export enum ImageType
+{
     PNG = "PNG",
     JPG = "JPG"
 }

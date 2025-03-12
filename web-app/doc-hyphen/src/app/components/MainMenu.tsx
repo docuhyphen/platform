@@ -23,7 +23,8 @@ import AppLogo from "./app-logo/AppLogo.tsx";
 import {useGlobalStyles} from "../../GlobalStyles.tsx";
 import {NotificationsIcon, SettingsIcon, SignOutButtonIcon} from "./IconBundles.tsx";
 
-const MainMenu: React.FC = () => {
+const MainMenu: React.FC = () =>
+{
     const {appUser} = useAuth();
     const navigate = useNavigate();
     const [isSignOutDialogOpen, setIsSignOutDialogOpen] = useState(false);

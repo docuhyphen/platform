@@ -1,7 +1,6 @@
 import React from 'react';
 import {Button, DialogTrigger, Spinner} from "@fluentui/react-components";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
-import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
 
 interface DialogActionsProps
 {

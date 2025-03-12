@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { SharingSessionRequestDocumentRequest } from '../../models/models.tsx';
+import {useState} from 'react';
+import {SharingSessionRequestDocumentRequest} from '../../models/models.tsx';
 
-const useSharingSessionState = () => {
+const useSharingSessionState = () =>
+{
     const [choosingTemplate, setChoosingTemplate] = useState(false);
     const [isInitiating, setIsInitiating] = useState(false);
     const [sessionName, setSessionName] = useState<string>('');

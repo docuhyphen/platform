@@ -53,7 +53,7 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
     useEffect(() =>
     {
 
-        if(session)
+        if (session)
         {
             setRequireRecipientSignIn(session.requestRecipientSignIn);
             setAllowDocumentAddition(session.allowDocumentAddition);
@@ -160,23 +160,23 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
                         </div>
                     </DialogContent>
                     <DialogActions>
-                            <>
-                                <Button appearance="primary"
-                                        className={globalStyles.buttonWithLoading}
+                        <>
+                            <Button appearance="primary"
+                                    className={globalStyles.buttonWithLoading}
+                                    shape={"circular"}
+                                    onClick={onUpdate}>
+                                {updatingSession && <Spinner size={"tiny"}/>}
+                                Update
+                            </Button>
+                            <DialogTrigger disableButtonEnhancement>
+                                <Button appearance="secondary"
                                         shape={"circular"}
-                                        onClick={onUpdate}>
-                                    {updatingSession && <Spinner size={"tiny"}/>}
-                                    Update
+                                        disabled={updatingSession}
+                                        onClick={onDismiss}>
+                                    Cancel
                                 </Button>
-                                <DialogTrigger disableButtonEnhancement>
-                                    <Button appearance="secondary"
-                                            shape={"circular"}
-                                            disabled={updatingSession}
-                                            onClick={onDismiss}>
-                                        Cancel
-                                    </Button>
-                                </DialogTrigger>
-                            </>
+                            </DialogTrigger>
+                        </>
                     </DialogActions>
                 </DialogBody>
             </DialogSurface>

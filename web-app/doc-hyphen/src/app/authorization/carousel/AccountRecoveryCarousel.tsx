@@ -1,7 +1,8 @@
 import React from 'react';
 import SignInSignUpTipsCarousel from "./SignInSignUpTipsCarousel.tsx";
 
-const AccountRecoveryCarousel: React.FC = () => {
+const AccountRecoveryCarousel: React.FC = () =>
+{
     const slides = [
         {
             title: "Keep Your Recovery Options Updated",
@@ -25,7 +26,7 @@ const AccountRecoveryCarousel: React.FC = () => {
         }
     ];
 
-    return <SignInSignUpTipsCarousel slides={slides} />;
+    return <SignInSignUpTipsCarousel slides={slides}/>;
 };
 
 export default AccountRecoveryCarousel;

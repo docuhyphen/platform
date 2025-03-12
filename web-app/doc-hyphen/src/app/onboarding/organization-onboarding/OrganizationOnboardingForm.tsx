@@ -130,7 +130,7 @@ const OrganizationOnboardingForm: React.FC = () =>
                         {registeringOrg && <>
                             <Spinner size={"tiny"}/>
                             Register
-                            </>
+                        </>
                         }
                         {!registeringOrg && "Register"}
 

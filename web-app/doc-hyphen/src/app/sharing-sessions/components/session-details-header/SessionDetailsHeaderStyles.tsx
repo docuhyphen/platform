@@ -15,7 +15,7 @@ export const useSessionDetailsHeaderStyles = makeStyles({
         borderBottom: "1px solid rgba(0, 0, 0, .2)",
         boxShadow: "rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px",
     },
-    
+
     header: {
         display: "flex",
         flexDirection: "column",

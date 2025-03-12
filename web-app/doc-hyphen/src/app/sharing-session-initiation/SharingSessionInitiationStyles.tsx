@@ -24,7 +24,7 @@ export const useSharingSessionInitiationStyles = makeStyles({
         justifyContent: "space-between"
     },
     sharingSessionDocumentsDropdown: {
-      marginRight: "36px",
+        marginRight: "36px",
     },
     shadingSessionDocumentCard: {
         flex: 1,

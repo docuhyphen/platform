@@ -10,7 +10,7 @@ export const useNoAuthSharingSessionStyles = makeStyles({
         background: "#f9f9f9",
     },
 
-    sessionLoadingContainer:{
+    sessionLoadingContainer: {
         display: "flex",
         width: "100%",
         height: "100%",

@@ -2,33 +2,41 @@ import React, {useEffect, useRef, useState} from 'react';
 import {Text} from "@fluentui/react-components";
 import {useCarouselStyles} from './CarouselStyles';
 
-interface Slide {
+interface Slide
+{
     title: string;
     description: string;
 }
 
-interface CarouselProps {
+interface CarouselProps
+{
     slides: Slide[];
 }
 
-const SignInSignUpTipsCarousel: React.FC<CarouselProps> = ({ slides }) => {
+const SignInSignUpTipsCarousel: React.FC<CarouselProps> = ({slides}) =>
+{
     const [currentIndex, setCurrentIndex] = useState(0);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const styles = useCarouselStyles();
 
-    const startAutoPlay = () => {
-        intervalRef.current = setInterval(() => {
+    const startAutoPlay = () =>
+    {
+        intervalRef.current = setInterval(() =>
+        {
             setCurrentIndex(prevIndex => (prevIndex + 1) % slides.length);
         }, 3000);
     };
 
-    const stopAutoPlay = () => {
-        if (intervalRef.current) {
+    const stopAutoPlay = () =>
+    {
+        if (intervalRef.current)
+        {
             clearInterval(intervalRef.current);
         }
     };
 
-    useEffect(() => {
+    useEffect(() =>
+    {
         startAutoPlay();
         return () => stopAutoPlay();
     }, []);
@@ -39,7 +47,7 @@ const SignInSignUpTipsCarousel: React.FC<CarouselProps> = ({ slides }) => {
             onMouseEnter={stopAutoPlay}
             onMouseLeave={startAutoPlay}
         >
-            <div className={styles.carouselInner} style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
+            <div className={styles.carouselInner} style={{transform: `translateX(-${currentIndex * 100}%)`}}>
                 {slides.map((slide, index) => (
                     <div className={styles.carouselItem} key={index}>
                         <Text size={500}>{slide.title}</Text>

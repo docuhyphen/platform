@@ -27,7 +27,7 @@ import SessionDocumentsList from "./components/session-document-list/SessionDocu
 import MainMenu from "../components/MainMenu.tsx";
 import {
     sharingSessionDeletionObservable,
-    sharingSessionInitiationObservable, sharingSessionUpdatedObservable
+    sharingSessionInitiationObservable
 } from "../observable/sharingSessionObservables.ts";
 
 const SharingSessions: React.FC = () =>
@@ -77,7 +77,7 @@ const SharingSessions: React.FC = () =>
     useEffect(() =>
     {
         const randomDelay = Math.floor(Math.random() * 5000) + 1000;
-        setTimeout( async () =>
+        setTimeout(async () =>
         {
             await checkAppUserSessions();
         }, randomDelay);

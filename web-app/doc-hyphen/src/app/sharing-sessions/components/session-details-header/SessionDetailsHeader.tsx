@@ -19,14 +19,15 @@ import {
     DeleteIcon,
     DocumentAddIcon,
     EditSessionIcon,
-    ManageAccessIcon, RegenerateOTPIcon,
+    ManageAccessIcon,
     SessionEndIcon,
     ToggleHeaderDownIcon,
     ToggleHeaderUpIcon
 } from "../../../components/IconBundles.tsx";
 import {SharingSessionPermissions} from "../../SessionPermissions.ts";
 
-interface SessionDetailsHeaderProps {
+interface SessionDetailsHeaderProps
+{
     sessionDetails: SharingSessionDetailedDto | null;
     setIsDocumentAddDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     setIsSessionEndDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -99,14 +100,14 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                                 <Button
                                     icon={<DocumentAddIcon/>}
                                     appearance="primary"
-                                    disabled={ sessionDetails.status === SharingSessionStatus.ENDED || !sessionPermissions.canAddSessionDocument}
+                                    disabled={sessionDetails.status === SharingSessionStatus.ENDED || !sessionPermissions.canAddSessionDocument}
                                     onClick={() => setIsDocumentAddDialogOpen(true)}
                                 />
                             </Tooltip>
                             <Tooltip content="Edit" relationship="description">
                                 <Button
                                     icon={<EditSessionIcon/>}
-                                    disabled={ sessionDetails.status === SharingSessionStatus.ENDED || !sessionPermissions.canEditSessionDocument}
+                                    disabled={sessionDetails.status === SharingSessionStatus.ENDED || !sessionPermissions.canEditSessionDocument}
                                     appearance={"subtle"}
                                     onClick={() => setIsSessionEditDialogOpen(true)}
                                 />

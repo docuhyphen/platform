@@ -1,1 +1,1 @@
-export { default } from './AccountRecovery.tsx';
+export {default} from './AccountRecovery.tsx';

@@ -38,7 +38,9 @@ const Settings = () =>
 
             <Switch
                 label={"Receive notifications on every sign-in"}
-                onChange={(ev) => {}}
+                onChange={(ev) =>
+                {
+                }}
             />
 
             <table>
@@ -149,7 +151,7 @@ const Settings = () =>
 
     return (
         <div className={styles.root}>
-            <TabList selectedValue={selectedValue} onTabSelect={onTabSelect}  size="medium">
+            <TabList selectedValue={selectedValue} onTabSelect={onTabSelect} size="medium">
 
                 <Tab id="Conditions" icon={<PersonSettingsRegular/>} value="conditions">
                     Profile

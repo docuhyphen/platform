@@ -10,7 +10,8 @@ import SessionDocumentZipDownloadDialog
 import SessionEditDialog from "../session-edit-dialog/SessionEditDialog.tsx";
 import SessionAccessManagementDialog from "../session-access-management-dialog/SessionAccessManagementDialog.tsx";
 
-interface SessionDialogsGroupProps {
+interface SessionDialogsGroupProps
+{
     isDeletedSessionDialogOpen: boolean;
     setIsDeletedSessionDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     isSessionEndDialogOpen: boolean;
@@ -42,36 +43,36 @@ interface SessionDialogsGroupProps {
 }
 
 const SessionDialogsGroup: React.FC<SessionDialogsGroupProps> = (
-{
-    isDeletedSessionDialogOpen,
-    setIsDeletedSessionDialogOpen,
-    isSessionEndDialogOpen,
-    setIsSessionEndDialogOpen,
-    isDocumentAddDialogOpen,
-    setIsDocumentAddDialogOpen,
-    isUploadDocumentDialogOpen,
-    setIsUploadDocumentDialogOpen,
-    isUpdateDocumentDialogOpen,
-    setIsUpdateDocumentDialogOpen,
-    isDocumentZipDialogOpen,
-    setIsDocumentZipDialogOpen,
-    isSessionEditDialogOpen,
-    setIsSessionEditDialogOpen,
-    isSessionAccessManagementDialogOpen,
-    setIsSessionAccessManagementDialogOpen,
-    sessionDetails,
-    selectedSessionId,
-    selectedSessionDocument,
-    selectedUpdateSessionDocument,
-    setSelectedUpdateSessionDocument,
-    onNewDocumentAdded,
-    onDocumentUploaded,
-    onDocumentUpdated,
-    onSessionDeleted,
-    onSessionEnded,
-    onSessionEdited,
-    onSessionAccessManagementUpdated,
-}) =>
+    {
+        isDeletedSessionDialogOpen,
+        setIsDeletedSessionDialogOpen,
+        isSessionEndDialogOpen,
+        setIsSessionEndDialogOpen,
+        isDocumentAddDialogOpen,
+        setIsDocumentAddDialogOpen,
+        isUploadDocumentDialogOpen,
+        setIsUploadDocumentDialogOpen,
+        isUpdateDocumentDialogOpen,
+        setIsUpdateDocumentDialogOpen,
+        isDocumentZipDialogOpen,
+        setIsDocumentZipDialogOpen,
+        isSessionEditDialogOpen,
+        setIsSessionEditDialogOpen,
+        isSessionAccessManagementDialogOpen,
+        setIsSessionAccessManagementDialogOpen,
+        sessionDetails,
+        selectedSessionId,
+        selectedSessionDocument,
+        selectedUpdateSessionDocument,
+        setSelectedUpdateSessionDocument,
+        onNewDocumentAdded,
+        onDocumentUploaded,
+        onDocumentUpdated,
+        onSessionDeleted,
+        onSessionEnded,
+        onSessionEdited,
+        onSessionAccessManagementUpdated,
+    }) =>
 {
     return (
         <>
@@ -107,7 +108,8 @@ const SessionDialogsGroup: React.FC<SessionDialogsGroupProps> = (
                                          onDocumentUploaded={onDocumentUploaded}/>
 
             <SessionDocumentUpdateDialog isOpen={isUpdateDocumentDialogOpen}
-                                         onDismiss={() => {
+                                         onDismiss={() =>
+                                         {
                                              setSelectedUpdateSessionDocument(undefined)
                                              setIsUpdateDocumentDialogOpen(false)
                                          }}

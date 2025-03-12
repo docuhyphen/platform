@@ -1,10 +1,16 @@
-const getOrdinalSuffix = (day: number): string => {
+const getOrdinalSuffix = (day: number): string =>
+{
     if (day > 3 && day < 21) return 'th';
-    switch (day % 10) {
-        case 1: return 'st';
-        case 2: return 'nd';
-        case 3: return 'rd';
-        default: return 'th';
+    switch (day % 10)
+    {
+        case 1:
+            return 'st';
+        case 2:
+            return 'nd';
+        case 3:
+            return 'rd';
+        default:
+            return 'th';
     }
 };
 
@@ -24,9 +30,10 @@ export const formatDate = (dateString: string): string =>
  * @param dateString - The date string to format.
  * @returns The formatted date and time string.
  */
-export const formatDateTime = (dateString: string): string => {
+export const formatDateTime = (dateString: string): string =>
+{
     const date = new Date(dateString);
-    return date.toLocaleString('en-GB', { hour12: false });
+    return date.toLocaleString('en-GB', {hour12: false});
 };
 
 /**
@@ -34,7 +41,8 @@ export const formatDateTime = (dateString: string): string => {
  * @param dateString - The date string to format.
  * @returns The formatted date string with ordinal suffix.
  */
-export const formatDateWithOrdinal = (dateString: string): string => {
+export const formatDateWithOrdinal = (dateString: string): string =>
+{
     const date = new Date(dateString);
     const day = date.getDate();
     const ordinalSuffix = getOrdinalSuffix(day);
@@ -51,7 +59,8 @@ export const formatDateWithOrdinal = (dateString: string): string => {
  * @param dateString - The date string to format.
  * @returns The formatted date and time string with ordinal suffix.
  */
-export const formatDateTimeWithOrdinal = (dateString: string): string => {
+export const formatDateTimeWithOrdinal = (dateString: string): string =>
+{
     const date = new Date(dateString);
     const day = date.getDate();
     const ordinalSuffix = getOrdinalSuffix(day);

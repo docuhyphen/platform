@@ -1,5 +1,4 @@
-import { SharingSessionDetailedDto } from "../models/models.tsx";
-import { AppUser } from "../models/models.tsx";
+import {AppUser, SharingSessionDetailedDto} from "../models/models.tsx";
 
 export interface SharingSessionPermissions
 {
@@ -11,7 +10,8 @@ export interface SharingSessionPermissions
     canDeleteSession: boolean,
 }
 
-export const getPermissions = (session: SharingSessionDetailedDto, appUser: AppUser): SharingSessionPermissions => {
+export const getPermissions = (session: SharingSessionDetailedDto, appUser: AppUser): SharingSessionPermissions =>
+{
 
     const permissions: SharingSessionPermissions = {
         canAddSessionDocument: false,
@@ -22,15 +22,19 @@ export const getPermissions = (session: SharingSessionDetailedDto, appUser: AppU
         canDeleteSession: false,
     };
 
-    if (session) {
-        if (session.initiator?.id === appUser?.id) {
+    if (session)
+    {
+        if (session.initiator?.id === appUser?.id)
+        {
             permissions.canAddSessionDocument = true;
             permissions.canEditSessionDocument = true;
             permissions.canEditSharingOptions = true;
             permissions.canEndSession = true;
             permissions.canDownloadDocumentsZip = true;
             permissions.canDeleteSession = true;
-        } else {
+        }
+        else
+        {
             permissions.canAddSessionDocument = session.allowDocumentAddition || false;
             permissions.canEditSessionDocument = session.allowDocumentUpdate || false;
             permissions.canDownloadDocumentsZip = session.allowDocumentDownload || false;
