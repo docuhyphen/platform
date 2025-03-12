@@ -20,7 +20,7 @@ import {
     Subtitle1,
     Text,
 } from "@fluentui/react-components";
-import {AppUser, AppUserDetailedDto, ResponseError} from "../../models/models.tsx";
+import {AppUserDetailedDto, ResponseError} from "../../models/models.tsx";
 import {setApiClientAuthToken} from '../../../services/apiClient.ts';
 import {DismissRegular} from "@fluentui/react-icons";
 import AppLogo from "../../components/app-logo/AppLogo.tsx";
@@ -217,6 +217,7 @@ const SignIn: React.FC = () =>
             <span>
                 <Button appearance="outline"
                         size={"small"}
+                        disabled={resendingOtp || signInCompleting}
                         shape={"circular"}
                         onClick={onResendOtp}
                         className={globalStyles.buttonWithLoading}>
