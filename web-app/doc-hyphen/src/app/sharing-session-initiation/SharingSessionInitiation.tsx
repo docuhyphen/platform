@@ -242,7 +242,7 @@ const SharingSessionInitiation: React.FC = () =>
                                 <Button appearance={"transparent"}>Copy Link</Button>
                             </div>
                         ) : (
-                            <>
+                            <div className={styles.dialogContentContainer}>
                                 {choosingTemplate ? (
                                     <div>Choosing Template</div>
                                 ) : (
@@ -314,7 +314,7 @@ const SharingSessionInitiation: React.FC = () =>
                                         )}
                                     </div>
                                 )}
-                            </>
+                            </div>
                         )}
                     </DialogContent>
                     <DialogActions>

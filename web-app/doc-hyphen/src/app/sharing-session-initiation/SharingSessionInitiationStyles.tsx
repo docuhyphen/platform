@@ -69,4 +69,11 @@ export const useSharingSessionInitiationStyles = makeStyles({
     iconDeleteFilled: {
         color: tokens.colorPaletteRedForeground1,
     },
+    addDocumentButtonContainer: {
+        display: "flex",
+        justifyContent: "center",
+    },
+    dialogContentContainer: {
+        minHeight: "460px"
+    }
 });

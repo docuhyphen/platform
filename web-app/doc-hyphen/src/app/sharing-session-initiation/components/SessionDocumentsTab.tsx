@@ -41,11 +41,14 @@ const SessionDocumentsTab: React.FC<SessionDocumentsTabProps> = (
                     onDeleteDocument={onDeleteDocument}
                 />
             ))}
-            <Button onClick={addNewDocument}
-                    icon={<DocumentAddIcon/>}
-                    appearance="subtle">
-                Add Document
-            </Button>
+            <div className={styles.addDocumentButtonContainer}>
+                <Button onClick={addNewDocument}
+                        shape={"circular"}
+                        icon={<DocumentAddIcon/>}
+                        appearance="subtle">
+                    Add Document
+                </Button>
+            </div>
         </div>
     );
 };
