@@ -20,7 +20,6 @@ import javax.crypto.SecretKey
 @RequestScoped
 class AuthenticationService @Inject constructor(
     private val authTokenRepository: AuthTokenRepository,
-    private val authenticationService: AuthenticationService,
     private val appUserService: AppUserService,
     private val configurationService: ConfigurationService,
 )

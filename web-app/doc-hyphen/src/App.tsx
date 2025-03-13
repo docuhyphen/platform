@@ -1,20 +1,19 @@
 import React from 'react';
 import {BrowserRouter, Route, Routes} from 'react-router-dom';
-import Home from './app/home';
-import SignIn from './app/authorization/sign-in';
 import {AuthProvider} from './context/AuthContext';
 import SharingSessions from "./app/sharing-sessions/SharingSessions.tsx";
-import SignUp from "./app/authorization/sign-up";
 import RedirectIfNotAuthenticated from "./app/components/RedirectIfAuthenticated.tsx";
 import NotFound from './app/NotFound.tsx';
 import IndividualOnboarding from "./app/onboarding/individual-onboarding/IndividualOnboarding.tsx";
 import Settings from "./app/settings/Settings.tsx";
-import AccountRecovery from "./app/authorization/account-recovery";
 import NoAuthSharingSession from "./app/no-auth-sharing-session/NoAuthSharingSession.tsx";
 import NoMenuProtectedRoute from "./app/components/NoMenuProtectedRoutes.tsx";
 import PersonRegistrationProtectedRoute from "./context/OnboardingGuard.tsx";
 import {OrganizationRegistrationProtectedRoute} from "./context/OrganizationRegistrationProtectedRoute.tsx";
 import OrganizationOnboarding from "./app/onboarding/organization-onboarding/OrganizationOnboarding.tsx";
+import SignIn from "./app/authorization/sign-in/SignIn.tsx";
+import AccountRecovery from "./app/authorization/account-recovery/AccountRecovery.tsx";
+import Home from "./app/home/Home.tsx";
 
 const App: React.FC = () => {
     return (

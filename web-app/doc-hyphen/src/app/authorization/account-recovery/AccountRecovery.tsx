@@ -26,18 +26,16 @@ import {ResponseError} from "../../models/models.tsx";
 
 const AccountRecovery: React.FC = () =>
 {
-    const navigate = useNavigate();
     const accountRecoveryStyles = useAccountRecoveryStyles();
     const authorizationStyles = useAuthorizationStyles();
     const globalStyles = useGlobalStyles();
-
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         email: '',
         otp: '',
         password: '',
         confirmationPassword: ''
     });
-
     const [pwdResetInitiationSuccessful, setPwdResetInitiationSuccessful] = useState(false);
     const [pwdResetSuccessfulMsg, setPwdResetSuccessfulMsg] = useState<string>();
     const [otpRegenerationSuccessfulMsg, setOtpRegenerationSuccessfulMsg] = useState<string | undefined>('');

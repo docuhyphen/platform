@@ -230,8 +230,9 @@ const NoAuthSessionUserDecision: React.FC<NoAuthSessionUserDecisionProps> = (
                             <DialogContent className={styles.acceptDialogContent}>
                                 <Text size={300}>
                                     Enter the OTP sent to your email address to accept the request. If you didn't
-                                    receive the OTP,
-                                    contact the sender to regenerate the OTP.
+                                    receive the OTP, contact
+                                    <strong> {` ${session.initiatorFirstName} ${session.initiatorLastName} `} </strong>
+                                    to regenerate the OTP.
                                 </Text>
 
                                 {renderErrorMessage()}
