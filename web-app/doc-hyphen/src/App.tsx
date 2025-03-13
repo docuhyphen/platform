@@ -14,6 +14,7 @@ import OrganizationOnboarding from "./app/onboarding/organization-onboarding/Org
 import SignIn from "./app/authorization/sign-in/SignIn.tsx";
 import AccountRecovery from "./app/authorization/account-recovery/AccountRecovery.tsx";
 import Home from "./app/home/Home.tsx";
+import SignUp from "./app/authorization/sign-up/SignUp.tsx";
 
 const App: React.FC = () => {
     return (
@@ -43,6 +44,7 @@ const App: React.FC = () => {
                            }/>
 
                     <Route path="/nas"
+
                            element={
                                <RedirectIfNotAuthenticated
                                    element={<NoAuthSharingSession/>
