@@ -13,6 +13,7 @@
     "@fluentui/react-components": "^9.57.0",
     "@fluentui/react-icons": "^2.0.274",
     "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
     "jwt-decode": "^4.0.0",
     "pdfjs-dist": "^4.10.38",
     "react": "^18.3.1",

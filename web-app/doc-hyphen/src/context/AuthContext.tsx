@@ -3,6 +3,7 @@ import {fetchAppUser, fetchAppUserPersonOrganization} from '../services/userApi.
 import {AppUserDetailedDto, OrganizationBasicDto} from "../app/models/models.tsx";
 import {isTokenExpired} from "../utils/helpers.ts";
 import {useLocation, useNavigate} from "react-router-dom";
+import {setApiClientAuthToken} from "../services/apiClient.ts";
 
 interface AuthContextType
 {
@@ -63,6 +64,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         else
         {
             localStorage.setItem('token', token);
+            setApiClientAuthToken(token);
         }
     }, [token])
 
