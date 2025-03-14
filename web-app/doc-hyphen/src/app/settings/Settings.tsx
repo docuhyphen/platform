@@ -15,13 +15,6 @@ import {
 import {useSettingsStyles} from "./SettingsStyles.tsx";
 import MainMenu from "../components/MainMenu.tsx";
 
-const Airplane = bundleIcon(AirplaneFilled, AirplaneRegular);
-const AirplaneTakeOff = bundleIcon(
-    AirplaneTakeOffFilled,
-    AirplaneTakeOffRegular
-);
-const TimeAndWeather = bundleIcon(TimeAndWeatherFilled, TimeAndWeatherRegular);
-
 const Settings = () =>
 {
     const styles = useSettingsStyles();
@@ -33,7 +26,6 @@ const Settings = () =>
     {
         setSelectedValue(data.value);
     };
-
 
     return (
         <>

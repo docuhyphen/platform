@@ -17,11 +17,8 @@ interface NoAuthSessionDocumentListProps
 const NoAuthSessionDocumentList: React.FC<NoAuthSessionDocumentListProps> = ({session}) =>
 {
     const styles = useNoAuthSessionDocumentListStyles();
-
-    // Track uploading status and progress per document
     const [uploading, setUploading] = useState<Record<string, boolean>>({});
     const [progress, setProgress] = useState<Record<string, number>>({});
-    // Manage file selection on a per-document basis
     const [selectedFiles, setSelectedFiles] = useState<Record<string, File | null>>({});
     const [downloadingDocument, setDownloadingDocument] = useState<boolean>(false);
 

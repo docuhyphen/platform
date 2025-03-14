@@ -114,7 +114,6 @@ export interface Person
     contactDetails?: ContactDetails;
 }
 
-
 export interface ContactDetails
 {
     id: string;
@@ -277,7 +276,6 @@ export interface CommentRequest
     commentText: string;
     commentedBy: string;
 }
-
 
 export interface OrganizationBasicDto
 {

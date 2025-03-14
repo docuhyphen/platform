@@ -23,12 +23,6 @@ import {useIndividualOnboardingFormStyles} from "./IndividualOnboardingFormStyle
 import {DismissRegular} from "@fluentui/react-icons";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 
-const idTypes = [
-    {key: 'ID_NUMBER', text: 'ID Number'},
-    {key: 'PASSPORT_NUMBER', text: 'Passport Number'},
-    {key: 'SOCIAL_SECURITY', text: 'Social Security'},
-];
-
 interface IndividualRegistrationProps
 {
     onRegisterOrganizationChange: (registerOrganization: boolean) => void;
