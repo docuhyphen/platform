@@ -238,7 +238,6 @@ const AccountRecovery: React.FC = () =>
     return (
         <section className={authorizationStyles.auth}>
             <section className={authorizationStyles.authSection}>
-
                 <section className={authorizationStyles.authSection1}>
                     <div>
                         <AppLogo/>
@@ -298,9 +297,8 @@ const AccountRecovery: React.FC = () =>
                             <span>.</span>
                         </>
                     }
-                    {
-                        pwdResetSuccessful && (
-                            <>
+                    {pwdResetSuccessful &&
+                        <>
                                 <section className={accountRecoveryStyles.passwordResetSuccessfulSection}>
                                     <Text align={"center"} size={500} font="monospace">
                                         Password Reset Successful!
@@ -319,7 +317,6 @@ const AccountRecovery: React.FC = () =>
                                 </section>
                                 <div>.</div>
                             </>
-                        )
                     }
                 </section>
                 <section className={authorizationStyles.authSection2}>
