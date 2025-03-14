@@ -101,6 +101,7 @@ const SignIn: React.FC = () =>
         {
             const signInCompletionRequest = {email, otp};
             const response = await completeSignIn(signInCompletionRequest);
+
             setToken(response.token);
             setApiClientAuthToken(response.token);
 
@@ -251,14 +252,12 @@ const SignIn: React.FC = () =>
 
     return (
         <RedirectIfAuthenticated element={
-
             <section className={authorizationStyles.auth}>
                 <section className={authorizationStyles.authSection}>
                     <section className={authorizationStyles.authSection1}>
                         <div>
                             <AppLogo/>
                         </div>
-
                         <div className={authorizationStyles.authorizationFormSection}>
 
                             <Subtitle1 align={"center"}> Sign in</Subtitle1>
@@ -308,7 +307,6 @@ const SignIn: React.FC = () =>
                                 </Caption1>
                             </div>
                         </div>
-                        <span>.</span>
                     </section>
                     <section className={authorizationStyles.authSection2}>
                         <SignInCarousel/>

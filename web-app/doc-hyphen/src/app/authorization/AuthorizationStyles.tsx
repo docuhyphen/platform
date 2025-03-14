@@ -27,7 +27,6 @@ export const useAuthorizationStyles = makeStyles({
         borderRadius: "16px 0 0 16px",
         display: "flex",
         flexDirection: "column",
-        justifyContent: "space-between",
         height: "100%",
         boxSizing: "border-box",
         flex: 1,
@@ -55,5 +54,7 @@ export const useAuthorizationStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: "12px",
+        flex: "1",
+        justifyContent: "center",
     },
 });

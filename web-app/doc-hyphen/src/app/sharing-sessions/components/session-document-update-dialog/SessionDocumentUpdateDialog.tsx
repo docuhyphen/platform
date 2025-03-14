@@ -106,8 +106,7 @@ const SessionDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
             const result = await updateSharingSessionDocument(
                 sessionId,
                 sessionDocument.id,
-                updatedDocument,
-                token
+                updatedDocument
             );
             onDocumentUpdated(result);
             resetState();

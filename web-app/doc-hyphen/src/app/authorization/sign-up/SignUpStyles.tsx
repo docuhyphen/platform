@@ -18,5 +18,6 @@ export const useSignUpStyles = makeStyles({
         gap: "20px",
         alignItems: "center",
         justifyContent: "center",
+        flex: 1,
     },
 });

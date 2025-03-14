@@ -77,7 +77,7 @@ const SessionDeleteDialog: React.FC<SessionDeleteDialogProps> = (
 
         try
         {
-            await deleteSharingSession(session.id, token);
+            await deleteSharingSession(session.id);
             onSessionDeleted(session.id);
             publishSharingSessionDelete(session.id);
             onDismiss();

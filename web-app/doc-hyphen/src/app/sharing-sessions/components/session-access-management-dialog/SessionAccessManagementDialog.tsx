@@ -80,8 +80,8 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
                 allowDocumentUpdate,
                 allowDocumentUpload
             }
-            await updateSharingSession(session.id, request, token);
-            const updatedSession = await fetchSignedInUserAppUserSharingSession(session.id, token);
+            await updateSharingSession(session.id, request);
+            const updatedSession = await fetchSignedInUserAppUserSharingSession(session.id);
             onSessionAccessManagementUpdated(updatedSession as SharingSessionDetailedDto);
             onDismiss();
         }

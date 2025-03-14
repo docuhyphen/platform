@@ -294,7 +294,6 @@ const AccountRecovery: React.FC = () =>
                                     </Caption1>
                                 </div>
                             </div>
-                            <span>.</span>
                         </>
                     }
                     {pwdResetSuccessful &&

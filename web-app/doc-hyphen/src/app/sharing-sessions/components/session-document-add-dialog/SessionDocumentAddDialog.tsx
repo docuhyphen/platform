@@ -76,7 +76,7 @@ const AddDocumentDialog: React.FC<AddDocumentDialogProps> = (
                 restrictType: restrictType
             };
 
-            const addedDocument = await addSharingSessionDocument(sessionId, newDocument, token);
+            const addedDocument = await addSharingSessionDocument(sessionId, newDocument);
 
             onDocumentAdded(addedDocument);
             resetState();

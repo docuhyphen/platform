@@ -9,6 +9,7 @@ import {
     UpdateNoAuthSharingSessionRequest,
     UpdateSharingSessionRequest
 } from "../app/models/models.tsx";
+import {AxiosRequestConfig} from "axios";
 
 const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
 {
@@ -23,30 +24,28 @@ const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
     }
 };
 
+const blobRequest: AxiosRequestConfig = {
+    responseType: 'blob'
+}
+
 const getAuthHeaders = (token: string | null, extraHeaders: Record<string, string> = {}) => ({
     Authorization: token ? `Bearer ${token}` : '',
     ...extraHeaders,
 });
 
-export const initiateSharingSession = (request: SharingSessionInitiationRequest, token: string | null) =>
+export const initiateSharingSession = (request: SharingSessionInitiationRequest) =>
     executeRequest(() =>
-        apiClient.post(`/sharing-sessions/`, request, {
-            headers: getAuthHeaders(token)
-        })
+        apiClient.post(`/sharing-sessions/`, request)
     );
 
-export const fetchSignedInUserAppUserSharingSessions = (token: string | null): Promise<SharingSessionBasicDto[] | ResponseError> =>
+export const fetchSignedInUserAppUserSharingSessions = (): Promise<SharingSessionBasicDto[] | ResponseError> =>
     executeRequest(() =>
-        apiClient.get(`/sharing-sessions/`, {
-            headers: getAuthHeaders(token)
-        })
+        apiClient.get(`/sharing-sessions/`)
     );
 
-export const fetchSignedInUserAppUserSharingSession = (sessionId: string | null, token: string | null): Promise<SharingSessionBasicDto | ResponseError> =>
+export const fetchSignedInUserAppUserSharingSession = (sessionId: string | null): Promise<SharingSessionBasicDto | ResponseError> =>
     executeRequest(() =>
-        apiClient.get(`/sharing-sessions/${sessionId}`, {
-            headers: getAuthHeaders(token)
-        })
+        apiClient.get(`/sharing-sessions/${sessionId}`)
     );
 
 export const checkSignedInAppUserHasSharingSessions = async (token: string | null): Promise<boolean> => {
@@ -81,10 +80,6 @@ export const checkSignedInAppUserHasSharingSessions = async (token: string | nul
     }
 };
 
-
-
-
-
 export const fetchNoAuthSharingSession = (sessionId: string | null): Promise<NoAuthSharingSessionBasicDto | ResponseError> =>
     executeRequest(() =>
         apiClient.get(`no-auth/sharing-sessions/${sessionId}`)
@@ -95,46 +90,34 @@ export const updateNoAuthSharingSession = (sessionId: string, request: UpdateNoA
         apiClient.put(`no-auth/sharing-sessions/${sessionId}`, request)
     );
 
-export const updateSharingSession = (sessionId: string, request: UpdateSharingSessionRequest, token: string | null) =>
+export const updateSharingSession = (sessionId: string, request: UpdateSharingSessionRequest) =>
     executeRequest(() =>
-        apiClient.put(`/sharing-sessions/${sessionId}`, request, {
-            headers: getAuthHeaders(token)
-        })
+        apiClient.put(`/sharing-sessions/${sessionId}`, request)
     );
 
-export const addSharingSessionDocument = (sessionId: string, request: SharingSessionRequestDocumentRequest, token: string | null) =>
+export const addSharingSessionDocument = (sessionId: string, request: SharingSessionRequestDocumentRequest) =>
     executeRequest(() =>
-        apiClient.post(`/sharing-sessions/${sessionId}/documents`, request, {
-            headers: getAuthHeaders(token)
-        })
+        apiClient.post(`/sharing-sessions/${sessionId}/documents`, request)
     );
 
-export const deleteSharingSession = (sessionId: string, token: string | null) =>
+export const deleteSharingSession = (sessionId: string) =>
     executeRequest(() =>
-        apiClient.delete(`/sharing-sessions/${sessionId}`, {
-            headers: getAuthHeaders(token)
-        })
+        apiClient.delete(`/sharing-sessions/${sessionId}`)
     );
 
-export const updateSharingSessionDocument = (sessionId: string, documentId: string, request: SharingSessionRequestDocumentRequest, token: string | null) =>
+export const updateSharingSessionDocument = (sessionId: string, documentId: string, request: SharingSessionRequestDocumentRequest) =>
     executeRequest(() =>
-        apiClient.put(`/sharing-sessions/${sessionId}/documents/${documentId}`, request, {
-            headers: getAuthHeaders(token)
-        })
+        apiClient.put(`/sharing-sessions/${sessionId}/documents/${documentId}`, request)
     );
 
-export const deleteSharingSessionDocument = (sessionId: string, documentId: string, token: string | null) =>
+export const deleteSharingSessionDocument = (sessionId: string, documentId: string) =>
     executeRequest(() =>
-        apiClient.delete(`/sharing-sessions/${sessionId}/documents/${documentId}`, {
-            headers: getAuthHeaders(token)
-        })
+        apiClient.delete(`/sharing-sessions/${sessionId}/documents/${documentId}`)
     );
 
-export const fetchSharingSessionDocumentAuditLogs = (sessionId: string, documentId: string, token: string | null) =>
+export const fetchSharingSessionDocumentAuditLogs = (sessionId: string, documentId: string) =>
     executeRequest(() =>
-        apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/audit`, {
-            headers: getAuthHeaders(token)
-        })
+        apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/audit`)
     );
 
 export const uploadSharingSessionDocument = (
@@ -155,11 +138,8 @@ export const uploadNoAuthSharingSessionDocument = (
     sessionId: string,
     documentId?: string,
     formData?: FormData,
-    onUploadProgress?: (progressEvent: any) => void
-) => {
-
-    alert("Uploading document")
-
+    onUploadProgress?: (progressEvent: any) => void) =>
+{
     return executeRequest(() =>
         apiClient.post(`no-auth/sharing-sessions/${sessionId}/documents/${documentId}/file`, formData, {
             headers: {'Content-Type': 'multipart/form-data'},
@@ -168,38 +148,14 @@ export const uploadNoAuthSharingSessionDocument = (
     );
 }
 
-export const downloadNoAuthSharingSessionDocument = (sessionId: string, documentId?: string, token?: string | null) =>
-    executeRequest(() =>
-        apiClient.get(`no-auth/sharing-sessions/${sessionId}/documents/${documentId}/file`, {
-            headers: getAuthHeaders(token || null),
-            responseType: 'blob'
-        })
-    );
+export const downloadNoAuthSharingSessionDocument = (sessionId: string, documentId?: string) =>
+    executeRequest(() => apiClient.get(`no-auth/sharing-sessions/${sessionId}/documents/${documentId}/file`, blobRequest));
 
-export const downloadSharingSessionDocument = (sessionId: string, documentId?: string, token?: string | null) =>
-    executeRequest(() =>
-        apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/file`, {
-            headers: getAuthHeaders(token || null),
-            responseType: 'blob'
-        })
-    );
+export const downloadSharingSessionDocument = (sessionId: string, documentId?: string) =>
+    executeRequest(() => apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/file`, blobRequest));
 
-export const downloadSharingSessionDocumentZip = (sessionId: string, request: DownloadDocumentsZipRequest, token?: string | null) =>
-    executeRequest(() =>
-        apiClient.post(
-            `/sharing-sessions/${sessionId}/documents/zip-file`,
-            request,
-            {
-                headers: getAuthHeaders(token || null),
-                responseType: 'blob'
-            }
-        )
-    );
+export const downloadSharingSessionDocumentZip = (sessionId: string, request: DownloadDocumentsZipRequest) =>
+    executeRequest(() => apiClient.post(`/sharing-sessions/${sessionId}/documents/zip-file`, request, blobRequest));
 
-export const downloadPreviewPDFSharingSessionDocument = (sessionId: string, documentId?: string, token?: string | null) =>
-    executeRequest(() =>
-        apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/preview`, {
-            headers: getAuthHeaders(token || null),
-            responseType: 'blob'
-        })
-    );
+export const downloadPreviewPDFSharingSessionDocument = (sessionId: string, documentId?: string) =>
+    executeRequest(() => apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/preview`, blobRequest));

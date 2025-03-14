@@ -42,7 +42,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: s
             {
                 try
                 {
-                    const response = await downloadSharingSessionDocument(session.id, sessionDocument.id, token);
+                    const response = await downloadSharingSessionDocument(session.id, sessionDocument.id);
                     const blob = new Blob([response as Blob], {type: 'application/pdf'});
                     setPdfBlob(blob);
 

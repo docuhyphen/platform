@@ -39,7 +39,6 @@ const SharingSessionList: React.FC<SharingSessionListProps> = (
     }) =>
 {
     const styles = useSharingSessionStyles();
-    const token = useToken();
     const [sharingSessions, setSharingSessions] = useState<SharingSessionBasicDto[]>([]);
     const [loadingSharingSessions, setLoadingSharingSessions] = useState(true);
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -48,7 +47,7 @@ const SharingSessionList: React.FC<SharingSessionListProps> = (
     {
         try
         {
-            const response = await fetchSignedInUserAppUserSharingSessions(token);
+            const response = await fetchSignedInUserAppUserSharingSessions();
 
             if (Array.isArray(response) && response.length)
             {

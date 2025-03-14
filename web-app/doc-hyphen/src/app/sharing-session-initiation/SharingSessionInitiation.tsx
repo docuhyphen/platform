@@ -39,7 +39,6 @@ import {SharingSessionRequestDocumentRequest} from "../models/models.tsx";
 const SharingSessionInitiation: React.FC = () =>
 {
     const styles = useSharingSessionInitiationStyles();
-    const token = useToken();
     const {
         choosingTemplate, setChoosingTemplate,
         sessionName, setSessionName,
@@ -143,7 +142,7 @@ const SharingSessionInitiation: React.FC = () =>
                 allowDocumentUpload: allowDocumentUpload
             };
 
-            const createdSharingSession = await initiateSharingSession(sharingSession, token);
+            const createdSharingSession = await initiateSharingSession(sharingSession);
 
             publishNewSharingSessionAddition(createdSharingSession);
 

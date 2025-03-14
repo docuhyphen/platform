@@ -94,7 +94,7 @@ const SharingSessions: React.FC = () =>
 
                 try
                 {
-                    const details = (await fetchSignedInUserAppUserSharingSession(selectedSessionId, token)) as SharingSessionDetailedDto;
+                    const details = (await fetchSignedInUserAppUserSharingSession(selectedSessionId)) as SharingSessionDetailedDto;
                     setSessionDetails(details);
                     setFilteredDocuments(details.documents || []);
 

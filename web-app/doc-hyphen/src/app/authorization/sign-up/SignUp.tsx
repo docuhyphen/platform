@@ -43,7 +43,7 @@ const SignUp: React.FC = () =>
     const [otpRegenerationSuccessfulMsg, setOtpRegenerationSuccessfulMsg] = useState<string | undefined>('');
     const [otpRegenerationFailedMsg, setOtpRegenerationFailedMsg] = useState<string | undefined>('');
     const [responseErrorMessage, setResponseError] = useState<string | undefined>('');
-    const [signUpSuccessful, setSignUpSuccessful] = useState(false);
+    const [signUpSuccessful, setSignUpSuccessful] = useState(true);
     const [initiatingSignUp, setInitiatingSignUp] = useState(false);
     const [regeneratingOtp, setRegeneratingOtp] = useState(false);
     const [completingSignUp, setCompletingSignUp] = useState(false);
@@ -290,7 +290,6 @@ const SignUp: React.FC = () =>
                             Sign In
                         </Button>
                     </div>}
-                    <div>.</div>
                 </section>
                 <section className={authorizationStyles.authSection2}>
                     <SignUpCarousel/>

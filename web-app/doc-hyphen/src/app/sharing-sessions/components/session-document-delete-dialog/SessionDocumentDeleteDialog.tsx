@@ -33,8 +33,6 @@ const SessionDocumentDeleteDialog: React.FC<DeleteDocumentDialogProps> = (
         onDocumentDeleted
     }) =>
 {
-
-    const token = useToken();
     const [deletingDocument, setDeletingDocument] = React.useState(false);
     const globalStyles = useGlobalStyles()
 
@@ -44,7 +42,7 @@ const SessionDocumentDeleteDialog: React.FC<DeleteDocumentDialogProps> = (
 
         try
         {
-            await deleteSharingSessionDocument(session.id, sessionDocument.id, token);
+            await deleteSharingSessionDocument(session.id, sessionDocument.id);
             onDocumentDeleted(sessionDocument.id);
         }
         catch (error)

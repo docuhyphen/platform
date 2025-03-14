@@ -8,18 +8,22 @@ const apiClient = axios.create({
 
 let authToken: string | null = null;
 
-export const setApiClientAuthToken = (token: string | null) => {
+export const setApiClientAuthToken = (token: string | null) =>
+{
     authToken = token;
 };
 
-apiClient.interceptors.request.use(
-    (config) => {
-        if (authToken) {
+apiClient.interceptors.request.use((config) =>
+    {
+        if (authToken)
+        {
             config.headers['Authorization'] = `Bearer ${authToken}`;
         }
+
         return config;
     },
-    (error) => {
+    (error) =>
+    {
         return Promise.reject(error);
     }
 );
