@@ -43,7 +43,7 @@ const SignUp: React.FC = () =>
     const [otpRegenerationSuccessfulMsg, setOtpRegenerationSuccessfulMsg] = useState<string | undefined>('');
     const [otpRegenerationFailedMsg, setOtpRegenerationFailedMsg] = useState<string | undefined>('');
     const [responseErrorMessage, setResponseError] = useState<string | undefined>('');
-    const [signUpSuccessful, setSignUpSuccessful] = useState(true);
+    const [signUpSuccessful, setSignUpSuccessful] = useState(false);
     const [initiatingSignUp, setInitiatingSignUp] = useState(false);
     const [regeneratingOtp, setRegeneratingOtp] = useState(false);
     const [completingSignUp, setCompletingSignUp] = useState(false);
