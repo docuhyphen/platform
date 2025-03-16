@@ -2,7 +2,7 @@ import React, {useEffect} from 'react';
 import {
     Body1,
     Button,
-    Caption1,
+    Caption1, Divider,
     Menu,
     MenuItem,
     MenuList,
@@ -19,7 +19,7 @@ import {
     DeleteIcon,
     DocumentAddIcon,
     EditSessionIcon,
-    ManageAccessIcon,
+    ManageAccessIcon, SessionDetailedViewIcon,
     SessionEndIcon,
     ToggleHeaderDownIcon,
     ToggleHeaderUpIcon
@@ -32,6 +32,7 @@ interface SessionDetailsHeaderProps
     setIsDocumentAddDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     setIsSessionEndDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     setIsDeletedSessionDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    setIsSessionDetailedViewDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     setIsSessionEditDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     setIsSessionAccessManagementDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     sessionPermissions: SharingSessionPermissions;
@@ -42,6 +43,7 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
         sessionDetails,
         setIsDocumentAddDialogOpen,
         setIsSessionEndDialogOpen,
+        setIsSessionDetailedViewDialogOpen,
         setIsDeletedSessionDialogOpen,
         setIsSessionEditDialogOpen,
         setIsSessionAccessManagementDialogOpen,
@@ -120,7 +122,6 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                                     onClick={() => setIsSessionAccessManagementDialogOpen(true)}
                                 />
                             </Tooltip>
-
                             <Menu positioning={{autoSize: true}}>
                                 <MenuTrigger disableButtonEnhancement>
                                     <Button icon={<MoreVerticalRegular/>} appearance="subtle"/>
@@ -128,14 +129,17 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                                 <MenuPopover>
                                     <MenuList>
                                         <MenuItem
+                                            icon={<SessionDetailedViewIcon/>}
+                                            onClick={ () => setIsSessionDetailedViewDialogOpen(true)}>
+                                            Detailed View
+                                        </MenuItem>
+                                        <Divider/>
+                                        <MenuItem
                                             icon={<SessionEndIcon/>}
                                             disabled={sessionDetails.status === SharingSessionStatus.ENDED || !sessionPermissions.canEndSession}
-                                            onClick={() => setIsSessionEndDialogOpen(true)}
-                                        >
+                                            onClick={() => setIsSessionEndDialogOpen(true)}>
                                             End
                                         </MenuItem>
-                                    </MenuList>
-                                    <MenuList>
                                         <MenuItem
                                             icon={<DeleteIcon/>}
                                             disabled={!sessionPermissions.canDeleteSession}

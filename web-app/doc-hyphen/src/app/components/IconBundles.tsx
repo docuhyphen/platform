@@ -29,7 +29,7 @@ import {
     ChevronUpFilled,
     ChevronUpRegular,
     CommentFilled,
-    CommentRegular,
+    CommentRegular, ContentViewFilled, ContentViewRegular,
     DeleteFilled,
     DeleteRegular,
     DocumentAddFilled,
@@ -41,7 +41,7 @@ import {
     DocumentBulletListClockFilled,
     DocumentBulletListClockRegular,
     DocumentBulletListMultipleFilled,
-    DocumentBulletListMultipleRegular,
+    DocumentBulletListMultipleRegular, DocumentFolderFilled, DocumentFolderRegular,
     DocumentOnePageFilled,
     DocumentOnePageRegular,
     DocumentSearchFilled,
@@ -59,7 +59,7 @@ import {
     PeopleCommunityAddFilled,
     PeopleCommunityAddRegular,
     PeopleLockFilled,
-    PeopleLockRegular,
+    PeopleLockRegular, SendFilled, SendRegular,
     SettingsFilled,
     SettingsRegular,
     WindowEditFilled,
@@ -82,6 +82,7 @@ export const PreviousPageIcon = bundleIcon(ArrowPreviousFilled, ArrowPreviousReg
 export const ExpandIcon = bundleIcon(ArrowExpandFilled, ArrowExpandRegular)
 export const CollapseIcon = bundleIcon(ArrowMoveInwardFilled, ArrowMoveInwardRegular)
 export const SessionEndIcon = bundleIcon(CheckmarkNoteFilled, CheckmarkNoteRegular);
+export const SessionDetailedViewIcon = bundleIcon(ContentViewFilled, ContentViewRegular);
 export const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular);
 export const RegenerateOTPIcon = bundleIcon(CalculatorArrowClockwiseFilled, CalculatorArrowClockwiseRegular);
 export const EditSessionIcon = bundleIcon(WindowEditFilled, WindowEditRegular);
@@ -94,7 +95,9 @@ export const DocumentPreviewIcon = bundleIcon(DocumentSearchFilled, DocumentSear
 export const ToggleHeaderUpIcon = bundleIcon(ChevronUpFilled, ChevronUpRegular);
 export const ToggleHeaderDownIcon = bundleIcon(ChevronDownFilled, ChevronDownRegular);
 export const CommentIcon = bundleIcon(CommentFilled, CommentRegular);
+export const SendCommentIcon = bundleIcon(SendFilled, SendRegular);
 export const AuditIcon = bundleIcon(DocumentBulletListClockFilled, DocumentBulletListClockRegular);
+export const DocumentVersionsIcon = bundleIcon(DocumentFolderFilled, DocumentFolderRegular);
 export const RecipientsIcon = bundleIcon(PeopleCommunityAddFilled, PeopleCommunityAddRegular)
 export const DetailsIcon = bundleIcon(DocumentOnePageFilled, DocumentOnePageRegular)
 export const DocumentsIcon = bundleIcon(DocumentBulletListMultipleFilled, DocumentBulletListMultipleRegular)

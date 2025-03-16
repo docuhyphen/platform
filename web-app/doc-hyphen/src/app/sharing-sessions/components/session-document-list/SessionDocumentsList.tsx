@@ -33,6 +33,7 @@ interface SessionDocumentsListProps
     onFilterDocuments: (event: any, data: any) => void;
     setIsDocumentAddDialogOpen: (isOpen: boolean) => void;
     setIsDocumentZipDialogOpen: (isOpen: boolean) => void;
+    setIsDocumentSidebarOpen: (isOpen: boolean) => void;
 }
 
 const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
@@ -50,7 +51,8 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
         onFilterDocuments,
         setIsDocumentAddDialogOpen,
         setIsDocumentUpdateDialogOpen,
-        setIsDocumentZipDialogOpen
+        setIsDocumentZipDialogOpen,
+        setIsDocumentSidebarOpen
     }) =>
 {
     const styles = useSessionDocumentsListStyles();
@@ -63,6 +65,7 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
                 onOpenDetailsSidebar={() =>
                 {
                     setSelectedSessionDocument(sessionDocument);
+                    setIsDocumentSidebarOpen(true);
                 }}
                 onDocumentDeleted={onDocumentDeleted}
                 sessionDocument={sessionDocument}

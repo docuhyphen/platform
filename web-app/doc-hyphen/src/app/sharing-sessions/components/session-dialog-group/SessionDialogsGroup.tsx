@@ -9,6 +9,7 @@ import SessionDocumentZipDownloadDialog
     from "../session-document-zip-download-dialog/SessionDocumentZipDownloadDialog.tsx";
 import SessionEditDialog from "../session-edit-dialog/SessionEditDialog.tsx";
 import SessionAccessManagementDialog from "../session-access-management-dialog/SessionAccessManagementDialog.tsx";
+import SessionDetailedViewDialog from "../session-detailed-view-dialog/SessionDetailedViewDialog.tsx";
 
 interface SessionDialogsGroupProps
 {
@@ -28,6 +29,8 @@ interface SessionDialogsGroupProps
     setIsSessionEditDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     isSessionAccessManagementDialogOpen: boolean;
     setIsSessionAccessManagementDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    isSessionDetailedViewDialogOpen: boolean;
+    setIsSessionDetailedViewDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     sessionDetails: SharingSessionDetailedDto | null;
     selectedSessionId: string | null;
     selectedSessionDocument: DocumentDetailedDto | undefined;
@@ -60,6 +63,8 @@ const SessionDialogsGroup: React.FC<SessionDialogsGroupProps> = (
         setIsSessionEditDialogOpen,
         isSessionAccessManagementDialogOpen,
         setIsSessionAccessManagementDialogOpen,
+        isSessionDetailedViewDialogOpen,
+        setIsSessionDetailedViewDialogOpen,
         sessionDetails,
         selectedSessionId,
         selectedSessionDocument,
@@ -95,6 +100,10 @@ const SessionDialogsGroup: React.FC<SessionDialogsGroupProps> = (
                                            onDismiss={() => setIsSessionAccessManagementDialogOpen(false)}
                                            session={sessionDetails}
                                            onSessionAccessManagementUpdated={onSessionAccessManagementUpdated}/>
+
+            <SessionDetailedViewDialog isOpen={isSessionDetailedViewDialogOpen}
+                                       onDismiss={() => setIsSessionDetailedViewDialogOpen(false)}
+                                       session={sessionDetails}/>
 
             <AddDocumentDialog isOpen={isDocumentAddDialogOpen}
                                onDismiss={() => setIsDocumentAddDialogOpen(false)}

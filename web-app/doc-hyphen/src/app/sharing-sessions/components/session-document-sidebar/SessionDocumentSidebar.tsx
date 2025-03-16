@@ -4,18 +4,20 @@ import {
     DrawerBody,
     DrawerHeader,
     DrawerHeaderTitle,
+    Field,
     InlineDrawer,
     SelectTabData,
     SelectTabEvent,
     Tab,
     TabList,
     TabValue,
-    Text
+    Text,
+    Textarea
 } from "@fluentui/react-components";
 import {DismissRegular} from "@fluentui/react-icons";
 import {useSessionDocumentSidebarStyles} from "./SessionDocumentSidebarStyles.tsx";
 import {DocumentDetailedDto} from "../../../models/models.tsx";
-import {AuditIcon, CommentIcon} from "../../../components/IconBundles.tsx";
+import {AuditIcon, CommentIcon, DocumentVersionsIcon, SendCommentIcon} from "../../../components/IconBundles.tsx";
 
 interface SessionDocumentSidebarProps
 {
@@ -44,7 +46,7 @@ const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
                       open={isOpen}
                       className={styles.sidebarContainer}
                       position="end">
-            <DrawerHeader>
+            <DrawerHeader className={styles.drawerHeader}>
                 <DrawerHeaderTitle
                     action={
                         <Button
@@ -53,27 +55,38 @@ const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
                             icon={<DismissRegular/>}
                             onClick={() => onOpen(false)}
                         />
-                    }
-                >
-                    <Text size={400}> {sessionDocument.title} </Text>
-                </DrawerHeaderTitle>
-            </DrawerHeader>
-
-            <DrawerBody>
-                <div>
+                    }>
                     <TabList selectedValue={selectedValue} onTabSelect={onTabSelect}>
                         <Tab id="comments" icon={<CommentIcon/>} value="comments">
                             Comments
+                        </Tab>
+                        <Tab id="versions" icon={<DocumentVersionsIcon/>} value="versions">
+                            Versions
                         </Tab>
                         <Tab id="audit" icon={<AuditIcon/>} value="audit">
                             Audit
                         </Tab>
                     </TabList>
-                    <div>
-                        {selectedValue === "comments" && <div> COMMENTS</div>}
-                        {selectedValue === "audit" && <div> AUDIT</div>}
-                    </div>
-                </div>
+                </DrawerHeaderTitle>
+            </DrawerHeader>
+            <DrawerBody className={styles.drawerBody}>
+                {selectedValue === "comments" && (<>
+
+                        {Array.from({length: 80}, (_, index) => (
+                            <div><Text size={400} key={index}>Example comment {index + 1}</Text></div>
+                        ))}
+                        <div className={styles.commentFieldContainer}>
+                            <Field className={styles.commentField}>
+                                <Textarea placeholder="Add a comment"
+                                          maxLength={255}/>
+                            </Field>
+                            <Button icon={<SendCommentIcon/>}
+                                    appearance={"transparent"}/>
+                        </div>
+                    </>
+                )}
+                {selectedValue === "versions" && <div> VERSIONS</div>}
+                {selectedValue === "audit" && <div> AUDIT</div>}
             </DrawerBody>
         </InlineDrawer>
     );

@@ -44,6 +44,7 @@ const SharingSessions: React.FC = () =>
     const [isUpdateDocumentDialogOpen, setIsUpdateDocumentDialogOpen] = React.useState(false);
     const [isDocumentZipDialogOpen, setIsDocumentZipDialogOpen] = React.useState(false);
     const [isSessionEditDialogOpen, setIsSessionEditDialogOpen] = React.useState(false);
+    const [isSessionDetailedViewDialogOpen, setIsSessionDetailedViewDialogOpen] = React.useState(false);
     const [isSessionAccessManagementDialogOpen, setIsSessionAccessManagementDialogOpen] = React.useState(false);
     const [isDeletedSessionDialogOpen, setIsDeletedSessionDialogOpen] = React.useState(false);
     const [isSessionEndDialogOpen, setIsSessionEndDialogOpen] = React.useState(false);
@@ -100,9 +101,10 @@ const SharingSessions: React.FC = () =>
 
                     if (details?.documents?.length > 0)
                     {
-                        for (let i = 0; i < details?.documents?.length; i++)
+                        const sortedDocuments = details.documents.sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime());
+                        for (let i = 0; i < sortedDocuments.length; i++)
                         {
-                            const document = details?.documents[i];
+                            const document = sortedDocuments[i];
                             if (document.uploadDate)
                             {
                                 setSelectedSessionDocument(document);
@@ -246,6 +248,8 @@ const SharingSessions: React.FC = () =>
                 setIsDocumentZipDialogOpen={setIsDocumentZipDialogOpen}
                 isSessionEditDialogOpen={isSessionEditDialogOpen}
                 setIsSessionEditDialogOpen={setIsSessionEditDialogOpen}
+                isSessionDetailedViewDialogOpen={isSessionDetailedViewDialogOpen}
+                setIsSessionDetailedViewDialogOpen={setIsSessionDetailedViewDialogOpen}
                 isSessionAccessManagementDialogOpen={isSessionAccessManagementDialogOpen}
                 setIsSessionAccessManagementDialogOpen={setIsSessionAccessManagementDialogOpen}
                 sessionDetails={sessionDetails}
@@ -298,44 +302,44 @@ const SharingSessions: React.FC = () =>
                             setIsSessionEndDialogOpen={setIsSessionEndDialogOpen}
                             setIsDeletedSessionDialogOpen={setIsDeletedSessionDialogOpen}
                             setIsSessionEditDialogOpen={setIsSessionEditDialogOpen}
+                            setIsSessionDetailedViewDialogOpen={ setIsSessionDetailedViewDialogOpen}
                             setIsSessionAccessManagementDialogOpen={setIsSessionAccessManagementDialogOpen}
                             sessionPermissions={permissions}
                         />
+                        <div className={styles.documentsSection}>
+                            {(sessionDetails?.documents?.length > 0) && (
+                                <SessionDocumentsList
+                                    sessionDetails={sessionDetails}
+                                    permissions={permissions}
+                                    onFilterDocuments={onFilterDocuments}
+                                    filteredDocuments={filteredDocuments}
+                                    setSelectedSessionDocument={setSelectedSessionDocument}
+                                    setSelectedUpdateSessionDocument={setSelectedUpdateSessionDocument}
+                                    setIsUploadDocumentDialogOpen={setIsUploadDocumentDialogOpen}
+                                    setIsDocumentUpdateDialogOpen={setIsUpdateDocumentDialogOpen}
+                                    setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}
+                                    setIsDocumentZipDialogOpen={setIsDocumentZipDialogOpen}
+                                    onDocumentDeleted={onDocumentDeleted}
+                                    onDocumentUpdated={onDocumentUpdated}
+                                    onNewDocumentAdded={onNewDocumentAdded}
+                                    onDocumentUploaded={onDocumentUploaded}
+                                    setIsDocumentSidebarOpen={setIsDocumentSidebarOpen}
+                                />
+                            )}
 
-                        {(sessionDetails?.documents?.length > 0) && (
-                            <SessionDocumentsList
-                                sessionDetails={sessionDetails}
-                                permissions={permissions}
-                                onFilterDocuments={onFilterDocuments}
-                                filteredDocuments={filteredDocuments}
-                                setSelectedSessionDocument={setSelectedSessionDocument}
-                                setSelectedUpdateSessionDocument={setSelectedUpdateSessionDocument}
-                                setIsUploadDocumentDialogOpen={setIsUploadDocumentDialogOpen}
-                                setIsDocumentUpdateDialogOpen={setIsUpdateDocumentDialogOpen}
-                                setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}
-                                setIsDocumentZipDialogOpen={setIsDocumentZipDialogOpen}
-                                onDocumentDeleted={onDocumentDeleted}
-                                onDocumentUpdated={onDocumentUpdated}
-                                onNewDocumentAdded={onNewDocumentAdded}
-                                onDocumentUploaded={onDocumentUploaded}
-                            />
-                        )}
+                            {
+                                sessionDetails.documents?.length === 0 &&
+                                <NoSessionDocuments setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}/>
+                            }
 
-                        {
-                            sessionDetails.documents?.length === 0 &&
-                            <NoSessionDocuments setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}/>
-                        }
+                            {selectedSessionDocument && isDocumentSidebarOpen &&
 
-                        {selectedSessionDocument && isDocumentSidebarOpen &&
-                            <div className={styles.documentInfoSidebar}>
-                                &&
                                 <SessionDocumentSidebar
                                     isOpen={isDocumentSidebarOpen}
                                     onOpen={setIsDocumentSidebarOpen}
                                     sessionDocument={selectedSessionDocument}/>
-                            </div>
-                        }
-
+                            }
+                        </div>
                         {/*{selectedSessionDocument &&*/}
                         {/*    <SessionDocumentPreviewer document={selectedSessionDocument}*/}
                         {/*                              session={sessionDetails}/>}*/}

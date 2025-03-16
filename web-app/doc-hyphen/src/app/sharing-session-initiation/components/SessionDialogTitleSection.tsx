@@ -36,7 +36,9 @@ const SessionDialogTitleSection: React.FC<DialogTitleSectionProps> = (
                         </em>)
                     </Text>
                 }
-
+                {/*<Button size={"small"}>*/}
+                {/*    Generate with AI*/}
+                {/*</Button>*/}
                 {(!choosingTemplate && !sessionInitiatedSuccessfully) &&
                     <Button appearance={"outline"}
                             size={"small"}

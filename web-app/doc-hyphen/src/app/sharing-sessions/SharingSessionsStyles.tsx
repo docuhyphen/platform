@@ -38,17 +38,12 @@ export const useSharingSessionsStyles = makeStyles({
         border: "2px solid green"
     },
 
-    documentInfoSidebar: {
-        // width: "300px",
-        // borderLeft: "1px solid rgba(0, 0, 0, .2)",
-    },
-
     detailsContainer: {
         flex: 1,
         display: "flex",
         flexDirection: "column",
         gap: "16px",
-        width: "480px"
+        width: "480px",
     },
 
     noSessionSelectedSection: {
@@ -58,4 +53,10 @@ export const useSharingSessionsStyles = makeStyles({
         height: "100%",
         width: "100%",
     },
+    documentsSection: {
+        display: "flex",
+        flexDirection: "row",
+        gap: "8px",
+        minHeight: "300px"
+    }
 });
