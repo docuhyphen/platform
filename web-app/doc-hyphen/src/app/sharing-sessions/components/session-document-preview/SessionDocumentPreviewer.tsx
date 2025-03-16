@@ -27,6 +27,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = ({document: s
 {
     const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+    const [isPasswordProtected, setIsPasswordProtected] = useState<string | null>(null);
     const [numPages, setNumPages] = useState<number>(0);
     const [isEnlarged, setIsEnlarged] = useState<boolean>(false);
     const token = useToken();

@@ -95,6 +95,7 @@ const SessionDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
         }
     };
 
+    //ToDo: offer PDF conversion when file is not a PDF and PDF is required
     return (
         <Dialog modalType="alert" open={isOpen}>
             <DialogSurface>

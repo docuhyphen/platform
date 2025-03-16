@@ -27,6 +27,7 @@ enum class DocumentType
     DOCX,
     DOC,
     XLSX,
+    XLS,
     PPTX,
     PNG,
     JPG;
@@ -56,6 +57,7 @@ enum class DocumentType
                 DOCX -> ".docx"
                 DOC -> ".doc"
                 XLSX -> ".xlsx"
+                XLS -> ".xls"
                 PPTX -> ".pptx"
                 PNG -> ".png"
                 JPG -> ".jpg"

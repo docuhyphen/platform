@@ -442,6 +442,7 @@ export enum DocumentType
     DOCX = "DOCX",
     DOC = "DOC",
     XLSX = "XLSX",
+    XLS = "XLS",
     PPTX = "PPTX",
     PNG = "PNG",
     JPG = "JPG"
