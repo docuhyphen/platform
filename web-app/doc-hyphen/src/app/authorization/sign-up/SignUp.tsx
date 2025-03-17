@@ -23,6 +23,7 @@ import {useSignUpStyles} from "./SignUpStyles.tsx";
 import {useAuthorizationStyles} from "../AuthorizationStyles.tsx";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 import {ResponseError} from "../../models/models.tsx";
+import validator from 'validator';
 
 const SignUp: React.FC = () =>
 {
@@ -42,7 +43,7 @@ const SignUp: React.FC = () =>
     const [initiationSuccessfulMsg, setInitiationSuccessfulMsg] = useState<string>();
     const [otpRegenerationSuccessfulMsg, setOtpRegenerationSuccessfulMsg] = useState<string | undefined>('');
     const [otpRegenerationFailedMsg, setOtpRegenerationFailedMsg] = useState<string | undefined>('');
-    const [responseErrorMessage, setResponseError] = useState<string | undefined>('');
+    const [responseErrorMessage, setFormErrorMessage] = useState<string | undefined>('');
     const [signUpSuccessful, setSignUpSuccessful] = useState(false);
     const [initiatingSignUp, setInitiatingSignUp] = useState(false);
     const [regeneratingOtp, setRegeneratingOtp] = useState(false);
@@ -50,6 +51,8 @@ const SignUp: React.FC = () =>
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
     {
+        setFormErrorMessage('');
+
         setFormData({
             ...formData,
             [e.target.name]: newValue.value || ''
@@ -58,10 +61,16 @@ const SignUp: React.FC = () =>
 
     const onInitiateSignUp = async () =>
     {
+        if(!validator.isEmail(formData.email))
+        {
+            setFormErrorMessage("A valid email is required");
+            return;
+        }
+
         if (initiatingSignUp) return;
 
         setInitiationSuccessfulMsg("");
-        setResponseError('');
+        setFormErrorMessage('');
         setInitiatingSignUp(true);
 
         try
@@ -73,7 +82,7 @@ const SignUp: React.FC = () =>
         catch (error)
         {
             setInitiationSuccessful(false);
-            setResponseError((error as ResponseError)?.errorMessage);
+            setFormErrorMessage((error as ResponseError)?.errorMessage);
         }
         finally
         {
@@ -83,10 +92,28 @@ const SignUp: React.FC = () =>
 
     const onCompleteSignUp = async () =>
     {
+        if(!formData.otp)
+        {
+            setFormErrorMessage("OTP is required");
+            return;
+        }
+
+        if(!formData.password)
+        {
+            setFormErrorMessage("Password is required");
+            return;
+        }
+
+        if(!formData.confirmationPassword)
+        {
+            setFormErrorMessage("Password confirmation is required");
+            return;
+        }
+
         if (completingSignUp) return;
 
         setInitiationSuccessfulMsg('');
-        setResponseError('');
+        setFormErrorMessage('');
         setCompletingSignUp(true);
 
         try
@@ -96,7 +123,7 @@ const SignUp: React.FC = () =>
         }
         catch (error)
         {
-            setResponseError((error as ResponseError)?.errorMessage);
+            setFormErrorMessage((error as ResponseError)?.errorMessage);
         }
         finally
         {
@@ -145,7 +172,7 @@ const SignUp: React.FC = () =>
                 <MessageBarActions
                     containerAction={
                         <Button
-                            onClick={() => setResponseError(undefined)}
+                            onClick={() => setFormErrorMessage(undefined)}
                             appearance="transparent"
                             icon={<DismissRegular/>}
                         />
