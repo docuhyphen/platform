@@ -73,7 +73,7 @@ class SignUpResource @Inject constructor(
     @Path("/completion")
     fun completeSignUp(signUpRequest: SignUpCompletionRequest): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(5000, 8000)
+//        ResourceEndpointDelayHelper.delayEndpoint(5000, 8000)
 
         return try
         {
@@ -102,7 +102,8 @@ class SignUpResource @Inject constructor(
                 is IncorrectSignUpCompletionStatusException,
                 is OtpRequiredException,
                 is PasswordContainsEmailException,
-                is OTPExpiredException ->
+                is OTPExpiredException,
+                is OtpMaxRetryLimitReachedException ->
                 {
                     val responseError = ResponseError(exception.message)
                     Response.status(BAD_REQUEST)
@@ -126,15 +127,14 @@ class SignUpResource @Inject constructor(
     @Path("/otp-regeneration")
     fun regenerateOtp(request: SignUpRegenerationRequest): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(2000, 4000)
+//        ResourceEndpointDelayHelper.delayEndpoint(2000, 4000)
 
         return try
         {
             signUpService.regenerateOtp(request.email)
             val otpRegenerationResponse =
-                SignUpCompletionResponse("OTP regenerated successfully, please check your email for the new OTP.")
+                SignUpCompletionResponse("OTP regenerated successfully")
             Response.ok(otpRegenerationResponse).build()
-
         }
         catch (exception: Exception)
         {
@@ -142,7 +142,8 @@ class SignUpResource @Inject constructor(
             {
                 is EmailRequiredException,
                 is EmailNotFoundException,
-                is AppUserExistsException ->
+                is AppUserExistsException,
+                is OtpMaxRetryLimitReachedException ->
                 {
                     val responseError = ResponseError(exception.message)
                     Response.status(BAD_REQUEST)

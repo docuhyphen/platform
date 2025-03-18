@@ -156,7 +156,7 @@ const AccountRecovery: React.FC = () =>
         responseErrorMessage && (
             <MessageBar intent={"error"}>
                 <MessageBarBody>
-                    {responseErrorMessage}
+                    <Text size={200}> {responseErrorMessage} </Text>
                 </MessageBarBody>
                 <MessageBarActions
                     containerAction={

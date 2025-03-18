@@ -60,7 +60,7 @@ class SignUpService @Inject constructor(
 
             if (existingSignUp != null)
             {
-                if (existingSignUp.expiresAt.isAfter(LocalDateTime.now()))
+                if (existingSignUp.otpExpiryTimestamp.isAfter(LocalDateTime.now()))
                 {
                     throw ExistingSignUpException()
                 }
@@ -68,7 +68,7 @@ class SignUpService @Inject constructor(
                 existingSignUp.apply {
                     this.otp = otpService.hashOtp(otp)
 
-                    this.expiresAt = LocalDateTime.now().plusMinutes(expirationMinutes.toLong())
+                    this.otpExpiryTimestamp = LocalDateTime.now().plusMinutes(expirationMinutes.toLong())
                 }
                 signUpRepository.update(existingSignUp)
             }
@@ -77,7 +77,7 @@ class SignUpService @Inject constructor(
                 val signUpEntity = SignUpEntity().apply {
                     this.email = email
                     this.otp = otpService.hashOtp(otp)
-                    this.expiresAt = LocalDateTime.now().plusMinutes(expirationMinutes.toLong())
+                    this.otpExpiryTimestamp = LocalDateTime.now().plusMinutes(expirationMinutes.toLong())
                 }
                 signUpRepository.save(signUpEntity)
             }
@@ -127,10 +127,20 @@ class SignUpService @Inject constructor(
             throw EmailNotFoundException()
         }
 
-        if (signUpEntity.status != SignUpStatus.PENDING)
+        // Check for max retries status and enforce cooldown
+        if (signUpEntity.status == SignUpStatus.EXPIRED_MAX_RETRIES)
         {
-            logger.warn("Sign up OTP regeneration failed: Entity (${signUpEntity.status}) is not Pending")
-            throw InvalidSignUpStatusException("Cannot regenerate OTP for a non-pending sign-up.")
+            val cooldownMinutes = 3L
+            val cooldownEndTime = signUpEntity.otpExpiryTimestamp.plusMinutes(cooldownMinutes)
+
+            if (LocalDateTime.now().isBefore(cooldownEndTime))
+            {
+                val minutesRemaining = Duration.between(LocalDateTime.now(), cooldownEndTime).toMinutes() + 1
+                logger.warn("Sign up OTP regeneration failed: Max retries cooldown period active. Minutes remaining: $minutesRemaining")
+                throw OtpMaxRetryLimitReachedException(
+                    "Too many verification attempts. Please wait $minutesRemaining minutes before requesting a new OTP."
+                )
+            }
         }
 
         val newOtp = otpService.generateEmailOtp()
@@ -138,7 +148,9 @@ class SignUpService @Inject constructor(
         val expirationTime = LocalDateTime.now().plusMinutes(configExpiryMinutes)
 
         signUpEntity.otp = otpService.hashOtp(newOtp)
-        signUpEntity.expiresAt = expirationTime
+        signUpEntity.otpExpiryTimestamp = expirationTime
+        signUpEntity.otpAttempts = 0  // Reset the attempts counter
+        signUpEntity.status = SignUpStatus.PENDING // Reset status to PENDING
 
         signUpRepository.update(signUpEntity)
 
@@ -159,7 +171,7 @@ class SignUpService @Inject constructor(
             logger.warn("Sign up completion failed: Entity not found with email ($email)")
         }
 
-        handleMaxAttempts(signUpEntity)
+        handleAttempts(signUpEntity)
 
         ensureOtpValidity(signUpEntity, otp)
 
@@ -189,51 +201,56 @@ class SignUpService @Inject constructor(
         if (password.contains(email)) throw PasswordContainsEmailException().also { logger.warn("Sign up completion failed: Password contains email") }
     }
 
-    private fun handleMaxAttempts(signUpEntity: SignUpEntity)
+    private fun handleAttempts(signUpEntity: SignUpEntity)
     {
+        val now = LocalDateTime.now()
         val maxAttempts = configurationService.getMaxSignUpCompletionOtpAttempts()
+        val cooldownMinutes = 3L
 
-        if (signUpEntity.attempts >= maxAttempts)
+        // Increment attempts counter
+        signUpEntity.otpAttempts++
+
+        // If attempts are under the limit, allow to continue
+        if (signUpEntity.otpAttempts <= maxAttempts)
         {
-            val now = LocalDateTime.now()
-            val minutesTillNextAttempt = Duration.between(now, signUpEntity.expiresAt).toMinutes()
-
-            signUpEntity.status = SignUpStatus.EXPIRED
             signUpRepository.update(signUpEntity)
-
-            if (minutesTillNextAttempt > 0)
-            {
-                throw MaxAttemptsOTPExceededException("Maximum attempts exceeded. Please wait $minutesTillNextAttempt minutes before trying again.").also {
-                    logger.warn("Sign up completion failed. Max attempts reached. Next attempt allowed in $minutesTillNextAttempt minutes.")
-                }
-            }
-            else
-            {
-                signUpEntity.status = SignUpStatus.PENDING
-                signUpEntity.attempts = 0
-                signUpRepository.update(signUpEntity)
-                logger.info("Status reset to PENDING as expiration has passed.")
-            }
+            return
         }
+
+        // Calculate remaining cooldown time
+        val cooldownEndTime = signUpEntity.otpExpiryTimestamp.plusMinutes(cooldownMinutes)
+        val minutesRemaining = Duration.between(now, cooldownEndTime).toMinutes() + 1
+
+        logger.warn("Sign up completion failed. Max attempts ($maxAttempts) reached.")
+
+        if (minutesRemaining <= 0) {
+            logger.warn("Sign up completion failed. Max attempts reached. Cooldown period expired.")
+            throw OTPExpiredException("Your OTP has expired, please request a new one.")
+        }
+
+        // Max attempts reached - mark as expired_max_retries
+        signUpEntity.status = SignUpStatus.EXPIRED_MAX_RETRIES
+        signUpRepository.update(signUpEntity)
+
+        throw MaxAttemptsOTPExceededException(
+            "Maximum verification attempts reached. Please try again in $minutesRemaining minutes."
+        )
     }
 
     private fun ensureOtpValidity(signUpEntity: SignUpEntity, otp: String?)
     {
-        if (!BCrypt.checkpw(otp, signUpEntity.otp))
-        {
-            signUpEntity.attempts++
-            signUpRepository.update(signUpEntity)
+        val providedOtp = otp ?: throw InvalidOtpException()
 
-            throw InvalidOtpException().also {
-                logger.warn("Sign up completion failed. OTP $otp invalid")
-            }
+        if (signUpEntity.otpExpiryTimestamp.isBefore(LocalDateTime.now()))
+        {
+            logger.warn("Sign up completion failed. OTP expired.")
+            throw OTPExpiredException("Your OTP has expired")
         }
 
-        if (signUpEntity.expiresAt.isBefore(LocalDateTime.now()))
+        if (!BCrypt.checkpw(providedOtp, signUpEntity.otp))
         {
-            throw OTPExpiredException(otp!!).also {
-                logger.warn("Sign up completion failed. OTP $otp expired")
-            }
+            logger.warn("Sign up completion failed. Invalid OTP provided.")
+            throw InvalidOtpException()
         }
     }
 

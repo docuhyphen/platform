@@ -19,7 +19,7 @@ export const useOnboardingStyles = makeStyles({
         maxWidth: "100%",
         width: "800px",
         margin: "80px",
-        maxHeight: "600px",
+        maxHeight: "650px",
         borderRadius: "16px",
         boxShadow: "15px 15px 15px rgba(0, 0, 0, .1)",
         background: "rgb(255, 255, 255)",

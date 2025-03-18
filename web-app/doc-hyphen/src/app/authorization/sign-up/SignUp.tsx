@@ -25,6 +25,14 @@ import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 import {ResponseError} from "../../models/models.tsx";
 import validator from 'validator';
 
+interface SignUpFormData
+{
+    email: string;
+    otp: string;
+    password: string;
+    confirmationPassword: string;
+}
+
 const SignUp: React.FC = () =>
 {
     const navigate = useNavigate();
@@ -32,7 +40,7 @@ const SignUp: React.FC = () =>
     const authorizationStyles = useAuthorizationStyles();
     const globalStyles = useGlobalStyles();
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<SignUpFormData>({
         email: '',
         otp: '',
         password: '',
@@ -90,29 +98,47 @@ const SignUp: React.FC = () =>
         }
     };
 
-    const onCompleteSignUp = async () =>
+    const isSignUpCompletionFormValid = () =>
     {
         if(!formData.otp)
         {
             setFormErrorMessage("OTP is required");
-            return;
+            return false;
         }
 
         if(!formData.password)
         {
             setFormErrorMessage("Password is required");
-            return;
+            return false;
         }
 
         if(!formData.confirmationPassword)
         {
             setFormErrorMessage("Password confirmation is required");
+            return false;
+        }
+
+        if (formData.password != formData.confirmationPassword)
+        {
+            setFormErrorMessage("Passwords do not match");
+            return false;
+        }
+
+        return true;
+    }
+
+    const onCompleteSignUp = async () =>
+    {
+        if (!isSignUpCompletionFormValid())
+        {
             return;
         }
 
-        if (completingSignUp) return;
+        if (completingSignUp)
+        {
+            return;
+        }
 
-        setInitiationSuccessfulMsg('');
         setFormErrorMessage('');
         setCompletingSignUp(true);
 
@@ -167,7 +193,7 @@ const SignUp: React.FC = () =>
         responseErrorMessage && (
             <MessageBar intent={"error"}>
                 <MessageBarBody>
-                    {responseErrorMessage}
+                    <Text size={200}> {responseErrorMessage} </Text>
                 </MessageBarBody>
                 <MessageBarActions
                     containerAction={

@@ -9,7 +9,8 @@ import java.util.*
 enum class SignUpStatus {
     PENDING,
     VERIFIED,
-    EXPIRED
+    EXPIRED,
+    EXPIRED_MAX_RETRIES
 }
 
 @Entity
@@ -29,11 +30,14 @@ class SignUpEntity
     @Column(name = "created_at", nullable = false)
     var createdAt: LocalDateTime = LocalDateTime.now()
 
-    @Column(name = "expires_at", nullable = false)
-    lateinit var expiresAt: LocalDateTime
+//    @Column(name = "minutes_til_next_otp_attempt", nullable = false)
+//    var minutesTilOtpNextAttempt: LocalDateTime = LocalDateTime.now()
 
-    @Column(name = "attempts", nullable = false)
-    var attempts: Int = 0
+    @Column(name = "otp_expiry_timestamp", nullable = false)
+    lateinit var otpExpiryTimestamp: LocalDateTime
+
+    @Column(name = "otp_attempts", nullable = false)
+    var otpAttempts: Int = 0
 
     @Column(name = "status", nullable = false)
     @Enumerated(value = EnumType.STRING)
