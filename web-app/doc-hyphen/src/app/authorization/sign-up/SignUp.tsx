@@ -165,6 +165,7 @@ const SignUp: React.FC = () =>
         setOtpRegenerationSuccessfulMsg('');
         setOtpRegenerationFailedMsg('');
         setRegeneratingOtp(true);
+        setFormErrorMessage("")
 
         try
         {

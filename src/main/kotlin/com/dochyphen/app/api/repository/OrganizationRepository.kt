@@ -10,7 +10,7 @@ class OrganizationRepository : BaseRepository<Organization>(Organization::class.
     fun existsByRegistrationNumber(registrationNumber: String): Boolean
     {
         val query = entityManager.createQuery(
-            "SELECT COUNT(c) FROM Organization c WHERE c.registrationNumber = :registrationNumber",
+            "SELECT COUNT(c) FROM Organization c WHERE LOWER(c.registrationNumber) = LOWER(:registrationNumber)",
             Long::class.java
         )
         query.setParameter("registrationNumber", registrationNumber)
@@ -20,7 +20,7 @@ class OrganizationRepository : BaseRepository<Organization>(Organization::class.
     fun findByRegistrationNumber(registrationNumber: String): Organization?
     {
         val query = entityManager.createQuery(
-            "SELECT c FROM Organization c WHERE c.registrationNumber = :registrationNumber",
+            "SELECT COUNT(c) FROM Organization c WHERE LOWER(c.registrationNumber) = LOWER(:registrationNumber)",
             Organization::class.java
         )
         query.setParameter("registrationNumber", registrationNumber)

@@ -127,30 +127,70 @@ class SignUpService @Inject constructor(
             throw EmailNotFoundException()
         }
 
-        // Check for max retries status and enforce cooldown
-        if (signUpEntity.status == SignUpStatus.EXPIRED_MAX_RETRIES)
+        // Check if the account is OTP_LOCKED
+        if (signUpEntity.status == SignUpStatus.OTP_LOCKED)
         {
-            val cooldownMinutes = 3L
-            val cooldownEndTime = signUpEntity.otpExpiryTimestamp.plusMinutes(cooldownMinutes)
+            val lockCooldownMinutes = 15L // Longer cooldown for locked status
+            val lockEndTime = signUpEntity.lastRegenerationAttemptTime?.plusMinutes(lockCooldownMinutes)
+                ?: LocalDateTime.now()
 
-            if (LocalDateTime.now().isBefore(cooldownEndTime))
+            if (LocalDateTime.now().isBefore(lockEndTime))
             {
-                val minutesRemaining = Duration.between(LocalDateTime.now(), cooldownEndTime).toMinutes() + 1
-                logger.warn("Sign up OTP regeneration failed: Max retries cooldown period active. Minutes remaining: $minutesRemaining")
+                val minutesRemaining = Duration.between(LocalDateTime.now(), lockEndTime).toMinutes() + 1
+                logger.warn("Sign up OTP regeneration failed: Account is locked. Minutes remaining: $minutesRemaining")
                 throw OtpMaxRetryLimitReachedException(
-                    "Too many verification attempts. Please wait $minutesRemaining minutes before requesting a new OTP."
+                    "Account is temporarily locked. Please wait $minutesRemaining minutes before requesting a new OTP."
                 )
+            }
+            else
+            {
+                // Reset lock status after cooldown period
+                signUpEntity.status = SignUpStatus.PENDING
+                signUpEntity.otpRegenerationAttempts = 0
             }
         }
 
+        // Calculate when the last OTP was generated based on expiry timestamp
+        val otpExpiryMinutes = configurationService.getSignUpOtpExpiryMins().toLong()
+        val lastOtpGeneratedTime = signUpEntity.otpExpiryTimestamp.minusMinutes(otpExpiryMinutes)
+        val regenerationCooldownMinutes = 3L
+        val cooldownEndTime = lastOtpGeneratedTime.plusMinutes(regenerationCooldownMinutes)
+
+        // Check if we're still in the cooldown period
+        if (LocalDateTime.now().isBefore(cooldownEndTime))
+        {
+            val minutesRemaining = Duration.between(LocalDateTime.now(), cooldownEndTime).toMinutes() + 1
+
+            // Increment regeneration attempts and check if maximum is reached
+            signUpEntity.otpRegenerationAttempts++
+            signUpEntity.lastRegenerationAttemptTime = LocalDateTime.now()
+
+            val maxRegenerationAttempts = 3 // Maximum attempts before locking
+
+            if (signUpEntity.otpRegenerationAttempts >= maxRegenerationAttempts)
+            {
+                signUpEntity.status = SignUpStatus.OTP_LOCKED
+                signUpRepository.update(signUpEntity)
+
+                logger.warn("Sign up OTP regeneration failed: Account locked due to multiple rapid attempts")
+                throw OtpMaxRetryLimitReachedException(
+                    "Account temporarily locked due to multiple attempts. Please wait 15 minutes before trying again."
+                )
+            }
+
+            signUpRepository.update(signUpEntity)
+            logger.warn("Sign up OTP regeneration failed: Cooldown period active. Minutes remaining: $minutesRemaining")
+            throw OtpRegenerationCooldownException("Please wait $minutesRemaining minutes before requesting a new OTP.")
+        }
+
         val newOtp = otpService.generateEmailOtp()
-        val configExpiryMinutes = configurationService.getSignUpOtpExpiryMins()
-        val expirationTime = LocalDateTime.now().plusMinutes(configExpiryMinutes)
+        val expirationTime = LocalDateTime.now().plusMinutes(otpExpiryMinutes)
 
         signUpEntity.otp = otpService.hashOtp(newOtp)
         signUpEntity.otpExpiryTimestamp = expirationTime
-        signUpEntity.otpAttempts = 0  // Reset the attempts counter
-        signUpEntity.status = SignUpStatus.PENDING // Reset status to PENDING
+        signUpEntity.otpAttempts = 0
+        signUpEntity.otpRegenerationAttempts = 0
+        signUpEntity.status = SignUpStatus.PENDING
 
         signUpRepository.update(signUpEntity)
 
@@ -180,29 +220,80 @@ class SignUpService @Inject constructor(
 
     private fun validateInputs(email: String?, otp: String?, password: String?, passwordConfirmation: String?)
     {
-        if (email.isNullOrBlank()) throw EmailRequiredException().also {
-            logger.warn("Sign up completion failed: Email is null or blank")
+        if (email.isNullOrBlank())
+        {
+            throw EmailRequiredException().also {
+                logger.warn("Sign up completion failed: Email is null or blank")
+            }
         }
 
         appUserRepository.findByEmail(email)?.let {
             throw AppUserExistsException()
         }
 
-        if (authenticationService.isEmailInvalid(email)) throw InvalidEmailException().also { logger.warn("Sign up completion failed: Email validation failed") }
-
-        if (otp.isNullOrBlank()) throw OtpRequiredException().also { logger.warn("Sign up completion failed: OTP is null or blank") }
-        if (password.isNullOrBlank()) throw PasswordRequiredException().also { logger.warn("Sign up completion failed: Password is null or blank") }
-        if (passwordConfirmation.isNullOrBlank()) throw ConfirmationPasswordRequiredException().also { logger.warn("Sign up completion failed: Confirmation password is null or blank") }
-
-        if (!authenticationService.isPasswordStrong(password)) throw PasswordRequirementsNotMetException().also {
-            logger.warn("Sign up completion failed: Password validation failed")
+        if (authenticationService.isEmailInvalid(email))
+        {
+            throw InvalidEmailException().also { logger.warn("Sign up completion failed: Email validation failed") }
         }
-        if (password != passwordConfirmation) throw PasswordMismatchException().also { logger.warn("Sign up completion failed: Passwords do not match") }
-        if (password.contains(email)) throw PasswordContainsEmailException().also { logger.warn("Sign up completion failed: Password contains email") }
+
+        if (otp.isNullOrBlank())
+        {
+            throw OtpRequiredException().also { logger.warn("Sign up completion failed: OTP is null or blank") }
+        }
+
+        if (password.isNullOrBlank())
+        {
+            throw PasswordRequiredException().also { logger.warn("Sign up completion failed: Password is null or blank") }
+        }
+
+        if (passwordConfirmation.isNullOrBlank())
+        {
+            throw ConfirmationPasswordRequiredException().also { logger.warn("Sign up completion failed: Confirmation password is null or blank") }
+        }
+
+        if (!authenticationService.isPasswordStrong(password))
+        {
+            throw PasswordRequirementsNotMetException().also {
+                logger.warn("Sign up completion failed: Password validation failed")
+            }
+        }
+
+        if (password != passwordConfirmation)
+        {
+            throw PasswordMismatchException().also { logger.warn("Sign up completion failed: Passwords do not match") }
+        }
+
+        if (password.contains(email))
+        {
+            throw PasswordContainsEmailException().also { logger.warn("Sign up completion failed: Password contains email") }
+        }
     }
 
     private fun handleAttempts(signUpEntity: SignUpEntity)
     {
+        // First check if the account is locked
+        if (signUpEntity.status == SignUpStatus.OTP_LOCKED)
+        {
+            val lockCooldownMinutes = 10L
+            val lockEndTime = signUpEntity.lastRegenerationAttemptTime?.plusMinutes(lockCooldownMinutes)
+                ?: LocalDateTime.now()
+
+            if (LocalDateTime.now().isBefore(lockEndTime))
+            {
+                val minutesRemaining = Duration.between(LocalDateTime.now(), lockEndTime).toMinutes() + 1
+                logger.warn("Sign up completion failed: Account is locked. Minutes remaining: $minutesRemaining")
+                throw OtpMaxRetryLimitReachedException(
+                    "Account is temporarily locked. Please wait $minutesRemaining minutes before attempting again."
+                )
+            }
+            else
+            {
+                // Reset lock status after cooldown period
+                signUpEntity.status = SignUpStatus.PENDING
+                signUpEntity.otpRegenerationAttempts = 0
+            }
+        }
+
         val now = LocalDateTime.now()
         val maxAttempts = configurationService.getMaxSignUpCompletionOtpAttempts()
         val cooldownMinutes = 3L

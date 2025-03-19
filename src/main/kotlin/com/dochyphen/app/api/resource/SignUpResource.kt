@@ -141,6 +141,7 @@ class SignUpResource @Inject constructor(
             when (exception)
             {
                 is EmailRequiredException,
+                is OtpRegenerationCooldownException,
                 is EmailNotFoundException,
                 is AppUserExistsException,
                 is OtpMaxRetryLimitReachedException ->

@@ -10,7 +10,7 @@ class AppUserRepository : BaseRepository<AppUser>(AppUser::class.java)
     fun findByEmail(email: String): AppUser?
     {
         val query: TypedQuery<AppUser> = entityManager.createQuery(
-            "SELECT a FROM AppUser a WHERE a.email = :email",
+            "SELECT a FROM AppUser a WHERE LOWER(a.email) = LOWER(:email)",
             AppUser::class.java
         )
         query.setParameter("email", email)

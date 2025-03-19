@@ -10,7 +10,7 @@ class PersonRepositoryRepository : BaseRepository<Person>(Person::class.java)
     fun existsByIdentificationNumber(string: String): Boolean
     {
         val query: TypedQuery<Long> = entityManager.createQuery(
-            "SELECT COUNT(p) FROM Person p WHERE p.identificationNumber = :identificationNumber",
+            "SELECT COUNT(p) FROM Person p WHERE LOWER(p.identificationNumber) = LOWER(:identificationNumber)",
             Long::class.java
         )
 

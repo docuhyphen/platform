@@ -11,6 +11,7 @@ class MaxAttemptsOTPExceededException(minutesTillNextAttempt: String) : RuntimeE
 class OtpMaxRetryLimitReachedException(message: String) : RuntimeException(message)
 class IncorrectSignUpCompletionStatusException(status: SignUpStatus) : RuntimeException("Incorrect sign up completion status $status")
 class OTPExpiredException(otp: String) : RuntimeException(otp)
+class OtpRegenerationCooldownException(message: String = "Please wait before requesting a new OTP.") : RuntimeException(message)
 class InvalidSignUpStatusException(message: String) : RuntimeException(message)
 class InvalidEmailException(message: String = "Email is invalid") : RuntimeException("")
 class EmailExistsException() : RuntimeException("Email already exists")

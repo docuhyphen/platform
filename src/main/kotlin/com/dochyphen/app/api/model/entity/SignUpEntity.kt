@@ -10,7 +10,8 @@ enum class SignUpStatus {
     PENDING,
     VERIFIED,
     EXPIRED,
-    EXPIRED_MAX_RETRIES
+    EXPIRED_MAX_RETRIES,
+    OTP_LOCKED
 }
 
 @Entity
@@ -42,6 +43,12 @@ class SignUpEntity
     @Column(name = "status", nullable = false)
     @Enumerated(value = EnumType.STRING)
     var status: SignUpStatus = SignUpStatus.PENDING
+
+    @Column(name = "otp_regeneration_attempts", nullable = false)
+    var otpRegenerationAttempts: Int = 0
+
+    @Column(name = "last_regeneration_attempt_time", nullable = true)
+    var lastRegenerationAttemptTime: LocalDateTime? = null
 
     constructor()
 }
