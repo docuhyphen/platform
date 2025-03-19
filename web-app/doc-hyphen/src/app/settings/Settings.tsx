@@ -50,9 +50,18 @@ const Settings = () =>
                     </Tab>
                 </TabList>
                 <div className={styles.panels}>
-                    {selectedValue === "profile" && <div> <Text> Profile Tab</Text></div>}
+                    {selectedValue === "profile" && <div>
+                        <Text> Profile Tab</Text>
+                        <p>
+                            Notify me with email every time I sign in
+                        </p>
+                    </div>}
                     {selectedValue === "organization" && <div><Text> Organization Tab</Text></div>}
-                    {selectedValue === "appSettings" && <div><Text> App Settings Tab</Text></div>}
+                    {selectedValue === "appSettings" && <div><Text> App Settings Tab</Text>
+                    <p>
+                        Automatically preview documents when they are uploaded
+                    </p>
+                    </div>}
                     {selectedValue === "people" && <div><Text> People Tab</Text></div>}
                     {selectedValue === "templates" && <div><Text> Templates Tab</Text></div>}
                 </div>

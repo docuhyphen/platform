@@ -53,10 +53,15 @@ export const useSharingSessionsStyles = makeStyles({
         height: "100%",
         width: "100%",
     },
+    documentsSectionContainer: {
+        display: "flex",
+        minHeight: "200px"
+    },
     documentsSection: {
         display: "flex",
-        flexDirection: "row",
+        flexDirection: "column",
         gap: "8px",
-        minHeight: "300px"
-    }
+        flex: "1",
+        minWidth: "200px"
+    },
 });

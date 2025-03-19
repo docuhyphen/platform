@@ -43,6 +43,7 @@ const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
 
     return (
         <InlineDrawer as="aside"
+                      id={"SessionDocumentSidebar"}
                       open={isOpen}
                       className={styles.sidebarContainer}
                       position="end">
