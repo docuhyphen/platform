@@ -52,7 +52,7 @@ const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
                     action={
                         <Button
                             size={"small"}
-                            appearance="primary"
+                            appearance="subtle"
                             shape={"circular"}
                             icon={<DismissRegular/>}
                             onClick={() => onOpen(false)}
