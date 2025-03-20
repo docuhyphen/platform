@@ -110,6 +110,7 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
                                 </Caption1>
                             ) : (
                                 <Button appearance="transparent"
+                                        size={"small"}
                                         icon={<DocumentAddIcon/>} onClick={() =>
                                 {
                                     setSelectedSessionDocument(sessionDocument);
