@@ -24,6 +24,6 @@ export const useSessionDocumentSidebarStyles = makeStyles({
     },
     commentField: {
         flex: 1,
-        padding: "4px",
+        // padding: "4px",
     }
 });

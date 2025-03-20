@@ -51,8 +51,9 @@ const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
                 <DrawerHeaderTitle
                     action={
                         <Button
-                            appearance="subtle"
-                            aria-label="Close"
+                            size={"small"}
+                            appearance="primary"
+                            shape={"circular"}
                             icon={<DismissRegular/>}
                             onClick={() => onOpen(false)}
                         />
