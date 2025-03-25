@@ -44,6 +44,8 @@ const SessionDocumentDownloadDialog: React.FC<DownloadDocumentDialogProps> = (
 
     useEffect(() =>
     {
+        console.log("...........", sessionDocument)
+
         setDownloadName(`${session?.sessionName?.replace(/\s+/g, '-')}-${sessionDocument?.title?.replace(/\s+/g, '-')}`);
     }, []);
 
@@ -59,7 +61,7 @@ const SessionDocumentDownloadDialog: React.FC<DownloadDocumentDialogProps> = (
 
             link.id = 'f-download-link';
             link.href = url;
-            link.setAttribute('download', `${downloadName}.pdf`); //ToDo: get type from document
+            link.setAttribute('download', `${downloadName}.${sessionDocument.type}`); //ToDo: get type from document
 
             window.document.body.appendChild(link);
 
@@ -99,7 +101,7 @@ const SessionDocumentDownloadDialog: React.FC<DownloadDocumentDialogProps> = (
                                 placeholder="Document name"
                                 contentAfter={
                                     <Text size={400}>
-                                        .pdf
+                                        .{sessionDocument && (sessionDocument?.type?.toLowerCase())}
                                     </Text>
                                 }
                             />

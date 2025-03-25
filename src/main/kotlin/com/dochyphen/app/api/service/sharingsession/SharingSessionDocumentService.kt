@@ -336,8 +336,28 @@ class SharingSessionDocumentService @Inject constructor(
         return pdfFile
     }
 
-    private fun convertToPdf(file: File): File
+    private fun convertToPdf(originalFile: File): File
     {
-        return file
+        logger.info("CONVERTING....")
+
+        val pdfFile = File(originalFile.parent, originalFile.nameWithoutExtension + ".pdf")
+        val command = listOf(
+            "soffice",
+            "--headless",
+            "--convert-to",
+            "pdf",
+            originalFile.absolutePath,
+            "--outdir",
+            originalFile.parent
+        )
+
+        val process = ProcessBuilder(command).start()
+        process.waitFor()
+
+        if (!pdfFile.exists())
+        {
+            throw IllegalStateException("PDF conversion failed for file: ${originalFile.name}")
+        }
+        return pdfFile
     }
 }
