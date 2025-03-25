@@ -4,7 +4,14 @@ import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 import {Button, Input, Text} from "@fluentui/react-components";
 import {downloadPreviewPDFSharingSessionDocument} from "../../../../services/sharingSessionApi";
-import {CollapseIcon, ExpandIcon, LastPageIcon, PreviousPageIcon} from "../../../components/IconBundles.tsx";
+import {
+    CollapseIcon,
+    ExpandIcon,
+    LastPageIcon,
+    PreviousPageIcon,
+    ZoomInIcon,
+    ZoomOutIcon
+} from "../../../components/IconBundles.tsx";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../../../models/models";
 import {useSessionDocumentPreviewerStyles} from "./SessionDocumentPreviewerStyles";
 import useToken from "../../../../context/useToken";
@@ -31,6 +38,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     const [numPages, setNumPages] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [isEnlarged, setIsEnlarged] = useState<boolean>(false);
+    const [zoomLevel, setZoomLevel] = useState<number>(1.0);
 
     useEffect(() =>
     {
@@ -96,6 +104,16 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         setIsEnlarged(prev => !prev);
     };
 
+    const handleZoomIn = () =>
+    {
+        setZoomLevel(prevZoom => Math.min(prevZoom + 0.1, 2.0));
+    };
+
+    const handleZoomOut = () =>
+    {
+        setZoomLevel(prevZoom => Math.max(prevZoom - 0.1, 0.5));
+    };
+
     return (
         <section className={isEnlarged ? styles.enlargedPreviewContainer : styles.previewContainer}
                  id={"SessionDocumentSidebar"}>
@@ -108,8 +126,20 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                 )}
                 <div className={isEnlarged ? styles.enlargedPreviewHeaderActions : styles.previewHeaderActions}>
                     {!isEnlarged && (
-                        <Button onClick={toggleEnlarge} appearance="transparent"
-                                icon={isEnlarged ? <CollapseIcon/> : <ExpandIcon/>}/>
+                        <>
+                            <Button onClick={toggleEnlarge}
+                                    appearance="transparent"
+                                    icon={isEnlarged ? <CollapseIcon/> : <ExpandIcon/>}/>
+
+                            <Button onClick={handleZoomOut}
+                                    appearance="transparent"
+                                    icon={<ZoomOutIcon/>}/>
+
+                            <Button onClick={handleZoomIn}
+                                    appearance="transparent"
+                                    icon={<ZoomInIcon/>}/>
+                            {/*<Divider vertical style={{ height: "100%" }} />*/}
+                        </>
                     )}
 
                     <div>
@@ -124,13 +154,26 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                             contentAfter={<Text>/{numPages}</Text>}
                         />
 
-                        <Button onClick={handleNextPage} appearance="transparent">Next</Button>
+                        <Button onClick={handleNextPage}
+                                appearance="transparent">
+                            Next</Button>
                         <Button onClick={() => goToPage(numPages)} icon={<LastPageIcon/>} appearance="transparent"/>
                     </div>
 
                     {isEnlarged && (
-                        <Button onClick={toggleEnlarge} appearance="transparent"
-                                icon={isEnlarged ? <CollapseIcon/> : <ExpandIcon/>}/>
+                        <>
+                            <Button onClick={handleZoomOut}
+                                    appearance="transparent"
+                                    icon={<ZoomOutIcon/>}/>
+
+                            <Button onClick={handleZoomIn}
+                                    appearance="transparent"
+                                    icon={<ZoomInIcon/>}/>
+
+                            <Button onClick={toggleEnlarge}
+                                    appearance="transparent"
+                                    icon={isEnlarged ? <CollapseIcon/> : <ExpandIcon/>}/>
+                        </>
                     )}
                 </div>
             </div>
@@ -148,7 +191,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                             <Page
                                 key={`page_\${currentPage}`}
                                 pageNumber={currentPage}
-                                scale={isEnlarged ? 1.1 : 1.0}
+                                scale={isEnlarged ? zoomLevel * 1.1 : zoomLevel}
                             />
                         )}
                     </Document>

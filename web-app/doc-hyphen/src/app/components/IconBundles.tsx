@@ -63,7 +63,7 @@ import {
     SettingsFilled,
     SettingsRegular,
     WindowEditFilled,
-    WindowEditRegular
+    WindowEditRegular, ZoomInFilled, ZoomInRegular, ZoomOutFilled, ZoomOutRegular
 } from "@fluentui/react-icons";
 
 export const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
@@ -81,6 +81,8 @@ export const LastPageIcon = bundleIcon(ArrowNextFilled, ArrowNextRegular)
 export const PreviousPageIcon = bundleIcon(ArrowPreviousFilled, ArrowPreviousRegular)
 export const ExpandIcon = bundleIcon(ArrowExpandFilled, ArrowExpandRegular)
 export const CollapseIcon = bundleIcon(ArrowMoveInwardFilled, ArrowMoveInwardRegular)
+export const ZoomInIcon = bundleIcon(ZoomInFilled, ZoomInRegular)
+export const ZoomOutIcon = bundleIcon(ZoomOutFilled, ZoomOutRegular)
 export const SessionEndIcon = bundleIcon(CheckmarkNoteFilled, CheckmarkNoteRegular);
 export const SessionDetailedViewIcon = bundleIcon(ContentViewFilled, ContentViewRegular);
 export const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular);

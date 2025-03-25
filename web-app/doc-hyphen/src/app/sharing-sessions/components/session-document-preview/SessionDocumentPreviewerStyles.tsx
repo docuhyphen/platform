@@ -66,7 +66,7 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
     },
 
     enlargedPreviewHeader: {
-        maxWidth: "800px",
+        // maxWidth: "800px",
         zIndex: 9999,
         margin: "0 auto",
         boxSizing: "border-box",
@@ -87,7 +87,7 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
     enlargedPdfDocumentContainer: {
         boxSizing: "border-box",
         background: "white",
-        maxWidth: "800px",
+        // maxWidth: "800px",
         margin: "0 auto",
         flex: 1,
         overflow: "auto",
