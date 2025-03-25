@@ -1,0 +1,33 @@
+version: '3.8'
+services:
+  quarkus-app:
+    build: .
+    container_name: doc-hyphen-api
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./src:/app/src
+      - ./resources:/app/resources
+      - ./logs:/app/logs
+    environment:
+      - QUARKUS_LAUNCH_DEVMODE=true
+      - QUARKUS_HTTP_HOST=0.0.0.0
+    depends_on:
+      - postgres
+    restart: always
+
+  postgres:
+    image: postgres:15
+    container_name: doc-hyphen-postgres-db
+    environment:
+      POSTGRES_DB: doc-hyphen-postgres-db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  postgres-data:
