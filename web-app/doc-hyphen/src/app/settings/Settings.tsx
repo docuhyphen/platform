@@ -1,16 +1,11 @@
 import * as React from "react";
-import {SelectTabData, SelectTabEvent, Switch, Tab, TabList, TabValue, Text,} from "@fluentui/react-components";
+import {SelectTabData, SelectTabEvent, Tab, TabList, TabValue, Text,} from "@fluentui/react-components";
 import {
-    AirplaneFilled,
-    AirplaneRegular,
-    AirplaneTakeOffFilled,
-    AirplaneTakeOffRegular,
-    BookTemplateRegular, BuildingPeopleRegular, BuildingRegular,
-    bundleIcon,
+    BookTemplateRegular,
+    BuildingPeopleRegular,
+    BuildingRegular,
     PersonSettingsRegular,
     SettingsCogMultipleRegular,
-    TimeAndWeatherFilled,
-    TimeAndWeatherRegular,
 } from "@fluentui/react-icons";
 import {useSettingsStyles} from "./SettingsStyles.tsx";
 import MainMenu from "../components/MainMenu.tsx";
@@ -50,13 +45,20 @@ const Settings = () =>
                     </Tab>
                 </TabList>
                 <div className={styles.panels}>
-                    {selectedValue === "profile" && <div>
+                    {selectedValue === "profile" &&
+                        <div>
                         <Text> Profile Tab</Text>
                         <p>
                             Notify me with email every time I sign in
                         </p>
                     </div>}
-                    {selectedValue === "organization" && <div><Text> Organization Tab</Text></div>}
+                    {selectedValue === "organization" &&
+                        <div>
+                            <Text> Organization Tab</Text>
+                            <p>
+                                Allow other users outside your organization to search for you
+                            </p>
+                        </div>}
                     {selectedValue === "appSettings" && <div><Text> App Settings Tab</Text>
                     <p>
                         Automatically preview documents when they are uploaded
