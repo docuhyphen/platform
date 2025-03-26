@@ -110,7 +110,7 @@ export const useSharingSessionStyles = makeStyles({
         scrollbarWidth: "thin",
         scrollbarColor: "#888 #f1f1f1",
         flex: 1,
-        minWidth: "200px"
+        minWidth: "380px"
     },
 
     sharingSessionsListBodyWebkitScrollbar: {
