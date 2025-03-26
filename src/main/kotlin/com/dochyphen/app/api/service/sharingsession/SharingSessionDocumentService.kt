@@ -265,7 +265,32 @@ class SharingSessionDocumentService @Inject constructor(
 
     private fun validateFileAndExtension(file: File?, extension: String?)
     {
-        //ToDo: check if extension is supported
+        //ToDo: check if extension is supported using the DocumentType enum
+        // Also check if the file is not too large
+        // Also check if the file is not too small
+        // Also check if the file is not empty
+        // Also check if the file is not a virus
+        // Also check if the file is not a malware
+        //Also check if the file is not a ransomware
+        //Also check if the file is not a spyware
+        //Also check if the file is not a trojan
+        //Also check if the file is not a worm
+        //Also check if the file is not a rootkit
+        //Also check if the file is not a keylogger
+        //Also check if the file is not a adware
+        //Also check if the file is not a scareware
+        //Also check if the file is not a crimeware
+        //Also check if the file is not a backdoor
+        //Also check if the file is not a botnet
+        //Also check if the file is not a dropper
+        //Also check if the file is not a exploit
+        //Also check if the file is not a logic bomb
+        //Also check if the file is not a time bomb
+        //Also check if the file is not a spam
+        //Also check if the file is not a phishing
+        //Also check if the file is not a spoofing
+        //Also check if the file is not a sniffing
+
         file ?: throw IllegalArgumentException("File cannot be null")
         extension ?: throw IllegalArgumentException("Extension cannot be null")
     }

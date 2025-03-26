@@ -36,7 +36,7 @@ enum class DocumentType
     {
         fun fromFileExtension(extension: String): DocumentType?
         {
-            return when (extension)
+            return when (extension.lowercase())
             {
                 ".pdf" -> PDF
                 ".docx" -> DOCX

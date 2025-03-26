@@ -12,6 +12,7 @@ import {
     Input
 } from "@fluentui/react-components";
 import {formatDateWithOrdinal} from "../../../helpers.ts";
+import {useSessionDDetailedViewDialogStyles} from "./SessionDetailedViewDialogStyles.tsx";
 
 interface SessionDeleteDialogProps
 {
@@ -27,6 +28,8 @@ const SessionDetailedViewDialog: React.FC<SessionDeleteDialogProps> = (
         session
     }) =>
 {
+    const styles = useSessionDDetailedViewDialogStyles();
+
     const getStatusAsText = (status: SharingSessionStatus) =>
     {
         switch (status)
@@ -61,7 +64,9 @@ const SessionDetailedViewDialog: React.FC<SessionDeleteDialogProps> = (
                     <DialogTitle>Sharing Session Detailed View</DialogTitle>
                     <DialogContent>
                         {session && <>
-
+                            <div className={styles.sessionStatuses}>
+                                {getStatusAsText(session.status)}
+                            </div>
                             <Field label={"Name"}>
                                 <Input type="text" value={session.sessionName} disabled={true}/>
                             </Field>
@@ -79,9 +84,6 @@ const SessionDetailedViewDialog: React.FC<SessionDeleteDialogProps> = (
                             </Field>
                             <Field label={"Date Initiated"}>
                                 <Input type="text" value={formatDateWithOrdinal(session.createdDate)} disabled={true}/>
-                            </Field>
-                            <Field label={"Status"}>
-                                <Input type="text" value={getStatusAsText(session.status)} disabled={true}/>
                             </Field>
                             {/*<Field label={"Total Documents"}>*/}
                         {/*    <Input type="text" value={session?.documents?.length || "0"} disabled={true}/>*/}
