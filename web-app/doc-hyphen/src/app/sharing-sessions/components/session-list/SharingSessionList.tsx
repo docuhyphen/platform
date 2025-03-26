@@ -26,7 +26,12 @@ import {
     sharingSessionInitiationObservable,
     sharingSessionUpdatedObservable
 } from "../../../observable/sharingSessionObservables.ts";
-import {FilterIcon, SortDownIcon} from "../../../components/IconBundles.tsx";
+import {
+    CollapseSessionListSidebarIcon,
+    ExpandSessionListSidebarIcon,
+    FilterIcon,
+    SortDownIcon
+} from "../../../components/IconBundles.tsx";
 
 interface SharingSessionListProps
 {
@@ -41,6 +46,7 @@ const SharingSessionList: React.FC<SharingSessionListProps> = (
     const styles = useSharingSessionStyles();
     const [sharingSessions, setSharingSessions] = useState<SharingSessionBasicDto[]>([]);
     const [loadingSharingSessions, setLoadingSharingSessions] = useState(true);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
     const fetchSharingSessions = async () =>
@@ -189,8 +195,13 @@ const SharingSessionList: React.FC<SharingSessionListProps> = (
         </div>
     };
 
+    const toggleSidebar = () =>
+    {
+        setIsSidebarCollapsed(!isSidebarCollapsed);
+    }
+
     return (
-        <section className={styles.sharingSessionsListContainer}>
+        <section className={isSidebarCollapsed ? styles.sharingSessionsListContainer : styles.sharingSessionsListContainerCollapsed}>
             <div className={styles.sharingSessionsListHeader}>
                 <Field className={styles.filterSearchField}>
                     <SearchBox/>
@@ -264,16 +275,28 @@ const SharingSessionList: React.FC<SharingSessionListProps> = (
             </List>
             <div className={styles.sharingSessionsListFooter}>
                 <span>
-                    {loadingSharingSessions && <Spinner size={"tiny"}/>}
-                    {!loadingSharingSessions && <>
-                        Showing <strong> {sharingSessions.length} </strong> Sharing Sessions
-                    </>}
+                    {isSidebarCollapsed && <>
+                        <Button size={"small"}
+                                appearance={"subtle"}
+                                icon={<CollapseSessionListSidebarIcon/>}
+                                onClick={toggleSidebar}/>
+                        </>
+                    }
+
+                    {!isSidebarCollapsed &&
+                        <Button size={"small"}
+                                appearance={"subtle"}
+                                icon={<ExpandSessionListSidebarIcon/>}
+                                onClick={toggleSidebar}/>
+                    }
                 </span>
-                <Button size={"small"}
-                        appearance={"primary"}
-                        disabled>
-                    View All
-                </Button>
+                {isSidebarCollapsed &&
+                    <Button size={"small"}
+                            appearance={"primary"}
+                            disabled>
+                        Clear filters
+                    </Button>
+                }
             </div>
         </section>
     );

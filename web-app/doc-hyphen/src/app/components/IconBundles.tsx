@@ -24,12 +24,18 @@ import {
     ChannelShareRegular,
     CheckmarkNoteFilled,
     CheckmarkNoteRegular,
+    ChevronDoubleLeftFilled,
+    ChevronDoubleLeftRegular,
+    ChevronDoubleRightFilled,
+    ChevronDoubleRightRegular,
     ChevronDownFilled,
     ChevronDownRegular,
     ChevronUpFilled,
     ChevronUpRegular,
     CommentFilled,
-    CommentRegular, ContentViewFilled, ContentViewRegular,
+    CommentRegular,
+    ContentViewFilled,
+    ContentViewRegular,
     DeleteFilled,
     DeleteRegular,
     DocumentAddFilled,
@@ -41,7 +47,9 @@ import {
     DocumentBulletListClockFilled,
     DocumentBulletListClockRegular,
     DocumentBulletListMultipleFilled,
-    DocumentBulletListMultipleRegular, DocumentFolderFilled, DocumentFolderRegular,
+    DocumentBulletListMultipleRegular,
+    DocumentFolderFilled,
+    DocumentFolderRegular,
     DocumentOnePageFilled,
     DocumentOnePageRegular,
     DocumentSearchFilled,
@@ -59,11 +67,17 @@ import {
     PeopleCommunityAddFilled,
     PeopleCommunityAddRegular,
     PeopleLockFilled,
-    PeopleLockRegular, SendFilled, SendRegular,
+    PeopleLockRegular,
+    SendFilled,
+    SendRegular,
     SettingsFilled,
     SettingsRegular,
     WindowEditFilled,
-    WindowEditRegular, ZoomInFilled, ZoomInRegular, ZoomOutFilled, ZoomOutRegular
+    WindowEditRegular,
+    ZoomInFilled,
+    ZoomInRegular,
+    ZoomOutFilled,
+    ZoomOutRegular
 } from "@fluentui/react-icons";
 
 export const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
@@ -104,3 +118,5 @@ export const RecipientsIcon = bundleIcon(PeopleCommunityAddFilled, PeopleCommuni
 export const DetailsIcon = bundleIcon(DocumentOnePageFilled, DocumentOnePageRegular)
 export const DocumentsIcon = bundleIcon(DocumentBulletListMultipleFilled, DocumentBulletListMultipleRegular)
 export const OptionsIcon = bundleIcon(OptionsFilled, OptionsRegular)
+export const CollapseSessionListSidebarIcon = bundleIcon(ChevronDoubleLeftFilled, ChevronDoubleLeftRegular)
+export const ExpandSessionListSidebarIcon = bundleIcon(ChevronDoubleRightFilled, ChevronDoubleRightRegular)
