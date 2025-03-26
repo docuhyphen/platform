@@ -265,34 +265,74 @@ class SharingSessionDocumentService @Inject constructor(
 
     private fun validateFileAndExtension(file: File?, extension: String?)
     {
-        //ToDo: check if extension is supported using the DocumentType enum
-        // Also check if the file is not too large
-        // Also check if the file is not too small
-        // Also check if the file is not empty
-        // Also check if the file is not a virus
-        // Also check if the file is not a malware
-        //Also check if the file is not a ransomware
-        //Also check if the file is not a spyware
-        //Also check if the file is not a trojan
-        //Also check if the file is not a worm
-        //Also check if the file is not a rootkit
-        //Also check if the file is not a keylogger
-        //Also check if the file is not a adware
-        //Also check if the file is not a scareware
-        //Also check if the file is not a crimeware
-        //Also check if the file is not a backdoor
-        //Also check if the file is not a botnet
-        //Also check if the file is not a dropper
-        //Also check if the file is not a exploit
-        //Also check if the file is not a logic bomb
-        //Also check if the file is not a time bomb
-        //Also check if the file is not a spam
-        //Also check if the file is not a phishing
-        //Also check if the file is not a spoofing
-        //Also check if the file is not a sniffing
-
+        // Validate null checks
         file ?: throw IllegalArgumentException("File cannot be null")
         extension ?: throw IllegalArgumentException("Extension cannot be null")
+
+        // Clean up the extension format (remove leading dots if present)
+        val cleanExtension = if (extension.startsWith(".")) extension else ".$extension"
+
+        // Check if extension is supported using the DocumentType enum
+        val documentType = DocumentType.fromFileExtension(cleanExtension)
+            ?: throw IllegalArgumentException("Unsupported file extension: $cleanExtension")
+
+        // Check file size (10MB limit)
+        val maxSizeBytes = 10_485_760L // 10MB
+        if (file.length() > maxSizeBytes)
+        {
+            throw IllegalArgumentException("File is too large. Maximum size allowed is 10MB")
+        }
+
+        // Check if file is not empty
+        if (file.length() == 0L)
+        {
+            throw IllegalArgumentException("File cannot be empty")
+        }
+
+        // Minimum size check - prevent fake/corrupted files
+        val minSizeBytes = 100L
+        if (file.length() < minSizeBytes)
+        {
+            throw IllegalArgumentException("File is too small. Minimum size required is 100 bytes")
+        }
+
+        // Validate file content type matches extension using Apache Tika
+        validateFileContentType(file, documentType)
+    }
+
+    private fun validateFileContentType(file: File, expectedType: DocumentType)
+    {
+        try
+        {
+            val tika = org.apache.tika.Tika()
+            val detectedMimeType = tika.detect(file)
+
+            val validMimeType = when (expectedType)
+            {
+                DocumentType.PDF -> "application/pdf"
+                DocumentType.DOCX -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                DocumentType.DOC -> "application/msword"
+                DocumentType.XLSX -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                DocumentType.XLS -> "application/vnd.ms-excel"
+                DocumentType.PPTX -> "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                DocumentType.PPT -> "application/vnd.ms-powerpoint"
+                DocumentType.PNG -> "image/png"
+                DocumentType.JPG -> "image/jpeg"
+            }
+
+            if (!detectedMimeType.startsWith(validMimeType))
+            {
+                throw IllegalArgumentException("File content doesn't match the extension. Expected $validMimeType but found $detectedMimeType")
+            }
+        }
+        catch (e: Exception)
+        {
+            when (e)
+            {
+                is IllegalArgumentException -> throw e
+                else -> throw IllegalArgumentException("Error validating file content: ${e.message}")
+            }
+        }
     }
 
     private fun validateUserPermissions(sharingSession: SharingSession, appUser: AppUser)

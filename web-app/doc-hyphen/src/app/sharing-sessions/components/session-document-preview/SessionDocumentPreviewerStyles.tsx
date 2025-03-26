@@ -42,6 +42,9 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
         maxWidth: "100%",
         margin: "0 auto",
         minWidth: "480px",
+        minHeight: "200px",
+        padding: "16px",
+        boxSizing: "border-box"
     },
 
     pdfDocument: {},
