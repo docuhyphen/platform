@@ -265,6 +265,7 @@ class SharingSessionDocumentService @Inject constructor(
 
     private fun validateFileAndExtension(file: File?, extension: String?)
     {
+        //ToDo: check if extension is supported
         file ?: throw IllegalArgumentException("File cannot be null")
         extension ?: throw IllegalArgumentException("Extension cannot be null")
     }
@@ -352,12 +353,13 @@ class SharingSessionDocumentService @Inject constructor(
         )
 
         val process = ProcessBuilder(command).start()
-        process.waitFor()
+        val exitCode = process.waitFor()
 
-        if (!pdfFile.exists())
+        if (exitCode != 0 || !pdfFile.exists())
         {
             throw IllegalStateException("PDF conversion failed for file: ${originalFile.name}")
         }
+
         return pdfFile
     }
 }

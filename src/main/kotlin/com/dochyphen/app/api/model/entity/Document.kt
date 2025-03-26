@@ -22,13 +22,13 @@ enum class ImageType
 
 enum class DocumentType
 {
-    WORD,
     PDF,
     DOCX,
     DOC,
     XLSX,
     XLS,
     PPTX,
+    PPT,
     PNG,
     JPG;
 
@@ -42,7 +42,9 @@ enum class DocumentType
                 ".docx" -> DOCX
                 ".doc" -> DOC
                 ".xlsx" -> XLSX
+                ".xls" -> XLS
                 ".pptx" -> PPTX
+                ".ppt" -> PPT
                 ".png" -> PNG
                 ".jpg" -> JPG
                 else -> null
@@ -59,9 +61,9 @@ enum class DocumentType
                 XLSX -> ".xlsx"
                 XLS -> ".xls"
                 PPTX -> ".pptx"
+                PPT -> ".ppt"
                 PNG -> ".png"
                 JPG -> ".jpg"
-                else -> ""
             }
         }
     }

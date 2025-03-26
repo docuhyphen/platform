@@ -437,13 +437,13 @@ export interface DocumentAuditDetailedDto
 
 export enum DocumentType
 {
-    WORD = "WORD",
     PDF = "PDF",
     DOCX = "DOCX",
     DOC = "DOC",
     XLSX = "XLSX",
     XLS = "XLS",
     PPTX = "PPTX",
+    PPT = "PPT",
     PNG = "PNG",
     JPG = "JPG"
 }
