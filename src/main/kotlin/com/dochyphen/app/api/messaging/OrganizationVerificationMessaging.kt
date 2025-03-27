@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory
 
 @ApplicationScoped
 class OrganizationVerificationProducer(
-    @Channel("organization-verification-out") private val emitter: Emitter<KafkaRecord<String, Organization>>
+//    @Channel("organization-verification-out") private val emitter: Emitter<KafkaRecord<String, Organization>>
 )
 {
     private val logger = LoggerFactory.getLogger(OrganizationVerificationProducer::class.java)
@@ -31,8 +31,8 @@ class OrganizationVerificationConsumer(
 {
     private val logger = LoggerFactory.getLogger(OrganizationVerificationConsumer::class.java)
 
-    @Incoming("organization-verification-in")
-    @Blocking // Ensures processing does not block the reactive pipeline
+//    @Incoming("organization-verification-in")
+//    @Blocking // Ensures processing does not block the reactive pipeline
     fun verifyOrganization(organization: Organization)
     {
         logger.info("Received organization for verification: ${organization.registrationNumber}")
