@@ -373,7 +373,8 @@ class SharingSessionDocumentsResource @Inject constructor(
 
     @Path("{documentId}/preview")
     @GET
-    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+//    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    @Produces("application/pdf")
     fun getDocumentPreviewAsPdf(
         @PathParam("sessionId") sessionId: String,
         @PathParam("documentId") documentId: String
@@ -383,6 +384,7 @@ class SharingSessionDocumentsResource @Inject constructor(
         {
             val document = sharingSessionDocumentService.getDocumentFilePreviewAsPdf(sessionId, documentId)
             Response.ok(document)
+                .header("Content-Type", "application/pdf")
                 .header("Content-Disposition", "attachment; filename=\"${document.name}\"")
                 .build()
         }
