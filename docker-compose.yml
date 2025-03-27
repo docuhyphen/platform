@@ -5,6 +5,7 @@ services:
     container_name: doc-hyphen-api
     ports:
       - "8080:8080"
+      - "5005:5005"  # Map debug port
     volumes:
       - ./src:/app/src
       - ./document-uploads:/app/document-uploads

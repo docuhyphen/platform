@@ -297,7 +297,7 @@ class SharingSessionDocumentService @Inject constructor(
         }
 
         // Validate file content type matches extension using Apache Tika
-        validateFileContentType(file, documentType)
+//        validateFileContentType(file, documentType)
     }
 
     private fun validateFileContentType(file: File, expectedType: DocumentType)
