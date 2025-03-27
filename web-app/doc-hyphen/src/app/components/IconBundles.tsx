@@ -29,7 +29,7 @@ import {
     ChevronDoubleRightFilled,
     ChevronDoubleRightRegular,
     ChevronDownFilled,
-    ChevronDownRegular,
+    ChevronDownRegular, ChevronLeftFilled, ChevronLeftRegular, ChevronRightFilled, ChevronRightRegular,
     ChevronUpFilled,
     ChevronUpRegular,
     CommentFilled,
@@ -73,7 +73,7 @@ import {
     SettingsFilled,
     SettingsRegular,
     WindowEditFilled,
-    WindowEditRegular,
+    WindowEditRegular, ZoomFitFilled, ZoomFitRegular,
     ZoomInFilled,
     ZoomInRegular,
     ZoomOutFilled,
@@ -92,11 +92,14 @@ export const SignOutButtonIcon = bundleIcon(ArrowExitFilled, ArrowExitRegular);
 export const InfoIcon = bundleIcon(InfoFilled, InfoRegular)
 export const SettingsIcon = bundleIcon(SettingsFilled, SettingsRegular)
 export const LastPageIcon = bundleIcon(ArrowNextFilled, ArrowNextRegular)
-export const PreviousPageIcon = bundleIcon(ArrowPreviousFilled, ArrowPreviousRegular)
+export const FirstPageIcon = bundleIcon(ArrowPreviousFilled, ArrowPreviousRegular)
 export const ExpandIcon = bundleIcon(ArrowExpandFilled, ArrowExpandRegular)
 export const CollapseIcon = bundleIcon(ArrowMoveInwardFilled, ArrowMoveInwardRegular)
+export const NextPageIcon = bundleIcon(ChevronRightFilled, ChevronRightRegular)
+export const PreviousPageIcon = bundleIcon(ChevronLeftFilled, ChevronLeftRegular)
 export const ZoomInIcon = bundleIcon(ZoomInFilled, ZoomInRegular)
 export const ZoomOutIcon = bundleIcon(ZoomOutFilled, ZoomOutRegular)
+export const ResetZoomIcon = bundleIcon(ZoomFitFilled, ZoomFitRegular)
 export const SessionEndIcon = bundleIcon(CheckmarkNoteFilled, CheckmarkNoteRegular);
 export const SessionDetailedViewIcon = bundleIcon(ContentViewFilled, ContentViewRegular);
 export const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular);

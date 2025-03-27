@@ -2,19 +2,21 @@ import React, {useEffect, useRef, useState} from 'react';
 import {Document, Page, pdfjs} from 'react-pdf';
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
-import {Button, Input, Text} from "@fluentui/react-components";
+import {Button, Divider, Input, Text, Tooltip} from "@fluentui/react-components";
 import {downloadPreviewPDFSharingSessionDocument} from "../../../../services/sharingSessionApi";
 import {
     CollapseIcon,
     ExpandIcon,
+    FirstPageIcon,
     LastPageIcon,
+    NextPageIcon,
     PreviousPageIcon,
+    ResetZoomIcon,
     ZoomInIcon,
     ZoomOutIcon
 } from "../../../components/IconBundles.tsx";
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../../../models/models";
 import {useSessionDocumentPreviewerStyles} from "./SessionDocumentPreviewerStyles";
-import useToken from "../../../../context/useToken";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
@@ -32,7 +34,6 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
 {
     const styles = useSessionDocumentPreviewerStyles();
     const pdfContainerRef = useRef<HTMLDivElement>(null);
-    const token = useToken();
     const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
     const [numPages, setNumPages] = useState<number>(0);
@@ -75,10 +76,12 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         if (pageNumber >= 1 && pageNumber <= numPages)
         {
             const pageElement = pdfContainerRef.current?.querySelector(`[data-page-number="\${pageNumber}"]`);
+
             if (pageElement)
             {
                 pageElement.scrollIntoView({behavior: 'smooth'});
             }
+
             setCurrentPage(pageNumber);
         }
     };
@@ -114,6 +117,11 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         setZoomLevel(prevZoom => Math.max(prevZoom - 0.1, 0.5));
     };
 
+    const handleResetZoom = () =>
+    {
+        setZoomLevel(1.0);
+    };
+
     return (
         <section className={isEnlarged ? styles.enlargedPreviewContainer : styles.previewContainer}
                  id={"SessionDocumentSidebar"}>
@@ -131,20 +139,37 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                                     appearance="transparent"
                                     icon={isEnlarged ? <CollapseIcon/> : <ExpandIcon/>}/>
 
-                            <Button onClick={handleZoomOut}
-                                    appearance="transparent"
-                                    icon={<ZoomOutIcon/>}/>
+                            <Divider vertical style={{height: "100%"}}/>
 
                             <Button onClick={handleZoomIn}
                                     appearance="transparent"
                                     icon={<ZoomInIcon/>}/>
-                            {/*<Divider vertical style={{ height: "100%" }} />*/}
+
+                            <Tooltip content="Click to reset" relationship="description">
+                                <Button onClick={handleResetZoom}
+                                        icon={<ResetZoomIcon/>}
+                                        shape={"circular"}
+                                        appearance="outline">
+                                    {Math.round(zoomLevel * 100)}%
+                                </Button>
+                            </Tooltip>
+
+                            <Button onClick={handleZoomOut}
+                                    appearance="transparent"
+                                    icon={<ZoomOutIcon/>}/>
+
+                            <Divider vertical style={{height: "100%"}}/>
                         </>
                     )}
 
                     <div>
-                        <Button onClick={() => goToPage(1)} icon={<PreviousPageIcon/>} appearance="transparent"/>
-                        <Button onClick={handlePreviousPage} appearance="transparent">Prev</Button>
+                        <Button onClick={() => goToPage(1)}
+                                icon={<FirstPageIcon/>}
+                                appearance="transparent"/>
+
+                        <Button onClick={handlePreviousPage}
+                                appearance="transparent"
+                                icon={<PreviousPageIcon/>}/>
 
                         <Input
                             type="text"
@@ -155,24 +180,43 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                         />
 
                         <Button onClick={handleNextPage}
-                                appearance="transparent">
-                            Next</Button>
-                        <Button onClick={() => goToPage(numPages)} icon={<LastPageIcon/>} appearance="transparent"/>
+                                appearance="transparent"
+                                icon={<NextPageIcon/>}/>
+
+                        <Button onClick={() => goToPage(numPages)}
+                                icon={<LastPageIcon/>}
+                                appearance="transparent"/>
                     </div>
 
                     {isEnlarged && (
                         <>
+                            <Divider vertical style={{height: "100%"}}/>
+
                             <Button onClick={handleZoomOut}
                                     appearance="transparent"
                                     icon={<ZoomOutIcon/>}/>
+
+                            <Tooltip content="Click to reset"
+                                     relationship="description">
+                                <Button onClick={handleResetZoom}
+                                        icon={<ResetZoomIcon/>}
+                                        shape={"circular"}
+                                        appearance="outline">
+                                    {Math.round(zoomLevel * 100)}%
+                                </Button>
+                            </Tooltip>
 
                             <Button onClick={handleZoomIn}
                                     appearance="transparent"
                                     icon={<ZoomInIcon/>}/>
 
-                            <Button onClick={toggleEnlarge}
-                                    appearance="transparent"
-                                    icon={isEnlarged ? <CollapseIcon/> : <ExpandIcon/>}/>
+                            <Divider vertical style={{height: "100%"}}/>
+
+                            <Tooltip content="Exit" relationship="description">
+                                <Button onClick={toggleEnlarge}
+                                        appearance="transparent"
+                                        icon={isEnlarged ? <CollapseIcon/> : <ExpandIcon/>}/>
+                            </Tooltip>
                         </>
                     )}
                 </div>

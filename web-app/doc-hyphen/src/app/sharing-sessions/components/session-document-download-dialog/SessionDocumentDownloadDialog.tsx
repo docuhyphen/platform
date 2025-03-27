@@ -44,8 +44,6 @@ const SessionDocumentDownloadDialog: React.FC<DownloadDocumentDialogProps> = (
 
     useEffect(() =>
     {
-        console.log("...........", sessionDocument)
-
         setDownloadName(`${session?.sessionName?.replace(/\s+/g, '-')}-${sessionDocument?.title?.replace(/\s+/g, '-')}`);
     }, []);
 

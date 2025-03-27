@@ -57,6 +57,7 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
         bottom: 0,
         width: "100%",
         height: "100%",
+        boxSizing: "border-box",
         background: "rgba(0, 0, 0, 0.8)",
         zIndex: 9999,
         padding: "16px",
