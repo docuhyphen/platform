@@ -4,26 +4,22 @@ Authorization: Bearer {{Authorization}}
 Content-Type: application/json
 
 {
-  "initialShareMessage": "Please review the attached documents.",
-  "description": "Document sharing session for project review.",
-  "recipientEmail": "recipient12adasd@example.com",
-  "sessionName": "Project Review Session",
+  "sessionName": "Pagination test 1",
+  "description": "THe description",
+  "recipientEmail": "test2@doc-hyphen.com",
+  "initialShareMessage": "The start message",
   "sessionDocuments": [
     {
-      "title": "Project Plan",
-      "type": "PDF"
-    },
-    {
-      "title": "Budget Report",
-      "type": "WORD"
+      "title": "Test document 1",
+      "restrictType": false
     }
   ],
-  "requestRecipientSignIn": true,
-  "allowDocumentAddition": true,
+  "requestRecipientSignIn": false,
+  "allowDocumentAddition": false,
   "allowDocumentDeletion": false,
-  "allowDocumentDownload": true,
-  "allowDocumentUpdate": true,
-  "allowDocumentUpload": true
+  "allowDocumentDownload": false,
+  "allowDocumentUpdate": false,
+  "allowDocumentUpload": false
 }
 
 ### Get logged in user sharing sessions

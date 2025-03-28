@@ -322,4 +322,47 @@ class SharingSessionResource @Inject constructor(
             }
         }
     }
+
+    @GET
+    @Path("/search")
+    fun searchSharingSessions(
+        @QueryParam("query") query: String?,
+        @QueryParam("status") status: String?,
+        @QueryParam("initiatedBy") initiatedBy: Boolean?,
+        @QueryParam("page") page: Int = 0,
+        @QueryParam("size") size: Int = 20,
+        @QueryParam("sortBy") sortBy: String = "createdDate",
+        @QueryParam("sortDirection") sortDirection: String = "DESC"
+    ): Response
+    {
+        return try
+        {
+
+            val result = sharingSessionRetrievalService.searchSharingSessions(
+                query, status, initiatedBy, page, size, sortBy, sortDirection
+            )
+
+            Response.ok(result).build()
+
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is IllegalArgumentException ->
+                {
+                    logger.error("Error searching sharing sessions", exception)
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.BAD_REQUEST).entity(responseError).build()
+                }
+
+                else ->
+                {
+                    logger.error("Error searching sharing sessions", exception)
+                    val responseError = ResponseError("An error occurred while searching sharing sessions")
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
+        }
+    }
 }

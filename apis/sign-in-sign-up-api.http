@@ -3,7 +3,7 @@ POST http://localhost:8080/auth/sign-up/initiation
 Content-Type: application/json
 
 {
-  "email": "test5@example.com"
+  "email": "test1@doc-hyphen.com"
 }
 
 <> 2025-01-16T214842.200.json
@@ -36,8 +36,8 @@ POST http://localhost:8080/auth/sign-in/initiate
 Content-Type: application/json
 
 {
-  "email": "test5@example.com",
-  "password": "StrongPassword1!"
+  "email": "test1@doc-hyphen.com",
+  "password": "Qazmko@104"
 }
 
 <> 2025-01-16T214851.200.json
@@ -54,7 +54,7 @@ POST http://localhost:8080/auth/sign-in/completion
 Content-Type: application/json
 
 {
-  "email": "test5@example.com",
+  "email": "test1@doc-hyphen.com",
   "otp": "123456"
 }
 > {% client.global.set("Authorization", response.body.token) %}

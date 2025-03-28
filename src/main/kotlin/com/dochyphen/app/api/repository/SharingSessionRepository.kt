@@ -1,5 +1,6 @@
 package com.dochyphen.app.api.repository
 
+import com.dochyphen.app.api.model.entity.Document
 import com.dochyphen.app.api.model.entity.SharingSession
 import com.dochyphen.app.api.model.entity.SharingSessionStatus
 import jakarta.enterprise.context.ApplicationScoped
@@ -81,7 +82,6 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
         query.setParameter("sessionId", sessionId)
         query.executeUpdate()
     }
-
 
     @Transactional
     fun updateEndDate(sessionId: UUID, timestamp: Timestamp)
@@ -180,5 +180,148 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
         query.setParameter("allowDocumentUpload", allowDocumentUpload)
         query.setParameter("sessionId", sessionId)
         query.executeUpdate()
+    }
+
+    fun searchSessions(
+        appUserId: UUID,
+        query: String?,
+        status: SharingSessionStatus?,
+        initiatedBy: Boolean?,
+        page: Int,
+        size: Int,
+        sortBy: String,
+        sortDirection: String
+    ): List<SharingSession>
+    {
+        val queryBuilder = StringBuilder(
+            """
+        SELECT DISTINCT s FROM SharingSession s
+        WHERE (s.initiator.id = :appUserId OR s.recipient.id = :appUserId)
+        AND s.isDeleted = false
+        """
+        )
+
+        if (!query.isNullOrBlank())
+        {
+            queryBuilder.append(
+                """
+            AND (
+                LOWER(s.sessionName) LIKE LOWER(:query)
+                OR LOWER(s.description) LIKE LOWER(:query)
+                OR LOWER(s.initiator.email) LIKE LOWER(:query)
+                OR LOWER(s.recipient.email) LIKE LOWER(:query)
+            )
+            """
+            )
+        }
+
+        if (status != null)
+        {
+            queryBuilder.append(" AND s.status = :status")
+        }
+
+        if (initiatedBy != null)
+        {
+            if (initiatedBy)
+            {
+                queryBuilder.append(" AND s.initiator.id = :appUserId")
+            }
+            else
+            {
+                queryBuilder.append(" AND s.recipient.id = :appUserId")
+            }
+        }
+
+        val validSortFields = setOf("createdDate", "sessionName", "lastActivity")
+        val safeSort = if (validSortFields.contains(sortBy)) sortBy else "createdDate"
+        val safeDirection = if (sortDirection.equals("ASC", ignoreCase = true)) "ASC" else "DESC"
+
+        queryBuilder.append(" ORDER BY s.$safeSort $safeDirection")
+
+        val jpaQuery = entityManager.createQuery(queryBuilder.toString(), SharingSession::class.java)
+        jpaQuery.setParameter("appUserId", appUserId)
+
+        if (!query.isNullOrBlank())
+        {
+            jpaQuery.setParameter("query", "%${query.trim()}%")
+        }
+
+        if (status != null)
+        {
+            jpaQuery.setParameter("status", status)
+        }
+
+        jpaQuery.firstResult = page * size
+        jpaQuery.maxResults = size
+
+        val sessions = jpaQuery.resultList
+
+        sessions.forEach { session ->
+            session.documents = session.documents.filter { !it.isDeleted } as MutableList<Document>
+        }
+
+        return sessions
+    }
+
+    fun countSearchResults(
+        appUserId: UUID,
+        query: String?,
+        status: SharingSessionStatus?,
+        initiatedBy: Boolean?
+    ): Long
+    {
+        val queryBuilder = StringBuilder(
+            """
+        SELECT COUNT(DISTINCT s) FROM SharingSession s
+        WHERE (s.initiator.id = :appUserId OR s.recipient.id = :appUserId)
+        AND s.isDeleted = false
+        """
+        )
+
+        if (!query.isNullOrBlank())
+        {
+            queryBuilder.append(
+                """
+            AND (
+                LOWER(s.sessionName) LIKE LOWER(:query)
+                OR LOWER(s.description) LIKE LOWER(:query)
+                OR LOWER(s.initiator.email) LIKE LOWER(:query)
+                OR LOWER(s.recipient.email) LIKE LOWER(:query)
+            )
+            """
+            )
+        }
+
+        if (status != null)
+        {
+            queryBuilder.append(" AND s.status = :status")
+        }
+
+        if (initiatedBy != null)
+        {
+            if (initiatedBy)
+            {
+                queryBuilder.append(" AND s.initiator.id = :appUserId")
+            }
+            else
+            {
+                queryBuilder.append(" AND s.recipient.id = :appUserId")
+            }
+        }
+
+        val jpaQuery = entityManager.createQuery(queryBuilder.toString(), Long::class.java)
+        jpaQuery.setParameter("appUserId", appUserId)
+
+        if (!query.isNullOrBlank())
+        {
+            jpaQuery.setParameter("query", "%${query.trim()}%")
+        }
+
+        if (status != null)
+        {
+            jpaQuery.setParameter("status", status)
+        }
+
+        return jpaQuery.singleResult
     }
 }

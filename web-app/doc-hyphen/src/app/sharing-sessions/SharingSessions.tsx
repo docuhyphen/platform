@@ -20,7 +20,7 @@ import SessionDetailsHeader from "./components/session-details-header/SessionDet
 import SessionDetailsLoading from "./components/sharing-sessions-loading/SessionDetailsLoading.tsx";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
-import SharingSessionList from "./components/session-list/SharingSessionList.tsx";
+import SessionList from "./components/session-list/SessionList.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {getPermissions, SharingSessionPermissions} from "./SessionPermissions.ts";
 import SessionDocumentsList from "./components/session-document-list/SessionDocumentsList.tsx";
@@ -291,7 +291,7 @@ const SharingSessions: React.FC = () =>
         return (
             <section className={styles.container}>
 
-                <SharingSessionList onSelectionChange={setSelectedSessionId}/>
+                <SessionList onSelectionChange={setSelectedSessionId}/>
 
                 {fetchingDetails && !sessionDetails && <SessionDetailsLoading/>}
 

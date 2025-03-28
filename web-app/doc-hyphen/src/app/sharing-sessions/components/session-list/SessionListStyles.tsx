@@ -1,9 +1,21 @@
 import {makeStyles, tokens, typographyStyles,} from "@fluentui/react-components";
 
 export const useSharingSessionStyles = makeStyles({
+
     caption2: typographyStyles.caption2,
     caption1: typographyStyles.caption1,
     body1Strong: typographyStyles.body1Strong,
+
+    emptyState: {
+        display: "flex",
+        width: "100%",
+        height: "100%",
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: "60px",
+        boxSizing: "border-box"
+    },
 
     skeletonRecipientEmail: {
         width: "150px",
@@ -24,8 +36,38 @@ export const useSharingSessionStyles = makeStyles({
         marginRight: "10px",
     },
 
+    truncatedText: {
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        maxWidth: "100%"
+    },
+
+    sessionName: {
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        maxWidth: "calc(100% - 60px)" // Leave space for the date
+    },
+
+    sessionDescription: {
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        maxWidth: "100%",
+        width: "100%",
+    },
+
+    createdDate: {
+        width: "160px",
+        display: "flex",
+        justifyContent: "end",
+        alignItems: "center"
+    },
+
     sharingSessionsListContainer: {
         minWidth: "400px",
+        maxWidth: "400px",
         border: "1px solid rgba(0, 0, 0, .1)",
         position: "relative",
         borderRadius: "4px",
@@ -75,7 +117,8 @@ export const useSharingSessionStyles = makeStyles({
         width: "100%",
         padding: "8px",
         borderBottom: "1px solid rgba(0, 0, 0, .1)",
-        height: "60px",
+        // height: "60px",
+        boxSizing: "border-box"
     },
 
     listCardLastChild: {
@@ -97,6 +140,9 @@ export const useSharingSessionStyles = makeStyles({
         display: "flex",
         justifyContent: "space-between",
         boxShadow: "rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px -2px 4px",
+    },
+    footerControls: {
+        display: "flex"
     },
 
     sharingSessionsListBody: {
@@ -135,6 +181,8 @@ export const useSharingSessionStyles = makeStyles({
         display: "flex",
         flexDirection: "row",
         gap: "12px",
+        boxSizing: "border-box",
+        maxWidth: "100%"
     },
 
     listCardItemDetails: {
@@ -142,16 +190,28 @@ export const useSharingSessionStyles = makeStyles({
         flexDirection: "column",
         gap: "4px",
         flex: 1,
+        width: "calc(100% - 86px)"
     },
 
     listCardItemRow: {
         display: "flex",
         justifyContent: "space-between",
+        gap: "4px",
     },
 
     sharingSessionsListSelectedItem: {
         background: "white",
         borderLeft: "3px solid",
+        transition: "all 0.1s ease",
         borderLeftColor: tokens.colorBrandForeground1,
     },
+
+    sharingSessionsListItem: {
+        "&:hover": {
+            background: "white",
+            borderLeft: "3px solid",
+            borderLeftColor: tokens.colorBrandForeground1,
+            transition: "all 0.1s ease",
+        },
+    }
 });

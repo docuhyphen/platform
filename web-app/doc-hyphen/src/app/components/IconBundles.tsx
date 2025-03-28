@@ -14,7 +14,7 @@ import {
     ArrowPreviousFilled,
     ArrowPreviousRegular,
     ArrowSortDownLinesFilled,
-    ArrowSortDownLinesRegular,
+    ArrowSortDownLinesRegular, ArrowSortUpLinesFilled, ArrowSortUpLinesRegular,
     ArrowUploadFilled,
     ArrowUploadRegular,
     bundleIcon,
@@ -84,6 +84,7 @@ export const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
 export const DocumentAddIcon = bundleIcon(DocumentAddFilled, DocumentAddRegular)
 export const FilterIcon = bundleIcon(FilterFilled, FilterRegular);
 export const SortDownIcon = bundleIcon(ArrowSortDownLinesFilled, ArrowSortDownLinesRegular);
+export const SortUpIcon = bundleIcon(ArrowSortUpLinesFilled, ArrowSortUpLinesRegular);
 export const ReceiveDocumentsIcon = bundleIcon(DocumentArrowLeftFilled, DocumentArrowLeftRegular)
 export const SendDocumentsIcon = bundleIcon(DocumentArrowRightFilled, DocumentArrowRightRegular)
 export const SharingSessionIcon = bundleIcon(ChannelShareFilled, ChannelShareRegular);

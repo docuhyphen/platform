@@ -2,15 +2,21 @@ package com.dochyphen.app.api.service.sharingsession
 
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
+import com.dochyphen.app.api.model.BasicModelConverter
+import com.dochyphen.app.api.model.dto.SharingSessionBasicDto
 import com.dochyphen.app.api.model.entity.Document
 import com.dochyphen.app.api.model.entity.SharingSession
+import com.dochyphen.app.api.model.entity.SharingSessionStatus
 import com.dochyphen.app.api.model.entity.SharingSessionStatus.ACCEPTED_STARTED
 import com.dochyphen.app.api.model.entity.SharingSessionStatus.INITIATED
 import com.dochyphen.app.api.repository.SharingSessionRepository
+import com.dochyphen.app.api.resource.ResourceEndpointDelayHelper
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
 import java.util.*
 
@@ -80,5 +86,58 @@ class SharingSessionRetrievalService @Inject constructor(
         }
 
         return session
+    }
+
+    @Serializable
+    data class SearchResult(
+        val content: Array<SharingSessionBasicDto?>,
+        val totalElements: Long,
+        val totalPages: Int,
+        val currentPage: Int,
+        val pageSize: Int
+    )
+
+    fun searchSharingSessions(
+        query: String?,
+        status: String?,
+        initiatedBy: Boolean?,
+        page: Int,
+        size: Int,
+        sortBy: String,
+        sortDirection: String
+    ): SearchResult
+    {
+        ResourceEndpointDelayHelper.delayEndpoint(1500, 3400)
+
+        val appUserId = authTokenContext.authToken.appUser?.id ?: throw IllegalArgumentException("User not authenticated")
+
+        val sessions = sharingSessionRepository.searchSessions(
+            appUserId,
+            query,
+            status?.let { try {
+                SharingSessionStatus.valueOf(it) } catch (e: IllegalArgumentException) { null } },
+            initiatedBy,
+            page,
+            size,
+            sortBy,
+            sortDirection
+        )
+
+        val totalElements = sharingSessionRepository.countSearchResults(
+            appUserId,
+            query,
+            status?.let { try { SharingSessionStatus.valueOf(it) } catch (e: IllegalArgumentException) { null } },
+            initiatedBy
+        )
+
+        val totalPages = if (size > 0) (totalElements + size - 1) / size else 0
+
+        return SearchResult(
+            content = sessions.map { BasicModelConverter.toDto(it) }.toTypedArray(),
+            totalElements = totalElements,
+            totalPages = totalPages.toInt(),
+            currentPage = page,
+            pageSize = size
+        )
     }
 }

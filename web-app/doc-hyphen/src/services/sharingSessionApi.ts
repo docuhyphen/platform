@@ -159,3 +159,32 @@ export const downloadSharingSessionDocumentZip = (sessionId: string, request: Do
 
 export const downloadPreviewPDFSharingSessionDocument = (sessionId: string, documentId?: string) =>
     executeRequest(() => apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/preview`, blobRequest));
+
+export const searchSharingSessions = (
+    query?: string,
+    status?: string,
+    initiatedBy?: boolean,
+    page: number = 0,
+    size: number = 10,
+    sortBy: string = "createdDate",
+    sortDirection: string = "DESC"
+): Promise<{
+    content: SharingSessionBasicDto[],
+    totalElements: number,
+    totalPages: number,
+    currentPage: number,
+    pageSize: number
+} | ResponseError> =>
+    executeRequest(() =>
+        apiClient.get(`/sharing-sessions/search`, {
+            params: {
+                query,
+                status,
+                initiatedBy,
+                page,
+                size,
+                sortBy,
+                sortDirection
+            }
+        })
+    );
