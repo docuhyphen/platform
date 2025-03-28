@@ -69,5 +69,6 @@ export const useSessionDetailsHeaderStyles = makeStyles({
     actions: {
         display: "flex",
         gap: "8px",
+        alignSelf: "center"
     },
 });

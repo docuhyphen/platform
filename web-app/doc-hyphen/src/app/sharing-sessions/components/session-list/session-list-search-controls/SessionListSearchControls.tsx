@@ -95,6 +95,7 @@ const SessionListSearchControls: React.FC<SessionListSearchControlsProps> = (
             <Field className={styles.searchField}>
                 <SearchBox
                     placeholder="Search sessions"
+                    maxLength={50}
                     value={searchQuery}
                     onChange={(_, data) => onSearchQueryChange(data.value)}
                 />
