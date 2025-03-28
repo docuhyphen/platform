@@ -1,5 +1,14 @@
 import React from 'react';
-import {Button, Menu, MenuButton, MenuItem, MenuList, MenuPopover, MenuTrigger} from "@fluentui/react-components";
+import {
+    Button,
+    Menu,
+    MenuButton,
+    MenuItem,
+    MenuList,
+    MenuPopover,
+    MenuTrigger,
+    SplitButton
+} from "@fluentui/react-components";
 import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
 import {ReceiveDocumentsIcon, SendDocumentsIcon} from "../../components/IconBundles.tsx";
 
@@ -19,9 +28,9 @@ const SessionDialogTrigger = React.forwardRef<HTMLButtonElement, SessionDialogTr
     return (
         <Menu>
             <MenuTrigger disableButtonEnhancement>
-                <MenuButton shape="circular" appearance="primary">
+                <SplitButton shape="circular" appearance="primary">
                     Start Sharing Session
-                </MenuButton>
+                </SplitButton>
             </MenuTrigger>
             <MenuPopover>
                 <MenuList>

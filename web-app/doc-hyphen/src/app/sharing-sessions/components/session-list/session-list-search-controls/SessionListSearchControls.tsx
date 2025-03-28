@@ -144,7 +144,7 @@ const SessionListSearchControls: React.FC<SessionListSearchControlsProps> = (
                             <MenuItem
                                 onClick={() => onInitiatorFilterChange(false)}
                                 icon={selectedInitiator === false && <CheckmarkRegular/> || null}>
-                                Requested by others
+                                Initiated by others
                             </MenuItem>
                         </MenuGroup>
                     </MenuList>
