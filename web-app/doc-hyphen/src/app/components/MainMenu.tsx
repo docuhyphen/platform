@@ -45,7 +45,7 @@ const MainMenu: React.FC = () =>
             <SharingSessionInitiation/>
 
             <Button icon={<SharingSessionIcon/>}
-                    onClick={() => navigate('/')}
+                    onClick={() => navigate('/sharing-sessions')}
                     appearance={"subtle"}>
             </Button>
             <Button icon={<NotificationsIcon/>}

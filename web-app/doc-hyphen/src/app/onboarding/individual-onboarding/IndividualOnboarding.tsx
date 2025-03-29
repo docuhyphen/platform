@@ -1,24 +1,43 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import IndividualOnboardingForm from './IndividualOnboardingForm.tsx';
 import {useOnboardingStyles} from '../OnboardingStyles.tsx';
 import AppLogo from "../../components/app-logo/AppLogo.tsx";
-import {Text} from "@fluentui/react-components";
+import {Spinner, Text} from "@fluentui/react-components";
 import OnBoardingBreadcrumbs from "../onboarding-breadcrumbs/OnBoardingBreadcrumbs.tsx";
-
+import {useAuth} from "../../../context/AuthContext.tsx";
+import {useNavigate} from "react-router-dom";
 
 const IndividualOnboarding: React.FC = () =>
 {
+    const {appUser} = useAuth()
+    const navigate = useNavigate();
     const styles = useOnboardingStyles();
     const [registerOrganization, setRegisterOrganization] = useState(false);
+    const [checkingIfIndividualOnboarded, setCheckingIfIndividualOnboarded] = useState(true);
+
+    useEffect(() =>
+    {
+        if(!appUser?.person)
+        {
+            setCheckingIfIndividualOnboarded(false)
+        }
+        else
+        {
+            navigate('/sharing-sessions');
+        }
+
+    }, [navigate, appUser]);
 
     const onRegisterOrganizationChange = (newValue) =>
     {
         setRegisterOrganization(newValue);
     }
 
-    return (
-        <div className={styles.container}>
-            <div className={styles.onboardingSection}>
+    return <>
+        {checkingIfIndividualOnboarded && <Spinner/>}
+        {!checkingIfIndividualOnboarded &&
+            <div className={styles.container}>
+                <div className={styles.onboardingSection}>
                 <div className={styles.onboardingSection1}>
                     <div>
                         <AppLogo/>
@@ -50,8 +69,9 @@ const IndividualOnboarding: React.FC = () =>
 
                 </div>
             </div>
-        </div>
-    );
+            </div>
+        }
+    </>
 };
 
 export default IndividualOnboarding;

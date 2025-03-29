@@ -67,7 +67,7 @@ class AuthenticationService @Inject constructor(
     fun generateSignInToken(appUser: AppUser): String
     {
         val tokenExpiryHrs = configurationService.getSignInTokenExpiryHours()
-        val expiration = Date(System.currentTimeMillis() + TimeUnit.HOURS.toMillis(tokenExpiryHrs))
+        val expiration = Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(tokenExpiryHrs))
 
 
         return Jwts.builder()

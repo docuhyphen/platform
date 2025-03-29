@@ -122,18 +122,25 @@ const SignIn: React.FC = () =>
 
             try
             {
+                //ToDo: check for a field in the appUser object to determine if the user has completed onboarding
+                // This to support external sign in flows using external providers like Microsoft
                 if (appUser && appUser.person)
                 {
                     const organization = await fetchAppUserPersonOrganization(appUser.id, appUser.person?.id, token?.toString());
                     setAppUserPersonOrganization(organization);
+                    navigate("/sharing-sessions");
+                    return;
+                }
+                else
+                {
+                    navigate("/onboarding/individual");
+                    return;
                 }
             }
             catch (error)
             {
                 // Handle error
             }
-
-            navigate('/');
         }
         catch (error)
         {

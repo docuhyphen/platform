@@ -22,29 +22,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
     const navigate = useNavigate();
     const location = useLocation();
     const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
-    const tokenExpirationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const tokenExpirationIntervalRef = useRef<number | null>(null);
     const [appUser, setAppUser] = useState<AppUserDetailedDto | null>(null);
     const [appUserPersonOrganization, setAppUserPersonOrganization] = useState<OrganizationBasicDto | null>(null);
 
+    // Check token expiration periodically
     useEffect(() =>
     {
-        if (!tokenExpirationIntervalRef.current)
+        tokenExpirationIntervalRef.current = window.setInterval(() =>
         {
-            console.log("Running token expiration check");
-
-            tokenExpirationIntervalRef.current = setInterval(() =>
+            setToken((currentToken) =>
             {
-                setToken((currentToken) =>
+                if (currentToken && isTokenExpired(currentToken))
                 {
-                    if (currentToken && isTokenExpired(currentToken))
-                    {
-                        saveToken(null);
-                        return null;
-                    }
-                    return currentToken;
-                });
-            }, 30000);
-        }
+                    alert("Session expired");
+                    saveToken(null);
+                    redirectToSessionExpired();
+                    return null;
+                }
+
+                return currentToken;
+            });
+        }, 5000);
 
         return () =>
         {
@@ -55,25 +54,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         };
     }, []);
 
+    // Handle token changes
     useEffect(() =>
     {
         if (token === null)
         {
             localStorage.removeItem('token');
+            setApiClientAuthToken(null);
         }
         else
         {
             localStorage.setItem('token', token);
             setApiClientAuthToken(token);
         }
-    }, [token])
+    }, [token]);
 
+    // Fetch user data when token is available
     useEffect(() =>
     {
-        if (!token || isTokenExpired(token))
+        if (!token)
         {
-            saveToken(null);
-            redirectToLogin();
+            setAppUser(null);
+            setAppUserPersonOrganization(null);
+            return;
+        }
+
+        if (isTokenExpired(token))
+        {
+            redirectToSessionExpired();
             return;
         }
 
@@ -84,41 +92,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
     {
         try
         {
-            if (!appUser)
+            if (!appUser && token)
             {
-                const user = await fetchAppUser(token!);
+                const user = await fetchAppUser(token);
                 setAppUser(user);
             }
 
-            // If user has no `person` object, redirect to individual onboarding
             if (appUser && !appUser.person)
             {
                 navigate("/onboarding/individual");
                 return;
             }
 
-            if (appUser?.person && !appUserPersonOrganization)
+            if (appUser?.person && !appUserPersonOrganization && token)
             {
                 try
                 {
-                    setAppUserPersonOrganization(await fetchAppUserPersonOrganization(appUser?.id, appUser?.person?.id, token!));
+                    setAppUserPersonOrganization(await fetchAppUserPersonOrganization(appUser?.id, appUser?.person?.id, token));
                 }
-                catch (error)
+                catch (error: any)
                 {
-                    if (error.response.status === 404)
+                    if (error.response?.status === 404)
                     {
                         console.log("Organization not found for user");
                     }
                 }
             }
-
-            // If everything exists, navigate to the main page
-            if (appUser && appUser.person && appUserPersonOrganization)
-            {
-                navigate("/sharing-sessions");
-            }
         }
-        catch (error)
+        catch (error: any)
         {
             console.error("Failed to fetch user data:", error);
             saveToken(null);
@@ -137,39 +138,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         {
             localStorage.removeItem("token");
             setAppUser(null);
+            setAppUserPersonOrganization(null);
         }
     };
 
     const redirectToLogin = () =>
     {
-        if (!["/sign-in", "/sign-up", "/account-recovery", "/nas"].includes(location.pathname))
+        if (!["/sign-in", "/sign-up", "/account-recovery", "/nas", "/app-session-expired"].includes(location.pathname))
         {
             navigate("/sign-in");
         }
     };
 
-    useEffect(() =>
+    const redirectToSessionExpired = () =>
     {
-        if (appUser)
+        if (!["/app-session-expired"].includes(location.pathname))
         {
-            if (!appUser.person)
-            {
-                navigate('/onboarding/individual');
-            }
+            console.log("Now navigating to /app-session-expired");
+            navigate("/app-session-expired");
         }
-    }, [appUser, navigate]);
+    }
 
     return (
         <AuthContext.Provider
-            value={
-                {
-                    token,
-                    setToken,
-                    appUser,
-                    setAppUser,
-                    appUserPersonOrganization: appUserPersonOrganization,
-                    setAppUserPersonOrganization: setAppUserPersonOrganization
-                }}>
+            value={{
+                token,
+                setToken,
+                appUser,
+                setAppUser,
+                appUserPersonOrganization,
+                setAppUserPersonOrganization
+            }}>
             {children}
         </AuthContext.Provider>
     );

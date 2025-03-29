@@ -126,7 +126,7 @@ class SignInService @Inject constructor(
             this.appUser = mfaRecord.appUser
             this.token = signInToken
             this.expiryDateTime = Timestamp.from(
-                Instant.now().plusMillis(TimeUnit.HOURS.toMillis(configurationService.getSignInTokenExpiryHours()))
+                Instant.now().plusMillis(TimeUnit.MINUTES.toMillis(configurationService.getSignInTokenExpiryHours()))
             )
         }
 

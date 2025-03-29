@@ -8,23 +8,22 @@ import IndividualOnboarding from "./app/onboarding/individual-onboarding/Individ
 import Settings from "./app/settings/Settings.tsx";
 import NoAuthSharingSession from "./app/no-auth-sharing-session/NoAuthSharingSession.tsx";
 import NoMenuProtectedRoute from "./app/components/NoMenuProtectedRoutes.tsx";
-import PersonRegistrationProtectedRoute from "./context/OnboardingGuard.tsx";
-import {OrganizationRegistrationProtectedRoute} from "./context/OrganizationRegistrationProtectedRoute.tsx";
 import OrganizationOnboarding from "./app/onboarding/organization-onboarding/OrganizationOnboarding.tsx";
 import SignIn from "./app/authorization/sign-in/SignIn.tsx";
 import AccountRecovery from "./app/authorization/account-recovery/AccountRecovery.tsx";
-import Home from "./app/home/Home.tsx";
 import SignUp from "./app/authorization/sign-up/SignUp.tsx";
+import ProtectedRoute from "./app/components/ProtectedRoutes.tsx";
+import AppSessionExpired from "./app/app-session-expired/AppSessionExpired.tsx";
 
 const App: React.FC = () => {
     return (
         <BrowserRouter>
         <AuthProvider>
                 <Routes>
-                    <Route path="/"
-                           element={
-                               <Home/>
-                           }/>
+                    {/*<Route path="/"*/}
+                    {/*       element={*/}
+                    {/*           <Home/>*/}
+                    {/*       }/>*/}
 
                     <Route path="/sign-in"
                            element={
@@ -51,6 +50,17 @@ const App: React.FC = () => {
                                    }/>
                            }/>
 
+                    <Route path="/app-session-expired"
+                           element={
+                               <RedirectIfNotAuthenticated element={<AppSessionExpired/>}/>
+                           }/>
+
+                    <Route path="/settings"
+                           element={
+                               <ProtectedRoute path='/sign-in'
+                                               element={<Settings/>}/>
+                           }/>
+
                     <Route path="/onboarding/individual"
                            element={
                                <NoMenuProtectedRoute path='/sign-in'
@@ -59,19 +69,16 @@ const App: React.FC = () => {
 
                     <Route path="/onboarding/organization"
                            element={
-                               <OrganizationRegistrationProtectedRoute
-                                   element={<OrganizationOnboarding/>}/>
+                               <ProtectedRoute path='/sign-in'
+                                               element={<OrganizationOnboarding/>}/>
                            }/>
 
                     <Route path="/sharing-sessions"
                            element={
-                               <PersonRegistrationProtectedRoute element={<SharingSessions/>}/>
+                               <ProtectedRoute path='/sign-in'
+                                               element={<SharingSessions/>}/>
                            }/>
 
-                    <Route path="/settings"
-                           element={
-                               <PersonRegistrationProtectedRoute element={<Settings/>}/>
-                           }/>
                     <Route path="*"
                            element={
                                <NotFound/>

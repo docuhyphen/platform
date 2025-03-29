@@ -255,6 +255,7 @@ const AccountRecovery: React.FC = () =>
                                     validationMessage={pwdResetSuccessfulMsg}>
                                     <Input type="email"
                                            name="email"
+                                           disabled={initiatingPwdReset}
                                            autoComplete={"false"}
                                            value={formData.email}
                                            onChange={handleChange}
@@ -270,7 +271,7 @@ const AccountRecovery: React.FC = () =>
                                                 shape={"circular"}
                                                 disabled={regeneratingOtp}
                                                 className={globalStyles.buttonWithLoading}>
-                                            {completingPwdReset && <Spinner size={"tiney"}/>}
+                                            {completingPwdReset && <Spinner size={"tiny"}/>}
                                             {completingPwdReset ? "Resetting password" : "Reset Password"}
                                         </Button>
                                     </div>
@@ -281,7 +282,7 @@ const AccountRecovery: React.FC = () =>
                                             appearance={"primary"}
                                             shape={"circular"}
                                             className={globalStyles.buttonWithLoading}>
-                                        {initiatingPwdReset && <Spinner size={"tiney"}/>}
+                                        {initiatingPwdReset && <Spinner size={"tiny"}/>}
                                         Initiate Password Reset
                                     </Button>
                                 }
