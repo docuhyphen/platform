@@ -58,31 +58,30 @@ const SharingSessions: React.FC = () =>
     const [appUserHasSessions, setAppUserHasSessions] = useState<boolean>(false);
     const [permissions, setPermissions] = useState<SharingSessionPermissions>();
 
-    const checkAppUserSessions = async () =>
-    {
-        try
-        {
+    const checkAppUserSessions = async () => {
+        try {
             const hasSessions = await checkSignedInAppUserHasSharingSessions(token);
             setAppUserHasSessions(hasSessions);
         }
-        catch (error)
-        {
+        catch (error) {
             console.log(error)
             alert("Failed to check for sharing sessions");
         }
-        finally
-        {
+        finally {
             setPreparingSharingSessions(false);
         }
     }
 
-    useEffect(() =>
-    {
+    useEffect(() => {
         const randomDelay = Math.floor(Math.random() * 5000) + 1000;
-        setTimeout(async () =>
-        {
+        const timerId = setTimeout(async () => {
             await checkAppUserSessions();
         }, randomDelay);
+
+        // Cleanup function that runs when component unmounts
+        return () => {
+            clearTimeout(timerId);
+        };
     }, []);
 
     useEffect(() =>
