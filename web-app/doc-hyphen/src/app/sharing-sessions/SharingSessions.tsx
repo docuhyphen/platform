@@ -343,6 +343,7 @@ const SharingSessions: React.FC = () =>
                                 <SessionDocumentSidebar
                                     isOpen={isDocumentSidebarOpen}
                                     onOpen={setIsDocumentSidebarOpen}
+                                    session={sessionDetails}
                                     sessionDocument={selectedSessionDocument}/>
                             }
                         </div>

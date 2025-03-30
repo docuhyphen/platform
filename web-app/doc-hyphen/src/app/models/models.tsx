@@ -362,6 +362,9 @@ export interface DocumentCommentDetailedDto
     id?: string;
     createdDate?: string;
     text?: string;
+    commentedByFirstName?: string,
+    commentedByLastName?: string,
+    commentedByEmail?: string
 }
 
 export interface DocumentDetailedDto

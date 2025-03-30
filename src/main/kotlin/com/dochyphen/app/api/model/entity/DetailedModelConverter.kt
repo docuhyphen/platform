@@ -21,7 +21,6 @@ class DetailedModelConverter
                         restrictedType != null,
                         hash,
                         mutableListOf(),
-//                    comments.map { toDto(it) }
                     )
                 }
             }
@@ -116,6 +115,23 @@ class DetailedModelConverter
                         action.toString(),
                         toDto(performedBy),
                         performedByEmail
+                    )
+                }
+            }
+        }
+
+        fun toDto(comment: SharingSessionDocumentComment?): DocumentCommentDetailedDto?
+        {
+            return comment?.let {
+                with(comment)
+                {
+                    DocumentCommentDetailedDto(
+                        id,
+                        createdDate,
+                        commentText,
+                        commentedBy.person?.firstName,
+                        commentedBy.person?.lastName,
+                        commentedBy.email
                     )
                 }
             }

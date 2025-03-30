@@ -1,39 +1,43 @@
+// web-app/doc-hyphen/src/app/sharing-sessions/components/session-document-sidebar/SessionDocumentSidebar.tsx
 import React from "react";
 import {
     Button,
     DrawerBody,
     DrawerHeader,
     DrawerHeaderTitle,
-    Field,
     InlineDrawer,
     SelectTabData,
     SelectTabEvent,
     Tab,
     TabList,
     TabValue,
-    Text,
-    Textarea
+    Text
 } from "@fluentui/react-components";
 import {DismissRegular} from "@fluentui/react-icons";
 import {useSessionDocumentSidebarStyles} from "./SessionDocumentSidebarStyles.tsx";
-import {DocumentDetailedDto} from "../../../models/models.tsx";
-import {AuditIcon, CommentIcon, DocumentVersionsIcon, SendCommentIcon} from "../../../components/IconBundles.tsx";
+import {DocumentDetailedDto, SharingSessionDetailedDto} from "../../../models/models.tsx";
+import {AuditIcon, CommentIcon, DocumentVersionsIcon} from "../../../components/IconBundles.tsx";
+import SessionDocumentComments from "./session-document-comments/SessionDocumentComments.tsx";
+import {useAuth} from "../../../../context/AuthContext.tsx";
 
 interface SessionDocumentSidebarProps
 {
     onOpen: (open: boolean) => void;
     isOpen: boolean;
-    sessionDocument: DocumentDetailedDto
+    sessionDocument: DocumentDetailedDto;
+    session: SharingSessionDetailedDto;
 }
 
 const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
     {
         onOpen,
         isOpen,
-        sessionDocument
+        sessionDocument,
+        session,
     }) =>
 {
     const [selectedValue, setSelectedValue] = React.useState<TabValue>("comments");
+    const {appUser} = useAuth()
     const styles = useSessionDocumentSidebarStyles();
 
     const onTabSelect = (_: SelectTabEvent, data: SelectTabData) =>
@@ -42,11 +46,13 @@ const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
     };
 
     return (
-        <InlineDrawer as="aside"
-                      id={"SessionDocumentSidebar"}
-                      open={isOpen}
-                      className={styles.sidebarContainer}
-                      position="end">
+        <InlineDrawer
+            as="aside"
+            id={"SessionDocumentSidebar"}
+            open={isOpen}
+            className={styles.sidebarContainer}
+            position="end"
+        >
             <DrawerHeader className={styles.drawerHeader}>
                 <DrawerHeaderTitle
                     action={
@@ -72,23 +78,15 @@ const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
                 </DrawerHeaderTitle>
             </DrawerHeader>
             <DrawerBody className={styles.drawerBody}>
-                {selectedValue === "comments" && (<>
-
-                        {Array.from({length: 80}, (_, index) => (
-                            <div><Text size={400} key={index}>Example comment {index + 1}</Text></div>
-                        ))}
-                        <div className={styles.commentFieldContainer}>
-                            <Field className={styles.commentField}>
-                                <Textarea placeholder="Add a comment"
-                                          maxLength={255}/>
-                            </Field>
-                            <Button icon={<SendCommentIcon/>}
-                                    appearance={"transparent"}/>
-                        </div>
-                    </>
+                {session && selectedValue === "comments" && (
+                    <SessionDocumentComments
+                        sessionId={session.id}
+                        sessionDocument={sessionDocument}
+                        currentUserEmail={appUser?.email}
+                    />
                 )}
-                {selectedValue === "versions" && <div> VERSIONS</div>}
-                {selectedValue === "audit" && <div> AUDIT</div>}
+                {selectedValue === "versions" && <div><Text>Document versions will appear here</Text></div>}
+                {selectedValue === "audit" && <div><Text>Document audit logs will appear here</Text></div>}
             </DrawerBody>
         </InlineDrawer>
     );

@@ -7,7 +7,7 @@ import com.dochyphen.app.api.model.entity.Document
 import com.dochyphen.app.api.model.entity.DocumentAuditLog
 import com.dochyphen.app.api.model.entity.DocumentAuditLogAction
 import com.dochyphen.app.api.repository.DocumentAuditLogRepository
-import com.dochyphen.app.api.repository.DocumentRepository
+import com.dochyphen.app.api.repository.SharingSessionDocumentRepository
 import com.dochyphen.app.api.repository.SharingSessionRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -19,7 +19,7 @@ import java.util.*
 @ApplicationScoped
 class SharingSessionDocumentAuditService @Inject constructor(
     private val sharingSessionRepository: SharingSessionRepository,
-    private val documentRepository: DocumentRepository,
+    private val sharingSessionDocumentRepository: SharingSessionDocumentRepository,
     private val documentAuditLogRepository: DocumentAuditLogRepository,
     private val entityManager: EntityManager
 )
@@ -55,7 +55,7 @@ class SharingSessionDocumentAuditService @Inject constructor(
         sharingSessionRepository.findById(UUID.fromString(sessionId))
             ?: throw SharingSessionNotFoundException("Sharing session not found")
 
-        val document = documentRepository.findByDocumentId(UUID.fromString(documentId))
+        val document = sharingSessionDocumentRepository.findByDocumentId(UUID.fromString(documentId))
             ?: throw SharingSessionDocumentNotFoundException("Document not found")
 
         return documentAuditLogRepository.findByDocumentId(document.id)

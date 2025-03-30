@@ -188,3 +188,16 @@ export const searchSharingSessions = (
             }
         })
     );
+
+export const getDocumentComments = (sessionId: string, documentId: string) =>
+    executeRequest(() =>
+        apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/comments`)
+    );
+
+export const addDocumentComment = (sessionId: string, documentId: string, commentText: string, commentedBy: string) =>
+    executeRequest(() =>
+        apiClient.post(`/sharing-sessions/${sessionId}/documents/${documentId}/comments`, {
+            commentText,
+            commentedBy
+        })
+    );

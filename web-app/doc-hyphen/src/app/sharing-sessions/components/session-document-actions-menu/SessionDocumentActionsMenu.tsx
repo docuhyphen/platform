@@ -84,7 +84,7 @@ const SessionDocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
                         </MenuItem>
                         <MenuItem icon={<MoreInfoIcon/>}
                                   onClick={() => onOpenDetailsSidebar()}>
-                            More info
+                            Details
                         </MenuItem>
                     </MenuList>
                 </MenuPopover>

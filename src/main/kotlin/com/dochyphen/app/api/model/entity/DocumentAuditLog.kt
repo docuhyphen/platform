@@ -16,6 +16,7 @@ enum class DocumentAuditLogAction {
     CREATED,
     DELETE,
     UPDATE,
+    COMMENT,
 }
 
 @Entity

@@ -130,7 +130,7 @@ class Document
 
     @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.EAGER)
     @JoinColumn(name = "document_id")
-    var comments: MutableList<DocumentComment> = mutableListOf()
+    var comments: MutableList<SharingSessionDocumentComment> = mutableListOf()
 
     constructor()
 }

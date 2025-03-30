@@ -13,7 +13,9 @@ data class DocumentCommentDetailedDto(
     @Serializable(with = TimestampSerializer::class)
     val createdDate: Timestamp?,
     val text: String?,
-//    val commentedBy: AppUserDetailedDto?
+    val commentedByFirstName: String?,
+    val commentedByLastName: String?,
+    val commentedByEmail: String?
 )
 
 @Serializable

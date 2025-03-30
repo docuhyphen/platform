@@ -5,7 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import java.util.*
 
 @ApplicationScoped
-class DocumentRepository : BaseRepository<Document>(Document::class.java)
+class SharingSessionDocumentRepository : BaseRepository<Document>(Document::class.java)
 {
     fun findByDocumentId(documentId: UUID): Document?
     {

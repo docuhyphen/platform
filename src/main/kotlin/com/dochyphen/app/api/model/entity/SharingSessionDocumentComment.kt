@@ -11,13 +11,13 @@ import java.util.*
 @Entity
 @Table(name = "document_comment")
 @Serializable
-class DocumentComment {
-
+class SharingSessionDocumentComment
+{
     @Id
     @Serializable(with = UUIDSerializer::class)
     var id: UUID = UUID.randomUUID()
 
-    @Column(name = "comment_text", nullable = false)
+    @Column(name = "comment_text", length = 500, nullable = false)
     lateinit var commentText: String
 
     @Column(name = "created_date", nullable = false)
@@ -26,10 +26,10 @@ class DocumentComment {
 
     @ManyToOne
     @JoinColumn(name = "document_id", nullable = false)
-    lateinit var document: Document
+    var document: Document? = null
 
     @ManyToOne
-    @JoinColumn(name = "commented_by", nullable = false)
+    @JoinColumn(name = "commented_by_user_id", nullable = false)
     lateinit var commentedBy: AppUser
 
     constructor()
