@@ -18,6 +18,7 @@ import {useSessionDocumentSidebarStyles} from "./SessionDocumentSidebarStyles.ts
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../../../models/models.tsx";
 import {AuditIcon, CommentIcon, DocumentVersionsIcon} from "../../../components/IconBundles.tsx";
 import SessionDocumentComments from "./session-document-comments/SessionDocumentComments.tsx";
+import SessionDocumentAudit from "./session-document-audit/SessionDocumentAudit.tsx";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 
 interface SessionDocumentSidebarProps
@@ -86,7 +87,12 @@ const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
                     />
                 )}
                 {selectedValue === "versions" && <div><Text>Document versions will appear here</Text></div>}
-                {selectedValue === "audit" && <div><Text>Document audit logs will appear here</Text></div>}
+                {selectedValue === "audit" && (
+                    <SessionDocumentAudit
+                        sessionId={session.id}
+                        sessionDocument={sessionDocument}
+                    />
+                )}
             </DrawerBody>
         </InlineDrawer>
     );

@@ -75,3 +75,11 @@ export const formatDateTimeWithOrdinal = (dateString: string): string =>
     };
     return date.toLocaleString('en-GB', options).replace(',', ` @`).replace(day.toString(), `${day}${ordinalSuffix}`);
 };
+
+export const formatAuditAction = (action: string): string =>
+{
+    return action
+        .replace(/_/g, ' ')
+        .toLowerCase()
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+};
