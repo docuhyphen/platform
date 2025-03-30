@@ -120,7 +120,7 @@ class AuthenticationService @Inject constructor(
             .payload
 
         val newExpiration =
-            Date(System.currentTimeMillis() + TimeUnit.HOURS.toMillis(configurationService.getSignInTokenExpiryHours()))
+            Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(configurationService.getSignInTokenExpiryHours()))
 
         return Jwts.builder()
             .claims(claims)
