@@ -4,6 +4,7 @@ import com.dochyphen.app.api.model.entity.DetailedModelConverter
 import com.dochyphen.app.api.resource.model.CommentRequest
 import com.dochyphen.app.api.service.sharingsession.SharingSessionDocumentCommentsService
 import jakarta.inject.Inject
+import jakarta.transaction.Transactional
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
@@ -16,6 +17,7 @@ class SharingSessionDocumentCommentResource @Inject constructor(
 )
 {
     @POST
+    @Transactional
     fun addComment(
         @PathParam("documentId") documentId: String,
         commentRequest: CommentRequest

@@ -55,7 +55,8 @@ export const useSharingSessionsStyles = makeStyles({
     },
     documentsSectionContainer: {
         display: "flex",
-        minHeight: "200px"
+        minHeight: "200px",
+        height: "100%"
     },
     documentsSection: {
         display: "flex",

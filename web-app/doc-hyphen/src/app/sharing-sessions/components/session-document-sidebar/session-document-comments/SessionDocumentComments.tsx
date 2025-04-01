@@ -1,6 +1,16 @@
 import React, {useEffect, useState} from "react";
-import {Button, Field, Spinner, Textarea} from "@fluentui/react-components";
-import SessionDocumentComment from "../session-document-comment/SessionDocumentComment";
+import {
+    Button,
+    Field,
+    Spinner,
+    Text,
+    Textarea,
+    Toast,
+    ToastTitle,
+    useId,
+    useToastController
+} from "@fluentui/react-components";
+import SessionDocumentComment from "./session-document-comment/SessionDocumentComment";
 import {useSessionDocumentCommentsStyles} from "./SessionDocumentCommentsStyles.tsx";
 import {DocumentCommentDetailedDto, DocumentDetailedDto} from "../../../../models/models.tsx";
 import {DocumentCommentService} from "../../../../../services/DocumentCommentService.tsx";
@@ -23,9 +33,11 @@ const SessionDocumentComments: React.FC<SessionDocumentCommentsProps> = (
     const [loading, setLoading] = useState<boolean>(true);
     const [comments, setComments] = useState<DocumentCommentDetailedDto[]>([]);
     const [newComment, setNewComment] = useState<string>("");
-    const [submitting, setSubmitting] = useState<boolean>(false);
+    const [addingComment, setAddingComment] = useState<boolean>(false);
     const commentService = new DocumentCommentService();
     const styles = useSessionDocumentCommentsStyles();
+    const toasterId = useId("document-comments-toaster");
+    const {dispatchToast} = useToastController(toasterId);
 
     const fetchComments = async () =>
     {
@@ -45,19 +57,30 @@ const SessionDocumentComments: React.FC<SessionDocumentCommentsProps> = (
         }
     };
 
-    const handleAddComment = async () =>
+    const onAddComment = async () =>
     {
-        if (!newComment.trim()) return;
+        if (addingComment)
+        {
+            return;
+        }
+
+        setAddingComment(true);
+
+        if (!newComment.trim())
+        {
+            return;
+        }
 
         try
         {
-            setSubmitting(true);
+
             const addedComment = await commentService.addComment(
                 sessionId,
                 sessionDocument.id,
                 newComment,
                 currentUserEmail
             );
+
             setComments([...comments, addedComment]);
             setNewComment("");
         }
@@ -67,7 +90,7 @@ const SessionDocumentComments: React.FC<SessionDocumentCommentsProps> = (
         }
         finally
         {
-            setSubmitting(false);
+            setAddingComment(false);
         }
     };
 
@@ -79,9 +102,18 @@ const SessionDocumentComments: React.FC<SessionDocumentCommentsProps> = (
         }
     }, [sessionDocument?.id]);
 
+    const showServerErrorToast = (message: string) =>
+    {
+        dispatchToast(
+            <Toast>
+                <ToastTitle> {message}</ToastTitle>
+            </Toast>, {intent: 'error', timeout: 15000, position: "top"},
+        );
+    };
+
     return (
-        <div className={styles.commentsContainer}>
-            <div className={styles.commentsList}>
+        <div className={styles.container}>
+            <div className={styles.list}>
                 {loading ? (
                     <Spinner/>
                 ) : comments.length > 0 ? (
@@ -89,26 +121,34 @@ const SessionDocumentComments: React.FC<SessionDocumentCommentsProps> = (
                         <SessionDocumentComment key={comment.id} comment={comment}/>
                     ))
                 ) : (
-                    <div className={styles.noComments}>There are no notes yet</div>
+                    <div className={styles.noComments}>No notes have been added yet.</div>
                 )}
             </div>
 
             <div className={styles.commentFieldContainer}>
-                <Field className={styles.commentField}>
-                    <Textarea
-                        placeholder="Add a note"
-                        maxLength={255}
-                        value={newComment}
-                        onChange={(e, data) => setNewComment(data.value)}
-                        disabled={submitting}
+                <div className={styles.commentFieldContainerField}>
+                    <Field className={styles.commentField}>
+                        <Textarea
+                            placeholder="Add a note"
+                            maxLength={255}
+                            value={newComment}
+                            onChange={(e, data) => setNewComment(data.value)}
+                            disabled={addingComment}
+                        />
+                    </Field>
+                    <Button
+                        icon={<SendCommentIcon/>}
+                        appearance="transparent"
+                        onClick={onAddComment}
+                        disabled={!newComment.trim() || addingComment}
                     />
-                </Field>
-                <Button
-                    icon={<SendCommentIcon/>}
-                    appearance="transparent"
-                    onClick={handleAddComment}
-                    disabled={!newComment.trim() || submitting}
-                />
+                </div>
+                <div className={styles.commentCounter}>
+                    <Text>
+                        {newComment.length}/255
+                    </Text>
+                    {addingComment && <Spinner size={"extra-small"}/>}
+                </div>
             </div>
         </div>
     );

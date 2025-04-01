@@ -2,28 +2,64 @@
 import {makeStyles, shorthands} from "@fluentui/react-components";
 
 export const useSessionDocumentCommentsStyles = makeStyles({
-    commentsContainer: {
+
+    container: {
         display: "flex",
         flexDirection: "column",
-        height: "100%"
+        height: "100%",
+        position: "relative"
     },
-    commentsList: {
+
+    list: {
+        padding: "4px 8px",
+        display: "flex",
+        flexDirection: "column",
         flexGrow: 1,
+        gap: "8px",
         overflowY: "auto",
-        ...shorthands.padding("8px")
     },
+
     noComments: {
         textAlign: "center",
         color: "#666",
         ...shorthands.padding("16px")
     },
+
     commentFieldContainer: {
         display: "flex",
-        alignItems: "flex-end",
-        ...shorthands.padding("8px"),
-        borderTop: "1px solid #e0e0e0"
+        gap: "4px",
+        flexDirection: "column"
     },
+
+    commentFieldContainerField: {
+        display: "flex",
+        // alignItems: "center",
+        paddingTop: "8px",
+        borderTop: "1px solid #e0e0e0",
+        gap: "4px",
+        flex: "1"
+    },
+
     commentField: {
-        flexGrow: 1
+        alignItems: "start",
+        gap: "4px",
+        width: "100%",
+        transition: "* 0.2s ease",
+        "& textarea": {
+            transition: "* 0.2s ease",
+            minHeight: "36px"
+        },
+        "& textarea:active, & textarea:focus": {
+            height: "100px"
+        },
+        "& textarea:not(:active):not(:focus)": {
+            height: "40px"
+        }
+    },
+
+    commentCounter: {
+        display: "flex",
+        justifyContent: "space-between",
+        flexDirection: "row"
     }
 });

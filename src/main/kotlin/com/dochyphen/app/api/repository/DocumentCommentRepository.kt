@@ -14,7 +14,8 @@ class DocumentCommentRepository :
             .createQuery(
                 """
                 |SELECT c FROM SharingSessionDocumentComment c
-                |WHERE c.document.id = :documentId""".trimMargin(),
+                |WHERE c.document.id = :documentId
+                |ORDER BY c.createdDate DESC """.trimMargin(),
                 SharingSessionDocumentComment::class.java
             )
             .setParameter("documentId", documentId).resultList
