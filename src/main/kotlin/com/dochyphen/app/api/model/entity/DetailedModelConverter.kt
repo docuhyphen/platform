@@ -26,6 +26,25 @@ class DetailedModelConverter
             }
         }
 
+        fun toDto(documentVersion: DocumentVersion?): DocumentVersionDetailedDto?
+        {
+            return documentVersion?.let {
+                with(documentVersion)
+                {
+                    DocumentVersionDetailedDto(
+                        id,
+                        document.id.toString(),
+                        createdDate,
+                        version,
+                        storagePath,
+                        createdByEmail,
+                        "TODO"
+//                        createdBy!!.id.toString()
+                    )
+                }
+            }
+        }
+
         fun toDo(sharingSession: SharingSession?): SharingSessionDetailedDto?
         {
             return sharingSession?.let {

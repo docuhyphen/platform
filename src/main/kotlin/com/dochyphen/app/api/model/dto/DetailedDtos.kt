@@ -35,6 +35,19 @@ data class DocumentDetailedDto(
 )
 
 @Serializable
+data class DocumentVersionDetailedDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID?,
+    val documentId: String?,
+    @Serializable(with = TimestampSerializer::class)
+    val createdAt: Timestamp?,
+    val version: String?,
+    val storagePath: String?,
+    val createdByEmail: String?,
+    val createdBy: String?,
+)
+
+@Serializable
 data class SharingSessionDetailedDto(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID,

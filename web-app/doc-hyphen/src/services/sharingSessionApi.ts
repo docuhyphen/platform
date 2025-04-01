@@ -201,3 +201,32 @@ export const addDocumentComment = (sessionId: string, documentId: string, commen
             commentedBy
         })
     );
+
+export const getDocumentVersions = (sessionId: string, documentId: string) =>
+    executeRequest(() =>
+        apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/versions`)
+    );
+
+export const uploadDocumentVersion = (
+    sessionId: string,
+    documentId: string,
+    formData?: FormData,
+    token?: string | null,
+    onUploadProgress?: (progressEvent: any) => void
+) =>
+    executeRequest(() =>
+        apiClient.post(`/sharing-sessions/${sessionId}/documents/${documentId}/versions`, formData, {
+            headers: getAuthHeaders(token || null, {'Content-Type': 'multipart/form-data'}),
+            onUploadProgress
+        })
+    );
+
+export const downloadDocumentVersion = (sessionId: string, documentId: string, versionId: string) =>
+    executeRequest(() =>
+        apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/versions/${versionId}/file`, blobRequest)
+    );
+
+export const getLatestDocumentVersion = (sessionId: string, documentId: string) =>
+    executeRequest(() =>
+        apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/versions/latest`)
+    );

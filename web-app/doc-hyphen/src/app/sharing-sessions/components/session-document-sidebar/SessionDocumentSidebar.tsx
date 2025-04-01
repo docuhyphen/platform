@@ -10,8 +10,7 @@ import {
     SelectTabEvent,
     Tab,
     TabList,
-    TabValue,
-    Text
+    TabValue
 } from "@fluentui/react-components";
 import {DismissRegular} from "@fluentui/react-icons";
 import {useSessionDocumentSidebarStyles} from "./SessionDocumentSidebarStyles.tsx";
@@ -20,6 +19,7 @@ import {AuditIcon, CommentIcon, DocumentVersionsIcon} from "../../../components/
 import SessionDocumentComments from "./session-document-comments/SessionDocumentComments.tsx";
 import SessionDocumentAudit from "./session-document-audit/SessionDocumentAudit.tsx";
 import {useAuth} from "../../../../context/AuthContext.tsx";
+import SessionDocumentVersions from "./session-document-versions/SessionDocumentVersions.tsx";
 
 interface SessionDocumentSidebarProps
 {
@@ -67,7 +67,7 @@ const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
                     }>
                     <TabList selectedValue={selectedValue} onTabSelect={onTabSelect}>
                         <Tab id="comments" icon={<CommentIcon/>} value="comments">
-                            Comments
+                            Notes
                         </Tab>
                         <Tab id="versions" icon={<DocumentVersionsIcon/>} value="versions">
                             Versions
@@ -86,7 +86,12 @@ const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
                         currentUserEmail={appUser?.email}
                     />
                 )}
-                {selectedValue === "versions" && <div><Text>Document versions will appear here</Text></div>}
+                {selectedValue === "versions" && (
+                    <SessionDocumentVersions
+                        sessionId={session.id}
+                        sessionDocument={sessionDocument}
+                    />
+                )}
                 {selectedValue === "audit" && (
                     <SessionDocumentAudit
                         sessionId={session.id}

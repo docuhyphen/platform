@@ -483,3 +483,14 @@ export interface SignInCompletionRequest
     email: string
     otp: string
 }
+
+
+export interface DocumentVersion
+{
+    id: string;
+    version: string;
+    fileName: string;
+    storagePath: string;
+    createdAt: string;
+    createdByEmail: string | null;
+}
