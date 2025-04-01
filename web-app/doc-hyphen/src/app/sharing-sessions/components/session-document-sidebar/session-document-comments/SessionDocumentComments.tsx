@@ -63,7 +63,7 @@ const SessionDocumentComments: React.FC<SessionDocumentCommentsProps> = (
         }
         catch (error)
         {
-            console.error("Failed to add comment:", error);
+            console.error("Failed to add note:", error);
         }
         finally
         {
@@ -89,14 +89,14 @@ const SessionDocumentComments: React.FC<SessionDocumentCommentsProps> = (
                         <SessionDocumentComment key={comment.id} comment={comment}/>
                     ))
                 ) : (
-                    <div className={styles.noComments}>No comments yet</div>
+                    <div className={styles.noComments}>There are no notes yet</div>
                 )}
             </div>
 
             <div className={styles.commentFieldContainer}>
                 <Field className={styles.commentField}>
                     <Textarea
-                        placeholder="Add a comment"
+                        placeholder="Add a note"
                         maxLength={255}
                         value={newComment}
                         onChange={(e, data) => setNewComment(data.value)}

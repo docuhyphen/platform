@@ -68,13 +68,14 @@ const SessionDocumentAudit: React.FC<SessionDocumentAuditProps> = ({
 
     if (!auditLogs || auditLogs.length === 0)
     {
-        return <Text className={styles.noLogs}>No audit logs available for this document.</Text>;
+        return <Text className={styles.noLogs}>
+            No audit logs available for this document.
+        </Text>;
     }
 
     return (
         <div className={styles.auditContainer}>
             <Table className={styles.auditTable}>
-                <Caption1>Audit logs for {sessionDocument.title}</Caption1>
                 <TableHeader>
                     <TableRow>
                         <TableHeaderCell>Date & Time</TableHeaderCell>
