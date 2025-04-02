@@ -1,6 +1,7 @@
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import {
     Button,
+    Divider,
     Field,
     Spinner,
     Text,
@@ -38,6 +39,7 @@ const SessionDocumentComments: React.FC<SessionDocumentCommentsProps> = (
     const styles = useSessionDocumentCommentsStyles();
     const toasterId = useId("document-comments-toaster");
     const {dispatchToast} = useToastController(toasterId);
+    const commentsListRef = useRef<HTMLDivElement>(null);
 
     const fetchComments = async () =>
     {
@@ -73,7 +75,6 @@ const SessionDocumentComments: React.FC<SessionDocumentCommentsProps> = (
 
         try
         {
-
             const addedComment = await commentService.addComment(
                 sessionId,
                 sessionDocument.id,
@@ -81,8 +82,13 @@ const SessionDocumentComments: React.FC<SessionDocumentCommentsProps> = (
                 currentUserEmail
             );
 
-            setComments([...comments, addedComment]);
+            setComments([addedComment, ...comments]);
             setNewComment("");
+
+            if (commentsListRef.current)
+            {
+                commentsListRef.current.scrollTop = 0;
+            }
         }
         catch (error)
         {
@@ -111,14 +117,26 @@ const SessionDocumentComments: React.FC<SessionDocumentCommentsProps> = (
         );
     };
 
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) =>
+    {
+        if (event.key === 'Enter' && !event.shiftKey)
+        {
+            event.preventDefault();
+            onAddComment();
+        }
+    };
+
     return (
         <div className={styles.container}>
-            <div className={styles.list}>
+            <div className={styles.list} ref={commentsListRef}>
                 {loading ? (
-                    <Spinner/>
+                    <Spinner size={"small"}/>
                 ) : comments.length > 0 ? (
-                    comments.map((comment) => (
-                        <SessionDocumentComment key={comment.id} comment={comment}/>
+                    comments.map((comment, index) => (
+                        <React.Fragment key={comment.id}>
+                            <SessionDocumentComment comment={comment}/>
+                            {index < comments.length - 1 && <Divider/>}
+                        </React.Fragment>
                     ))
                 ) : (
                     <div className={styles.noComments}>No notes have been added yet.</div>
@@ -133,6 +151,7 @@ const SessionDocumentComments: React.FC<SessionDocumentCommentsProps> = (
                             maxLength={255}
                             value={newComment}
                             onChange={(e, data) => setNewComment(data.value)}
+                            onKeyDown={handleKeyDown}
                             disabled={addingComment}
                         />
                     </Field>
@@ -142,16 +161,13 @@ const SessionDocumentComments: React.FC<SessionDocumentCommentsProps> = (
                             {newComment.length}/255
                         </Text>
 
-                        <div>
-                            {addingComment && <Spinner size={"extra-small"}/>}
-                            <Button
-                                icon={<SendCommentIcon/>}
-                                appearance="transparent"
-                                onClick={onAddComment}
-                                size={"large"}
-                                disabled={!newComment.trim() || addingComment}
-                            />
-                        </div>
+                    <Button
+                        icon={addingComment ? <Spinner size={"extra-small"}/> : <SendCommentIcon/>}
+                        appearance="transparent"
+                        onClick={onAddComment}
+                        size={"large"}
+                        disabled={!newComment.trim() || addingComment}
+                    />
                 </div>
             </div>
         </div>

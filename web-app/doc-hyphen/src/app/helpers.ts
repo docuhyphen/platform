@@ -65,7 +65,7 @@ export const formatDateTimeWithOrdinal = (dateString: string): string =>
     const day = date.getDate();
     const ordinalSuffix = getOrdinalSuffix(day);
     const options: Intl.DateTimeFormatOptions = {
-        day: '2-digit',
+        day: 'numeric',
         month: 'short',
         year: 'numeric',
         hour: '2-digit',
@@ -73,7 +73,7 @@ export const formatDateTimeWithOrdinal = (dateString: string): string =>
         second: '2-digit',
         hour12: false
     };
-    return date.toLocaleString('en-GB', options).replace(',', ` @`).replace(day.toString(), `${day}${ordinalSuffix}`);
+    return date.toLocaleString('en-GB', options).replace(', ', ' @ ').replace(day.toString(), `${day}${ordinalSuffix}`);
 };
 
 export const formatAuditAction = (action: string): string =>
@@ -81,5 +81,5 @@ export const formatAuditAction = (action: string): string =>
     return action
         .replace(/_/g, ' ')
         .toLowerCase()
-        .replace(/\b\w/g, (char) => char.toUpperCase());
+        .replace(/\b\w/g, (char: string) => char.toUpperCase());
 };

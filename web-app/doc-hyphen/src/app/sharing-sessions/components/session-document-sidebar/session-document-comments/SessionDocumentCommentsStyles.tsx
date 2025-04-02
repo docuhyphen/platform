@@ -35,7 +35,6 @@ export const useSessionDocumentCommentsStyles = makeStyles({
         display: "flex",
         // alignItems: "center",
         paddingTop: "8px",
-        borderTop: "1px solid #e0e0e0",
         gap: "4px",
         flex: "1"
     },

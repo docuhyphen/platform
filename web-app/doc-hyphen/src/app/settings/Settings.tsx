@@ -63,6 +63,9 @@ const Settings = () =>
                     <p>
                         Automatically preview documents when they are uploaded
                     </p>
+                    <h1>Notifications</h1>
+                    <p>Get notifications on document comments</p>
+                    <p>Get notifications on document upload</p>
                     </div>}
                     {selectedValue === "people" && <div><Text> People Tab</Text></div>}
                     {selectedValue === "templates" && <div><Text> Templates Tab</Text></div>}

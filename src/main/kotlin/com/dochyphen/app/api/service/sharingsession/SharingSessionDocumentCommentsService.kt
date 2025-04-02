@@ -69,7 +69,7 @@ class SharingSessionDocumentCommentsService @Inject constructor(
         val notification = NotificationDto(
             id = UUID.randomUUID().toString(),
             type = NotificationType.NEW_COMMENT,
-            message = "${user.person?.firstName ?: ""} ${user.person?.lastName ?: ""} added a comment",
+            message = "${user.person?.firstName ?: ""} ${user.person?.lastName ?: ""} added a comment on a document",
             timestamp = Timestamp.from(Instant.now()),
             sessionId = sessionId,
             documentId = documentId,
