@@ -1,14 +1,5 @@
 import React from 'react';
-import {
-    Button,
-    Menu,
-    MenuButton,
-    MenuItem,
-    MenuList,
-    MenuPopover,
-    MenuTrigger,
-    SplitButton
-} from "@fluentui/react-components";
+import {Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, SplitButton} from "@fluentui/react-components";
 import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
 import {ReceiveDocumentsIcon, SendDocumentsIcon} from "../../components/IconBundles.tsx";
 

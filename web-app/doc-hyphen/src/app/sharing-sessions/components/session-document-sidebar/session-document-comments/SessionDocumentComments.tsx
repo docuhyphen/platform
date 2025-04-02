@@ -137,21 +137,21 @@ const SessionDocumentComments: React.FC<SessionDocumentCommentsProps> = (
                         />
                     </Field>
                 </div>
-                <div className={styles.commentCounter}>
-                    <Text>
-                        {newComment.length}/255
-                    </Text>
-                    <div>
+                <div className={styles.commentCounterSend}>
+                        <Text>
+                            {newComment.length}/255
+                        </Text>
 
-                        {addingComment && <Spinner size={"extra-small"}/>}
-                        <Button
-                            icon={<SendCommentIcon/>}
-                            appearance="transparent"
-                            onClick={onAddComment}
-                            size={"large"}
-                            disabled={!newComment.trim() || addingComment}
-                        />
-                    </div>
+                        <div>
+                            {addingComment && <Spinner size={"extra-small"}/>}
+                            <Button
+                                icon={<SendCommentIcon/>}
+                                appearance="transparent"
+                                onClick={onAddComment}
+                                size={"large"}
+                                disabled={!newComment.trim() || addingComment}
+                            />
+                        </div>
                 </div>
             </div>
         </div>

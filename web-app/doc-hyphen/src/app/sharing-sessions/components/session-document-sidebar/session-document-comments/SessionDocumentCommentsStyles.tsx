@@ -57,9 +57,10 @@ export const useSessionDocumentCommentsStyles = makeStyles({
         // }
     },
 
-    commentCounter: {
+    commentCounterSend: {
         display: "flex",
         justifyContent: "space-between",
-        flexDirection: "row"
+        flexDirection: "row",
+        alignItems: "center"
     }
 });

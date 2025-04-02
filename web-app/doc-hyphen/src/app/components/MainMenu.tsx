@@ -46,7 +46,13 @@ const MainMenu: React.FC = () =>
             <SharingSessionInitiation/>
 
             <Button icon={<SharingSessionIcon/>}
-                    onClick={() => navigate('/sharing-sessions')}
+                    onClick={() =>
+                    {
+                        if (window.location.pathname !== '/sharing-sessions')
+                        {
+                            navigate('/sharing-sessions');
+                        }
+                    }}
                     appearance={"subtle"}>
             </Button>
 
