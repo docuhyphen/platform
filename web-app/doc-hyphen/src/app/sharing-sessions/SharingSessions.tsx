@@ -83,6 +83,12 @@ const SharingSessions: React.FC = () =>
             clearTimeout(timerId);
         };
     }, []);
+    //
+    // useEffect(() => {
+    //     if (sessionId) {
+    //         subscribeToSession(sessionId);
+    //     }
+    // }, [sessionId, subscribeToSession]);
 
     useEffect(() =>
     {
@@ -332,7 +338,7 @@ const SharingSessions: React.FC = () =>
                                     sessionDetails.documents?.length === 0 &&
                                     <NoSessionDocuments setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}/>
                                 }
-                                {selectedSessionDocument &&
+                                {(selectedSessionDocument && sessionDetails.documents?.length === 0) &&
                                     <SessionDocumentPreviewer document={selectedSessionDocument}
                                                               session={sessionDetails}/>
                                 }

@@ -45,16 +45,16 @@ export const useSessionDocumentCommentsStyles = makeStyles({
         gap: "4px",
         width: "100%",
         transition: "* 0.2s ease",
-        "& textarea": {
-            transition: "* 0.2s ease",
-            minHeight: "36px"
-        },
-        "& textarea:active, & textarea:focus": {
-            height: "100px"
-        },
-        "& textarea:not(:active):not(:focus)": {
-            height: "40px"
-        }
+        // "& textarea": {
+        //     transition: "* 0.2s ease",
+        //     minHeight: "36px"
+        // },
+        // "& textarea:active, & textarea:focus": {
+        //     height: "100px"
+        // },
+        // "& textarea:not(:active):not(:focus)": {
+        //     height: "40px"
+        // }
     },
 
     commentCounter: {

@@ -3,7 +3,7 @@ import {makeStyles} from "@fluentui/react-components";
 export const useSessionDocumentSidebarStyles = makeStyles({
     sidebarContainer: {
         backgroundColor: "transparent",
-        minWidth: "380px",
+        minWidth: "400px",
         // borderLeft: "1px solid rgba(0, 0, 0, .2)",
         minHeight: "300px",
     },

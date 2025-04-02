@@ -19,11 +19,13 @@ class SharingSessionDocumentCommentResource @Inject constructor(
     @POST
     @Transactional
     fun addComment(
+        @PathParam("sessionId") sessionId: String,
         @PathParam("documentId") documentId: String,
-        commentRequest: CommentRequest
+        commentRequest: CommentRequest,
     ): Response
     {
         val comment = documentCommentsService.addDocumentComment(
+            sessionId,
             documentId,
             commentRequest.commentText,
             commentRequest.commentedBy

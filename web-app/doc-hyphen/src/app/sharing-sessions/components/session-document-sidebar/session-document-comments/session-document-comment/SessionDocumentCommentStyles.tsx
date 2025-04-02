@@ -3,7 +3,7 @@ import {makeStyles} from "@fluentui/react-components";
 export const useSessionDocumentCommentStyles = makeStyles({
 
     container: {
-        flex: "none"
+        flex: "none",
     },
     commentText: {
         whiteSpace: "pre-wrap",

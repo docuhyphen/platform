@@ -4,6 +4,8 @@ package com.dochyphen.app.api.service.sharingsession
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.exception.UserNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
+import com.dochyphen.app.api.model.dto.NotificationDto
+import com.dochyphen.app.api.model.dto.NotificationType
 import com.dochyphen.app.api.model.entity.DocumentAuditLogAction
 import com.dochyphen.app.api.model.entity.SharingSessionDocumentComment
 import com.dochyphen.app.api.repository.AppUserRepository
@@ -11,6 +13,7 @@ import com.dochyphen.app.api.repository.DocumentCommentRepository
 import com.dochyphen.app.api.repository.SharingSessionDocumentRepository
 import com.dochyphen.app.api.repository.SharingSessionRepository
 import com.dochyphen.app.api.service.AppUserService
+import com.dochyphen.app.api.websocket.NotificationWebSocket
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -25,6 +28,7 @@ class SharingSessionDocumentCommentsService @Inject constructor(
     private val sharingSessionDocumentRepository: SharingSessionDocumentRepository,
     private val appUserRepository: AppUserRepository,
     private val appUserService: AppUserService,
+    private val notificationWebSocket: NotificationWebSocket,
     private val sharingSessionDocumentAuditService: SharingSessionDocumentAuditService,
     private val authTokenContext: AuthTokenContext,
     private val documentCommentRepository: DocumentCommentRepository,
@@ -37,6 +41,7 @@ class SharingSessionDocumentCommentsService @Inject constructor(
 
     @Transactional
     fun addDocumentComment(
+        sessionId: String,
         documentId: String,
         commentText: String,
         commentedBy: String
@@ -60,6 +65,20 @@ class SharingSessionDocumentCommentsService @Inject constructor(
         sharingSessionDocumentAuditService.logAction(
             document, DocumentAuditLogAction.COMMENT, user
         )
+
+        val notification = NotificationDto(
+            id = UUID.randomUUID().toString(),
+            type = NotificationType.NEW_COMMENT,
+            message = "${user.person?.firstName ?: ""} ${user.person?.lastName ?: ""} added a comment",
+            timestamp = Timestamp.from(Instant.now()),
+            sessionId = sessionId,
+            documentId = documentId,
+            commentId = comment.id.toString(),
+            userId = user.id.toString()
+        )
+
+        val session = sharingSessionRepository.findById(UUID.fromString(sessionId))
+        notificationWebSocket.broadcastToUser(session!!.recipient!!.id.toString(), notification)
 
         return comment
     }

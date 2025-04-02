@@ -484,7 +484,6 @@ export interface SignInCompletionRequest
     otp: string
 }
 
-
 export interface DocumentVersion
 {
     id: string;
@@ -493,4 +492,26 @@ export interface DocumentVersion
     storagePath: string;
     createdAt: string;
     createdByEmail: string | null;
+}
+
+export enum NotificationType {
+    NEW_COMMENT = 'NEW_COMMENT',
+    NEW_SESSION = 'NEW_SESSION',
+    DOCUMENT_ADDED = 'DOCUMENT_ADDED',
+    DOCUMENT_UPDATED = 'DOCUMENT_UPDATED',
+    SESSION_ENDED = 'SESSION_ENDED',
+    SESSION_INITIATED = 'SESSION_INITIATED',
+}
+
+export interface NotificationDto {
+    id: string;
+    type: NotificationType;
+    message: string;
+    timestamp: string;
+    sessionId?: string;
+    documentId?: string;
+    commentId?: string;
+    userId?: string;
+    isRead: boolean;
+    data: Record<string, string>;
 }

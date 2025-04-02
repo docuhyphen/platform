@@ -69,7 +69,6 @@ class AuthenticationService @Inject constructor(
         val tokenExpiryHrs = configurationService.getSignInTokenExpiryHours()
         val expiration = Date(System.currentTimeMillis() + TimeUnit.HOURS.toMillis(tokenExpiryHrs))
 
-
         return Jwts.builder()
             .subject(appUser.id.toString())
             .claim("email", appUser.email)

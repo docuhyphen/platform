@@ -14,11 +14,13 @@ import AccountRecovery from "./app/authorization/account-recovery/AccountRecover
 import SignUp from "./app/authorization/sign-up/SignUp.tsx";
 import ProtectedRoute from "./app/components/ProtectedRoutes.tsx";
 import AppSessionExpired from "./app/app-session-expired/AppSessionExpired.tsx";
+import {NotificationProvider} from "./context/NotificationContext.tsx";
 
 const App: React.FC = () => {
     return (
         <BrowserRouter>
         <AuthProvider>
+            <NotificationProvider>
                 <Routes>
                     {/*<Route path="/"*/}
                     {/*       element={*/}
@@ -84,6 +86,7 @@ const App: React.FC = () => {
                                <NotFound/>
                            }/>
                 </Routes>
+            </NotificationProvider>
         </AuthProvider>
         </BrowserRouter>
     );

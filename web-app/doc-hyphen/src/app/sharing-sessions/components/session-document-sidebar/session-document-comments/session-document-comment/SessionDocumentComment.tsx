@@ -1,9 +1,8 @@
 import React from "react";
-import {Avatar, Body1, Button, Caption1, Card, CardHeader, Text} from "@fluentui/react-components";
+import {Avatar, Caption1, Card, CardHeader, Text} from "@fluentui/react-components";
 import {useSessionDocumentCommentStyles} from "./SessionDocumentCommentStyles.tsx";
 import {DocumentCommentDetailedDto} from "../../../../../models/models.tsx";
 import {formatDateTimeWithOrdinal} from "../../../../../helpers.ts";
-import {ImageCopy20Filled, MoreVerticalRegular} from "@fluentui/react-icons";
 
 interface SessionDocumentCommentProps
 {

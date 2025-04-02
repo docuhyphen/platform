@@ -129,25 +129,29 @@ const SessionDocumentComments: React.FC<SessionDocumentCommentsProps> = (
                 <div className={styles.commentFieldContainerField}>
                     <Field className={styles.commentField}>
                         <Textarea
-                            placeholder="Add a note"
+                            placeholder="Add note"
                             maxLength={255}
                             value={newComment}
                             onChange={(e, data) => setNewComment(data.value)}
                             disabled={addingComment}
                         />
                     </Field>
-                    <Button
-                        icon={<SendCommentIcon/>}
-                        appearance="transparent"
-                        onClick={onAddComment}
-                        disabled={!newComment.trim() || addingComment}
-                    />
                 </div>
                 <div className={styles.commentCounter}>
                     <Text>
                         {newComment.length}/255
                     </Text>
-                    {addingComment && <Spinner size={"extra-small"}/>}
+                    <div>
+
+                        {addingComment && <Spinner size={"extra-small"}/>}
+                        <Button
+                            icon={<SendCommentIcon/>}
+                            appearance="transparent"
+                            onClick={onAddComment}
+                            size={"large"}
+                            disabled={!newComment.trim() || addingComment}
+                        />
+                    </div>
                 </div>
             </div>
         </div>
