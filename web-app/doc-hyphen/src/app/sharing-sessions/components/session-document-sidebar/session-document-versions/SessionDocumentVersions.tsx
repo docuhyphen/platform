@@ -139,7 +139,7 @@ const SessionDocumentVersions: React.FC<SessionDocumentVersionsProps> = (
 
     if (loading)
     {
-        return <Spinner label="Loading versions..."/>;
+        return <Spinner size={"small"}/>;
     }
 
     return (

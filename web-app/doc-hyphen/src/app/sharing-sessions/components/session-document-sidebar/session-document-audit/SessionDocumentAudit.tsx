@@ -1,6 +1,5 @@
 import React, {useEffect, useState} from "react";
 import {
-    Caption1,
     Spinner,
     Table,
     TableBody,
@@ -58,7 +57,7 @@ const SessionDocumentAudit: React.FC<SessionDocumentAuditProps> = ({
 
     if (loading)
     {
-        return <Spinner className={styles.spinner} label="Loading audit logs..."/>;
+        return <Spinner size={"small"}/>;
     }
 
     if (error)
