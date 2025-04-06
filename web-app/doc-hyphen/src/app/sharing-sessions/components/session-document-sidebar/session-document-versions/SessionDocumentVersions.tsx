@@ -144,44 +144,6 @@ const SessionDocumentVersions: React.FC<SessionDocumentVersionsProps> = (
 
     return (
         <div className={styles.container}>
-            <div className={styles.uploadContainer}>
-                <Text weight="semibold">Upload a new version</Text>
-
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    className={styles.uploadInput}
-                    onChange={handleFileSelect}
-                    id="version-file-input"
-                />
-
-                <div className={styles.buttonContainer}>
-                    <Text className={styles.fileLabel}>
-                        {selectedFile ? selectedFile.name : "No file selected"}
-                    </Text>
-
-                    <div>
-                        <Button
-                            appearance="secondary"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={uploading}
-                        >
-                            Select File
-                        </Button>
-                        {" "}
-                        <Button
-                            appearance="primary"
-                            onClick={handleUpload}
-                            disabled={!selectedFile || uploading}
-                            icon={<ArrowUploadRegular/>}
-                        >
-                            {uploading ? "Uploading..." : "Upload Version"}
-                        </Button>
-                    </div>
-                </div>
-
-                {error && <Text color="red">{error}</Text>}
-            </div>
             <div className={styles.versionList}>
                 {versions.length === 0 ? (
                     <div className={styles.noVersions}>
@@ -194,8 +156,8 @@ const SessionDocumentVersions: React.FC<SessionDocumentVersionsProps> = (
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHeaderCell>Version</TableHeaderCell>
-                                <TableHeaderCell>Created At</TableHeaderCell>
+                                <TableHeaderCell>#</TableHeaderCell>
+                                <TableHeaderCell>Uploaded</TableHeaderCell>
                                 <TableHeaderCell>Created By</TableHeaderCell>
                                 <TableHeaderCell>Actions</TableHeaderCell>
                             </TableRow>
@@ -219,6 +181,49 @@ const SessionDocumentVersions: React.FC<SessionDocumentVersionsProps> = (
                         </TableBody>
                     </Table>
                 )}
+            </div>
+
+            <div className={styles.uploadContainer}>
+                <Text weight="semibold">Upload a new version</Text>
+
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    className={styles.uploadInput}
+                    onChange={handleFileSelect}
+                    id="version-file-input"
+                />
+
+                <div className={styles.buttonContainer}>
+                    <Text className={styles.fileLabel}>
+                        {selectedFile ? selectedFile.name : "No file selected"}
+                    </Text>
+
+                    <div>
+                        <Button
+                            appearance="secondary"
+                            shape={"circular"}
+                            size={"small"}
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploading}
+                        >
+                            Select File
+                        </Button>
+                        {" "}
+                        <Button
+                            appearance="primary"
+                            shape={"circular"}
+                            size={"small"}
+                            onClick={handleUpload}
+                            disabled={!selectedFile || uploading}
+                            icon={<ArrowUploadRegular/>}
+                        >
+                            {uploading ? "Uploading..." : "Upload Version"}
+                        </Button>
+                    </div>
+                </div>
+
+                {error && <Text color="red">{error}</Text>}
             </div>
         </div>
     );

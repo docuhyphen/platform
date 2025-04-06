@@ -47,5 +47,6 @@ nb-configuration.xml
 logs
 
 document-uploads
+document-versions
 
 /web-app/node_modules

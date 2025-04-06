@@ -28,10 +28,10 @@ export const useSessionDocumentVersionsStyles = makeStyles({
     },
     buttonContainer: {
         display: "flex",
-        flexDirection: "row",
+        flexDirection: "column",
         gap: tokens.spacingHorizontalM,
         justifyContent: "space-between",
-        alignItems: "center"
+        alignItems: "start"
     },
     noVersions: {
         display: "flex",
