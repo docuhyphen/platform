@@ -157,9 +157,9 @@ const SessionDocumentComments: React.FC<SessionDocumentCommentsProps> = (
                     </Field>
                 </div>
                 <div className={styles.commentCounterSend}>
-                        <Text>
-                            {newComment.length}/255
-                        </Text>
+                    <Text>
+                        {newComment.length}/255
+                    </Text>
 
                     <Button
                         icon={addingComment ? <Spinner size={"extra-small"}/> : <SendCommentIcon/>}

@@ -494,7 +494,8 @@ export interface DocumentVersion
     createdByEmail: string | null;
 }
 
-export enum NotificationType {
+export enum NotificationType
+{
     NEW_COMMENT = 'NEW_COMMENT',
     NEW_SESSION = 'NEW_SESSION',
     DOCUMENT_ADDED = 'DOCUMENT_ADDED',
@@ -503,7 +504,8 @@ export enum NotificationType {
     SESSION_INITIATED = 'SESSION_INITIATED',
 }
 
-export interface NotificationDto {
+export interface NotificationDto
+{
     id: string;
     type: NotificationType;
     message: string;

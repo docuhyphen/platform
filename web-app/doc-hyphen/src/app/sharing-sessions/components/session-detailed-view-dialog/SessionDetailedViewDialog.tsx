@@ -86,8 +86,8 @@ const SessionDetailedViewDialog: React.FC<SessionDeleteDialogProps> = (
                                 <Input type="text" value={formatDateWithOrdinal(session.createdDate)} disabled={true}/>
                             </Field>
                             {/*<Field label={"Total Documents"}>*/}
-                        {/*    <Input type="text" value={session?.documents?.length || "0"} disabled={true}/>*/}
-                        {/*</Field>*/}
+                            {/*    <Input type="text" value={session?.documents?.length || "0"} disabled={true}/>*/}
+                            {/*</Field>*/}
                         </>
                         }
                     </DialogContent>

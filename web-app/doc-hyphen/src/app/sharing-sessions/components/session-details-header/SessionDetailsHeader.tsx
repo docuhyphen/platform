@@ -2,7 +2,8 @@ import React, {useEffect} from 'react';
 import {
     Body1,
     Button,
-    Caption1, Divider,
+    Caption1,
+    Divider,
     Menu,
     MenuItem,
     MenuList,
@@ -19,7 +20,8 @@ import {
     DeleteIcon,
     DocumentAddIcon,
     EditSessionIcon,
-    ManageAccessIcon, SessionDetailedViewIcon,
+    ManageAccessIcon,
+    SessionDetailedViewIcon,
     SessionEndIcon,
     ToggleHeaderDownIcon,
     ToggleHeaderUpIcon
@@ -130,7 +132,7 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                                     <MenuList>
                                         <MenuItem
                                             icon={<SessionDetailedViewIcon/>}
-                                            onClick={ () => setIsSessionDetailedViewDialogOpen(true)}>
+                                            onClick={() => setIsSessionDetailedViewDialogOpen(true)}>
                                             Detailed View
                                         </MenuItem>
                                         <Divider/>

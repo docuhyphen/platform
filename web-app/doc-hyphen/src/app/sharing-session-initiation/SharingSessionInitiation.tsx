@@ -19,7 +19,6 @@ import {
     useId,
     useToastController,
 } from "@fluentui/react-components";
-import useToken from "../../context/useToken.tsx";
 import {initiateSharingSession} from "../../services/sharingSessionApi.ts";
 import useSharingSessionState from './hooks/useSharingSessionState.ts';
 import {handleCheckboxChange, handleDocumentChange, handleInputChange} from './components/formHandlers.tsx';

@@ -36,9 +36,9 @@ darkTheme.colorBrandForeground1 = mainTheme[110];
 darkTheme.colorBrandForeground2 = mainTheme[120];
 
 createRoot(document.getElementById('doc-hyphen-app')!).render(
-  <StrictMode>
-      <FluentProvider theme={lightTheme} id="fluent-provider">
-          <App/>
-      </FluentProvider>
-  </StrictMode>,
+    <StrictMode>
+        <FluentProvider theme={lightTheme} id="fluent-provider">
+            <App/>
+        </FluentProvider>
+    </StrictMode>,
 )

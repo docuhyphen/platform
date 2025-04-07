@@ -79,30 +79,6 @@ class NotificationService
         }
     }
 
-    private attemptReconnect()
-    {
-        if (this.reconnectTimeout)
-        {
-            clearTimeout(this.reconnectTimeout);
-        }
-
-        if (this.reconnectAttempts < this.maxReconnectAttempts && this.userId)
-        {
-            const delay = Math.min(1000 * (2 ** this.reconnectAttempts), 10000);
-            console.log(`Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
-
-            this.reconnectTimeout = setTimeout(() =>
-            {
-                this.reconnectAttempts++;
-                this.connect(this.userId!);
-            }, delay);
-        }
-        else if (this.reconnectAttempts >= this.maxReconnectAttempts)
-        {
-            console.log("Maximum reconnection attempts reached. Please try again later.");
-        }
-    }
-
     disconnect()
     {
         if (this.reconnectTimeout)
@@ -139,6 +115,30 @@ class NotificationService
         else
         {
             console.error("Cannot send message: WebSocket is not connected");
+        }
+    }
+
+    private attemptReconnect()
+    {
+        if (this.reconnectTimeout)
+        {
+            clearTimeout(this.reconnectTimeout);
+        }
+
+        if (this.reconnectAttempts < this.maxReconnectAttempts && this.userId)
+        {
+            const delay = Math.min(1000 * (2 ** this.reconnectAttempts), 10000);
+            console.log(`Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
+
+            this.reconnectTimeout = setTimeout(() =>
+            {
+                this.reconnectAttempts++;
+                this.connect(this.userId!);
+            }, delay);
+        }
+        else if (this.reconnectAttempts >= this.maxReconnectAttempts)
+        {
+            console.log("Maximum reconnection attempts reached. Please try again later.");
         }
     }
 }

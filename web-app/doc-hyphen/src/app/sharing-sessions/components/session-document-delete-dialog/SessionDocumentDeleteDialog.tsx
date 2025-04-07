@@ -1,6 +1,5 @@
 import {DocumentDetailedDto, SharingSessionDetailedDto} from "../../../models/models.tsx";
 import React from "react";
-import useToken from "../../../../context/useToken.tsx";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {deleteSharingSessionDocument} from "../../../../services/sharingSessionApi.ts";
 import {

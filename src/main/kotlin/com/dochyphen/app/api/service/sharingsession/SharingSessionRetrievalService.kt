@@ -15,7 +15,6 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
 import java.util.*

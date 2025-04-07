@@ -17,7 +17,7 @@ const IndividualOnboarding: React.FC = () =>
 
     useEffect(() =>
     {
-        if(!appUser?.person)
+        if (!appUser?.person)
         {
             setCheckingIfIndividualOnboarded(false)
         }
@@ -38,37 +38,37 @@ const IndividualOnboarding: React.FC = () =>
         {!checkingIfIndividualOnboarded &&
             <div className={styles.container}>
                 <div className={styles.onboardingSection}>
-                <div className={styles.onboardingSection1}>
-                    <div>
-                        <AppLogo/>
-                    </div>
-                    <div>
-                        <IndividualOnboardingForm onRegisterOrganizationChange={onRegisterOrganizationChange}/>
-                    </div>
-                    <div></div>
-                </div>
-                <div className={styles.onboardingSection2}>
-                    <div className={styles.onboardingSection2_1}>
+                    <div className={styles.onboardingSection1}>
                         <div>
-                            <Text size={500}>Welcome </Text>
-                            <Text size={400}>
-                                to <Text italic={true}>Doc-Hyphen</Text>! We're thrilled to have you on board. Let's
-                                get you set you up.
-                            </Text>
+                            <AppLogo/>
                         </div>
-                        <p>
-                            Here’s your progress before you can start sharing documents.
-                        </p>
-                        <OnBoardingBreadcrumbs
-                            registerOrganization={registerOrganization}
-                            isIndividualOnboarding={true}
-                            isOnboardingComplete={false}
-                            isOrgOnboarding={false}
-                        />
+                        <div>
+                            <IndividualOnboardingForm onRegisterOrganizationChange={onRegisterOrganizationChange}/>
+                        </div>
+                        <div></div>
                     </div>
+                    <div className={styles.onboardingSection2}>
+                        <div className={styles.onboardingSection2_1}>
+                            <div>
+                                <Text size={500}>Welcome </Text>
+                                <Text size={400}>
+                                    to <Text italic={true}>Doc-Hyphen</Text>! We're thrilled to have you on board. Let's
+                                    get you set you up.
+                                </Text>
+                            </div>
+                            <p>
+                                Here’s your progress before you can start sharing documents.
+                            </p>
+                            <OnBoardingBreadcrumbs
+                                registerOrganization={registerOrganization}
+                                isIndividualOnboarding={true}
+                                isOnboardingComplete={false}
+                                isOrgOnboarding={false}
+                            />
+                        </div>
 
+                    </div>
                 </div>
-            </div>
             </div>
         }
     </>

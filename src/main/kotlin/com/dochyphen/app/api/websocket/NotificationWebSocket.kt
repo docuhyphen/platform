@@ -1,6 +1,3 @@
-// Create or modify the WebSocket endpoint in the backend
-// src/main/kotlin/com/dochyphen/app/api/websocket/NotificationWebSocket.kt
-
 package com.dochyphen.app.api.websocket
 
 import com.dochyphen.app.api.model.dto.NotificationDto

@@ -10,7 +10,7 @@ const AppSessionExpired: React.FC = () =>
 
     useEffect(() =>
     {
-        if(token != null && !isTokenExpired(token))
+        if (token != null && !isTokenExpired(token))
         {
             alert("IN APP SESSION EXPIRED, token is not null and not expired");
             navigate("/sharing-sessions")

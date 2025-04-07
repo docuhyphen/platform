@@ -47,11 +47,11 @@ const Settings = () =>
                 <div className={styles.panels}>
                     {selectedValue === "profile" &&
                         <div>
-                        <Text> Profile Tab</Text>
-                        <p>
-                            Notify me with email every time I sign in
-                        </p>
-                    </div>}
+                            <Text> Profile Tab</Text>
+                            <p>
+                                Notify me with email every time I sign in
+                            </p>
+                        </div>}
                     {selectedValue === "organization" &&
                         <div>
                             <Text> Organization Tab</Text>
@@ -60,12 +60,12 @@ const Settings = () =>
                             </p>
                         </div>}
                     {selectedValue === "appSettings" && <div><Text> App Settings Tab</Text>
-                    <p>
-                        Automatically preview documents when they are uploaded
-                    </p>
-                    <h1>Notifications</h1>
-                    <p>Get notifications on document comments</p>
-                    <p>Get notifications on document upload</p>
+                        <p>
+                            Automatically preview documents when they are uploaded
+                        </p>
+                        <h1>Notifications</h1>
+                        <p>Get notifications on document comments</p>
+                        <p>Get notifications on document upload</p>
                     </div>}
                     {selectedValue === "people" && <div><Text> People Tab</Text></div>}
                     {selectedValue === "templates" && <div><Text> Templates Tab</Text></div>}

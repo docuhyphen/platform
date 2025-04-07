@@ -299,24 +299,24 @@ const AccountRecovery: React.FC = () =>
                     }
                     {pwdResetSuccessful &&
                         <>
-                                <section className={accountRecoveryStyles.passwordResetSuccessfulSection}>
-                                    <Text align={"center"} size={500} font="monospace">
-                                        Password Reset Successful!
-                                    </Text>
-                                    <Text align={"center"} size={300}>
-                                        Your password has been updated successfully.
-                                    </Text>
-                                    <Text align={"center"} italic>
-                                        For added security, consider enabling 2FA to protect your account. Also, ensure your
-                                        new password is
-                                        strong and stored securely in a trusted password manager.
-                                    </Text>
-                                    <Button onClick={() => navigate("/sign-in")} appearance={"primary"} shape={"circular"}>
-                                        Sign In
-                                    </Button>
-                                </section>
-                                <div>.</div>
-                            </>
+                            <section className={accountRecoveryStyles.passwordResetSuccessfulSection}>
+                                <Text align={"center"} size={500} font="monospace">
+                                    Password Reset Successful!
+                                </Text>
+                                <Text align={"center"} size={300}>
+                                    Your password has been updated successfully.
+                                </Text>
+                                <Text align={"center"} italic>
+                                    For added security, consider enabling 2FA to protect your account. Also, ensure your
+                                    new password is
+                                    strong and stored securely in a trusted password manager.
+                                </Text>
+                                <Button onClick={() => navigate("/sign-in")} appearance={"primary"} shape={"circular"}>
+                                    Sign In
+                                </Button>
+                            </section>
+                            <div>.</div>
+                        </>
                     }
                 </section>
                 <section className={authorizationStyles.authSection2}>

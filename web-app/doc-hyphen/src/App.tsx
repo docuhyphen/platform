@@ -16,78 +16,79 @@ import ProtectedRoute from "./app/components/ProtectedRoutes.tsx";
 import AppSessionExpired from "./app/app-session-expired/AppSessionExpired.tsx";
 import {NotificationProvider} from "./context/NotificationContext.tsx";
 
-const App: React.FC = () => {
+const App: React.FC = () =>
+{
     return (
         <BrowserRouter>
-        <AuthProvider>
-            <NotificationProvider>
-                <Routes>
-                    {/*<Route path="/"*/}
-                    {/*       element={*/}
-                    {/*           <Home/>*/}
-                    {/*       }/>*/}
+            <AuthProvider>
+                <NotificationProvider>
+                    <Routes>
+                        {/*<Route path="/"*/}
+                        {/*       element={*/}
+                        {/*           <Home/>*/}
+                        {/*       }/>*/}
 
-                    <Route path="/sign-in"
-                           element={
-                               <RedirectIfNotAuthenticated element={<SignIn/>}/>
-                           }/>
-
-                    <Route path="/sign-up"
-                           element={
-                               <RedirectIfNotAuthenticated element={<SignUp/>
+                        <Route path="/sign-in"
+                               element={
+                                   <RedirectIfNotAuthenticated element={<SignIn/>}/>
                                }/>
-                           }/>
 
-                    <Route path="/account-recovery"
-                           element={
-                               <RedirectIfNotAuthenticated
-                                   element={<AccountRecovery/>}/>
-                           }/>
-
-                    <Route path="/nas"
-
-                           element={
-                               <RedirectIfNotAuthenticated
-                                   element={<NoAuthSharingSession/>
+                        <Route path="/sign-up"
+                               element={
+                                   <RedirectIfNotAuthenticated element={<SignUp/>
                                    }/>
-                           }/>
+                               }/>
 
-                    <Route path="/app-session-expired"
-                           element={
-                               <RedirectIfNotAuthenticated element={<AppSessionExpired/>}/>
-                           }/>
+                        <Route path="/account-recovery"
+                               element={
+                                   <RedirectIfNotAuthenticated
+                                       element={<AccountRecovery/>}/>
+                               }/>
 
-                    <Route path="/settings"
-                           element={
-                               <ProtectedRoute path='/sign-in'
-                                               element={<Settings/>}/>
-                           }/>
+                        <Route path="/nas"
 
-                    <Route path="/onboarding/individual"
-                           element={
-                               <NoMenuProtectedRoute path='/sign-in'
-                                                     element={<IndividualOnboarding/>}/>
-                           }/>
+                               element={
+                                   <RedirectIfNotAuthenticated
+                                       element={<NoAuthSharingSession/>
+                                       }/>
+                               }/>
 
-                    <Route path="/onboarding/organization"
-                           element={
-                               <ProtectedRoute path='/sign-in'
-                                               element={<OrganizationOnboarding/>}/>
-                           }/>
+                        <Route path="/app-session-expired"
+                               element={
+                                   <RedirectIfNotAuthenticated element={<AppSessionExpired/>}/>
+                               }/>
 
-                    <Route path="/sharing-sessions"
-                           element={
-                               <ProtectedRoute path='/sign-in'
-                                               element={<SharingSessions/>}/>
-                           }/>
+                        <Route path="/settings"
+                               element={
+                                   <ProtectedRoute path='/sign-in'
+                                                   element={<Settings/>}/>
+                               }/>
 
-                    <Route path="*"
-                           element={
-                               <NotFound/>
-                           }/>
-                </Routes>
-            </NotificationProvider>
-        </AuthProvider>
+                        <Route path="/onboarding/individual"
+                               element={
+                                   <NoMenuProtectedRoute path='/sign-in'
+                                                         element={<IndividualOnboarding/>}/>
+                               }/>
+
+                        <Route path="/onboarding/organization"
+                               element={
+                                   <ProtectedRoute path='/sign-in'
+                                                   element={<OrganizationOnboarding/>}/>
+                               }/>
+
+                        <Route path="/sharing-sessions"
+                               element={
+                                   <ProtectedRoute path='/sign-in'
+                                                   element={<SharingSessions/>}/>
+                               }/>
+
+                        <Route path="*"
+                               element={
+                                   <NotFound/>
+                               }/>
+                    </Routes>
+                </NotificationProvider>
+            </AuthProvider>
         </BrowserRouter>
     );
 };

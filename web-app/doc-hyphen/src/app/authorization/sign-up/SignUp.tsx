@@ -69,7 +69,7 @@ const SignUp: React.FC = () =>
 
     const onInitiateSignUp = async () =>
     {
-        if(!validator.isEmail(formData.email))
+        if (!validator.isEmail(formData.email))
         {
             setFormErrorMessage("A valid email is required");
             return;
@@ -100,19 +100,19 @@ const SignUp: React.FC = () =>
 
     const isSignUpCompletionFormValid = () =>
     {
-        if(!formData.otp)
+        if (!formData.otp)
         {
             setFormErrorMessage("OTP is required");
             return false;
         }
 
-        if(!formData.password)
+        if (!formData.password)
         {
             setFormErrorMessage("Password is required");
             return false;
         }
 
-        if(!formData.confirmationPassword)
+        if (!formData.confirmationPassword)
         {
             setFormErrorMessage("Password confirmation is required");
             return false;

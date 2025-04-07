@@ -34,7 +34,7 @@ class SharingSession
     @Serializable(with = TimestampSerializer::class)
     var endDate: Timestamp? = null
 
-    @Column(name="end_note", nullable = true)
+    @Column(name = "end_note", nullable = true)
     var endNote: String? = null
 
     @Column(name = "last_activity", nullable = false)
@@ -89,14 +89,14 @@ class SharingSession
     @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.EAGER)
     var participants: MutableList<SharingSessionParticipant> = mutableListOf()
 
-    @Column(name="expire_date", nullable = true)
+    @Column(name = "expire_date", nullable = true)
     @Serializable(with = TimestampSerializer::class)
     var expireDate: Timestamp? = null
 
-    @Column(name="rejection_reason", nullable = true)
+    @Column(name = "rejection_reason", nullable = true)
     var rejectionReason: String? = null
 
-    @Column(name="is_deleted", nullable = false)
+    @Column(name = "is_deleted", nullable = false)
     var isDeleted: Boolean = false
 
     @Column(name = "date_deleted", nullable = true)
