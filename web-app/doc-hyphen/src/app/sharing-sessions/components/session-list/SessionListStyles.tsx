@@ -59,7 +59,7 @@ export const useSharingSessionStyles = makeStyles({
     },
 
     createdDate: {
-        width: "160px",
+        width: "100px",
         display: "flex",
         justifyContent: "end",
         alignItems: "center"

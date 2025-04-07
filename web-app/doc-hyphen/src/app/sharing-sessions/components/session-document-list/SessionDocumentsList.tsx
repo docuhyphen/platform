@@ -79,7 +79,7 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
                     setSelectedUpdateSessionDocument(sessionDocument);
                     setIsDocumentUpdateDialogOpen(true);
                 }}
-                onPreviewDocument={() => setSelectedSessionDocument(sessionDocument)}
+                onPreviewDocument={() => {setSelectedSessionDocument(sessionDocument)}}
             />
         );
     };

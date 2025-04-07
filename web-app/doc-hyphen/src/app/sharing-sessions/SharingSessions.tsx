@@ -343,6 +343,11 @@ const SharingSessions: React.FC = () =>
                                                               session={sessionDetails}/>
                                 }
 
+                                {selectedSessionDocument &&
+                                    <SessionDocumentPreviewer document={selectedSessionDocument}
+                                                              session={sessionDetails}/>
+                                }
+
                             </div>
                             {selectedSessionDocument && isDocumentSidebarOpen &&
 

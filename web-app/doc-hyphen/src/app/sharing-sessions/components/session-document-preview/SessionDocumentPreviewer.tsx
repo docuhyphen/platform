@@ -123,7 +123,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     };
 
     return (
-        <section className={isEnlarged ? styles.enlargedPreviewContainer : styles.previewContainer}>
+        <section className={isEnlarged ? styles.enlargedPreviewContainer : styles.previewContainer} id={"enlargedPreviewContainer"}>
             <div className={isEnlarged ? styles.enlargedPreviewHeader : styles.previewHeader}>
                 {isEnlarged && (
                     <div className={styles.documentName}>
