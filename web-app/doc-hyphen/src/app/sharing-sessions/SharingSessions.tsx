@@ -30,6 +30,7 @@ import {
     sharingSessionInitiationObservable
 } from "../observable/sharingSessionObservables.ts";
 import SessionDocumentPreviewer from "./components/session-document-preview/SessionDocumentPreviewer.tsx";
+import SessionAcceptanceDialog from "./session-acceptance-dialog/SessionAcceptanceDialog.tsx";
 
 const SharingSessions: React.FC = () =>
 {
@@ -298,6 +299,30 @@ const SharingSessions: React.FC = () =>
         setFilteredDocuments(filtered || []);
     };
 
+    const onSessionAccepted = () =>
+    {
+        if (sessionDetails)
+        {
+            const updatedSession = {
+                ...sessionDetails,
+                status: SharingSessionStatus.ACCEPTED_STARTED
+            };
+            setSessionDetails(updatedSession);
+        }
+    };
+
+    const onSessionRejected = () =>
+    {
+        if (sessionDetails)
+        {
+            const updatedSession = {
+                ...sessionDetails,
+                status: SharingSessionStatus.REJECTED
+            };
+            setSessionDetails(updatedSession);
+        }
+    };
+
     const renderSessionsSection = () =>
     {
         return (
@@ -374,6 +399,12 @@ const SharingSessions: React.FC = () =>
                 }
 
                 {renderDialogs()}
+                <SessionAcceptanceDialog
+                    session={sessionDetails}
+                    onAccepted={onSessionAccepted}
+                    onRejected={onSessionRejected}
+                    isOpen={(sessionDetails != null && sessionDetails?.status === SharingSessionStatus.INITIATED)}
+                />
             </section>
         )
     }

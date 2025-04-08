@@ -391,7 +391,7 @@ export interface SharingSessionDetailedDto
     description?: string;
     initiator?: AppUserDetailedDto;
     recipient?: AppUserDetailedDto;
-    status?: string;
+    status?: SharingSessionStatus;
     documents?: DocumentDetailedDto[];
     requestRecipientSignIn?: boolean;
     allowDocumentAddition?: boolean;
