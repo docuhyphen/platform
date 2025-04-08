@@ -4,7 +4,7 @@ import {
     fetchSignedInUserAppUserSharingSession
 } from "../../services/sharingSessionApi.ts";
 import useToken from "../../context/useToken.tsx";
-import PreLanding from "../pre-landing/PreLanding.tsx";
+import PreLoading from "./components/pre-loading/PreLoading.tsx";
 import {InputOnChangeData, SearchBoxChangeEvent, Text} from "@fluentui/react-components";
 import {
     DocumentDetailedDto,
@@ -17,7 +17,7 @@ import SessionDocumentSidebar from "./components/session-document-sidebar/Sessio
 import NoSessionDocuments from "./components/session-documents-none/NoSessionDocuments.tsx";
 import SessionDialogsGroup from "./components/session-dialog-group/SessionDialogsGroup.tsx";
 import SessionDetailsHeader from "./components/session-details-header/SessionDetailsHeader.tsx";
-import SessionDetailsLoading from "./components/sharing-sessions-loading/SessionDetailsLoading.tsx";
+import SessionDetailsLoading from "./components/session-details-loading/SessionDetailsLoading.tsx";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 import SessionList from "./components/session-list/SessionList.tsx";
@@ -30,7 +30,7 @@ import {
     sharingSessionInitiationObservable
 } from "../observable/sharingSessionObservables.ts";
 import SessionDocumentPreviewer from "./components/session-document-preview/SessionDocumentPreviewer.tsx";
-import SessionAcceptanceDialog from "./session-acceptance-dialog/SessionAcceptanceDialog.tsx";
+import SessionAcceptanceDialog from "./components/session-acceptance-dialog/SessionAcceptanceDialog.tsx";
 
 const SharingSessions: React.FC = () =>
 {
@@ -412,7 +412,7 @@ const SharingSessions: React.FC = () =>
     return (
         <>
             <MainMenu/>
-            {preparingSharingSessions && <PreLanding/>}
+            {preparingSharingSessions && <PreLoading/>}
             {!preparingSharingSessions && (appUserHasSessions) && renderSessionsSection()}
             {!preparingSharingSessions && (!appUserHasSessions) &&
                 <div className={styles.containerNoSessions}>

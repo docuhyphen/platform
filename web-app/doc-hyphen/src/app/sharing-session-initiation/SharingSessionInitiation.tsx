@@ -21,15 +21,15 @@ import {
 } from "@fluentui/react-components";
 import {initiateSharingSession} from "../../services/sharingSessionApi.ts";
 import useSharingSessionState from './hooks/useSharingSessionState.ts';
-import {handleCheckboxChange, handleDocumentChange, handleInputChange} from './components/formHandlers.tsx';
-import SharingDocumentsTab from "./components/SessionDocumentsTab.tsx";
-import SessionDetailsTab from "./components/SessionDetailsTab.tsx";
-import SharingOptionsTab from "./components/SessionOptionsTab.tsx";
-import SessionDialogActions from "./components/SessionDialogActions.tsx";
-import SessionDialogTrigger from "./components/SessionDialogTrigger.tsx";
-import SessionDialogTitleSection from "./components/SessionDialogTitleSection.tsx";
+import {handleCheckboxChange, handleDocumentChange, handleInputChange} from './formHandlers.tsx';
+import SharingDocumentsTab from "./components/session-initiation-documents-tab/SessionInitiationDocumentsTab.tsx";
+import SessionInitiationDetailsTab from "./components/session-initiation-details-tab/SessionInitiationDetailsTab.tsx";
+import SharingOptionsTab from "./components/session-initiation-options-tab/SessionInitiationOptionsTab.tsx";
+import SessionInitiationDialogActions from "./components/session-initiation-dialog-actions/SessionInitiationDialogActions.tsx";
+import SessionInitiationDialogTrigger from "./components/session-initiation-dialog-trigger/SessionInitiationDialogTrigger.tsx";
+import SessionInitiationDialogTitleSection from "./components/session-initiation-dialog-title-section/SessionInitiationDialogTitleSection.tsx";
 import {DismissRegular} from "@fluentui/react-icons";
-import SessionRecipientsTab from "./components/SessionRecipientsTab.tsx";
+import SessionInitiationRecipientsTab from "./components/session-initiation-recipients-tab/SessionInitiationRecipientsTab.tsx";
 import {isValidEmail} from "../../utils/helpers.ts";
 import {publishNewSharingSessionAddition} from '../observable/sharingSessionObservables.ts';
 import {useSharingSessionInitiationStyles} from "./SharingSessionInitiationStyles.tsx";
@@ -195,12 +195,12 @@ const SharingSessionInitiation: React.FC = () =>
     return (
         <Dialog modalType="alert">
             <DialogTrigger disableButtonEnhancement>
-                <SessionDialogTrigger onRequestingDocumentsChange={handleRequestingDocumentsChange}/>
+                <SessionInitiationDialogTrigger onRequestingDocumentsChange={handleRequestingDocumentsChange}/>
             </DialogTrigger>
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle className={styles.dialogTitle}>
-                        <SessionDialogTitleSection
+                        <SessionInitiationDialogTitleSection
                             sessionInitiatedSuccessfully={sessionInitiatedSuccessfully}
                             requestingDocuments={requestingDocuments}
                             choosingTemplate={choosingTemplate}
@@ -246,7 +246,7 @@ const SharingSessionInitiation: React.FC = () =>
                                 ) : (
                                     <div className={styles.sharingSessionInitiationTaps}>
                                         {selectedTab === "recipients-tab" && (
-                                            <SessionRecipientsTab
+                                            <SessionInitiationRecipientsTab
                                                 requestingDocuments={requestingDocuments}
                                                 recipientEmail={recipientEmail}
                                                 setMessageGroupMessages={setMessageGroupMessages}
@@ -254,7 +254,7 @@ const SharingSessionInitiation: React.FC = () =>
                                             />
                                         )}
                                         {selectedTab === "details-tab" && (
-                                            <SessionDetailsTab
+                                            <SessionInitiationDetailsTab
                                                 sessionName={sessionName}
                                                 description={description}
                                                 initialShareMessage={initialShareMessage}
@@ -316,7 +316,7 @@ const SharingSessionInitiation: React.FC = () =>
                         )}
                     </DialogContent>
                     <DialogActions>
-                        <SessionDialogActions
+                        <SessionInitiationDialogActions
                             initiatingSession={initiatingSession}
                             sessionInitiatedSuccessfully={sessionInitiatedSuccessfully}
                             choosingTemplate={choosingTemplate}

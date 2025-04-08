@@ -1,6 +1,6 @@
 import React, {ChangeEvent} from 'react';
 import {Field, Input, InputOnChangeData, Textarea} from "@fluentui/react-components";
-import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
+import {useSharingSessionInitiationStyles} from "../../SharingSessionInitiationStyles.tsx";
 
 interface SessionDetailsTabProps
 {
@@ -13,7 +13,7 @@ interface SessionDetailsTabProps
     onInitialShareMessageChange: (e: ChangeEvent<HTMLTextAreaElement>, newValue: InputOnChangeData) => void;
 }
 
-const SessionDetailsTab: React.FC<SessionDetailsTabProps> = (
+const SessionInitiationDetailsTab: React.FC<SessionDetailsTabProps> = (
     {
         sessionName,
         description,
@@ -61,4 +61,4 @@ const SessionDetailsTab: React.FC<SessionDetailsTabProps> = (
     );
 };
 
-export default SessionDetailsTab;
+export default SessionInitiationDetailsTab;

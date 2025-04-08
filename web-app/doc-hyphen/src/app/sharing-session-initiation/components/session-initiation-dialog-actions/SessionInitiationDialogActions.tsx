@@ -1,6 +1,6 @@
 import React from 'react';
 import {Button, DialogTrigger, Spinner} from "@fluentui/react-components";
-import {useGlobalStyles} from "../../../GlobalStyles.tsx";
+import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 
 interface DialogActionsProps
 {
@@ -11,7 +11,7 @@ interface DialogActionsProps
     onInitiateSession: () => void;
 }
 
-const SessionDialogActions: React.FC<DialogActionsProps> = (
+const SessionInitiationDialogActions: React.FC<DialogActionsProps> = (
     {
         initiatingSession,
         sessionInitiatedSuccessfully,
@@ -61,4 +61,4 @@ const SessionDialogActions: React.FC<DialogActionsProps> = (
     );
 };
 
-export default SessionDialogActions;
+export default SessionInitiationDialogActions;

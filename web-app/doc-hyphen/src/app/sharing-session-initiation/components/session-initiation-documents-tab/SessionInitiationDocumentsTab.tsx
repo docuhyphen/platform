@@ -1,9 +1,9 @@
 import React from 'react';
 import {Button} from "@fluentui/react-components";
-import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
-import SessionDocumentsCard from "./SessionDocumentsCard.tsx";
-import {SharingSessionRequestDocumentRequest} from "../../models/models.tsx";
-import {DocumentAddIcon} from "../../components/IconBundles.tsx";
+import {useSharingSessionInitiationStyles} from "../../SharingSessionInitiationStyles.tsx";
+import SessionInitiationDocumentsCard from "../session-initiation-documents-card/SessionInitiationDocumentsCard.tsx";
+import {SharingSessionRequestDocumentRequest} from "../../../models/models.tsx";
+import {DocumentAddIcon} from "../../../components/IconBundles.tsx";
 
 interface SessionDocumentsTabProps
 {
@@ -15,7 +15,7 @@ interface SessionDocumentsTabProps
     addNewDocument: () => void;
 }
 
-const SessionDocumentsTab: React.FC<SessionDocumentsTabProps> = (
+const SessionInitiationDocumentsTab: React.FC<SessionDocumentsTabProps> = (
     {
         documents,
         onDocumentNameChange,
@@ -31,7 +31,7 @@ const SessionDocumentsTab: React.FC<SessionDocumentsTabProps> = (
     return (
         <div className={styles.sharingSessionDocumentsTabContent}>
             {documents.map((document, index) => (
-                <SessionDocumentsCard
+                <SessionInitiationDocumentsCard
                     key={index}
                     document={document}
                     index={index}
@@ -53,4 +53,4 @@ const SessionDocumentsTab: React.FC<SessionDocumentsTabProps> = (
     );
 };
 
-export default SessionDocumentsTab;
+export default SessionInitiationDocumentsTab;

@@ -1,8 +1,8 @@
 import React from 'react';
 import {Spinner} from "@fluentui/react-components";
-import {usePreLandingStyles} from './PreLandingStyles';
+import {usePreLandingStyles} from './PreLoadingStyles.tsx';
 
-const PreLanding: React.FC = () =>
+const PreLoading: React.FC = () =>
 {
     const styles = usePreLandingStyles();
 
@@ -15,4 +15,4 @@ const PreLanding: React.FC = () =>
     );
 };
 
-export default PreLanding;
+export default PreLoading;

@@ -13,10 +13,10 @@ import {
     Text,
     Textarea
 } from "@fluentui/react-components";
-import {SharingSessionDetailedDto, SharingSessionStatus, UpdateSharingSessionRequest} from "../../models/models.tsx";
-import useToken from "../../../context/useToken.tsx";
-import {useGlobalStyles} from "../../../GlobalStyles.tsx";
-import {fetchSignedInUserAppUserSharingSession, updateSharingSession} from "../../../services/sharingSessionApi.ts";
+import {SharingSessionDetailedDto, SharingSessionStatus, UpdateSharingSessionRequest} from "../../../models/models.tsx";
+import useToken from "../../../../context/useToken.tsx";
+import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
+import {fetchSignedInUserAppUserSharingSession, updateSharingSession} from "../../../../services/sharingSessionApi.ts";
 import {useSessionAcceptanceDialogStyles} from "./SessionAcceptanceDialogStyles.tsx";
 
 interface SessionDeleteDialogProps

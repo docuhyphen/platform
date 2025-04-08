@@ -1,6 +1,6 @@
 import React, {ChangeEvent} from 'react';
 import {Divider, Field, Switch} from "@fluentui/react-components";
-import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
+import {useSharingSessionInitiationStyles} from "../../SharingSessionInitiationStyles.tsx";
 
 interface SharingOptionsTabProps
 {

@@ -1,8 +1,8 @@
 import React from 'react';
 import {Button, Card, Dropdown, Field, Input, Option, OptionGroup, Switch} from "@fluentui/react-components";
-import {DocumentType, ImageType, SharingSessionRequestDocumentRequest} from "../../models/models.tsx";
-import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
-import {DeleteIcon} from "../../components/IconBundles.tsx";
+import {DocumentType, ImageType, SharingSessionRequestDocumentRequest} from "../../../models/models.tsx";
+import {useSharingSessionInitiationStyles} from "../../SharingSessionInitiationStyles.tsx";
+import {DeleteIcon} from "../../../components/IconBundles.tsx";
 
 interface DocumentCardProps
 {
@@ -14,7 +14,7 @@ interface DocumentCardProps
     onDeleteDocument: (index: number) => void;
 }
 
-const SessionDocumentsCard: React.FC<DocumentCardProps> = (
+const SessionInitiationDocumentsCard: React.FC<DocumentCardProps> = (
     {
         document,
         index,
@@ -84,4 +84,4 @@ const SessionDocumentsCard: React.FC<DocumentCardProps> = (
     );
 };
 
-export default SessionDocumentsCard;
+export default SessionInitiationDocumentsCard;

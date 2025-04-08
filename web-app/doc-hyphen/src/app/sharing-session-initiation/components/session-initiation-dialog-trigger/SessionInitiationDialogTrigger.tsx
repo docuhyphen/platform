@@ -1,14 +1,14 @@
 import React from 'react';
 import {Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, SplitButton} from "@fluentui/react-components";
-import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
-import {ReceiveDocumentsIcon, SendDocumentsIcon} from "../../components/IconBundles.tsx";
+import {useSharingSessionInitiationStyles} from "../../SharingSessionInitiationStyles.tsx";
+import {ReceiveDocumentsIcon, SendDocumentsIcon} from "../../../components/IconBundles.tsx";
 
 interface SessionDialogTriggerProps
 {
     onRequestingDocumentsChange: (isRequesting: boolean) => void;
 }
 
-const SessionDialogTrigger = React.forwardRef<HTMLButtonElement, SessionDialogTriggerProps>((
+const SessionInitiationDialogTrigger = React.forwardRef<HTMLButtonElement, SessionDialogTriggerProps>((
     {
         onRequestingDocumentsChange,
         ...props
@@ -45,4 +45,4 @@ const SessionDialogTrigger = React.forwardRef<HTMLButtonElement, SessionDialogTr
     );
 });
 
-export default SessionDialogTrigger;
+export default SessionInitiationDialogTrigger;

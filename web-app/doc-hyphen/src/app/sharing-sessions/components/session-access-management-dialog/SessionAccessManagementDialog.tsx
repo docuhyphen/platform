@@ -17,7 +17,7 @@ import {
     Switch
 } from "@fluentui/react-components";
 import {fetchSignedInUserAppUserSharingSession, updateSharingSession} from "../../../../services/sharingSessionApi.ts";
-import {handleCheckboxChange} from "../../../sharing-session-initiation/components/formHandlers.tsx";
+import {handleCheckboxChange} from "../../../sharing-session-initiation/formHandlers.tsx";
 import {useAccessManagementDialogStyles} from "./SessionAccessManagementDialogStyles.tsx";
 import {RegenerateOTPIcon} from "../../../components/IconBundles.tsx";
 

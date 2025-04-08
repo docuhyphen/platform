@@ -1,6 +1,6 @@
 import {ChangeEvent} from 'react';
 import {InputOnChangeData} from '@fluentui/react-components';
-import {SharingSessionRequestDocumentRequest} from '../../models/models.tsx';
+import {SharingSessionRequestDocumentRequest} from '../models/models.tsx';
 
 export const handleInputChange = (setter: (value: string) => void) => (_e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, newValue: InputOnChangeData) =>
 {

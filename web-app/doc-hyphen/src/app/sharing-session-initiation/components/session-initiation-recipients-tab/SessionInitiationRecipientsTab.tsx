@@ -1,6 +1,6 @@
 import React, {ChangeEvent} from 'react';
 import {Field, InfoLabel, Input, InputOnChangeData} from "@fluentui/react-components";
-import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
+import {useSharingSessionInitiationStyles} from "../../SharingSessionInitiationStyles.tsx";
 
 interface SessionRecipientsTabProps
 {
@@ -10,7 +10,7 @@ interface SessionRecipientsTabProps
     setMessageGroupMessages: (messages: string[]) => void;
 }
 
-const SessionRecipientsTab: React.FC<SessionRecipientsTabProps> = (
+const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (
     {
         recipientEmail,
         onRecipientEmailChange,
@@ -48,4 +48,4 @@ const SessionRecipientsTab: React.FC<SessionRecipientsTabProps> = (
     );
 }
 
-export default SessionRecipientsTab;
+export default SessionInitiationRecipientsTab;

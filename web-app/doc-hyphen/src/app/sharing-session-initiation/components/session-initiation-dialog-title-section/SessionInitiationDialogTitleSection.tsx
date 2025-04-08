@@ -1,8 +1,8 @@
 import React from 'react';
 import {Button, Tab, TabList, TabValue, Text} from "@fluentui/react-components";
 import {DismissRegular} from "@fluentui/react-icons";
-import {useSharingSessionInitiationStyles} from "../SharingSessionInitiationStyles.tsx";
-import {DetailsIcon, DocumentsIcon, OptionsIcon, RecipientsIcon} from "../../components/IconBundles.tsx";
+import {useSharingSessionInitiationStyles} from "../../SharingSessionInitiationStyles.tsx";
+import {DetailsIcon, DocumentsIcon, OptionsIcon, RecipientsIcon} from "../../../components/IconBundles.tsx";
 
 interface DialogTitleSectionProps
 {
@@ -14,7 +14,7 @@ interface DialogTitleSectionProps
     onTabSelect: (event: any, data: any) => void;
 }
 
-const SessionDialogTitleSection: React.FC<DialogTitleSectionProps> = (
+const SessionInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = (
     {
         sessionInitiatedSuccessfully,
         choosingTemplate,
@@ -75,4 +75,4 @@ const SessionDialogTitleSection: React.FC<DialogTitleSectionProps> = (
     );
 };
 
-export default SessionDialogTitleSection;
+export default SessionInitiationDialogTitleSection;
