@@ -61,8 +61,7 @@ const SessionListItem: React.FC<SessionListItemProps> = ({session, isSelected}) 
             key={session.id}
             value={session.id}
             data-value={session.id}
-            checkmark={null}
-        >
+            checkmark={null}>
             {listItemCard()}
         </ListItem>
     );

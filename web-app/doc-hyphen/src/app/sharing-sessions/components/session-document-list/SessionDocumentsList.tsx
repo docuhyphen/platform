@@ -120,6 +120,8 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
                                     setIsUploadDocumentDialogOpen(true);
                                 }}>
                                     Upload new document
+                                    {//ToDo: change text to upload new version when not first upload
+                                    }
                                 </Button>
                             )}
                         </>

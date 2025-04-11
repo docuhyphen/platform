@@ -67,6 +67,8 @@ const SessionDocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
                             disabled={isSessionEnded}
                             onClick={onUpload}>
                             Upload
+                            {//ToDo: change text to upload new version when not first upload
+                            }
                         </MenuItem>
                         <MenuItem icon={<DownloadIcon/>}
                                   onClick={() => setIsDownloadDocumentOpen(true)}>

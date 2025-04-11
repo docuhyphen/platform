@@ -9,7 +9,9 @@ import {
     DialogSurface,
     DialogTitle,
     Field,
-    Input
+    Input,
+    mergeClasses,
+    Text
 } from "@fluentui/react-components";
 import {formatDateWithOrdinal} from "../../../helpers.ts";
 import {useSessionDDetailedViewDialogStyles} from "./SessionDetailedViewDialogStyles.tsx";
@@ -49,12 +51,36 @@ const SessionDetailedViewDialog: React.FC<SessionDeleteDialogProps> = (
 
     const getInitiatedBy = () =>
     {
-        return session.initiator?.person?.firstName;
+        return `${session.initiator?.person?.firstName} ${session.initiator?.person?.lastName} (${session.initiator?.email})`;
     }
 
     const getMainRecipient = () =>
     {
-        return session.recipient?.person?.firstName || session.recipient?.email;
+        return `${session.recipient?.person?.firstName} ${session.recipient?.person?.lastName} (${session.recipient?.email})`;
+    }
+
+    const getStatusList = () =>
+    {
+        return Object.values(SharingSessionStatus).map((status) =>
+        {
+            const commonClass = styles.sessionStatus;
+            const statusClass = styles[`sessionStatus${status}` as keyof typeof styles];
+            const currentStatusClass = styles[`sessionCurrentStatus` as keyof typeof styles];
+
+            return <>
+                {session.status === status &&
+                    <div className={mergeClasses(commonClass, statusClass, currentStatusClass)} key={status}>
+                        <Text weight={"bold"}> {getStatusAsText(status)} </Text>
+                    </div>
+                }
+                {session.status != status &&
+
+                    <div className={mergeClasses(commonClass, statusClass)} key={status}>
+                        {getStatusAsText(status)}
+                    </div>
+                }
+            </>
+        })
     }
 
     return <>
@@ -63,13 +89,13 @@ const SessionDetailedViewDialog: React.FC<SessionDeleteDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Sharing Session Detailed View</DialogTitle>
                     <DialogContent>
-                        {session && <>
-                            <div className={styles.sessionStatuses}>
-                                {getStatusAsText(session.status)}
-                            </div>
+                        {session && <div className={styles.dialogContent}>
                             <Field label={"Name"}>
                                 <Input type="text" value={session.sessionName} disabled={true}/>
                             </Field>
+                            <div className={styles.sessionStatuses}>
+                                {getStatusList()}
+                            </div>
                             <Field label={"Description"}>
                                 <Input type="text" value={session.description || "No Description"} disabled={true}/>
                             </Field>
@@ -85,15 +111,27 @@ const SessionDetailedViewDialog: React.FC<SessionDeleteDialogProps> = (
                             <Field label={"Date Initiated"}>
                                 <Input type="text" value={formatDateWithOrdinal(session.createdDate)} disabled={true}/>
                             </Field>
+                            {session.status === SharingSessionStatus.ENDED &&
+                                <Field label={"Date Ended"}>
+                                    <Input type="text" value={formatDateWithOrdinal(session.endDate)} disabled={true}/>
+                                </Field>
+                            }
+                            {session.status === SharingSessionStatus.REJECTED &&
+                                <Field label={"Date Rejected"}>
+                                    <Input type="text" value={formatDateWithOrdinal(session.endDate)} disabled={true}/>
+                                </Field>
+                            }
                             {/*<Field label={"Total Documents"}>*/}
                             {/*    <Input type="text" value={session?.documents?.length || "0"} disabled={true}/>*/}
                             {/*</Field>*/}
-                        </>
+                        </div>
                         }
                     </DialogContent>
                     <DialogActions>
 
-                        <Button appearance="primary" onClick={onDismiss}>
+                        <Button appearance="primary"
+                                onClick={onDismiss}
+                                shape={"circular"}>
                             Close
                         </Button>
                     </DialogActions>

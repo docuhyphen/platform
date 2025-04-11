@@ -133,10 +133,8 @@ const SessionDocumentComments: React.FC<SessionDocumentCommentsProps> = (
                     <Spinner size={"small"}/>
                 ) : comments.length > 0 ? (
                     comments.map((comment, index) => (
-                        <React.Fragment key={comment.id}>
-                            <SessionDocumentComment comment={comment}/>
-                            {index < comments.length - 1 && <Divider/>}
-                        </React.Fragment>
+
+                        <SessionDocumentComment comment={comment}/>
                     ))
                 ) : (
                     <div className={styles.noComments}>No notes have been added yet.</div>

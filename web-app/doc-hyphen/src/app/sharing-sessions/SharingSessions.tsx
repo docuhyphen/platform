@@ -4,7 +4,7 @@ import {
     fetchSignedInUserAppUserSharingSession
 } from "../../services/sharingSessionApi.ts";
 import useToken from "../../context/useToken.tsx";
-import PreLoading from "./components/pre-loading/PreLoading.tsx";
+import SessionPreLoader from "./components/session-pre-loader/SessionPreLoader.tsx";
 import {InputOnChangeData, SearchBoxChangeEvent, Text} from "@fluentui/react-components";
 import {
     DocumentDetailedDto,
@@ -412,7 +412,7 @@ const SharingSessions: React.FC = () =>
     return (
         <>
             <MainMenu/>
-            {preparingSharingSessions && <PreLoading/>}
+            {preparingSharingSessions && <SessionPreLoader/>}
             {!preparingSharingSessions && (appUserHasSessions) && renderSessionsSection()}
             {!preparingSharingSessions && (!appUserHasSessions) &&
                 <div className={styles.containerNoSessions}>
