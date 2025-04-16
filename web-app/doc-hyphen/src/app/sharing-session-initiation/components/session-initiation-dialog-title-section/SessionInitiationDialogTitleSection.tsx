@@ -41,6 +41,7 @@ const SessionInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = (
                 {/*</Button>*/}
                 {(!choosingTemplate && !sessionInitiatedSuccessfully) &&
                     <Button appearance={"outline"}
+                            shape={"circular"}
                             size={"small"}
                             onClick={() => setChoosingTemplate(true)}>
                         Choose Template
@@ -48,6 +49,7 @@ const SessionInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = (
                 }
                 {choosingTemplate &&
                     <Button appearance={"primary"}
+                            shape={"circular"}
                             icon={<DismissRegular/>}
                             size={"small"} onClick={() => setChoosingTemplate(false)}>
                         Cancel template selection

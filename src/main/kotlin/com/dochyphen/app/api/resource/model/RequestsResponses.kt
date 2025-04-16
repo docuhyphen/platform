@@ -95,6 +95,7 @@ data class SharingSessionInitiationRequest(
     var participants: List<SharingSessionParticipantRequest>? = null,
     var status: SharingSessionStatus? = null,
     var rejectionReason: String? = null
+    //ToDo: add accepted by, rejected by, ended by
 )
 
 @Serializable

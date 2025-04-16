@@ -48,11 +48,6 @@ export const useSharingSessionInitiationStyles = makeStyles({
         gap: "16px",
         flexDirection: "column",
     },
-    recipientsTabContent: {
-        display: "flex",
-        flexDirection: "column",
-        gap: "16px",
-    },
     sharingSessionInitiationSuccess: {
         minHeight: "200px",
         display: "flex",

@@ -14,8 +14,21 @@ import java.time.Instant
 import java.util.*
 
 enum class AppUserRole {
+    //Applications using the API
+    APPLICATION,
+
+    // Users not belonging to any organization
     USER,
-    ADMIN
+
+    // Users belonging to an organization who manage users
+    ORG_ADMIN,
+
+    // Users belonging to an organization who manage Sharing Sessions
+    // Can accept/close/reject sessions
+    ORG_GROUP_ADMIN,
+
+    // Regular users in an organization
+    ORG_MEMBER,
 }
 
 @Entity
@@ -60,12 +73,19 @@ class AppUser {
     @JoinColumn(name = "person_id")
     var person: Person? = null
 
+//    @OneToOne(cascade = [ALL], fetch = LAZY)
+//    @JoinColumn(name = "application_id")
+//    var application: Application? = null
+
     @Enumerated(STRING)
     @Column(name = "role", nullable = false)
     var role: AppUserRole = AppUserRole.USER
 
     @Column(name = "is_temporary", nullable = false)
     var isTemporary: Boolean = false
+//
+//    @Column
+//    var featuresList: MutableList<AppFeature> = arrayListOf()
 
     constructor()
 }

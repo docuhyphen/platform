@@ -1,4 +1,3 @@
-// web-app/doc-hyphen/src/app/sharing-sessions/components/session-document-comments/SessionDocumentCommentsStyles.tsx
 import {makeStyles, shorthands, tokens} from "@fluentui/react-components";
 
 export const useSessionDocumentVersionsStyles = makeStyles({

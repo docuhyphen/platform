@@ -111,6 +111,7 @@ const SessionList: React.FC<SharingSessionListProps> = ({onSelectionChange}) =>
         if (sessionId)
         {
             const sessionExists = sessions.some(session => session.id === sessionId);
+            //ToDo: if it does not exist, then show warning.
             if (sessionExists)
             {
                 setSelectedItems([sessionId]);

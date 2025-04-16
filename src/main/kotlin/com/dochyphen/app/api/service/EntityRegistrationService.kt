@@ -122,7 +122,7 @@ class EntityRegistrationService @Inject constructor(
         entityManager.detach(appUser)
         val managedAppUser = entityManager.merge(appUser)
 
-        managedAppUser.role = AppUserRole.ADMIN
+        managedAppUser.role = AppUserRole.ORG_ADMIN
         entityManager.merge(managedAppUser)
 
         val organization = Organization().apply {

@@ -1,4 +1,3 @@
-// web-app/doc-hyphen/src/app/components/main-menu/notification/NotificationList.tsx
 import React from 'react';
 import {useNavigate} from 'react-router-dom';
 import {

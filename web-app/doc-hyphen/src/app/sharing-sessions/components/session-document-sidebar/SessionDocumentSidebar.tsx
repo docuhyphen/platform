@@ -1,4 +1,3 @@
-// web-app/doc-hyphen/src/app/sharing-sessions/components/session-document-sidebar/SessionDocumentSidebar.tsx
 import React from "react";
 import {
     Button,

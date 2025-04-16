@@ -20,17 +20,21 @@ import {
     useToastController,
 } from "@fluentui/react-components";
 import {initiateSharingSession} from "../../services/sharingSessionApi.ts";
-import useSharingSessionState from './hooks/useSharingSessionState.ts';
+import useSharingSessionInitiatingState from './hooks/useSharingSessionInitiatingState.ts';
 import {handleCheckboxChange, handleDocumentChange, handleInputChange} from './formHandlers.tsx';
 import SharingDocumentsTab from "./components/session-initiation-documents-tab/SessionInitiationDocumentsTab.tsx";
 import SessionInitiationDetailsTab from "./components/session-initiation-details-tab/SessionInitiationDetailsTab.tsx";
 import SharingOptionsTab from "./components/session-initiation-options-tab/SessionInitiationOptionsTab.tsx";
-import SessionInitiationDialogActions from "./components/session-initiation-dialog-actions/SessionInitiationDialogActions.tsx";
-import SessionInitiationDialogTrigger from "./components/session-initiation-dialog-trigger/SessionInitiationDialogTrigger.tsx";
-import SessionInitiationDialogTitleSection from "./components/session-initiation-dialog-title-section/SessionInitiationDialogTitleSection.tsx";
+import SessionInitiationDialogActions
+    from "./components/session-initiation-dialog-actions/SessionInitiationDialogActions.tsx";
+import SessionInitiationDialogTrigger
+    from "./components/session-initiation-dialog-trigger/SessionInitiationDialogTrigger.tsx";
+import SessionInitiationDialogTitleSection
+    from "./components/session-initiation-dialog-title-section/SessionInitiationDialogTitleSection.tsx";
 import {DismissRegular} from "@fluentui/react-icons";
-import SessionInitiationRecipientsTab from "./components/session-initiation-recipients-tab/SessionInitiationRecipientsTab.tsx";
-import {isValidEmail} from "../../utils/helpers.ts";
+import SessionInitiationRecipientsTab, {
+    SharingSessionInitiationRecipientMode
+} from "./components/session-initiation-recipients-tab/SessionInitiationRecipientsTab.tsx";
 import {publishNewSharingSessionAddition} from '../observable/sharingSessionObservables.ts';
 import {useSharingSessionInitiationStyles} from "./SharingSessionInitiationStyles.tsx";
 import {SharingSessionRequestDocumentRequest} from "../models/models.tsx";
@@ -52,13 +56,17 @@ const SharingSessionInitiation: React.FC = () =>
         initiatingSession, setInitiatingSession,
         sessionInitiatedSuccessfully, setSessionInitiatedSuccessfully,
         documents, setDocuments,
-        recipientEmail, setRecipientEmail,
         selectedTab, setSelectedTab,
         messageGroupMessages, setMessageGroupMessages,
-        requestingDocuments, setRequestingDocuments
-    } = useSharingSessionState();
+        requestingDocuments, setRequestingDocuments,
+        recipientMode, setRecipientMode,
+        recipientOrg, setRecipientOrg,
+        recipientOrgUser, setRecipientOrgUser,
+        recipientOrgGroup, setRecipientOrgGroup,
+        newRecipient, setNewRecipient
+    } = useSharingSessionInitiatingState();
 
-    const toasterId = useId("toasterrr");
+    const toasterId = useId("sharing-session-initiation-toaster");
 
     const {dispatchToast} = useToastController(toasterId);
 
@@ -76,6 +84,50 @@ const SharingSessionInitiation: React.FC = () =>
         setRequestingDocuments(isRequesting);
     };
 
+    const isRecipientValid = (): boolean =>
+    {
+        switch (recipientMode)
+        {
+            case SharingSessionInitiationRecipientMode.EXTERNAL_ORG:
+                if (!recipientOrg)
+                {
+                    setMessageGroupMessages(['A valid recipient organization is required']);
+                    setSelectedTab('recipients-tab');
+                    return false;
+                }
+                if (!recipientOrgUser && !recipientOrgGroup)
+                {
+                    setMessageGroupMessages(['A valid recipient organization user or group is required']);
+                    setSelectedTab('recipients-tab');
+                    return false;
+                }
+                break;
+            case SharingSessionInitiationRecipientMode.MY_ORG:
+                if (!recipientOrgUser)
+                {
+                    setMessageGroupMessages(['A valid recipient user in your organization is required']);
+                    setSelectedTab('recipients-tab');
+                    return false;
+                }
+                break;
+            case SharingSessionInitiationRecipientMode.USE_EMAIL:
+                if (!newRecipient || !newRecipient.email)
+                {
+                    setMessageGroupMessages(['A valid recipient email is required']);
+                    setSelectedTab('recipients-tab');
+                    return false;
+                }
+                if (!newRecipient.firstName || !newRecipient.lastName)
+                {
+                    setMessageGroupMessages(['Recipient first and last name are required']);
+                    setSelectedTab('recipients-tab');
+                    return false;
+                }
+                break;
+        }
+        return true;
+    };
+
     const onInitiateSession = async () =>
     {
         if (initiatingSession)
@@ -87,12 +139,8 @@ const SharingSessionInitiation: React.FC = () =>
 
         try
         {
-
-            if (!recipientEmail || !isValidEmail(recipientEmail))
+            if (!isRecipientValid())
             {
-                //toDo: check if app user isn't sending to themselves
-                setMessageGroupMessages(['A valid recipient email is required']);
-                setSelectedTab('recipients-tab');
                 return;
             }
 
@@ -127,7 +175,7 @@ const SharingSessionInitiation: React.FC = () =>
             const sharingSession = {
                 sessionName,
                 description,
-                recipientEmail,
+                recipientEmail: newRecipient?.email,
                 initialShareMessage,
                 sessionDocuments: documents.map((doc: SharingSessionRequestDocumentRequest, _: number) => ({
                     ...doc,
@@ -178,7 +226,9 @@ const SharingSessionInitiation: React.FC = () =>
     const onCancelInitiation = () =>
     {
         setSessionInitiatedSuccessfully(false);
-        setRecipientEmail('');
+        setRecipientOrg(null)
+        setRecipientOrgUser(null)
+        setRecipientOrgGroup(null)
         setSessionName('');
         setDescription('');
         setInitialShareMessage('');
@@ -191,6 +241,155 @@ const SharingSessionInitiation: React.FC = () =>
         setDocuments([]);
         setSelectedTab('recipients-tab');
     };
+
+    const renderRecipientsTab = () =>
+    {
+        return (
+            <SessionInitiationRecipientsTab
+                isRequestingDocuments={requestingDocuments}
+                recipientMode={recipientMode}
+                setRecipientMode={setRecipientMode}
+                recipientOrg={recipientOrg}
+                setRecipientOrg={setRecipientOrg}
+                recipientOrgUser={recipientOrgUser}
+                setRecipientOrgUser={setRecipientOrgUser}
+                recipientOrgGroup={recipientOrgGroup}
+                setRecipientOrgGroup={setRecipientOrgGroup}
+                newRecipient={newRecipient}
+                setNewRecipient={setNewRecipient}
+            />
+        )
+    }
+
+    const renderDetailsTab = () =>
+    {
+        return (
+            <SessionInitiationDetailsTab
+                sessionName={sessionName}
+                description={description}
+                initialShareMessage={initialShareMessage}
+                onSessionNameChange={handleInputChange(setSessionName)}
+                onDescriptionChange={handleInputChange(setDescription)}
+                onInitialShareMessageChange={handleInputChange(setInitialShareMessage)}
+                setMessageGroupMessages={setMessageGroupMessages}
+            />
+        )
+    }
+
+    const renderDocumentsTab = () =>
+    {
+        return (
+            <SharingDocumentsTab
+                documents={documents}
+                onDocumentNameChange={(index, value) =>
+                {
+                    setMessageGroupMessages([]);
+                    handleDocumentChange(documents, setDocuments)(index, 'title', value);
+                }}
+                onDocumentTypeChange={(index, value) =>
+                {
+                    setMessageGroupMessages([]);
+                    handleDocumentChange(documents, setDocuments)(index, 'restrictedType', value);
+                }}
+                onRestrictDocumentTypeChange={(index, ev) =>
+                {
+                    setMessageGroupMessages([]);
+                    handleDocumentChange(documents, setDocuments)(index, 'restrictType', ev.target.checked);
+                }}
+                onDeleteDocument={(index) =>
+                {
+                    setMessageGroupMessages([]);
+                    setDocuments(prevDocuments =>
+                    {
+                        const updatedDocuments = prevDocuments.filter((_, i) => i !== index);
+                        return updatedDocuments;
+                    });
+                }}
+                addNewDocument={addNewDocument}
+            />
+        )
+    }
+
+    const renderOptionsTab = () =>
+    {
+        return (
+            <SharingOptionsTab
+                requireSignIn={requireSignIn}
+                allowDocumentAdditions={allowDocumentAdditions}
+                allowDocumentDeletions={allowDocumentDeletions}
+                allowDocumentDownload={allowDocumentDownload}
+                allowDocumentUpdate={allowDocumentUpdate}
+                allowDocumentUpload={allowDocumentUpload}
+                onRequireSignInChange={handleCheckboxChange(setRequireSignIn)}
+                onAllowDocumentAdditionsChange={handleCheckboxChange(setAllowDocumentAdditions)}
+                onAllowDocumentDeletionsChange={handleCheckboxChange(setAllowDocumentDeletions)}
+                onAllowDocumentDownloadChange={handleCheckboxChange(setAllowDocumentDownload)}
+                onAllowDocumentUpdateChange={handleCheckboxChange(setAllowDocumentUpdate)}
+                onAllowDocumentUploadChange={handleCheckboxChange(setAllowDocumentUpload)}
+            />
+        )
+    }
+
+    const renderTabs = () =>
+    {
+        return (
+            <div className={styles.sharingSessionInitiationTaps}>
+                {selectedTab === "recipients-tab" && renderRecipientsTab()}
+                {selectedTab === "details-tab" && renderDetailsTab()}
+                {selectedTab === "documents-tab" && renderDocumentsTab()}
+                {selectedTab === "options-tab" && renderOptionsTab()}
+            </div>
+        )
+    }
+
+    const renderErrorMessageBar = () =>
+    {
+        const onCloseMessageBar = (index: number) =>
+        {
+            setMessageGroupMessages(messageGroupMessages.filter((_, i) => i !== index));
+        }
+
+        return <>
+            {messageGroupMessages &&
+                <MessageBarGroup className={styles.errorMessagesGroup}>
+                    {messageGroupMessages.map((message: string, index: number) => (
+                        <MessageBar key={index} intent={"warning"}>
+                            <MessageBarBody>
+                                {message}
+                            </MessageBarBody>
+                            <MessageBarActions
+                                containerAction={
+                                    <Button
+                                        onClick={() => onCloseMessageBar(index)}
+                                        appearance="transparent"
+                                        icon={<DismissRegular/>}/>
+                                }
+                            />
+                        </MessageBar>
+                    ))}
+                </MessageBarGroup>
+            }
+        </>
+    }
+
+    const renderDialogContent = () =>
+    {
+        return <>
+            {sessionInitiatedSuccessfully ? (
+                <div className={styles.sharingSessionInitiationSuccess}>
+                    <Text size={500}> Sharing Session initiated successfully </Text>
+                    <Text size={300} italic={true}> {sessionName} </Text>
+                    <Button appearance={"transparent"}>Copy Link</Button>
+                </div>
+            ) : (
+                <div className={styles.dialogContentContainer}>
+                    {choosingTemplate ? (
+                        <div>Choosing Template</div>
+                    ) : renderTabs()}
+                </div>
+            )}
+        </>
+    }
 
     return (
         <Dialog modalType="alert">
@@ -212,108 +411,10 @@ const SharingSessionInitiation: React.FC = () =>
                                 setSelectedTab(data.value);
                             }}
                         />
-                        {messageGroupMessages &&
-                            <MessageBarGroup className={styles.errorMessagesGroup}>
-                                {messageGroupMessages.map((message: string, index: number) => (
-                                    <MessageBar key={index} intent={"warning"}>
-                                        <MessageBarBody>
-                                            {message}
-                                        </MessageBarBody>
-                                        <MessageBarActions
-                                            containerAction={
-                                                <Button
-                                                    onClick={() => setMessageGroupMessages(messageGroupMessages.filter((_, i) => i !== index))}
-                                                    appearance="transparent"
-                                                    icon={<DismissRegular/>}/>
-                                            }
-                                        />
-                                    </MessageBar>
-                                ))}
-                            </MessageBarGroup>
-                        }
+                        {renderErrorMessageBar()}
                     </DialogTitle>
                     <DialogContent>
-                        {sessionInitiatedSuccessfully ? (
-                            <div className={styles.sharingSessionInitiationSuccess}>
-                                <Text size={500}> Sharing Session initiated successfully </Text>
-                                <Text size={300} italic={true}> {sessionName} </Text>
-                                <Button appearance={"transparent"}>Copy Link</Button>
-                            </div>
-                        ) : (
-                            <div className={styles.dialogContentContainer}>
-                                {choosingTemplate ? (
-                                    <div>Choosing Template</div>
-                                ) : (
-                                    <div className={styles.sharingSessionInitiationTaps}>
-                                        {selectedTab === "recipients-tab" && (
-                                            <SessionInitiationRecipientsTab
-                                                requestingDocuments={requestingDocuments}
-                                                recipientEmail={recipientEmail}
-                                                setMessageGroupMessages={setMessageGroupMessages}
-                                                onRecipientEmailChange={handleInputChange(setRecipientEmail)}
-                                            />
-                                        )}
-                                        {selectedTab === "details-tab" && (
-                                            <SessionInitiationDetailsTab
-                                                sessionName={sessionName}
-                                                description={description}
-                                                initialShareMessage={initialShareMessage}
-                                                onSessionNameChange={handleInputChange(setSessionName)}
-                                                onDescriptionChange={handleInputChange(setDescription)}
-                                                onInitialShareMessageChange={handleInputChange(setInitialShareMessage)}
-                                                setMessageGroupMessages={setMessageGroupMessages}
-                                            />
-                                        )}
-                                        {selectedTab === "documents-tab" && (
-                                            <SharingDocumentsTab
-                                                documents={documents}
-                                                onDocumentNameChange={(index, value) =>
-                                                {
-                                                    setMessageGroupMessages([]);
-                                                    handleDocumentChange(documents, setDocuments)(index, 'title', value);
-                                                }}
-                                                onDocumentTypeChange={(index, value) =>
-                                                {
-                                                    setMessageGroupMessages([]);
-                                                    handleDocumentChange(documents, setDocuments)(index, 'restrictedType', value);
-                                                }}
-                                                onRestrictDocumentTypeChange={(index, ev) =>
-                                                {
-                                                    setMessageGroupMessages([]);
-                                                    handleDocumentChange(documents, setDocuments)(index, 'restrictType', ev.target.checked);
-                                                }}
-                                                onDeleteDocument={(index) =>
-                                                {
-                                                    setMessageGroupMessages([]);
-                                                    setDocuments(prevDocuments =>
-                                                    {
-                                                        const updatedDocuments = prevDocuments.filter((_, i) => i !== index);
-                                                        return updatedDocuments;
-                                                    });
-                                                }}
-                                                addNewDocument={addNewDocument}
-                                            />
-                                        )}
-                                        {selectedTab === "options-tab" && (
-                                            <SharingOptionsTab
-                                                requireSignIn={requireSignIn}
-                                                allowDocumentAdditions={allowDocumentAdditions}
-                                                allowDocumentDeletions={allowDocumentDeletions}
-                                                allowDocumentDownload={allowDocumentDownload}
-                                                allowDocumentUpdate={allowDocumentUpdate}
-                                                allowDocumentUpload={allowDocumentUpload}
-                                                onRequireSignInChange={handleCheckboxChange(setRequireSignIn)}
-                                                onAllowDocumentAdditionsChange={handleCheckboxChange(setAllowDocumentAdditions)}
-                                                onAllowDocumentDeletionsChange={handleCheckboxChange(setAllowDocumentDeletions)}
-                                                onAllowDocumentDownloadChange={handleCheckboxChange(setAllowDocumentDownload)}
-                                                onAllowDocumentUpdateChange={handleCheckboxChange(setAllowDocumentUpdate)}
-                                                onAllowDocumentUploadChange={handleCheckboxChange(setAllowDocumentUpload)}
-                                            />
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                        {renderDialogContent()}
                     </DialogContent>
                     <DialogActions>
                         <SessionInitiationDialogActions

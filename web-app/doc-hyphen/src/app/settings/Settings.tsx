@@ -1,9 +1,19 @@
 import * as React from "react";
-import {SelectTabData, SelectTabEvent, Tab, TabList, TabValue, Text,} from "@fluentui/react-components";
+import {
+    Button,
+    Divider,
+    SelectTabData,
+    SelectTabEvent,
+    Tab,
+    TabList,
+    TabValue,
+    Text,
+} from "@fluentui/react-components";
 import {
     BookTemplateRegular,
     BuildingPeopleRegular,
     BuildingRegular,
+    PeopleTeamRegular,
     PersonSettingsRegular,
     SettingsCogMultipleRegular,
 } from "@fluentui/react-icons";
@@ -37,6 +47,9 @@ const Settings = () =>
                     <Tab id="PeopleTab" icon={<BuildingPeopleRegular/>} value="people">
                         People
                     </Tab>
+                    <Tab id="GroupsTab" icon={<PeopleTeamRegular/>} value="groups">
+                        Groups
+                    </Tab>
                     <Tab id="AppSettingsTab" icon={<SettingsCogMultipleRegular/>} value="appSettings">
                         App Settings
                     </Tab>
@@ -58,6 +71,13 @@ const Settings = () =>
                             <p>
                                 Allow other users outside your organization to search for you
                             </p>
+                            <Divider/>
+                            <h2>
+                                Pared Organizations
+                            </h2>
+                            <Button>
+                                Find and Pair
+                            </Button>
                         </div>}
                     {selectedValue === "appSettings" && <div><Text> App Settings Tab</Text>
                         <p>
@@ -68,6 +88,14 @@ const Settings = () =>
                         <p>Get notifications on document upload</p>
                     </div>}
                     {selectedValue === "people" && <div><Text> People Tab</Text></div>}
+                    {selectedValue === "groups" &&
+                        <div>
+                            <Text> Groups Tab</Text>
+                            <p> Groups can be departments, teams, or just a group of users withing a team.</p>
+                            <Button>
+                                Create Group
+                            </Button>
+                        </div>}
                     {selectedValue === "templates" && <div><Text> Templates Tab</Text></div>}
                 </div>
             </div>

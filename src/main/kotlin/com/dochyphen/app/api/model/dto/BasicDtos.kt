@@ -63,7 +63,9 @@ data class OrganizationBasicDto(
     @Serializable(with = TimestampSerializer::class)
     val createdDate: Timestamp?,
     val name: String?,
-    val registrationNumber: String?
+    val registrationNumber: String?,
+    val isActive: Boolean?,
+    val verificationComplete: Boolean?,
 )
 
 @Serializable
