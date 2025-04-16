@@ -399,12 +399,15 @@ const SharingSessions: React.FC = () =>
                 }
 
                 {renderDialogs()}
-                <SessionAcceptanceDialog
-                    session={sessionDetails}
-                    onAccepted={onSessionAccepted}
-                    onRejected={onSessionRejected}
-                    isOpen={(sessionDetails != null && sessionDetails?.status === SharingSessionStatus.INITIATED)}
-                />
+
+                {appUser?.id != sessionDetails?.initiator?.id &&
+                    <SessionAcceptanceDialog
+                        session={sessionDetails}
+                        onAccepted={onSessionAccepted}
+                        onRejected={onSessionRejected}
+                        isOpen={(sessionDetails != null && sessionDetails?.status === SharingSessionStatus.INITIATED)}
+                    />
+                }
             </section>
         )
     }

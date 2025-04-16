@@ -1,51 +1,99 @@
-import React, {ChangeEvent} from 'react';
-import {Field, InfoLabel, Input, InputOnChangeData} from "@fluentui/react-components";
-import {useSharingSessionInitiationStyles} from "../../SharingSessionInitiationStyles.tsx";
+import React from 'react';
+import {Field, Radio, RadioGroup} from "@fluentui/react-components";
+import {useSessionInitiationRecipientsTabStyles} from "./SessionInitiationRecipientsTabStyles.tsx";
+import {AppUserBasicDto, OrganizationBasicDto} from "../../../models/models.tsx";
+import {OrganizationGroupBasicDto} from "../../../../services/organizationApi";
+import MyOrganizationRecipients from "./my-organization-recipients/MyOrganizationRecipients";
+import ExternalOrganizationRecipients from "./external-organization-recipients/ExternalOrganizationRecipients";
+import NewRecipient, {SharingSessionNewMainRecipient} from "./new-recipient/NewRecipient";
+
+export enum SharingSessionInitiationRecipientMode
+{
+    MY_ORG = "MY_ORG",
+    EXTERNAL_ORG = "EXTERNAL_ORG",
+    USE_EMAIL = "USE_EMAIL"
+}
 
 interface SessionRecipientsTabProps
 {
-    recipientEmail: string;
-    onRecipientEmailChange: (e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) => void;
-    requestingDocuments: boolean | null;
-    setMessageGroupMessages: (messages: string[]) => void;
+    recipientMode: SharingSessionInitiationRecipientMode;
+    setRecipientMode: (mode: SharingSessionInitiationRecipientMode) => void;
+    recipientOrg: OrganizationBasicDto | undefined;
+    recipientOrgUser: AppUserBasicDto | undefined;
+    recipientOrgGroup: OrganizationGroupBasicDto | undefined;
+    setRecipientOrg: (org: OrganizationBasicDto | undefined) => void;
+    setRecipientOrgUser: (user: AppUserBasicDto | undefined) => void;
+    setRecipientOrgGroup: (group: OrganizationGroupBasicDto | undefined) => void;
+    newRecipient: SharingSessionNewMainRecipient | undefined;
+    setNewRecipient: (recipient: SharingSessionNewMainRecipient | undefined) => void;
+    isRequestingDocuments: boolean | null | undefined;
 }
 
-const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (
-    {
-        recipientEmail,
-        onRecipientEmailChange,
-        requestingDocuments,
-        setMessageGroupMessages
-    }) =>
+const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (props) =>
 {
-    const styles = useSharingSessionInitiationStyles();
+    const styles = useSessionInitiationRecipientsTabStyles();
+
+    const onRecipientModeChange = (
+        _: React.SyntheticEvent<HTMLElement>,
+        data: { value: SharingSessionInitiationRecipientMode }) =>
+    {
+        props.setRecipientMode(data.value as SharingSessionInitiationRecipientMode);
+
+        if (data.value !== SharingSessionInitiationRecipientMode.EXTERNAL_ORG)
+        {
+            props.setRecipientOrg(undefined);
+        }
+        if (data.value !== SharingSessionInitiationRecipientMode.MY_ORG)
+        {
+            props.setRecipientOrgUser(undefined);
+            props.setRecipientOrgGroup(undefined);
+        }
+        if (data.value !== SharingSessionInitiationRecipientMode.USE_EMAIL)
+        {
+            props.setNewRecipient({
+                email: '',
+                firstName: '',
+                lastName: ''
+            });
+        }
+    }
 
     return (
         <div className={styles.recipientsTabContent}>
-            <InfoLabel
-                info={
-                    <>
-                        The email doesn't have to be a registered user.{" "}
-                    </>
-                }>
-                {requestingDocuments ?
-                    'Enter email to request documents from' :
-                    'Enter email to send documents to'}
-            </InfoLabel>
             <Field>
-                <Input
-                    type="email"
-                    value={recipientEmail}
-                    onChange={(e, data) =>
-                    {
-                        onRecipientEmailChange(e, data);
-                        setMessageGroupMessages([]);
-                    }}
-                    placeholder={"Recipient email"}
-                />
+                <RadioGroup
+                    layout={"horizontal"}
+                    value={props.recipientMode}
+                    onChange={onRecipientModeChange}>
+                    <Radio value={SharingSessionInitiationRecipientMode.EXTERNAL_ORG} label="External Organization"/>
+                    <Radio value={SharingSessionInitiationRecipientMode.MY_ORG} label="My Organization"/>
+                    <Radio value={SharingSessionInitiationRecipientMode.USE_EMAIL} label="Use Email"/>
+                </RadioGroup>
             </Field>
+
+            {props.recipientMode === SharingSessionInitiationRecipientMode.MY_ORG && (
+                <MyOrganizationRecipients
+                    onSelectUser={props.setRecipientOrgUser}
+                    onSelectGroup={props.setRecipientOrgGroup}
+                />
+            )}
+
+            {props.recipientMode === SharingSessionInitiationRecipientMode.EXTERNAL_ORG && (
+                <ExternalOrganizationRecipients
+                    onSelectOrg={props.setRecipientOrg}
+                    onSelectUser={props.setRecipientOrgUser}
+                    onSelectGroup={props.setRecipientOrgGroup}
+                />
+            )}
+
+            {props.recipientMode === SharingSessionInitiationRecipientMode.USE_EMAIL && (
+                <NewRecipient
+                    isRequestingDocuments={props.isRequestingDocuments}
+                    onRecipientChange={props.setNewRecipient}
+                />
+            )}
         </div>
     );
-}
+};
 
 export default SessionInitiationRecipientsTab;
