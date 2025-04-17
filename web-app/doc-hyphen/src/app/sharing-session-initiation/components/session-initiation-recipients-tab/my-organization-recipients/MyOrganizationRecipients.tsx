@@ -17,8 +17,7 @@ import {
 } from "../../../../../services/organizationApi";
 import MyOrgRecipients from "../MyOrgRecipients.tsx";
 
-interface MyOrganizationRecipientsProps
-{
+interface MyOrganizationRecipientsProps {
     setRecipientOrgUser: (user: AppUserDetailedDto | undefined) => void;
     setRecipientOrgGroup: (group: OrganizationGroupBasicDto | undefined) => void;
     recipientOrgUser?: AppUserDetailedDto;
@@ -27,99 +26,91 @@ interface MyOrganizationRecipientsProps
     setInternalRecipients?: (users: AppUserDetailedDto[]) => void;
 }
 
-enum ShareWithMode
-{
+enum ShareWithMode {
     INDIVIDUAL = "withIndividual",
     GROUP = "withOrgGroup"
 }
 
-const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
-    {
-        setRecipientOrgUser,
-        setRecipientOrgGroup,
-        recipientOrgUser,
-        recipientOrgGroup,
-        internalRecipients = [],
-        setInternalRecipients
-    }) =>
-{
+const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = ({
+    setRecipientOrgUser,
+    setRecipientOrgGroup,
+    recipientOrgUser,
+    recipientOrgGroup,
+    internalRecipients = [],
+    setInternalRecipients = () => {}
+}) => {
     const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
     const [isLoadingGroups, setIsLoadingGroups] = useState<boolean>(false);
     const [myOrgUsers, setMyOrgUsers] = useState<AppUserDetailedDto[]>([]);
     const [myOrgGroups, setMyOrgGroups] = useState<OrganizationGroupBasicDto[]>([]);
-    const [shareWith, setShareWith] = useState<ShareWithMode>(
-        recipientOrgUser ? ShareWithMode.INDIVIDUAL :
-            recipientOrgGroup ? ShareWithMode.GROUP :
-                ShareWithMode.INDIVIDUAL
-    );
+
+    // Determine initial mode based on props
+    const initialShareWith = recipientOrgUser
+        ? ShareWithMode.INDIVIDUAL
+        : recipientOrgGroup ? ShareWithMode.GROUP : ShareWithMode.INDIVIDUAL;
+
+    const [shareWith, setShareWith] = useState<ShareWithMode>(initialShareWith);
     const [selectedOrgUser, setSelectedOrgUser] = useState<AppUserDetailedDto | null>(recipientOrgUser || null);
     const [selectedOrgGroup, setSelectedOrgGroup] = useState<OrganizationGroupBasicDto | null>(recipientOrgGroup || null);
-    const [userSearchQuery, setUserSearchQuery] = useState<string>(
-        recipientOrgUser ?
-            `${recipientOrgUser.person?.firstName || ''} ${recipientOrgUser.person?.lastName || ''} (${recipientOrgUser.email})` :
-            ""
-    );
-    const [groupSearchQuery, setGroupSearchQuery] = useState<string>(
-        recipientOrgGroup ? recipientOrgGroup.name : ""
-    );
+
+    // Format initial search strings safely
+    const formatUserDisplay = (user: AppUserDetailedDto | null | undefined) => {
+        if (!user) return "";
+        const firstName = user.person?.firstName || '';
+        const lastName = user.person?.lastName || '';
+        return `${firstName} ${lastName} (${user.email})`;
+    };
+
+    const [userSearchQuery, setUserSearchQuery] = useState<string>(formatUserDisplay(recipientOrgUser));
+    const [groupSearchQuery, setGroupSearchQuery] = useState<string>(recipientOrgGroup?.name || "");
 
     // Load data on initial mount
-    useEffect(() =>
-    {
+    useEffect(() => {
         loadMyOrganizationUsers();
         loadMyOrganizationGroups();
     }, []);
 
     // Update local state when props change
-    useEffect(() =>
-    {
-        if (recipientOrgUser)
-        {
+    useEffect(() => {
+        if (recipientOrgUser) {
             setSelectedOrgUser(recipientOrgUser);
             setShareWith(ShareWithMode.INDIVIDUAL);
-            setUserSearchQuery(`${recipientOrgUser.person?.firstName || ''} ${recipientOrgUser.person?.lastName || ''} (${recipientOrgUser.email})`);
-        }
+            setUserSearchQuery(formatUserDisplay(recipientOrgUser));
 
-        if (recipientOrgGroup)
-        {
+            // Clear group selection when user is selected
+            setSelectedOrgGroup(null);
+            setGroupSearchQuery("");
+        } else if (recipientOrgGroup) {
             setSelectedOrgGroup(recipientOrgGroup);
             setShareWith(ShareWithMode.GROUP);
             setGroupSearchQuery(recipientOrgGroup.name);
+
+            // Clear user selection when group is selected
+            setSelectedOrgUser(null);
+            setUserSearchQuery("");
         }
     }, [recipientOrgUser, recipientOrgGroup]);
 
-    const loadMyOrganizationUsers = async () =>
-    {
+    const loadMyOrganizationUsers = async () => {
         setIsLoadingUsers(true);
-        try
-        {
+        try {
             const users = await fetchMyOrganizationUsers();
             setMyOrgUsers(users);
-        }
-        catch (error)
-        {
+        } catch (error) {
             console.error("Error loading my organization users:", error);
-        }
-        finally
-        {
+        } finally {
             setIsLoadingUsers(false);
         }
     };
 
-    const loadMyOrganizationGroups = async () =>
-    {
+    const loadMyOrganizationGroups = async () => {
         setIsLoadingGroups(true);
-        try
-        {
+        try {
             const groups = await fetchMyOrganizationGroups();
             setMyOrgGroups(groups);
-        }
-        catch (error)
-        {
+        } catch (error) {
             console.error("Error loading my organization groups:", error);
-        }
-        finally
-        {
+        } finally {
             setIsLoadingGroups(false);
         }
     };
@@ -127,13 +118,13 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
     const filteredUsers = myOrgUsers
         .filter(user => !userSearchQuery ||
             user.email.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
-            user.person.firstName?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
-            user.person.lastName?.toLowerCase().includes(userSearchQuery.toLowerCase()))
+            (user.person?.firstName && user.person.firstName.toLowerCase().includes(userSearchQuery.toLowerCase())) ||
+            (user.person?.lastName && user.person.lastName.toLowerCase().includes(userSearchQuery.toLowerCase())))
         .map(user => (
             <Option key={user.id}
-                    text={`${user.person.firstName} ${user.person.lastName} (${user.email})`}
-                    value={user.id}>
-                {`${user.person.firstName} ${user.person.lastName} (${user.email})`}
+                    text={`${user.person?.firstName || ''} ${user.person?.lastName || ''} (${user.email})`}
+                    value={user.id || ''}>
+                {`${user.person?.firstName || ''} ${user.person?.lastName || ''} (${user.email})`}
             </Option>
         ));
 
@@ -142,34 +133,29 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
         .map(group => (
             <Option key={group.id}
                     text={group.name}
-                    value={group.id}>
+                    value={group.id || ''}>
                 {`${group.name} (${group.memberCount} members)`}
             </Option>
         ));
 
-    const onShareWithChange = (_: React.FormEvent<HTMLDivElement>, data: { value: string }) =>
-    {
-        setSelectedOrgUser(null);
-        setSelectedOrgGroup(null);
+    const onShareWithChange = (_: React.FormEvent<HTMLDivElement>, data: { value: string }) => {
+        const newMode = data.value as ShareWithMode;
+        setShareWith(newMode);
 
-        if (shareWith === ShareWithMode.INDIVIDUAL)
-        {
+        // Clear selections based on mode change
+        if (newMode === ShareWithMode.INDIVIDUAL) {
+            setSelectedOrgGroup(null);
+            setGroupSearchQuery("");
+            setRecipientOrgGroup(undefined);
+        } else {
+            setSelectedOrgUser(null);
             setUserSearchQuery("");
             setRecipientOrgUser(undefined);
         }
-        else
-        {
-            setGroupSearchQuery("");
-            setRecipientOrgGroup(undefined);
-        }
-
-        setShareWith(data.value as ShareWithMode);
     };
 
-    const setRecipientOrgUserOptionItem: ComboboxProps["onOptionSelect"] = (_, data: OptionOnSelectData) =>
-    {
-        if (!data || !data.optionValue)
-        {
+    const setRecipientOrgUserOptionItem: ComboboxProps["onOptionSelect"] = (_, data: OptionOnSelectData) => {
+        if (!data || !data.optionValue) {
             setUserSearchQuery("");
             setSelectedOrgUser(null);
             setRecipientOrgUser(undefined);
@@ -179,23 +165,16 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
         const userId = data.optionValue;
         const user = myOrgUsers.find(u => u.id === userId);
 
-        if (user)
-        {
-            const firstName = user.person.firstName;
-            const lastName = user.person.lastName;
-            const email = user.email;
-
-            setUserSearchQuery(`${firstName} ${lastName} (${email})`);
+        if (user) {
+            setUserSearchQuery(formatUserDisplay(user));
             setSelectedOrgUser(user);
             setRecipientOrgUser(user);
-            setRecipientOrgGroup(undefined);
+            setRecipientOrgGroup(undefined); // Clear group when user is selected
         }
     };
 
-    const setRecipientOrgGroupOptionItem: ComboboxProps["onOptionSelect"] = (_, data: OptionOnSelectData) =>
-    {
-        if (!data || !data.optionValue)
-        {
+    const setRecipientOrgGroupOptionItem: ComboboxProps["onOptionSelect"] = (_, data: OptionOnSelectData) => {
+        if (!data || !data.optionValue) {
             setGroupSearchQuery("");
             setSelectedOrgGroup(null);
             setRecipientOrgGroup(undefined);
@@ -205,35 +184,25 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
         const groupId = data.optionValue;
         const group = myOrgGroups.find(g => g.id === groupId);
 
-        if (group)
-        {
-            setGroupSearchQuery(`${group.name}`);
+        if (group) {
+            setGroupSearchQuery(group.name);
             setSelectedOrgGroup(group);
             setRecipientOrgGroup(group);
-            setRecipientOrgUser(undefined);
+            setRecipientOrgUser(undefined); // Clear user when group is selected
         }
     };
 
-    const getFilteredInternalUsers = () =>
-    {
-        if (selectedOrgUser)
-        {
+    const getFilteredInternalUsers = () => {
+        if (selectedOrgUser) {
             // Exclude the selected user from internal recipients
             return myOrgUsers.filter(user => user.id !== selectedOrgUser.id);
-        }
-        else if (selectedOrgGroup)
-        {
-            // Just use all users since we can't filter by group members safely
-            return myOrgUsers;
         }
         return myOrgUsers;
     };
 
-    // Direct handler for internal recipients changes
-    const handleInternalRecipientsChange = (recipients: AppUserDetailedDto[]) =>
-    {
-        if (setInternalRecipients)
-        {
+    // Handler for internal recipients changes
+    const handleInternalRecipientsChange = (recipients: AppUserDetailedDto[]) => {
+        if (setInternalRecipients) {
             setInternalRecipients(recipients);
         }
     };
@@ -287,9 +256,8 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
                 <MyOrgRecipients
                     orgUsers={getFilteredInternalUsers()}
                     isLoadingUsers={isLoadingUsers}
-                    selectedInternalRecipients={internalRecipients || []}
+                    selectedInternalRecipients={internalRecipients}
                     setSelectedInternalRecipients={handleInternalRecipientsChange}
-                    onAddOrRemoveInternalRecipients={handleInternalRecipientsChange}
                 />
             )}
         </>
