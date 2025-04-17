@@ -18,16 +18,10 @@ enum class AppUserRole {
     APPLICATION,
 
     // Users not belonging to any organization
-    USER,
+    APP_USER,
 
-    // Users belonging to an organization who manage users
     ORG_ADMIN,
 
-    // Users belonging to an organization who manage Sharing Sessions
-    // Can accept/close/reject sessions
-    ORG_GROUP_ADMIN,
-
-    // Regular users in an organization
     ORG_MEMBER,
 }
 
@@ -79,7 +73,7 @@ class AppUser {
 
     @Enumerated(STRING)
     @Column(name = "role", nullable = false)
-    var role: AppUserRole = AppUserRole.USER
+    var role: AppUserRole = AppUserRole.APP_USER
 
     @Column(name = "is_temporary", nullable = false)
     var isTemporary: Boolean = false

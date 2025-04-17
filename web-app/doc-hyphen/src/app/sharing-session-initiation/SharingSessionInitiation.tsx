@@ -37,7 +37,11 @@ import SessionInitiationRecipientsTab, {
 } from "./components/session-initiation-recipients-tab/SessionInitiationRecipientsTab.tsx";
 import {publishNewSharingSessionAddition} from '../observable/sharingSessionObservables.ts';
 import {useSharingSessionInitiationStyles} from "./SharingSessionInitiationStyles.tsx";
-import {SharingSessionRequestDocumentRequest} from "../models/models.tsx";
+import {AppUserDetailedDto, OrganizationBasicDto, SharingSessionRequestDocumentRequest} from "../models/models.tsx";
+import {OrganizationGroupBasicDto} from "../../services/organizationApi.ts";
+import {
+    SharingSessionNewMainRecipient
+} from "./components/session-initiation-recipients-tab/new-recipient/NewRecipient.tsx";
 
 const SharingSessionInitiation: React.FC = () =>
 {
@@ -63,6 +67,7 @@ const SharingSessionInitiation: React.FC = () =>
         recipientOrg, setRecipientOrg,
         recipientOrgUser, setRecipientOrgUser,
         recipientOrgGroup, setRecipientOrgGroup,
+        internalRecipients, setInternalRecipients,
         newRecipient, setNewRecipient
     } = useSharingSessionInitiatingState();
 
@@ -246,7 +251,6 @@ const SharingSessionInitiation: React.FC = () =>
     {
         return (
             <SessionInitiationRecipientsTab
-                isRequestingDocuments={requestingDocuments}
                 recipientMode={recipientMode}
                 setRecipientMode={setRecipientMode}
                 recipientOrg={recipientOrg}
@@ -255,8 +259,11 @@ const SharingSessionInitiation: React.FC = () =>
                 setRecipientOrgUser={setRecipientOrgUser}
                 recipientOrgGroup={recipientOrgGroup}
                 setRecipientOrgGroup={setRecipientOrgGroup}
+                internalRecipients={internalRecipients}
+                setInternalRecipients={setInternalRecipients}
                 newRecipient={newRecipient}
                 setNewRecipient={setNewRecipient}
+                isRequestingDocuments={requestingDocuments}
             />
         )
     }

@@ -1,7 +1,7 @@
 import React from 'react';
 import {Field, Radio, RadioGroup} from "@fluentui/react-components";
 import {useSessionInitiationRecipientsTabStyles} from "./SessionInitiationRecipientsTabStyles.tsx";
-import {AppUserBasicDto, OrganizationBasicDto} from "../../../models/models.tsx";
+import {AppUserBasicDto, AppUserDetailedDto, OrganizationBasicDto} from "../../../models/models.tsx";
 import {OrganizationGroupBasicDto} from "../../../../services/organizationApi";
 import MyOrganizationRecipients from "./my-organization-recipients/MyOrganizationRecipients";
 import ExternalOrganizationRecipients from "./external-organization-recipients/ExternalOrganizationRecipients";
@@ -19,11 +19,13 @@ interface SessionRecipientsTabProps
     recipientMode: SharingSessionInitiationRecipientMode;
     setRecipientMode: (mode: SharingSessionInitiationRecipientMode) => void;
     recipientOrg: OrganizationBasicDto | undefined;
-    recipientOrgUser: AppUserBasicDto | undefined;
-    recipientOrgGroup: OrganizationGroupBasicDto | undefined;
     setRecipientOrg: (org: OrganizationBasicDto | undefined) => void;
-    setRecipientOrgUser: (user: AppUserBasicDto | undefined) => void;
+    recipientOrgUser: AppUserDetailedDto | undefined;
+    setRecipientOrgUser: (user: AppUserDetailedDto | undefined) => void;
+    recipientOrgGroup: OrganizationGroupBasicDto | undefined;
     setRecipientOrgGroup: (group: OrganizationGroupBasicDto | undefined) => void;
+    internalRecipients: AppUserDetailedDto[];
+    setInternalRecipients: (appUser: AppUserDetailedDto[] | undefined) => void;
     newRecipient: SharingSessionNewMainRecipient | undefined;
     setNewRecipient: (recipient: SharingSessionNewMainRecipient | undefined) => void;
     isRequestingDocuments: boolean | null | undefined;
@@ -34,7 +36,7 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
     const styles = useSessionInitiationRecipientsTabStyles();
 
     const onRecipientModeChange = (
-        _: React.SyntheticEvent<HTMLElement>,
+        _: React.FormEvent<HTMLDivElement>,
         data: { value: SharingSessionInitiationRecipientMode }) =>
     {
         props.setRecipientMode(data.value as SharingSessionInitiationRecipientMode);
@@ -80,9 +82,14 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
 
             {props.recipientMode === SharingSessionInitiationRecipientMode.EXTERNAL_ORG && (
                 <ExternalOrganizationRecipients
-                    onSelectOrg={props.setRecipientOrg}
-                    onSelectUser={props.setRecipientOrgUser}
-                    onSelectGroup={props.setRecipientOrgGroup}
+                    recipientOrg={props.recipientOrg}
+                    recipientOrgUser={props.recipientOrgUser}
+                    recipientOrgGroup={props.recipientOrgGroup}
+                    internalRecipients={props.internalRecipients}
+                    setRecipientOrg={props.setRecipientOrg}
+                    setRecipientOrgUser={props.setRecipientOrgUser}
+                    setRecipientOrgGroup={props.setRecipientOrgGroup}
+                    setInternalRecipients={props.setInternalRecipients}
                 />
             )}
 

@@ -441,7 +441,7 @@ export interface AppUserDetailedDto
     createdDate?: string;
     isActive: boolean;
     email: string;
-    person?: PersonDetailedDto;
+    person: PersonDetailedDto;
 }
 
 export interface DocumentAuditDetailedDto

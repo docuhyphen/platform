@@ -5,23 +5,31 @@ import {
     Field,
     InfoLabel,
     Option,
+    OptionOnSelectData,
     Radio,
     RadioGroup,
     Spinner
 } from "@fluentui/react-components";
-import {AppUserBasicDto, OrganizationBasicDto} from "../../../../models/models.tsx";
+import {AppUserDetailedDto, OrganizationBasicDto} from "../../../../models/models.tsx";
 import {
     fetchOrganizationGroups,
     fetchOrganizationUsers,
     fetchPairedOrganizations,
     OrganizationGroupBasicDto
 } from "../../../../../services/organizationApi";
+import MyOrgRecipients from "../MyOrgRecipients.tsx";
 
 interface ExternalOrganizationRecipientsProps
 {
-    onSelectOrg: (org: OrganizationBasicDto | undefined) => void;
-    onSelectUser: (user: AppUserBasicDto | undefined) => void;
-    onSelectGroup: (group: OrganizationGroupBasicDto | undefined) => void;
+    recipientOrg: OrganizationBasicDto | undefined;
+    recipientOrgUser: AppUserDetailedDto | undefined;
+    recipientOrgGroup: OrganizationGroupBasicDto | undefined;
+    internalRecipients: AppUserDetailedDto[] | undefined;
+
+    setRecipientOrg: (org: OrganizationBasicDto | undefined) => void;
+    setRecipientOrgUser: (user: AppUserDetailedDto | undefined) => void;
+    setRecipientOrgGroup: (group: OrganizationGroupBasicDto | undefined) => void;
+    setInternalRecipients?: (users: AppUserDetailedDto[]) => void;
 }
 
 enum ShareWithMode
@@ -32,46 +40,95 @@ enum ShareWithMode
 
 const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsProps> = (
     {
-        onSelectOrg,
-        onSelectUser,
-        onSelectGroup
+        recipientOrg,
+        recipientOrgUser,
+        recipientOrgGroup,
+        internalRecipients,
+        setRecipientOrg,
+        setRecipientOrgUser,
+        setRecipientOrgGroup,
+        setInternalRecipients
     }) =>
 {
     const [isLoadingOrgs, setIsLoadingOrgs] = useState<boolean>(false);
     const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
     const [isLoadingGroups, setIsLoadingGroups] = useState<boolean>(false);
     const [selectedOrg, setSelectedOrg] = useState<OrganizationBasicDto | null>(null);
+    const [selectedOrgGroup, setSelectedOrgGroup] = useState<OrganizationGroupBasicDto | null>(null);
+    const [selectedOrgUser, setSelectedOrgUser] = useState<AppUserDetailedDto | null>(null);
+    const [selectedInternalRecipients, setSelectedInternalRecipients] = useState<AppUserDetailedDto[]>([]);
     const [shareWith, setShareWith] = useState<ShareWithMode>(ShareWithMode.INDIVIDUAL);
     const [orgSearchQuery, setOrgSearchQuery] = useState<string>("");
     const [orgIndividualSearchQuery, setOrgIndividualSearchQuery] = useState<string>("");
     const [orgGroupSearchQuery, setOrgGroupSearchQuery] = useState<string>("");
     const [pairedOrgs, setPairedOrgs] = useState<OrganizationBasicDto[]>([]);
-    const [orgUsers, setOrgUsers] = useState<AppUserBasicDto[]>([]);
+    const [orgUsers, setOrgUsers] = useState<AppUserDetailedDto[]>([]);
     const [orgGroups, setOrgGroups] = useState<OrganizationGroupBasicDto[]>([]);
 
     const filteredPairedOrgs = pairedOrgs
         .filter(org => !orgSearchQuery || org.name.toLowerCase().includes(orgSearchQuery.toLowerCase()))
         .map(org => (
-            <Option key={org.id} text={org.name} value={org}>
+            <Option key={org.id}
+                    text={org.name}
+                    value={org.id}>
                 {org.name}
             </Option>
         ));
 
     const filteredOrgIndividuals = orgUsers
-        .filter(user => !orgIndividualSearchQuery || user.email.toLowerCase().includes(orgIndividualSearchQuery.toLowerCase()))
-        .map(user => (
-            <Option key={user.id} text={user.email} value={user}>
-                {user.email}
+        .filter(orgUser => !orgIndividualSearchQuery ||
+            (orgUser.email.toLowerCase().includes(orgIndividualSearchQuery.toLowerCase()) ||
+                orgUser.person.firstName?.toLowerCase().includes(orgIndividualSearchQuery.toLowerCase()) ||
+                orgUser.person.lastName?.toLowerCase().includes(orgIndividualSearchQuery.toLowerCase())))
+        .map(orgUser => (
+            <Option key={orgUser.id}
+                    text={orgUser.email}
+                    value={orgUser.id}>
+                {`${orgUser.person.firstName} ${orgUser.person.lastName} (${orgUser.email})`}
             </Option>
         ));
 
     const filteredOrgGroups = orgGroups
         .filter(group => !orgGroupSearchQuery || group.name.toLowerCase().includes(orgGroupSearchQuery.toLowerCase()))
         .map(group => (
-            <Option key={group.id} text={group.name} value={group}>
+            <Option key={group.id} text={group.name}
+                    value={group.id}>
                 {group.name}
             </Option>
         ));
+
+    useEffect(() =>
+    {
+        // Initialize from props if they exist
+        if (recipientOrg)
+        {
+            setSelectedOrg(recipientOrg);
+            setOrgSearchQuery(recipientOrg.name);
+
+            // Load users and groups for this organization
+            loadOrganizationUsers(recipientOrg.id || "");
+            loadOrganizationGroups(recipientOrg.id || "");
+        }
+
+        if (recipientOrgUser)
+        {
+            setSelectedOrgUser(recipientOrgUser as unknown as AppUserDetailedDto);
+            setShareWith(ShareWithMode.INDIVIDUAL);
+            setOrgIndividualSearchQuery(`${recipientOrgUser.person?.firstName || ''} ${recipientOrgUser.person?.lastName || ''} (${recipientOrgUser.email})`);
+        }
+
+        if (recipientOrgGroup)
+        {
+            setSelectedOrgGroup(recipientOrgGroup);
+            setShareWith(ShareWithMode.GROUP);
+            setOrgGroupSearchQuery(recipientOrgGroup.name);
+        }
+
+        if (internalRecipients && internalRecipients.length > 0)
+        {
+            setSelectedInternalRecipients(internalRecipients);
+        }
+    }, []);
 
     useEffect(() =>
     {
@@ -84,6 +141,11 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
         {
             loadOrganizationUsers(selectedOrg.id || "");
             loadOrganizationGroups(selectedOrg.id || "");
+
+            if (!internalRecipients || internalRecipients.length === 0)
+            {
+                setSelectedInternalRecipients([]);
+            }
         }
     }, [selectedOrg]);
 
@@ -128,6 +190,7 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
     const loadOrganizationGroups = async (orgId: string) =>
     {
         setIsLoadingGroups(true);
+
         try
         {
             const groups = await fetchOrganizationGroups(orgId);
@@ -143,68 +206,95 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
         }
     };
 
-    const onShareWithChange = (_: React.ChangeEvent<HTMLInputElement>, data: { value: string }) =>
+    const onShareWithChange = (_: React.FormEvent<HTMLDivElement>, data: { value: string }) =>
     {
+        setSelectedOrgUser(null)
+        setSelectedOrgGroup(null);
+
         if (shareWith === ShareWithMode.INDIVIDUAL)
         {
-            onSelectUser(undefined);
             setOrgIndividualSearchQuery("");
         }
         else if (shareWith === ShareWithMode.GROUP)
         {
-            onSelectGroup(undefined);
             setOrgGroupSearchQuery("");
         }
 
         setShareWith(data.value as ShareWithMode);
     };
 
-    const onSelectOrgOptionItem: ComboboxProps["onOptionSelect"] = (_, data) =>
+    const onSelectOrgOptionItem: ComboboxProps["onOptionSelect"] = (_, data: OptionOnSelectData) =>
     {
-        if (!data && !data.optionValue)
+        if (!data || !data.optionValue)
         {
             setSelectedOrg(null);
             setOrgSearchQuery("");
 
-            onSelectOrg(undefined);
-            onSelectUser(undefined);
-            onSelectGroup(undefined);
+            setRecipientOrg(undefined);
+            setRecipientOrgUser(undefined);
+            setRecipientOrgGroup(undefined);
 
             return;
         }
 
-        const selectedOrg = pairedOrgs.find(o => o.id === data.optionValue['id']);
+        const orgId = data.optionValue
+        const org = pairedOrgs.find(o => o.id === orgId);
 
-        setSelectedOrg(selectedOrg || null);
-        setOrgSearchQuery(selectedOrg ? selectedOrg.name : "");
+        if (org)
+        {
+            setSelectedOrg(org || null);
+            setOrgSearchQuery(org ? org.name : "");
 
-        onSelectOrg(selectedOrg);
-        onSelectUser(undefined);
-        onSelectGroup(undefined);
+            setRecipientOrg(org);
+            setRecipientOrgUser(undefined);
+            setRecipientOrgGroup(undefined);
+        }
     };
 
     const onSelectOrgIndividualOptionItem: ComboboxProps["onOptionSelect"] = (_, data) =>
     {
-        const selected = data.optionValue;
-        const query = selected ?
-            `${selected.person?.firstName || ''} ${selected.person?.lastName || ''} (${selected.email})` : ""
+        if (!data || !data.optionValue)
+        {
+            setOrgIndividualSearchQuery("");
+            setRecipientOrgUser(undefined);
+            return;
+        }
 
-        setOrgIndividualSearchQuery(query);
+        const userId = data.optionValue;
+        const selectedOrgUser = orgUsers.find(u => u.id === userId);
 
-        onSelectUser(selected);
-        onSelectGroup(undefined);
+        if (selectedOrgUser)
+        {
+            const firstName = selectedOrgUser.person.firstName;
+            const lastName = selectedOrgUser.person.lastName;
+            const email = selectedOrgUser.email;
+
+            const query = `${firstName} ${lastName} (${email})`;
+            setOrgIndividualSearchQuery(query);
+            setSelectedOrgUser(selectedOrgUser)
+            setRecipientOrgUser(selectedOrgUser);
+        }
     };
 
     const onSelectOrgGroupOptionItem: ComboboxProps["onOptionSelect"] = (_, data) =>
     {
-        if (data.optionValue && typeof data.optionValue === 'object')
+        if (!data || !data.optionValue)
         {
-            const selected = data.optionValue as AppUserBasicDto;
-            setOrgGroupSearchQuery(selected ? `${selected.name} (${selected.memberCount} members)` : "");
-            onSelectUser(selected);
-            onSelectGroup(undefined);
+            setOrgGroupSearchQuery("");
+            setRecipientOrgGroup(undefined);
+            return;
         }
 
+        const groupId = data.optionValue;
+        const selectedOrgGroup = orgGroups.find(g => g.id === groupId);
+
+        if (selectedOrgGroup)
+        {
+            const query = `${selectedOrgGroup.name} (${selectedOrgGroup.memberCount} members)`;
+            setOrgGroupSearchQuery(query);
+            setSelectedOrgGroup(selectedOrgGroup)
+            setRecipientOrgGroup(selectedOrgGroup);
+        }
     };
 
     const renderOrgSelectionSection = () =>
@@ -272,6 +362,15 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
     return <>
         {isLoadingOrgs && (<Spinner size="tiny" label="Loading organizations..."/>)}
         {!isLoadingOrgs && renderOrgSelectionSection()}
+        {(!isLoadingOrgs && selectedOrg && (selectedOrgUser || selectedOrgGroup)) &&
+            <MyOrgRecipients
+                orgUsers={orgUsers}
+                isLoadingUsers={isLoadingUsers}
+                selectedInternalRecipients={selectedInternalRecipients}
+                setSelectedInternalRecipients={setSelectedInternalRecipients}
+                onAddOrRemoveInternalRecipients={setInternalRecipients}
+            />
+        }
     </>
 };
 

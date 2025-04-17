@@ -1,6 +1,6 @@
 
 import {
-    AppUser,
+    AppUser, AppUserDetailedDto,
     AppUserRole,
     Organization,
     Person,
@@ -316,7 +316,7 @@ export const fetchPairedOrganizations = async (): Promise<Organization[]> => {
     return pairedOrganizations;
 };
 
-export const fetchOrganizationUsers = async (organizationId: string): Promise<AppUser[]> => {
+export const fetchOrganizationUsers = async (organizationId: string): Promise<AppUserDetailedDto[]> => {
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 200));
     const org = pairedOrganizations.find(o => o.id === organizationId);
@@ -329,7 +329,7 @@ export const fetchOrganizationGroups = async (organizationId: string): Promise<O
     return orgGroups.filter(group => group.organizationId === organizationId);
 };
 
-export const fetchMyOrganizationUsers = async (): Promise<AppUser[]> => {
+export const fetchMyOrganizationUsers = async (): Promise<AppUserDetailedDto[]> => {
     // This would be replaced with an actual API call to get current org users
     await new Promise(resolve => setTimeout(resolve, 300));
     return orgUsers.filter(user => user.email.includes("acme.com"));
