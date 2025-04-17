@@ -1,11 +1,11 @@
 import React, {useEffect, useState} from 'react';
 import {Combobox, Field, Option, Spinner} from "@fluentui/react-components";
-import {AppUserBasicDto, OrganizationGroupBasicDto} from "../../../../models/models.tsx";
+import {AppUserBasicDto, AppUserDetailedDto, OrganizationGroupBasicDto} from "../../../../models/models.tsx";
 import {fetchMyOrganizationGroups, fetchMyOrganizationUsers} from "../../../../../services/organizationApi";
 
 interface MyOrganizationRecipientsProps
 {
-    onSelectUser: (user: AppUserBasicDto | undefined) => void;
+    onSelectUser: (user: AppUserDetailedDto | undefined) => void;
     onSelectGroup: (group: OrganizationGroupBasicDto | undefined) => void;
 }
 
@@ -17,7 +17,7 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
 {
     const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
     const [isLoadingGroups, setIsLoadingGroups] = useState<boolean>(false);
-    const [myOrgUsers, setMyOrgUsers] = useState<AppUserBasicDto[]>([]);
+    const [myOrgUsers, setMyOrgUsers] = useState<AppUserDetailedDto[]>([]);
     const [myOrgGroups, setMyOrgGroups] = useState<OrganizationGroupBasicDto[]>([]);
     const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -66,7 +66,7 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
     const filteredItems = [
         ...myOrgUsers.map(user => ({
             id: user.id || "",
-            text: `${user.firstName} ${user.lastName} (${user.email})`,
+            text: `${user.person.firstName} ${user.person.lastName} (${user.email})`,
             value: user,
             type: "user"
         })),
@@ -107,7 +107,9 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
                         }
                     }}>
                     {filteredItems.map(item => (
-                        <Option key={`${item.type}-${item.id}`} text={item.text} value={item}>
+                        <Option key={`${item.type}-${item.id}`}
+                                text={item.text}
+                                value={item}>
                             {item.text}
                         </Option>
                     ))}

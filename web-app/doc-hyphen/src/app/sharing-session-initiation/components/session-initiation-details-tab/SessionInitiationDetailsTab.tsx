@@ -1,5 +1,5 @@
 import React, {ChangeEvent} from 'react';
-import {Field, Input, InputOnChangeData, Textarea} from "@fluentui/react-components";
+import {Button, Field, Input, InputOnChangeData, Textarea} from "@fluentui/react-components";
 import {useSharingSessionInitiationStyles} from "../../SharingSessionInitiationStyles.tsx";
 
 interface SessionDetailsTabProps
@@ -43,6 +43,7 @@ const SessionInitiationDetailsTab: React.FC<SessionDetailsTabProps> = (
                     placeholder="Required"
                 />
             </Field>
+            {/*<Button onClick={ () => {}}> Generate from sequence</Button>*/}
             <Field label="Description">
                 <Textarea
                     onChange={onDescriptionChange}

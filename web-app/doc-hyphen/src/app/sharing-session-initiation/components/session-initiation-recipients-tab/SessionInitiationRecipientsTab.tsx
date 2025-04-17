@@ -40,16 +40,10 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
         data: { value: SharingSessionInitiationRecipientMode }) =>
     {
         props.setRecipientMode(data.value as SharingSessionInitiationRecipientMode);
+        props.setRecipientOrg(undefined);
+        props.setRecipientOrgUser(undefined);
+        props.setRecipientOrgGroup(undefined);
 
-        if (data.value !== SharingSessionInitiationRecipientMode.EXTERNAL_ORG)
-        {
-            props.setRecipientOrg(undefined);
-        }
-        if (data.value !== SharingSessionInitiationRecipientMode.MY_ORG)
-        {
-            props.setRecipientOrgUser(undefined);
-            props.setRecipientOrgGroup(undefined);
-        }
         if (data.value !== SharingSessionInitiationRecipientMode.USE_EMAIL)
         {
             props.setNewRecipient({
