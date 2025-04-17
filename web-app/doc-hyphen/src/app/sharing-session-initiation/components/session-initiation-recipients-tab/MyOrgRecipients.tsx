@@ -94,7 +94,7 @@ const MyOrgRecipients: React.FC<{
     return (
         <>
             <Divider alignContent="start">
-                Recipients from your organization
+                Participants from your organization
             </Divider>
             <Field>
                 {isLoadingUsers ? (
