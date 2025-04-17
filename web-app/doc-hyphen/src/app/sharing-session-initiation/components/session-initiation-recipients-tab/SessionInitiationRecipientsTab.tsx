@@ -1,7 +1,7 @@
 import React from 'react';
 import {Field, Radio, RadioGroup} from "@fluentui/react-components";
 import {useSessionInitiationRecipientsTabStyles} from "./SessionInitiationRecipientsTabStyles.tsx";
-import {AppUserBasicDto, AppUserDetailedDto, OrganizationBasicDto} from "../../../models/models.tsx";
+import {AppUserDetailedDto, OrganizationBasicDto} from "../../../models/models.tsx";
 import {OrganizationGroupBasicDto} from "../../../../services/organizationApi";
 import MyOrganizationRecipients from "./my-organization-recipients/MyOrganizationRecipients";
 import ExternalOrganizationRecipients from "./external-organization-recipients/ExternalOrganizationRecipients";
@@ -90,7 +90,8 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
             {props.recipientMode === SharingSessionInitiationRecipientMode.USE_EMAIL && (
                 <NewRecipient
                     isRequestingDocuments={props.isRequestingDocuments}
-                    onRecipientChange={props.setNewRecipient}
+                    setNewRecipient={props.setNewRecipient}
+                    newRecipient={props.newRecipient}
                 />
             )}
         </div>

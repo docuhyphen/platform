@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {Field, InfoLabel, Input} from "@fluentui/react-components";
 import {useSessionInitiationRecipientsTabStyles} from "../SessionInitiationRecipientsTabStyles.tsx";
 
@@ -12,29 +12,43 @@ export interface SharingSessionNewMainRecipient
 interface NewRecipientProps
 {
     isRequestingDocuments: boolean | null | undefined;
-    onRecipientChange: (recipient: SharingSessionNewMainRecipient) => void;
+    setNewRecipient: (recipient: SharingSessionNewMainRecipient) => void;
+    newRecipient?: SharingSessionNewMainRecipient;
 }
 
 const NewRecipient: React.FC<NewRecipientProps> = (
     {
         isRequestingDocuments,
-        onRecipientChange,
+        setNewRecipient,
+        newRecipient
     }) =>
 {
     const styles = useSessionInitiationRecipientsTabStyles();
 
     const [recipient, setRecipient] = React.useState<SharingSessionNewMainRecipient>({
-        email: '',
-        firstName: '',
-        lastName: ''
+        email: newRecipient?.email || '',
+        firstName: newRecipient?.firstName || '',
+        lastName: newRecipient?.lastName || ''
     });
 
+    // Sync recipient state when props change
+    useEffect(() =>
+    {
+        if (newRecipient)
+        {
+            setRecipient({
+                email: newRecipient.email || recipient.email,
+                firstName: newRecipient.firstName || recipient.firstName,
+                lastName: newRecipient.lastName || recipient.lastName
+            });
+        }
+    }, [newRecipient]);
 
     const updateRecipient = (field: keyof SharingSessionNewMainRecipient, value: string) =>
     {
         const updated = {...recipient, [field]: value};
         setRecipient(updated);
-        onRecipientChange(updated);
+        setNewRecipient(updated);
     };
 
     return (

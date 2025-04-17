@@ -25,6 +25,7 @@ interface ExternalOrganizationRecipientsProps
     recipientOrgUser: AppUserDetailedDto | undefined;
     recipientOrgGroup: OrganizationGroupBasicDto | undefined;
     internalRecipients: AppUserDetailedDto[] | undefined;
+    currentUser: AppUserDetailedDto | undefined;
 
     setRecipientOrg: (org: OrganizationBasicDto | undefined) => void;
     setRecipientOrgUser: (user: AppUserDetailedDto | undefined) => void;
@@ -44,6 +45,7 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
         recipientOrgUser,
         recipientOrgGroup,
         internalRecipients,
+        currentUser,
         setRecipientOrg,
         setRecipientOrgUser,
         setRecipientOrgGroup,
@@ -76,6 +78,7 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
         ));
 
     const filteredOrgIndividuals = orgUsers
+        .filter(orgUser => orgUser.id !== currentUser?.id)
         .filter(orgUser => !orgIndividualSearchQuery ||
             (orgUser.email.toLowerCase().includes(orgIndividualSearchQuery.toLowerCase()) ||
                 orgUser.person.firstName?.toLowerCase().includes(orgIndividualSearchQuery.toLowerCase()) ||
@@ -97,6 +100,37 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
             </Option>
         ));
 
+    // Filter internal recipients based on current selections
+    useEffect(() =>
+    {
+        if (internalRecipients && internalRecipients.length > 0)
+        {
+            let filteredRecipients = [...internalRecipients];
+
+            // Filter out current user
+            if (currentUser)
+            {
+                filteredRecipients = filteredRecipients.filter(user => user.id !== currentUser.id);
+            }
+
+            // Filter out selected individual recipient
+            if (recipientOrgUser)
+            {
+                filteredRecipients = filteredRecipients.filter(user => user.id !== recipientOrgUser.id);
+            }
+
+            // Update internal recipients if they changed
+            if (filteredRecipients.length !== selectedInternalRecipients.length)
+            {
+                setSelectedInternalRecipients(filteredRecipients);
+                if (setInternalRecipients)
+                {
+                    setInternalRecipients(filteredRecipients);
+                }
+            }
+        }
+    }, [internalRecipients, currentUser, recipientOrgUser, recipientOrgGroup]);
+
     useEffect(() =>
     {
         // Initialize from props if they exist
@@ -112,9 +146,13 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
 
         if (recipientOrgUser)
         {
-            setSelectedOrgUser(recipientOrgUser as unknown as AppUserDetailedDto);
-            setShareWith(ShareWithMode.INDIVIDUAL);
-            setOrgIndividualSearchQuery(`${recipientOrgUser.person?.firstName || ''} ${recipientOrgUser.person?.lastName || ''} (${recipientOrgUser.email})`);
+            // Ensure we're not selecting the current user
+            if (recipientOrgUser.id !== currentUser?.id)
+            {
+                setSelectedOrgUser(recipientOrgUser as unknown as AppUserDetailedDto);
+                setShareWith(ShareWithMode.INDIVIDUAL);
+                setOrgIndividualSearchQuery(`${recipientOrgUser.person?.firstName || ''} ${recipientOrgUser.person?.lastName || ''} (${recipientOrgUser.email})`);
+            }
         }
 
         if (recipientOrgGroup)
@@ -126,7 +164,16 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
 
         if (internalRecipients && internalRecipients.length > 0)
         {
-            setSelectedInternalRecipients(internalRecipients);
+            // Filter out the current user and recipient user from internal recipients
+            let filteredRecipients = internalRecipients.filter(user => user.id !== currentUser?.id);
+
+            // Filter out the recipient user if present
+            if (recipientOrgUser)
+            {
+                filteredRecipients = filteredRecipients.filter(user => user.id !== recipientOrgUser.id);
+            }
+
+            setSelectedInternalRecipients(filteredRecipients);
         }
     }, []);
 
@@ -210,6 +257,8 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
     {
         setSelectedOrgUser(null)
         setSelectedOrgGroup(null);
+        setRecipientOrgUser(undefined);
+        setRecipientOrgGroup(undefined);
 
         if (shareWith === ShareWithMode.INDIVIDUAL)
         {
@@ -257,13 +306,22 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
         {
             setOrgIndividualSearchQuery("");
             setRecipientOrgUser(undefined);
+
+            // Refresh internal recipients when clearing the individual selection
+            if (internalRecipients && setInternalRecipients)
+            {
+                const updatedRecipients = internalRecipients.filter(user => user.id !== currentUser?.id);
+                setSelectedInternalRecipients(updatedRecipients);
+                setInternalRecipients(updatedRecipients);
+            }
             return;
         }
 
         const userId = data.optionValue;
         const selectedOrgUser = orgUsers.find(u => u.id === userId);
 
-        if (selectedOrgUser)
+        // Ensure we're not selecting the current user
+        if (selectedOrgUser && selectedOrgUser.id !== currentUser?.id)
         {
             const firstName = selectedOrgUser.person.firstName;
             const lastName = selectedOrgUser.person.lastName;
@@ -271,8 +329,18 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
 
             const query = `${firstName} ${lastName} (${email})`;
             setOrgIndividualSearchQuery(query);
-            setSelectedOrgUser(selectedOrgUser)
+            setSelectedOrgUser(selectedOrgUser);
             setRecipientOrgUser(selectedOrgUser);
+
+            // Filter out the selected user from internal recipients
+            if (internalRecipients && setInternalRecipients)
+            {
+                const updatedRecipients = internalRecipients.filter(
+                    user => user.id !== currentUser?.id && user.id !== selectedOrgUser.id
+                );
+                setSelectedInternalRecipients(updatedRecipients);
+                setInternalRecipients(updatedRecipients);
+            }
         }
     };
 
@@ -290,11 +358,28 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
 
         if (selectedOrgGroup)
         {
-            const query = `${selectedOrgGroup.name} (${selectedOrgGroup.memberCount} members)`;
+            const query = `${selectedOrgGroup.name}`;
             setOrgGroupSearchQuery(query);
-            setSelectedOrgGroup(selectedOrgGroup)
+            setSelectedOrgGroup(selectedOrgGroup);
             setRecipientOrgGroup(selectedOrgGroup);
         }
+    };
+
+    // Get users that should be filtered from the internal recipients list
+    const getFilteredOrgUsers = () =>
+    {
+        let usersToFilter = [...orgUsers];
+
+        // Always filter the current user
+        usersToFilter = usersToFilter.filter(user => user.id !== currentUser?.id);
+
+        // Filter the selected individual user if present
+        if (selectedOrgUser)
+        {
+            usersToFilter = usersToFilter.filter(user => user.id !== selectedOrgUser.id);
+        }
+
+        return usersToFilter;
     };
 
     const renderOrgSelectionSection = () =>
@@ -364,7 +449,7 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
         {!isLoadingOrgs && renderOrgSelectionSection()}
         {(!isLoadingOrgs && selectedOrg && (selectedOrgUser || selectedOrgGroup)) &&
             <MyOrgRecipients
-                orgUsers={orgUsers}
+                orgUsers={getFilteredOrgUsers()}
                 isLoadingUsers={isLoadingUsers}
                 selectedInternalRecipients={selectedInternalRecipients}
                 setSelectedInternalRecipients={setSelectedInternalRecipients}
