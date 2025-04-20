@@ -1,4 +1,3 @@
-// DocumentAuditLog.kt
 package com.dochyphen.app.api.model.entity
 
 import com.dochyphen.app.api.serializer.TimestampSerializer

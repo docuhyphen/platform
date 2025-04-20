@@ -31,7 +31,6 @@ const SessionList: React.FC<SharingSessionListProps> = ({onSelectionChange}) =>
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
-    // Search and pagination state
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
     const [selectedInitiator, setSelectedInitiator] = useState<boolean | null>(null);
@@ -67,14 +66,12 @@ const SessionList: React.FC<SharingSessionListProps> = ({onSelectionChange}) =>
                     setTotalPages(response.totalPages);
                     setTotalElements(response.totalElements);
 
-                    // If we don't have an active selection but have results, select the first one
                     if (response.content.length > 0 && selectedItems.length === 0)
                     {
                         handleInitialSelection(response.content);
                     }
                     else if (response.content.length === 0 && selectedItems.length > 0)
                     {
-                        // Clear selection if no results
                         setSelectedItems([]);
                     }
                 }
@@ -134,7 +131,6 @@ const SessionList: React.FC<SharingSessionListProps> = ({onSelectionChange}) =>
     {
         fetchSessions(true);
 
-        // Set up event subscriptions
         const initiationSubscription = sharingSessionInitiationObservable.subscribe(session =>
         {
             if (session)
@@ -179,7 +175,6 @@ const SessionList: React.FC<SharingSessionListProps> = ({onSelectionChange}) =>
         };
     }, []);
 
-    // Effect for search/filter changes
     useEffect(() =>
     {
         if (!loadingSharingSessions)
@@ -188,14 +183,13 @@ const SessionList: React.FC<SharingSessionListProps> = ({onSelectionChange}) =>
         }
     }, [currentPage, sortBy, sortDirection]);
 
-    // Debounced search
     useEffect(() =>
     {
         const handler = setTimeout(() =>
         {
             if (!loadingSharingSessions)
             {
-                setCurrentPage(0); // Reset to first page when search changes
+                setCurrentPage(0);
                 fetchSessions(true);
             }
         }, 500);

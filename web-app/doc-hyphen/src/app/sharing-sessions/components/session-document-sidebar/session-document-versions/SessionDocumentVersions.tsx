@@ -92,7 +92,6 @@ const SessionDocumentVersions: React.FC<SessionDocumentVersionsProps> = (
 
             await uploadDocumentVersion(sessionId, sessionDocument.id, formData, token);
 
-            // Refresh the versions list
             fetchVersions();
             setSelectedFile(null);
             if (fileInputRef.current)
@@ -117,7 +116,6 @@ const SessionDocumentVersions: React.FC<SessionDocumentVersionsProps> = (
         {
             const blob = await downloadDocumentVersion(sessionId, sessionDocument.id, versionId);
 
-            // Create download link and click it
             const url = window.URL.createObjectURL(blob as Blob);
             const a = document.createElement("a");
             a.style.display = "none";
@@ -126,7 +124,6 @@ const SessionDocumentVersions: React.FC<SessionDocumentVersionsProps> = (
             document.body.appendChild(a);
             a.click();
 
-            // Clean up
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
         }

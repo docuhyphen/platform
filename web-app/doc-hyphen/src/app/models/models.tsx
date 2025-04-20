@@ -1,4 +1,3 @@
-// src/app/models/models.ts
 export enum SharingSessionParticipantRole
 {
     VIEWER = "VIEWER",

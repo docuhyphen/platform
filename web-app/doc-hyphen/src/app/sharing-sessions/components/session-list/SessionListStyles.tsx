@@ -47,7 +47,7 @@ export const useSharingSessionStyles = makeStyles({
         whiteSpace: "nowrap",
         overflow: "hidden",
         textOverflow: "ellipsis",
-        maxWidth: "calc(100% - 60px)" // Leave space for the date
+        maxWidth: "calc(100% - 60px)"
     },
 
     sessionDescription: {
@@ -117,7 +117,6 @@ export const useSharingSessionStyles = makeStyles({
         width: "100%",
         padding: "8px",
         borderBottom: "1px solid rgba(0, 0, 0, .1)",
-        // height: "60px",
         boxSizing: "border-box"
     },
 

@@ -26,7 +26,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
     const [appUser, setAppUser] = useState<AppUserDetailedDto | null>(null);
     const [appUserPersonOrganization, setAppUserPersonOrganization] = useState<OrganizationBasicDto | null>(null);
 
-    // Check token expiration periodically
     useEffect(() =>
     {
         tokenExpirationIntervalRef.current = window.setInterval(() =>
@@ -54,7 +53,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         };
     }, []);
 
-    // Handle token changes
     useEffect(() =>
     {
         if (token === null)
@@ -69,7 +67,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         }
     }, [token]);
 
-    // Fetch user data when token is available
     useEffect(() =>
     {
         if (!token)
