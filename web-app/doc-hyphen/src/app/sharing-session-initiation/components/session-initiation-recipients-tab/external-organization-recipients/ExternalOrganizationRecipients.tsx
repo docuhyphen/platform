@@ -25,11 +25,11 @@ interface ExternalOrganizationRecipientsProps
     recipientOrg: OrganizationBasicDto | undefined;
     recipientOrgUser: AppUserDetailedDto | undefined;
     recipientOrgGroup: OrganizationGroupBasicDto | undefined;
-    internalRecipients: AppUserDetailedDto[] | undefined;
+    internalParticipants: AppUserDetailedDto[] | undefined;
     setRecipientOrg: (org: OrganizationBasicDto | undefined) => void;
     setRecipientOrgUser: (user: AppUserDetailedDto | undefined) => void;
     setRecipientOrgGroup: (group: OrganizationGroupBasicDto | undefined) => void;
-    setInternalRecipients?: (users: AppUserDetailedDto[]) => void;
+    setInternalParticipants?: (users: AppUserDetailedDto[]) => void;
 }
 
 enum ShareWithMode
@@ -43,11 +43,11 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
         recipientOrg,
         recipientOrgUser,
         recipientOrgGroup,
-        internalRecipients,
+        internalParticipants,
         setRecipientOrg,
         setRecipientOrgUser,
         setRecipientOrgGroup,
-        setInternalRecipients
+        setInternalParticipants
     }) =>
 {
     const {appUser} = useAuth()
@@ -57,7 +57,7 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
     const [selectedOrg, setSelectedOrg] = useState<OrganizationBasicDto | null>(null);
     const [selectedOrgGroup, setSelectedOrgGroup] = useState<OrganizationGroupBasicDto | null>(null);
     const [selectedOrgUser, setSelectedOrgUser] = useState<AppUserDetailedDto | null>(null);
-    const [selectedInternalRecipients, setSelectedInternalRecipients] = useState<AppUserDetailedDto[]>([]);
+    const [selectedInternalRecipients, setSelectedInternalParticipants] = useState<AppUserDetailedDto[]>([]);
     const [shareWith, setShareWith] = useState<ShareWithMode>(ShareWithMode.INDIVIDUAL);
     const [orgSearchQuery, setOrgSearchQuery] = useState<string>("");
     const [orgIndividualSearchQuery, setOrgIndividualSearchQuery] = useState<string>("");
@@ -101,30 +101,30 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
 
     useEffect(() =>
     {
-        if (internalRecipients && internalRecipients.length > 0)
+        if (internalParticipants && internalParticipants.length > 0)
         {
-            let filteredRecipients = [...internalRecipients];
+            let filteredParticipants = [...internalParticipants];
 
             if (appUser)
             {
-                filteredRecipients = filteredRecipients.filter(user => user.id !== appUser.id);
+                filteredParticipants = filteredParticipants.filter(user => user.id !== appUser.id);
             }
 
             if (recipientOrgUser)
             {
-                filteredRecipients = filteredRecipients.filter(user => user.id !== recipientOrgUser.id);
+                filteredParticipants = filteredParticipants.filter(user => user.id !== recipientOrgUser.id);
             }
 
-            if (filteredRecipients.length !== selectedInternalRecipients.length)
+            if (filteredParticipants.length !== selectedInternalRecipients.length)
             {
-                setSelectedInternalRecipients(filteredRecipients);
-                if (setInternalRecipients)
+                setSelectedInternalParticipants(filteredParticipants);
+                if (setInternalParticipants)
                 {
-                    setInternalRecipients(filteredRecipients);
+                    setInternalParticipants(filteredParticipants);
                 }
             }
         }
-    }, [internalRecipients, appUser, recipientOrgUser, recipientOrgGroup]);
+    }, [internalParticipants, appUser, recipientOrgUser, recipientOrgGroup]);
 
     useEffect(() =>
     {
@@ -155,16 +155,16 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
             setOrgGroupSearchQuery(recipientOrgGroup.name);
         }
 
-        if (internalRecipients && internalRecipients.length > 0)
+        if (internalParticipants && internalParticipants.length > 0)
         {
-            let filteredRecipients = internalRecipients.filter(user => user.id !== appUser?.id);
+            let filteredParticipants = internalParticipants.filter(user => user.id !== appUser?.id);
 
             if (recipientOrgUser)
             {
-                filteredRecipients = filteredRecipients.filter(user => user.id !== recipientOrgUser.id);
+                filteredParticipants = filteredParticipants.filter(user => user.id !== recipientOrgUser.id);
             }
 
-            setSelectedInternalRecipients(filteredRecipients);
+            setSelectedInternalParticipants(filteredParticipants);
         }
     }, []);
 
@@ -180,9 +180,9 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
             loadOrganizationUsers(selectedOrg.id || "");
             loadOrganizationGroups(selectedOrg.id || "");
 
-            if (!internalRecipients || internalRecipients.length === 0)
+            if (!internalParticipants || internalParticipants.length === 0)
             {
-                setSelectedInternalRecipients([]);
+                setSelectedInternalParticipants([]);
             }
         }
     }, [selectedOrg]);
@@ -298,11 +298,11 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
             setOrgIndividualSearchQuery("");
             setRecipientOrgUser(undefined);
 
-            if (internalRecipients && setInternalRecipients)
+            if (internalParticipants && setInternalParticipants)
             {
-                const updatedRecipients = internalRecipients.filter(user => user.id !== appUser?.id);
-                setSelectedInternalRecipients(updatedRecipients);
-                setInternalRecipients(updatedRecipients);
+                const updatedParticipants = internalParticipants.filter(user => user.id !== appUser?.id);
+                setSelectedInternalParticipants(updatedParticipants);
+                setInternalParticipants(updatedParticipants);
             }
             return;
         }
@@ -321,13 +321,13 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
             setSelectedOrgUser(selectedOrgUser);
             setRecipientOrgUser(selectedOrgUser);
 
-            if (internalRecipients && setInternalRecipients)
+            if (internalParticipants && setInternalParticipants)
             {
-                const updatedRecipients = internalRecipients.filter(
+                const updatedParticipants = internalParticipants.filter(
                     user => user.id !== appUser?.id && user.id !== selectedOrgUser.id
                 );
-                setSelectedInternalRecipients(updatedRecipients);
-                setInternalRecipients(updatedRecipients);
+                setSelectedInternalParticipants(updatedParticipants);
+                setInternalParticipants(updatedParticipants);
             }
         }
     };
@@ -437,8 +437,8 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
                 orgUsers={getFilteredOrgUsers()}
                 isLoadingUsers={isLoadingUsers}
                 selectedInternalRecipients={selectedInternalRecipients}
-                setSelectedInternalRecipients={setSelectedInternalRecipients}
-                setInternalRecipients={setInternalRecipients}
+                setSelectedInternalParticipants={setSelectedInternalParticipants}
+                setInternalParticipants={setInternalParticipants}
             />
         }
     </>

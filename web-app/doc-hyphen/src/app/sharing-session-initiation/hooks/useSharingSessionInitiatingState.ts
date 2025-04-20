@@ -30,7 +30,7 @@ const useSharingSessionInitiatingState = () =>
     const [recipientOrg, setRecipientOrg] = useState<any>();
     const [recipientOrgUser, setRecipientOrgUser] = useState<any | undefined>();
     const [recipientOrgGroup, setRecipientOrgGroup] = useState<any | undefined>();
-    const [internalRecipients, setInternalRecipients] = useState<any | undefined>();
+    const [internalParticipants, setInternalParticipants] = useState<any | undefined>();
     const [newRecipient, setNewRecipient] = useState<SharingSessionNewMainRecipient | undefined>({
         email: '',
         firstName: '',
@@ -59,7 +59,7 @@ const useSharingSessionInitiatingState = () =>
         recipientOrg, setRecipientOrg,
         recipientOrgUser, setRecipientOrgUser,
         recipientOrgGroup, setRecipientOrgGroup,
-        internalRecipients, setInternalRecipients,
+        internalParticipants, setInternalParticipants,
         newRecipient, setNewRecipient
     };
 };

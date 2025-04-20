@@ -17,8 +17,8 @@ interface NewRecipientProps
     isRequestingDocuments: boolean | null | undefined;
     setNewRecipient: (recipient: SharingSessionNewMainRecipient) => void;
     newRecipient?: SharingSessionNewMainRecipient;
-    internalRecipients?: AppUserDetailedDto[];
-    setInternalRecipients?: (users: AppUserDetailedDto[]) => void;
+    internalParticipants?: AppUserDetailedDto[];
+    setInternalParticipants?: (users: AppUserDetailedDto[]) => void;
 }
 
 const NewRecipient: React.FC<NewRecipientProps> = (
@@ -26,8 +26,8 @@ const NewRecipient: React.FC<NewRecipientProps> = (
         isRequestingDocuments,
         setNewRecipient,
         newRecipient,
-        internalRecipients,
-        setInternalRecipients
+        internalParticipants,
+        setInternalParticipants
     }) =>
 {
     const styles = useSessionInitiationRecipientsTabStyles();
@@ -37,7 +37,7 @@ const NewRecipient: React.FC<NewRecipientProps> = (
         lastName: newRecipient?.lastName || ''
     });
 
-    const [selectedInternalRecipients, setSelectedInternalRecipients] = useState<AppUserDetailedDto[]>([]);
+    const [selectedInternalRecipients, setSelectedInternalParticipants] = useState<AppUserDetailedDto[]>([]);
     const [orgUsers, setOrgUsers] = useState<AppUserDetailedDto[]>([]);
     const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
     const [usersLoaded, setUsersLoaded] = useState<boolean>(false);
@@ -71,12 +71,12 @@ const NewRecipient: React.FC<NewRecipientProps> = (
 
     useEffect(() =>
     {
-        console.log("UseEffect for internalRecipients", internalRecipients);
-        if (internalRecipients)
+        console.log("UseEffect for internalParticipants", internalParticipants);
+        if (internalParticipants)
         {
-            setSelectedInternalRecipients([...internalRecipients]);
+            setSelectedInternalParticipants([...internalParticipants]);
         }
-    }, [internalRecipients]);
+    }, [internalParticipants]);
 
     const loadMyOrganizationUsers = async () =>
     {
@@ -149,8 +149,8 @@ const NewRecipient: React.FC<NewRecipientProps> = (
                     orgUsers={orgUsers}
                     isLoadingUsers={isLoadingUsers}
                     selectedInternalRecipients={selectedInternalRecipients}
-                    setSelectedInternalRecipients={setSelectedInternalRecipients}
-                    setInternalRecipients={setInternalRecipients}
+                    setSelectedInternalParticipants={setSelectedInternalParticipants}
+                    setInternalParticipants={setInternalParticipants}
                 />
             )}
         </>

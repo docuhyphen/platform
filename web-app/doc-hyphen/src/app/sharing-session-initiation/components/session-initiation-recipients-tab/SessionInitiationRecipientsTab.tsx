@@ -24,8 +24,8 @@ interface SessionRecipientsTabProps
     setRecipientOrgUser: (user: AppUserDetailedDto | undefined) => void;
     recipientOrgGroup: OrganizationGroupBasicDto | undefined;
     setRecipientOrgGroup: (group: OrganizationGroupBasicDto | undefined) => void;
-    internalRecipients: AppUserDetailedDto[];
-    setInternalRecipients: (appUser: AppUserDetailedDto[] | undefined) => void;
+    internalParticipants: AppUserDetailedDto[];
+    setInternalParticipants: (appUser: AppUserDetailedDto[] | undefined) => void;
     newRecipient: SharingSessionNewMainRecipient | undefined;
     setNewRecipient: (recipient: SharingSessionNewMainRecipient | undefined) => void;
     isRequestingDocuments: boolean | null | undefined;
@@ -79,11 +79,11 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
                     recipientOrg={props.recipientOrg}
                     recipientOrgUser={props.recipientOrgUser}
                     recipientOrgGroup={props.recipientOrgGroup}
-                    internalRecipients={props.internalRecipients}
+                    internalParticipants={props.internalParticipants}
                     setRecipientOrg={props.setRecipientOrg}
                     setRecipientOrgUser={props.setRecipientOrgUser}
                     setRecipientOrgGroup={props.setRecipientOrgGroup}
-                    setInternalRecipients={props.setInternalRecipients}
+                    setInternalParticipants={props.setInternalParticipants}
                 />
             )}
 
@@ -92,8 +92,8 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
                     isRequestingDocuments={props.isRequestingDocuments}
                     setNewRecipient={props.setNewRecipient}
                     newRecipient={props.newRecipient}
-                    internalRecipients={props.internalRecipients}
-                    setInternalRecipients={props.setInternalRecipients}
+                    internalParticipants={props.internalParticipants}
+                    setInternalParticipants={props.setInternalParticipants}
                 />
             )}
         </div>

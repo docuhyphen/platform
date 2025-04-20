@@ -23,8 +23,8 @@ interface MyOrganizationRecipientsProps
     setRecipientOrgGroup: (group: OrganizationGroupBasicDto | undefined) => void;
     recipientOrgUser?: AppUserDetailedDto;
     recipientOrgGroup?: OrganizationGroupBasicDto;
-    internalRecipients?: AppUserDetailedDto[];
-    setInternalRecipients?: (users: AppUserDetailedDto[]) => void;
+    internalParticipants?: AppUserDetailedDto[];
+    setInternalParticipants?: (users: AppUserDetailedDto[]) => void;
 }
 
 enum ShareWithMode
@@ -39,15 +39,15 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
         setRecipientOrgGroup,
         recipientOrgUser,
         recipientOrgGroup,
-        internalRecipients,
-        setInternalRecipients
+        internalParticipants,
+        setInternalParticipants
     }) =>
 {
     const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
     const [isLoadingGroups, setIsLoadingGroups] = useState<boolean>(false);
     const [myOrgUsers, setMyOrgUsers] = useState<AppUserDetailedDto[]>([]);
     const [myOrgGroups, setMyOrgGroups] = useState<OrganizationGroupBasicDto[]>([]);
-    const [selectedInternalRecipients, setSelectedInternalRecipients] = useState<AppUserDetailedDto[]>([]);
+    const [selectedInternalRecipients, setSelectedInternalParticipants] = useState<AppUserDetailedDto[]>([]);
 
     const initialShareWith = recipientOrgUser
         ? ShareWithMode.INDIVIDUAL
@@ -278,8 +278,8 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
                     orgUsers={getFilteredInternalUsers()}
                     isLoadingUsers={isLoadingUsers}
                     selectedInternalRecipients={selectedInternalRecipients}
-                    setSelectedInternalRecipients={setSelectedInternalRecipients}
-                    setInternalRecipients={setInternalRecipients}
+                    setSelectedInternalParticipants={setSelectedInternalParticipants}
+                    setInternalParticipants={setInternalParticipants}
                 />
             )}
         </>

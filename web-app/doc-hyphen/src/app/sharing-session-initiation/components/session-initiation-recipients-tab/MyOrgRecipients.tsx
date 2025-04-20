@@ -7,14 +7,14 @@ const MyOrgRecipients: React.FC<{
     orgUsers: AppUserDetailedDto[];
     isLoadingUsers: boolean;
     selectedInternalRecipients: AppUserDetailedDto[];
-    setSelectedInternalRecipients: (recipients: AppUserDetailedDto[]) => void;
-    setInternalRecipients?: (users: AppUserDetailedDto[]) => void;
+    setSelectedInternalParticipants: (participants: AppUserDetailedDto[]) => void;
+    setInternalParticipants?: (users: AppUserDetailedDto[]) => void;
 }> = ({
           orgUsers,
           isLoadingUsers,
           selectedInternalRecipients,
-          setSelectedInternalRecipients,
-          setInternalRecipients
+          setSelectedInternalParticipants,
+          setInternalParticipants
       }) =>
 {
     const [internalRecipientsInputValue, setInternalRecipientsInputValue] = useState<string>("");
@@ -35,23 +35,23 @@ const MyOrgRecipients: React.FC<{
 
         console.log(newSelectedRecipients)
 
-        setSelectedInternalRecipients(newSelectedRecipients);
+        setSelectedInternalParticipants(newSelectedRecipients);
         setInternalRecipientsInputValue("");
 
-        if (setInternalRecipients)
+        if (setInternalParticipants)
         {
-            setInternalRecipients(newSelectedRecipients);
+            setInternalParticipants(newSelectedRecipients);
         }
     };
 
     const onTagClick = (recipient: AppUserDetailedDto, index: number) =>
     {
-        const updatedRecipients = selectedInternalRecipients.filter(r => r.id !== recipient.id);
-        setSelectedInternalRecipients(updatedRecipients);
+        const updatedParticipants = selectedInternalRecipients.filter(r => r.id !== recipient.id);
+        setSelectedInternalParticipants(updatedParticipants);
 
-        if (setInternalRecipients)
+        if (setInternalParticipants)
         {
-            setInternalRecipients(updatedRecipients);
+            setInternalParticipants(updatedParticipants);
         }
 
         const indexToFocus = index === 0 ? 1 : index - 1;

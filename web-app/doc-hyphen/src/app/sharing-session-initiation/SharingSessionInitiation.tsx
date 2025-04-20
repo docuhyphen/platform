@@ -67,7 +67,7 @@ const SharingSessionInitiation: React.FC = () =>
         recipientOrg, setRecipientOrg,
         recipientOrgUser, setRecipientOrgUser,
         recipientOrgGroup, setRecipientOrgGroup,
-        internalRecipients, setInternalRecipients,
+        internalParticipants, setInternalParticipants,
         newRecipient, setNewRecipient
     } = useSharingSessionInitiatingState();
 
@@ -148,7 +148,7 @@ const SharingSessionInitiation: React.FC = () =>
             console.log("recipientOrg", recipientOrg);
             console.log("recipientOrgGroup", recipientOrgGroup)
             console.log("recipientOrgUser", recipientOrgUser);
-            console.log("internalRecipients", internalRecipients)
+            console.log("internalParticipants", internalParticipants)
             console.log("newRecipient", newRecipient);
 
             if (!isRecipientValid())
@@ -266,8 +266,8 @@ const SharingSessionInitiation: React.FC = () =>
                 setRecipientOrgUser={setRecipientOrgUser}
                 recipientOrgGroup={recipientOrgGroup}
                 setRecipientOrgGroup={setRecipientOrgGroup}
-                internalRecipients={internalRecipients}
-                setInternalRecipients={setInternalRecipients}
+                internalParticipants={internalParticipants}
+                setInternalParticipants={setInternalParticipants}
                 newRecipient={newRecipient}
                 setNewRecipient={setNewRecipient}
                 isRequestingDocuments={requestingDocuments}
