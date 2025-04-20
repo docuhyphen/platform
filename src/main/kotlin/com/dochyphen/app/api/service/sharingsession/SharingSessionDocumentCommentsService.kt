@@ -47,6 +47,7 @@ class SharingSessionDocumentCommentsService @Inject constructor(
         commentedBy: String
     ): SharingSessionDocumentComment
     {
+        //ToDo: link comment to document version
         val document = sharingSessionDocumentRepository.findById(UUID.fromString(documentId))
             ?: throw SharingSessionNotFoundException("Document not found")
 
@@ -78,7 +79,12 @@ class SharingSessionDocumentCommentsService @Inject constructor(
         )
 
         val session = sharingSessionRepository.findById(UUID.fromString(sessionId))
-        notificationWebSocket.broadcastToUser(session!!.recipient!!.id.toString(), notification)
+        val targetUserId = if (user.id == session!!.recipient!!.id) {
+            session.initiator!!.id.toString()
+        } else {
+            session.recipient!!.id.toString()
+        }
+        notificationWebSocket.broadcastToUser(targetUserId, notification)
 
         return comment
     }

@@ -136,6 +136,9 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                                             Detailed View
                                         </MenuItem>
                                         <Divider/>
+                                        {sessionDetails.status === SharingSessionStatus.ACCEPTED_STARTED
+
+                                        }
                                         <MenuItem
                                             icon={<SessionEndIcon/>}
                                             disabled={sessionDetails.status === SharingSessionStatus.ENDED || !sessionPermissions.canEndSession}

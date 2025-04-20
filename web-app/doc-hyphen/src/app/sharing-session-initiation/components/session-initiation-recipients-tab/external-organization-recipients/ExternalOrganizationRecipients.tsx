@@ -18,6 +18,7 @@ import {
     OrganizationGroupBasicDto
 } from "../../../../../services/organizationApi";
 import MyOrgRecipients from "../MyOrgRecipients.tsx";
+import {useAuth} from "../../../../../context/AuthContext.tsx";
 
 interface ExternalOrganizationRecipientsProps
 {
@@ -25,8 +26,6 @@ interface ExternalOrganizationRecipientsProps
     recipientOrgUser: AppUserDetailedDto | undefined;
     recipientOrgGroup: OrganizationGroupBasicDto | undefined;
     internalRecipients: AppUserDetailedDto[] | undefined;
-    currentUser: AppUserDetailedDto | undefined;
-
     setRecipientOrg: (org: OrganizationBasicDto | undefined) => void;
     setRecipientOrgUser: (user: AppUserDetailedDto | undefined) => void;
     setRecipientOrgGroup: (group: OrganizationGroupBasicDto | undefined) => void;
@@ -45,13 +44,13 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
         recipientOrgUser,
         recipientOrgGroup,
         internalRecipients,
-        currentUser,
         setRecipientOrg,
         setRecipientOrgUser,
         setRecipientOrgGroup,
         setInternalRecipients
     }) =>
 {
+    const {appUser} = useAuth()
     const [isLoadingOrgs, setIsLoadingOrgs] = useState<boolean>(false);
     const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
     const [isLoadingGroups, setIsLoadingGroups] = useState<boolean>(false);
@@ -78,7 +77,7 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
         ));
 
     const filteredOrgIndividuals = orgUsers
-        .filter(orgUser => orgUser.id !== currentUser?.id)
+        .filter(orgUser => orgUser.id !== appUser?.id)
         .filter(orgUser => !orgIndividualSearchQuery ||
             (orgUser.email.toLowerCase().includes(orgIndividualSearchQuery.toLowerCase()) ||
                 orgUser.person.firstName?.toLowerCase().includes(orgIndividualSearchQuery.toLowerCase()) ||
@@ -100,26 +99,22 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
             </Option>
         ));
 
-    // Filter internal recipients based on current selections
     useEffect(() =>
     {
         if (internalRecipients && internalRecipients.length > 0)
         {
             let filteredRecipients = [...internalRecipients];
 
-            // Filter out current user
-            if (currentUser)
+            if (appUser)
             {
-                filteredRecipients = filteredRecipients.filter(user => user.id !== currentUser.id);
+                filteredRecipients = filteredRecipients.filter(user => user.id !== appUser.id);
             }
 
-            // Filter out selected individual recipient
             if (recipientOrgUser)
             {
                 filteredRecipients = filteredRecipients.filter(user => user.id !== recipientOrgUser.id);
             }
 
-            // Update internal recipients if they changed
             if (filteredRecipients.length !== selectedInternalRecipients.length)
             {
                 setSelectedInternalRecipients(filteredRecipients);
@@ -129,25 +124,23 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
                 }
             }
         }
-    }, [internalRecipients, currentUser, recipientOrgUser, recipientOrgGroup]);
+    }, [internalRecipients, appUser, recipientOrgUser, recipientOrgGroup]);
 
     useEffect(() =>
     {
-        // Initialize from props if they exist
         if (recipientOrg)
         {
             setSelectedOrg(recipientOrg);
             setOrgSearchQuery(recipientOrg.name);
 
-            // Load users and groups for this organization
             loadOrganizationUsers(recipientOrg.id || "");
             loadOrganizationGroups(recipientOrg.id || "");
         }
 
         if (recipientOrgUser)
         {
-            // Ensure we're not selecting the current user
-            if (recipientOrgUser.id !== currentUser?.id)
+
+            if (recipientOrgUser.id !== appUser?.id)
             {
                 setSelectedOrgUser(recipientOrgUser as unknown as AppUserDetailedDto);
                 setShareWith(ShareWithMode.INDIVIDUAL);
@@ -164,10 +157,8 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
 
         if (internalRecipients && internalRecipients.length > 0)
         {
-            // Filter out the current user and recipient user from internal recipients
-            let filteredRecipients = internalRecipients.filter(user => user.id !== currentUser?.id);
+            let filteredRecipients = internalRecipients.filter(user => user.id !== appUser?.id);
 
-            // Filter out the recipient user if present
             if (recipientOrgUser)
             {
                 filteredRecipients = filteredRecipients.filter(user => user.id !== recipientOrgUser.id);
@@ -307,10 +298,9 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
             setOrgIndividualSearchQuery("");
             setRecipientOrgUser(undefined);
 
-            // Refresh internal recipients when clearing the individual selection
             if (internalRecipients && setInternalRecipients)
             {
-                const updatedRecipients = internalRecipients.filter(user => user.id !== currentUser?.id);
+                const updatedRecipients = internalRecipients.filter(user => user.id !== appUser?.id);
                 setSelectedInternalRecipients(updatedRecipients);
                 setInternalRecipients(updatedRecipients);
             }
@@ -320,8 +310,7 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
         const userId = data.optionValue;
         const selectedOrgUser = orgUsers.find(u => u.id === userId);
 
-        // Ensure we're not selecting the current user
-        if (selectedOrgUser && selectedOrgUser.id !== currentUser?.id)
+        if (selectedOrgUser && selectedOrgUser.id !== appUser?.id)
         {
             const firstName = selectedOrgUser.person.firstName;
             const lastName = selectedOrgUser.person.lastName;
@@ -332,11 +321,10 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
             setSelectedOrgUser(selectedOrgUser);
             setRecipientOrgUser(selectedOrgUser);
 
-            // Filter out the selected user from internal recipients
             if (internalRecipients && setInternalRecipients)
             {
                 const updatedRecipients = internalRecipients.filter(
-                    user => user.id !== currentUser?.id && user.id !== selectedOrgUser.id
+                    user => user.id !== appUser?.id && user.id !== selectedOrgUser.id
                 );
                 setSelectedInternalRecipients(updatedRecipients);
                 setInternalRecipients(updatedRecipients);
@@ -365,15 +353,12 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
         }
     };
 
-    // Get users that should be filtered from the internal recipients list
     const getFilteredOrgUsers = () =>
     {
         let usersToFilter = [...orgUsers];
 
-        // Always filter the current user
-        usersToFilter = usersToFilter.filter(user => user.id !== currentUser?.id);
+        usersToFilter = usersToFilter.filter(user => user.id !== appUser?.id);
 
-        // Filter the selected individual user if present
         if (selectedOrgUser)
         {
             usersToFilter = usersToFilter.filter(user => user.id !== selectedOrgUser.id);
@@ -453,7 +438,7 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
                 isLoadingUsers={isLoadingUsers}
                 selectedInternalRecipients={selectedInternalRecipients}
                 setSelectedInternalRecipients={setSelectedInternalRecipients}
-                onAddOrRemoveInternalRecipients={setInternalRecipients}
+                setInternalRecipients={setInternalRecipients}
             />
         }
     </>

@@ -8,54 +8,52 @@ const MyOrgRecipients: React.FC<{
     isLoadingUsers: boolean;
     selectedInternalRecipients: AppUserDetailedDto[];
     setSelectedInternalRecipients: (recipients: AppUserDetailedDto[]) => void;
-    onAddOrRemoveInternalRecipients?: (users: AppUserDetailedDto[]) => void;
+    setInternalRecipients?: (users: AppUserDetailedDto[]) => void;
 }> = ({
           orgUsers,
           isLoadingUsers,
           selectedInternalRecipients,
           setSelectedInternalRecipients,
-          onAddOrRemoveInternalRecipients
+          setInternalRecipients
       }) =>
 {
     const [internalRecipientsInputValue, setInternalRecipientsInputValue] = useState<string>("");
 
-    // Generate unique IDs for accessibility
     const comboId = "recipients-combo";
     const selectedListId = `${comboId}-selection`;
 
-    // Refs for managing focus (now correctly used in a component)
     const selectedListRef = useRef<HTMLUListElement>(null);
     const comboboxInputRef = useRef<HTMLInputElement>(null);
 
     const onInternalRecipientSelect: ComboboxProps["onOptionSelect"] = (_, data) =>
     {
-        // Convert selected option values to user objects
+        console.log("onInternalRecipientSelect", data)
+
         const newSelectedRecipients = [...data.selectedOptions].map(
             optionValue => orgUsers.find(user => user.id === optionValue)
         ).filter(Boolean) as AppUserDetailedDto[];
 
-        setSelectedInternalRecipients(newSelectedRecipients);
-        setInternalRecipientsInputValue(""); // Reset input after selection
+        console.log(newSelectedRecipients)
 
-        // Notify parent component
-        if (onAddOrRemoveInternalRecipients)
+        setSelectedInternalRecipients(newSelectedRecipients);
+        setInternalRecipientsInputValue("");
+
+        if (setInternalRecipients)
         {
-            onAddOrRemoveInternalRecipients(newSelectedRecipients);
+            setInternalRecipients(newSelectedRecipients);
         }
     };
 
-    // Handle removing a recipient by clicking on its tag
     const onTagClick = (recipient: AppUserDetailedDto, index: number) =>
     {
         const updatedRecipients = selectedInternalRecipients.filter(r => r.id !== recipient.id);
         setSelectedInternalRecipients(updatedRecipients);
 
-        if (onAddOrRemoveInternalRecipients)
+        if (setInternalRecipients)
         {
-            onAddOrRemoveInternalRecipients(updatedRecipients);
+            setInternalRecipients(updatedRecipients);
         }
 
-        // Focus previous or next tag, or input if no tags left
         const indexToFocus = index === 0 ? 1 : index - 1;
         const tagToFocus = selectedListRef.current?.querySelector(
             `#${comboId}-remove-${indexToFocus}`
@@ -80,7 +78,6 @@ const MyOrgRecipients: React.FC<{
         setInternalRecipientsInputValue(event.target.value);
     };
 
-    // Filter users based on input
     const filteredUsers = orgUsers
         .filter(user => !internalRecipientsInputValue ||
             user.email.toLowerCase().includes(internalRecipientsInputValue.toLowerCase()) ||
@@ -113,8 +110,7 @@ const MyOrgRecipients: React.FC<{
                                     display: "flex",
                                     gap: "4px",
                                     flexWrap: "wrap"
-                                }}
-                            >
+                                }}>
                                 <span id={`${comboId}-remove`} hidden>
                                     Remove
                                 </span>

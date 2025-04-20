@@ -64,8 +64,8 @@ data class OrganizationBasicDto(
     val createdDate: Timestamp?,
     val name: String?,
     val registrationNumber: String?,
-    val isActive: Boolean?,
-    val verificationComplete: Boolean?,
+//    val isActive: Boolean?,
+//    val verificationComplete: Boolean?,
 )
 
 @Serializable
