@@ -92,6 +92,8 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
                     isRequestingDocuments={props.isRequestingDocuments}
                     setNewRecipient={props.setNewRecipient}
                     newRecipient={props.newRecipient}
+                    internalRecipients={props.internalRecipients}
+                    setInternalRecipients={props.setInternalRecipients}
                 />
             )}
         </div>

@@ -1,6 +1,9 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {Field, InfoLabel, Input} from "@fluentui/react-components";
 import {useSessionInitiationRecipientsTabStyles} from "../SessionInitiationRecipientsTabStyles.tsx";
+import {AppUserDetailedDto} from "../../../../models/models.tsx";
+import MyOrgRecipients from "../MyOrgRecipients.tsx";
+import {fetchMyOrganizationUsers} from "../../../../../services/organizationApi";
 
 export interface SharingSessionNewMainRecipient
 {
@@ -14,24 +17,46 @@ interface NewRecipientProps
     isRequestingDocuments: boolean | null | undefined;
     setNewRecipient: (recipient: SharingSessionNewMainRecipient) => void;
     newRecipient?: SharingSessionNewMainRecipient;
+    internalRecipients?: AppUserDetailedDto[];
+    setInternalRecipients?: (users: AppUserDetailedDto[]) => void;
 }
 
 const NewRecipient: React.FC<NewRecipientProps> = (
     {
         isRequestingDocuments,
         setNewRecipient,
-        newRecipient
+        newRecipient,
+        internalRecipients,
+        setInternalRecipients
     }) =>
 {
     const styles = useSessionInitiationRecipientsTabStyles();
-
-    const [recipient, setRecipient] = React.useState<SharingSessionNewMainRecipient>({
+    const [recipient, setRecipient] = useState<SharingSessionNewMainRecipient>({
         email: newRecipient?.email || '',
         firstName: newRecipient?.firstName || '',
         lastName: newRecipient?.lastName || ''
     });
 
-    // Sync recipient state when props change
+    const [selectedInternalRecipients, setSelectedInternalRecipients] = useState<AppUserDetailedDto[]>([]);
+    const [orgUsers, setOrgUsers] = useState<AppUserDetailedDto[]>([]);
+    const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
+    const [usersLoaded, setUsersLoaded] = useState<boolean>(false);
+
+    const isRecipientDataValid = () =>
+    {
+        return recipient.email && recipient.email.includes('@') &&
+            recipient.firstName && recipient.firstName.trim() !== '' &&
+            recipient.lastName && recipient.lastName.trim() !== '';
+    };
+
+    useEffect(() =>
+    {
+        if (isRecipientDataValid() && !usersLoaded)
+        {
+            loadMyOrganizationUsers();
+        }
+    }, [recipient.email, recipient.firstName, recipient.lastName, usersLoaded]);
+
     useEffect(() =>
     {
         if (newRecipient)
@@ -44,18 +69,50 @@ const NewRecipient: React.FC<NewRecipientProps> = (
         }
     }, [newRecipient]);
 
+    useEffect(() =>
+    {
+        console.log("UseEffect for internalRecipients", internalRecipients);
+        if (internalRecipients)
+        {
+            setSelectedInternalRecipients([...internalRecipients]);
+        }
+    }, [internalRecipients]);
+
+    const loadMyOrganizationUsers = async () =>
+    {
+        setIsLoadingUsers(true);
+        try
+        {
+            const users = await fetchMyOrganizationUsers();
+            setOrgUsers(users);
+            setUsersLoaded(true);
+        }
+        catch (error)
+        {
+            console.error("Error loading my organization users:", error);
+        }
+        finally
+        {
+            setIsLoadingUsers(false);
+        }
+    };
+
     const updateRecipient = (field: keyof SharingSessionNewMainRecipient, value: string) =>
     {
         const updated = {...recipient, [field]: value};
         setRecipient(updated);
         setNewRecipient(updated);
+
+        if (!isRecipientDataValid() && usersLoaded)
+        {
+            setUsersLoaded(false);
+        }
     };
 
     return (
         <>
             <Field label={
-                <InfoLabel
-                    info="The email doesn't have to be from a registered user.">
+                <InfoLabel info="The email doesn't have to be from a registered user.">
                     {isRequestingDocuments ?
                         'Email to request documents from' :
                         'Email to send documents to'}
@@ -86,6 +143,16 @@ const NewRecipient: React.FC<NewRecipientProps> = (
                     />
                 </Field>
             </div>
+
+            {isRecipientDataValid() && (
+                <MyOrgRecipients
+                    orgUsers={orgUsers}
+                    isLoadingUsers={isLoadingUsers}
+                    selectedInternalRecipients={selectedInternalRecipients}
+                    setSelectedInternalRecipients={setSelectedInternalRecipients}
+                    setInternalRecipients={setInternalRecipients}
+                />
+            )}
         </>
     );
 };

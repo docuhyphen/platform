@@ -46,8 +46,8 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
     const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
     const [isLoadingGroups, setIsLoadingGroups] = useState<boolean>(false);
     const [myOrgUsers, setMyOrgUsers] = useState<AppUserDetailedDto[]>([]);
-    const [selectedInternalRecipients, setSelectedInternalRecipients] = useState<AppUserDetailedDto[]>([]);
     const [myOrgGroups, setMyOrgGroups] = useState<OrganizationGroupBasicDto[]>([]);
+    const [selectedInternalRecipients, setSelectedInternalRecipients] = useState<AppUserDetailedDto[]>([]);
 
     const initialShareWith = recipientOrgUser
         ? ShareWithMode.INDIVIDUAL

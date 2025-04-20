@@ -135,7 +135,7 @@ const MyOrgRecipients: React.FC<{
                         <Combobox
                             aria-labelledby={labelledBy}
                             multiselect={true}
-                            placeholder="Select additional recipients"
+                            placeholder="Select additional participants"
                             value={internalRecipientsInputValue}
                             onChange={onChange}
                             onFocus={onFocus}
