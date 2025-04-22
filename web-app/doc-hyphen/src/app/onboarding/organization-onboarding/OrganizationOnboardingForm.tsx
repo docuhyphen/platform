@@ -8,13 +8,28 @@ import {useAuth} from "../../../context/AuthContext.tsx";
 import {useOrganizationOnboardingForm} from './OrganizationOnboardingFormStyles.tsx';
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 
-const OrganizationOnboardingForm: React.FC = () =>
+
+interface OrganizationOnboardingFormProps
+{
+    isOnDialog?: boolean;
+    onCancel?: () => void;
+    onOrganizationRegistered?: (organization: OrganizationBasicDto) => void;
+}
+
+const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
+    {
+        isOnDialog,
+        onCancel,
+        onOrganizationRegistered
+    }
+) =>
 {
     const [organizationName, setOrganizationName] = useState('');
     const [organizationEmail, setOrganizationEmail] = useState('');
     const [registrationNumber, setRegistrationNumber] = useState('');
     const [organizationPhone, setOrganizationPhone] = useState('');
     const [registeringOrg, setRegisteringOrg] = useState(false);
+    const [orgRegistered, setOrgRegistered] = useState(false);
     const token = useToken();
     const navigate = useNavigate();
     const {setAppUserPersonOrganization, appUserPersonOrganization, appUser} = useAuth();
@@ -36,6 +51,11 @@ const OrganizationOnboardingForm: React.FC = () =>
             const registeredOrganization: OrganizationBasicDto = await registerOrganization(organization, token);
 
             setAppUserPersonOrganization(registeredOrganization);
+
+            if (onOrganizationRegistered)
+            {
+                onOrganizationRegistered(registeredOrganization);
+            }
         }
         catch (error)
         {
@@ -77,6 +97,24 @@ const OrganizationOnboardingForm: React.FC = () =>
         {
             setOrganizationEmail('');
         }
+    }
+
+    const renderRegisterButton = () =>
+    {
+        return (
+            <Button appearance={"primary"}
+                    shape={"circular"}
+                    className={globalStyles.buttonWithLoading}
+                    onClick={onRegisterOrganization}>
+                {registeringOrg && <>
+                    <Spinner size={"tiny"}/>
+                    Register
+                </>
+                }
+                {!registeringOrg && "Register"}
+
+            </Button>
+        );
     }
 
     return (
@@ -123,18 +161,18 @@ const OrganizationOnboardingForm: React.FC = () =>
                                   onChange={onUseAppUserEmailCheck}/>
                     </div>
 
-                    <Button appearance={"primary"}
-                            shape={"circular"}
-                            className={globalStyles.buttonWithLoading}
-                            onClick={onRegisterOrganization}>
-                        {registeringOrg && <>
-                            <Spinner size={"tiny"}/>
-                            Register
-                        </>
-                        }
-                        {!registeringOrg && "Register"}
-
-                    </Button>
+                    {!isOnDialog && renderRegisterButton()}
+                    {isOnDialog &&
+                        <div className={styles.dialogActions}>
+                            {!orgRegistered && renderRegisterButton()}
+                            <Button appearance={"subtle"}
+                                    shape="circular"
+                                    onClick={onCancel}>
+                                {orgRegistered && "Close"}
+                                {!orgRegistered && "Cancel"}
+                            </Button>
+                        </div>
+                    }
                 </div>
             }
         </>

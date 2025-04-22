@@ -14,14 +14,15 @@ import java.time.Instant
 import java.util.*
 
 enum class AppUserRole {
-    //Applications using the API
     APPLICATION,
 
-    // Users not belonging to any organization
     APP_USER,
 
     ORG_ADMIN,
 
+    ORG_GROUP_ADMIN,
+
+    // Regular users in an organization
     ORG_MEMBER,
 }
 

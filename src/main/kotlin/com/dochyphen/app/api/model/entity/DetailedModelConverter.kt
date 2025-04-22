@@ -84,6 +84,7 @@ class DetailedModelConverter
                         createdDate,
                         isActive,
                         email,
+                        role,
                         toDto(person)
                     )
                 }

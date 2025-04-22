@@ -18,7 +18,11 @@ import {
     ArrowSortUpLinesFilled,
     ArrowSortUpLinesRegular,
     ArrowUploadFilled,
-    ArrowUploadRegular,
+    ArrowUploadRegular, BookAddFilled, BookAddRegular, BookTemplateFilled, BookTemplateRegular,
+    BuildingFilled,
+    BuildingPeopleFilled,
+    BuildingPeopleRegular,
+    BuildingRegular,
     bundleIcon,
     CalculatorArrowClockwiseFilled,
     CalculatorArrowClockwiseRegular,
@@ -74,8 +78,13 @@ import {
     PeopleCommunityAddRegular,
     PeopleLockFilled,
     PeopleLockRegular,
+    PeopleTeamAddFilled,
+    PeopleTeamAddRegular, PeopleTeamFilled,
+    PeopleTeamRegular, PersonAddFilled, PersonAddRegular,
+    PersonSettingsFilled,
+    PersonSettingsRegular,
     SendFilled,
-    SendRegular,
+    SendRegular, SettingsCogMultipleFilled, SettingsCogMultipleRegular,
     SettingsFilled,
     SettingsRegular,
     WindowEditFilled,
@@ -90,6 +99,15 @@ import {
 
 export const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
 export const DocumentAddIcon = bundleIcon(DocumentAddFilled, DocumentAddRegular)
+export const GroupAddIcon = bundleIcon(PeopleTeamAddFilled, PeopleTeamAddRegular)
+export const SettingsProfileTabIcon = bundleIcon(PersonSettingsFilled, PersonSettingsRegular)
+export const SettingsOrganizationTabIcon = bundleIcon(BuildingFilled, BuildingRegular)
+export const SettingsOrganizationPeopleTabIcon = bundleIcon(BuildingPeopleFilled, BuildingPeopleRegular)
+export const SettingsOrganizationGroupsTabIcon = bundleIcon(PeopleTeamFilled, PeopleTeamRegular)
+export const SettingsAppSettingsTabIcon = bundleIcon(SettingsCogMultipleFilled, SettingsCogMultipleRegular)
+export const SettingsTemplatesTabIcon = bundleIcon(BookTemplateFilled, BookTemplateRegular)
+export const TemplateAddIcon = bundleIcon(BookAddFilled, BookAddRegular)
+export const PersonAddIcon = bundleIcon(PersonAddFilled, PersonAddRegular)
 export const FilterIcon = bundleIcon(FilterFilled, FilterRegular);
 export const SortDownIcon = bundleIcon(ArrowSortDownLinesFilled, ArrowSortDownLinesRegular);
 export const SortUpIcon = bundleIcon(ArrowSortUpLinesFilled, ArrowSortUpLinesRegular);

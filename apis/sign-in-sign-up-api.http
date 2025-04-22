@@ -36,7 +36,7 @@ POST http://localhost:8080/auth/sign-in/initiate
 Content-Type: application/json
 
 {
-  "email": "test2@doc-hyphen.com",
+  "email": "test1@doc-hyphen.com",
   "password": "Qazmko@104"
 }
 

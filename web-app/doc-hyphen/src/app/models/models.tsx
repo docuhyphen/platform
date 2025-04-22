@@ -137,20 +137,14 @@ export interface Organization
 
 export enum AppUserRole
 {
-    //Applications using the API
     APPLICATION = "APPLICATION",
 
-    // Users not belonging to any organization
-    USER = "USER",
+    APP_USER = "APP_USER",
 
-    // Users belonging to an organization who manage users
     ORG_ADMIN = "ORG_ADMIN",
 
-    // Users belonging to an organization who manage Sharing Sessions
-    // Can accept/close/reject sessions
     ORG_GROUP_ADMIN = "ORG_GROUP_ADMIN",
 
-    // Regular users in an organization
     ORG_MEMBER = "ORG_MEMBER",
 }
 
@@ -440,6 +434,7 @@ export interface AppUserDetailedDto
     createdDate?: string;
     isActive: boolean;
     email: string;
+    role: AppUserRole
     person: PersonDetailedDto;
 }
 

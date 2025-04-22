@@ -37,4 +37,18 @@ class OrganizationRepository : BaseRepository<Organization>(Organization::class.
         query.setParameter("personId", personId)
         return query.resultList.firstOrNull()
     }
+
+    fun findByAppUserIdAndAppId(appUserId: UUID, appId: UUID): Organization
+    {
+        TODO("Not implemented")
+
+//        val query = entityManager.createQuery(
+//            "SELECT c FROM Organization c JOIN c.appUsers u WHERE u.id = :appUserId AND u.application.id = :appId",
+//            Organization::class.java
+//        )
+//        query.setParameter("appUserId", appUserId)
+//        query.setParameter("appId", appId)
+//        return query.resultList.firstOrNull()
+//            ?: throw IllegalArgumentException("Organization not found for appUserId: $appUserId and appId: $appId")
+    }
 }

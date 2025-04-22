@@ -1,5 +1,6 @@
 package com.dochyphen.app.api.model.dto
 
+import com.dochyphen.app.api.model.entity.AppUserRole
 import com.dochyphen.app.api.serializer.TimestampSerializer
 import com.dochyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
@@ -108,6 +109,7 @@ data class AppUserDetailedDto(
     val createdDate: Timestamp?,
     val isActive: Boolean,
     val email: String,
+    val role: AppUserRole,
     val person: PersonDetailedDto?
 )
 @Serializable

@@ -20,7 +20,7 @@ const SessionInitiationDialogTrigger = React.forwardRef<HTMLButtonElement, Sessi
         <Menu>
             <MenuTrigger disableButtonEnhancement>
                 <SplitButton shape="circular" appearance="primary">
-                    Start Sharing Session
+                    Start Sharing
                 </SplitButton>
             </MenuTrigger>
             <MenuPopover>

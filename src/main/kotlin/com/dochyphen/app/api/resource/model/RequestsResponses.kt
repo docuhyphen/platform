@@ -80,6 +80,12 @@ data class OrganizationRegistrationRequest(
 )
 
 @Serializable
+data class AddOrganizationGroupRequest(
+    var name: String? = null,
+    var members: List<String>? = mutableListOf<String>(),
+)
+
+@Serializable
 data class SharingSessionInitiationRequest(
     var initialShareMessage: String? = null,
     var description: String? = null,

@@ -1,0 +1,16 @@
+### Get organization
+GET http://localhost:8080/oranizations/{{organizationId}}
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
+### Get organization groups
+GET http://localhost:8080/oranizations/{{organizationId}}/groups
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
+### Add organization group
+GET http://localhost:8080/oranizations/{{organizationId}}/group
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
+
