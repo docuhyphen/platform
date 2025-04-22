@@ -4,6 +4,7 @@ import {AppUserRole} from "../../models/models.tsx";
 import {useOrganizationTabStyles} from "./OrganizationTabStyles.tsx";
 import OrganizationOnboardingDialog from "./organization-onboarding-dialog/OrganizationOnboardingDialog.tsx";
 import {useState} from "react";
+import {PairOrgTabIcon} from "../../components/IconBundles.tsx";
 
 const OrganizationTab = () =>
 {
@@ -48,10 +49,11 @@ const OrganizationTab = () =>
                     Allow other users outside your organization to search for you
                 </p>
                 <Divider/>
-                <h2>
+                <Text>
                     Pared Organizations
-                </h2>
-                <Button>
+                </Text>
+                <Button icon={<PairOrgTabIcon/>}
+                        shape={"circular"}>
                     Find and Pair
                 </Button>
             </div>

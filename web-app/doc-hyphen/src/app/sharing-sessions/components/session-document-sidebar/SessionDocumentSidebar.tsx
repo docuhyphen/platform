@@ -9,7 +9,7 @@ import {
     SelectTabEvent,
     Tab,
     TabList,
-    TabValue
+    TabValue, Text
 } from "@fluentui/react-components";
 import {DismissRegular} from "@fluentui/react-icons";
 import {useSessionDocumentSidebarStyles} from "./SessionDocumentSidebarStyles.tsx";
@@ -64,6 +64,7 @@ const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
                             onClick={() => onOpen(false)}
                         />
                     }>
+                    <Text>{sessionDocument.title}</Text>
                     <TabList selectedValue={selectedValue} onTabSelect={onTabSelect}>
                         <Tab id="comments" icon={<CommentIcon/>} value="comments">
                             Notes

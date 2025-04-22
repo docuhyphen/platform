@@ -46,7 +46,7 @@ const Settings = () =>
                     <Tab id="PeopleTab"
                          icon={<SettingsOrganizationPeopleTabIcon/>}
                          value="people">
-                        People
+                        Your People
                     </Tab>
                     <Tab id="GroupsTab"
                          icon={<SettingsOrganizationGroupsTabIcon/>}

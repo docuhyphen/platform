@@ -22,7 +22,7 @@ import {
     BuildingFilled,
     BuildingPeopleFilled,
     BuildingPeopleRegular,
-    BuildingRegular,
+    BuildingRegular, BuildingTownhouseFilled, BuildingTownhouseRegular,
     bundleIcon,
     CalculatorArrowClockwiseFilled,
     CalculatorArrowClockwiseRegular,
@@ -107,6 +107,7 @@ export const SettingsOrganizationGroupsTabIcon = bundleIcon(PeopleTeamFilled, Pe
 export const SettingsAppSettingsTabIcon = bundleIcon(SettingsCogMultipleFilled, SettingsCogMultipleRegular)
 export const SettingsTemplatesTabIcon = bundleIcon(BookTemplateFilled, BookTemplateRegular)
 export const TemplateAddIcon = bundleIcon(BookAddFilled, BookAddRegular)
+export const PairOrgTabIcon = bundleIcon(BuildingTownhouseFilled, BuildingTownhouseRegular)
 export const PersonAddIcon = bundleIcon(PersonAddFilled, PersonAddRegular)
 export const FilterIcon = bundleIcon(FilterFilled, FilterRegular);
 export const SortDownIcon = bundleIcon(ArrowSortDownLinesFilled, ArrowSortDownLinesRegular);
