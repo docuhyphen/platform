@@ -16,13 +16,12 @@ import AppSettingsTab from "./app-settings-tab/AppSettingsTab.tsx";
 import ProfileTab from "./profile-tab/ProfileTab.tsx";
 import OrganizationGroupsTab from "./organization-groups-tab/OrganizationGroupsTab.tsx";
 import OrganizationPeopleTab from "./organization-peopls-tab/OrganizationPeopleTab.tsx";
+import {useState} from "react";
 
 const Settings = () =>
 {
     const styles = useSettingsStyles();
-
-    const [selectedValue, setSelectedValue] =
-        React.useState<TabValue>("conditions");
+    const [selectedValue, setSelectedValue] = useState<TabValue>("profile");
 
     const onTabSelect = (event: SelectTabEvent, data: SelectTabData) =>
     {
@@ -34,23 +33,34 @@ const Settings = () =>
             <MainMenu/>
             <div className={styles.container}>
                 <TabList selectedValue={selectedValue} onTabSelect={onTabSelect} size="medium">
-
-                    <Tab id="ProfileTab" icon={<SettingsProfileTabIcon/>} value="profile">
+                    <Tab id="ProfileTab"
+                         icon={<SettingsProfileTabIcon/>}
+                         value="profile">
                         Profile
                     </Tab>
-                    <Tab id="OrganizationTab" icon={<SettingsOrganizationTabIcon/>} value="organization">
+                    <Tab id="OrganizationTab"
+                         icon={<SettingsOrganizationTabIcon/>}
+                         value="organization">
                         Your Organization
                     </Tab>
-                    <Tab id="PeopleTab" icon={<SettingsOrganizationPeopleTabIcon/>} value="people">
+                    <Tab id="PeopleTab"
+                         icon={<SettingsOrganizationPeopleTabIcon/>}
+                         value="people">
                         People
                     </Tab>
-                    <Tab id="GroupsTab" icon={<SettingsOrganizationGroupsTabIcon/>} value="groups">
+                    <Tab id="GroupsTab"
+                         icon={<SettingsOrganizationGroupsTabIcon/>}
+                         value="groups">
                         Groups
                     </Tab>
-                    <Tab id="AppSettingsTab" icon={<SettingsAppSettingsTabIcon/>} value="appSettings">
+                    <Tab id="AppSettingsTab"
+                         icon={<SettingsAppSettingsTabIcon/>}
+                         value="appSettings">
                         App Settings
                     </Tab>
-                    <Tab id="TemplatesTab" icon={<SettingsTemplatesTabIcon/>} value="templates">
+                    <Tab id="TemplatesTab"
+                         icon={<SettingsTemplatesTabIcon/>}
+                         value="templates">
                         Templates
                     </Tab>
                 </TabList>
