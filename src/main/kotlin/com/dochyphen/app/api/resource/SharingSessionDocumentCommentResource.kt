@@ -1,6 +1,6 @@
 package com.dochyphen.app.api.resource
 
-import com.dochyphen.app.api.model.entity.DetailedModelConverter
+import com.dochyphen.app.api.model.entity.EntityToDtoTransformer
 import com.dochyphen.app.api.resource.model.CommentRequest
 import com.dochyphen.app.api.service.sharingsession.SharingSessionDocumentCommentsService
 import jakarta.inject.Inject
@@ -33,7 +33,7 @@ class SharingSessionDocumentCommentResource @Inject constructor(
             commentRequest.commentedBy
         )
 
-        return Response.ok(DetailedModelConverter.toDto(comment)).build()
+        return Response.ok(EntityToDtoTransformer.toDto(comment)).build()
     }
 
     @GET
@@ -45,6 +45,6 @@ class SharingSessionDocumentCommentResource @Inject constructor(
 
         val comments = documentCommentsService.getDocumentComments(documentId)
 
-        return Response.ok(comments.map { DetailedModelConverter.toDto(it) }.toTypedArray()).build()
+        return Response.ok(comments.map { EntityToDtoTransformer.toDto(it) }.toTypedArray()).build()
     }
 }

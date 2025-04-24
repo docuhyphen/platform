@@ -2,7 +2,7 @@ package com.dochyphen.app.api.model.entity
 
 import com.dochyphen.app.api.model.dto.*
 
-class DetailedModelConverter
+class EntityToDtoTransformer
 {
     companion object
     {

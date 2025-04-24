@@ -3,7 +3,7 @@ package com.dochyphen.app.api.resource
 import com.dochyphen.app.api.exception.SharingSessionDocumentNotFoundException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.model.BasicModelConverter
-import com.dochyphen.app.api.model.entity.DetailedModelConverter
+import com.dochyphen.app.api.model.entity.EntityToDtoTransformer
 import com.dochyphen.app.api.model.entity.DocumentEncryptionMode
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.resource.model.UpdateNoAuthSharingSession
@@ -179,7 +179,7 @@ class NoAuthSharingSessionResource @Inject constructor(
                 encryptionMode
             )
 
-            Response.ok(DetailedModelConverter.toDto(document)).build()
+            Response.ok(EntityToDtoTransformer.toDto(document)).build()
         }
         catch (exception: Exception)
         {

@@ -6,7 +6,7 @@ import com.dochyphen.app.api.exception.UserNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.model.BasicModelConverter.Companion.toDto
 import com.dochyphen.app.api.model.dto.SharingSessionBasicDto
-import com.dochyphen.app.api.model.entity.DetailedModelConverter
+import com.dochyphen.app.api.model.entity.EntityToDtoTransformer
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.resource.model.SharingSessionInitiationRequest
 import com.dochyphen.app.api.resource.model.UpdateSharingSessionRequest
@@ -173,7 +173,7 @@ class SharingSessionResource @Inject constructor(
         {
             val sharingSession = sharingSessionRetrievalService.getSharingSession(sessionId)
 
-            Response.ok(DetailedModelConverter.toDo(sharingSession)).build()
+            Response.ok(EntityToDtoTransformer.toDo(sharingSession)).build()
         }
         catch (exception: Exception)
         {

@@ -89,7 +89,9 @@ class OrganizationResource @Inject constructor(
     {
         return try
         {
-            organizationService.getOrganizationGroups(organizationId)
+            var organizationGroups = organizationService.getOrganizationGroups(organizationId)
+
+
         }
         catch (exception: Exception)
         {

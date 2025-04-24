@@ -3,7 +3,7 @@ package com.dochyphen.app.api.resource
 import com.dochyphen.app.api.exception.SharingSessionDocumentNotFoundException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.model.BasicModelConverter.Companion.toDto
-import com.dochyphen.app.api.model.entity.DetailedModelConverter
+import com.dochyphen.app.api.model.entity.EntityToDtoTransformer
 import com.dochyphen.app.api.model.entity.DocumentEncryptionMode
 import com.dochyphen.app.api.resource.model.AddSharingSessionDocumentRequest
 import com.dochyphen.app.api.resource.model.DownloadDocumentsZipRequest
@@ -174,7 +174,7 @@ class SharingSessionDocumentsResource @Inject constructor(
                 )
             }
 
-            Response.ok(DetailedModelConverter.toDto(document)).build()
+            Response.ok(EntityToDtoTransformer.toDto(document)).build()
         }
         catch (exception: Exception)
         {
@@ -242,7 +242,7 @@ class SharingSessionDocumentsResource @Inject constructor(
                 encryptionMode
             )
 
-            Response.ok(DetailedModelConverter.toDto(document)).build()
+            Response.ok(EntityToDtoTransformer.toDto(document)).build()
         }
         catch (exception: Exception)
         {
