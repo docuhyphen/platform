@@ -1,5 +1,5 @@
 import React from 'react';
-import {Button, Card, Dropdown, Field, Input, Option, OptionGroup, Switch} from "@fluentui/react-components";
+import {Button, Card, Checkbox, Dropdown, Field, Input, Option, OptionGroup, Switch} from "@fluentui/react-components";
 import {DocumentType, ImageType, SharingSessionRequestDocumentRequest} from "../../../models/models.tsx";
 import {useSharingSessionInitiationStyles} from "../../SharingSessionInitiationStyles.tsx";
 import {DeleteIcon} from "../../../components/IconBundles.tsx";
@@ -47,6 +47,7 @@ const SessionInitiationDocumentsCard: React.FC<DocumentCardProps> = (
                     />
                 </div>
                 <div className={styles.sharingSessionDocumentsRestriction}>
+                    <div className={styles.sharingSessionDocumentsRestrictionField}>
                     <Field label="">
                         <Switch
                             label="Restrict type"
@@ -78,6 +79,8 @@ const SessionInitiationDocumentsCard: React.FC<DocumentCardProps> = (
                             ))}
                         </OptionGroup>
                     </Dropdown>
+                    </div>
+                    <Checkbox label={"Required"}/>
                 </div>
             </div>
         </Card>

@@ -231,7 +231,7 @@ const SharingSessionInitiation: React.FC = () =>
         setDocuments([...documents, {
             title: '',
             restrictedType: 'PDF',
-            restrictType: true
+            restrictType: false
         } as any]);
     };
 

@@ -21,10 +21,16 @@ export const useSharingSessionInitiationStyles = makeStyles({
         display: "flex",
         gap: "8px",
         flexDirection: "row",
-        justifyContent: "space-between"
+        justifyContent: "space-between",
+        alignItems: "center"
+    },
+    sharingSessionDocumentsRestrictionField: {
+        flex: 1,
+        display: "flex"
     },
     sharingSessionDocumentsDropdown: {
         marginRight: "36px",
+        minWidth: "100px"
     },
     shadingSessionDocumentCard: {
         flex: 1,

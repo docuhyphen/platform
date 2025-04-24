@@ -16,6 +16,7 @@ import {
     OrganizationGroupBasicDto
 } from "../../../../../services/organizationApi";
 import MyOrgRecipients from "../MyOrgRecipients.tsx";
+import {useAuth} from "../../../../../context/AuthContext.tsx";
 
 interface MyOrganizationRecipientsProps
 {
@@ -35,44 +36,52 @@ enum ShareWithMode
 
 const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
     {
-        setRecipientOrgUser,
-        setRecipientOrgGroup,
         recipientOrgUser,
+        setRecipientOrgUser,
         recipientOrgGroup,
+        setRecipientOrgGroup,
         internalParticipants,
         setInternalParticipants
     }) =>
 {
+    const {appUser} = useAuth()
     const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
     const [isLoadingGroups, setIsLoadingGroups] = useState<boolean>(false);
     const [myOrgUsers, setMyOrgUsers] = useState<AppUserDetailedDto[]>([]);
     const [myOrgGroups, setMyOrgGroups] = useState<OrganizationGroupBasicDto[]>([]);
+    const [selectedOrgUser, setSelectedOrgUser] = useState<AppUserDetailedDto | null>(null);
+    const [selectedOrgGroup, setSelectedOrgGroup] = useState<OrganizationGroupBasicDto | null>(null);
     const [selectedInternalRecipients, setSelectedInternalParticipants] = useState<AppUserDetailedDto[]>([]);
-
-    const initialShareWith = recipientOrgUser
-        ? ShareWithMode.INDIVIDUAL
-        : recipientOrgGroup ? ShareWithMode.GROUP : ShareWithMode.INDIVIDUAL;
-
-    const [shareWith, setShareWith] = useState<ShareWithMode>(initialShareWith);
-    const [selectedOrgUser, setSelectedOrgUser] = useState<AppUserDetailedDto | null>(recipientOrgUser || null);
-    const [selectedOrgGroup, setSelectedOrgGroup] = useState<OrganizationGroupBasicDto | null>(recipientOrgGroup || null);
-
-    const formatUserDisplay = (user: AppUserDetailedDto | null | undefined) =>
-    {
-        if (!user) return "";
-        const firstName = user.person?.firstName || '';
-        const lastName = user.person?.lastName || '';
-        return `${firstName} ${lastName} (${user.email})`;
-    };
-
-    const [userSearchQuery, setUserSearchQuery] = useState<string>(formatUserDisplay(recipientOrgUser));
-    const [groupSearchQuery, setGroupSearchQuery] = useState<string>(recipientOrgGroup?.name || "");
+    const [shareWith, setShareWith] = useState<ShareWithMode>(ShareWithMode.INDIVIDUAL);
+    const [userSearchQuery, setUserSearchQuery] = useState<string>("");
+    const [groupSearchQuery, setGroupSearchQuery] = useState<string>("");
 
     useEffect(() =>
     {
-        loadMyOrganizationUsers();
-        loadMyOrganizationGroups();
-    }, []);
+        if (internalParticipants && internalParticipants.length > 0)
+        {
+            let filteredParticipants = [...internalParticipants];
+
+            if (appUser)
+            {
+                filteredParticipants = filteredParticipants.filter(user => user.id !== appUser.id);
+            }
+
+            if (recipientOrgUser)
+            {
+                filteredParticipants = filteredParticipants.filter(user => user.id !== recipientOrgUser.id);
+            }
+
+            if (filteredParticipants.length !== selectedInternalRecipients.length)
+            {
+                setSelectedInternalParticipants(filteredParticipants);
+                if (setInternalParticipants)
+                {
+                    setInternalParticipants(filteredParticipants);
+                }
+            }
+        }
+    }, [internalParticipants, appUser, recipientOrgUser, recipientOrgGroup]);
 
     useEffect(() =>
     {
@@ -81,20 +90,41 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
             setSelectedOrgUser(recipientOrgUser);
             setShareWith(ShareWithMode.INDIVIDUAL);
             setUserSearchQuery(formatUserDisplay(recipientOrgUser));
-
-            setSelectedOrgGroup(null);
-            setGroupSearchQuery("");
         }
-        else if (recipientOrgGroup)
+
+        if (recipientOrgGroup)
         {
             setSelectedOrgGroup(recipientOrgGroup);
             setShareWith(ShareWithMode.GROUP);
             setGroupSearchQuery(recipientOrgGroup.name);
-
-            setSelectedOrgUser(null);
-            setUserSearchQuery("");
         }
-    }, [recipientOrgUser, recipientOrgGroup]);
+
+        if (internalParticipants && internalParticipants.length > 0)
+        {
+            let filteredParticipants = internalParticipants.filter(user => user.id !== appUser?.id);
+
+            if (recipientOrgUser)
+            {
+                filteredParticipants = filteredParticipants.filter(user => user.id !== recipientOrgUser.id);
+            }
+
+            setSelectedInternalParticipants(filteredParticipants);
+        }
+    }, []);
+
+    useEffect(() =>
+    {
+        loadMyOrganizationUsers();
+        loadMyOrganizationGroups();
+    }, []);
+
+    const formatUserDisplay = (user: AppUserDetailedDto | null | undefined) =>
+    {
+        if (!user) return "";
+        const firstName = user.person?.firstName || '';
+        const lastName = user.person?.lastName || '';
+        return `${firstName} ${lastName} (${user.email})`;
+    };
 
     const loadMyOrganizationUsers = async () =>
     {
@@ -133,6 +163,7 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
     };
 
     const filteredUsers = myOrgUsers
+        .filter(user => user.id !== appUser?.id)
         .filter(user => !userSearchQuery ||
             user.email.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
             (user.person?.firstName && user.person.firstName.toLowerCase().includes(userSearchQuery.toLowerCase())) ||
@@ -181,18 +212,38 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
             setUserSearchQuery("");
             setSelectedOrgUser(null);
             setRecipientOrgUser(undefined);
+
+            if (internalParticipants && setInternalParticipants)
+            {
+                const updatedParticipants = internalParticipants.filter(user => user.id !== appUser?.id);
+                setSelectedInternalParticipants(updatedParticipants);
+                setInternalParticipants(updatedParticipants);
+            }
             return;
         }
 
         const userId = data.optionValue;
-        const user = myOrgUsers.find(u => u.id === userId);
+        const selectedUser = myOrgUsers.find(u => u.id === userId);
 
-        if (user)
+        if (selectedUser && selectedUser.id !== appUser?.id)
         {
-            setUserSearchQuery(formatUserDisplay(user));
-            setSelectedOrgUser(user);
-            setRecipientOrgUser(user);
-            setRecipientOrgGroup(undefined);
+            const firstName = selectedUser.person.firstName;
+            const lastName = selectedUser.person.lastName;
+            const email = selectedUser.email;
+
+            const query = `${firstName} ${lastName} (${email})`;
+            setUserSearchQuery(query);
+            setSelectedOrgUser(selectedUser);
+            setRecipientOrgUser(selectedUser);
+
+            if (internalParticipants && setInternalParticipants)
+            {
+                const updatedParticipants = internalParticipants.filter(
+                    user => user.id !== appUser?.id && user.id !== selectedUser.id
+                );
+                setSelectedInternalParticipants(updatedParticipants);
+                setInternalParticipants(updatedParticipants);
+            }
         }
     };
 
@@ -214,18 +265,21 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
             setGroupSearchQuery(group.name);
             setSelectedOrgGroup(group);
             setRecipientOrgGroup(group);
-            setRecipientOrgUser(undefined);
         }
     };
 
     const getFilteredInternalUsers = () =>
     {
+        let usersToFilter = [...myOrgUsers];
+
+        usersToFilter = usersToFilter.filter(user => user.id !== appUser?.id);
+
         if (selectedOrgUser)
         {
-
-            return myOrgUsers.filter(user => user.id !== selectedOrgUser.id);
+            usersToFilter = usersToFilter.filter(user => user.id !== selectedOrgUser.id);
         }
-        return myOrgUsers;
+
+        return usersToFilter;
     };
 
     return (
@@ -272,7 +326,6 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
                 </Field>
             )}
 
-            {/* Show internal recipients section only when a user or group is selected */}
             {(selectedOrgUser || selectedOrgGroup) && (
                 <MyOrgRecipients
                     orgUsers={getFilteredInternalUsers()}

@@ -128,6 +128,9 @@ class Document
     @Transient
     var documentContent: ByteArray? = null
 
+    @Transient
+    var required: Boolean = false
+
     @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.EAGER)
     @JoinColumn(name = "document_id")
     var comments: MutableList<SharingSessionDocumentComment> = mutableListOf()

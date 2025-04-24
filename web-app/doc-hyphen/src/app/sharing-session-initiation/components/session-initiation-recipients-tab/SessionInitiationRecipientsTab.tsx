@@ -69,8 +69,12 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
 
             {props.recipientMode === SharingSessionInitiationRecipientMode.MY_ORG && (
                 <MyOrganizationRecipients
+                    recipientOrgUser={props.recipientOrgUser}
+                    recipientOrgGroup={props.recipientOrgGroup}
+                    internalParticipants={props.internalParticipants}
                     setRecipientOrgUser={props.setRecipientOrgUser}
                     setRecipientOrgGroup={props.setRecipientOrgGroup}
+                    setInternalParticipants={props.setInternalParticipants}
                 />
             )}
 
