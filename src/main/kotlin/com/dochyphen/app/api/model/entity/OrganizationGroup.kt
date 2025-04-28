@@ -27,8 +27,8 @@ class OrganizationGroup {
     @Column(name = "name", nullable = false)
     lateinit var name: String
 
-    @Column(name = "is_deleted", nullable = false)
-    var isDeleted: Boolean = true
+//    @Column(name = "is_deleted", nullable = false)
+//    var isDeleted: Boolean = true
 
     @OneToMany(mappedBy = "organizationGroup", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     var members: MutableList<OrganizationGroupMember> = mutableListOf()
