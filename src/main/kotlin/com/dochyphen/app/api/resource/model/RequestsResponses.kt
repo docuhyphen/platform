@@ -1,6 +1,9 @@
 package com.dochyphen.app.api.resource.model
 
-import com.dochyphen.app.api.model.entity.*
+import com.dochyphen.app.api.model.entity.AppUser
+import com.dochyphen.app.api.model.entity.DocumentType
+import com.dochyphen.app.api.model.entity.Person
+import com.dochyphen.app.api.model.entity.SharingSessionStatus
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -80,9 +83,24 @@ data class OrganizationRegistrationRequest(
 )
 
 @Serializable
+data class AddOrganizationGroupMemberRequest(
+    var appUserId: String? = null,
+    var allowSessionAccept: Boolean = false,
+    var allowSessionReject: Boolean = false,
+    var allowSessionEdit: Boolean = false,
+    var allowSessionDelete: Boolean = false,
+    var allowSessionEnd: Boolean = false,
+    var allowDocumentAddition: Boolean = false,
+    var allowDocumentDeletion: Boolean = false,
+    var allowDocumentDownload: Boolean = false,
+    var allowDocumentUpdate: Boolean = false,
+    var allowDocumentUpload: Boolean = false
+)
+
+@Serializable
 data class AddOrganizationGroupRequest(
     var name: String? = null,
-    var members: List<String>? = mutableListOf<String>(),
+    var members: List<AddOrganizationGroupMemberRequest>? = mutableListOf(),
 )
 
 @Serializable
@@ -154,7 +172,6 @@ class SharingSessionRequestDocumentRequest
 class SharingSessionParticipantRequest
 {
     var id: String = ""
-    var role: SharingSessionParticipantRole = SharingSessionParticipantRole.VIEWER
 }
 
 @Serializable

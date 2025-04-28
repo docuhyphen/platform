@@ -34,6 +34,10 @@ class SharingSession
     @Serializable(with = TimestampSerializer::class)
     var endDate: Timestamp? = null
 
+    @Column(name = "date_deleted", nullable = true)
+    @Serializable(with = TimestampSerializer::class)
+    var dateDeleted: Timestamp? = Timestamp.from(Instant.now())
+
     @Column(name = "end_note", nullable = true)
     var endNote: String? = null
 
@@ -83,10 +87,7 @@ class SharingSession
     @Column(name = "allow_document_upload", nullable = false)
     var allowDocumentUpload: Boolean = false
 
-//    @Column(name = "allow_document_print", nullable = false)
-//    var allowDocumentPrint: Boolean = false
-
-    @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "sharingSession", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     var participants: MutableList<SharingSessionParticipant> = mutableListOf()
 
     @Column(name = "expire_date", nullable = true)
@@ -98,10 +99,6 @@ class SharingSession
 
     @Column(name = "is_deleted", nullable = false)
     var isDeleted: Boolean = false
-
-    @Column(name = "date_deleted", nullable = true)
-    @Serializable(with = TimestampSerializer::class)
-    var dateDeleted: Timestamp? = Timestamp.from(Instant.now())
 
     constructor()
 }

@@ -1,16 +1,34 @@
 ### Get organization
-GET http://localhost:8080/oranizations/{{organizationId}}
-Authorization: Bearer {{Authorization}}
-Content-Type: application/json
-
-### Get organization groups
-GET http://localhost:8080/oranizations/{{organizationId}}/groups
+GET http://localhost:8080/organizations/{{organizationId}}
 Authorization: Bearer {{Authorization}}
 Content-Type: application/json
 
 ### Add organization group
-GET http://localhost:8080/oranizations/{{organizationId}}/group
+POST http://localhost:8080/organizations/{{organizationId}}/groups
 Authorization: Bearer {{Authorization}}
 Content-Type: application/json
 
+{
+  "name": "Test Group2",
+  "members": [
+    {
+      "appUserId": "d4f5484e-a246-4c33-9481-4f0cc88f7ff9",
+      "allowSessionAccept": true,
+      "allowSessionReject": true,
+      "allowSessionEdit": false,
+      "allowSessionDelete": false,
+      "allowSessionEnd": true,
+      "allowDocumentAddition": true,
+      "allowDocumentDeletion": false,
+      "allowDocumentDownload": true,
+      "allowDocumentUpdate": true,
+      "allowDocumentUpload": true
+    }
+  ]
+}
+
+### Get organization groups
+GET http://localhost:8080/organizations/{{organizationId}}/groups
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
 

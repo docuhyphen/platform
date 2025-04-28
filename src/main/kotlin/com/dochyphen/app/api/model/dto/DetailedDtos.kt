@@ -8,6 +8,49 @@ import java.sql.Timestamp
 import java.util.*
 
 @Serializable
+data class OrganizationDetailedDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID?,
+    @Serializable(with = TimestampSerializer::class)
+    val createdDate: Timestamp?,
+    val isActive: Boolean?,
+    val name: String?,
+    val registrationNumber: String?,
+    val contactDetails: ContactDetailsDetailedDto?,
+)
+
+@Serializable
+data class OrganizationGroupMemberPermissionDto(
+    val allowSessionAccept: Boolean = false,
+    val allowSessionReject: Boolean = false,
+    val allowSessionEdit: Boolean = false,
+    val allowSessionDelete: Boolean = false,
+    val allowSessionEnd: Boolean = false,
+    val allowDocumentAddition: Boolean = false,
+    val allowDocumentDeletion: Boolean = false,
+    val allowDocumentDownload: Boolean = false,
+    val allowDocumentUpdate: Boolean = false,
+    val allowDocumentUpload: Boolean = false
+)
+
+@Serializable
+data class OrganizationGroupMemberDetailedDto(
+    val user: AppUserDetailedDto?,
+    val permissions: OrganizationGroupMemberPermissionDto?
+)
+
+@Serializable
+data class OrganizationGroupDetailedDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID?,
+    @Serializable(with = TimestampSerializer::class)
+    val createdDate: Timestamp?,
+    val isActive: Boolean?,
+    val name: String?,
+    val members: List<OrganizationGroupMemberDetailedDto?>
+)
+
+@Serializable
 data class DocumentCommentDetailedDto(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID?,

@@ -10,9 +10,9 @@ import java.util.*
 
 @Entity
 @Serializable
-@Table(name = "organization_group")
-class OrganizationGroup {
-
+@Table(name = "organization_group_member")
+class OrganizationGroupMember
+{
     @Id
     @Serializable(with = UUIDSerializer::class)
     var id: UUID = UUID.randomUUID()
@@ -24,12 +24,16 @@ class OrganizationGroup {
     @Serializable(with = TimestampSerializer::class)
     var createdDate: Timestamp = Timestamp.from(Instant.now())
 
-    @Column(name = "name", nullable = false)
-    lateinit var name: String
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_group_id")
+    var organizationGroup: OrganizationGroup? = null
 
-    @OneToMany(mappedBy = "organizationGroup", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
-    var members: MutableList<OrganizationGroupMember> = mutableListOf()
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "app_user_id")
+    var appUser: AppUser? = null
+
+    @OneToOne(mappedBy = "organizationGroupMember", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    var permissions: OrganizationGroupMemberPermission? = null
 
     constructor()
 }
-

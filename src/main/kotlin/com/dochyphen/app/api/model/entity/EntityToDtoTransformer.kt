@@ -156,5 +156,68 @@ class EntityToDtoTransformer
                 }
             }
         }
+
+        fun toDto(organization: Organization?): OrganizationDetailedDto?
+        {
+            return organization?.let {
+                with(organization)
+                {
+                    OrganizationDetailedDto(
+                        id,
+                        createdDate,
+                        isActive,
+                        name,
+                        registrationNumber,
+                        toDto(contactDetails),
+                    )
+                }
+            }
+        }
+
+        fun toDto(organizationGroup: OrganizationGroup?): OrganizationGroupDetailedDto?
+        {
+            return organizationGroup?.let {
+                with(organizationGroup)
+                {
+                    OrganizationGroupDetailedDto(
+                        id,
+                        createdDate,
+                        isActive,
+                        name,
+                        members.map { toDto(it) }
+                    )
+                }
+            }
+        }
+
+        fun toDto(member: OrganizationGroupMember?): OrganizationGroupMemberDetailedDto?
+        {
+            return member?.let {
+                OrganizationGroupMemberDetailedDto(
+                    toDto(member.appUser),
+                    toDto(member.permissions)
+                )
+            }
+        }
+
+        fun toDto(permission: OrganizationGroupMemberPermission?): OrganizationGroupMemberPermissionDto?
+        {
+            return permission?.let {
+                with(permission) {
+                    OrganizationGroupMemberPermissionDto(
+                        allowSessionAccept,
+                        allowSessionReject,
+                        allowSessionEdit,
+                        allowSessionDelete,
+                        allowSessionEnd,
+                        allowDocumentAddition,
+                        allowDocumentDeletion,
+                        allowDocumentDownload,
+                        allowDocumentUpdate,
+                        allowDocumentUpload
+                    )
+                }
+            }
+        }
     }
 }

@@ -30,7 +30,7 @@ class SharingSessionParticipantResource @Inject constructor(
     {
         return try
         {
-            sharingSessionParticipantService.addSharingSessionParticipant(sessionId, request.id, request.role)
+            sharingSessionParticipantService.addSharingSessionParticipant(sessionId, request.id)
             Response.ok().build()
         }
         catch (exception: Exception)

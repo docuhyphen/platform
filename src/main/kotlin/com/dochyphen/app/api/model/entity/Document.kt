@@ -135,5 +135,7 @@ class Document
     @JoinColumn(name = "document_id")
     var comments: MutableList<SharingSessionDocumentComment> = mutableListOf()
 
+    //ToDo: add upload reminder frequency for a document to be uploaded if not uploaded
+
     constructor()
 }

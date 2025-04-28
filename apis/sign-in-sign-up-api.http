@@ -54,7 +54,7 @@ POST http://localhost:8080/auth/sign-in/completion
 Content-Type: application/json
 
 {
-  "email": "test2@doc-hyphen.com",
+  "email": "test1@doc-hyphen.com",
   "otp": "123456"
 }
 > {% client.global.set("Authorization", response.body.token) %}

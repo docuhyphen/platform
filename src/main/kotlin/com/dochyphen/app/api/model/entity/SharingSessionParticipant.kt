@@ -8,14 +8,10 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-enum class SharingSessionParticipantRole {
-    VIEWER,
-    FULL_ACCESS,
-    EDITOR,
-    COMMENTER,
-    OWNER,
-    UPLOADER,
-    DOWNLOADER
+enum class SharingSessionParticipantType
+{
+    GROUP,
+    APP_USER
 }
 
 @Entity
@@ -27,17 +23,25 @@ class SharingSessionParticipant {
     @Serializable(with = UUIDSerializer::class)
     var id: UUID = UUID.randomUUID()
 
+    @Column(name = "participant_type", nullable = false)
+    @Enumerated(EnumType.STRING)
+    lateinit var participantType: SharingSessionParticipantType
+
     @ManyToOne
-    @JoinColumn(name = "app_user_id", nullable = false)
+    @JoinColumn(name = "app_user_id", nullable = true)
     var appUser: AppUser? = null
 
-    @Column(name = "role", nullable = false)
-    @Enumerated(EnumType.STRING)
-    var role: SharingSessionParticipantRole = SharingSessionParticipantRole.VIEWER
+    @ManyToOne
+    @JoinColumn(name = "organization_group_id", nullable = true)
+    var organizationGroup: OrganizationGroup? = null
 
     @Column(name = "added_date", nullable = false)
     @Serializable(with = TimestampSerializer::class)
     var addedDate: Timestamp = Timestamp.from(Instant.now())
+
+    @ManyToOne
+    @JoinColumn(name = "sharing_session_id", nullable = false)
+    lateinit var sharingSession: SharingSession
 
     constructor()
 }

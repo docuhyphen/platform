@@ -68,9 +68,9 @@ class AppUser {
     @JoinColumn(name = "person_id")
     var person: Person? = null
 
-//    @OneToOne(cascade = [ALL], fetch = LAZY)
-//    @JoinColumn(name = "application_id")
-//    var application: Application? = null
+    @OneToOne(cascade = [ALL], fetch = LAZY)
+    @JoinColumn(name = "application_id")
+    var application: Application? = null
 
     @Enumerated(STRING)
     @Column(name = "role", nullable = false)
@@ -78,9 +78,6 @@ class AppUser {
 
     @Column(name = "is_temporary", nullable = false)
     var isTemporary: Boolean = false
-//
-//    @Column
-//    var featuresList: MutableList<AppFeature> = arrayListOf()
 
     constructor()
 }

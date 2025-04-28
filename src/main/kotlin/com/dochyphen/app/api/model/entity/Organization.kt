@@ -38,11 +38,11 @@ class Organization {
     var contactDetails: ContactDetails? = null
 
     @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id")
+    @JoinColumn(name = "app_user_id")
     var appUsers: MutableList<AppUser> = mutableListOf()
 
     @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_id")
+    @JoinColumn(name = "organization_id")
     var groups: MutableList<OrganizationGroup> = mutableListOf()
 
     constructor()

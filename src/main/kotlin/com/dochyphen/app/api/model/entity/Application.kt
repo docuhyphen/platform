@@ -52,12 +52,6 @@ class Application {
     @Column(name = "is_active", nullable = false)
     var isActive: Boolean = true
 
-    @Column(name = "rate_limit_per_minute", nullable = false)
-    var rateLimitPerMinute: Int = 100
-
-    @Column(name = "ip_whitelist")
-    var ipWhitelist: String? = null
-
     @Enumerated(EnumType.STRING)
     @Column(name = "application_type", nullable = false)
     var applicationType: ApplicationType = ApplicationType.SERVICE

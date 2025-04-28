@@ -98,7 +98,6 @@ class SharingSessionInitiationService @Inject constructor(
 
             SharingSessionParticipant().apply {
                 this.appUser = appUser
-                this.role = it.role
                 this.addedDate = Timestamp.from(Instant.now())
             }
         }?.toMutableList() ?: mutableListOf()

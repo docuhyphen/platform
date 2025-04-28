@@ -1,19 +1,23 @@
 package com.dochyphen.app.api.resource
 
 import com.dochyphen.app.api.exception.OrganizationNotFoundException
+import com.dochyphen.app.api.model.entity.EntityToDtoTransformer
+import com.dochyphen.app.api.model.resourceservice.MemberPermissionsModel
+import com.dochyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
 import com.dochyphen.app.api.resource.model.AddOrganizationGroupRequest
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.service.OrganizationService
 import jakarta.inject.Inject
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.core.MediaType
+import jakarta.transaction.Transactional
+import jakarta.ws.rs.*
+import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
 @Path("organizations")
-@Produces(MediaType.APPLICATION_JSON)
+@Produces(APPLICATION_JSON)
+@Consumes(APPLICATION_JSON)
 class OrganizationResource @Inject constructor(
     private val organizationService: OrganizationService
 )
@@ -23,7 +27,9 @@ class OrganizationResource @Inject constructor(
         private val logger = LoggerFactory.getLogger(OrganizationResource::class.java)
     }
 
-    @Path("/{organizationId}")
+    @Path("/{organizationId}/groups")
+    @POST
+    @Transactional
     fun addOrganizationGroup(
         @PathParam("organizationId") organizationId: String,
         addOrganizationGroupRequest: AddOrganizationGroupRequest
@@ -31,50 +37,65 @@ class OrganizationResource @Inject constructor(
     {
         return try
         {
-            with(addOrganizationGroupRequest)
-            {
-                organizationService.addOrganizationGroup(organizationId, name, members)
-            }
 
-            return Response.ok().build()
+            val members = addOrganizationGroupRequest.members?.map { member ->
+                OrganizationGroupMemberModel(
+                    appUserId = member.appUserId ?: throw IllegalArgumentException("Member ID cannot be null"),
+                    permissions = MemberPermissionsModel(
+                        allowSessionAccept = member.allowSessionAccept,
+                        allowSessionReject = member.allowSessionReject,
+                        allowSessionEdit = member.allowSessionEdit,
+                        allowSessionDelete = member.allowSessionDelete,
+                        allowSessionEnd = member.allowSessionEnd,
+                        allowDocumentAddition = member.allowDocumentAddition,
+                        allowDocumentDeletion = member.allowDocumentDeletion,
+                        allowDocumentDownload = member.allowDocumentDownload,
+                        allowDocumentUpdate = member.allowDocumentUpdate,
+                        allowDocumentUpload = member.allowDocumentUpload
+                    )
+                )
+            } ?: emptyList()
+
+            organizationService.addOrganizationGroup(
+                organizationId,
+                addOrganizationGroupRequest.name,
+                members
+            )
+
+            return Response.status(CREATED).build()
         }
         catch (exception: Exception)
         {
+            logger.error("Error adding organization group", exception)
+
             when (exception)
             {
                 is OrganizationNotFoundException ->
                 {
-                    logger.error("Error getting sharing session document audit logs", exception)
-
                     val responseError = ResponseError(exception.message)
 
                     Response
-                        .status(Response.Status.NOT_FOUND)
+                        .status(NOT_FOUND)
                         .entity(responseError)
                         .build()
                 }
 
                 is IllegalArgumentException ->
                 {
-                    logger.error("Error getting organization groups", exception)
-
                     val responseError = ResponseError(exception.message)
 
                     Response
-                        .status(Response.Status.BAD_REQUEST)
+                        .status(BAD_REQUEST)
                         .entity(responseError)
                         .build()
                 }
 
                 else ->
                 {
-                    logger.error("Error getting organization groups", exception)
-
-                    val responseError =
-                        ResponseError("An error occurred while getting organization groups")
+                    val responseError = ResponseError("An error occurred while adding an organization group")
 
                     Response
-                        .status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .status(INTERNAL_SERVER_ERROR)
                         .entity(responseError)
                         .build()
                 }
@@ -83,41 +104,42 @@ class OrganizationResource @Inject constructor(
     }
 
     @Path("/{organizationId}/groups")
+    @GET
     fun getOrganizationGroups(
         @PathParam("organizationId") organizationId: String
     ): Response
     {
         return try
         {
-            var organizationGroups = organizationService.getOrganizationGroups(organizationId)
+            var groups = organizationService
+                .getOrganizationGroups(organizationId)
+                .map { EntityToDtoTransformer.toDto(it) }
+                .toTypedArray()
 
-
+            Response.ok(groups).build()
         }
         catch (exception: Exception)
         {
+            logger.error("Error getting organization groups", exception)
+
             when (exception)
             {
                 is OrganizationNotFoundException ->
                 {
-                    logger.error("Error getting organization groups", exception)
-
                     val responseError = ResponseError(exception.message)
 
                     Response
-                        .status(Response.Status.NOT_FOUND)
+                        .status(NOT_FOUND)
                         .entity(responseError)
                         .build()
                 }
 
                 else ->
                 {
-                    logger.error("Error getting organization groups", exception)
-
-                    val responseError =
-                        ResponseError("An error occurred while getting organization groups")
+                    val responseError = ResponseError("An error occurred while getting organization groups")
 
                     Response
-                        .status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .status(INTERNAL_SERVER_ERROR)
                         .entity(responseError)
                         .build()
                 }

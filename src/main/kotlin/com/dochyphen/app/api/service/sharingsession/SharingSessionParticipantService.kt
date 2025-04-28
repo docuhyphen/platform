@@ -3,7 +3,6 @@ package com.dochyphen.app.api.service.sharingsession
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.exception.UserNotFoundException
 import com.dochyphen.app.api.model.entity.SharingSessionParticipant
-import com.dochyphen.app.api.model.entity.SharingSessionParticipantRole
 import com.dochyphen.app.api.repository.AppUserRepository
 import com.dochyphen.app.api.repository.SharingSessionRepository
 import jakarta.enterprise.context.ApplicationScoped
@@ -33,8 +32,7 @@ class SharingSessionParticipantService @Inject constructor(
     @Transactional
     fun addSharingSessionParticipant(
         sessionId: String,
-        participantId: String,
-        role: SharingSessionParticipantRole
+        participantId: String
     )
     {
         val sharingSession = sharingSessionRepository.findById(UUID.fromString(sessionId))
@@ -45,7 +43,6 @@ class SharingSessionParticipantService @Inject constructor(
 
         val sharingSessionParticipant = SharingSessionParticipant().apply {
             this.appUser = participant
-            this.role = role
             this.addedDate = Timestamp.from(Instant.now())
         }
 
