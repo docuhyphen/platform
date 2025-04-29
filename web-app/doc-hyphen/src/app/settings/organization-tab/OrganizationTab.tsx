@@ -28,7 +28,7 @@ const OrganizationTab = () =>
                         appearance={"outline"}
                         onClick={() => setOnboardingDialogOpen(true)}
                         icon={<></>}>
-                    Onboard your organization
+                    Register your organization
                 </Button>
             </div>
             <OrganizationOnboardingDialog isOpen={isOnboardingDialogOpen}
