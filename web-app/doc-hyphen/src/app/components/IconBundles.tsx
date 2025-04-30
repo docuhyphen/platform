@@ -135,6 +135,7 @@ export const RegenerateOTPIcon = bundleIcon(CalculatorArrowClockwiseFilled, Calc
 export const EditSessionIcon = bundleIcon(WindowEditFilled, WindowEditRegular);
 export const ManageAccessIcon = bundleIcon(PeopleLockFilled, PeopleLockRegular);
 export const EditIcon = bundleIcon(NotepadEditFilled, NotepadEditRegular)
+export const ProfileEditBasicDetailsIcon = bundleIcon(NotepadEditFilled, NotepadEditRegular)
 export const UploadIcon = bundleIcon(ArrowUploadFilled, ArrowUploadRegular)
 export const DownloadIcon = bundleIcon(ArrowDownloadFilled, ArrowDownloadRegular)
 export const MoreInfoIcon = bundleIcon(InfoFilled, InfoRegular)

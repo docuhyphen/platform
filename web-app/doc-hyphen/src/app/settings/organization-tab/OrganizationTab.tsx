@@ -1,10 +1,10 @@
-import {Button, Divider, Text} from "@fluentui/react-components";
+import {Button, Divider, InfoLabel, Switch, Text} from "@fluentui/react-components";
 import {useAuth} from "../../../context/AuthContext.tsx";
 import {AppUserRole} from "../../models/models.tsx";
 import {useOrganizationTabStyles} from "./OrganizationTabStyles.tsx";
 import OrganizationOnboardingDialog from "./organization-onboarding-dialog/OrganizationOnboardingDialog.tsx";
 import {useState} from "react";
-import {PairOrgTabIcon} from "../../components/IconBundles.tsx";
+import {PairOrgTabIcon, ProfileEditBasicDetailsIcon} from "../../components/IconBundles.tsx";
 
 const OrganizationTab = () =>
 {
@@ -44,18 +44,90 @@ const OrganizationTab = () =>
 
         {appUserCanManageOrganization() &&
 
-            <div>
-                <p>
-                    Allow other users outside your organization to search for you
-                </p>
-                <Divider/>
-                <Text>
+            <div className={styles.container}>
+                <Switch
+                    label={
+                        <InfoLabel
+                            info={
+                                <>
+                                    This setting allows other users to find and initiate sharing sessions with your
+                                    organization without pairing first. This makes your organization more discoverable.
+                                </>
+                            }>
+                            Allow Initiate Sharing Sessions without pairing
+                        </InfoLabel>
+                    }
+                />
+
+
+                <Divider alignContent={"start"}
+                         appearance={"brand"}>
+                    Basic Details
+                    <Button icon={<ProfileEditBasicDetailsIcon/>}
+                            appearance={"subtle"}/>
+                </Divider>
+                <div className={styles.dataContainer}>
+                    <Text size={500}
+                          italic={true}
+                          className={styles.dataName}>
+                        Name
+                    </Text>
+                    <Text size={500}>
+                        Doc-Hyphen
+                    </Text>
+                </div>
+                <div className={styles.dataContainer}>
+                    <Text size={500}
+                          italic={true}
+                          className={styles.dataName}>
+                        Registration Number
+                    </Text>
+                    <Text size={500}>
+                        Mahlangu
+                    </Text>
+                </div>
+
+                <Divider alignContent={"start"}
+                         appearance={"brand"}>
+                    Contact Details
+                    <Button icon={<ProfileEditBasicDetailsIcon/>}
+                            appearance={"subtle"}/>
+                </Divider>
+
+                <div className={styles.dataContainer}>
+                    <Text size={500}
+                          italic={true}
+                          className={styles.dataName}>
+                        Email
+                    </Text>
+                    <Text size={500}>
+                        text1@doc-hyphen.com
+                    </Text>
+                </div>
+                <div className={styles.dataContainer}>
+                    <Text size={500}
+                          italic={true}
+                          className={styles.dataName}>
+                        Phone number
+                    </Text>
+                    <Text size={500}>
+                        <Button appearance={"outline"}
+                                shape={"circular"}
+                                size={"small"}>
+                            Add Phone Number
+                        </Button>
+                    </Text>
+                </div>
+                <Divider appearance={"brand"}
+                         alignContent={"start"}>
                     Pared Organizations
-                </Text>
-                <Button icon={<PairOrgTabIcon/>}
-                        shape={"circular"}>
-                    Find and Pair
-                </Button>
+                </Divider>
+                <div>
+                    <Button icon={<PairOrgTabIcon/>}
+                            shape={"circular"}>
+                        Find and Pair
+                    </Button>
+                </div>
             </div>
         }
     </>
