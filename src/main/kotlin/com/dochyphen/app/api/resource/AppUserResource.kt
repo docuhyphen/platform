@@ -3,7 +3,7 @@ package com.dochyphen.app.api.resource
 import com.dochyphen.app.api.exception.OrganizationNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.resource.model.ResponseError
-import com.dochyphen.app.api.service.OrganizationService
+import com.dochyphen.app.api.service.OrganizationGroupService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
@@ -18,7 +18,7 @@ import java.util.*
 @Consumes(MediaType.APPLICATION_JSON)
 class AppUserResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
-    private val organizationService: OrganizationService
+    private val organizationGroupService: OrganizationGroupService
 
 )
 {
@@ -58,7 +58,7 @@ class AppUserResource @Inject constructor(
         return try
         {
             val organization =
-                organizationService.getOrganizationByAppUserIdAndPersonId(
+                organizationGroupService.getOrganizationByAppUserIdAndPersonId(
                     UUID.fromString(appUserId),
                     UUID.fromString(personId)
                 )

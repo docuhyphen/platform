@@ -28,7 +28,7 @@ class AppUserService @Inject constructor(
         appUserRepository.update(appUser)
     }
 
-    fun addNewAppUser(user: AppUser): AppUser
+    fun createAppUser(user: AppUser): AppUser
     {
         return appUserRepository.save(user)
     }

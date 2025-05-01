@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory
 import java.util.*
 
 @RequestScoped
-class OrganizationService @Inject constructor(
+class OrganizationGroupService @Inject constructor(
     private val organizationRepository: OrganizationRepository,
     private val authTokenContext: AuthTokenContext,
     private val appUserService: AppUserService
@@ -25,7 +25,7 @@ class OrganizationService @Inject constructor(
 
     companion object
     {
-        private val logger = LoggerFactory.getLogger(OrganizationService::class.java)
+        private val logger = LoggerFactory.getLogger(OrganizationGroupService::class.java)
     }
 
     fun getOrganizationByAppUserIdAndPersonId(appUserId: UUID, personId: UUID): Organization
@@ -117,5 +117,10 @@ class OrganizationService @Inject constructor(
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
 
         return organization.groups
+    }
+
+    fun getOrganizationById(uUID: UUID): Organization?
+    {
+        return organizationRepository.findById(uUID)
     }
 }

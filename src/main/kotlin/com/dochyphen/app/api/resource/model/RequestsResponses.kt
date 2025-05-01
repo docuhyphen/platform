@@ -1,6 +1,7 @@
 package com.dochyphen.app.api.resource.model
 
 import com.dochyphen.app.api.model.entity.AppUser
+import com.dochyphen.app.api.model.entity.AppUserRole
 import com.dochyphen.app.api.model.entity.DocumentType
 import com.dochyphen.app.api.model.entity.Person
 import com.dochyphen.app.api.model.entity.SharingSessionStatus
@@ -101,6 +102,19 @@ data class AddOrganizationGroupMemberRequest(
 data class AddOrganizationGroupRequest(
     var name: String? = null,
     var members: List<AddOrganizationGroupMemberRequest>? = mutableListOf(),
+)
+
+@Serializable
+data class AddOrganizationAppUserPersonRequest(
+    var firstName: String? = null,
+    var lastName: String? = null,
+)
+
+@Serializable
+data class AddOrganizationAppUserRequest(
+    var role: AppUserRole? = null,
+    var email: String? = null,
+    var person: AddOrganizationAppUserPersonRequest?,
 )
 
 @Serializable

@@ -32,3 +32,20 @@ GET http://localhost:8080/organizations/{{organizationId}}/groups
 Authorization: Bearer {{Authorization}}
 Content-Type: application/json
 
+### Add organization app user
+POST http://localhost:8080/organizations/{{organizationId}}/app-users
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
+{
+  "role": "ORG_MEMBER",
+  "email": "test3@doc-hyphen.com",
+  "person": {
+      "firstName": "John",
+      "lastName": "Doe"
+  }
+}
+
+### Get organization app users
+GET http://localhost:8080/organizations/{{organizationId}}/app-users
+Authorization: Bearer {{Authorization}}

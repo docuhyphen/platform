@@ -6,7 +6,7 @@ import com.dochyphen.app.api.model.resourceservice.MemberPermissionsModel
 import com.dochyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
 import com.dochyphen.app.api.resource.model.AddOrganizationGroupRequest
 import com.dochyphen.app.api.resource.model.ResponseError
-import com.dochyphen.app.api.service.OrganizationService
+import com.dochyphen.app.api.service.OrganizationGroupService
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import jakarta.ws.rs.*
@@ -18,13 +18,13 @@ import org.slf4j.LoggerFactory
 @Path("organizations")
 @Produces(APPLICATION_JSON)
 @Consumes(APPLICATION_JSON)
-class OrganizationResource @Inject constructor(
-    private val organizationService: OrganizationService
+class OrganizationGroupsResource @Inject constructor(
+    private val organizationGroupService: OrganizationGroupService
 )
 {
     companion object
     {
-        private val logger = LoggerFactory.getLogger(OrganizationResource::class.java)
+        private val logger = LoggerFactory.getLogger(OrganizationGroupsResource::class.java)
     }
 
     @Path("/{organizationId}/groups")
@@ -56,7 +56,7 @@ class OrganizationResource @Inject constructor(
                 )
             } ?: emptyList()
 
-            organizationService.addOrganizationGroup(
+            organizationGroupService.addOrganizationGroup(
                 organizationId,
                 addOrganizationGroupRequest.name,
                 members
@@ -111,7 +111,7 @@ class OrganizationResource @Inject constructor(
     {
         return try
         {
-            var groups = organizationService
+            var groups = organizationGroupService
                 .getOrganizationGroups(organizationId)
                 .map { EntityToDtoTransformer.toDto(it) }
                 .toTypedArray()
