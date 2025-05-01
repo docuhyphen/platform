@@ -2,7 +2,7 @@ package com.dochyphen.app.api.resource
 
 import com.dochyphen.app.api.exception.SharingSessionDocumentNotFoundException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
-import com.dochyphen.app.api.model.BasicModelConverter
+import com.dochyphen.app.api.model.BasicEntityToDtoTransformer
 import com.dochyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.dochyphen.app.api.model.entity.DocumentEncryptionMode
 import com.dochyphen.app.api.resource.model.ResponseError
@@ -45,7 +45,7 @@ class NoAuthSharingSessionResource @Inject constructor(
         {
             val sharingSession = sharingSessionRetrievalService.getNoAuthSharingSession(sessionId)
 
-            Response.ok(BasicModelConverter.toNoAuthDto(sharingSession)).build()
+            Response.ok(BasicEntityToDtoTransformer.toNoAuthDto(sharingSession)).build()
         }
         catch (exception: Exception)
         {
@@ -102,7 +102,7 @@ class NoAuthSharingSessionResource @Inject constructor(
                 sharingSessionUpdateService.updateNoAuthSharingSession(sessionId, status, otp, rejectReason)
             }
 
-            Response.ok(BasicModelConverter.toNoAuthDto(updatedSession)).build()
+            Response.ok(BasicEntityToDtoTransformer.toNoAuthDto(updatedSession)).build()
         }
         catch (exception: Exception)
         {

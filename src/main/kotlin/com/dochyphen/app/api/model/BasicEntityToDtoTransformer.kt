@@ -3,7 +3,7 @@ package com.dochyphen.app.api.model
 import com.dochyphen.app.api.model.dto.*
 import com.dochyphen.app.api.model.entity.*
 
-class BasicModelConverter
+class BasicEntityToDtoTransformer
 {
     companion object
     {

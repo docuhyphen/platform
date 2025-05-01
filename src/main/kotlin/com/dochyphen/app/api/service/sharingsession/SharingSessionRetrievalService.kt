@@ -2,7 +2,7 @@ package com.dochyphen.app.api.service.sharingsession
 
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
-import com.dochyphen.app.api.model.BasicModelConverter
+import com.dochyphen.app.api.model.BasicEntityToDtoTransformer
 import com.dochyphen.app.api.model.dto.SharingSessionBasicDto
 import com.dochyphen.app.api.model.entity.Document
 import com.dochyphen.app.api.model.entity.SharingSession
@@ -132,7 +132,7 @@ class SharingSessionRetrievalService @Inject constructor(
         val totalPages = if (size > 0) (totalElements + size - 1) / size else 0
 
         return SearchResult(
-            content = sessions.map { BasicModelConverter.toDto(it) }.toTypedArray(),
+            content = sessions.map { BasicEntityToDtoTransformer.toDto(it) }.toTypedArray(),
             totalElements = totalElements,
             totalPages = totalPages.toInt(),
             currentPage = page,

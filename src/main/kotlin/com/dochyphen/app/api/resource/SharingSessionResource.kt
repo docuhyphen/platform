@@ -4,7 +4,7 @@ import com.dochyphen.app.api.exception.InvalidEmailException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
 import com.dochyphen.app.api.exception.UserNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
-import com.dochyphen.app.api.model.BasicModelConverter.Companion.toDto
+import com.dochyphen.app.api.model.BasicEntityToDtoTransformer.Companion.toDto
 import com.dochyphen.app.api.model.dto.SharingSessionBasicDto
 import com.dochyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.dochyphen.app.api.resource.model.ResponseError
