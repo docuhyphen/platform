@@ -1,7 +1,7 @@
 package com.dochyphen.app.api.resource
 
 import com.dochyphen.app.api.exception.OrganizationNotFoundException
-import com.dochyphen.app.api.model.entity.EntityToDtoTransformer
+import com.dochyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.dochyphen.app.api.model.resourceservice.MemberPermissionsModel
 import com.dochyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
 import com.dochyphen.app.api.resource.model.AddOrganizationGroupRequest
@@ -113,7 +113,7 @@ class OrganizationGroupsResource @Inject constructor(
         {
             var groups = organizationGroupService
                 .getOrganizationGroups(organizationId)
-                .map { EntityToDtoTransformer.toDto(it) }
+                .map { DetailedEntityToDtoTransformer.toDto(it) }
                 .toTypedArray()
 
             Response.ok(groups).build()

@@ -1,7 +1,7 @@
 package com.dochyphen.app.api.resource
 
 import com.dochyphen.app.api.exception.OrganizationNotFoundException
-import com.dochyphen.app.api.model.entity.EntityToDtoTransformer
+import com.dochyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.dochyphen.app.api.resource.model.AddOrganizationAppUserRequest
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.service.OrganizationAppUserService
@@ -48,7 +48,7 @@ class OrganizationAppUserResource @Inject constructor(
 
             return Response
                 .status(CREATED)
-                .entity(EntityToDtoTransformer.toDto(appUser))
+                .entity(DetailedEntityToDtoTransformer.toDto(appUser))
                 .build()
         }
         catch (exception: Exception)
@@ -97,7 +97,7 @@ class OrganizationAppUserResource @Inject constructor(
         return try
         {
             val appUsers = organizationAppUserService.getAppUsers(organizationId)
-                .map { EntityToDtoTransformer.toDto(it) }
+                .map { DetailedEntityToDtoTransformer.toDto(it) }
                 .toTypedArray()
 
             Response

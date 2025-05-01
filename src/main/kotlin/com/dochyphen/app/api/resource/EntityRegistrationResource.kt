@@ -5,7 +5,7 @@ import com.dochyphen.app.api.exception.InvalidPersonRegistrationException
 import com.dochyphen.app.api.exception.OrganizationAlreadyExistsException
 import com.dochyphen.app.api.exception.PersonAlreadyExistsException
 import com.dochyphen.app.api.model.BasicModelConverter
-import com.dochyphen.app.api.model.entity.EntityToDtoTransformer
+import com.dochyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.dochyphen.app.api.resource.model.OrganizationRegistrationRequest
 import com.dochyphen.app.api.resource.model.PersonRegistrationRequest
 import com.dochyphen.app.api.resource.model.ResponseError
@@ -44,7 +44,7 @@ class EntityRegistrationResource @Inject constructor(
                     entityRegistrationService.registerPerson(firstName, lastName, idNumber, idType)
                 }
 
-                Response.ok(EntityToDtoTransformer.toDto(person)).build()
+                Response.ok(DetailedEntityToDtoTransformer.toDto(person)).build()
             } ?: Response.status(BAD_REQUEST).build()
         }
         catch (exception: Exception)

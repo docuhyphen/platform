@@ -2,7 +2,7 @@ package com.dochyphen.app.api.resource
 
 import com.dochyphen.app.api.exception.SharingSessionDocumentNotFoundException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
-import com.dochyphen.app.api.model.entity.EntityToDtoTransformer
+import com.dochyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.service.sharingsession.SharingSessionDocumentVersionService
 import jakarta.inject.Inject
@@ -39,7 +39,7 @@ class SharingSessionDocumentVersionResource @Inject constructor(
         {
             val versions = sharingSessionDocumentVersionService.getDocumentVersions(sessionId, documentId)
 
-            val versionDtos = versions.map { EntityToDtoTransformer.toDto(it) }.toTypedArray()
+            val versionDtos = versions.map { DetailedEntityToDtoTransformer.toDto(it) }.toTypedArray()
 
             Response.ok(versionDtos).build()
         }
@@ -92,7 +92,7 @@ class SharingSessionDocumentVersionResource @Inject constructor(
                 userEmail
             )
 
-            status(CREATED).entity(EntityToDtoTransformer.toDto(version)).build()
+            status(CREATED).entity(DetailedEntityToDtoTransformer.toDto(version)).build()
         }
         catch (exception: Exception)
         {
