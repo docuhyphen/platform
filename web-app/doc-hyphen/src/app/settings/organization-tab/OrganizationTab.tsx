@@ -73,7 +73,7 @@ const OrganizationTab = () =>
                         Name
                     </Text>
                     <Text size={500}>
-                        Doc-Hyphen
+                        {appUserPersonOrganization?.name}
                     </Text>
                 </div>
                 <div className={styles.dataContainer}>
@@ -83,7 +83,7 @@ const OrganizationTab = () =>
                         Registration Number
                     </Text>
                     <Text size={500}>
-                        Mahlangu
+                        {appUserPersonOrganization?.registrationNumber}
                     </Text>
                 </div>
 
@@ -101,7 +101,7 @@ const OrganizationTab = () =>
                         Email
                     </Text>
                     <Text size={500}>
-                        text1@doc-hyphen.com
+                        {appUserPersonOrganization?.contactDetails?.email}
                     </Text>
                 </div>
                 <div className={styles.dataContainer}>

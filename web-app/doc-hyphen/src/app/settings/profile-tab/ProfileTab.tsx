@@ -1,9 +1,11 @@
 import {Button, Divider, Switch, Text} from "@fluentui/react-components";
 import {useProfileTabStyles} from "./ProfileTabStyles.tsx";
 import {ProfileEditBasicDetailsIcon} from "../../components/IconBundles.tsx";
+import {useAuth} from "../../../context/AuthContext.tsx";
 
 const ProfileTab = () =>
 {
+    const {appUser} = useAuth()
     const styles = useProfileTabStyles()
 
     return <>
@@ -25,7 +27,7 @@ const ProfileTab = () =>
                     First Name
                 </Text>
                 <Text size={500}>
-                    Christopher
+                    {appUser?.person?.firstName}
                 </Text>
             </div>
             <div className={styles.dataContainer}>
@@ -35,7 +37,7 @@ const ProfileTab = () =>
                     Last Name
                 </Text>
                 <Text size={500}>
-                    Mahlangu
+                    {appUser?.person?.lastName}
                 </Text>
             </div>
 
@@ -53,7 +55,7 @@ const ProfileTab = () =>
                     Email
                 </Text>
                 <Text size={500}>
-                    text1@doc-hyphen.com
+                    {appUser?.email}
                 </Text>
             </div>
             <div className={styles.dataContainer}>
@@ -63,11 +65,15 @@ const ProfileTab = () =>
                     Phone number
                 </Text>
                 <Text size={500}>
-                    <Button appearance={"outline"}
-                            shape={"circular"}
-                            size={"small"}>
-                        Add Phone Number
-                    </Button>
+                    {appUser?.person?.contactDetails?.phoneNumber ? (
+                        appUser.person.contactDetails.phoneNumber
+                    ) : (
+                        <Button appearance={"outline"}
+                                shape={"circular"}
+                                size={"small"}>
+                            Add Phone Number
+                        </Button>
+                    )}
                 </Text>
             </div>
             <Divider alignContent={"start"}

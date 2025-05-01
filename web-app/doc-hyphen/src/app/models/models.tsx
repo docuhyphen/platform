@@ -293,6 +293,17 @@ export interface OrganizationBasicDto
     isActive: boolean,
 }
 
+export interface OrganizationDetailedDto
+{
+    id?: string,
+    createdDate?: string,
+    name: string,
+    registrationNumber: string,
+    verificationComplete: boolean,
+    isActive: boolean,
+    contactDetails: ContactDetailsDetailedDto
+}
+
 export interface SharingSessionBasicDto
 {
     id: string;
