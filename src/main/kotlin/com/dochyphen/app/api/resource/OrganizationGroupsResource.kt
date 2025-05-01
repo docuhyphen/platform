@@ -146,4 +146,45 @@ class OrganizationGroupsResource @Inject constructor(
             }
         }
     }
+
+    @DELETE
+    @Path("/{organizationId}/groups/{groupId}")
+    fun deleteOrganizationGroup(
+        @PathParam("organizationId") organizationId: String?,
+        @PathParam("groupId") groupId: String?): Response
+    {
+        return try
+        {
+            organizationGroupService.deleteOrganizationGroup(organizationId, groupId)
+
+            Response.status(NO_CONTENT).build()
+        }
+        catch (exception: Exception)
+        {
+            logger.error("Error deleting organization group", exception)
+
+            when (exception)
+            {
+                is OrganizationNotFoundException ->
+                {
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(NOT_FOUND)
+                        .entity(responseError)
+                        .build()
+                }
+
+                else ->
+                {
+                    val responseError = ResponseError("An error occurred while deleting organization group")
+
+                    Response
+                        .status(INTERNAL_SERVER_ERROR)
+                        .entity(responseError)
+                        .build()
+                }
+            }
+        }
+    }
 }

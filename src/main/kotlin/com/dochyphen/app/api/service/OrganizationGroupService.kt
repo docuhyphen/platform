@@ -48,6 +48,11 @@ class OrganizationGroupService @Inject constructor(
         members: List<OrganizationGroupMemberModel>
     )
     {
+        if (authTokenContext.authToken.appUser?.role != AppUserRole.ORG_ADMIN)
+        {
+            throw IllegalArgumentException("User does not have permission to create groups")
+        }
+
         val organization = organizationRepository.findById(UUID.fromString(organizationId))
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
 
@@ -64,11 +69,6 @@ class OrganizationGroupService @Inject constructor(
         if (organization.groups.any { it.name.lowercase() == name.lowercase() })
         {
             throw IllegalArgumentException("Group name already exists")
-        }
-
-        if (authTokenContext.authToken.appUser?.role != AppUserRole.ORG_ADMIN)
-        {
-            throw IllegalArgumentException("User does not have permission to create groups")
         }
 
         val newGroup = OrganizationGroup().apply {
@@ -122,5 +122,29 @@ class OrganizationGroupService @Inject constructor(
     fun getOrganizationById(uUID: UUID): Organization?
     {
         return organizationRepository.findById(uUID)
+            ?: throw OrganizationNotFoundException("Organization not found for id: $uUID")
+    }
+
+    fun deleteOrganizationGroup(organizationId: String?, groupId: String?)
+    {
+        if (authTokenContext.authToken.appUser?.role != AppUserRole.ORG_ADMIN)
+        {
+            throw IllegalArgumentException("User does not have permission to create groups")
+        }
+
+        if (organizationId.isNullOrBlank() || groupId.isNullOrBlank())
+        {
+            throw OrganizationNotFoundException("Organization not found for id: $organizationId")
+        }
+
+        val organization = organizationRepository.findById(UUID.fromString(organizationId))
+            ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
+
+        val group = organization.groups.find { it.id.toString() == groupId }
+            ?: throw IllegalArgumentException("Group not found for id: $groupId")
+
+        organization.groups.remove(group)
+
+        organizationRepository.delete(organization)
     }
 }

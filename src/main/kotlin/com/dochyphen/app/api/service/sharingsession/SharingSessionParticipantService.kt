@@ -1,7 +1,7 @@
 package com.dochyphen.app.api.service.sharingsession
 
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
-import com.dochyphen.app.api.exception.UserNotFoundException
+import com.dochyphen.app.api.exception.AppUserNotFoundException
 import com.dochyphen.app.api.model.entity.SharingSessionParticipant
 import com.dochyphen.app.api.repository.AppUserRepository
 import com.dochyphen.app.api.repository.SharingSessionRepository
@@ -39,7 +39,7 @@ class SharingSessionParticipantService @Inject constructor(
             ?: throw SharingSessionNotFoundException("Sharing session not found")
 
         val participant = appUserRepository.findById(UUID.fromString(participantId))
-            ?: throw UserNotFoundException("Participant not found")
+            ?: throw AppUserNotFoundException("Participant not found")
 
         val sharingSessionParticipant = SharingSessionParticipant().apply {
             this.appUser = participant
@@ -62,7 +62,7 @@ class SharingSessionParticipantService @Inject constructor(
             ?: throw SharingSessionNotFoundException("Sharing session not found")
 
         val participant = appUserRepository.findById(UUID.fromString(participantId))
-            ?: throw UserNotFoundException("Participant not found")
+            ?: throw AppUserNotFoundException("Participant not found")
 
         sharingSession.participants.removeIf { it.appUser?.id == participant.id }
 

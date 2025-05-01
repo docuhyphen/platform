@@ -2,7 +2,7 @@ package com.dochyphen.app.api.resource
 
 import com.dochyphen.app.api.exception.InvalidEmailException
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
-import com.dochyphen.app.api.exception.UserNotFoundException
+import com.dochyphen.app.api.exception.AppUserNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.model.BasicEntityToDtoTransformer.Companion.toDto
 import com.dochyphen.app.api.model.dto.SharingSessionBasicDto
@@ -67,7 +67,7 @@ class SharingSessionResource @Inject constructor(
             {
                 is IllegalArgumentException,
                 is InvalidEmailException,
-                is UserNotFoundException ->
+                is AppUserNotFoundException ->
                 {
                     logger.error("Error initiating sharing session", exception)
 

@@ -1,5 +1,6 @@
 package com.dochyphen.app.api.resource
 
+import com.dochyphen.app.api.exception.AppUserNotFoundException
 import com.dochyphen.app.api.exception.OrganizationNotFoundException
 import com.dochyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.dochyphen.app.api.resource.model.AddOrganizationAppUserRequest
@@ -92,7 +93,7 @@ class OrganizationAppUserResource @Inject constructor(
 
     @GET
     @Path("/{organizationId}/app-users")
-    fun getAppUsers(organizationId: String?): Response
+    fun getAppUsers(@PathParam("organizationId") organizationId: String?): Response
     {
         return try
         {
@@ -133,6 +134,58 @@ class OrganizationAppUserResource @Inject constructor(
                 else ->
                 {
                     val responseError = ResponseError("An error occurred while getting organization app users")
+
+                    Response
+                        .status(INTERNAL_SERVER_ERROR)
+                        .entity(responseError)
+                        .build()
+                }
+            }
+        }
+    }
+
+    @Path("/{organizationId}/app-users/{appUserId}")
+    fun deactivateAppUser(@PathParam("organizationId") organizationId: String?,
+                          @PathParam("appUserId") appUserId: String?): Response
+    {
+        return try
+        {
+            organizationAppUserService.deactivateAppUser(organizationId, appUserId)
+
+            Response
+                .status(NO_CONTENT)
+                .build()
+        }
+        catch (exception: Exception)
+        {
+            logger.error("Error deactivating organization app user", exception)
+
+            when (exception)
+            {
+                is OrganizationNotFoundException,
+                is AppUserNotFoundException ->
+                {
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(NOT_FOUND)
+                        .entity(responseError)
+                        .build()
+                }
+
+                is IllegalArgumentException ->
+                {
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(BAD_REQUEST)
+                        .entity(responseError)
+                        .build()
+                }
+
+                else ->
+                {
+                    val responseError = ResponseError("An error occurred while deactivating an organization app user")
 
                     Response
                         .status(INTERNAL_SERVER_ERROR)

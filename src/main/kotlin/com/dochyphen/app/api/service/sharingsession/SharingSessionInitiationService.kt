@@ -1,7 +1,7 @@
 package com.dochyphen.app.api.service.sharingsession
 
 import com.dochyphen.app.api.exception.InvalidEmailException
-import com.dochyphen.app.api.exception.UserNotFoundException
+import com.dochyphen.app.api.exception.AppUserNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.model.entity.*
 import com.dochyphen.app.api.repository.AppUserRepository
@@ -94,7 +94,7 @@ class SharingSessionInitiationService @Inject constructor(
         val participants = sharingSessionParticipantRequests?.map {
 
             val appUser = appUserService.getAppUserById(UUID.fromString(it.id))
-                ?: throw UserNotFoundException("One of the participants not found")
+                ?: throw AppUserNotFoundException("One of the participants not found")
 
             SharingSessionParticipant().apply {
                 this.appUser = appUser

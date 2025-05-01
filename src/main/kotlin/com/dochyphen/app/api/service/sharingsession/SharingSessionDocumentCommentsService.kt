@@ -2,7 +2,7 @@
 package com.dochyphen.app.api.service.sharingsession
 
 import com.dochyphen.app.api.exception.SharingSessionNotFoundException
-import com.dochyphen.app.api.exception.UserNotFoundException
+import com.dochyphen.app.api.exception.AppUserNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.model.dto.NotificationDto
 import com.dochyphen.app.api.model.dto.NotificationType
@@ -52,7 +52,7 @@ class SharingSessionDocumentCommentsService @Inject constructor(
             ?: throw SharingSessionNotFoundException("Document not found")
 
         val user = appUserRepository.findByEmail(commentedBy)
-            ?: throw UserNotFoundException("User not found")
+            ?: throw AppUserNotFoundException("User not found")
 
         val comment = SharingSessionDocumentComment().apply {
             this.commentText = commentText

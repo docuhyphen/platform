@@ -1,8 +1,11 @@
 package com.dochyphen.app.api.service
 
+import com.dochyphen.app.api.exception.AppUserNotFoundException
 import com.dochyphen.app.api.exception.OrganizationNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
-import com.dochyphen.app.api.model.entity.*
+import com.dochyphen.app.api.model.entity.AppUser
+import com.dochyphen.app.api.model.entity.AppUserRole
+import com.dochyphen.app.api.model.entity.Person
 import com.dochyphen.app.api.repository.OrganizationRepository
 import com.dochyphen.app.api.service.auth.AuthenticationService
 import jakarta.enterprise.context.RequestScoped
@@ -97,7 +100,7 @@ class OrganizationAppUserService @Inject constructor(
 
     fun getAppUsers(organizationId: String?): List<AppUser>
     {
-        if (organizationId == null)
+        if (organizationId.isNullOrBlank())
         {
             throw IllegalArgumentException("Organization ID cannot be null")
         }
@@ -106,5 +109,33 @@ class OrganizationAppUserService @Inject constructor(
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
 
         return organization.appUsers;
+    }
+
+    fun deactivateAppUser(organizationId: String?, appUserId: String?)
+    {
+        if (authTokenContext.authToken.appUser?.role != AppUserRole.ORG_ADMIN)
+        {
+            throw IllegalArgumentException("User does not have permission to create groups")
+        }
+
+        if (organizationId.isNullOrBlank())
+        {
+            throw IllegalArgumentException("Organization ID cannot be null or blank")
+        }
+
+        if (appUserId.isNullOrBlank())
+        {
+            throw IllegalArgumentException("App User ID cannot be null or blank")
+        }
+
+        val organization = organizationGroupService.getOrganizationById(UUID.fromString(organizationId.toString()))
+            ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
+
+        val appUser = appUserService.getAppUserById(UUID.fromString(appUserId.toString()))
+            ?: throw AppUserNotFoundException("App user not found for id: $appUserId")
+
+        appUser.isActive = false
+
+        organizationRepository.update(organization)
     }
 }

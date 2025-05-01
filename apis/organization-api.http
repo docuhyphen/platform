@@ -49,3 +49,7 @@ Content-Type: application/json
 ### Get organization app users
 GET http://localhost:8080/organizations/{{organizationId}}/app-users
 Authorization: Bearer {{Authorization}}
+
+### Deactivate organization app users
+DELETE http://localhost:8080/organizations/{{organizationId}}/app-users
+Authorization: Bearer {{Authorization}}
