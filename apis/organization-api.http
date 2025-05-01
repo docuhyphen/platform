@@ -32,6 +32,10 @@ GET http://localhost:8080/organizations/{{organizationId}}/groups
 Authorization: Bearer {{Authorization}}
 Content-Type: application/json
 
+### Delete organization groups
+DELETE http://localhost:8080/organizations/{{organizationId}}/groups/0bee9833-23d7-42ee-a870-1fa174746559
+Authorization: Bearer {{Authorization}}
+
 ### Add organization app user
 POST http://localhost:8080/organizations/{{organizationId}}/app-users
 Authorization: Bearer {{Authorization}}
@@ -39,7 +43,7 @@ Content-Type: application/json
 
 {
   "role": "ORG_MEMBER",
-  "email": "test3@doc-hyphen.com",
+  "email": "test4@doc-hyphen.com",
   "person": {
       "firstName": "John",
       "lastName": "Doe"
@@ -51,5 +55,5 @@ GET http://localhost:8080/organizations/{{organizationId}}/app-users
 Authorization: Bearer {{Authorization}}
 
 ### Deactivate organization app users
-DELETE http://localhost:8080/organizations/{{organizationId}}/app-users
+DELETE http://localhost:8080/organizations/{{organizationId}}/app-users/3c4098f3-a36c-4d9f-aa42-3ddf9dbc4126
 Authorization: Bearer {{Authorization}}

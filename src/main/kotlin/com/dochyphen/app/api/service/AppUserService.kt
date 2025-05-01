@@ -32,4 +32,9 @@ class AppUserService @Inject constructor(
     {
         return appUserRepository.save(user)
     }
+
+    fun update(user: AppUser)
+    {
+        appUserRepository.update(user)
+    }
 }

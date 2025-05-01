@@ -145,6 +145,7 @@ class OrganizationAppUserResource @Inject constructor(
     }
 
     @Path("/{organizationId}/app-users/{appUserId}")
+    @DELETE
     fun deactivateAppUser(@PathParam("organizationId") organizationId: String?,
                           @PathParam("appUserId") appUserId: String?): Response
     {

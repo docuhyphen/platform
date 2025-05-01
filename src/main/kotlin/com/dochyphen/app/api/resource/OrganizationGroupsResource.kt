@@ -1,5 +1,6 @@
 package com.dochyphen.app.api.resource
 
+import com.dochyphen.app.api.exception.OrganizationGroupNotFoundException
 import com.dochyphen.app.api.exception.OrganizationNotFoundException
 import com.dochyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.dochyphen.app.api.model.resourceservice.MemberPermissionsModel
@@ -165,7 +166,8 @@ class OrganizationGroupsResource @Inject constructor(
 
             when (exception)
             {
-                is OrganizationNotFoundException ->
+                is OrganizationNotFoundException,
+                is OrganizationGroupNotFoundException ->
                 {
                     val responseError = ResponseError(exception.message)
 

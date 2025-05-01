@@ -128,7 +128,7 @@ class OrganizationAppUserService @Inject constructor(
             throw IllegalArgumentException("App User ID cannot be null or blank")
         }
 
-        val organization = organizationGroupService.getOrganizationById(UUID.fromString(organizationId.toString()))
+        organizationGroupService.getOrganizationById(UUID.fromString(organizationId.toString()))
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
 
         val appUser = appUserService.getAppUserById(UUID.fromString(appUserId.toString()))
@@ -136,6 +136,6 @@ class OrganizationAppUserService @Inject constructor(
 
         appUser.isActive = false
 
-        organizationRepository.update(organization)
+        appUserService.update(appUser)
     }
 }

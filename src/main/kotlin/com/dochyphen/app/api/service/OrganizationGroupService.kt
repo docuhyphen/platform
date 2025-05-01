@@ -1,5 +1,6 @@
 package com.dochyphen.app.api.service
 
+import com.dochyphen.app.api.exception.OrganizationGroupNotFoundException
 import com.dochyphen.app.api.exception.OrganizationNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.model.entity.*
@@ -141,10 +142,10 @@ class OrganizationGroupService @Inject constructor(
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
 
         val group = organization.groups.find { it.id.toString() == groupId }
-            ?: throw IllegalArgumentException("Group not found for id: $groupId")
+            ?: throw OrganizationGroupNotFoundException("Group not found for id: $groupId")
 
         organization.groups.remove(group)
 
-        organizationRepository.delete(organization)
+        organizationRepository.update(organization)
     }
 }
