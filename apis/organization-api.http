@@ -13,7 +13,32 @@ Content-Type: application/json
   "members": [
     {
       "appUserId": "d4f5484e-a246-4c33-9481-4f0cc88f7ff9",
-      "allowSessionAccept": true,
+      "allowSessionAccept": false,
+      "allowSessionReject": true,
+      "allowSessionEdit": false,
+      "allowSessionDelete": false,
+      "allowSessionEnd": true,
+      "allowDocumentAddition": true,
+      "allowDocumentDeletion": false,
+      "allowDocumentDownload": true,
+      "allowDocumentUpdate": true,
+      "allowDocumentUpload": true
+    }
+  ]
+}
+
+
+### Update organization group
+PUT http://localhost:8080/organizations/{{organizationId}}/groups/0262fab8-05ae-4493-9353-b3d27a51702d
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
+{
+  "name": "Test GroupEEE",
+  "members": [
+    {
+      "appUserId": "d4f5484e-a246-4c33-9481-4f0cc88f7ff9",
+      "allowSessionAccept": false,
       "allowSessionReject": true,
       "allowSessionEdit": false,
       "allowSessionDelete": false,
@@ -32,8 +57,8 @@ GET http://localhost:8080/organizations/{{organizationId}}/groups
 Authorization: Bearer {{Authorization}}
 Content-Type: application/json
 
-### Delete organization groups
-DELETE http://localhost:8080/organizations/{{organizationId}}/groups/0bee9833-23d7-42ee-a870-1fa174746559
+### DELETE organization group
+DELETE http://localhost:8080/organizations/{{organizationId}}/groups/cedcaeb3-9e3d-43d2-9365-fd1fd031caea
 Authorization: Bearer {{Authorization}}
 
 ### Add organization app user
@@ -55,5 +80,20 @@ GET http://localhost:8080/organizations/{{organizationId}}/app-users
 Authorization: Bearer {{Authorization}}
 
 ### Deactivate organization app users
-DELETE http://localhost:8080/organizations/{{organizationId}}/app-users/3c4098f3-a36c-4d9f-aa42-3ddf9dbc4126
+DELETE http://localhost:8080/organizations/{{organizationId}}/app-users/3a377013-9eea-4c42-8ccc-032a1d7e8c9c
 Authorization: Bearer {{Authorization}}
+
+### Update organization app user
+PUT http://localhost:8080/organizations/{{organizationId}}/app-users/3a377013-9eea-4c42-8ccc-032a1d7e8c9c
+Authorization: Bearer {{Authorization}}
+Content-Type:  application/json
+
+{
+    "isActive": false,
+    "email": "test5@doc-hyphen.com",
+    "role": "ORG_ADMIN",
+    "person": {
+      "firstName": "CINTHIA",
+      "lastName": "Doe"
+    }
+  }

@@ -37,4 +37,9 @@ class AppUserService @Inject constructor(
     {
         appUserRepository.update(user)
     }
+
+    fun getAppUserByEmail(email: String): AppUser?
+    {
+        return appUserRepository.findByEmail(email)
+    }
 }

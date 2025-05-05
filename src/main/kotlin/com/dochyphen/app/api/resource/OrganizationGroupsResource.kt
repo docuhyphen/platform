@@ -7,6 +7,7 @@ import com.dochyphen.app.api.model.resourceservice.MemberPermissionsModel
 import com.dochyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
 import com.dochyphen.app.api.resource.model.AddOrganizationGroupRequest
 import com.dochyphen.app.api.resource.model.ResponseError
+import com.dochyphen.app.api.resource.model.UpdateOrganizationGroupRequest
 import com.dochyphen.app.api.service.OrganizationGroupService
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -104,6 +105,71 @@ class OrganizationGroupsResource @Inject constructor(
         }
     }
 
+    @Path("/{organizationId}/groups/{groupId}")
+    @PUT
+    fun updateOrganizationGroup(
+        @PathParam("organizationId") organizationId: String,
+        @PathParam("groupId") groupId: String,
+        updateOrganizationGroupRequest: UpdateOrganizationGroupRequest
+    ): Response
+    {
+        return try
+        {
+            val groupMembers = updateOrganizationGroupRequest.members?.map { member ->
+                OrganizationGroupMemberModel(
+                    appUserId = member.appUserId ?: throw IllegalArgumentException("Member ID cannot be null"),
+                    permissions = MemberPermissionsModel(
+                        allowSessionAccept = member.allowSessionAccept,
+                        allowSessionReject = member.allowSessionReject,
+                        allowSessionEdit = member.allowSessionEdit,
+                        allowSessionDelete = member.allowSessionDelete,
+                        allowSessionEnd = member.allowSessionEnd,
+                        allowDocumentAddition = member.allowDocumentAddition,
+                        allowDocumentDeletion = member.allowDocumentDeletion,
+                        allowDocumentDownload = member.allowDocumentDownload,
+                        allowDocumentUpdate = member.allowDocumentUpdate,
+                        allowDocumentUpload = member.allowDocumentUpload
+                    )
+                )
+            } ?: emptyList()
+
+            with(updateOrganizationGroupRequest) {
+                organizationGroupService.updateOrganizationGroup(
+                    organizationId, groupId, name, isActive, groupMembers
+                )
+            }
+
+            Response.ok().build()
+        }
+        catch (exception: Exception)
+        {
+            logger.error("Error updating organization group", exception)
+
+            when (exception)
+            {
+                is OrganizationNotFoundException, is OrganizationGroupNotFoundException ->
+                {
+                    val responseError = ResponseError(exception.message)
+
+                    Response.status(NOT_FOUND).entity(responseError).build()
+                }
+
+                is IllegalArgumentException ->
+                {
+                    val responseError = ResponseError(exception.message)
+
+                    Response.status(BAD_REQUEST).entity(responseError).build()
+                }
+                else ->
+                {
+                    val responseError = ResponseError("An error occurred while updating an organization group")
+
+                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
+        }
+    }
+
     @Path("/{organizationId}/groups")
     @GET
     fun getOrganizationGroups(
@@ -135,6 +201,12 @@ class OrganizationGroupsResource @Inject constructor(
                         .build()
                 }
 
+                is IllegalArgumentException ->
+                {
+                    val responseError = ResponseError(exception.message)
+
+                    Response.status(BAD_REQUEST).entity(responseError).build()
+                }
                 else ->
                 {
                     val responseError = ResponseError("An error occurred while getting organization groups")
@@ -175,6 +247,13 @@ class OrganizationGroupsResource @Inject constructor(
                         .status(NOT_FOUND)
                         .entity(responseError)
                         .build()
+                }
+
+                is IllegalArgumentException ->
+                {
+                    val responseError = ResponseError(exception.message)
+
+                    Response.status(BAD_REQUEST).entity(responseError).build()
                 }
 
                 else ->

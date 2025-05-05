@@ -5,6 +5,7 @@ import com.dochyphen.app.api.exception.OrganizationNotFoundException
 import com.dochyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.dochyphen.app.api.resource.model.AddOrganizationAppUserRequest
 import com.dochyphen.app.api.resource.model.ResponseError
+import com.dochyphen.app.api.resource.model.UpdateOrganizationAppUserRequest
 import com.dochyphen.app.api.service.OrganizationAppUserService
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -134,6 +135,72 @@ class OrganizationAppUserResource @Inject constructor(
                 else ->
                 {
                     val responseError = ResponseError("An error occurred while getting organization app users")
+
+                    Response
+                        .status(INTERNAL_SERVER_ERROR)
+                        .entity(responseError)
+                        .build()
+                }
+            }
+        }
+    }
+
+    @PUT
+    @Path("/{organizationId}/app-users/{appUserId}")
+    @Transactional
+    fun updateAppUser(
+        @PathParam("organizationId") organizationId: String?,
+        @PathParam("appUserId") appUserId: String?,
+        updateOrganizationAppUserRequest: UpdateOrganizationAppUserRequest
+    ): Response
+    {
+        return try
+        {
+            with(updateOrganizationAppUserRequest)
+            {
+                organizationAppUserService.updateAppUser(
+                    organizationId,
+                    appUserId,
+                    role,
+                    isActive,
+                    email,
+                    this.person?.firstName,
+                    this.person?.lastName,
+                )
+            }
+
+            Response.status(NO_CONTENT).build()
+        }
+        catch (exception: Exception)
+        {
+            logger.error("Error updating organization app user", exception)
+
+            when (exception)
+            {
+                is OrganizationNotFoundException,
+                is AppUserNotFoundException ->
+                {
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(NOT_FOUND)
+                        .entity(responseError)
+                        .build()
+                }
+
+                is IllegalArgumentException ->
+                {
+                    val responseError = ResponseError(exception.message)
+
+                    Response
+                        .status(BAD_REQUEST)
+                        .entity(responseError)
+                        .build()
+                }
+
+                else ->
+                {
+                    val responseError = ResponseError("An error occurred while updating an organization app user")
 
                     Response
                         .status(INTERNAL_SERVER_ERROR)

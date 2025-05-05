@@ -108,9 +108,9 @@ class SharingSessionInitiationService @Inject constructor(
         val sharingSession = SharingSession().apply {
             this.initiator = entityManager.merge(initiator)
             this.recipient = entityManager.merge(recipient)
-            this.sessionName = sessionName
-            this.initialShareMessage = initialShareMessage
-            this.description = description
+            this.sessionName = sessionName!!.trim()
+            this.initialShareMessage = initialShareMessage?.trim()
+            this.description = description?.trim()
             this.status = SharingSessionStatus.INITIATED
             this.createdDate = Timestamp.from(Instant.now())
             this.lastActivity = Timestamp.from(Instant.now())

@@ -30,7 +30,10 @@ class OrganizationGroup {
 //    @Column(name = "is_deleted", nullable = false)
 //    var isDeleted: Boolean = true
 
-    @OneToMany(mappedBy = "organizationGroup", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    @OneToMany(
+        mappedBy = "organizationGroup",
+        cascade = [CascadeType.ALL], fetch = FetchType.LAZY,
+        orphanRemoval =  true)
     var members: MutableList<OrganizationGroupMember> = mutableListOf()
 
     constructor()

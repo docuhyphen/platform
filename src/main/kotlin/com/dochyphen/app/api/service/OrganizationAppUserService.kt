@@ -111,6 +111,99 @@ class OrganizationAppUserService @Inject constructor(
         return organization.appUsers;
     }
 
+    @Transactional
+    fun updateAppUser(
+        organizationId: String?,
+        appUserId: String?,
+        role: String?,
+        isActive: Boolean?,
+        email: String?,
+        firstName: String?,
+        lastName: String?
+    )
+    {
+        if (authTokenContext.authToken.appUser?.role != AppUserRole.ORG_ADMIN)
+        {
+            throw IllegalArgumentException("User does not have permission to update app users")
+        }
+
+        if (organizationId.isNullOrBlank())
+        {
+            throw IllegalArgumentException("Organization ID cannot be null or blank")
+        }
+
+        if (appUserId.isNullOrBlank())
+        {
+            throw IllegalArgumentException("App User ID cannot be null or blank")
+        }
+
+        organizationGroupService.getOrganizationById(UUID.fromString(organizationId.toString()))
+            ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
+
+        val appUser = appUserService.getAppUserById(UUID.fromString(appUserId))
+            ?: throw AppUserNotFoundException("App user not found for id: $appUserId")
+
+        isActive?.let {
+
+            appUser.isActive = isActive
+        } ?: run {
+            throw IllegalArgumentException("isActive cannot be null")
+        }
+
+        role?.let {
+
+            try
+            {
+                AppUserRole.valueOf(role)
+            }
+            catch (e: IllegalArgumentException)
+            {
+                throw IllegalArgumentException("Invalid role: $role")
+            }
+        }
+
+        email?.let {
+
+            if (it.isBlank() || authenticationService.isEmailInvalid(it))
+            {
+                throw IllegalArgumentException("A valid email is required")
+            }
+
+            val appUserByEmail = appUserService.getAppUserByEmail(it)
+
+            if (appUserByEmail != null && appUser.id != appUserByEmail.id)
+            {
+                throw IllegalArgumentException("Email already exists")
+            }
+
+            appUser.email = it.trim()
+
+        } ?: run {
+            throw IllegalArgumentException("Email cannot be null or blank")
+        }
+
+        appUser.person?.let {
+
+            if (firstName.isNullOrBlank())
+            {
+                throw IllegalArgumentException("First name cannot be blank")
+            }
+
+            if (lastName.isNullOrBlank())
+            {
+                throw IllegalArgumentException("Last name cannot be blank")
+            }
+
+            it.firstName = firstName.trim()
+            it.lastName = lastName.trim()
+
+        } ?: run {
+            throw IllegalArgumentException("Person cannot be null")
+        }
+
+        appUserService.update(appUser)
+    }
+
     fun deactivateAppUser(organizationId: String?, appUserId: String?)
     {
         if (authTokenContext.authToken.appUser?.role != AppUserRole.ORG_ADMIN)

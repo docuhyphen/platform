@@ -105,6 +105,13 @@ data class AddOrganizationGroupRequest(
 )
 
 @Serializable
+data class UpdateOrganizationGroupRequest(
+    var name: String? = null,
+    var isActive: Boolean = false,
+    var members: List<AddOrganizationGroupMemberRequest>? = mutableListOf(),
+)
+
+@Serializable
 data class AddOrganizationAppUserPersonRequest(
     var firstName: String? = null,
     var lastName: String? = null,
@@ -113,6 +120,14 @@ data class AddOrganizationAppUserPersonRequest(
 @Serializable
 data class AddOrganizationAppUserRequest(
     var role: AppUserRole? = null,
+    var email: String? = null,
+    var person: AddOrganizationAppUserPersonRequest?,
+)
+
+@Serializable
+data class UpdateOrganizationAppUserRequest(
+    var role: String? = null,
+    var isActive: Boolean? = null,
     var email: String? = null,
     var person: AddOrganizationAppUserPersonRequest?,
 )
