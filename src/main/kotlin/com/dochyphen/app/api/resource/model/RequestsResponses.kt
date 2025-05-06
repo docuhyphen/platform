@@ -112,6 +112,12 @@ data class UpdateOrganizationGroupRequest(
 )
 
 @Serializable
+data class UpdateOrganizationRequest(
+    var name: String? = null,
+    var registrationNumber: String? = null
+)
+
+@Serializable
 data class AddOrganizationAppUserPersonRequest(
     var firstName: String? = null,
     var lastName: String? = null,

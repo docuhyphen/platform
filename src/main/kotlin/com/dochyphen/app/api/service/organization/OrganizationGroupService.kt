@@ -1,4 +1,4 @@
-package com.dochyphen.app.api.service
+package com.dochyphen.app.api.service.organization
 
 import com.dochyphen.app.api.exception.OrganizationGroupNotFoundException
 import com.dochyphen.app.api.exception.OrganizationNotFoundException
@@ -7,6 +7,7 @@ import com.dochyphen.app.api.model.entity.*
 import com.dochyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
 import com.dochyphen.app.api.repository.OrganizationRepository
 import com.dochyphen.app.api.repository.SharingSessionParticipantRepository
+import com.dochyphen.app.api.service.AppUserService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager

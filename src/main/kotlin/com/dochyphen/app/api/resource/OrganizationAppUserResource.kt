@@ -6,7 +6,7 @@ import com.dochyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.dochyphen.app.api.resource.model.AddOrganizationAppUserRequest
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.resource.model.UpdateOrganizationAppUserRequest
-import com.dochyphen.app.api.service.OrganizationAppUserService
+import com.dochyphen.app.api.service.organization.OrganizationAppUserService
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import jakarta.ws.rs.*

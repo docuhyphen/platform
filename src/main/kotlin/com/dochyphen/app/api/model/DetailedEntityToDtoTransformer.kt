@@ -68,7 +68,7 @@ class DetailedEntityToDtoTransformer
             }
         }
 
-        fun toDo(sharingSession: SharingSession?): SharingSessionDetailedDto?
+        fun toDto(sharingSession: SharingSession?): SharingSessionDetailedDto?
         {
             return sharingSession?.let {
                 with(sharingSession)

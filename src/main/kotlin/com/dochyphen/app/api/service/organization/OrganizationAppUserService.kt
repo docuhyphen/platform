@@ -1,4 +1,4 @@
-package com.dochyphen.app.api.service
+package com.dochyphen.app.api.service.organization
 
 import com.dochyphen.app.api.exception.AppUserNotFoundException
 import com.dochyphen.app.api.exception.OrganizationNotFoundException
@@ -7,6 +7,7 @@ import com.dochyphen.app.api.model.entity.AppUser
 import com.dochyphen.app.api.model.entity.AppUserRole
 import com.dochyphen.app.api.model.entity.Person
 import com.dochyphen.app.api.repository.OrganizationRepository
+import com.dochyphen.app.api.service.AppUserService
 import com.dochyphen.app.api.service.auth.AuthenticationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -25,9 +26,6 @@ class OrganizationAppUserService @Inject constructor(
     private val organizationRepository: OrganizationRepository,
 )
 {
-    @PersistenceContext
-    private lateinit var entityManager: EntityManager
-
     companion object
     {
         private val logger = LoggerFactory.getLogger(OrganizationAppUserService::class.java)

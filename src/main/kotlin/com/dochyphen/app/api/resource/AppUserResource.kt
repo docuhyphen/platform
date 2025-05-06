@@ -2,8 +2,9 @@ package com.dochyphen.app.api.resource
 
 import com.dochyphen.app.api.exception.OrganizationNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
+import com.dochyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.dochyphen.app.api.resource.model.ResponseError
-import com.dochyphen.app.api.service.OrganizationGroupService
+import com.dochyphen.app.api.service.organization.OrganizationGroupService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
@@ -32,10 +33,9 @@ class AppUserResource @Inject constructor(
     {
         return try
         {
-
             authTokenContext.authToken.appUser?.let {
 
-                Response.ok(it).build()
+                Response.ok(DetailedEntityToDtoTransformer.toDto(it)).build()
 
             } ?: Response.status(BAD_REQUEST).entity(ResponseError("No user found")).build()
         }
@@ -63,7 +63,7 @@ class AppUserResource @Inject constructor(
                     UUID.fromString(personId)
                 )
 
-            Response.ok(organization).build()
+            Response.ok(DetailedEntityToDtoTransformer.toDto(organization)).build()
         }
         catch (exception: Exception)
         {

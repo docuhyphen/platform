@@ -8,7 +8,7 @@ import com.dochyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
 import com.dochyphen.app.api.resource.model.AddOrganizationGroupRequest
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.resource.model.UpdateOrganizationGroupRequest
-import com.dochyphen.app.api.service.OrganizationGroupService
+import com.dochyphen.app.api.service.organization.OrganizationGroupService
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import jakarta.ws.rs.*

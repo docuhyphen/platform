@@ -1,7 +1,16 @@
 ### Get organization
-GET http://localhost:8080/organizations/{{organizationId}}
+GET http://localhost:8080/app-user/d4f5484e-a246-4c33-9481-4f0cc88f7ff9/person/82da36b2-43bf-40dc-bb54-ff5f51fe702f/organization
 Authorization: Bearer {{Authorization}}
 Content-Type: application/json
+
+### Update organization
+PUT http://localhost:8080/organizations/{{organizationId}}
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
+{
+  "name": "The Test Organiz"
+}
 
 ### Add organization group
 POST http://localhost:8080/organizations/{{organizationId}}/groups
@@ -26,7 +35,6 @@ Content-Type: application/json
     }
   ]
 }
-
 
 ### Update organization group
 PUT http://localhost:8080/organizations/{{organizationId}}/groups/0262fab8-05ae-4493-9353-b3d27a51702d

@@ -173,7 +173,7 @@ class SharingSessionResource @Inject constructor(
         {
             val sharingSession = sharingSessionRetrievalService.getSharingSession(sessionId)
 
-            Response.ok(DetailedEntityToDtoTransformer.toDo(sharingSession)).build()
+            Response.ok(DetailedEntityToDtoTransformer.toDto(sharingSession)).build()
         }
         catch (exception: Exception)
         {
