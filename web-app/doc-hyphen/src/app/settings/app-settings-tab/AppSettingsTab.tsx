@@ -7,6 +7,7 @@ const AppSettingsTab = () =>
 
     return <>
         <div className={styles.container}>
+
             <Switch
                 label="Automatically preview documents"
             />
