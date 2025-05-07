@@ -11,7 +11,7 @@ import jakarta.transaction.Transactional
 @ApplicationScoped
 class MfaService(
     private val emailService: EmailService,
-    private val smsService: SmsService,
+    private val smsService: PhoneService,
     private val passkeyService: PasskeyService,
     private val mfaRecordRepository: MfaRecordRepository
 )
@@ -28,7 +28,7 @@ class MfaService(
         val phoneNumber = user.person?.contactDetails?.phoneNumber
             ?: throw IllegalArgumentException("SMS MFA Failed. Phone number is null")
 
-        smsService.sendSms(phoneNumber, "Your MFA Code: ${mfaRecord.mfaToken}")
+        smsService.sendSms(phoneNumber, "TODO", "Your MFA Code: ${mfaRecord.mfaToken}")
     }
 
     @Transactional

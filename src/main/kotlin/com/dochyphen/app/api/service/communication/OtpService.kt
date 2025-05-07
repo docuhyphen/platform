@@ -17,5 +17,10 @@ class OtpService
         return (100000..999999).random().toString()
     }
 
+    fun generatePhoneVerificationCode(): String
+    {
+        return (100000..999999).random().toString()
+    }
+
     fun hashOtp(otp: String): String = BCrypt.hashpw(otp, BCrypt.gensalt())
 }

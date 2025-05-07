@@ -79,6 +79,7 @@ class EntityRegistrationService @Inject constructor(
             this.lastName = lastName
             this.personIDType = personIDType
             this.identificationNumber = identificationNumber
+            this.contactDetails = ContactDetails()
         }
 
         personRepository.save(person)

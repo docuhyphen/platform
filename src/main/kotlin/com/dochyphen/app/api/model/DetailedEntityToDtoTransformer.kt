@@ -140,6 +140,7 @@ class DetailedEntityToDtoTransformer
                     ContactDetailsDetailedDto(
                         id,
                         createdDate,
+                        isPhoneVerified,
                         email,
                         phoneNumber
                     )

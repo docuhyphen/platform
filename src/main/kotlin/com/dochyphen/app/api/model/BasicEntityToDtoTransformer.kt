@@ -88,7 +88,13 @@ class BasicEntityToDtoTransformer
 
                 with(contactDetails)
                 {
-                    ContactDetailsBasicDto(id, createdDate, email, phoneNumber)
+                    ContactDetailsBasicDto(
+                        id,
+                        createdDate,
+                        isPhoneVerified,
+                        email,
+                        phoneNumber
+                    )
                 }
             }
         }

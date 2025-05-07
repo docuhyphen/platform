@@ -1,0 +1,4 @@
+### Get organization
+GET http://localhost:8080/app-user/{{appUserId}}/person/{{personId}}/organization
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json

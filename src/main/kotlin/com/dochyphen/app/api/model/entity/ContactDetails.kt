@@ -22,10 +22,28 @@ class ContactDetails
     var createdDate: Timestamp = Timestamp.from(Instant.now())
 
     @Column(name = "phone_number")
-    var phoneNumber: String? = ""
+    var phoneNumber: String? = null
+
+    @Column(name = "pending_phone_number")
+    var pendingPhoneNumber: String? = null
+
+    @Column(name = "phone_verification_code")
+    var phoneVerificationCode: String? = null
+
+    @Column(name = "is_phone_verified")
+    var isPhoneVerified: Boolean? = false
 
     @Column(name = "email")
-    var email: String? = ""
+    var email: String? = null
+
+    @Column(name = "email_verification_code")
+    var emailVerificationCode: String? = null
+
+    @Column(name = "pending_email")
+    var pendingEmail: String? = null
+
+    @Column(name = "is_email_verified")
+    var isEmailVerified: Boolean? = false
 
     @OneToOne
     var organization: Organization? = null

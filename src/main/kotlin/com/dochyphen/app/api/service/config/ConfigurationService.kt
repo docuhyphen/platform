@@ -13,6 +13,7 @@ class ConfigurationService
     fun getMaxSignUpCompletionOtpAttempts(): Long = 3
     fun getSignUpOtpExpiryMins(): Long = 5 //
     fun getAppEmailSubjectTitle() = "Doc-Hyphen"
+    fun getAppPhoneSubjectTitle() = getAppEmailSubjectTitle()
     fun getSignInEmailOtpMFAExpiryMins(): Long = 5
     fun getSignInSmsOtpMFAExpiryMins(): Long = 5
     fun getSignInTokenExpiryHours(): Long = 1

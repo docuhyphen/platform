@@ -127,6 +127,7 @@ data class ContactDetailsDetailedDto(
     val id: UUID?,
     @Serializable(with = TimestampSerializer::class)
     val createdDate: Timestamp?,
+    val isVerified: Boolean?,
     val email: String?,
     val phoneNumber: String?
 )

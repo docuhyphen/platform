@@ -228,3 +228,25 @@ data class CommentRequest(
 data class DownloadDocumentsZipRequest(
     val documentIds: List<String>
 )
+
+@Serializable
+data class InitiatePhoneNumberRequest(
+    val phoneNumber: String
+)
+
+@Serializable
+data class CompletePhoneNumberRequest(
+    val phoneNumber: String,
+    val verificationCode: String
+)
+
+@Serializable
+data class InitiateEmailRequest(
+    val email: String
+)
+
+@Serializable
+data class CompleteEmailRequest(
+    val email: String,
+    val verificationCode: String
+)
