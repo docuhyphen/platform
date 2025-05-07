@@ -41,6 +41,10 @@ class PhoneContactDetailsService @Inject constructor(
         val contactDetails = contactDetailsRepo.findById(UUID.fromString(contactDetailsId))
             ?: throw IllegalArgumentException("Contact details not found for ID: $contactDetailsId")
 
+        if (!contactDetails.phoneNumber.isNullOrBlank()) {
+            throw IllegalArgumentException("Contact already has a phone number. Use update instead of add.")
+        }
+
         if (contactDetails.phoneNumber == phoneNumber)
         {
             throw IllegalArgumentException("Phone number is already associated with the contact details")

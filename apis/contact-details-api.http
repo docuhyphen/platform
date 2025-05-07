@@ -61,7 +61,7 @@ Authorization: Bearer {{Authorization}}
 Content-Type: application/json
 
 {
-  "email": "updated@example.com"
+  "email": "test2@example.com"
 }
 
 ### Email - Complete Update
@@ -70,6 +70,6 @@ Authorization: Bearer {{Authorization}}
 Content-Type: application/json
 
 {
-  "email": "updated@example.com",
+  "email": "test2@example.com",
   "verificationCode": "123456"
 }

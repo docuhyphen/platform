@@ -41,6 +41,11 @@ class EmailContactDetailsService @Inject constructor(
         val contactDetails = contactDetailsRepo.findById(UUID.fromString(contactDetailsId))
             ?: throw IllegalArgumentException("Contact details not found for ID: $contactDetailsId")
 
+        if (!contactDetails.email.isNullOrBlank())
+        {
+            throw IllegalArgumentException("Contact already has an email. Use update instead of add.")
+        }
+
         if (contactDetails.email == email)
         {
             throw IllegalArgumentException("Email is already associated with the contact details")
