@@ -1,4 +1,4 @@
-package com.dochyphen.app.api.service
+package com.dochyphen.app.api.service.contactdetails
 
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.repository.ContactDetailsRepository

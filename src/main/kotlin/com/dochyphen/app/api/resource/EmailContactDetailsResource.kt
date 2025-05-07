@@ -2,14 +2,11 @@ package com.dochyphen.app.api.resource
 
 import com.dochyphen.app.api.resource.model.CompleteEmailRequest
 import com.dochyphen.app.api.resource.model.InitiateEmailRequest
-import com.dochyphen.app.api.resource.model.ResponseError
-import com.dochyphen.app.api.service.EmailContactDetailsService
-import io.quarkus.security.UnauthorizedException
+import com.dochyphen.app.api.service.contactdetails.EmailContactDetailsService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 

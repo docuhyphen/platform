@@ -2,7 +2,7 @@ package com.dochyphen.app.api.resource
 
 import com.dochyphen.app.api.resource.model.CompletePhoneNumberRequest
 import com.dochyphen.app.api.resource.model.InitiatePhoneNumberRequest
-import com.dochyphen.app.api.service.PhoneContactDetailsService
+import com.dochyphen.app.api.service.contactdetails.PhoneContactDetailsService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
