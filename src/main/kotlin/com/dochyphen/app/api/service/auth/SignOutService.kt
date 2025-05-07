@@ -18,8 +18,19 @@ class SignOutService @Inject constructor(
         private val logger = LoggerFactory.getLogger(SignOutService::class.java)
     }
 
-    fun signOut()
+    fun signOut(outOfAllDevices: Boolean = false)
     {
+        if (outOfAllDevices)
+        {
+            logger.info("Signing out from all devices.")
+            authTokenRepository.deleteAllByUserId(authTokenContext.authToken.appUser!!.id)
+
+            //ToDo: send web socket notification to all devices
+            return
+        }
+
+        logger.info("Signing out from the current device.")
+
         val token = authTokenContext.authToken.token
         val authToken = authTokenRepository.findByToken(token!!)
             ?: throw AuthTokenNotFoundException()

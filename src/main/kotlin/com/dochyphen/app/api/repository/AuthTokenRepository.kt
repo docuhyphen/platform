@@ -2,6 +2,7 @@ package com.dochyphen.app.api.repository
 
 import com.dochyphen.app.api.model.entity.AuthToken
 import jakarta.enterprise.context.RequestScoped
+import java.util.UUID
 
 @RequestScoped
 class AuthTokenRepository : BaseRepository<AuthToken>(AuthToken::class.java)
@@ -13,5 +14,13 @@ class AuthTokenRepository : BaseRepository<AuthToken>(AuthToken::class.java)
         ).setParameter("token", authToken)
             .resultList
             .firstOrNull()
+    }
+
+    fun deleteAllByUserId(userId: UUID)
+    {
+        entityManager.createQuery(
+            "DELETE FROM AuthToken s WHERE s.appUser.id = :userId"
+        ).setParameter("userId", userId)
+            .executeUpdate()
     }
 }

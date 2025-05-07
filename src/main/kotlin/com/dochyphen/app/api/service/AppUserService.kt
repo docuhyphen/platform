@@ -42,4 +42,14 @@ class AppUserService @Inject constructor(
     {
         return appUserRepository.findByEmail(email)
     }
+
+    fun initiatePasswordUpdate()
+    {
+
+    }
+
+    fun completePasswordUpdate()
+    {
+
+    }
 }
