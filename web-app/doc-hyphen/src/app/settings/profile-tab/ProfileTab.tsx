@@ -2,17 +2,54 @@ import {Button, Divider, Switch, Text} from "@fluentui/react-components";
 import {useProfileTabStyles} from "./ProfileTabStyles.tsx";
 import {ProfileEditBasicDetailsIcon} from "../../components/IconBundles.tsx";
 import {useAuth} from "../../../context/AuthContext.tsx";
+import {useEffect} from "react";
+import {AppUserSettingsDto} from "../../models/models.tsx";
+import {updateAppUserSettings} from "../../../services/appUserApi.ts";
 
 const ProfileTab = () =>
 {
-    const {appUser} = useAuth()
+    const {appUser, token, setAppUser} = useAuth()
     const styles = useProfileTabStyles()
+
+    useEffect(() =>
+    {
+        console.log("ProfileTab mounted");
+        console.log(appUser)
+    }, [appUser]);
+
+    const notifyLoginChange = async (e, data) =>
+    {
+        try
+        {
+            if (!appUser) return;
+
+            const updatedSettings: AppUserSettingsDto = {
+                ...appUser.settings,
+                notifyLogin: data.checked
+            };
+
+            await updateAppUserSettings(updatedSettings, token);
+
+            setAppUser({
+                ...appUser,
+                settings: updatedSettings
+            });
+        }
+        catch (e)
+        {
+            console.error("Failed to update settings:", e);
+        }
+    }
 
     return <>
         <div className={styles.container}>
-            <Switch
-                label="Send me by email every time I sign in"
-            />
+            {appUser &&
+                <Switch
+                    checked={appUser.settings.notifyLogin}
+                    onChange={notifyLoginChange}
+                    label="Send me by email every time I sign in"
+                />
+            }
 
             <Divider alignContent={"start"}
                      appearance={"brand"}>

@@ -1,5 +1,5 @@
 import React, {createContext, ReactNode, useContext, useEffect, useRef, useState} from 'react';
-import {fetchAppUser, fetchAppUserPersonOrganization} from '../services/userApi.ts';
+import {fetchAppUser, fetchAppUserPersonOrganization} from '../services/appUserApi.ts';
 import {AppUserDetailedDto, OrganizationBasicDto, OrganizationDetailedDto} from "../app/models/models.tsx";
 import {isTokenExpired} from "../utils/helpers.ts";
 import {useLocation, useNavigate} from "react-router-dom";

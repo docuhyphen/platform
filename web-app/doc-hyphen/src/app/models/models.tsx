@@ -441,12 +441,13 @@ export interface PersonDetailedDto
 
 export interface AppUserDetailedDto
 {
-    id?: string;
-    createdDate?: string;
-    isActive: boolean;
-    email: string;
+    id?: string
+    createdDate?: string
+    isActive: boolean
+    email: string
     role: AppUserRole
-    person: PersonDetailedDto;
+    person: PersonDetailedDto
+    settings: AppUserSettingsDto
 }
 
 export interface DocumentAuditDetailedDto
@@ -536,4 +537,19 @@ export interface NotificationDto
     userId?: string;
     isRead: boolean;
     data: Record<string, string>;
+}
+
+export interface AppUserSettingsDto
+{
+    id?: string;
+    notifyLogin: boolean;
+    autoPreviewDocuments: boolean;
+    notifyShareStart: boolean;
+    notifyShareAccept: boolean;
+    notifyShareDecline: boolean;
+    notifyShareEnd: boolean;
+    notifyDocComment: boolean;
+    notifyDocDelete: boolean;
+    notifyDocAdd: boolean;
+    notifyDocUpload: boolean;
 }

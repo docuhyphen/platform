@@ -21,7 +21,7 @@ class SettingsService @Inject constructor(
     var authorizationService: ServiceActionAuthorizationService,
     var authTokenContext: AuthTokenContext,
     var appUserService: AppUserService,
-    var organizationService: OrganizationService
+    var organizationService: OrganizationService,
 )
 {
     @Transactional
@@ -93,6 +93,9 @@ class SettingsService @Inject constructor(
             settings.notifyDocUpload = settingsDto.notifyDocUpload
         }
 
+        targetUser.settings = settings;
+        appUserService.update(targetUser)
+
         return settings
     }
 
@@ -146,6 +149,9 @@ class SettingsService @Inject constructor(
             authorizationService.validateUpdateEmailUpdatePermission(currentUser)
             settings.allowEmailUpdate = settingsDto.allowEmailUpdate
         }
+
+        organization.settings = settings
+        organizationService.update(organization)
 
         return settings
     }

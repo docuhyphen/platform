@@ -1,5 +1,5 @@
 import apiClient from './apiClient';
-import {OrganizationRegistrationRequest, PersonRegistrationRequest} from "../app/models/models.tsx";
+import {AppUserSettingsDto, OrganizationRegistrationRequest, PersonRegistrationRequest} from "../app/models/models.tsx";
 
 export const fetchAppUser = async (token: string | null) =>
 {
@@ -68,3 +68,20 @@ export const registerOrganization = async (request: OrganizationRegistrationRequ
         throw error.response?.data || error.message;
     }
 };
+
+export const updateAppUserSettings = async (request: AppUserSettingsDto,  token: string | null) =>
+{
+    try
+    {
+        const response = await apiClient.put(`/app-user/settings`, request, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+}

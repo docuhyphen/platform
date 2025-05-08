@@ -60,7 +60,7 @@ class ServiceActionAuthorizationService
         else
         {
             // Even if the user is updating their own settings, we need to check their role
-            if (appUser.role != ORG_ADMIN || appUser.role != ORG_MEMBER)
+            if (appUser.role != ORG_ADMIN && appUser.role != ORG_MEMBER)
             {
                 throw UnauthorizedException("User with role ${appUser.role} cannot update app user settings")
             }

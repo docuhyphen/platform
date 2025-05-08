@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
 import {completeSignIn, initiateSignIn, regenerateSignInOtp} from '../../../services/authApi.ts';
-import {fetchAppUser, fetchAppUserPersonOrganization,} from '../../../services/userApi.ts';
+import {fetchAppUser, fetchAppUserPersonOrganization,} from '../../../services/appUserApi.ts';
 import {useAuth} from '../../../context/AuthContext.tsx';
 import {useNavigate} from 'react-router-dom';
 import RedirectIfAuthenticated from '../../components/RedirectIfAuthenticated.tsx';

@@ -74,5 +74,10 @@ class OrganizationService @Inject constructor(
 
         return organization.appUsers
     }
+
+    fun update(organization: Organization)
+    {
+        organizationRepository.update(organization)
+    }
 }
 
