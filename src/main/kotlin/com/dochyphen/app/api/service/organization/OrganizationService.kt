@@ -2,7 +2,9 @@ package com.dochyphen.app.api.service.organization
 
 import com.dochyphen.app.api.exception.OrganizationNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
+import com.dochyphen.app.api.model.entity.AppUser
 import com.dochyphen.app.api.model.entity.AppUserRole.ORG_ADMIN
+import com.dochyphen.app.api.model.entity.Organization
 import com.dochyphen.app.api.repository.OrganizationRepository
 import com.dochyphen.app.api.service.AppUserService
 import com.dochyphen.app.api.service.auth.AuthenticationService
@@ -52,6 +54,25 @@ class OrganizationService @Inject constructor(
         }
 
         organizationRepository.update(organization)
+    }
+
+    fun getOrganizationById(organizationId: UUID): Organization
+    {
+        return organizationRepository.findById(organizationId)
+            ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
+    }
+
+    fun getAppUsers(organizationId: String?): List<AppUser>
+    {
+        if (organizationId.isNullOrBlank())
+        {
+            throw OrganizationNotFoundException("Organization ID cannot be null or blank")
+        }
+
+        val organization = organizationGroupService.getOrganizationById(UUID.fromString(organizationId))
+            ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
+
+        return organization.appUsers
     }
 }
 

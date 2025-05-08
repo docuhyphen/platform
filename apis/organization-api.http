@@ -1,7 +1,18 @@
 ### Get organization
-GET http://localhost:8080/app-user/d4f5484e-a246-4c33-9481-4f0cc88f7ff9/person/82da36b2-43bf-40dc-bb54-ff5f51fe702f/organization
+GET http://localhost:8080/app-user/{{appUserId}}/person/{{personId}}/organization
 Authorization: Bearer {{Authorization}}
 Content-Type: application/json
+
+### Update Organization Settings
+PUT http://localhost:8080/organizations/{{organizationId}}/settings
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
+{
+  "allowShareWithoutPairing": true,
+  "allowProfileUpdate": true,
+  "allowEmailUpdate": true
+}
 
 ### Update organization
 PUT http://localhost:8080/organizations/{{organizationId}}

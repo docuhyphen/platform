@@ -1,6 +1,8 @@
 package com.dochyphen.app.api.service
 
+import com.dochyphen.app.api.model.dto.AppUserSettingsDto
 import com.dochyphen.app.api.model.entity.AppUser
+import com.dochyphen.app.api.model.entity.AppUserSettings
 import com.dochyphen.app.api.model.entity.Person
 import com.dochyphen.app.api.repository.AppUserRepository
 import jakarta.enterprise.context.RequestScoped
@@ -9,7 +11,8 @@ import java.util.*
 
 @RequestScoped
 class AppUserService @Inject constructor(
-    val appUserRepository: AppUserRepository
+    val appUserRepository: AppUserRepository,
+    val settingsService: SettingsService
 )
 {
     fun getAppUserById(id: UUID): AppUser?
@@ -51,5 +54,9 @@ class AppUserService @Inject constructor(
     fun completePasswordUpdate()
     {
 
+    }
+
+    fun updateUserSettings(targetUserId: String?, settingsDto: AppUserSettingsDto): AppUserSettings {
+        return settingsService.updateAppUserSettings(targetUserId, settingsDto)
     }
 }

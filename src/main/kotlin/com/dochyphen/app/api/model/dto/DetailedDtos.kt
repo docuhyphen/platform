@@ -17,6 +17,7 @@ data class OrganizationDetailedDto(
     val name: String?,
     val registrationNumber: String?,
     val contactDetails: ContactDetailsDetailedDto?,
+    val settings: OrganizationSettingsDto
 )
 
 @Serializable
@@ -154,8 +155,10 @@ data class AppUserDetailedDto(
     val isActive: Boolean,
     val email: String,
     val role: AppUserRole,
-    val person: PersonDetailedDto?
+    val person: PersonDetailedDto?,
+    val settings: AppUserSettingsDto
 )
+
 @Serializable
 data class DocumentAuditDetailedDto(
     @Serializable(with = UUIDSerializer::class)

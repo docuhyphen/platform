@@ -79,6 +79,9 @@ class AppUser {
     @Column(name = "is_temporary", nullable = false)
     var isTemporary: Boolean = false
 
+    @OneToOne(cascade = [ALL], fetch = LAZY)
+    @JoinColumn(name = "settings_id")
+    var settings: AppUserSettings? = null
     constructor()
 }
 

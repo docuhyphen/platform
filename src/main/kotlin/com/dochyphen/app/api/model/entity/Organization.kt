@@ -11,8 +11,8 @@ import java.util.*
 @Entity
 @Table(name = "organization")
 @Serializable
-class Organization {
-
+class Organization
+{
     @Id
     @Serializable(with = UUIDSerializer::class)
     var id: UUID = UUID.randomUUID()
@@ -45,5 +45,8 @@ class Organization {
     @JoinColumn(name = "organization_id")
     var groups: MutableList<OrganizationGroup> = mutableListOf()
 
+    @OneToOne(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    @JoinColumn(name = "settings_id")
+    var settings: OrganizationSettings? = null
     constructor()
 }

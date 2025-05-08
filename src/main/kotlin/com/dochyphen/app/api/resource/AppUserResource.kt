@@ -1,10 +1,15 @@
 package com.dochyphen.app.api.resource
 
+import com.dochyphen.app.api.exception.AppUserNotFoundException
+import com.dochyphen.app.api.exception.DataIntegrityException
 import com.dochyphen.app.api.exception.OrganizationNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.model.DetailedEntityToDtoTransformer
+import com.dochyphen.app.api.model.dto.AppUserSettingsDto
 import com.dochyphen.app.api.resource.model.ResponseError
+import com.dochyphen.app.api.service.AppUserService
 import com.dochyphen.app.api.service.organization.OrganizationGroupService
+import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
@@ -19,7 +24,8 @@ import java.util.*
 @Consumes(MediaType.APPLICATION_JSON)
 class AppUserResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
-    private val organizationGroupService: OrganizationGroupService
+    private val organizationGroupService: OrganizationGroupService,
+    private val appUserService: AppUserService
 
 )
 {
@@ -81,6 +87,70 @@ class AppUserResource @Inject constructor(
                     val responseError = ResponseError("A server error occurred while fetching the organization.")
                     Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
+            }
+        }
+    }
+
+    @PUT
+    @Path("/settings")
+    fun updateCurrentUserSettings(settingsDto: AppUserSettingsDto): Response
+    {
+        return try
+        {
+            appUserService.updateUserSettings(null, settingsDto)
+            Response.ok(settingsDto).build()
+        }
+        catch (exception: Exception)
+        {
+            handleSettingsUpdateException(exception)
+        }
+    }
+
+    @PUT
+    @Path("/{userId}/settings")
+    fun updateUserSettings(
+        @PathParam("userId") userId: String,
+        settingsDto: AppUserSettingsDto
+    ): Response
+    {
+        return try
+        {
+            appUserService.updateUserSettings(userId, settingsDto)
+            Response.ok(settingsDto).build()
+        }
+        catch (exception: Exception)
+        {
+            handleSettingsUpdateException(exception)
+        }
+    }
+
+    private fun handleSettingsUpdateException(exception: Exception): Response
+    {
+        logger.error("Error updating user settings", exception)
+        return when (exception)
+        {
+            is UnauthorizedException ->
+            {
+                val responseError = ResponseError(exception.message ?: "Not authorized to update settings")
+                Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
+            }
+
+            is AppUserNotFoundException ->
+            {
+                val responseError = ResponseError(exception.message ?: "User not found")
+                Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
+            }
+
+            is DataIntegrityException ->
+            {
+                val responseError = ResponseError(exception.message ?: "Invalid data format")
+                Response.status(BAD_REQUEST).entity(responseError).build()
+            }
+
+            else ->
+            {
+                val responseError = ResponseError("Server error while updating settings")
+                Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
             }
         }
     }
