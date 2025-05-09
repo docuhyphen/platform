@@ -2,14 +2,16 @@ import {Button, Divider, Switch, Text} from "@fluentui/react-components";
 import {useProfileTabStyles} from "./ProfileTabStyles.tsx";
 import {ProfileEditBasicDetailsIcon} from "../../components/IconBundles.tsx";
 import {useAuth} from "../../../context/AuthContext.tsx";
-import {useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import {AppUserSettingsDto} from "../../models/models.tsx";
 import {updateAppUserSettings} from "../../../services/appUserApi.ts";
+import BasicDetailsEditDialog from "./basic-details-edit-dialog/BasicDetailsEditDialog.tsx";
 
 const ProfileTab = () =>
 {
     const {appUser, token, setAppUser} = useAuth()
     const styles = useProfileTabStyles()
+    const [isBasicDetailsDialogOpen, setIsBasicDetailsDialogOpen] = useState(false);
 
     useEffect(() =>
     {
@@ -55,6 +57,7 @@ const ProfileTab = () =>
                      appearance={"brand"}>
                 Basic Details
                 <Button icon={<ProfileEditBasicDetailsIcon/>}
+                        onClick={ () => setIsBasicDetailsDialogOpen(true)}
                         appearance={"subtle"}/>
             </Divider>
             <div className={styles.dataContainer}>
@@ -128,6 +131,10 @@ const ProfileTab = () =>
                         size={"medium"}> Sign out of all devices</Button>
             </div>
         </div>
+        <BasicDetailsEditDialog
+            isOpen={isBasicDetailsDialogOpen}
+            onDismiss={() => setIsBasicDetailsDialogOpen(false)}
+        />
     </>
 }
 

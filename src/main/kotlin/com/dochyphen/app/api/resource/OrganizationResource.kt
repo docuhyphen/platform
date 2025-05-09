@@ -25,7 +25,6 @@ class OrganizationResource @Inject constructor(
     private val settingsService: SettingsService
 )
 {
-
     companion object
     {
         private val logger = LoggerFactory.getLogger(OrganizationResource::class.java)
@@ -88,7 +87,6 @@ class OrganizationResource @Inject constructor(
             }
         }
     }
-
 
     @PUT
     @Path("/{organizationId}/settings")

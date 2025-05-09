@@ -170,3 +170,27 @@ data class DocumentAuditDetailedDto(
     val performedByEmail: String?
 )
 
+@Serializable
+data class AppUserSettingsDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID? = null,
+    val notifyLogin: Boolean = true,
+    val autoPreviewDocuments: Boolean = true,
+    val notifyShareStart: Boolean = true,
+    val notifyShareAccept: Boolean = true,
+    val notifyShareDecline: Boolean = true,
+    val notifyShareEnd: Boolean = true,
+    val notifyDocComment: Boolean = true,
+    val notifyDocDelete: Boolean = true,
+    val notifyDocAdd: Boolean = true,
+    val notifyDocUpload: Boolean = true
+)
+
+@Serializable
+data class OrganizationSettingsDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID? = null,
+    val allowShareWithoutPairing: Boolean = false,
+    val allowProfileUpdate: Boolean = false,
+    val allowEmailUpdate: Boolean = false
+)

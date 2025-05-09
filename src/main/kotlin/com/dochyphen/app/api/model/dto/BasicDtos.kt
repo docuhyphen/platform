@@ -72,15 +72,15 @@ data class OrganizationBasicDto(
 @Serializable
 data class PersonBasicDto(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID?,
+    val id: UUID? = null,
     @Serializable(with = TimestampSerializer::class)
-    val createdDate: Timestamp?,
-    val firstName: String?,
-    val lastName: String?,
-    val identificationNumber: String?,
-    val personIDType: String?,
+    val createdDate: Timestamp? = null,
+    val firstName: String? = null,
+    val lastName: String? = null,
+    val identificationNumber: String? = null,
+    val personIDType: String? = null,
     @Serializable(with = UUIDSerializer::class)
-    val contactDetailsId: UUID?
+    val contactDetailsId: UUID? = null
 )
 
 @Serializable

@@ -1,6 +1,7 @@
 package com.dochyphen.app.api.service
 
 import com.dochyphen.app.api.model.dto.AppUserSettingsDto
+import com.dochyphen.app.api.model.dto.PersonBasicDto
 import com.dochyphen.app.api.model.entity.AppUser
 import com.dochyphen.app.api.model.entity.AppUserSettings
 import com.dochyphen.app.api.model.entity.Person
@@ -58,5 +59,25 @@ class AppUserService @Inject constructor(
 
     fun updateUserSettings(targetUserId: String?, settingsDto: AppUserSettingsDto): AppUserSettings {
         return settingsService.updateAppUserSettings(targetUserId, settingsDto)
+    }
+
+    fun updatePerson(appUser: AppUser, personDto: PersonBasicDto)
+    {
+        if(personDto.firstName.isNullOrBlank())
+        {
+            throw IllegalArgumentException("First name cannot be null or blank")
+        }
+
+        if(personDto.lastName.isNullOrBlank())
+        {
+            throw IllegalArgumentException("Last name cannot be null or blank")
+        }
+
+        appUser.person = Person().apply {
+            this.firstName = personDto.firstName
+            this.lastName = personDto.lastName
+        }
+
+        appUserRepository.update(appUser)
     }
 }

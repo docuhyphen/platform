@@ -1,10 +1,15 @@
+### Get current logged in user
+GET {{host}}/app-user
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
 ### Get organization
-GET http://localhost:8080/app-user/{{appUserId}}/person/{{personId}}/organization
+GET {{host}}/app-user/{{appUserId}}/person/{{personId}}/organization
 Authorization: Bearer {{Authorization}}
 Content-Type: application/json
 
 ### Update Current User Settings
-PUT http://localhost:8080/app-user/settings
+PUT {{host}}/app-user/settings
 Authorization: Bearer {{Authorization}}
 Content-Type: application/json
 
@@ -22,7 +27,7 @@ Content-Type: application/json
 }
 
 ### Update Specific User Settings
-PUT http://localhost:8080/app-user/3a377013-9eea-4c42-8ccc-032a1d7e8c9c/settings
+PUT {{host}}/app-user/3a377013-9eea-4c42-8ccc-032a1d7e8c9c/settings
 Authorization: Bearer {{Authorization}}
 Content-Type: application/json
 
@@ -37,4 +42,14 @@ Content-Type: application/json
   "notifyDocDelete": false,
   "notifyDocAdd": false,
   "notifyDocUpload": false
+}
+
+### Get current logged in user person
+PUT {{host}}/app-user/person
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
+{
+  "firstName": "Stoic",
+  "lastName": "Boi"
 }

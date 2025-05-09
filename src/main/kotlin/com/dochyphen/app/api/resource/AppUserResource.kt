@@ -6,11 +6,13 @@ import com.dochyphen.app.api.exception.OrganizationNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.dochyphen.app.api.model.dto.AppUserSettingsDto
+import com.dochyphen.app.api.model.dto.PersonBasicDto
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.service.AppUserService
 import com.dochyphen.app.api.service.organization.OrganizationGroupService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
+import jakarta.transaction.Transactional
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
@@ -25,8 +27,7 @@ import java.util.*
 class AppUserResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val organizationGroupService: OrganizationGroupService,
-    private val appUserService: AppUserService
-
+    private val appUserService: AppUserService,
 )
 {
     companion object
@@ -121,6 +122,46 @@ class AppUserResource @Inject constructor(
         catch (exception: Exception)
         {
             handleSettingsUpdateException(exception)
+        }
+    }
+
+    /**
+     * Update current logged in user person
+     */
+    @PUT
+    @Path("/person")
+    @Transactional
+    fun updateUserPerson(personDto: PersonBasicDto): Response
+    {
+        return try
+        {
+            appUserService.updatePerson(authTokenContext.authToken.appUser!!, personDto)
+
+            Response.ok().build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is UnauthorizedException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
+                }
+
+                is AppUserNotFoundException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
+                }
+
+                else ->
+                {
+                    logger.error("Error updating user person", exception)
+                    val responseError = ResponseError("A server error occurred while updating user person.")
+                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
         }
     }
 
