@@ -2,6 +2,7 @@ package com.dochyphen.app.api.service.contactdetails
 
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.repository.ContactDetailsRepository
+import com.dochyphen.app.api.resource.ResourceEndpointDelayHelper
 import com.dochyphen.app.api.service.auth.ServiceActionAuthorizationService
 import com.dochyphen.app.api.service.communication.OtpService
 import com.dochyphen.app.api.service.communication.PhoneService
@@ -25,6 +26,8 @@ class PhoneContactDetailsService @Inject constructor(
         phoneNumber: String?
     )
     {
+        ResourceEndpointDelayHelper.delayEndpoint(2000, 3500)
+
         val appUser = authTokenContext.authToken.appUser!!
         serviceActionAuthorizationService.validateAppUserPhoneNumberModification(appUser)
 
@@ -78,6 +81,8 @@ class PhoneContactDetailsService @Inject constructor(
         verificationCode: String?
     )
     {
+        ResourceEndpointDelayHelper.delayEndpoint(2000, 3500)
+
         val appUser = authTokenContext.authToken.appUser!!
         serviceActionAuthorizationService.validateAppUserPhoneNumberModification(appUser)
 
@@ -119,6 +124,8 @@ class PhoneContactDetailsService @Inject constructor(
         phoneNumber: String
     )
     {
+        ResourceEndpointDelayHelper.delayEndpoint(2000, 3500)
+
         val appUser = authTokenContext.authToken.appUser!!
         serviceActionAuthorizationService.validateAppUserPhoneNumberModification(appUser)
 
@@ -166,6 +173,8 @@ class PhoneContactDetailsService @Inject constructor(
         verificationCode: String
     )
     {
+        ResourceEndpointDelayHelper.delayEndpoint(2000, 3500)
+
         val appUser = authTokenContext.authToken.appUser!!
         serviceActionAuthorizationService.validateAppUserPhoneNumberModification(appUser)
 

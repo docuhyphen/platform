@@ -1,8 +1,7 @@
 package com.dochyphen.app.api.service.auth
 
 import com.dochyphen.app.api.model.entity.AppUser
-import com.dochyphen.app.api.model.entity.AppUserRole.ORG_ADMIN
-import com.dochyphen.app.api.model.entity.AppUserRole.ORG_MEMBER
+import com.dochyphen.app.api.model.entity.AppUserRole.*
 import com.dochyphen.app.api.model.entity.Organization
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.ApplicationScoped
@@ -14,9 +13,12 @@ class ServiceActionAuthorizationService
     {
         with(appUser) {
 
-            if (role == ORG_ADMIN || role == ORG_MEMBER) return
-
-            throw UnauthorizedException("User with role $role cannot add a phone number addition")
+            when (role)
+            {
+                ORG_ADMIN, ORG_MEMBER, APP_USER -> return
+                else ->
+                    throw UnauthorizedException("User with role $role cannot add a phone number addition")
+            }
         }
     }
 

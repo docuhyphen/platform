@@ -3,15 +3,18 @@ import {useProfileTabStyles} from "./ProfileTabStyles.tsx";
 import {ProfileEditBasicDetailsIcon} from "../../components/IconBundles.tsx";
 import {useAuth} from "../../../context/AuthContext.tsx";
 import React, {useEffect, useState} from "react";
-import {AppUserSettingsDto} from "../../models/models.tsx";
+import {AppUserDetailedDto, AppUserSettingsDto} from "../../models/models.tsx";
 import {updateAppUserSettings} from "../../../services/appUserApi.ts";
 import BasicDetailsEditDialog from "./basic-details-edit-dialog/BasicDetailsEditDialog.tsx";
+import PhoneManagementDialog, {PhoneManagementMode} from "../../components/phone-management/PhoneManagementDialog.tsx";
 
 const ProfileTab = () =>
 {
     const {appUser, token, setAppUser} = useAuth()
     const styles = useProfileTabStyles()
     const [isBasicDetailsDialogOpen, setIsBasicDetailsDialogOpen] = useState(false);
+    const [phoneManagementMode, setPhoneManagementMode] = useState(PhoneManagementMode.ADD);
+    const [isContactDetailsEditDialogOpen, setIsContactDetailsEditDialogOpen] = useState(false);
 
     useEffect(() =>
     {
@@ -41,6 +44,19 @@ const ProfileTab = () =>
         {
             console.error("Failed to update settings:", e);
         }
+    }
+
+    const onAddOrEditPhone = () =>
+    {
+
+        setPhoneManagementMode(PhoneManagementMode.ADD)
+
+        if (appUser?.person.contactDetails?.phoneNumber)
+        {
+            setPhoneManagementMode(PhoneManagementMode.EDIT)
+        }
+
+        setIsContactDetailsEditDialogOpen(true)
     }
 
     return <>
@@ -84,8 +100,6 @@ const ProfileTab = () =>
             <Divider alignContent={"start"}
                      appearance={"brand"}>
                 Contact Details
-                <Button icon={<ProfileEditBasicDetailsIcon/>}
-                        appearance={"subtle"}/>
             </Divider>
 
             <div className={styles.dataContainer}>
@@ -95,6 +109,9 @@ const ProfileTab = () =>
                     Email
                 </Text>
                 <Text size={500}>
+                    <Button appearance={"subtle"}
+                            size={"small"}
+                            icon={<ProfileEditBasicDetailsIcon/>}/>
                     {appUser?.email}
                 </Text>
             </div>
@@ -106,11 +123,18 @@ const ProfileTab = () =>
                 </Text>
                 <Text size={500}>
                     {appUser?.person?.contactDetails?.phoneNumber ? (
-                        appUser.person.contactDetails.phoneNumber
+                        <>
+                            <Button appearance={"subtle"}
+                                    size={"small"}
+                                    icon={<ProfileEditBasicDetailsIcon/>}
+                                    onClick={onAddOrEditPhone}/>
+                            {appUser.person.contactDetails.phoneNumber}
+                        </>
                     ) : (
                         <Button appearance={"outline"}
                                 shape={"circular"}
-                                size={"small"}>
+                                size={"small"}
+                                onClick={onAddOrEditPhone}>
                             Add Phone Number
                         </Button>
                     )}
@@ -131,6 +155,24 @@ const ProfileTab = () =>
                         size={"medium"}> Sign out of all devices</Button>
             </div>
         </div>
+        <PhoneManagementDialog
+            isOpen={isContactDetailsEditDialogOpen}
+            mode={phoneManagementMode}
+            onDismiss={() => setIsContactDetailsEditDialogOpen(false)}
+            contactDetails={appUser?.person.contactDetails}
+            onComplete={
+                (contactDetails) =>
+                {
+                    setAppUser({
+                        ...appUser,
+                        person: {
+                            ...appUser?.person,
+                            contactDetails: contactDetails
+                        }
+                    } as AppUserDetailedDto)
+                }
+            }/>
+
         <BasicDetailsEditDialog
             isOpen={isBasicDetailsDialogOpen}
             onDismiss={() => setIsBasicDetailsDialogOpen(false)}
