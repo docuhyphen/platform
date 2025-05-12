@@ -8,12 +8,14 @@ import {updateAppUserSettings} from "../../../services/appUserApi.ts";
 import BasicDetailsEditDialog from "./basic-details-edit-dialog/BasicDetailsEditDialog.tsx";
 import PhoneManagementDialog, {PhoneManagementMode} from "../../components/phone-management/PhoneManagementDialog.tsx";
 import AppUserEmailUpdateDialog from "../../components/app-user-email-update-dialog/AppUserEmailUpdateDialog.tsx";
+import AllDeviceSignOutDialog from "./all-device-sign-out-dialog/AllDeviceSignOutDialog.tsx";
 
 const ProfileTab = () =>
 {
     const {appUser, token, setAppUser} = useAuth()
     const styles = useProfileTabStyles()
     const [isBasicDetailsDialogOpen, setIsBasicDetailsDialogOpen] = useState(false);
+    const [isAllDeviceSignOutDialogOpen, setIsAllDeviceSignOutDialogOpen] = useState(false);
     const [phoneManagementMode, setPhoneManagementMode] = useState(PhoneManagementMode.ADD);
     const [isContactDetailsEditDialogOpen, setIsContactDetailsEditDialogOpen] = useState(false);
     const [isEmailUpdateDialogOpen, setIsEmailUpdateDialogOpen] = useState(false);
@@ -50,7 +52,6 @@ const ProfileTab = () =>
 
     const onAddOrEditPhone = () =>
     {
-
         setPhoneManagementMode(PhoneManagementMode.ADD)
 
         if (appUser?.person.contactDetails?.phoneNumber)
@@ -155,6 +156,7 @@ const ProfileTab = () =>
             <div>
                 <Button appearance={"outline"}
                         shape={"circular"}
+                        onClick={() => setIsAllDeviceSignOutDialogOpen(true)}
                         size={"medium"}> Sign out of all devices</Button>
             </div>
         </div>
@@ -186,6 +188,11 @@ const ProfileTab = () =>
         <BasicDetailsEditDialog
             isOpen={isBasicDetailsDialogOpen}
             onDismiss={() => setIsBasicDetailsDialogOpen(false)}
+        />
+
+        <AllDeviceSignOutDialog
+            isOpen={isAllDeviceSignOutDialogOpen}
+            onDismiss={() => setIsAllDeviceSignOutDialogOpen(false)}
         />
     </>
 }

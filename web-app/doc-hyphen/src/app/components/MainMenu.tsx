@@ -17,7 +17,7 @@ import {
     Spinner
 } from "@fluentui/react-components";
 import {useAuth} from '../../context/AuthContext';
-import SignOutButton from '../components/SignOutButton';
+import SignOutClickSurface from './SignOutClickSurface.tsx';
 import SharingSessionInitiation from "../sharing-session-initiation/SharingSessionInitiation.tsx";
 import AppLogo from "./app-logo/AppLogo.tsx";
 import {useGlobalStyles} from "../../GlobalStyles.tsx";
@@ -78,7 +78,7 @@ const MainMenu: React.FC = () =>
                             Settings
                         </MenuItem>
                         <MenuItem icon={<SignOutButtonIcon/>}>
-                            <SignOutButton onSignOut={onSignOut}/>
+                            <SignOutClickSurface onSignOut={onSignOut}/>
                         </MenuItem>
                     </MenuList>
                 </MenuPopover>

@@ -3,10 +3,7 @@ package com.dochyphen.app.api.resource
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.service.auth.SignOutService
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.Produces
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
@@ -25,12 +22,14 @@ class SignOutResource @Inject constructor(
     }
 
     @POST
-    fun signOut(): Response
+    fun signOut(
+        @QueryParam("outOfAllDevices") outOfAllDevices: Boolean = false
+    ): Response
     {
         return try
         {
             ResourceEndpointDelayHelper.delayEndpoint(3000, 6000)
-            signOutService.signOut()
+            signOutService.signOut(outOfAllDevices)
             Response.ok().build()
         }
         catch (exception: Exception)

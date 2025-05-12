@@ -5,10 +5,15 @@ import {useNavigate} from 'react-router-dom';
 
 interface SignOutButtonProps
 {
+    outOfAllDevices?: boolean;
     onSignOut: () => void;
 }
 
-const SignOutButton: React.FC<SignOutButtonProps> = ({onSignOut}) =>
+const SignOutClickSurface: React.FC<SignOutButtonProps> = (
+    {
+        outOfAllDevices,
+        onSignOut
+    }) =>
 {
     const {token, setToken} = useAuth();
     const navigate = useNavigate();
@@ -25,9 +30,10 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({onSignOut}) =>
         {
             setSigningOut(true);
             onSignOut();
+
             try
             {
-                await signOut(token);
+                await signOut(outOfAllDevices ?? false, token);
                 setToken(null);
                 navigate('/sign-in');
             }
@@ -49,4 +55,4 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({onSignOut}) =>
     );
 };
 
-export default SignOutButton;
+export default SignOutClickSurface;

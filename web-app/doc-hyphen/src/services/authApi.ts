@@ -127,11 +127,11 @@ export const completeSignIn = async (request: SignInCompletionRequest) =>
     }
 };
 
-export const signOut = async (token: string) =>
+export const signOut = async (outOfAllDevices: boolean, token: string) =>
 {
     try
     {
-        const response = await apiClient.post(`/auth/sign-out`, {}, {
+        const response = await apiClient.post(`/auth/sign-out?outOfAllDevices=${outOfAllDevices}`, {}, {
             headers: {
                 Authorization: `Bearer ${token}`
             }

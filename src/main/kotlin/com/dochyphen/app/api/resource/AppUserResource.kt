@@ -101,6 +101,8 @@ class AppUserResource @Inject constructor(
     @Path("/settings")
     fun updateCurrentUserSettings(settingsDto: AppUserSettingsDto): Response
     {
+        ResourceEndpointDelayHelper.delayEndpoint(1500, 2500)
+
         return try
         {
             appUserService.updateSettings(null, settingsDto)
@@ -122,6 +124,8 @@ class AppUserResource @Inject constructor(
         settingsDto: AppUserSettingsDto
     ): Response
     {
+        ResourceEndpointDelayHelper.delayEndpoint(1500, 2500)
+
         return try
         {
             appUserService.updateSettings(userId, settingsDto)
@@ -141,6 +145,8 @@ class AppUserResource @Inject constructor(
     @Transactional
     fun updatePerson(personDto: PersonBasicDto): Response
     {
+        ResourceEndpointDelayHelper.delayEndpoint(1500, 2500)
+
         return try
         {
             appUserService.updatePerson(authTokenContext.authToken.appUser!!, personDto)
@@ -181,6 +187,8 @@ class AppUserResource @Inject constructor(
     @Transactional
     fun initiateEmailUpdate(addOrUpdateEmailRequest: InitiateAddOrUpdateEmailRequest): Response
     {
+        ResourceEndpointDelayHelper.delayEndpoint(1500, 2500)
+
         return try
         {
             appUserService.initiateEmailUpdate(addOrUpdateEmailRequest.email)
@@ -220,6 +228,8 @@ class AppUserResource @Inject constructor(
     @Transactional
     fun completeEmailUpdate(request: CompleteAddOrUpdateEmailRequest): Response
     {
+        ResourceEndpointDelayHelper.delayEndpoint(1500, 2500)
+
         return try
         {
             appUserService.completeEmailUpdate(request.email, request.verificationCode)
