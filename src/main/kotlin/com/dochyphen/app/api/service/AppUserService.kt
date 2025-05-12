@@ -1,11 +1,16 @@
 package com.dochyphen.app.api.service
 
+import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.model.dto.AppUserSettingsDto
 import com.dochyphen.app.api.model.dto.PersonBasicDto
 import com.dochyphen.app.api.model.entity.AppUser
 import com.dochyphen.app.api.model.entity.AppUserSettings
 import com.dochyphen.app.api.model.entity.Person
 import com.dochyphen.app.api.repository.AppUserRepository
+import com.dochyphen.app.api.service.auth.SignOutService
+import com.dochyphen.app.api.service.communication.EmailService
+import com.dochyphen.app.api.service.communication.OtpService
+import com.dochyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import java.util.*
@@ -13,26 +18,25 @@ import java.util.*
 @RequestScoped
 class AppUserService @Inject constructor(
     val appUserRepository: AppUserRepository,
-    val settingsService: SettingsService
+    val settingsService: SettingsService,
+    val authTokenContext: AuthTokenContext,
+    val otpService: OtpService,
+    val emailService: EmailService,
+    val configurationService: ConfigurationService,
+    val signOutService: SignOutService
 )
 {
-    fun getAppUserById(id: UUID): AppUser?
+    fun getById(id: UUID): AppUser?
     {
         return appUserRepository.findById(id)
     }
 
-    fun findUserByEmail(email: String): AppUser?
+    fun findByEmail(email: String): AppUser?
     {
         return appUserRepository.findByEmail(email)
     }
 
-    fun updatePerson(appUser: AppUser, person: Person)
-    {
-        appUser.person = person
-        appUserRepository.update(appUser)
-    }
-
-    fun createAppUser(user: AppUser): AppUser
+    fun create(user: AppUser): AppUser
     {
         return appUserRepository.save(user)
     }
@@ -42,22 +46,19 @@ class AppUserService @Inject constructor(
         appUserRepository.update(user)
     }
 
+    fun updatePerson(appUser: AppUser, person: Person)
+    {
+        appUser.person = person
+        appUserRepository.update(appUser)
+    }
+
     fun getAppUserByEmail(email: String): AppUser?
     {
         return appUserRepository.findByEmail(email)
     }
 
-    fun initiatePasswordUpdate()
+    fun updateSettings(targetUserId: String?, settingsDto: AppUserSettingsDto): AppUserSettings
     {
-
-    }
-
-    fun completePasswordUpdate()
-    {
-
-    }
-
-    fun updateUserSettings(targetUserId: String?, settingsDto: AppUserSettingsDto): AppUserSettings {
         return settingsService.updateAppUserSettings(targetUserId, settingsDto)
     }
 
@@ -79,5 +80,71 @@ class AppUserService @Inject constructor(
         }
 
         appUserRepository.update(appUser)
+    }
+
+    fun initiateEmailUpdate(email: String?)
+    {
+        val appUser = authTokenContext.authToken.appUser!!
+
+        if (email.isNullOrBlank())
+        {
+            throw IllegalArgumentException("Email cannot be null or blank")
+        }
+
+        if (email == appUser.email)
+        {
+            throw IllegalArgumentException("New email is the same as the current one")
+        }
+
+        appUserRepository.findByEmail(email)?.let {
+            if (it.id != appUser.id)
+            {
+                throw IllegalArgumentException("Email already exists")
+            }
+        }
+
+        val verificationCode = otpService.generateEmailOtp()
+        appUser.pendingEmail = email
+        appUser.pendingEmailVerificationCode = verificationCode
+        appUserRepository.update(appUser)
+
+        emailService.sendEmail(
+            email,
+            "${configurationService.getAppEmailSubjectTitle()} Email Verification",
+            "Your verification code is: $verificationCode"
+        )
+    }
+
+    fun completeEmailUpdate(email: String?, verificationCode: String?)
+    {
+        val appUser = authTokenContext.authToken.appUser!!
+
+        if (email.isNullOrBlank())
+        {
+            throw IllegalArgumentException("Email cannot be null or blank")
+        }
+
+        if (verificationCode.isNullOrBlank())
+        {
+            throw IllegalArgumentException("Verification code cannot be null or blank")
+        }
+
+        if (appUser.pendingEmail != email)
+        {
+            throw IllegalArgumentException("Email does not match the pending email")
+        }
+
+        if (appUser.pendingEmailVerificationCode != verificationCode)
+        {
+            throw IllegalArgumentException("Invalid verification code")
+        }
+
+        appUser.email = email
+        appUser.pendingEmail = null
+        appUser.pendingEmailVerificationCode = null
+        appUser.emailVerificationComplete = true
+        appUserRepository.update(appUser)
+
+        signOutService.signOut(outOfAllDevices = true)
     }
 }

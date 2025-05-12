@@ -85,3 +85,44 @@ export const updateAppUserSettings = async (request: AppUserSettingsDto,  token:
         throw error.response?.data || error.message;
     }
 }
+export const initiateAppUserEmailUpdate = async (email: string, token: string | null) =>
+{
+    try
+    {
+        const response = await apiClient.put(
+            `/app-user/email/update-initiation`,
+            {email},
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            }
+        );
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+export const completeAppUserEmailUpdate = async (email: string, verificationCode: string, token: string | null) =>
+{
+    try
+    {
+        const response = await apiClient.post(
+            `/app-user/email/update-completion`,
+            {email, verificationCode},
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            }
+        );
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};

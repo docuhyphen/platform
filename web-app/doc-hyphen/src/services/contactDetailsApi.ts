@@ -49,3 +49,35 @@ export const completePhoneUpdate = (contactDetailsId: string, phoneNumber: strin
             {headers: getAuthHeaders(token)}
         )
     );
+
+export const initiateEmailAddition = (contactDetailsId: string, email: string, token: string | null): Promise<void | ResponseError> =>
+    executeRequest(() =>
+        apiClient.post(`/contact-details/${contactDetailsId}/email/addition-initiation`,
+            {email},
+            {headers: getAuthHeaders(token)}
+        )
+    );
+
+export const completeEmailAddition = (contactDetailsId: string, email: string, verificationCode: string, token: string | null): Promise<void | ResponseError> =>
+    executeRequest(() =>
+        apiClient.post(`/contact-details/${contactDetailsId}/email/addition-completion`,
+            {email, verificationCode},
+            {headers: getAuthHeaders(token)}
+        )
+    );
+
+export const initiateEmailUpdate = (contactDetailsId: string, email: string, token: string | null): Promise<void | ResponseError> =>
+    executeRequest(() =>
+        apiClient.post(`/contact-details/${contactDetailsId}/email/initiate-update`,
+            {email},
+            {headers: getAuthHeaders(token)}
+        )
+    );
+
+export const completeEmailUpdate = (contactDetailsId: string, email: string, verificationCode: string, token: string | null): Promise<void | ResponseError> =>
+    executeRequest(() =>
+        apiClient.post(`/contact-details/${contactDetailsId}/email/complete-update`,
+            {email, verificationCode},
+            {headers: getAuthHeaders(token)}
+        )
+    );

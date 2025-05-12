@@ -56,7 +56,7 @@ class SignInService @Inject constructor(
             throw InvalidSignInCredentialsException()
         }
 
-        val appUser = appUserService.findUserByEmail(email) ?: throw InvalidSignInCredentialsException()
+        val appUser = appUserService.findByEmail(email) ?: throw InvalidSignInCredentialsException()
 
         if (!authenticationService.validatePassword(password, appUser.password!!))
         {

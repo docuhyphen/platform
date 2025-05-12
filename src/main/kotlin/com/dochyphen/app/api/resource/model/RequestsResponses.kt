@@ -1,10 +1,6 @@
 package com.dochyphen.app.api.resource.model
 
-import com.dochyphen.app.api.model.entity.AppUser
-import com.dochyphen.app.api.model.entity.AppUserRole
-import com.dochyphen.app.api.model.entity.DocumentType
-import com.dochyphen.app.api.model.entity.Person
-import com.dochyphen.app.api.model.entity.SharingSessionStatus
+import com.dochyphen.app.api.model.entity.*
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -179,7 +175,6 @@ data class UpdateNoAuthSharingSession(
     var rejectReason: String? = null
 )
 
-
 @Serializable
 class AddSharingSessionDocumentRequest(
     val title: String?,
@@ -230,23 +225,23 @@ data class DownloadDocumentsZipRequest(
 )
 
 @Serializable
-data class InitiatePhoneNumberRequest(
+data class InitiateAddOrUpdatePhoneNumberRequest(
     val phoneNumber: String
 )
 
 @Serializable
-data class CompletePhoneNumberRequest(
+data class CompleteAddOrUpdatePhoneNumberRequest(
     val phoneNumber: String,
     val verificationCode: String
 )
 
 @Serializable
-data class InitiateEmailRequest(
+data class InitiateAddOrUpdateEmailRequest(
     val email: String
 )
 
 @Serializable
-data class CompleteEmailRequest(
+data class CompleteAddOrUpdateEmailRequest(
     val email: String,
     val verificationCode: String
 )

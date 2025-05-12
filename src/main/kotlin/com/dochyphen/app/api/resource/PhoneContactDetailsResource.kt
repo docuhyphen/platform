@@ -1,7 +1,7 @@
 package com.dochyphen.app.api.resource
 
-import com.dochyphen.app.api.resource.model.CompletePhoneNumberRequest
-import com.dochyphen.app.api.resource.model.InitiatePhoneNumberRequest
+import com.dochyphen.app.api.resource.model.CompleteAddOrUpdatePhoneNumberRequest
+import com.dochyphen.app.api.resource.model.InitiateAddOrUpdatePhoneNumberRequest
 import com.dochyphen.app.api.service.contactdetails.PhoneContactDetailsService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
@@ -24,7 +24,7 @@ class PhoneContactDetailsResource @Inject constructor(
     @Path("/{contactDetailsId}/phone/addition-initiation")
     fun initiatePhoneNumberAddition(
         @PathParam("contactDetailsId") contactDetailsId: String,
-        request: InitiatePhoneNumberRequest
+        request: InitiateAddOrUpdatePhoneNumberRequest
     ): Response
     {
         return try
@@ -46,7 +46,7 @@ class PhoneContactDetailsResource @Inject constructor(
     @Path("/{contactDetailsId}/phone/addition-completion")
     fun completePhoneNumberAddition(
         @PathParam("contactDetailsId") contactDetailsId: String,
-        request: CompletePhoneNumberRequest
+        request: CompleteAddOrUpdatePhoneNumberRequest
     ): Response
     {
         return try
@@ -69,7 +69,7 @@ class PhoneContactDetailsResource @Inject constructor(
     @Path("/{contactDetailsId}/phone/initiate-update")
     fun initiatePhoneNumberUpdate(
         @PathParam("contactDetailsId") contactDetailsId: String,
-        request: InitiatePhoneNumberRequest
+        request: InitiateAddOrUpdatePhoneNumberRequest
     ): Response
     {
         return try
@@ -91,7 +91,7 @@ class PhoneContactDetailsResource @Inject constructor(
     @Path("/{contactDetailsId}/phone/complete-update")
     fun completePhoneNumberUpdate(
         @PathParam("contactDetailsId") contactDetailsId: String,
-        request: CompletePhoneNumberRequest
+        request: CompleteAddOrUpdatePhoneNumberRequest
     ): Response
     {
         return try

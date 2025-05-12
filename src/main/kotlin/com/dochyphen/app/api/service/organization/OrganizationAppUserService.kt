@@ -11,8 +11,6 @@ import com.dochyphen.app.api.service.AppUserService
 import com.dochyphen.app.api.service.auth.AuthenticationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
-import jakarta.persistence.EntityManager
-import jakarta.persistence.PersistenceContext
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import java.util.*
@@ -138,7 +136,7 @@ class OrganizationAppUserService @Inject constructor(
         organizationGroupService.getOrganizationById(UUID.fromString(organizationId.toString()))
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
 
-        val appUser = appUserService.getAppUserById(UUID.fromString(appUserId))
+        val appUser = appUserService.getById(UUID.fromString(appUserId))
             ?: throw AppUserNotFoundException("App user not found for id: $appUserId")
 
         isActive?.let {
@@ -222,7 +220,7 @@ class OrganizationAppUserService @Inject constructor(
         organizationGroupService.getOrganizationById(UUID.fromString(organizationId.toString()))
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
 
-        val appUser = appUserService.getAppUserById(UUID.fromString(appUserId.toString()))
+        val appUser = appUserService.getById(UUID.fromString(appUserId.toString()))
             ?: throw AppUserNotFoundException("App user not found for id: $appUserId")
 
         appUser.isActive = false

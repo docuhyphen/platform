@@ -93,7 +93,7 @@ class SharingSessionInitiationService @Inject constructor(
 
         val participants = sharingSessionParticipantRequests?.map {
 
-            val appUser = appUserService.getAppUserById(UUID.fromString(it.id))
+            val appUser = appUserService.getById(UUID.fromString(it.id))
                 ?: throw AppUserNotFoundException("One of the participants not found")
 
             SharingSessionParticipant().apply {

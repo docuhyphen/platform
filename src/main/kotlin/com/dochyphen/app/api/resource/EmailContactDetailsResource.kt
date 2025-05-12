@@ -1,7 +1,7 @@
 package com.dochyphen.app.api.resource
 
-import com.dochyphen.app.api.resource.model.CompleteEmailRequest
-import com.dochyphen.app.api.resource.model.InitiateEmailRequest
+import com.dochyphen.app.api.resource.model.CompleteAddOrUpdateEmailRequest
+import com.dochyphen.app.api.resource.model.InitiateAddOrUpdateEmailRequest
 import com.dochyphen.app.api.service.contactdetails.EmailContactDetailsService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
@@ -24,7 +24,7 @@ class EmailContactDetailsResource @Inject constructor(
     @Path("/{contactDetailsId}/email/addition-initiation")
     fun initiateEmailAddition(
         @PathParam("contactDetailsId") contactDetailsId: String,
-        request: InitiateEmailRequest
+        request: InitiateAddOrUpdateEmailRequest
     ): Response
     {
         return try
@@ -46,7 +46,7 @@ class EmailContactDetailsResource @Inject constructor(
     @Path("/{contactDetailsId}/email/addition-completion")
     fun completeEmailAddition(
         @PathParam("contactDetailsId") contactDetailsId: String,
-        request: CompleteEmailRequest
+        request: CompleteAddOrUpdateEmailRequest
     ): Response
     {
         return try
@@ -69,7 +69,7 @@ class EmailContactDetailsResource @Inject constructor(
     @Path("/{contactDetailsId}/email/initiate-update")
     fun initiateEmailUpdate(
         @PathParam("contactDetailsId") contactDetailsId: String,
-        request: InitiateEmailRequest
+        request: InitiateAddOrUpdateEmailRequest
     ): Response
     {
         return try
@@ -91,7 +91,7 @@ class EmailContactDetailsResource @Inject constructor(
     @Path("/{contactDetailsId}/email/complete-update")
     fun completeEmailUpdate(
         @PathParam("contactDetailsId") contactDetailsId: String,
-        request: CompleteEmailRequest
+        request: CompleteAddOrUpdateEmailRequest
     ): Response
     {
         return try

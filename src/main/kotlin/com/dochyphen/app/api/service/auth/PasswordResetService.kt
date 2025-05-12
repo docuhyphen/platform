@@ -16,6 +16,7 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlin.math.sign
 
 @RequestScoped
 class PasswordResetService @Inject constructor(
@@ -24,7 +25,8 @@ class PasswordResetService @Inject constructor(
     private val otpService: OtpService,
     private val authenticationService: AuthenticationService,
     private val emailService: EmailService,
-    private val configurationService: ConfigurationService
+    private val configurationService: ConfigurationService,
+    private val signOutService: SignOutService
 )
 {
     companion object
@@ -102,6 +104,7 @@ class PasswordResetService @Inject constructor(
 
         appUserRepository.update(appUser)
         mfaService.removeMfaRecord(mfaRecord)
+        signOutService.signOut(outOfAllDevices = true)
         logger.info("Password reset successfully for email: $email")
     }
 

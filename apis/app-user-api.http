@@ -53,3 +53,22 @@ Content-Type: application/json
   "firstName": "Stoic",
   "lastName": "Boi"
 }
+
+### Initiate Email Update
+PUT {{host}}/app-user/email/update-initiation
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
+{
+  "email": "new-email@example.com"
+}
+
+### Complete Email Update
+POST {{host}}/app-user/email/update-completion
+Authorization: Bearer {{Authorization}}
+Content-Type: application/json
+
+{
+  "email": "new-email@example.com",
+  "verificationCode": "123456"
+}

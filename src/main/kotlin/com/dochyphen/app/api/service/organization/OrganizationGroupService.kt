@@ -80,7 +80,7 @@ class OrganizationGroupService @Inject constructor(
         }
 
         members.forEach { memberModel ->
-            val appUser = appUserService.getAppUserById(UUID.fromString(memberModel.appUserId))
+            val appUser = appUserService.getById(UUID.fromString(memberModel.appUserId))
                 ?: throw IllegalArgumentException("Member not found for id: ${memberModel.appUserId}")
 
             organization.appUsers.find { it.id.toString() == memberModel.appUserId }
@@ -207,7 +207,7 @@ class OrganizationGroupService @Inject constructor(
         group.members.clear()
 
         members.forEach { memberModel ->
-            val appUser = appUserService.getAppUserById(UUID.fromString(memberModel.appUserId))
+            val appUser = appUserService.getById(UUID.fromString(memberModel.appUserId))
                 ?: throw IllegalArgumentException("Member not found for id: ${memberModel.appUserId}")
 
             organization.appUsers.find { it.id.toString() == memberModel.appUserId }

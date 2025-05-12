@@ -99,7 +99,7 @@ class AuthenticationService @Inject constructor(
 
             val userId = UUID.fromString(claims.subject)
 
-            appUserService.getAppUserById(userId) ?: throw AuthTokenNotFoundException()
+            appUserService.getById(userId) ?: throw AuthTokenNotFoundException()
 
             return authTokenRepository.findByToken(token) ?: throw AuthTokenNotFoundException()
         }

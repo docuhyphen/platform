@@ -53,8 +53,14 @@ class AppUser {
     @JsonIgnore
     var passwordSalt: String? = null
 
-    @Column(name = "email_verification_completed", nullable = false)
-    var emailVerificationComplete: Boolean = false
+    @Column(name = "pending_email", nullable = true)
+    var pendingEmail: String? = null
+
+    @Column(name = "pending_email_verification_code", nullable = true)
+    var pendingEmailVerificationCode: String? = null
+
+    @Column(name = "email_verification_completed", nullable = true)
+    var emailVerificationComplete: Boolean? = false
 
     @Column(name = "sign_in_attempts", nullable = false)
     @JsonIgnore

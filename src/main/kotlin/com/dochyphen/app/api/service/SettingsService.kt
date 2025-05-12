@@ -41,7 +41,7 @@ class SettingsService @Inject constructor(
             try
             {
                 val uuid = UUID.fromString(targetUserId)
-                appUserService.getAppUserById(uuid)
+                appUserService.getById(uuid)
                     ?: throw AppUserNotFoundException("User with ID $targetUserId not found")
             }
             catch (e: IllegalArgumentException)

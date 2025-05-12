@@ -7,6 +7,8 @@ import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.dochyphen.app.api.model.dto.AppUserSettingsDto
 import com.dochyphen.app.api.model.dto.PersonBasicDto
+import com.dochyphen.app.api.resource.model.CompleteAddOrUpdateEmailRequest
+import com.dochyphen.app.api.resource.model.InitiateAddOrUpdateEmailRequest
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.service.AppUserService
 import com.dochyphen.app.api.service.organization.OrganizationGroupService
@@ -92,13 +94,16 @@ class AppUserResource @Inject constructor(
         }
     }
 
+    /**
+     * Get the settings of the currently logged in appUser
+     */
     @PUT
     @Path("/settings")
     fun updateCurrentUserSettings(settingsDto: AppUserSettingsDto): Response
     {
         return try
         {
-            appUserService.updateUserSettings(null, settingsDto)
+            appUserService.updateSettings(null, settingsDto)
             Response.ok(settingsDto).build()
         }
         catch (exception: Exception)
@@ -107,6 +112,9 @@ class AppUserResource @Inject constructor(
         }
     }
 
+    /**
+     * Update user settings for a specific user
+     */
     @PUT
     @Path("/{userId}/settings")
     fun updateUserSettings(
@@ -116,7 +124,7 @@ class AppUserResource @Inject constructor(
     {
         return try
         {
-            appUserService.updateUserSettings(userId, settingsDto)
+            appUserService.updateSettings(userId, settingsDto)
             Response.ok(settingsDto).build()
         }
         catch (exception: Exception)
@@ -131,7 +139,7 @@ class AppUserResource @Inject constructor(
     @PUT
     @Path("/person")
     @Transactional
-    fun updateUserPerson(personDto: PersonBasicDto): Response
+    fun updatePerson(personDto: PersonBasicDto): Response
     {
         return try
         {
@@ -159,6 +167,84 @@ class AppUserResource @Inject constructor(
                 {
                     logger.error("Error updating user person", exception)
                     val responseError = ResponseError("A server error occurred while updating user person.")
+                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
+        }
+    }
+
+    /**
+     * Initiate email update of the currently logged in appUser
+    * */
+    @PUT
+    @Path("email/update-initiation")
+    @Transactional
+    fun initiateEmailUpdate(addOrUpdateEmailRequest: InitiateAddOrUpdateEmailRequest): Response
+    {
+        return try
+        {
+            appUserService.initiateEmailUpdate(addOrUpdateEmailRequest.email)
+            Response.ok().build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is UnauthorizedException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
+                }
+
+                is AppUserNotFoundException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
+                }
+
+                else ->
+                {
+                    logger.error("Error updating user email", exception)
+                    val responseError = ResponseError("A server error occurred while updating user email.")
+                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
+        }
+    }
+
+    /**
+     * Complete email update of the currently logged in appUser
+     * */
+    @POST
+    @Path("email/update-completion")
+    @Transactional
+    fun completeEmailUpdate(request: CompleteAddOrUpdateEmailRequest): Response
+    {
+        return try
+        {
+            appUserService.completeEmailUpdate(request.email, request.verificationCode)
+            Response.ok().build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is UnauthorizedException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
+                }
+
+                is AppUserNotFoundException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
+                }
+
+                else ->
+                {
+                    logger.error("Error completing email update", exception)
+                    val responseError = ResponseError("A server error occurred while completing email update.")
                     Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
             }
