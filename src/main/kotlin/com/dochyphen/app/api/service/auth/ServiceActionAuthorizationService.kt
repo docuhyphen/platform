@@ -51,22 +51,22 @@ class ServiceActionAuthorizationService
 
     fun validateUpdateAppUserSettings(appUser: AppUser, targetUser: AppUser)
     {
-        // Only admins can update settings for other users
-        if (appUser.id != targetUser.id)
-        {
-            if (appUser.role != ORG_ADMIN)
-            {
-                throw UnauthorizedException("Only organization admins can update settings for other users")
-            }
-        }
-        else
-        {
-            // Even if the user is updating their own settings, we need to check their role
-            if (appUser.role != ORG_ADMIN && appUser.role != ORG_MEMBER)
-            {
-                throw UnauthorizedException("User with role ${appUser.role} cannot update app user settings")
-            }
-        }
+//        // Only admins can update settings for other users
+//        if (appUser.id != targetUser.id)
+//        {
+//            if (appUser.role != ORG_ADMIN)
+//            {
+//                throw UnauthorizedException("Only organization admins can update settings for other users")
+//            }
+//        }
+//        else
+//        {
+//            // Even if the user is updating their own settings, we need to check their role
+//            if (appUser.role != ORG_ADMIN && appUser.role != ORG_MEMBER)
+//            {
+//                throw UnauthorizedException("User with role ${appUser.role} cannot update app user settings")
+//            }
+//        }
     }
 
     fun validateUpdateNotificationSettings(appUser: AppUser, targetUser: AppUser)

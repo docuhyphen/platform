@@ -151,6 +151,7 @@ const ProfileTab = () =>
             <div>
                 <Button appearance={"outline"}
                         shape={"circular"}
+                        disabled={true}
                         size={"medium"}> Change password</Button>
             </div>
             <div>

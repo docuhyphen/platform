@@ -14,7 +14,6 @@ import {
 } from "@fluentui/react-components";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 
-
 interface AllDeviceSignOutDialogProps
 {
     isOpen: boolean;
@@ -31,7 +30,8 @@ const AllDeviceSignOutDialog: React.FC<AllDeviceSignOutDialogProps> = (
     const [signingOut, setSigningOut] = useState(false);
     const globalStyles = useGlobalStyles()
 
-    return <Dialog modalType="alert"
+    return <>
+        <Dialog modalType="alert"
                    open={isOpen}>
         <DialogSurface>
             <DialogBody>
@@ -63,6 +63,7 @@ const AllDeviceSignOutDialog: React.FC<AllDeviceSignOutDialogProps> = (
             </DialogActions>
         </DialogSurface>
     </Dialog>
+    </>
 }
 
 export default AllDeviceSignOutDialog
