@@ -553,3 +553,11 @@ export interface AppUserSettingsDto
     notifyDocAdd: boolean;
     notifyDocUpload: boolean;
 }
+
+export interface OrganizationSettingsDto
+{
+    id?: string;
+    allowShareWithoutPairing: boolean;
+    allowProfileUpdate: boolean;
+    allowEmailUpdate: boolean;
+}

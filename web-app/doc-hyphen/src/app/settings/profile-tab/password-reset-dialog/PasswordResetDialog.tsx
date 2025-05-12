@@ -2,13 +2,14 @@ import React from "react";
 import {
     Button,
     Dialog,
-    DialogActions, DialogBody, DialogContent,
+    DialogActions,
+    DialogBody,
+    DialogContent,
     DialogSurface,
     DialogTitle,
     DialogTrigger,
-    Spinner
+    Text
 } from "@fluentui/react-components";
-import SignOutClickSurface from "../../../components/SignOutClickSurface.tsx";
 
 interface PasswordResetDialogProps
 {
@@ -30,8 +31,10 @@ const PasswordResetDialog : React.FC<PasswordResetDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Reset password</DialogTitle>
                     <DialogContent>
-                        {/*<Text>*/}
-                        {/*</Text>*/}
+                        <Text>
+                            This feature is temporarily unavailable. To reset your password please sign out and reset
+                            your password using the <strong>"Recover Account"</strong> link on the sign page.
+                        </Text>
                     </DialogContent>
                 </DialogBody>
                 <DialogActions>

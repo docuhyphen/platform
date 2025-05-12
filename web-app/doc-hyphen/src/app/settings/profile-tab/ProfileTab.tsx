@@ -9,6 +9,7 @@ import BasicDetailsEditDialog from "./basic-details-edit-dialog/BasicDetailsEdit
 import PhoneManagementDialog, {PhoneManagementMode} from "../../components/phone-management/PhoneManagementDialog.tsx";
 import AppUserEmailUpdateDialog from "../../components/app-user-email-update-dialog/AppUserEmailUpdateDialog.tsx";
 import AllDeviceSignOutDialog from "./all-device-sign-out-dialog/AllDeviceSignOutDialog.tsx";
+import PasswordResetDialog from "./password-reset-dialog/PasswordResetDialog.tsx";
 
 const ProfileTab = () =>
 {
@@ -16,6 +17,7 @@ const ProfileTab = () =>
     const styles = useProfileTabStyles()
     const [isBasicDetailsDialogOpen, setIsBasicDetailsDialogOpen] = useState(false);
     const [isAllDeviceSignOutDialogOpen, setIsAllDeviceSignOutDialogOpen] = useState(false);
+    const [isPasswordResetDialogOpen, setIsPasswordResetDialogOpen] = useState(false);
     const [phoneManagementMode, setPhoneManagementMode] = useState(PhoneManagementMode.ADD);
     const [isContactDetailsEditDialogOpen, setIsContactDetailsEditDialogOpen] = useState(false);
     const [isEmailUpdateDialogOpen, setIsEmailUpdateDialogOpen] = useState(false);
@@ -151,7 +153,7 @@ const ProfileTab = () =>
             <div>
                 <Button appearance={"outline"}
                         shape={"circular"}
-                        disabled={true}
+                        onClick={() => setIsPasswordResetDialogOpen(true)}
                         size={"medium"}> Change password</Button>
             </div>
             <div>
@@ -195,6 +197,10 @@ const ProfileTab = () =>
             isOpen={isAllDeviceSignOutDialogOpen}
             onDismiss={() => setIsAllDeviceSignOutDialogOpen(false)}
         />
+
+        <PasswordResetDialog
+            isOpen={isPasswordResetDialogOpen}
+            onDismiss={() => setIsPasswordResetDialogOpen(false)}/>
     </>
 }
 

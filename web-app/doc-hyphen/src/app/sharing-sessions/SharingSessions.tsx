@@ -421,7 +421,7 @@ const SharingSessions: React.FC = () =>
                 <div className={styles.containerNoSessions}>
                     <Text size={500}>You don’t have any sharing sessions yet.</Text>
                     <Text size={500}>
-                        To get started, click <Text italic>Start Sharing Session</Text> in the main menu and securely
+                        To get started, click <Text italic weight={"semibold"}>Start Sharing</Text> in the main menu and securely
                         share your documents.
                     </Text>
                 </div>

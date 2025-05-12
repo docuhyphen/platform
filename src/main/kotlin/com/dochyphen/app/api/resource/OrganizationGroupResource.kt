@@ -20,13 +20,13 @@ import org.slf4j.LoggerFactory
 @Path("organizations")
 @Produces(APPLICATION_JSON)
 @Consumes(APPLICATION_JSON)
-class OrganizationGroupsResource @Inject constructor(
+class OrganizationGroupResource @Inject constructor(
     private val organizationGroupService: OrganizationGroupService
 )
 {
     companion object
     {
-        private val logger = LoggerFactory.getLogger(OrganizationGroupsResource::class.java)
+        private val logger = LoggerFactory.getLogger(OrganizationGroupResource::class.java)
     }
 
     @Path("/{organizationId}/groups")
