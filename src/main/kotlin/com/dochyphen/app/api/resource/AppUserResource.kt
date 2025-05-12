@@ -101,8 +101,6 @@ class AppUserResource @Inject constructor(
     @Path("/settings")
     fun updateCurrentUserSettings(settingsDto: AppUserSettingsDto): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(1500, 2500)
-
         return try
         {
             appUserService.updateSettings(null, settingsDto)
@@ -124,8 +122,6 @@ class AppUserResource @Inject constructor(
         settingsDto: AppUserSettingsDto
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(1500, 2500)
-
         return try
         {
             appUserService.updateSettings(userId, settingsDto)

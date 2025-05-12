@@ -165,7 +165,7 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
                     {isOnDialog &&
                         <div className={styles.dialogActions}>
                             {!orgRegistered && renderRegisterButton()}
-                            <Button appearance={"subtle"}
+                            <Button appearance={"secondary"}
                                     shape="circular"
                                     onClick={onCancel}>
                                 {orgRegistered && "Close"}
