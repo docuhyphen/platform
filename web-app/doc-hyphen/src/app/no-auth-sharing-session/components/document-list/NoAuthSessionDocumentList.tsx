@@ -131,7 +131,6 @@ const NoAuthSessionDocumentList: React.FC<NoAuthSessionDocumentListProps> = ({se
                                     onChange={(e) => handleFileSelectChange(e, doc.id)}
                                     className={styles.uploadButton2}
                                     disabled={uploading[doc.id]}
-                                    aria-label="Select file"
                                 />
                             </Button>
                             <Button

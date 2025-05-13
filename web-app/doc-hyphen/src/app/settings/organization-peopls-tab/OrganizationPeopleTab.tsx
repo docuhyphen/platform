@@ -115,7 +115,7 @@ const OrganizationPeopleTab = () =>
                     <Spinner label="Loading users..."/>
                 </div>
             ) : (
-                <Table aria-label="Organization users table" className={styles.table}>
+                <Table className={styles.table}>
                     <TableHeader>
                         <TableRow>
                             {columns.map((column) => (
@@ -148,13 +148,11 @@ const OrganizationPeopleTab = () =>
                                         <Button
                                             icon={<PersonEditRegular/>}
                                             appearance="subtle"
-                                            aria-label="Edit user"
                                             onClick={() => handleEditUser(user)}
                                         />
                                         {user.isActive && (
                                             <Button
                                                 appearance="subtle"
-                                                aria-label="Deactivate user"
                                                 onClick={() => handleDeactivateUser(user.id?.toString() || "")}
                                             >
                                                 Deactivate

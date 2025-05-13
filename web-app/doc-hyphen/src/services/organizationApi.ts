@@ -75,7 +75,7 @@ export interface GroupMember
     allowDocumentUpload: boolean;
 }
 
-export const fetchOrganizationGroups = async (organizationId: string, token?: string): Promise<OrganizationGroupBasicDto[]> =>
+export const fetchOrganizationGroups = async (organizationId: string, token?: string) =>
 {
     try
     {
@@ -90,14 +90,30 @@ export const fetchOrganizationGroups = async (organizationId: string, token?: st
     }
 };
 
-export const addOrganizationGroup = async (organizationId: string, data: {
-    name: string,
-    members?: GroupMember[]
-}, token?: string) =>
+export const addOrganizationGroup = async (
+    organizationId: string,
+    groupData: {
+        name: string;
+        members: Array<{
+            appUserId: string;
+            allowSessionAccept: boolean;
+            allowSessionReject: boolean;
+            allowSessionEdit: boolean;
+            allowSessionDelete: boolean;
+            allowSessionEnd: boolean;
+            allowDocumentAddition: boolean;
+            allowDocumentDeletion: boolean;
+            allowDocumentDownload: boolean;
+            allowDocumentUpdate: boolean;
+            allowDocumentUpload: boolean;
+        }>;
+    },
+    token?: string
+) =>
 {
     try
     {
-        const response = await apiClient.post(`/organizations/${organizationId}/groups`, data, {
+        const response = await apiClient.post(`/organizations/${organizationId}/groups`, groupData, {
             headers: token ? {Authorization: `Bearer ${token}`} : undefined
         });
         return response.data;
@@ -111,13 +127,29 @@ export const addOrganizationGroup = async (organizationId: string, data: {
 export const updateOrganizationGroup = async (
     organizationId: string,
     groupId: string,
-    data: { name: string, isActive?: boolean, members?: GroupMember[] },
+    groupData: {
+        name: string;
+        isActive: boolean;
+        members: Array<{
+            appUserId: string;
+            allowSessionAccept: boolean;
+            allowSessionReject: boolean;
+            allowSessionEdit: boolean;
+            allowSessionDelete: boolean;
+            allowSessionEnd: boolean;
+            allowDocumentAddition: boolean;
+            allowDocumentDeletion: boolean;
+            allowDocumentDownload: boolean;
+            allowDocumentUpdate: boolean;
+            allowDocumentUpload: boolean;
+        }>;
+    },
     token?: string
 ) =>
 {
     try
     {
-        const response = await apiClient.put(`/organizations/${organizationId}/groups/${groupId}`, data, {
+        const response = await apiClient.put(`/organizations/${organizationId}/groups/${groupId}`, groupData, {
             headers: token ? {Authorization: `Bearer ${token}`} : undefined
         });
         return response.data;
@@ -128,7 +160,11 @@ export const updateOrganizationGroup = async (
     }
 };
 
-export const deleteOrganizationGroup = async (organizationId: string, groupId: string, token?: string) =>
+export const deleteOrganizationGroup = async (
+    organizationId: string,
+    groupId: string,
+    token?: string
+) =>
 {
     try
     {
@@ -242,7 +278,7 @@ export const fetchMyOrganizationUsers = async (token?: string): Promise<AppUserD
     }
 };
 
-export const fetchMyOrganizationGroups = async (token?: string): Promise<OrganizationGroupBasicDto[]> =>
+export const fetchMyOrganizationGroups = async (token?: string) =>
 {
     try
     {
@@ -255,6 +291,7 @@ export const fetchMyOrganizationGroups = async (token?: string): Promise<Organiz
         throw error.response?.data || error.message;
     }
 };
+
 
 // Helper function to get current user's organization
 const fetchCurrentUserOrganization = async (token?: string): Promise<Organization> =>
@@ -276,3 +313,4 @@ const fetchCurrentUserOrganization = async (token?: string): Promise<Organizatio
         throw error.response?.data || error.message;
     }
 };
+

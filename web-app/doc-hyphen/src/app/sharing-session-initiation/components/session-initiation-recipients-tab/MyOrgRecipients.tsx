@@ -124,7 +124,6 @@ const MyOrgRecipients: React.FC<{
                                             iconPosition="after"
                                             onClick={() => onTagClick(recipient, i)}
                                             id={`${comboId}-remove-${i}`}
-                                            aria-labelledby={`${comboId}-remove ${comboId}-remove-${i}`}
                                         >
                                             {`${recipient.person.firstName} ${recipient.person.lastName}`}
                                         </Button>
@@ -133,7 +132,6 @@ const MyOrgRecipients: React.FC<{
                             </ul>
                         )}
                         <Combobox
-                            aria-labelledby={labelledBy}
                             multiselect={true}
                             placeholder="Select additional participants"
                             value={internalRecipientsInputValue}
