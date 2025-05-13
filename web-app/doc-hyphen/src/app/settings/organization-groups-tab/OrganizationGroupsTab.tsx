@@ -31,6 +31,13 @@ const OrganizationGroupsTab = () =>
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [selectedGroup, setSelectedGroup] = useState<any | null>(null);
 
+    const columns = [
+        {columnKey: "name", label: "Group Name"},
+        {columnKey: "members", label: "Members"},
+        {columnKey: "status", label: "Status"},
+        {columnKey: "actions", label: "Actions"}
+    ];
+
     const loadGroups = async () =>
     {
         setLoading(true);
@@ -56,18 +63,18 @@ const OrganizationGroupsTab = () =>
         loadGroups();
     }, []);
 
-    const handleAddGroup = () =>
+    const onAddGroup = () =>
     {
         setIsAddDialogOpen(true);
     };
 
-    const handleEditGroup = (group: any) =>
+    const onEditGroup = (group: any) =>
     {
         setSelectedGroup(group);
         setIsEditDialogOpen(true);
     };
 
-    const handleDeleteGroup = async (groupId: string) =>
+    const onDeleteGroup = async (groupId: string) =>
     {
         if (!window.confirm("Are you sure you want to delete this group?"))
         {
@@ -86,13 +93,6 @@ const OrganizationGroupsTab = () =>
             console.error("Failed to delete group:", err);
         }
     };
-
-    const columns = [
-        {columnKey: "name", label: "Group Name"},
-        {columnKey: "members", label: "Members"},
-        {columnKey: "status", label: "Status"},
-        {columnKey: "actions", label: "Actions"}
-    ];
 
     const renderTableRow = (group: any) =>
     {
@@ -117,18 +117,19 @@ const OrganizationGroupsTab = () =>
                         <Button
                             icon={<EditRegular/>}
                             appearance="subtle"
-                            onClick={() => handleEditGroup(group)}
+                            onClick={() => onEditGroup(group)}
                         />
                         <Button
                             icon={<DeleteRegular/>}
                             appearance="subtle"
-                            onClick={() => handleDeleteGroup(group.id?.toString() || "")}
+                            onClick={() => onDeleteGroup(group.id?.toString() || "")}
                         />
                     </div>
                 </TableCell>
             </TableRow>
         </>
     };
+
     const renderTable = () =>
     {
         return <>
@@ -148,14 +149,15 @@ const OrganizationGroupsTab = () =>
             </Table>
         </>
     };
-    return (
+
+    return <>
         <div className={styles.container}>
             <div className={styles.header}>
                 <Button
                     icon={<GroupAddIcon/>}
                     appearance="primary"
                     shape="circular"
-                    onClick={handleAddGroup}>
+                    onClick={onAddGroup}>
                     Create Group
                 </Button>
             </div>
@@ -191,7 +193,7 @@ const OrganizationGroupsTab = () =>
                 }}
             />
         </div>
-    );
+    </>
 };
 
 export default OrganizationGroupsTab;

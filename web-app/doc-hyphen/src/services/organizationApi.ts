@@ -1,7 +1,6 @@
 import apiClient from './apiClient';
 import {AppUserDetailedDto, Organization, OrganizationSettingsDto, PersonDetailedDto} from "../app/models/models.tsx";
 
-// Organization-related functions
 export const fetchOrganization = async (organizationId: string, token?: string) =>
 {
     try
@@ -50,7 +49,6 @@ export const updateOrganizationSettings = async (organizationId: string, setting
     }
 };
 
-// Organization Group functions
 export interface OrganizationGroupBasicDto
 {
     id: string;
@@ -248,7 +246,6 @@ export const deactivateOrganizationUser = async (organizationId: string, appUser
     }
 };
 
-// For compatibility with existing code - these could use the real endpoints now
 export const fetchPairedOrganizations = async (token?: string): Promise<Organization[]> =>
 {
     try
@@ -292,8 +289,6 @@ export const fetchMyOrganizationGroups = async (token?: string) =>
     }
 };
 
-
-// Helper function to get current user's organization
 const fetchCurrentUserOrganization = async (token?: string): Promise<Organization> =>
 {
     try
