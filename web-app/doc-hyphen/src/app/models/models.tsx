@@ -561,3 +561,16 @@ export interface OrganizationSettingsDto
     allowProfileUpdate: boolean;
     allowEmailUpdate: boolean;
 }
+
+export interface AppUserSettingsDto
+{
+    autoPreviewDocuments: boolean;
+    notifyShareStart: boolean;
+    notifyShareAccept: boolean;
+    notifyShareDecline: boolean;
+    notifyShareEnd: boolean;
+    notifyDocComment: boolean;
+    notifyDocDelete: boolean;
+    notifyDocAdd: boolean;
+    notifyDocUpload: boolean;
+}
