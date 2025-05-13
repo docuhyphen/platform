@@ -1,30 +1,197 @@
-import {Button, Switch} from "@fluentui/react-components";
+import {
+    Badge,
+    Button,
+    Spinner,
+    Table,
+    TableBody,
+    TableCell,
+    TableCellLayout,
+    TableHeader,
+    TableHeaderCell,
+    TableRow
+} from "@fluentui/react-components";
 import * as React from "react";
+import {useEffect, useState} from "react";
 import {PersonAddIcon} from "../../components/IconBundles.tsx";
 import {useOrganizationPeopleTabStyles} from "./OrganizationPeopleTabStyles.tsx";
+import {deactivateOrganizationUser, fetchMyOrganizationUsers} from "../../../services/organizationApi.ts";
+import {useAuth} from "../../../context/AuthContext.tsx";
+import {AppUserDetailedDto} from "../../models/models.tsx";
+import AddUserDialog from "./add-app-user-dialog/AddUserDialog.tsx";
+import EditUserDialog from "./app-user-edit-dialog/EditUserDialog.tsx";
+import {PersonEditRegular, PersonRegular} from "@fluentui/react-icons";
 
 const OrganizationPeopleTab = () =>
 {
+    const styles = useOrganizationPeopleTabStyles();
+    const {token, appUserPersonOrganization} = useAuth();
+    const [users, setUsers] = useState<AppUserDetailedDto[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState<AppUserDetailedDto | null>(null);
 
-    const styles = useOrganizationPeopleTabStyles()
+    const loadUsers = async () =>
+    {
+        setLoading(true);
+        setError(null);
+        try
+        {
+            const fetchedUsers = await fetchMyOrganizationUsers(token || undefined);
+            setUsers(fetchedUsers);
+        }
+        catch (err: any)
+        {
+            setError(err.message || "Failed to load users");
+            console.error("Failed to load users:", err);
+        }
+        finally
+        {
+            setLoading(false);
+        }
+    };
 
-    return <div className={styles.container}>
+    useEffect(() =>
+    {
+        loadUsers();
+    }, []);
 
-        <div>
-            <Button icon={<PersonAddIcon/>}
-                    shape={"circular"}>
-                Add Person
-            </Button>
+    const handleAddUser = () =>
+    {
+        setIsAddDialogOpen(true);
+    };
+
+    const handleEditUser = (user: AppUserDetailedDto) =>
+    {
+        setSelectedUser(user);
+        setIsEditDialogOpen(true);
+    };
+
+    const handleDeactivateUser = async (userId: string) =>
+    {
+        if (!window.confirm("Are you sure you want to deactivate this user?"))
+        {
+            return;
+        }
+
+        try
+        {
+            await deactivateOrganizationUser(appUserPersonOrganization?.id, userId, token || undefined);
+            // Refresh user list
+            loadUsers();
+        }
+        catch (err: any)
+        {
+            setError(err.message || "Failed to deactivate user");
+            console.error("Failed to deactivate user:", err);
+        }
+    };
+
+    const columns = [
+        {columnKey: "user", label: "User"},
+        {columnKey: "email", label: "Email"},
+        {columnKey: "role", label: "Role"},
+        {columnKey: "status", label: "Status"},
+        {columnKey: "actions", label: "Actions"}
+    ];
+
+    return (
+        <div className={styles.container}>
+            <div className={styles.header}>
+                <Button
+                    icon={<PersonAddIcon/>}
+                    appearance="primary"
+                    shape="circular"
+                    onClick={handleAddUser}>
+                    Add Person
+                </Button>
+            </div>
+
+            {error && <div className={styles.error}>{error}</div>}
+
+            {loading ? (
+                <div className={styles.loading}>
+                    <Spinner label="Loading users..."/>
+                </div>
+            ) : (
+                <Table aria-label="Organization users table" className={styles.table}>
+                    <TableHeader>
+                        <TableRow>
+                            {columns.map((column) => (
+                                <TableHeaderCell key={column.columnKey}>
+                                    {column.label}
+                                </TableHeaderCell>
+                            ))}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {users.map((user) => (
+                            <TableRow key={user.id}>
+                                <TableCell>
+                                    <TableCellLayout media={<PersonRegular/>}>
+                                        {user.person?.firstName} {user.person?.lastName}
+                                    </TableCellLayout>
+                                </TableCell>
+                                <TableCell>{user.email}</TableCell>
+                                <TableCell>{user.role}</TableCell>
+                                <TableCell>
+                                    <Badge
+                                        color={user.isActive ? "success" : "danger"}
+                                        appearance="filled"
+                                    >
+                                        {user.isActive ? "Active" : "Inactive"}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell>
+                                    <div className={styles.actions}>
+                                        <Button
+                                            icon={<PersonEditRegular/>}
+                                            appearance="subtle"
+                                            aria-label="Edit user"
+                                            onClick={() => handleEditUser(user)}
+                                        />
+                                        {user.isActive && (
+                                            <Button
+                                                appearance="subtle"
+                                                aria-label="Deactivate user"
+                                                onClick={() => handleDeactivateUser(user.id?.toString() || "")}
+                                            >
+                                                Deactivate
+                                            </Button>
+                                        )}
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            )}
+
+            <AddUserDialog
+                isOpen={isAddDialogOpen}
+                onDismiss={() => setIsAddDialogOpen(false)}
+                organizationId={appUserPersonOrganization?.id}
+                onComplete={() =>
+                {
+                    setIsAddDialogOpen(false);
+                    loadUsers();
+                }}
+            />
+
+            <EditUserDialog
+                isOpen={isEditDialogOpen}
+                onDismiss={() => setIsEditDialogOpen(false)}
+                organizationId={appUserPersonOrganization?.id}
+                user={selectedUser}
+                onComplete={() =>
+                {
+                    setIsEditDialogOpen(false);
+                    loadUsers();
+                }}
+            />
         </div>
-
-        <Switch
-            label="Allow non admins to update their profile"
-        />
-
-        <Switch
-            label="Allow non admins to update their email"
-        />
-    </div>
-}
+    );
+};
 
 export default OrganizationPeopleTab;

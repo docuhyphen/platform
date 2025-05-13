@@ -1,5 +1,5 @@
 import apiClient from './apiClient';
-import {AppUserDetailedDto, Organization, OrganizationSettingsDto} from "../app/models/models.tsx";
+import {AppUserDetailedDto, Organization, OrganizationSettingsDto, PersonDetailedDto} from "../app/models/models.tsx";
 
 // Organization-related functions
 export const fetchOrganization = async (organizationId: string, token?: string) =>
@@ -143,13 +143,6 @@ export const deleteOrganizationGroup = async (organizationId: string, groupId: s
     }
 };
 
-// Organization App User functions
-export interface PersonDto
-{
-    firstName: string;
-    lastName: string;
-}
-
 export const fetchOrganizationUsers = async (organizationId: string, token?: string): Promise<AppUserDetailedDto[]> =>
 {
     try
@@ -167,7 +160,7 @@ export const fetchOrganizationUsers = async (organizationId: string, token?: str
 
 export const addOrganizationUser = async (
     organizationId: string,
-    data: { role: string, email: string, person?: PersonDto },
+    data: { role: string, email: string, person?: PersonDetailedDto },
     token?: string
 ) =>
 {
@@ -187,7 +180,7 @@ export const addOrganizationUser = async (
 export const updateOrganizationUser = async (
     organizationId: string,
     appUserId: string,
-    data: { isActive?: boolean, email?: string, role?: string, person?: PersonDto },
+    data: { isActive?: boolean, email?: string, role?: string, person?: PersonDetailedDto },
     token?: string
 ) =>
 {

@@ -174,8 +174,7 @@ class OrganizationAppUserService @Inject constructor(
 
             appUser.email = it.trim()
 
-        } ?: run {
-            throw IllegalArgumentException("Email cannot be null or blank")
+            //ToDo: send email reset link
         }
 
         appUser.person?.let {
