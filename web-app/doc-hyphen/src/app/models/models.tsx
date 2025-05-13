@@ -237,19 +237,6 @@ export interface UpdateNoAuthSharingSessionRequest
     rejectionReason?: string;
 }
 
-export interface AddSharingSessionDocumentRequest
-{
-    title?: string;
-    documentType?: DocumentType;
-    restrictedType?: DocumentType;
-}
-
-export interface DownloadSharingSessionDocumentRequest
-{
-    documentId: string;
-    sessionId: string;
-}
-
 export interface SharingSessionRequestDocumentRequest
 {
     title: string;
@@ -275,12 +262,6 @@ export interface UpdateShareSessionDocumentRequest
     restrictedType?: DocumentType;
     restrictType?: boolean;
     type?: DocumentType;
-}
-
-export interface CommentRequest
-{
-    commentText: string;
-    commentedBy: string;
 }
 
 export interface OrganizationBasicDto
