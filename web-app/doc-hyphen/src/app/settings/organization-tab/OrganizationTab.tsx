@@ -8,6 +8,7 @@ import {ProfileEditBasicDetailsIcon} from "../../components/IconBundles.tsx";
 import PhoneManagementDialog, {PhoneManagementMode} from "../../components/phone-management/PhoneManagementDialog.tsx";
 import EmailManagementDialog, {EmailManagementMode} from "../../components/email-management/EmailManagementDialog.tsx";
 import {useOrganizationTabStyles} from "./OrganizationTabStyles.tsx";
+import OrganizationDetailsEditDialog from "./details-edit-dialog/OrganizationDetailsEditDialog.tsx";
 
 const OrganizationTab = () =>
 {
@@ -16,10 +17,8 @@ const OrganizationTab = () =>
     const [organization, setOrganization] = useState<OrganizationDetailedDto | null>(null);
     const [fetchingOrganization, setFetchingOrganization] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [editMode, setEditMode] = useState(false);
-    const [organizationName, setOrganizationName] = useState("");
+    const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
     const [savingSettings, setSavingSettings] = useState(false);
-    const [savingName, setSavingName] = useState(false);
     const [organizationSettings, setOrganizationSettings] = useState<OrganizationSettingsDto | null>(null);
     const [isPhoneDialogOpen, setIsPhoneDialogOpen] = useState(false);
     const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
@@ -37,7 +36,6 @@ const OrganizationTab = () =>
         {
             const organization = await fetchAppUserPersonOrganization(appUser.id, appUser.person.id, token || undefined);
             setOrganization(organization);
-            setOrganizationName(organization.name || "");
             setOrganizationSettings(organization.settings);
         }
         catch (err: any)
@@ -48,37 +46,6 @@ const OrganizationTab = () =>
         finally
         {
             setFetchingOrganization(false);
-        }
-    };
-
-    const handleSaveOrgName = async () =>
-    {
-        if (!organization?.id) return;
-
-        setSavingName(true);
-        setError(null);
-
-        try
-        {
-            await updateOrganization(
-                organization.id,
-                {name: organizationName},
-                token || undefined
-            );
-            setOrganization({
-                ...organization,
-                name: organizationName
-            });
-            setEditMode(false);
-        }
-        catch (err: any)
-        {
-            setError(err.message || "Failed to update organization name");
-            console.error("Failed to update organization name:", err);
-        }
-        finally
-        {
-            setSavingName(false);
         }
     };
 
@@ -177,57 +144,23 @@ const OrganizationTab = () =>
             <div className={styles.container}>
                 <Divider alignContent="start" appearance="brand">
                     Organization Details
-                    {!editMode && (
-                        <Button
-                            icon={<ProfileEditBasicDetailsIcon/>}
-                            onClick={() => setEditMode(true)}
-                            appearance="subtle"
-                        />
-                    )}
+                    <Button
+                        icon={<ProfileEditBasicDetailsIcon/>}
+                        onClick={() => setIsDetailsDialogOpen(true)}
+                        appearance="subtle"
+                    />
                 </Divider>
 
-                {editMode ? (
-                    <div style={{marginBottom: '20px'}}>
-                        <Field label="Organization Name">
-                            <Input
-                                value={organizationName}
-                                onChange={(e) => setOrganizationName(e.target.value)}
-                                disabled={savingName}
-                            />
-                        </Field>
-                        <div style={{marginTop: '10px', display: 'flex', gap: '10px'}}>
-                            <Button
-                                appearance="primary"
-                                disabled={savingName || !organizationName}
-                                onClick={handleSaveOrgName}
-                            >
-                                {savingName ? <Spinner size="tiny"/> : "Save"}
-                            </Button>
-                            <Button
-                                appearance="secondary"
-                                disabled={savingName}
-                                onClick={() =>
-                                {
-                                    setEditMode(false);
-                                    setOrganizationName(organization.name || "");
-                                }}
-                            >
-                                Cancel
-                            </Button>
-                        </div>
-                    </div>
-                ) : (
-                    <div style={{marginBottom: '20px'}}>
-                        <Text size={500} weight="semibold">
-                            {organization.name || "Unnamed Organization"}
+                <div style={{marginBottom: '20px'}}>
+                    <Text size={500} weight="semibold">
+                        {organization.name || "Unnamed Organization"}
                     </Text>
-                        {organization.registrationNumber && (
-                            <div style={{marginTop: '5px'}}>
-                                <Text size={300}>Registration: {organization.registrationNumber}</Text>
-                            </div>
-                        )}
+                    {organization.registrationNumber && (
+                        <div style={{marginTop: '5px'}}>
+                            <Text size={300}>Registration: {organization.registrationNumber}</Text>
+                        </div>
+                    )}
                 </div>
-                )}
 
                 <Divider alignContent="start" appearance="brand">
                     Organization Settings
@@ -315,6 +248,13 @@ const OrganizationTab = () =>
                     onDismiss={() => setIsEmailDialogOpen(false)}
                     contactDetails={organization?.contactDetails}
                     onComplete={handleContactDetailsUpdate}
+                />
+
+                <OrganizationDetailsEditDialog
+                    isOpen={isDetailsDialogOpen}
+                    onDismiss={() => setIsDetailsDialogOpen(false)}
+                    organization={organization}
+                    onComplete={(updatedOrg) => setOrganization(updatedOrg)}
                 />
             </div>
         )}
