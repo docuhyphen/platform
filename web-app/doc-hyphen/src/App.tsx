@@ -15,6 +15,7 @@ import SignUp from "./app/authorization/sign-up/SignUp.tsx";
 import ProtectedRoute from "./app/components/ProtectedRoutes.tsx";
 import AppSessionExpired from "./app/app-session-expired/AppSessionExpired.tsx";
 import {NotificationProvider} from "./context/NotificationContext.tsx";
+import Home from "./app/home/Home.tsx";
 
 const App: React.FC = () =>
 {
@@ -23,10 +24,10 @@ const App: React.FC = () =>
             <AuthProvider>
                 <NotificationProvider>
                     <Routes>
-                        {/*<Route path="/"*/}
-                        {/*       element={*/}
-                        {/*           <Home/>*/}
-                        {/*       }/>*/}
+                        <Route path="/"
+                               element={
+                                   <Home/>
+                               }/>
 
                         <Route path="/sign-in"
                                element={
