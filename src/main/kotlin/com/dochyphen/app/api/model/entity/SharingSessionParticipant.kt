@@ -8,12 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-enum class SharingSessionParticipantType
-{
-    GROUP,
-    APP_USER
-}
-
 @Entity
 @Table(name = "sharing_session_participant")
 @Serializable

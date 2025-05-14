@@ -8,14 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-enum class SharingSessionStatus
-{
-    INITIATED,
-    ACCEPTED_STARTED,
-    ENDED,
-    REJECTED,
-}
-
 @Entity
 @Table(name = "sharing_session")
 @Serializable

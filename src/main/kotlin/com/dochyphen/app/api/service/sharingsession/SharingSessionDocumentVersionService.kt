@@ -39,7 +39,7 @@ class SharingSessionDocumentVersionService @Inject constructor(
     @Transactional
     fun createVersion(sessionId: String, documentId: String, file: File?, currentUserEmail: String?): DocumentVersion
     {
-        val session = sharingSessionRepository.findById(UUID.fromString(sessionId))
+        sharingSessionRepository.findById(UUID.fromString(sessionId))
             ?: throw SharingSessionNotFoundException("Sharing session not found")
 
         val document = sharingSessionDocumentRepository.findByDocumentId(UUID.fromString(documentId))

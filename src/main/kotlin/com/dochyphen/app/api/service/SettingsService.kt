@@ -93,7 +93,7 @@ class SettingsService @Inject constructor(
             settings.notifyDocUpload = settingsDto.notifyDocUpload
         }
 
-        targetUser.settings = settings;
+        targetUser.settings = settings
         appUserService.update(targetUser)
 
         return settings

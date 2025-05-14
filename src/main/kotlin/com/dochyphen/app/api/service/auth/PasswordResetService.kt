@@ -16,7 +16,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 import java.util.concurrent.TimeUnit
-import kotlin.math.sign
 
 @RequestScoped
 class PasswordResetService @Inject constructor(

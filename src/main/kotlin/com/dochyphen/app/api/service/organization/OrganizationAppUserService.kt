@@ -91,7 +91,7 @@ class OrganizationAppUserService @Inject constructor(
 
         organizationRepository.update(organization)
 
-        return appUser;
+        return appUser
     }
 
     fun getAppUsers(organizationId: String?): List<AppUser>
@@ -104,7 +104,7 @@ class OrganizationAppUserService @Inject constructor(
         val organization = organizationGroupService.getOrganizationById(UUID.fromString(organizationId))
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
 
-        return organization.appUsers;
+        return organization.appUsers
     }
 
     @Transactional

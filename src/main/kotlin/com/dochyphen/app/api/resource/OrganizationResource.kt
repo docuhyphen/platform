@@ -98,7 +98,7 @@ class OrganizationResource @Inject constructor(
     {
         return try
         {
-            val updatedSettings = settingsService.updateOrganizationSettings(organizationId, settingsDto)
+            settingsService.updateOrganizationSettings(organizationId, settingsDto)
             Response.ok(settingsDto).build()
         }
         catch (exception: Exception)

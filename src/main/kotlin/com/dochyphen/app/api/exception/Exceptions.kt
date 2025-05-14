@@ -1,6 +1,6 @@
 package com.dochyphen.app.api.exception
 
-import com.dochyphen.app.api.model.entity.SignUpStatus
+import SignUpStatus
 
 class EmailNotFoundException() : Exception("Email not found")
 class InvalidOtpException() : RuntimeException("Invalid otp")

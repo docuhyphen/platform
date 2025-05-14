@@ -13,24 +13,11 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-enum class AppUserRole {
-    APPLICATION,
-
-    APP_USER,
-
-    ORG_ADMIN,
-
-    ORG_GROUP_ADMIN,
-
-    // Regular users in an organization
-    ORG_MEMBER,
-}
-
 @Entity
 @Serializable
 @Table(name = "app_user")
-class AppUser {
-
+class AppUser
+{
     @Id
     @Serializable(with = UUIDSerializer::class)
     var id: UUID = UUID.randomUUID()

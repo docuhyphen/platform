@@ -121,7 +121,6 @@ data class SharingSessionDetailedDto(
 //    val participantIds: List<UUID>
 )
 
-
 @Serializable
 data class ContactDetailsDetailedDto(
     @Serializable(with = UUIDSerializer::class)

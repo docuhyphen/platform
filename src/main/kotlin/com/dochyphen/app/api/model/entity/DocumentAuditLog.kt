@@ -8,17 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-enum class DocumentAuditLogAction {
-    UPLOAD,
-    DOWNLOAD,
-    VIEW,
-    CREATED,
-    DELETE,
-    UPDATE,
-    COMMENT,
-    VERSION_CREATED,
-}
-
 @Entity
 @Table(name = "audit_log")
 @Serializable

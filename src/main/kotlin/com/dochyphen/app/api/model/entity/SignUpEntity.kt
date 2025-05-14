@@ -1,18 +1,11 @@
 package com.dochyphen.app.api.model.entity
 
+import SignUpStatus
 import com.dochyphen.app.api.serializer.UUIDSerializer
 import jakarta.persistence.*
 import kotlinx.serialization.Serializable
 import java.time.LocalDateTime
 import java.util.*
-
-enum class SignUpStatus {
-    PENDING,
-    VERIFIED,
-    EXPIRED,
-    EXPIRED_MAX_RETRIES,
-    OTP_LOCKED
-}
 
 @Entity
 @Table(name = "sign_up")

@@ -3,15 +3,11 @@ package com.dochyphen.app.api.model.entity
 import com.dochyphen.app.api.serializer.TimestampSerializer
 import com.dochyphen.app.api.serializer.UUIDSerializer
 import com.fasterxml.jackson.annotation.JsonIgnore
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.Id
-import jakarta.persistence.OneToOne
-import jakarta.persistence.Table
+import jakarta.persistence.*
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @Entity
 @Serializable

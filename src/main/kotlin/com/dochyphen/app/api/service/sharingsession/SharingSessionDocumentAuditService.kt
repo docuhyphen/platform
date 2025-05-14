@@ -6,7 +6,7 @@ import com.dochyphen.app.api.model.entity.AppUser
 import com.dochyphen.app.api.model.entity.Document
 import com.dochyphen.app.api.model.entity.DocumentAuditLog
 import com.dochyphen.app.api.model.entity.DocumentAuditLogAction
-import com.dochyphen.app.api.repository.DocumentAuditLogRepository
+import com.dochyphen.app.api.repository.DocumentAuditRepository
 import com.dochyphen.app.api.repository.SharingSessionDocumentRepository
 import com.dochyphen.app.api.repository.SharingSessionRepository
 import jakarta.enterprise.context.ApplicationScoped
@@ -20,7 +20,7 @@ import java.util.*
 class SharingSessionDocumentAuditService @Inject constructor(
     private val sharingSessionRepository: SharingSessionRepository,
     private val sharingSessionDocumentRepository: SharingSessionDocumentRepository,
-    private val documentAuditLogRepository: DocumentAuditLogRepository,
+    private val documentAuditRepository: DocumentAuditRepository,
     private val entityManager: EntityManager
 )
 {
@@ -35,7 +35,7 @@ class SharingSessionDocumentAuditService @Inject constructor(
             this.timestamp = Timestamp.from(Instant.now())
         }
 
-        documentAuditLogRepository.save(auditLog)
+        documentAuditRepository.save(auditLog)
     }
 
     fun logAction(document: Document, action: DocumentAuditLogAction, performedByEmail: String)
@@ -47,7 +47,7 @@ class SharingSessionDocumentAuditService @Inject constructor(
             this.performedByEmail = performedByEmail
         }
 
-        documentAuditLogRepository.save(auditLog)
+        documentAuditRepository.save(auditLog)
     }
 
     fun getDocumentAuditLogs(sessionId: String?, documentId: String): List<DocumentAuditLog>
@@ -58,6 +58,6 @@ class SharingSessionDocumentAuditService @Inject constructor(
         val document = sharingSessionDocumentRepository.findByDocumentId(UUID.fromString(documentId))
             ?: throw SharingSessionDocumentNotFoundException("Document not found")
 
-        return documentAuditLogRepository.findByDocumentId(document.id)
+        return documentAuditRepository.findByDocumentId(document.id)
     }
 }

@@ -7,9 +7,3 @@ enum class MultifactorAuthenticationType
     PASSKEY,
     PASSWORD_RESET
 }
-
-enum class MultifactorAuthenticationStatus
-{
-    PENDING,
-    COMPLETED
-}

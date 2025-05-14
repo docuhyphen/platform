@@ -273,7 +273,7 @@ class SharingSessionDocumentService @Inject constructor(
         val cleanExtension = if (extension.startsWith(".")) extension else ".$extension"
 
         // Check if extension is supported using the DocumentType enum
-        val documentType = DocumentType.fromFileExtension(cleanExtension)
+        DocumentType.fromFileExtension(cleanExtension)
             ?: throw IllegalArgumentException("Unsupported file extension: $cleanExtension")
 
         // Check file size (10MB limit)

@@ -66,8 +66,8 @@ class AwsS3FileStorageService @Inject constructor() : FileStorageService
     override fun uploadDocument(file: File, key: String): String
     {
         val encryptionKey = generateKey()
-        val encryptedFile = encryptFile(file, encryptionKey)
-        val putObjectRequest = PutObjectRequest.builder()
+        encryptFile(file, encryptionKey)
+        PutObjectRequest.builder()
             .bucket("your-bucket-name")
             .key(key)
             .build()
@@ -77,7 +77,7 @@ class AwsS3FileStorageService @Inject constructor() : FileStorageService
 
     override fun downloadDocument(key: String): File
     {
-        val getObjectRequest = GetObjectRequest.builder()
+        GetObjectRequest.builder()
             .bucket("your-bucket-name")
             .key(key)
             .build()

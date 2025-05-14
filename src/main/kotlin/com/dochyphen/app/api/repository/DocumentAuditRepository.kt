@@ -5,7 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import java.util.*
 
 @ApplicationScoped
-class DocumentAuditLogRepository : BaseRepository<DocumentAuditLog>(DocumentAuditLog::class.java)
+class DocumentAuditRepository : BaseRepository<DocumentAuditLog>(DocumentAuditLog::class.java)
 {
     fun findByDocumentId(uuid: UUID): List<DocumentAuditLog>
     {

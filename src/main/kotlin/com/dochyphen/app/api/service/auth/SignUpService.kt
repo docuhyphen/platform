@@ -3,7 +3,7 @@ package com.dochyphen.app.api.service.auth
 import com.dochyphen.app.api.exception.*
 import com.dochyphen.app.api.model.entity.AppUser
 import com.dochyphen.app.api.model.entity.SignUpEntity
-import com.dochyphen.app.api.model.entity.SignUpStatus
+import SignUpStatus
 import com.dochyphen.app.api.repository.AppUserRepository
 import com.dochyphen.app.api.repository.SignUpRepository
 import com.dochyphen.app.api.service.communication.EmailService
