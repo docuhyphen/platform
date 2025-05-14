@@ -70,7 +70,7 @@ const ProfileTab = () =>
                 <Switch
                     checked={appUser.settings.notifyLogin}
                     onChange={notifyLoginChange}
-                    label="Send me by email every time I sign in"
+                    label="Send me an email every time I sign in"
                 />
             }
 
@@ -83,9 +83,8 @@ const ProfileTab = () =>
             </Divider>
             <div className={styles.dataContainer}>
                 <Text size={500}
-                      italic={true}
                       className={styles.dataName}>
-                    First Name
+                    Your first Name
                 </Text>
                 <Text size={500}>
                     {appUser?.person?.firstName}
@@ -93,9 +92,8 @@ const ProfileTab = () =>
             </div>
             <div className={styles.dataContainer}>
                 <Text size={500}
-                      italic={true}
                       className={styles.dataName}>
-                    Last Name
+                    Your Name
                 </Text>
                 <Text size={500}>
                     {appUser?.person?.lastName}
