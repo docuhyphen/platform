@@ -176,7 +176,7 @@ const OrganizationTab = () =>
                     <Switch
                         checked={organizationSettings.allowProfileUpdate}
                         onChange={(_, data) => handleSettingChange('allowProfileUpdate', data.checked)}
-                        label="Allow users to update their profiles"
+                        label="Allow users to update basic their profiles"
                         disabled={savingSettings}
                     />
                     <Switch

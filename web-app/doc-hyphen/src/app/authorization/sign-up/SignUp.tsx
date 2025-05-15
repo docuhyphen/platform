@@ -63,7 +63,7 @@ const SignUp: React.FC = () =>
 
         setFormData({
             ...formData,
-            [e.target.name]: newValue.value || ''
+            [e.target.name]: (newValue.value || '').toLowerCase()
         });
     };
 

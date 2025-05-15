@@ -37,5 +37,14 @@ class MfaRecord {
     @Enumerated(STRING)
     var status: MultifactorAuthenticationStatus? = null
 
+    @Column(name = "attempt_count")
+    var attemptCount: Int = 0
+
+    @Column(name = "session_id")
+    var sessionId: String? = null
+
+    @Column(name = "ip_address")
+    var ipAddress: String? = null
+
     constructor()
 }

@@ -33,6 +33,7 @@ const SignIn: React.FC = () =>
 {
     const [email, setEmail] = useState<string>('');
     const [otp, setOtp] = useState<string>('');
+    const [mfaSessionId, setMfaSessionId] = useState<string>('');
     const [password, setPassword] = useState<string>('');
     const [signInInitiating, setSignInInitiating] = useState<boolean>(false);
     const [signInCompleting, setSignInCompleting] = useState<boolean>(false);
@@ -70,13 +71,14 @@ const SignIn: React.FC = () =>
             const signInInitiateRequest = {email, password};
             const response = await initiateSignIn(signInInitiateRequest);
 
+            setMfaSessionId(response?.mfaSessionId);
             setSignInInitiationSuccessfulMsg(response?.message);
             setSignInInitiationSuccessful(true);
         }
         catch (error)
         {
             setSignInInitiationSuccessful(false);
-            setResponseErrorMessage((error as ResponseError)?.errorMessage);
+            setResponseErrorMessage((error as ResponseError)?.errorMessage ?? "An unknown error occurred signing in.");
         }
         finally
         {
@@ -99,7 +101,7 @@ const SignIn: React.FC = () =>
 
         try
         {
-            const signInCompletionRequest = {email, otp};
+            const signInCompletionRequest = {email, otp, sessionId: mfaSessionId};
             const response = await completeSignIn(signInCompletionRequest);
 
             setToken(response.token);

@@ -36,7 +36,7 @@ class SignUpResource @Inject constructor(
 
         return try
         {
-            signUpService.initiateSignUp(payload.email.toString())
+            signUpService.initiateSignUp(payload.email.toString().trim().lowercase())
 
             val signUpInitiateResponse =
                 SignUpInitiateResponse(message = "We have sent you an OTP to confirm your email.")
@@ -127,7 +127,7 @@ class SignUpResource @Inject constructor(
     @Path("/otp-regeneration")
     fun regenerateOtp(request: SignUpRegenerationRequest): Response
     {
-//        ResourceEndpointDelayHelper.delayEndpoint(2000, 4000)
+        ResourceEndpointDelayHelper.delayEndpoint(1500, 3000)
 
         return try
         {

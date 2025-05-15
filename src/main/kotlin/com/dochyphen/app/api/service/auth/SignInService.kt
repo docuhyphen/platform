@@ -2,9 +2,11 @@ package com.dochyphen.app.api.service.auth
 
 import com.dochyphen.app.api.exception.InvalidOtpException
 import com.dochyphen.app.api.exception.InvalidSignInCredentialsException
+import com.dochyphen.app.api.exception.MaxAttemptsOTPExceededException
 import com.dochyphen.app.api.exception.OTPExpiredException
+import com.dochyphen.app.api.model.dto.MfaSessionDto
 import com.dochyphen.app.api.model.entity.AuthToken
-import com.dochyphen.app.api.model.entity.MfaRecord
+import com.dochyphen.app.api.model.entity.MultifactorAuthenticationStatus
 import com.dochyphen.app.api.model.entity.MultifactorAuthenticationType
 import com.dochyphen.app.api.service.AppUserService
 import com.dochyphen.app.api.service.communication.EmailService
@@ -13,6 +15,7 @@ import com.dochyphen.app.api.service.communication.OtpService
 import com.dochyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
+import jakarta.transaction.Transactional
 import org.mindrot.jbcrypt.BCrypt
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
@@ -34,21 +37,24 @@ class SignInService @Inject constructor(
         private val logger = LoggerFactory.getLogger(SignInService::class.java)
     }
 
-    fun initiateSignIn(email: String?, password: String?)
+    @Transactional
+    fun initiateSignIn(email: String?, password: String?, ipAddress: String?): MfaSessionDto
     {
-        if (email.isNullOrBlank() || password.isNullOrBlank())
+        if (email.isNullOrBlank() || password.isNullOrBlank() || ipAddress.isNullOrBlank())
         {
             val emailErrorMessage = when
             {
                 email.isNullOrBlank() -> "Email is blank."
-                authenticationService.isEmailInvalid(email) -> "Email is invalid."
+                authenticationService.isEmailInvalid(email) -> "Email is invalid. "
                 else -> ""
             }
 
-            val passwordErrorMessage = if (password.isNullOrBlank()) "Password is blank." else ""
+            val passwordErrorMessage = if (password.isNullOrBlank()) "Password is blank. " else ""
+
+            val ipAddressErrorMessage = if (ipAddress.isNullOrBlank()) "IP address is blank. " else ""
 
             val errorMessage =
-                listOf(emailErrorMessage, passwordErrorMessage)
+                listOf(emailErrorMessage, passwordErrorMessage, ipAddressErrorMessage)
                     .filter { it.isNotEmpty() }
                     .joinToString(" ")
 
@@ -56,67 +62,93 @@ class SignInService @Inject constructor(
             throw InvalidSignInCredentialsException()
         }
 
+        val sanitizedEmail = email.trim().lowercase()
+
         val appUser = appUserService.findByEmail(email) ?: throw InvalidSignInCredentialsException()
 
         if (!authenticationService.validatePassword(password, appUser.password!!))
         {
-            logger.warn("Sign in failed: Invalid password for email $email")
+            logger.warn("Sign in failed: Invalid password for email $sanitizedEmail")
             throw InvalidSignInCredentialsException()
         }
 
-        // Generate OTP for MFA
-        val otp = otpService.generateEmailOtp()
-        val hashedOtp = otpService.hashOtp(otp)
-        val expirationTime = Timestamp.from(
-            Instant.now().plusMillis(TimeUnit.MINUTES.toMillis(configurationService.getSignInEmailOtpMFAExpiryMins()))
+        val mfaSession = mfaService.createMfaSession(
+            user = appUser,
+            mfaType = appUser.mfaType,
+            ipAddress = ipAddress,
         )
 
-        // Save OTP to MfaRecordRepository
-        val mfaRecord = MfaRecord().apply {
-            this.appUser = appUser
-            this.mfaToken = hashedOtp
-            this.expiryDateTime = expirationTime
-            this.mfaType = MultifactorAuthenticationType.EMAIL
+        when (appUser.mfaType)
+        {
+            MultifactorAuthenticationType.EMAIL -> mfaService.doEmailMFA(appUser, mfaSession.mfaToken!!)
+            MultifactorAuthenticationType.SMS -> TODO("Implement SMS OTP sending")
+            MultifactorAuthenticationType.PASSKEY -> TODO("Implement passkey OTP sending")
+            else ->
+            {
+                logger.warn("Sign in failed: MFA type is NONE for email $sanitizedEmail")
+                throw InvalidSignInCredentialsException()
+            }
         }
 
-        mfaService.saveRecord(mfaRecord)
+        logger.info("Sign in initiated for email $sanitizedEmail. OTP sent.")
 
-        // Send OTP via email
-        emailService.sendEmail(
-            to = email,
-            subject = "${configurationService.getAppEmailSubjectTitle()} | Sign In OTP",
-            body = "Your OTP for sign in is: $otp. It will expire in ${configurationService.getSignInEmailOtpMFAExpiryMins()} minutes."
-        )
-
-        logger.info("Sign in initiated for email $email. OTP sent.")
+        return mfaSession
     }
 
-    fun completeSignIn(email: String?, otp: String?): String
+    @Transactional
+    fun completeSignIn(email: String?, otp: String?, sessionId: String?): String
     {
-        if (email.isNullOrBlank() || otp.isNullOrBlank())
+        if (email.isNullOrBlank() || otp.isNullOrBlank() || sessionId.isNullOrBlank())
         {
-            val emailErrorMessage = if (email.isNullOrBlank()) "Email is blank." else ""
+            val emailErrorMessage = when
+            {
+                email.isNullOrBlank() -> "Email is blank."
+                authenticationService.isEmailInvalid(email) -> "Email is invalid. "
+                else -> ""
+            }
+
             val otpErrorMessage = if (otp.isNullOrBlank()) "OTP is blank." else ""
 
-            val errorMessage = listOf(emailErrorMessage, otpErrorMessage).filter { it.isNotEmpty() }.joinToString(" ")
+            val sessionIdErrorMessage = if (sessionId.isNullOrBlank()) "Session ID is blank." else ""
+
+            val errorMessage = listOf(emailErrorMessage, otpErrorMessage, sessionIdErrorMessage)
+                .filter { it.isNotEmpty() }.joinToString(" ")
 
             logger.warn("Sign in completion failed: $errorMessage")
             throw InvalidOtpException()
         }
 
-        val mfaRecord = mfaService.getLatestMfaRecordByEmail(email) ?: throw InvalidOtpException()
+        val sanitizedEmail = email.trim().lowercase()
+        val sanitizedOTP = otp.trim()
+        val mfaRecord =
+            mfaService.getMfaRecordByEmailAndSessionId(sanitizedEmail, sessionId) ?: throw InvalidOtpException()
 
         if (mfaRecord.expiryDateTime!!.before(Timestamp.from(Instant.now())))
         {
-            logger.warn("Sign in completion failed: OTP expired for email $email")
+            logger.warn("Sign in completion failed: OTP expired for email $sanitizedEmail")
+
             throw OTPExpiredException("OTP expired.")
         }
 
-        if (!BCrypt.checkpw(otp, mfaRecord.mfaToken))
+        // Track verification attempts
+        mfaRecord.attemptCount++
+
+        if (mfaRecord.attemptCount > configurationService.getMaxSignInAttempts())
         {
-            logger.warn("Sign in completion failed: Invalid OTP for email $email")
+            mfaRecord.status = MultifactorAuthenticationStatus.LOCKED
+            mfaService.updateRecord(mfaRecord)
+
+            throw MaxAttemptsOTPExceededException("Too many invalid attempts.")
+        }
+
+        if (!BCrypt.checkpw(sanitizedOTP, mfaRecord.mfaToken))
+        {
+            logger.warn("Sign in completion failed: Invalid OTP for email $sanitizedEmail")
             throw InvalidOtpException()
         }
+
+        mfaRecord.status = MultifactorAuthenticationStatus.COMPLETED
+        mfaService.updateRecord(mfaRecord)
 
         // Generate JWT token
         val signInToken = authenticationService.generateSignInToken(mfaRecord.appUser!!)
@@ -133,7 +165,7 @@ class SignInService @Inject constructor(
         authenticationService.saveAuthToken(authToken)
         mfaService.removeMfaRecord(mfaRecord)
 
-        logger.info("Sign in completed for email $email. JWT token generated.")
+        logger.info("Sign in completed for email $sanitizedEmail. JWT token generated.")
         return signInToken
     }
 }

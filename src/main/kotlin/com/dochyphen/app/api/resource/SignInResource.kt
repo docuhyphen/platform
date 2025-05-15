@@ -1,9 +1,6 @@
 package com.dochyphen.app.api.resource
 
-import com.dochyphen.app.api.exception.EmailRequiredException
-import com.dochyphen.app.api.exception.InvalidOtpException
-import com.dochyphen.app.api.exception.InvalidSignInCredentialsException
-import com.dochyphen.app.api.exception.OTPExpiredException
+import com.dochyphen.app.api.exception.*
 import com.dochyphen.app.api.resource.model.*
 import com.dochyphen.app.api.service.auth.SignInService
 import jakarta.inject.Inject
@@ -11,6 +8,7 @@ import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.Produces
+import jakarta.ws.rs.core.Context
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
@@ -31,22 +29,33 @@ class SignInResource @Inject constructor(
 
     @POST
     @Path("/initiate")
-    fun signIn(payload: SignInRequest): Response
+    fun signIn(
+        @Context request: io.vertx.core.http.HttpServerRequest,
+        payload: SignInRequest
+    ): Response
     {
         return try
         {
             ResourceEndpointDelayHelper.delayEndpoint(3000, 6000)
 
-            with(payload) {
-                signInService.initiateSignIn(payload.email, payload.password)
-                val signInResponse = SignInResponse("")
-                Response.ok(signInResponse).build()
+            var mfaSession = with(payload) {
+
+                signInService.initiateSignIn(email, password, getClientIpAddress(request))
             }
+
+            val signInResponse = SignInResponse("", mfaSession.id.toString())
+            Response.ok(signInResponse).build()
         }
         catch (exception: Exception)
         {
             when (exception)
             {
+                is TooManyRequestsException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    Response.status(429).entity(responseError).build()
+                }
+
                 is InvalidSignInCredentialsException ->
                 {
                     val responseError = ResponseError(exception.message)
@@ -63,15 +72,17 @@ class SignInResource @Inject constructor(
 
     @POST
     @Path("/completion")
-    fun completeSignIn(payload: SignInCompletionRequest): Response
+    fun completeSignIn(
+        @Context request: io.vertx.core.http.HttpServerRequest,
+        payload: SignInCompletionRequest
+    ): Response
     {
         return try
         {
-
             ResourceEndpointDelayHelper.delayEndpoint(1000, 3000)
 
             val signInToken = with(payload) {
-                signInService.completeSignIn(email, otp)
+                signInService.completeSignIn(email, otp, sessionId)
             }
             val signInCompletionResponse = SignInCompletionResponse(signInToken)
             Response.ok(signInCompletionResponse).build()
@@ -82,6 +93,7 @@ class SignInResource @Inject constructor(
             {
                 is OTPExpiredException,
                 is EmailRequiredException,
+                is MaxAttemptsOTPExceededException,
                 is InvalidOtpException ->
                 {
                     val responseError = ResponseError(exception.message)
@@ -96,5 +108,33 @@ class SignInResource @Inject constructor(
                 }
             }
         }
+    }
+
+    private fun getClientIpAddress(request: io.vertx.core.http.HttpServerRequest): String
+    {
+        var ipAddress = request.getHeader("X-Forwarded-For")
+
+        if (ipAddress.isNullOrBlank() || "unknown".equals(ipAddress, ignoreCase = true))
+        {
+            ipAddress = request.getHeader("Proxy-Client-IP")
+        }
+
+        if (ipAddress.isNullOrBlank() || "unknown".equals(ipAddress, ignoreCase = true))
+        {
+            ipAddress = request.getHeader("X-Real-IP")
+        }
+
+        if (ipAddress.isNullOrBlank() || "unknown".equals(ipAddress, ignoreCase = true))
+        {
+            ipAddress = request.remoteAddress()?.host() ?: "0.0.0.0"
+        }
+
+        // If we got a comma-separated list (from X-Forwarded-For), take the first one
+        if (!ipAddress.isNullOrBlank() && ipAddress.contains(","))
+        {
+            ipAddress = ipAddress.split(",")[0].trim()
+        }
+
+        return ipAddress
     }
 }

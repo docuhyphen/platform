@@ -4,25 +4,38 @@ import com.dochyphen.app.api.model.entity.*
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class ResponseError(var errorMessage: String? = "")
-
-@Serializable
-data class SignInRequest(var email: String? = null, var password: String? = null)
-
-@Serializable
-data class SignInResponse(var message: String)
-
-@Serializable
-data class SignInCompletionRequest(
-    var otp: String? = null,
-    var email: String? = null
+data class ResponseError(
+    var errorMessage: String? = ""
 )
 
 @Serializable
-data class SignInCompletionResponse(var token: String? = null)
+data class SignInRequest(
+    var email: String? = null,
+    var password: String? = null
+)
 
 @Serializable
-data class SignOutRequest(var appUser: AppUser)
+data class SignInResponse(
+    var message: String,
+    var mfaSessionId: String? = null
+)
+
+@Serializable
+data class SignInCompletionRequest(
+    val email: String?,
+    val otp: String?,
+    val sessionId: String?
+)
+
+@Serializable
+data class SignInCompletionResponse(
+    var token: String? = null
+)
+
+@Serializable
+data class SignOutRequest(
+    var appUser: AppUser
+)
 
 @Serializable
 data class SignUpCompletionRequest(

@@ -37,3 +37,4 @@ class OrganizationGroupNotFoundException(message: String?) : RuntimeException(me
 class AppUserNotFoundException(message: String?) : RuntimeException(message)
 class SharingSessionNotFoundException(message: String?) : RuntimeException(message)
 class SharingSessionDocumentNotFoundException(message: String?) : RuntimeException(message)
+class TooManyRequestsException(message: String?) : RuntimeException(message)
