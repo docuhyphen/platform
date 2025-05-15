@@ -8,6 +8,7 @@ import com.dochyphen.app.api.model.dto.MfaSessionDto
 import com.dochyphen.app.api.model.entity.AuthToken
 import com.dochyphen.app.api.model.entity.MultifactorAuthenticationStatus
 import com.dochyphen.app.api.model.entity.MultifactorAuthenticationType
+import com.dochyphen.app.api.model.entity.MultifactorAuthenticationType.EMAIL
 import com.dochyphen.app.api.service.AppUserService
 import com.dochyphen.app.api.service.communication.EmailService
 import com.dochyphen.app.api.service.communication.MfaService
@@ -16,7 +17,6 @@ import com.dochyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
-import org.mindrot.jbcrypt.BCrypt
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
@@ -80,7 +80,7 @@ class SignInService @Inject constructor(
 
         when (appUser.mfaType)
         {
-            MultifactorAuthenticationType.EMAIL -> mfaService.doEmailMFA(appUser, mfaSession.mfaToken!!)
+            EMAIL -> mfaService.doEmailMFA(appUser, mfaSession.mfaToken!!)
             MultifactorAuthenticationType.SMS -> TODO("Implement SMS OTP sending")
             MultifactorAuthenticationType.PASSKEY -> TODO("Implement passkey OTP sending")
             else ->
@@ -141,11 +141,36 @@ class SignInService @Inject constructor(
             throw MaxAttemptsOTPExceededException("Too many invalid attempts.")
         }
 
-        if (!BCrypt.checkpw(sanitizedOTP, mfaRecord.mfaToken))
+        when (mfaRecord.mfaType)
         {
-            logger.warn("Sign in completion failed: Invalid OTP for email $sanitizedEmail")
-            throw InvalidOtpException()
+            EMAIL ->
+            {
+                if (mfaRecord.status == MultifactorAuthenticationStatus.COMPLETED)
+                {
+                    logger.warn("Sign in completion failed: OTP already used for email $sanitizedEmail")
+                    throw InvalidOtpException()
+                }
+
+                if (mfaRecord.status == MultifactorAuthenticationStatus.LOCKED)
+                {
+                    logger.warn("Sign in completion failed: OTP locked for email $sanitizedEmail")
+                    throw MaxAttemptsOTPExceededException("Too many invalid attempts.")
+                }
+
+                if (!otpService.verifyEmailOtp(sanitizedOTP, mfaRecord.mfaToken!!))
+                {
+                    logger.warn("Sign in completion failed: Invalid OTP for email $sanitizedEmail")
+                    throw InvalidOtpException()
+                }
+            }
+
+            else ->
+            {
+                logger.warn("Sign in completion failed: Unsupported MFA type for email $sanitizedEmail")
+                throw Exception("Server error: unsupported MFA type.")
+            }
         }
+
 
         mfaRecord.status = MultifactorAuthenticationStatus.COMPLETED
         mfaService.updateRecord(mfaRecord)

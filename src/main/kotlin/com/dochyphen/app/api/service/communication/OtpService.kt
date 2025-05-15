@@ -23,4 +23,6 @@ class OtpService
     }
 
     fun hashOtp(otp: String): String = BCrypt.hashpw(otp, BCrypt.gensalt())
+
+    fun verifyEmailOtp(plainOtp: String, hashedOtp: String): Boolean = BCrypt.checkpw(plainOtp, hashedOtp)
 }

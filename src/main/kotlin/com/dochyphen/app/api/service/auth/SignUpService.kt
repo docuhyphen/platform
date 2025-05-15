@@ -39,24 +39,26 @@ class SignUpService @Inject constructor(
             throw EmailRequiredException()
         }
 
-        if (authenticationService.isEmailInvalid(email))
+        val sanitized = email.trim().lowercase();
+
+        if (authenticationService.isEmailInvalid(sanitized))
         {
-            logger.warn("Sign up failed: Email ($email) validation failed")
+            logger.warn("Sign up failed: Email ($sanitized) validation failed")
             throw InvalidEmailException()
         }
 
         try
         {
-            appUserRepository.findByEmail(email)?.let {
+            appUserRepository.findByEmail(sanitized)?.let {
                 throw AppUserExistsException()
             }
 
-            val existingSignUp = signUpRepository.findByEmail(email)
+            val existingSignUp = signUpRepository.findByEmail(sanitized)
 
             val otp = otpService.generateEmailOtp()
             val expirationMinutes = configurationService.getSignUpOtpExpiryMins()
             val appBaseUrl = configurationService.getAppBaseURL()
-            val emailConfirmationLink = "$appBaseUrl/sign-up/email-confirm?email=$email&otp=$otp"
+            val emailConfirmationLink = "$appBaseUrl/sign-up/email-confirm?email=$sanitized&otp=$otp"
 
             if (existingSignUp != null)
             {
@@ -75,7 +77,7 @@ class SignUpService @Inject constructor(
             else
             {
                 val signUpEntity = SignUpEntity().apply {
-                    this.email = email
+                    this.email = sanitized
                     this.otp = otpService.hashOtp(otp)
                     this.otpExpiryTimestamp = LocalDateTime.now().plusMinutes(expirationMinutes.toLong())
                 }
@@ -83,7 +85,7 @@ class SignUpService @Inject constructor(
             }
 
             emailService.sendEmail(
-                email, "${configurationService.getAppEmailSubjectTitle()} | Sign Up", """
+                sanitized, "${configurationService.getAppEmailSubjectTitle()} | Sign Up", """
             Thank you for signing up with Secure Document Share.
             Here's the OTP you'll need to continue: $otp
             Alternatively, you can click on this link: $emailConfirmationLink
@@ -92,7 +94,7 @@ class SignUpService @Inject constructor(
         """.trimIndent()
             )
 
-            logger.info("Sign up successful. Email: $email, otp: $otp")
+            logger.info("Sign up successful. Email: $sanitized, otp: $otp")
         }
         catch (exception: Exception)
         {
