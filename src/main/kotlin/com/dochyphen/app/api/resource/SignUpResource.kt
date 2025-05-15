@@ -73,7 +73,7 @@ class SignUpResource @Inject constructor(
     @Path("/completion")
     fun completeSignUp(signUpRequest: SignUpCompletionRequest): Response
     {
-//        ResourceEndpointDelayHelper.delayEndpoint(5000, 8000)
+        ResourceEndpointDelayHelper.delayEndpoint(1600, 3000)
 
         return try
         {
