@@ -63,6 +63,7 @@ class AppUserResource @Inject constructor(
         @PathParam("personId") personId: String
     ): Response
     {
+        ResourceEndpointDelayHelper.delayEndpoint(600, 1200)
 
         return try
         {

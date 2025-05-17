@@ -24,7 +24,7 @@ class SharingSessionDocumentCommentResource @Inject constructor(
         commentRequest: CommentRequest,
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(1000, 2000)
+        ResourceEndpointDelayHelper.delayEndpoint(600, 1200)
 
         val comment = documentCommentsService.addDocumentComment(
             sessionId,
@@ -41,7 +41,7 @@ class SharingSessionDocumentCommentResource @Inject constructor(
         @PathParam("documentId") documentId: String
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(1000, 2000)
+        ResourceEndpointDelayHelper.delayEndpoint(600, 1200)
 
         val comments = documentCommentsService.getDocumentComments(documentId)
 

@@ -1,6 +1,7 @@
 import {
     Badge,
-    Button, SearchBox,
+    Button,
+    SearchBox,
     Spinner,
     Table,
     TableBody,
@@ -133,6 +134,18 @@ const OrganizationGroupsTab = () =>
     const renderTable = () =>
     {
         return <>
+
+            <div className={styles.header}>
+                <SearchBox className={styles.searchBox}/>
+                <Button
+                    icon={<GroupAddIcon/>}
+                    appearance="primary"
+                    shape="circular"
+                    onClick={onAddGroup}>
+                    Create Group
+                </Button>
+            </div>
+
             <Table className={styles.table}>
                 <TableHeader>
                     <TableRow>
@@ -152,17 +165,6 @@ const OrganizationGroupsTab = () =>
 
     return <>
         <div className={styles.container}>
-            <div className={styles.header}>
-                <SearchBox className={styles.searchBox}/>
-                <Button
-                    icon={<GroupAddIcon/>}
-                    appearance="primary"
-                    shape="circular"
-                    onClick={onAddGroup}>
-                    Create Group
-                </Button>
-            </div>
-
             {error && <div className={styles.error}>{error}</div>}
 
             {loading ? (

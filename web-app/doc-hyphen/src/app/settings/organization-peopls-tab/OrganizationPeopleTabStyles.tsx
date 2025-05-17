@@ -23,7 +23,6 @@ export const useOrganizationPeopleTabStyles = makeStyles({
     loading: {
         display: 'flex',
         justifyContent: 'center',
-        ...shorthands.padding('40px')
     },
     error: {
         color: 'red',

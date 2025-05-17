@@ -33,7 +33,7 @@ class SharingSessionDocumentVersionResource @Inject constructor(
         @PathParam("documentId") documentId: String
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(1000, 2000)
+        ResourceEndpointDelayHelper.delayEndpoint(600, 1200)
 
         return try
         {
@@ -81,7 +81,7 @@ class SharingSessionDocumentVersionResource @Inject constructor(
         @RestForm("userEmail") userEmail: String?
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(1000, 2000)
+        ResourceEndpointDelayHelper.delayEndpoint(600, 1200)
 
         return try
         {
@@ -175,7 +175,7 @@ class SharingSessionDocumentVersionResource @Inject constructor(
         @PathParam("documentId") documentId: String
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(1000, 2000)
+        ResourceEndpointDelayHelper.delayEndpoint(600, 1200)
 
         return try
         {

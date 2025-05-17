@@ -37,6 +37,8 @@ class OrganizationGroupResource @Inject constructor(
         addOrganizationGroupRequest: AddOrganizationGroupRequest
     ): Response
     {
+        ResourceEndpointDelayHelper.delayEndpoint(600, 1200)
+
         return try
         {
 
@@ -113,6 +115,8 @@ class OrganizationGroupResource @Inject constructor(
         updateOrganizationGroupRequest: UpdateOrganizationGroupRequest
     ): Response
     {
+        ResourceEndpointDelayHelper.delayEndpoint(600, 1200)
+
         return try
         {
             val groupMembers = updateOrganizationGroupRequest.members?.map { member ->
@@ -176,6 +180,8 @@ class OrganizationGroupResource @Inject constructor(
         @PathParam("organizationId") organizationId: String
     ): Response
     {
+        ResourceEndpointDelayHelper.delayEndpoint(600, 1200)
+
         return try
         {
             var groups = organizationGroupService
@@ -226,6 +232,8 @@ class OrganizationGroupResource @Inject constructor(
         @PathParam("organizationId") organizationId: String?,
         @PathParam("groupId") groupId: String?): Response
     {
+        ResourceEndpointDelayHelper.delayEndpoint(600, 1200)
+
         return try
         {
             organizationGroupService.deleteOrganizationGroup(organizationId, groupId)

@@ -1,6 +1,7 @@
 import {
     Badge,
-    Button, Input, SearchBox,
+    Button,
+    SearchBox,
     Spinner,
     Table,
     TableBody,
@@ -98,24 +99,24 @@ const OrganizationPeopleTab = () =>
 
     return (
         <div className={styles.container}>
-            <div className={styles.header}>
-                <SearchBox className={styles.searchBox}/>
-                <Button
-                    icon={<PersonAddIcon/>}
-                    appearance="primary"
-                    shape="circular"
-                    onClick={handleAddUser}>
-                    Add Person
-                </Button>
-            </div>
 
             {error && <div className={styles.error}>{error}</div>}
 
             {loading ? (
                 <div className={styles.loading}>
-                    <Spinner label="Loading users..."/>
+                    <Spinner label="Loading..."/>
                 </div>
-            ) : (
+            ) : <>
+                <div className={styles.header}>
+                    <SearchBox className={styles.searchBox}/>
+                    <Button
+                        icon={<PersonAddIcon/>}
+                        appearance="primary"
+                        shape="circular"
+                        onClick={handleAddUser}>
+                        Add Person
+                    </Button>
+                </div>
                 <Table className={styles.table}>
                     <TableHeader>
                         <TableRow>
@@ -165,7 +166,7 @@ const OrganizationPeopleTab = () =>
                         ))}
                     </TableBody>
                 </Table>
-            )}
+            </>}
 
             <AddUserDialog
                 isOpen={isAddDialogOpen}
