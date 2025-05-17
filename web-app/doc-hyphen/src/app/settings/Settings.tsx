@@ -1,5 +1,6 @@
 import * as React from "react";
-import {SelectTabData, SelectTabEvent, Tab, TabList, TabValue, Text,} from "@fluentui/react-components";
+import {useState} from "react";
+import {SelectTabData, SelectTabEvent, Tab, TabList, TabValue,} from "@fluentui/react-components";
 import {useSettingsStyles} from "./SettingsStyles.tsx";
 import MainMenu from "../components/MainMenu.tsx";
 import OrganizationTab from "./organization-tab/OrganizationTab.tsx";
@@ -16,10 +17,12 @@ import AppSettingsTab from "./app-settings-tab/AppSettingsTab.tsx";
 import ProfileTab from "./profile-tab/ProfileTab.tsx";
 import OrganizationGroupsTab from "./organization-groups-tab/OrganizationGroupsTab.tsx";
 import OrganizationPeopleTab from "./organization-peopls-tab/OrganizationPeopleTab.tsx";
-import {useState} from "react";
+import {useAuth} from "../../context/AuthContext.tsx";
+import {AppUserRole} from "../models/models.tsx";
 
 const Settings = () =>
 {
+    const {appUser, appUserPersonOrganization} = useAuth();
     const styles = useSettingsStyles();
     const [selectedValue, setSelectedValue] = useState<TabValue>("profile");
 
@@ -38,21 +41,28 @@ const Settings = () =>
                          value="profile">
                         Profile
                     </Tab>
-                    <Tab id="OrganizationTab"
-                         icon={<SettingsOrganizationTabIcon/>}
-                         value="organization">
-                        Your Organization
-                    </Tab>
-                    <Tab id="PeopleTab"
-                         icon={<SettingsOrganizationPeopleTabIcon/>}
-                         value="people">
-                        Your People
-                    </Tab>
-                    <Tab id="GroupsTab"
-                         icon={<SettingsOrganizationGroupsTabIcon/>}
-                         value="groups">
-                        Groups
-                    </Tab>
+                    {(!appUserPersonOrganization || appUser?.role == AppUserRole.ORG_ADMIN) &&
+
+                        <Tab id="OrganizationTab"
+                             icon={<SettingsOrganizationTabIcon/>}
+                             value="organization">
+                            Your Organization
+                        </Tab>
+                    }
+                    {appUser?.role == AppUserRole.ORG_ADMIN && <>
+
+                        <Tab id="PeopleTab"
+                             icon={<SettingsOrganizationPeopleTabIcon/>}
+                             value="people">
+                            Your People
+                        </Tab>
+                        <Tab id="GroupsTab"
+                             icon={<SettingsOrganizationGroupsTabIcon/>}
+                             value="groups">
+                            Groups
+                        </Tab>
+                    </>
+                    }
                     <Tab id="AppSettingsTab"
                          icon={<SettingsAppSettingsTabIcon/>}
                          value="appSettings">

@@ -10,6 +10,7 @@ import {
     DialogTrigger,
     Text
 } from "@fluentui/react-components";
+import {usePasswordResetDialogStyles} from "./PasswordResetDialogStyles.tsx";
 
 interface PasswordResetDialogProps
 {
@@ -24,13 +25,15 @@ const PasswordResetDialog : React.FC<PasswordResetDialogProps> = (
     }
 ) =>
 {
+    const styles = usePasswordResetDialogStyles()
+
     return <>
         <Dialog modalType="alert"
                 open={isOpen}>
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle>Reset password</DialogTitle>
-                    <DialogContent>
+                    <DialogContent className={styles.dialogContentContainer}>
                         <Text>
                             This feature is temporarily unavailable. To reset your password please sign out and reset
                             your password using the <strong>"Recover Account"</strong> link on the sign page.
@@ -38,7 +41,6 @@ const PasswordResetDialog : React.FC<PasswordResetDialogProps> = (
                     </DialogContent>
                 </DialogBody>
                 <DialogActions>
-
                     <DialogTrigger disableButtonEnhancement>
                         <Button appearance="secondary"
                                 shape={"circular"}

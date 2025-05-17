@@ -15,6 +15,7 @@ import React, {useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import apiClient from "../../../../services/apiClient";
 import {AppUserDetailedDto} from "../../../models/models.tsx";
+import {useBasicDetailsEditDialogStyles} from "./BasicDetailsEditDialogStyles.tsx";
 
 interface BasicDetailsEditDialogProps
 {
@@ -29,6 +30,7 @@ const BasicDetailsEditDialog: React.FC<BasicDetailsEditDialogProps> = (
     }
 ) =>
 {
+    const styles = useBasicDetailsEditDialogStyles()
     const {appUser, token, setAppUser} = useAuth()
     const [firstName, setFirstName] = useState(appUser?.person.firstName);
     const [lastName, setLastName] = useState(appUser?.person.lastName);
@@ -104,18 +106,20 @@ const BasicDetailsEditDialog: React.FC<BasicDetailsEditDialogProps> = (
         <DialogSurface>
             <DialogBody>
                 <DialogTitle>Update your profile</DialogTitle>
-                <DialogContent>
+                <DialogContent className={styles.dialogContentContainer}>
                     {error && <div style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
 
                     <Field label={"First Name"}>
                         <Input type={"text"}
                                value={firstName}
+                               maxLength={30}
                                onChange={(e) => setFirstName(e.target.value)}/>
                     </Field>
 
                     <Field label={"Last Name"}>
                         <Input type={"text"}
                                value={lastName}
+                               maxLength={30}
                                onChange={(e) => setLastName(e.target.value)}/>
                     </Field>
                 </DialogContent>

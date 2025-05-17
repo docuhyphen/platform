@@ -14,6 +14,9 @@ export const useOrganizationPeopleTabStyles = makeStyles({
         justifyContent: 'space-between',
         alignItems: 'center'
     },
+    searchBox: {
+      flexGrow: 1
+    },
     table: {
         width: '100%'
     },

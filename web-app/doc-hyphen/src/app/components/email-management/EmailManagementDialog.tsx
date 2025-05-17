@@ -20,6 +20,7 @@ import {
     initiateEmailAddition,
     initiateEmailUpdate
 } from "../../../services/contactDetailsApi";
+import {useEmailManagementDialogStyles} from "./EmailManagementDialogStyles.tsx";
 
 export enum EmailManagementMode
 {
@@ -45,6 +46,7 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
         onComplete
     }) =>
 {
+    const styles = useEmailManagementDialogStyles()
     const {token} = useAuth();
     const [email, setEmail] = useState<string | undefined>(contactDetails?.email);
     const [processing, setProcessing] = useState(false);
@@ -256,7 +258,7 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
                     <DialogTitle>
                         {mode === EmailManagementMode.ADD ? "Add new email" : "Edit email"}
                     </DialogTitle>
-                    <DialogContent>
+                    <DialogContent className={styles.dialogContentContainer}>
                         {error && <div style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
 
                         <Field label="Email">
@@ -264,6 +266,7 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
                                 type="email"
                                 value={email || ''}
                                 onChange={onEmailChange}
+                                maxLength={320}
                                 disabled={addOrEditInitiated || processing}
                             />
                         </Field>

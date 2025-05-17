@@ -1,4 +1,3 @@
-// OrganizationDetailsEditDialog.tsx
 import {
     Button,
     Dialog,
@@ -16,6 +15,7 @@ import React, {useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import {OrganizationDetailedDto} from "../../../models/models.tsx";
 import {updateOrganization} from "../../../../services/organizationApi.ts";
+import {useOrganizationEditDialogStyles} from "./OrganizationDetailsEditDialogStyles.tsx";
 
 interface OrganizationDetailsEditDialogProps
 {
@@ -33,6 +33,7 @@ const OrganizationDetailsEditDialog: React.FC<OrganizationDetailsEditDialogProps
         onComplete
     }) =>
 {
+    const styles = useOrganizationEditDialogStyles()
     const {token} = useAuth();
     const [organizationName, setOrganizationName] = useState(organization?.name || "");
     const [registrationNumber, setRegistrationNumber] = useState(organization?.registrationNumber || "");
@@ -94,13 +95,14 @@ const OrganizationDetailsEditDialog: React.FC<OrganizationDetailsEditDialogProps
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle>Update Organization Details</DialogTitle>
-                    <DialogContent>
+                    <DialogContent className={styles.dialogContentContainer}>
                         {error && <div style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
 
                         <Field label="Organization Name">
                             <Input
                                 type="text"
                                 value={organizationName}
+                                maxLength={80}
                                 onChange={(e) => setOrganizationName(e.target.value)}
                             />
                         </Field>
@@ -109,6 +111,7 @@ const OrganizationDetailsEditDialog: React.FC<OrganizationDetailsEditDialogProps
                             <Input
                                 type="text"
                                 value={registrationNumber}
+                                maxLength={80}
                                 onChange={(e) => setRegistrationNumber(e.target.value)}
                             />
                         </Field>

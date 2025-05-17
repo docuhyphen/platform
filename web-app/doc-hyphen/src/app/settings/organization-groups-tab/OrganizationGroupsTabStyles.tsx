@@ -9,6 +9,10 @@ export const useOrganizationGroupTabStyles = makeStyles({
     header: {
         display: "flex",
         marginBottom: "16px",
+        justifyContent: "space-between",
+    },
+    searchBox: {
+        flex: 1
     },
     error: {
         color: "red",

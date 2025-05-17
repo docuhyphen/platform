@@ -16,6 +16,7 @@ import {
 import {useAuth} from "../../../context/AuthContext.tsx";
 import {useNavigate} from "react-router-dom";
 import {completeAppUserEmailUpdate, initiateAppUserEmailUpdate} from "../../../services/appUserApi";
+import {useAppUserEmailUpdateDialogStyles} from "./AppUserEmailUpdateDialogStyles.tsx";
 
 interface AppUserEmailUpdateDialogProps
 {
@@ -24,12 +25,14 @@ interface AppUserEmailUpdateDialogProps
     currentEmail?: string;
 }
 
-const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = ({
-                                                                               isOpen,
-                                                                               onDismiss,
-                                                                               currentEmail
-                                                                           }) =>
+const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
+    {
+        isOpen,
+        onDismiss,
+        currentEmail
+    }) =>
 {
+    const styles = useAppUserEmailUpdateDialogStyles()
     const {token, setToken} = useAuth();
     const navigate = useNavigate();
     const [email, setEmail] = useState<string>("");
@@ -69,6 +72,7 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = ({
 
         try
         {
+            setEmail(email.toLowerCase())
             await initiateAppUserEmailUpdate(email, token);
             setUpdateInitiated(true);
         }
@@ -105,6 +109,7 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = ({
         try
         {
 
+            setEmail(email.toLowerCase())
             await completeAppUserEmailUpdate(email, verificationCode, token);
 
             //ToDo: show a redirect message before redirecting
@@ -143,7 +148,7 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = ({
                     <DialogTitle>
                         Update Email Address
                     </DialogTitle>
-                    <DialogContent>
+                    <DialogContent className={styles.dialogContentContainer}>
                         {error && <div style={{color: "red", marginBottom: "10px"}}>{error}</div>}
 
                         {!updateInitiated && (
@@ -158,6 +163,7 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = ({
                                 type="email"
                                 value={email}
                                 onChange={onEmailChange}
+                                maxLength={30}
                                 disabled={updateInitiated || processing}
                             />
                         </Field>

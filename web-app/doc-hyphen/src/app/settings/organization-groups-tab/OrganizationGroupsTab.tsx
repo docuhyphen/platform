@@ -1,6 +1,6 @@
 import {
     Badge,
-    Button,
+    Button, SearchBox,
     Spinner,
     Table,
     TableBody,
@@ -153,6 +153,7 @@ const OrganizationGroupsTab = () =>
     return <>
         <div className={styles.container}>
             <div className={styles.header}>
+                <SearchBox className={styles.searchBox}/>
                 <Button
                     icon={<GroupAddIcon/>}
                     appearance="primary"

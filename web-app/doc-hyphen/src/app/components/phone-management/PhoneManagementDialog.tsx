@@ -20,6 +20,7 @@ import {
     initiatePhoneAddition,
     initiatePhoneUpdate
 } from "../../../services/contactDetailsApi";
+import {usePhoneManagementDialogStyles} from "./PhoneManagementDialogStyles.tsx";
 
 export enum PhoneManagementMode
 {
@@ -45,6 +46,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
         onComplete
     }) =>
 {
+    const styles = usePhoneManagementDialogStyles()
     const {token} = useAuth();
     const [phoneNumber, setPhoneNumber] = useState<string | undefined>(contactDetails?.phoneNumber);
     const [processing, setProcessing] = useState(false);
@@ -258,12 +260,13 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
                     <DialogTitle>
                         {mode === PhoneManagementMode.ADD ? "Add new phone number" : "Edit phone number"}
                     </DialogTitle>
-                    <DialogContent>
+                    <DialogContent className={styles.dialogContentContainer}>
                         {error && <div style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
 
                         <Field label="Phone number">
                             <Input
                                 type="text"
+                                maxLength={16}
                                 value={phoneNumber || ''}
                                 onChange={onPhoneNumberChange}
                                 disabled={addOrEditInitiated || processing}
@@ -275,6 +278,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
                                 <Input
                                     type="text"
                                     value={verificationCode}
+                                    maxLength={8}
                                     onChange={onVerificationCodeChange}
                                 />
                             </Field>

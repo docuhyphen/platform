@@ -109,6 +109,41 @@ const NewRecipient: React.FC<NewRecipientProps> = (
         }
     };
 
+    const onEmailChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    {
+        if (e.target.value && e.target.value.length)
+        {
+            updateRecipient('email', e.target.value.trim().toLowerCase())
+        }
+        else
+        {
+            updateRecipient('email', '')
+        }
+    }
+    const onFirstNameChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    {
+        if (e.target.value && e.target.value.length)
+        {
+            updateRecipient('firstName', e.target.value.trim())
+        }
+        else
+        {
+            updateRecipient('firstName', '')
+        }
+    }
+
+    const onLastNameChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    {
+        if (e.target.value && e.target.value.length)
+        {
+            updateRecipient('lastName', e.target.value.trim())
+        }
+        else
+        {
+            updateRecipient('lastName', '')
+        }
+    }
+
     return (
         <>
             <Field label={
@@ -121,7 +156,7 @@ const NewRecipient: React.FC<NewRecipientProps> = (
                 <Input
                     type="email"
                     value={recipient.email}
-                    onChange={(e) => updateRecipient('email', e.target.value)}
+                    onChange={onEmailChange}
                     placeholder="Email"
                 />
             </Field>
@@ -130,7 +165,7 @@ const NewRecipient: React.FC<NewRecipientProps> = (
                     <Input
                         type="text"
                         value={recipient.firstName}
-                        onChange={(e) => updateRecipient('firstName', e.target.value)}
+                        onChange={onFirstNameChange}
                         placeholder="First Name"
                     />
                 </Field>
@@ -138,7 +173,7 @@ const NewRecipient: React.FC<NewRecipientProps> = (
                     <Input
                         type="text"
                         value={recipient.lastName}
-                        onChange={(e) => updateRecipient('lastName', e.target.value)}
+                        onChange={onLastNameChange}
                         placeholder="Last Name"
                     />
                 </Field>

@@ -13,6 +13,7 @@ import {
     Text
 } from "@fluentui/react-components";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
+import {useAllDeviceSignOutDialogStyles} from "./AllDeviceSignOutDialogStyles.tsx";
 
 interface AllDeviceSignOutDialogProps
 {
@@ -29,6 +30,7 @@ const AllDeviceSignOutDialog: React.FC<AllDeviceSignOutDialogProps> = (
 {
     const [signingOut, setSigningOut] = useState(false);
     const globalStyles = useGlobalStyles()
+    const styles = useAllDeviceSignOutDialogStyles()
 
     return <>
         <Dialog modalType="alert"
@@ -36,7 +38,7 @@ const AllDeviceSignOutDialog: React.FC<AllDeviceSignOutDialogProps> = (
         <DialogSurface>
             <DialogBody>
                 <DialogTitle>Sign out of all devices</DialogTitle>
-                <DialogContent>
+                <DialogContent className={styles.dialogContentContainer}>
                     <Text>
                         Are you sure you want to sign out of all devices? This will sign you out from all devices
                         including this one.

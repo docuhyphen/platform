@@ -1,6 +1,6 @@
 import {
     Badge,
-    Button,
+    Button, Input, SearchBox,
     Spinner,
     Table,
     TableBody,
@@ -99,6 +99,7 @@ const OrganizationPeopleTab = () =>
     return (
         <div className={styles.container}>
             <div className={styles.header}>
+                <SearchBox className={styles.searchBox}/>
                 <Button
                     icon={<PersonAddIcon/>}
                     appearance="primary"
