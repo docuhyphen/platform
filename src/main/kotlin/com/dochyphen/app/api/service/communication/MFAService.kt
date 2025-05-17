@@ -65,6 +65,26 @@ class MfaService(
         }
     }
 
+    @Transactional
+    fun regenerateOtp(mfaRecord: MfaRecord): String {
+        // Generate new OTP
+        val newOtp = otpService.generateEmailOtp()
+        val hashedOtp = otpService.hashOtp(newOtp)
+
+        // Update record
+        mfaRecord.mfaToken = hashedOtp
+        // Optionally reset attempts count
+        mfaRecord.attemptCount = 0
+        // Update expiry time to give full time again
+        mfaRecord.expiryDateTime = Timestamp.from(
+            Instant.now().plusMillis(MINUTES.toMillis(configurationService.getSignInEmailOtpMFAExpiryMins()))
+        )
+
+        updateRecord(mfaRecord)
+
+        return newOtp
+    }
+
     fun enforceRateLimits(email: String, ipAddress: String) {
 //        // Check user-specific rate limit (per email)
 //        val recentUserRequests = mfaRecordRepository.countRecentRequestsByEmail(

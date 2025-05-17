@@ -471,6 +471,7 @@ export interface SignUpOtpRegenerationRequest
 
 export interface SignInOtpRegenerationRequest
 {
+    mfaSessionId: string
     email: string
 }
 

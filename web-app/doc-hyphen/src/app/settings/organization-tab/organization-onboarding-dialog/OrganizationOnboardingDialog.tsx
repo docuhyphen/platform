@@ -36,12 +36,9 @@ const OrganizationOnboardingDialog: React.FC<OrganizationOnboardingDialogProps> 
                             </Text>
 
                         }
-                        {!orgRegistered &&
-
-                            <OrganizationOnboardingForm isOnDialog={true}
+                        <OrganizationOnboardingForm isOnDialog={true}
                                                         onCancel={onDismiss}
                                                         onOrganizationRegistered={onOrganizationRegistered}/>
-                        }
                     </DialogContent>
                 </DialogBody>
             </DialogSurface>

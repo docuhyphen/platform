@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {useOnboardingStyles} from '../OnboardingStyles.tsx';
 import AppLogo from "../../components/app-logo/AppLogo.tsx";
 import {
@@ -16,14 +16,41 @@ import OnboardingBreadcrumbs from "../onboarding-breadcrumbs/OnBoardingBreadcrum
 import OrganizationOnboardingForm from "./OrganizationOnboardingForm.tsx";
 import {useNavigate} from "react-router-dom";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
+import {useAuth} from "../../../context/AuthContext.tsx";
+import {fetchAppUserPersonOrganization} from "../../../services/appUserApi.ts";
 
 
 const OrganizationOnboarding: React.FC = () =>
 {
+    const {appUser, setAppUserPersonOrganization, token} = useAuth()
     const globalStyles = useGlobalStyles();
     const styles = useOnboardingStyles();
     const navigate = useNavigate();
     const [isSkipOrgOnboardingDialogOpen, setIsSkipOrgOnboardingDialogOpen] = useState(false);
+
+    const fetchOrganization = async () =>
+    {
+        if (appUser)
+        {
+            try
+            {
+                setAppUserPersonOrganization(await fetchAppUserPersonOrganization(appUser?.id, appUser?.person?.id, token!!));
+                navigate('/sharing-sessions');
+            }
+            catch (error: any)
+            {
+                if (error.response?.status === 404)
+                {
+                    console.log("Organization not found for user");
+                }
+            }
+        }
+    }
+
+    useEffect(() =>
+    {
+        fetchOrganization()
+    }, [appUser]);
 
     return (
         <div className={styles.container}>
@@ -31,7 +58,12 @@ const OrganizationOnboarding: React.FC = () =>
                 <div className={styles.onboardingSection1}>
                     <AppLogo/>
                     <div className={styles.orgOnboardingContainer}>
-                        <OrganizationOnboardingForm/>
+                        <OrganizationOnboardingForm onOrganizationRegistered={
+                            (organization) =>
+                            {
+                                navigate('/sharing-sessions');
+                            }
+                        }/>
                     </div>
                     <Button appearance={"transparent"}
                             onClick={() => setIsSkipOrgOnboardingDialogOpen(true)}>

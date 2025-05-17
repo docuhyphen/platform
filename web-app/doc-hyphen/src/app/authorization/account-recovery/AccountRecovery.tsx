@@ -23,6 +23,7 @@ import {useAccountRecoveryStyles} from "./AccountRecoveryStyles.tsx";
 import {useAuthorizationStyles} from "../AuthorizationStyles.tsx";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 import {ResponseError} from "../../models/models.tsx";
+import validator from 'validator';
 
 const AccountRecovery: React.FC = () =>
 {
@@ -56,6 +57,13 @@ const AccountRecovery: React.FC = () =>
 
     const onInitiatePasswordReset = async () =>
     {
+        if (!validator.isEmail(formData.email))
+        {
+            setPwdResetInitiationSuccessful(false);
+            setResponseError("Please enter a valid email address");
+            return
+        }
+
         if (initiatingPwdReset) return;
 
         setPwdResetSuccessfulMsg("");

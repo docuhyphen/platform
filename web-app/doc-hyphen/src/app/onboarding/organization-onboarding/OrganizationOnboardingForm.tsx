@@ -126,6 +126,7 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
                         validationState={"none"}
                         validationMessage={""}>
                         <Input type="text"
+                               maxLength={30}
                                value={organizationName}
                                onChange={onOrganizationNameChange}/>
                     </Field>
@@ -135,6 +136,7 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
                         validationState={"none"}
                         validationMessage={""}>
                         <Input type="text"
+                               maxLength={30}
                                value={registrationNumber}
                                onChange={onRegistrationNumberChange}/>
                     </Field>
@@ -144,6 +146,7 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
                         validationState={"none"}
                         validationMessage={""}>
                         <Input type="text"
+                               maxLength={30}
                                value={organizationPhone}
                                onChange={onOrganizationPhoneChange}/>
                     </Field>
@@ -154,17 +157,32 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
                             validationState={"none"}
                             validationMessage={""}>
                             <Input type="text"
+                                   maxLength={30}
                                    value={organizationEmail}
                                    onChange={onOrganizationEmailChange}/>
                         </Field>
                         <Checkbox label={"Use my email"}
                                   onChange={onUseAppUserEmailCheck}/>
                     </div>
-
                     {!isOnDialog && renderRegisterButton()}
                     {isOnDialog &&
                         <div className={styles.dialogActions}>
                             {!orgRegistered && renderRegisterButton()}
+                            <Button appearance={"secondary"}
+                                    shape="circular"
+                                    onClick={onCancel}>
+                                {orgRegistered && "Close"}
+                                {!orgRegistered && "Cancel"}
+                            </Button>
+                        </div>
+                    }
+                </div>
+            }
+
+            {appUserPersonOrganization &&
+                <div className={styles.container}>
+                    {isOnDialog &&
+                        <div className={styles.dialogActions}>
                             <Button appearance={"secondary"}
                                     shape="circular"
                                     onClick={onCancel}>

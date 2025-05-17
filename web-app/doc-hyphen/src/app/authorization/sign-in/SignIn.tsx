@@ -38,6 +38,7 @@ const SignIn: React.FC = () =>
     const [signInInitiating, setSignInInitiating] = useState<boolean>(false);
     const [signInCompleting, setSignInCompleting] = useState<boolean>(false);
     const [resendingOtp, setResendingOtp] = useState<boolean>(false);
+    const [resetOtpResponseMessage, setResetOtpResponseMessage] = useState<boolean>(false);
     const [signInInitiationSuccessfulMsg, setSignInInitiationSuccessfulMsg] = useState<string>('');
     const [signInInitiationSuccessful, setSignInInitiationSuccessful] = useState<boolean>(false);
     const [responseErrorMessage, setResponseErrorMessage] = useState<string | undefined>('');
@@ -101,7 +102,7 @@ const SignIn: React.FC = () =>
 
         try
         {
-            const signInCompletionRequest = {email, otp, sessionId: mfaSessionId};
+            const signInCompletionRequest = {email, otp, mfaSessionId};
             const response = await completeSignIn(signInCompletionRequest);
 
             setToken(response.token);
@@ -146,7 +147,16 @@ const SignIn: React.FC = () =>
         }
         catch (error)
         {
-            setResponseErrorMessage((error as ResponseError)?.errorMessage);
+            const responseErrorMessage = (error as ResponseError)?.errorMessage
+
+            if (responseErrorMessage)
+            {
+                setResponseErrorMessage((error as ResponseError)?.errorMessage);
+            }
+            else
+            {
+                setResponseErrorMessage("An unknown error occurred signing in.");
+            }
         }
         finally
         {
@@ -161,7 +171,9 @@ const SignIn: React.FC = () =>
 
         try
         {
-            await regenerateSignInOtp({email});
+            const regenerateResponse = await regenerateSignInOtp({email, mfaSessionId});
+            setResetOtpResponseMessage(regenerateResponse.message)
+            setOtp("")
         }
         catch (error)
         {
@@ -198,6 +210,7 @@ const SignIn: React.FC = () =>
 
     const renderCompleteSignInButton = () => (
         <Button onClick={onCompleteSignIn}
+                disabled={resendingOtp}
                 appearance="primary"
                 className={globalStyles.buttonWithLoading}
                 shape={"circular"}>
@@ -218,14 +231,14 @@ const SignIn: React.FC = () =>
             <Field label={"OTP"}
                    validationState={"none"}
                    validationMessage={""}
-                   hint="The OTP has been sent to your email">
+                   hint={resetOtpResponseMessage ? `${resetOtpResponseMessage}` : "The OTP has been sent to your email"}>
                 <Input value={otp}
                        autoComplete="false"
+                       disabled={resendingOtp || signInCompleting}
                        onChange={onOtpChange}
                        onKeyDown={(e) => handleKeyDown(e, onCompleteSignIn)}/>
             </Field>
-            <span>
-                <Button appearance="outline"
+            <Button appearance="transparent"
                         size={"small"}
                         disabled={resendingOtp || signInCompleting}
                         shape={"circular"}
@@ -235,8 +248,7 @@ const SignIn: React.FC = () =>
                         {resendingOtp && <Spinner size={"tiny"}/>}
                         Resend OTP
                     </>
-                </Button>
-            </span>
+            </Button>
         </>
     );
 

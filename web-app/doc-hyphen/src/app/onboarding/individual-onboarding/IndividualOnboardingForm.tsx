@@ -136,7 +136,6 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
 
             if (alsoRegisterOrganization)
             {
-                alert("Onboarding org")
                 navigate('/onboarding/organization');
             }
             else

@@ -1,14 +1,16 @@
 import React, {useEffect, useState} from "react";
-import {Button, Divider, Field, Input, Spinner, Switch, Text} from "@fluentui/react-components";
+import {Button, Divider, Spinner, Switch, Text} from "@fluentui/react-components";
 import {useAuth} from "../../../context/AuthContext";
 import {fetchAppUserPersonOrganization} from "../../../services/appUserApi";
-import {updateOrganization, updateOrganizationSettings} from "../../../services/organizationApi";
+import {updateOrganizationSettings} from "../../../services/organizationApi";
 import {ContactDetailsDetailedDto, OrganizationDetailedDto, OrganizationSettingsDto} from "../../models/models.tsx";
 import {ProfileEditBasicDetailsIcon} from "../../components/IconBundles.tsx";
 import PhoneManagementDialog, {PhoneManagementMode} from "../../components/phone-management/PhoneManagementDialog.tsx";
 import EmailManagementDialog, {EmailManagementMode} from "../../components/email-management/EmailManagementDialog.tsx";
 import {useOrganizationTabStyles} from "./OrganizationTabStyles.tsx";
 import OrganizationDetailsEditDialog from "./details-edit-dialog/OrganizationDetailsEditDialog.tsx";
+import {AxiosError} from "axios";
+import OrganizationOnboardingDialog from "./organization-onboarding-dialog/OrganizationOnboardingDialog.tsx";
 
 const OrganizationTab = () =>
 {
@@ -24,6 +26,7 @@ const OrganizationTab = () =>
     const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
     const [phoneManagementMode, setPhoneManagementMode] = useState(PhoneManagementMode.ADD);
     const [emailManagementMode, setEmailManagementMode] = useState(EmailManagementMode.ADD);
+    const [isOnboardingDialogOpen, setOnboardingDialogOpen] = useState(false)
 
     const getOrganization = async () =>
     {
@@ -40,8 +43,16 @@ const OrganizationTab = () =>
         }
         catch (err: any)
         {
-            setError(err.message || "Failed to fetch organization");
-            console.error("Failed to fetch organization:", err);
+            if (err instanceof AxiosError)
+            {
+
+            }
+            else
+            {
+                setError(err.message || "Failed to fetch organization");
+                console.error("Failed to fetch organization:", err);
+            }
+
         }
         finally
         {
@@ -258,6 +269,26 @@ const OrganizationTab = () =>
                 />
             </div>
         )}
+
+        {!organization && !fetchingOrganization && <>
+            <section className={styles.orgOnboardingContainer}>
+                <Text>
+                    You are not part of an organization. You can onboard your organization to use the full
+                    potential of Doc-Hyphen.
+                </Text>
+                <div>
+                    <Button shape={"circular"}
+                            appearance={"outline"}
+                            onClick={() => setOnboardingDialogOpen(true)}
+                            icon={<></>}>
+                        Register your organization
+                    </Button>
+                </div>
+            </section>
+            <OrganizationOnboardingDialog isOpen={isOnboardingDialogOpen}
+                                          onDismiss={() => setOnboardingDialogOpen(false)}/>
+        </>
+        }
     </>
 }
 

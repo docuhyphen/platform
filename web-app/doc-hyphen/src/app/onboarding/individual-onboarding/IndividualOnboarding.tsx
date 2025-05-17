@@ -13,7 +13,7 @@ const IndividualOnboarding: React.FC = () =>
     const navigate = useNavigate();
     const styles = useOnboardingStyles();
     const [registerOrganization, setRegisterOrganization] = useState(false);
-    const [checkingIfIndividualOnboarded, setCheckingIfIndividualOnboarded] = useState(true);
+    const [checkingIfIndividualOnboarded, setCheckingIfIndividualOnboarded] = useState(false);
 
     useEffect(() =>
     {
@@ -23,10 +23,10 @@ const IndividualOnboarding: React.FC = () =>
         }
         else
         {
+            alert("Navigating to sharing sessions from individual onboarding");
             navigate('/sharing-sessions');
         }
-
-    }, [navigate, appUser]);
+    }, []);
 
     const onRegisterOrganizationChange = (newValue) =>
     {

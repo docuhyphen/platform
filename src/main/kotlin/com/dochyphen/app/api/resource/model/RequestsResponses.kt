@@ -15,6 +15,18 @@ data class SignInRequest(
 )
 
 @Serializable
+data class ResendOtpRequest(
+    val email: String,
+    val mfaSessionId: String
+)
+
+@Serializable
+data class ResendOtpResponse(
+    var message: String,
+    val mfaSessionId: String
+)
+
+@Serializable
 data class SignInResponse(
     var message: String,
     var mfaSessionId: String? = null
@@ -24,7 +36,7 @@ data class SignInResponse(
 data class SignInCompletionRequest(
     val email: String?,
     val otp: String?,
-    val sessionId: String?
+    val mfaSessionId: String?
 )
 
 @Serializable

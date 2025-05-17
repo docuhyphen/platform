@@ -73,7 +73,6 @@ class SignInResource @Inject constructor(
     @POST
     @Path("/completion")
     fun completeSignIn(
-        @Context request: io.vertx.core.http.HttpServerRequest,
         payload: SignInCompletionRequest
     ): Response
     {
@@ -82,7 +81,7 @@ class SignInResource @Inject constructor(
             ResourceEndpointDelayHelper.delayEndpoint(1000, 3000)
 
             val signInToken = with(payload) {
-                signInService.completeSignIn(email, otp, sessionId)
+                signInService.completeSignIn(email, otp, mfaSessionId)
             }
             val signInCompletionResponse = SignInCompletionResponse(signInToken)
             Response.ok(signInCompletionResponse).build()
@@ -104,6 +103,50 @@ class SignInResource @Inject constructor(
                 {
                     val responseError = ResponseError("Something went wrong while trying to complete sign-in.")
                     logger.error("Error completing sign-in", exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
+        }
+    }
+
+    @POST
+    @Path("/otp-regeneration")
+    fun resendOtp(
+        payload: ResendOtpRequest
+    ): Response
+    {
+        return try
+        {
+            ResourceEndpointDelayHelper.delayEndpoint(3000, 6000)
+
+            val mfaSession = with(payload) {
+                signInService.redoMfa(email, mfaSessionId)
+            }
+
+            val resendOtpResponse = SignInResponse("A new OTP has been sent to your email", mfaSession.id.toString())
+            Response.ok(resendOtpResponse).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is TooManyRequestsException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    Response.status(429).entity(responseError).build()
+                }
+
+                is InvalidSignInCredentialsException,
+                is MaxAttemptsOTPExceededException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    Response.status(UNAUTHORIZED).entity(responseError).build()
+                }
+
+                else ->
+                {
+                    val responseError = ResponseError("Something went wrong while trying to resend OTP.")
+                    logger.error("Error resending OTP", exception)
                     Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
             }

@@ -20,6 +20,7 @@ import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 @RequestScoped
@@ -192,5 +193,75 @@ class SignInService @Inject constructor(
 
         logger.info("Sign in completed for email $sanitizedEmail. JWT token generated.")
         return signInToken
+    }
+
+    @Transactional
+    fun redoMfa(email: String?, sessionId: String?): MfaSessionDto
+    {
+        if (email.isNullOrBlank() || sessionId.isNullOrBlank())
+        {
+            val emailErrorMessage = when
+            {
+                email.isNullOrBlank() -> "Email is blank."
+                authenticationService.isEmailInvalid(email) -> "Email is invalid. "
+                else -> ""
+            }
+
+            val sessionIdErrorMessage = if (sessionId.isNullOrBlank()) "Session ID is blank." else ""
+
+            val errorMessage = listOf(emailErrorMessage, sessionIdErrorMessage)
+                .filter { it.isNotEmpty() }.joinToString(" ")
+
+            logger.warn("Redo MFA failed: $errorMessage")
+            throw InvalidSignInCredentialsException()
+        }
+
+        val sanitizedEmail = email.trim().lowercase()
+        val mfaRecord =
+            mfaService.getMfaRecordByEmailAndSessionId(sanitizedEmail, sessionId) ?: throw InvalidSignInCredentialsException()
+
+        if (mfaRecord.status == MultifactorAuthenticationStatus.COMPLETED)
+        {
+            logger.warn("Redo MFA failed: OTP already used for email $sanitizedEmail")
+            throw InvalidSignInCredentialsException()
+        }
+
+        if (mfaRecord.status == MultifactorAuthenticationStatus.LOCKED)
+        {
+            logger.warn("Redo MFA failed: OTP locked for email $sanitizedEmail")
+            throw MaxAttemptsOTPExceededException("Too many invalid attempts.")
+        }
+
+        // Regenerate OTP and get the plaintext version for sending
+        val newOtp = mfaService.regenerateOtp(mfaRecord)
+
+        // Send the new OTP based on MFA type
+        when (mfaRecord.mfaType)
+        {
+            EMAIL -> {
+                emailService.sendEmail(
+                    to = mfaRecord.appUser!!.email,
+                    subject = "${configurationService.getAppEmailSubjectTitle()} | Sign In OTP",
+                    body = """Your new OTP for sign in is: $newOtp.
+                            |It will expire in ${configurationService.getSignInEmailOtpMFAExpiryMins()} minutes.
+                            |If you didn't request this code, please ignore this email.""".trimMargin()
+                )
+            }
+            MultifactorAuthenticationType.SMS -> TODO("Implement SMS OTP sending")
+            MultifactorAuthenticationType.PASSKEY -> TODO("Implement passkey OTP sending")
+            else ->
+            {
+                logger.warn("Redo MFA failed: Unsupported MFA type for email $sanitizedEmail")
+                throw Exception("Server error: unsupported MFA type.")
+            }
+        }
+
+        logger.info("Redo MFA initiated for email $sanitizedEmail. New OTP sent.")
+
+        return MfaSessionDto().apply {
+            this.id = UUID.fromString(mfaRecord.sessionId)
+            // Don't include plaintext OTP in response for security
+            this.mfaTokenHashed = mfaRecord.mfaToken
+        }
     }
 }
