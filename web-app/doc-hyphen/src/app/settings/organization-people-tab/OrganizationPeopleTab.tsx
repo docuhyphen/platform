@@ -17,7 +17,7 @@ import {PersonAddIcon} from "../../components/IconBundles.tsx";
 import {useOrganizationPeopleTabStyles} from "./OrganizationPeopleTabStyles.tsx";
 import {deactivateOrganizationUser, fetchMyOrganizationUsers} from "../../../services/organizationApi.ts";
 import {useAuth} from "../../../context/AuthContext.tsx";
-import {AppUserDetailedDto} from "../../models/models.tsx";
+import {AppUserDetailedDto, AppUserRole} from "../../models/models.tsx";
 import AddUserDialog from "./add-app-user-dialog/AddUserDialog.tsx";
 import EditUserDialog from "./app-user-edit-dialog/EditUserDialog.tsx";
 import {PersonEditRegular, PersonRegular} from "@fluentui/react-icons";
@@ -156,6 +156,7 @@ const OrganizationPeopleTab = () =>
                                             <Button
                                                 appearance="subtle"
                                                 onClick={() => handleDeactivateUser(user.id?.toString() || "")}
+                                                disabled={user.role == AppUserRole.ORG_ADMIN}
                                             >
                                                 Deactivate
                                             </Button>

@@ -16,7 +16,7 @@ import TemplatesTab from "./templates-tab/TemplatesTab.tsx";
 import AppSettingsTab from "./app-settings-tab/AppSettingsTab.tsx";
 import ProfileTab from "./profile-tab/ProfileTab.tsx";
 import OrganizationGroupsTab from "./organization-groups-tab/OrganizationGroupsTab.tsx";
-import OrganizationPeopleTab from "./organization-peopls-tab/OrganizationPeopleTab.tsx";
+import OrganizationPeopleTab from "./organization-people-tab/OrganizationPeopleTab.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {AppUserRole} from "../models/models.tsx";
 

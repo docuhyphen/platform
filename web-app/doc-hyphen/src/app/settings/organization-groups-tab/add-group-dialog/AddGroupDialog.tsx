@@ -22,6 +22,7 @@ import React, {useEffect, useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import {addOrganizationGroup, fetchMyOrganizationUsers} from "../../../../services/organizationApi.ts";
 import {AppUserDetailedDto} from "../../../models/models.tsx";
+import {useAddGroupDialogStyles} from "./AddGroupDialogStyles.tsx";
 
 interface AddGroupDialogProps
 {
@@ -39,6 +40,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
         onComplete
     }) =>
 {
+    const styles = useAddGroupDialogStyles()
     const {token} = useAuth();
     const [name, setName] = useState("");
     const [users, setUsers] = useState<AppUserDetailedDto[]>([]);
@@ -182,7 +184,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle>Create New Group</DialogTitle>
-                    <DialogContent>
+                    <DialogContent className={styles.dialogContentContainer}>
                         {error && <div style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
 
                         <Field label="Group Name" required>

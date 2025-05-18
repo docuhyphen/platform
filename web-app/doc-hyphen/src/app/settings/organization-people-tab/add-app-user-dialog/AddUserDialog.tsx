@@ -16,6 +16,8 @@ import {
 import React, {useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import {addOrganizationUser} from "../../../../services/organizationApi.ts";
+import {useAddAppUserDialogStyles} from "./AddAppUserDialogStyles.tsx";
+import {AppUserRole} from "../../../models/models.tsx";
 
 interface AddUserDialogProps
 {
@@ -25,13 +27,15 @@ interface AddUserDialogProps
     onComplete: () => void;
 }
 
-const AddUserDialog: React.FC<AddUserDialogProps> = ({
-                                                         isOpen,
-                                                         onDismiss,
-                                                         organizationId,
-                                                         onComplete
-                                                     }) =>
+const AddUserDialog: React.FC<AddUserDialogProps> = (
+    {
+        isOpen,
+        onDismiss,
+        organizationId,
+        onComplete
+    }) =>
 {
+    const styles = useAddAppUserDialogStyles()
     const {token} = useAuth();
     const [email, setEmail] = useState("");
     const [firstName, setFirstName] = useState("");
@@ -92,7 +96,7 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle>Add New User</DialogTitle>
-                    <DialogContent>
+                    <DialogContent className={styles.dialogContentContainer}>
                         {error && <div style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
 
                         <Field label="Email" required>
