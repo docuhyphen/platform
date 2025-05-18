@@ -37,7 +37,7 @@ class OrganizationGroupResource @Inject constructor(
         addOrganizationGroupRequest: AddOrganizationGroupRequest
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(600, 1200)
+        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
 
         return try
         {
@@ -115,7 +115,7 @@ class OrganizationGroupResource @Inject constructor(
         updateOrganizationGroupRequest: UpdateOrganizationGroupRequest
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(600, 1200)
+        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
 
         return try
         {
@@ -180,7 +180,7 @@ class OrganizationGroupResource @Inject constructor(
         @PathParam("organizationId") organizationId: String
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(600, 1200)
+        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
 
         return try
         {
@@ -232,7 +232,7 @@ class OrganizationGroupResource @Inject constructor(
         @PathParam("organizationId") organizationId: String?,
         @PathParam("groupId") groupId: String?): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(600, 1200)
+        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
 
         return try
         {

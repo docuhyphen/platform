@@ -141,7 +141,7 @@ const OrganizationTab = () =>
     return <>
         {fetchingOrganization &&
             <div style={{display: 'flex', justifyContent: 'center', padding: '20px'}}>
-                <Spinner label="Loading organization information..."/>
+                <Spinner label="Loading"/>
             </div>
         }
 

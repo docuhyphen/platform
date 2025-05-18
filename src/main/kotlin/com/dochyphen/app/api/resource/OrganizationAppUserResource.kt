@@ -35,7 +35,7 @@ class OrganizationAppUserResource @Inject constructor(
         addOrganizationAppUserRequest: AddOrganizationAppUserRequest
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(600, 1200)
+        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
 
         return try
         {
@@ -98,7 +98,7 @@ class OrganizationAppUserResource @Inject constructor(
     @Path("/{organizationId}/app-users")
     fun getAppUsers(@PathParam("organizationId") organizationId: String?): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(600, 1200)
+        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
 
         return try
         {
@@ -158,7 +158,7 @@ class OrganizationAppUserResource @Inject constructor(
         updateOrganizationAppUserRequest: UpdateOrganizationAppUserRequest
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(600, 1200)
+        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
 
         return try
         {
@@ -222,7 +222,7 @@ class OrganizationAppUserResource @Inject constructor(
     fun deactivateAppUser(@PathParam("organizationId") organizationId: String?,
                           @PathParam("appUserId") appUserId: String?): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(600, 1200)
+        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
 
         return try
         {
