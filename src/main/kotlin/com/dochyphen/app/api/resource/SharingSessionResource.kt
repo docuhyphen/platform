@@ -38,7 +38,7 @@ class SharingSessionResource @Inject constructor(
     @POST
     fun initiateSharingSession(sharingSessionInitiationRequest: SharingSessionInitiationRequest): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(3000, 4000)
+        ResourceEndpointDelayHelper.delayEndpoint(500, 1500)
 
         return try
         {

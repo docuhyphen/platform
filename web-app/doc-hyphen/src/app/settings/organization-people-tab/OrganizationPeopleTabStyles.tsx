@@ -1,4 +1,3 @@
-// OrganizationPeopleTabStyles.tsx
 import {makeStyles, shorthands} from "@fluentui/react-components";
 
 export const useOrganizationPeopleTabStyles = makeStyles({
@@ -33,5 +32,16 @@ export const useOrganizationPeopleTabStyles = makeStyles({
     actions: {
         display: 'flex',
         gap: '8px'
+    },
+
+    dataContainer: {
+        display: "flex",
+        flexDirection: "row",
+        gap: "16px"
+    },
+
+    dataEditable: {
+        display: "flex",
+        gap: "8px"
     }
 });

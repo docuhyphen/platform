@@ -16,8 +16,9 @@ import {
 } from "@fluentui/react-components";
 import React, {useEffect, useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
-import {AppUserDetailedDto} from "../../../models/models.tsx";
+import {AppUserDetailedDto, AppUserRole} from "../../../models/models.tsx";
 import {updateOrganizationUser} from "../../../../services/organizationApi.ts";
+import {useEditUserDialogStyles} from "./EditUserDialogStyles.tsx";
 
 interface EditUserDialogProps
 {
@@ -28,14 +29,16 @@ interface EditUserDialogProps
     onComplete: () => void;
 }
 
-const EditUserDialog: React.FC<EditUserDialogProps> = ({
-                                                           isOpen,
-                                                           onDismiss,
-                                                           organizationId,
-                                                           user,
-                                                           onComplete
-                                                       }) =>
+const EditUserDialog: React.FC<EditUserDialogProps> = (
+    {
+        isOpen,
+        onDismiss,
+        organizationId,
+        user,
+        onComplete
+    }) =>
 {
+    const styles = useEditUserDialogStyles()
     const {token} = useAuth();
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
@@ -110,7 +113,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle>Edit User</DialogTitle>
-                    <DialogContent>
+                    <DialogContent className={styles.dialogContentContainer}>
                         {error && <div style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
 
                         <Field label="First Name" required>
@@ -139,11 +142,12 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                             </Dropdown>
                         </Field>
 
-                        <Field label="Status">
+                        <Field>
                             <Switch
+                                disabled={user?.role == AppUserRole.ORG_ADMIN}
                                 checked={isActive}
                                 onChange={(_, data) => setIsActive(data.checked)}
-                                label="Active"
+                                label={isActive ? "Deactivate" : "Activate"}
                             />
                         </Field>
                     </DialogContent>

@@ -17,10 +17,15 @@ export const useOrganizationTabStyles = makeStyles({
     dataContainer: {
         display: "flex",
         flexDirection: "row",
-        gap: "16px"
+        gap: "24px"
     },
 
     dataName: {
         minWidth: "200px"
+    },
+
+    dataEditable: {
+        display: "flex",
+        gap: "8px"
     }
 });

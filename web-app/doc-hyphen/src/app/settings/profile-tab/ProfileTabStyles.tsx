@@ -4,7 +4,7 @@ export const useProfileTabStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px"
+        gap: "24px"
     },
 
     dataContainer: {
@@ -13,7 +13,8 @@ export const useProfileTabStyles = makeStyles({
         gap: "16px"
     },
 
-    dataName: {
-        minWidth: "150px"
+    dataEditable: {
+        display: "flex",
+        gap: "8px"
     }
 });

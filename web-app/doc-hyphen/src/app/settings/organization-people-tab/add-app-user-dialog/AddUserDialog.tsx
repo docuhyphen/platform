@@ -17,7 +17,6 @@ import React, {useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import {addOrganizationUser} from "../../../../services/organizationApi.ts";
 import {useAddAppUserDialogStyles} from "./AddAppUserDialogStyles.tsx";
-import {AppUserRole} from "../../../models/models.tsx";
 
 interface AddUserDialogProps
 {
@@ -46,6 +45,8 @@ const AddUserDialog: React.FC<AddUserDialogProps> = (
 
     const handleSave = async () =>
     {
+        console.log("handle save", organizationId)
+
         if (!organizationId) return;
 
         setSavingData(true);

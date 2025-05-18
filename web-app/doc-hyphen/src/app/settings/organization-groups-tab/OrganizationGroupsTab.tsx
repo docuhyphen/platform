@@ -169,7 +169,7 @@ const OrganizationGroupsTab = () =>
 
             {loading ? (
                 <div className={styles.loading}>
-                    <Spinner label="Loading groups..."/>
+                    <Spinner label="Loading..."/>
                 </div>
             ) : renderTable()}
 

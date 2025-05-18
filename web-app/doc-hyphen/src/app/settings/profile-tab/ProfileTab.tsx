@@ -82,21 +82,8 @@ const ProfileTab = () =>
                         appearance={"subtle"}/>
             </Divider>
             <div className={styles.dataContainer}>
-                <Text size={500}
-                      className={styles.dataName}>
-                    Your first Name
-                </Text>
                 <Text size={500}>
-                    {appUser?.person?.firstName}
-                </Text>
-            </div>
-            <div className={styles.dataContainer}>
-                <Text size={500}
-                      className={styles.dataName}>
-                    Your Name
-                </Text>
-                <Text size={500}>
-                    {appUser?.person?.lastName}
+                    {appUser?.person?.firstName} {appUser?.person?.lastName}
                 </Text>
             </div>
 
@@ -106,12 +93,7 @@ const ProfileTab = () =>
             </Divider>
 
             <div className={styles.dataContainer}>
-                <Text size={500}
-                      italic={true}
-                      className={styles.dataName}>
-                    Email
-                </Text>
-                <Text size={500}>
+                <Text size={500} className={styles.dataEditable}>
                     <Button appearance={"subtle"}
                             size={"small"}
                             icon={<ProfileEditBasicDetailsIcon/>}
@@ -120,12 +102,7 @@ const ProfileTab = () =>
                 </Text>
             </div>
             <div className={styles.dataContainer}>
-                <Text size={500}
-                      italic={true}
-                      className={styles.dataName}>
-                    Phone number
-                </Text>
-                <Text size={500}>
+                <Text size={500} className={styles.dataEditable}>
                     {appUser?.person?.contactDetails?.phoneNumber ? (
                         <>
                             <Button appearance={"subtle"}

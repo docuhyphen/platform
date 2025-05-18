@@ -202,11 +202,8 @@ const OrganizationTab = () =>
                     Contact Details
                 </Divider>
 
-                <div style={{display: 'flex', alignItems: 'center', margin: '10px 0'}}>
-                    <Text size={500} italic={true} style={{width: '150px'}}>
-                        Email
-                    </Text>
-                    <Text size={500}>
+                <div>
+                    <Text size={500} className={styles.dataEditable}>
                         <Button
                             appearance="subtle"
                             size="small"
@@ -217,11 +214,8 @@ const OrganizationTab = () =>
                     </Text>
                 </div>
 
-                <div style={{display: 'flex', alignItems: 'center', margin: '10px 0'}}>
-                    <Text size={500} italic={true} style={{width: '150px'}}>
-                        Phone number
-                    </Text>
-                    <Text size={500}>
+                <div>
+                    <Text size={500} className={styles.dataEditable}>
                         {organization?.contactDetails?.phoneNumber ? (
                             <>
                                 <Button
