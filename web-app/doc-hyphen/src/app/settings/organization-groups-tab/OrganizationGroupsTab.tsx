@@ -149,7 +149,8 @@ const OrganizationGroupsTab :React.FC<OrganizationGroupsTabProps> = (
         return <>
 
             <div className={styles.header}>
-                <SearchBox className={styles.searchBox}/>
+                <div></div>
+                {/*<SearchBox className={styles.searchBox}/>*/}
                 <Button
                     icon={<GroupAddIcon/>}
                     appearance="primary"

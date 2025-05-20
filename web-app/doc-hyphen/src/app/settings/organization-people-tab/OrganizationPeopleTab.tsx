@@ -108,7 +108,8 @@ const OrganizationPeopleTab = () =>
                 </div>
             ) : <>
                 <div className={styles.header}>
-                    <SearchBox className={styles.searchBox}/>
+                    <div></div>
+                    {/*<SearchBox className={styles.searchBox}/>*/}
                     <Button
                         icon={<PersonAddIcon/>}
                         appearance="primary"
