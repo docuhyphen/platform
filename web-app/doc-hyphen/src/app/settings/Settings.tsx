@@ -1,5 +1,5 @@
 import * as React from "react";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {SelectTabData, SelectTabEvent, Tab, TabList, TabValue,} from "@fluentui/react-components";
 import {useSettingsStyles} from "./SettingsStyles.tsx";
 import MainMenu from "../components/MainMenu.tsx";
@@ -30,6 +30,12 @@ const Settings = () =>
     {
         setSelectedValue(data.value);
     };
+
+    useEffect(() =>
+    {
+        console.log("==============Settings useEffect==============", appUserPersonOrganization);
+        console.log("==============Settings useEffect END ==============");
+    }, [appUserPersonOrganization]);
 
     return (
         <>
@@ -79,7 +85,7 @@ const Settings = () =>
                     {selectedValue === "organization" && <OrganizationTab/>}
                     {selectedValue === "appSettings" && <AppSettingsTab/>}
                     {selectedValue === "people" && <OrganizationPeopleTab/>}
-                    {selectedValue === "groups" && <OrganizationGroupsTab/>}
+                    {selectedValue === "groups" && <OrganizationGroupsTab appUserPersonOrganization={appUserPersonOrganization}/>}
                     {selectedValue === "templates" && <TemplatesTab/>}
                 </div>
             </div>

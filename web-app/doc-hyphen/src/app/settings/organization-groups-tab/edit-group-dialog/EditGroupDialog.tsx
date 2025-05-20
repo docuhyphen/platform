@@ -22,13 +22,14 @@ import {
 import React, {useEffect, useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import {fetchMyOrganizationUsers, updateOrganizationGroup} from "../../../../services/organizationApi.ts";
-import {AppUserDetailedDto} from "../../../models/models.tsx";
+import {AppUserDetailedDto, OrganizationDetailedDto} from "../../../models/models.tsx";
+import {useEditGroupDialogStyles} from "./EditGroupDialogStyles.tsx";
 
 interface EditGroupDialogProps
 {
     isOpen: boolean;
     onDismiss: () => void;
-    organizationId: string;
+    appUserPersonOrganization: OrganizationDetailedDto;
     group: any | null; // Replace with actual type when available
     onComplete: () => void;
 }
@@ -37,11 +38,13 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
     {
         isOpen,
         onDismiss,
-        organizationId,
+        appUserPersonOrganization,
         group,
         onComplete
     }) =>
 {
+    const styles = useEditGroupDialogStyles()
+
     const {token} = useAuth();
     const [name, setName] = useState("");
     const [isActive, setIsActive] = useState(true);
@@ -65,40 +68,47 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
 
     useEffect(() =>
     {
+        console.log("EditGroupDialog useEffect triggered", users)
         if (isOpen && group)
         {
             setName(group.name || "");
             setIsActive(group.isActive);
-            loadUsers();
 
-            // Initialize selected users from group members
-            const userMap = new Map();
-            group.members?.forEach((member: any) =>
+            loadUsers().then(() =>
             {
-                if (member.appUser?.id)
+                const userMap = new Map();
+
+                group.members?.forEach((member: any) =>
                 {
-                    userMap.set(member.appUser.id.toString(), {
-                        appUserId: member.appUser.id.toString(),
-                        allowSessionAccept: member.permissions?.allowSessionAccept || false,
-                        allowSessionReject: member.permissions?.allowSessionReject || false,
-                        allowSessionEdit: member.permissions?.allowSessionEdit || false,
-                        allowSessionDelete: member.permissions?.allowSessionDelete || false,
-                        allowSessionEnd: member.permissions?.allowSessionEnd || false,
-                        allowDocumentAddition: member.permissions?.allowDocumentAddition || false,
-                        allowDocumentDeletion: member.permissions?.allowDocumentDeletion || false,
-                        allowDocumentDownload: member.permissions?.allowDocumentDownload || false,
-                        allowDocumentUpdate: member.permissions?.allowDocumentUpdate || false,
-                        allowDocumentUpload: member.permissions?.allowDocumentUpload || false
-                    });
-                }
-            });
-            setSelectedUsers(userMap);
+                    const appUserIsMember = users.find(u => u.id == member.user.id)
+
+                    if (appUserIsMember)
+                    {
+                        const appUserMember = member.user
+                        userMap.set(appUserMember.id, {
+                            appUserId: appUserMember.id,
+                            allowSessionAccept: member.permissions?.allowSessionAccept || false,
+                            allowSessionReject: member.permissions?.allowSessionReject || false,
+                            allowSessionEdit: member.permissions?.allowSessionEdit || false,
+                            allowSessionDelete: member.permissions?.allowSessionDelete || false,
+                            allowSessionEnd: member.permissions?.allowSessionEnd || false,
+                            allowDocumentAddition: member.permissions?.allowDocumentAddition || false,
+                            allowDocumentDeletion: member.permissions?.allowDocumentDeletion || false,
+                            allowDocumentDownload: member.permissions?.allowDocumentDownload || false,
+                            allowDocumentUpdate: member.permissions?.allowDocumentUpdate || false,
+                            allowDocumentUpload: member.permissions?.allowDocumentUpload || false
+                        });
+                    }
+                });
+
+                setSelectedUsers(userMap);
+            })
         }
-    }, [isOpen, group]);
+    }, [isOpen]);
 
     const loadUsers = async () =>
     {
-        if (!organizationId) return;
+        console.log("Loading users for org: organizationId", appUserPersonOrganization.id)
 
         setLoadingUsers(true);
         try
@@ -119,7 +129,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
 
     const handleSave = async () =>
     {
-        if (!organizationId || !group?.id || !name.trim()) return;
+        if (!appUserPersonOrganization.id || !group?.id || !name.trim()) return;
 
         if (selectedUsers.size === 0)
         {
@@ -135,7 +145,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
             const members = Array.from(selectedUsers.values());
 
             await updateOrganizationGroup(
-                organizationId,
+                appUserPersonOrganization.id,
                 group.id.toString(),
                 {
                     name: name.trim(),
@@ -217,24 +227,25 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle>Edit Group</DialogTitle>
-                    <DialogContent>
+                    <DialogContent className={styles.dialogContentContainer}>
                         {error && <div style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
 
-                        <Field label="Group Name" required>
-                            <Input
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                            />
-                        </Field>
-
-                        <Field label="Status">
-                            <Switch
-                                checked={isActive}
-                                onChange={(_, data) => setIsActive(data.checked)}
-                                label="Active"
-                            />
-                        </Field>
+                        <div className={styles.nameSection}>
+                            <Field label="Group Name" required>
+                                <Input
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                />
+                            </Field>
+                            <Field>
+                                <Switch
+                                    checked={isActive}
+                                    onChange={(_, data) => setIsActive(data.checked)}
+                                    label={isActive ? "Disable" : "Enable"}
+                                />
+                            </Field>
+                        </div>
 
                         <Field label="Group Members" required>
                             {loadingUsers ? (

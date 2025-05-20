@@ -20,11 +20,22 @@ import AddGroupDialog from "./add-group-dialog/AddGroupDialog.tsx";
 import EditGroupDialog from "./edit-group-dialog/EditGroupDialog.tsx";
 import {DeleteRegular, EditRegular, GroupRegular} from "@fluentui/react-icons";
 import {useOrganizationGroupTabStyles} from "./OrganizationGroupsTabStyles.tsx";
+import {OrganizationDetailedDto} from "../../models/models.tsx";
 
-const OrganizationGroupsTab = () =>
+interface OrganizationGroupsTabProps
+{
+    appUserPersonOrganization: OrganizationDetailedDto
+}
+
+const OrganizationGroupsTab :React.FC<OrganizationGroupsTabProps> = (
+    {
+        appUserPersonOrganization
+    }
+) =>
 {
     const styles = useOrganizationGroupTabStyles();
-    const {token, appUserPersonOrganization} = useAuth();
+    const {token} = useAuth();
+    const [organizationId, setOrganizationId] = useState('')
     const [groups, setGroups] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -61,8 +72,10 @@ const OrganizationGroupsTab = () =>
 
     useEffect(() =>
     {
+        console.log("Organization Groups Tab useEffect", appUserPersonOrganization)
+        setOrganizationId(appUserPersonOrganization?.id)
         loadGroups();
-    }, []);
+    }, [appUserPersonOrganization]);
 
     const onAddGroup = () =>
     {
@@ -97,7 +110,7 @@ const OrganizationGroupsTab = () =>
 
     const renderTableRow = (group: any) =>
     {
-        return <>
+        return (
             <TableRow key={group.id}>
                 <TableCell>
                     <TableCellLayout media={<GroupRegular/>}>
@@ -128,7 +141,7 @@ const OrganizationGroupsTab = () =>
                     </div>
                 </TableCell>
             </TableRow>
-        </>
+        )
     };
 
     const renderTable = () =>
@@ -176,7 +189,7 @@ const OrganizationGroupsTab = () =>
             <AddGroupDialog
                 isOpen={isAddDialogOpen}
                 onDismiss={() => setIsAddDialogOpen(false)}
-                organizationId={appUserPersonOrganization?.id}
+                organizationId={organizationId}
                 onComplete={() =>
                 {
                     setIsAddDialogOpen(false);
@@ -187,7 +200,7 @@ const OrganizationGroupsTab = () =>
             <EditGroupDialog
                 isOpen={isEditDialogOpen}
                 onDismiss={() => setIsEditDialogOpen(false)}
-                organizationId={appUserPersonOrganization?.id}
+                appUserPersonOrganization={appUserPersonOrganization}
                 group={selectedGroup}
                 onComplete={() =>
                 {
