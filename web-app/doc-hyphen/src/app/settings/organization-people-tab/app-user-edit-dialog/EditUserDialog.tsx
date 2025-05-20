@@ -16,7 +16,7 @@ import {
 } from "@fluentui/react-components";
 import React, {useEffect, useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
-import {AppUserDetailedDto, AppUserRole} from "../../../models/models.tsx";
+import {AppUserDetailedDto, AppUserRole, AppUserRoleDisplayNames} from "../../../models/models.tsx";
 import {updateOrganizationUser} from "../../../../services/organizationApi.ts";
 import {useEditUserDialogStyles} from "./EditUserDialogStyles.tsx";
 
@@ -134,7 +134,8 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
 
                         <Field label="Role" required>
                             <Dropdown
-                                value={role}
+                                selectedOptions={[role]}
+                                placeholder={AppUserRoleDisplayNames[role as keyof typeof AppUserRoleDisplayNames]}
                                 onOptionSelect={(_, data) => data.optionValue && setRole(data.optionValue)}
                             >
                                 <Option value="ORG_ADMIN">Organization Admin</Option>

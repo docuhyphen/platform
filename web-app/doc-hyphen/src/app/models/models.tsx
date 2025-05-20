@@ -1,3 +1,8 @@
+export const AppUserRoleDisplayNames = {
+    'ORG_ADMIN': 'Organization Admin',
+    'ORG_MEMBER': 'Organization Member'
+};
+
 export enum SharingSessionParticipantRole
 {
     VIEWER = "VIEWER",

@@ -1,7 +1,6 @@
 import {
     Badge,
     Button,
-    SearchBox,
     Spinner,
     Table,
     TableBody,
@@ -17,7 +16,7 @@ import {PersonAddIcon} from "../../components/IconBundles.tsx";
 import {useOrganizationPeopleTabStyles} from "./OrganizationPeopleTabStyles.tsx";
 import {deactivateOrganizationUser, fetchMyOrganizationUsers} from "../../../services/organizationApi.ts";
 import {useAuth} from "../../../context/AuthContext.tsx";
-import {AppUserDetailedDto, AppUserRole} from "../../models/models.tsx";
+import {AppUserDetailedDto, AppUserRole, AppUserRoleDisplayNames} from "../../models/models.tsx";
 import AddUserDialog from "./add-app-user-dialog/AddUserDialog.tsx";
 import EditUserDialog from "./app-user-edit-dialog/EditUserDialog.tsx";
 import {PersonEditRegular, PersonRegular} from "@fluentui/react-icons";
@@ -137,7 +136,7 @@ const OrganizationPeopleTab = () =>
                                     </TableCellLayout>
                                 </TableCell>
                                 <TableCell>{user.email}</TableCell>
-                                <TableCell>{user.role}</TableCell>
+                                <TableCell>{AppUserRoleDisplayNames[user.role as keyof typeof AppUserRoleDisplayNames] || user.role}</TableCell>
                                 <TableCell>
                                     <Badge
                                         color={user.isActive ? "success" : "danger"}

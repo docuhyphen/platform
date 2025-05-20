@@ -17,6 +17,7 @@ import React, {useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import {addOrganizationUser} from "../../../../services/organizationApi.ts";
 import {useAddAppUserDialogStyles} from "./AddAppUserDialogStyles.tsx";
+import {AppUserRoleDisplayNames} from "../../../models/models.tsx";
 
 interface AddUserDialogProps
 {
@@ -126,7 +127,8 @@ const AddUserDialog: React.FC<AddUserDialogProps> = (
 
                         <Field label="Role" required>
                             <Dropdown
-                                value={role}
+                                selectedOptions={[role]}
+                                placeholder={AppUserRoleDisplayNames[role as keyof typeof AppUserRoleDisplayNames]}
                                 onOptionSelect={(_, data) => data.optionValue && setRole(data.optionValue)}
                             >
                                 <Option value="ORG_ADMIN">Organization Admin</Option>
