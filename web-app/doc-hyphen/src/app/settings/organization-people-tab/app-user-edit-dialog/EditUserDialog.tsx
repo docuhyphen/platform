@@ -108,6 +108,11 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
 
     const isFormValid = firstName && lastName && role;
 
+    const onSelectRole = (_, data) => {
+
+        data.optionValue && setRole(data.optionValue)
+    };
+
     return (
         <Dialog modalType="alert" open={isOpen}>
             <DialogSurface>
@@ -136,7 +141,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
                             <Dropdown
                                 selectedOptions={[role]}
                                 placeholder={AppUserRoleDisplayNames[role as keyof typeof AppUserRoleDisplayNames]}
-                                onOptionSelect={(_, data) => data.optionValue && setRole(data.optionValue)}
+                                onOptionSelect={onSelectRole}
                             >
                                 <Option value="ORG_ADMIN">Organization Admin</Option>
                                 <Option value="ORG_MEMBER">Organization Member</Option>
