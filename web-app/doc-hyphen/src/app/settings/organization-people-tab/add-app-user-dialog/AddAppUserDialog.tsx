@@ -27,7 +27,7 @@ interface AddUserDialogProps
     onComplete: () => void;
 }
 
-const AddUserDialog: React.FC<AddUserDialogProps> = (
+const AddAppUserDialog: React.FC<AddUserDialogProps> = (
     {
         isOpen,
         onDismiss,
@@ -163,4 +163,4 @@ const AddUserDialog: React.FC<AddUserDialogProps> = (
     );
 };
 
-export default AddUserDialog;
+export default AddAppUserDialog;

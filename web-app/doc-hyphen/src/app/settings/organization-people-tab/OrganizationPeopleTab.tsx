@@ -17,7 +17,7 @@ import {useOrganizationPeopleTabStyles} from "./OrganizationPeopleTabStyles.tsx"
 import {deactivateOrganizationUser, fetchMyOrganizationUsers} from "../../../services/organizationApi.ts";
 import {useAuth} from "../../../context/AuthContext.tsx";
 import {AppUserDetailedDto, AppUserRole, AppUserRoleDisplayNames} from "../../models/models.tsx";
-import AddUserDialog from "./add-app-user-dialog/AddUserDialog.tsx";
+import AddAppUserDialog from "./add-app-user-dialog/AddAppUserDialog.tsx";
 import EditUserDialog from "./app-user-edit-dialog/EditUserDialog.tsx";
 import {PersonEditRegular, PersonRegular} from "@fluentui/react-icons";
 
@@ -169,7 +169,7 @@ const OrganizationPeopleTab = () =>
                 </Table>
             </>}
 
-            <AddUserDialog
+            <AddAppUserDialog
                 isOpen={isAddDialogOpen}
                 onDismiss={() => setIsAddDialogOpen(false)}
                 organizationId={appUserPersonOrganization?.id}
