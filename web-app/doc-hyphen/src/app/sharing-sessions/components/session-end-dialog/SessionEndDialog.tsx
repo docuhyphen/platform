@@ -34,7 +34,7 @@ const SessionEndDialog: React.FC<SessionEndDialogProps> = (
         onSessionEnded
     }) =>
 {
-
+    const styles = useSessionEndDialogStyles()
     const token = useToken();
     const [sessionEndNote, setSessionEndNote] = React.useState('');
     const [endingSession, setEndingSession] = React.useState(false);
@@ -78,15 +78,13 @@ const SessionEndDialog: React.FC<SessionEndDialogProps> = (
         onDismiss();
     }
 
-    const styles = useSessionEndDialogStyles();
-
     return <>
         {<Dialog modalType="alert"
                  open={isOpen}>
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle>Ending Session: {session && session.sessionName}</DialogTitle>
-                    <DialogContent>
+                    <DialogContent className={styles.dialogContentContainer}>
                         <Field label={"End notes"} className={styles.endNoteField}>
                             <Textarea value={sessionEndNote}
                                       onChange={onEndNoteChange}/>

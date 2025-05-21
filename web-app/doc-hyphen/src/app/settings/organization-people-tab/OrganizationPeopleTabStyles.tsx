@@ -5,7 +5,6 @@ export const useOrganizationPeopleTabStyles = makeStyles({
         display: 'flex',
         flexDirection: 'column',
         gap: '20px',
-        ...shorthands.padding('20px'),
         width: '100%'
     },
     header: {

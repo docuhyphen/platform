@@ -1,12 +1,12 @@
 import {makeStyles} from "@fluentui/react-components";
 
 export const useSessionDocumentAddDialogStyles = makeStyles({
-    documentAddDialogContainer: {
+    dialogContentContainer: {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        height: '180px',
+        padding: "8px 0",
         gap: "16px"
     },
 

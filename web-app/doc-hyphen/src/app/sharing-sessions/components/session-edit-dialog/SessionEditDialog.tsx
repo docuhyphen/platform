@@ -19,6 +19,7 @@ import {
 } from "@fluentui/react-components";
 import {fetchSignedInUserAppUserSharingSession, updateSharingSession} from "../../../../services/sharingSessionApi.ts";
 import {publishSharingSessionUpdate} from "../../../observable/sharingSessionObservables.ts";
+import {useSessionEditDialogStyles} from "./SessionEditDialogStyles.tsx";
 
 interface SessionDeleteDialogProps
 {
@@ -36,7 +37,7 @@ const SessionEditDialog: React.FC<SessionDeleteDialogProps> = (
         onSessionEdited
     }) =>
 {
-
+    const styles = useSessionEditDialogStyles()
     const token = useToken();
     const [editingSession, setEditingSession] = React.useState(false);
     const [sessionName, setSessionName] = React.useState('')
@@ -103,7 +104,7 @@ const SessionEditDialog: React.FC<SessionDeleteDialogProps> = (
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle>Edit {session && session.sessionName}</DialogTitle>
-                    <DialogContent>
+                    <DialogContent className={styles.dialogContentContainer}>
                         <Field label={"Session name"}>
                             <Input type={"text"}
                                    value={sessionName}

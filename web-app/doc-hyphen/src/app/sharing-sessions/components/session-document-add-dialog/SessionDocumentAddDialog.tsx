@@ -104,7 +104,7 @@ const AddDocumentDialog: React.FC<AddDocumentDialogProps> = (
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle>Add session document</DialogTitle>
-                    <DialogContent className={styles.documentAddDialogContainer}>
+                    <DialogContent className={styles.dialogContentContainer}>
                         <Field className={styles.documentTitleField}>
                             <Input
                                 type="text"
