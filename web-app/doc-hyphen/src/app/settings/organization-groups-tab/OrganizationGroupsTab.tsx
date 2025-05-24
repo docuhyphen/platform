@@ -36,7 +36,7 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
     const styles = useOrganizationGroupTabStyles();
     const {token} = useAuth();
     const [organizationId, setOrganizationId] = useState('')
-    const [groups, setGroups] = useState<any[]>([]);
+    const [groups, setGroups] = useState<OrganizationGroupDetailedDto[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -73,9 +73,11 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
 
     useEffect(() =>
     {
-        console.log("Organization Groups Tab useEffect", appUserPersonOrganization)
-        setOrganizationId(appUserPersonOrganization?.id)
-        loadGroups();
+        if(appUserPersonOrganization)
+        {
+            setOrganizationId(appUserPersonOrganization.id!)
+            loadGroups();
+        }
     }, [appUserPersonOrganization]);
 
     const onAddGroup = () =>
@@ -100,7 +102,7 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
         return (
             <TableRow key={group.id}>
                 <TableCell>
-                    <TableCellLayout media={<GroupRegular/>}>
+                    <TableCellLayout>
                         {group.name}
                     </TableCellLayout>
                 </TableCell>
@@ -136,7 +138,6 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
 
             <div className={styles.header}>
                 <div></div>
-                {/*<SearchBox className={styles.searchBox}/>*/}
                 <Button
                     icon={<GroupAddIcon/>}
                     appearance="primary"

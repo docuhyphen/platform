@@ -1,5 +1,11 @@
 import apiClient from './apiClient';
-import {AppUserDetailedDto, Organization, OrganizationSettingsDto, PersonDetailedDto} from "../app/models/models.tsx";
+import {
+    AppUserDetailedDto,
+    Organization,
+    OrganizationDetailedDto,
+    OrganizationSettingsDto,
+    PersonDetailedDto
+} from "../app/models/models.tsx";
 
 export const fetchOrganization = async (organizationId: string, token?: string) =>
 {
@@ -250,9 +256,8 @@ export const fetchMyOrganizationUsers = async (token?: string): Promise<AppUserD
 {
     try
     {
-        // This assumes there's an endpoint to get the current user's organization
         const currentOrg = await fetchCurrentUserOrganization(token);
-        return fetchOrganizationUsers(currentOrg.id, token);
+        return fetchOrganizationUsers(currentOrg.id!, token);
     }
     catch (error: any)
     {
@@ -264,9 +269,8 @@ export const fetchMyOrganizationGroups = async (token?: string) =>
 {
     try
     {
-        // This assumes there's an endpoint to get the current user's organization
         const currentOrg = await fetchCurrentUserOrganization(token);
-        return fetchOrganizationGroups(currentOrg.id, token);
+        return fetchOrganizationGroups(currentOrg.id!, token);
     }
     catch (error: any)
     {
@@ -274,7 +278,7 @@ export const fetchMyOrganizationGroups = async (token?: string) =>
     }
 };
 
-const fetchCurrentUserOrganization = async (token?: string): Promise<Organization> =>
+const fetchCurrentUserOrganization = async (token?: string): Promise<OrganizationDetailedDto> =>
 {
     try
     {
