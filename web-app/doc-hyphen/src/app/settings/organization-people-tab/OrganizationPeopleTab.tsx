@@ -140,7 +140,7 @@ const OrganizationPeopleTab = () =>
                                 <TableCell>
                                     <Badge
                                         color={user.isActive ? "success" : "danger"}
-                                        appearance="filled"
+                                        appearance="outline"
                                     >
                                         {user.isActive ? "Active" : "Inactive"}
                                     </Badge>

@@ -116,19 +116,19 @@ class SignInService @Inject constructor(
                 .filter { it.isNotEmpty() }.joinToString(" ")
 
             logger.warn("Sign in completion failed: $errorMessage")
-            throw InvalidOtpException()
+            throw InvalidOtpException("Invalid verification code")
         }
 
         val sanitizedEmail = email.trim().lowercase()
         val sanitizedOTP = otp.trim()
         val mfaRecord =
-            mfaService.getMfaRecordByEmailAndSessionId(sanitizedEmail, sessionId) ?: throw InvalidOtpException()
+            mfaService.getMfaRecordByEmailAndSessionId(sanitizedEmail, sessionId) ?: throw InvalidOtpException("Invalid verification code")
 
         if (mfaRecord.expiryDateTime!!.before(Timestamp.from(Instant.now())))
         {
-            logger.warn("Sign in completion failed: OTP expired for email $sanitizedEmail")
+            logger.warn("Sign in completion failed: verification code expired for email $sanitizedEmail")
 
-            throw OTPExpiredException("OTP expired.")
+            throw OTPExpiredException("Verification code expired.")
         }
 
         // Track verification attempts
@@ -149,7 +149,7 @@ class SignInService @Inject constructor(
                 if (mfaRecord.status == MultifactorAuthenticationStatus.COMPLETED)
                 {
                     logger.warn("Sign in completion failed: OTP already used for email $sanitizedEmail")
-                    throw InvalidOtpException()
+                    throw InvalidOtpException("Invalid verification code")
                 }
 
                 if (mfaRecord.status == MultifactorAuthenticationStatus.LOCKED)
@@ -161,7 +161,7 @@ class SignInService @Inject constructor(
                 if (!otpService.verifyEmailOtp(sanitizedOTP, mfaRecord.mfaToken!!))
                 {
                     logger.warn("Sign in completion failed: Invalid OTP for email $sanitizedEmail")
-                    throw InvalidOtpException()
+                    throw InvalidOtpException("Invalid verification")
                 }
             }
 
@@ -241,8 +241,8 @@ class SignInService @Inject constructor(
             EMAIL -> {
                 emailService.sendEmail(
                     to = mfaRecord.appUser!!.email,
-                    subject = "${configurationService.getAppEmailSubjectTitle()} | Sign In OTP",
-                    body = """Your new OTP for sign in is: $newOtp.
+                    subject = "${configurationService.getAppEmailSubjectTitle()} | Sign In Verification",
+                    body = """Your new verification code for your sign in is: $newOtp.
                             |It will expire in ${configurationService.getSignInEmailOtpMFAExpiryMins()} minutes.
                             |If you didn't request this code, please ignore this email.""".trimMargin()
                 )

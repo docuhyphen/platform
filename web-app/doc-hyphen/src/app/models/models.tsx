@@ -561,3 +561,31 @@ export interface AppUserSettingsDto
     notifyDocAdd: boolean;
     notifyDocUpload: boolean;
 }
+
+export interface OrganizationGroupMemberPermissionDto
+{
+    allowSessionAccept: boolean;
+    allowSessionReject: boolean;
+    allowSessionEdit: boolean;
+    allowSessionDelete: boolean;
+    allowSessionEnd: boolean;
+    allowDocumentAddition: boolean;
+    allowDocumentDeletion: boolean;
+    allowDocumentDownload: boolean;
+    allowDocumentUpdate: boolean;
+}
+
+export interface OrganizationGroupDetailedDto
+{
+    id: string;
+    createdDate: string;
+    isActive: boolean | null;
+    name: string | null;
+    members: OrganizationGroupMemberDetailedDto[];
+}
+
+export interface OrganizationGroupMemberDetailedDto
+{
+    user: AppUserDetailedDto | null;
+    permissions: OrganizationGroupMemberPermissionDto | null;
+}

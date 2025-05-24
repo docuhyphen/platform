@@ -228,10 +228,10 @@ const SignIn: React.FC = () =>
         <>
             <span>{signInInitiationSuccessfulMsg}</span>
 
-            <Field label={"OTP"}
+            <Field label={"Verification Code"}
                    validationState={"none"}
                    validationMessage={""}
-                   hint={resetOtpResponseMessage ? `${resetOtpResponseMessage}` : "The OTP has been sent to your email"}>
+                   hint={resetOtpResponseMessage ? `${resetOtpResponseMessage}` : "The verification code has been sent to your email"}>
                 <Input value={otp}
                        autoComplete="false"
                        disabled={resendingOtp || signInCompleting}
@@ -246,7 +246,7 @@ const SignIn: React.FC = () =>
                         className={globalStyles.buttonWithLoading}>
                     <>
                         {resendingOtp && <Spinner size={"tiny"}/>}
-                        Resend OTP
+                        Resend Verification Code
                     </>
             </Button>
         </>

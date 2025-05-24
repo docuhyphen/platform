@@ -1,7 +1,6 @@
 import {
     Badge,
     Button,
-    SearchBox,
     Spinner,
     Table,
     TableBody,
@@ -20,14 +19,15 @@ import AddGroupDialog from "./add-group-dialog/AddGroupDialog.tsx";
 import EditGroupDialog from "./edit-group-dialog/EditGroupDialog.tsx";
 import {DeleteRegular, EditRegular, GroupRegular} from "@fluentui/react-icons";
 import {useOrganizationGroupTabStyles} from "./OrganizationGroupsTabStyles.tsx";
-import {OrganizationDetailedDto} from "../../models/models.tsx";
+import {OrganizationDetailedDto, OrganizationGroupDetailedDto} from "../../models/models.tsx";
+import GroupDeleteDialog from "./group-delete-dialog/GroupDeleteDialog.tsx";
 
 interface OrganizationGroupsTabProps
 {
     appUserPersonOrganization: OrganizationDetailedDto
 }
 
-const OrganizationGroupsTab :React.FC<OrganizationGroupsTabProps> = (
+const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
     {
         appUserPersonOrganization
     }
@@ -41,7 +41,8 @@ const OrganizationGroupsTab :React.FC<OrganizationGroupsTabProps> = (
     const [error, setError] = useState<string | null>(null);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-    const [selectedGroup, setSelectedGroup] = useState<any | null>(null);
+    const [isGroupDeleteDialogOpen, setIsGroupDeleteDialogOpen] = useState(false);
+    const [selectedGroup, setSelectedGroup] = useState<OrganizationGroupDetailedDto | null>(null);
 
     const columns = [
         {columnKey: "name", label: "Group Name"},
@@ -88,25 +89,11 @@ const OrganizationGroupsTab :React.FC<OrganizationGroupsTabProps> = (
         setIsEditDialogOpen(true);
     };
 
-    const onDeleteGroup = async (groupId: string) =>
+    const onDeleteGroup = (group: OrganizationGroupDetailedDto) =>
     {
-        if (!window.confirm("Are you sure you want to delete this group?"))
-        {
-            return;
-        }
-
-        try
-        {
-            await deleteOrganizationGroup(appUserPersonOrganization?.id, groupId, token || undefined);
-            // Refresh group list
-            loadGroups();
-        }
-        catch (err: any)
-        {
-            setError(err.message || "Failed to delete group");
-            console.error("Failed to delete group:", err);
-        }
-    };
+        setIsGroupDeleteDialogOpen(true)
+        setSelectedGroup(group)
+    }
 
     const renderTableRow = (group: any) =>
     {
@@ -121,8 +108,7 @@ const OrganizationGroupsTab :React.FC<OrganizationGroupsTabProps> = (
                 <TableCell>
                     <Badge
                         color={group.isActive ? "success" : "danger"}
-                        appearance="filled"
-                    >
+                        appearance="outline">
                         {group.isActive ? "Active" : "Inactive"}
                     </Badge>
                 </TableCell>
@@ -136,7 +122,7 @@ const OrganizationGroupsTab :React.FC<OrganizationGroupsTabProps> = (
                         <Button
                             icon={<DeleteRegular/>}
                             appearance="subtle"
-                            onClick={() => onDeleteGroup(group.id?.toString() || "")}
+                            onClick={ () => onDeleteGroup(group)}
                         />
                     </div>
                 </TableCell>
@@ -207,6 +193,17 @@ const OrganizationGroupsTab :React.FC<OrganizationGroupsTabProps> = (
                 {
                     setIsEditDialogOpen(false);
                     loadGroups();
+                }}
+            />
+
+            <GroupDeleteDialog
+                organizationId={appUserPersonOrganization.id}
+                isOpen={isGroupDeleteDialogOpen}
+                group={selectedGroup}
+                onDismiss={() => setIsGroupDeleteDialogOpen(false)}
+                onDeleted={(groupId: string) =>
+                {
+                    loadGroups()
                 }}
             />
         </div>

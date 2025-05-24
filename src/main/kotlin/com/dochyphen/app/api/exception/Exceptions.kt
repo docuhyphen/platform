@@ -3,7 +3,7 @@ package com.dochyphen.app.api.exception
 import SignUpStatus
 
 class EmailNotFoundException() : Exception("Email not found")
-class InvalidOtpException() : RuntimeException("Invalid otp")
+class InvalidOtpException(message: String? = "Invalid otp") : RuntimeException(message)
 class OtpRequiredException() : RuntimeException("Otp is required")
 class PasswordMismatchException() : RuntimeException("Passwords do not match")
 class PasswordContainsEmailException() : RuntimeException("Passwords cannot contain email")

@@ -123,7 +123,7 @@ class SignInResource @Inject constructor(
                 signInService.redoMfa(email, mfaSessionId)
             }
 
-            val resendOtpResponse = SignInResponse("A new OTP has been sent to your email", mfaSession.id.toString())
+            val resendOtpResponse = SignInResponse("A new verification has been sent to your email", mfaSession.id.toString())
             Response.ok(resendOtpResponse).build()
         }
         catch (exception: Exception)

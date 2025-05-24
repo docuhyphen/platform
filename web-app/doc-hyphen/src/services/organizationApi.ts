@@ -13,7 +13,7 @@ export const fetchOrganization = async (organizationId: string, token?: string) 
     catch (error: any)
     {
         throw error.response?.data || error.message;
-        }
+    }
 };
 
 export const updateOrganization = async (organizationId: string, data: {
@@ -56,21 +56,6 @@ export interface OrganizationGroupBasicDto
     description?: string;
     organizationId: string;
     memberCount: number;
-}
-
-export interface GroupMember
-{
-    appUserId: string;
-    allowSessionAccept: boolean;
-    allowSessionReject: boolean;
-    allowSessionEdit: boolean;
-    allowSessionDelete: boolean;
-    allowSessionEnd: boolean;
-    allowDocumentAddition: boolean;
-    allowDocumentDeletion: boolean;
-    allowDocumentDownload: boolean;
-    allowDocumentUpdate: boolean;
-    allowDocumentUpload: boolean;
 }
 
 export const fetchOrganizationGroups = async (organizationId: string, token?: string) =>
