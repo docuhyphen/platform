@@ -34,7 +34,6 @@ const Settings = () =>
     useEffect(() =>
     {
         console.log("==============Settings useEffect==============", appUserPersonOrganization);
-        console.log("==============Settings useEffect END ==============");
     }, [appUserPersonOrganization]);
 
     return (

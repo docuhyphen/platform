@@ -24,7 +24,7 @@ import {
 import React, {useEffect, useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import {fetchMyOrganizationUsers, updateOrganizationGroup} from "../../../../services/organizationApi.ts";
-import {AppUserDetailedDto, OrganizationDetailedDto} from "../../../models/models.tsx";
+import {AppUserDetailedDto, OrganizationDetailedDto, OrganizationGroupDetailedDto} from "../../../models/models.tsx";
 import {useEditGroupDialogStyles} from "./EditGroupDialogStyles.tsx";
 import {ArrowLeftRegular, ArrowRightRegular, DismissRegular} from "@fluentui/react-icons";
 
@@ -33,7 +33,7 @@ interface EditGroupDialogProps
     isOpen: boolean;
     onDismiss: () => void;
     appUserPersonOrganization: OrganizationDetailedDto;
-    group: any | null; // Replace with actual type when available
+    group: OrganizationGroupDetailedDto
     onComplete: () => void;
 }
 

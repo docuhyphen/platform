@@ -83,7 +83,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         }
 
         fetchUserData();
-    }, [token, location.pathname]);
+    }, [token, appUser, location.pathname]);
 
     const fetchUserData = async () =>
     {

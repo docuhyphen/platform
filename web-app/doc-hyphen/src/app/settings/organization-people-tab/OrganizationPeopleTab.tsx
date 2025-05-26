@@ -24,7 +24,7 @@ import {PersonEditRegular, PersonRegular} from "@fluentui/react-icons";
 const OrganizationPeopleTab = () =>
 {
     const styles = useOrganizationPeopleTabStyles();
-    const {token, appUserPersonOrganization} = useAuth();
+    const {token, appUserPersonOrganization, appUser} = useAuth();
     const [users, setUsers] = useState<AppUserDetailedDto[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -150,14 +150,14 @@ const OrganizationPeopleTab = () =>
                                         <Button
                                             icon={<PersonEditRegular/>}
                                             appearance="subtle"
+                                            disabled={user.id == appUser?.id}
                                             onClick={() => handleEditUser(user)}
                                         />
                                         {user.isActive && (
                                             <Button
                                                 appearance="subtle"
                                                 onClick={() => handleDeactivateUser(user.id?.toString() || "")}
-                                                disabled={user.role == AppUserRole.ORG_ADMIN}
-                                            >
+                                                disabled={user.id == appUser?.id}>
                                                 Deactivate
                                             </Button>
                                         )}

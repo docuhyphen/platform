@@ -73,6 +73,8 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
 
     useEffect(() =>
     {
+        console.log("Organization groups tab mounted with organization:", appUserPersonOrganization);
+
         if(appUserPersonOrganization)
         {
             setOrganizationId(appUserPersonOrganization.id!)
@@ -198,7 +200,6 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
             />
 
             <GroupDeleteDialog
-                organizationId={appUserPersonOrganization.id}
                 isOpen={isGroupDeleteDialogOpen}
                 group={selectedGroup}
                 onDismiss={() => setIsGroupDeleteDialogOpen(false)}

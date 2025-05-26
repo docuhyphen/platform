@@ -573,6 +573,7 @@ export interface OrganizationGroupMemberPermissionDto
     allowDocumentDeletion: boolean;
     allowDocumentDownload: boolean;
     allowDocumentUpdate: boolean;
+    allowDocumentUpload: boolean;
 }
 
 export interface OrganizationGroupDetailedDto
@@ -586,6 +587,6 @@ export interface OrganizationGroupDetailedDto
 
 export interface OrganizationGroupMemberDetailedDto
 {
-    user: AppUserDetailedDto | null;
-    permissions: OrganizationGroupMemberPermissionDto | null;
+    user: AppUserDetailedDto;
+    permissions: OrganizationGroupMemberPermissionDto;
 }
