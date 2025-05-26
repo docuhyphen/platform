@@ -1,6 +1,6 @@
 import {
     Badge,
-    Button,
+    Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger,
     Spinner,
     Table,
     TableBody,
@@ -8,7 +8,7 @@ import {
     TableCellLayout,
     TableHeader,
     TableHeaderCell,
-    TableRow
+    TableRow, Text
 } from "@fluentui/react-components";
 import * as React from "react";
 import {useEffect, useState} from "react";
@@ -19,7 +19,8 @@ import {useAuth} from "../../../context/AuthContext.tsx";
 import {AppUserDetailedDto, AppUserRole, AppUserRoleDisplayNames} from "../../models/models.tsx";
 import AddAppUserDialog from "./add-app-user-dialog/AddAppUserDialog.tsx";
 import EditUserDialog from "./app-user-edit-dialog/EditUserDialog.tsx";
-import {PersonEditRegular, PersonRegular} from "@fluentui/react-icons";
+import {MoreHorizontalRegular, PersonEditRegular, PersonRegular} from "@fluentui/react-icons";
+import AppUserDeactivateDialog from "./app-user-deactivate-dialog/AppUserDeactivateDialog.tsx";
 
 const OrganizationPeopleTab = () =>
 {
@@ -62,34 +63,14 @@ const OrganizationPeopleTab = () =>
         setIsAddDialogOpen(true);
     };
 
-    const handleEditUser = (user: AppUserDetailedDto) =>
+    const onEditOrgAppUser = (user: AppUserDetailedDto) =>
     {
         setSelectedUser(user);
         setIsEditDialogOpen(true);
     };
 
-    const handleDeactivateUser = async (userId: string) =>
-    {
-        if (!window.confirm("Are you sure you want to deactivate this user?"))
-        {
-            return;
-        }
-
-        try
-        {
-            await deactivateOrganizationUser(appUserPersonOrganization?.id, userId, token || undefined);
-            // Refresh user list
-            loadUsers();
-        }
-        catch (err: any)
-        {
-            setError(err.message || "Failed to deactivate user");
-            console.error("Failed to deactivate user:", err);
-        }
-    };
-
     const columns = [
-        {columnKey: "user", label: "User"},
+        {columnKey: "person", label: "Person name"},
         {columnKey: "email", label: "Email"},
         {columnKey: "role", label: "Role"},
         {columnKey: "status", label: "Status"},
@@ -122,7 +103,7 @@ const OrganizationPeopleTab = () =>
                         <TableRow>
                             {columns.map((column) => (
                                 <TableHeaderCell key={column.columnKey}>
-                                    {column.label}
+                                    <Text weight={"semibold"}> {column.label}</Text>
                                 </TableHeaderCell>
                             ))}
                         </TableRow>
@@ -147,21 +128,22 @@ const OrganizationPeopleTab = () =>
                                 </TableCell>
                                 <TableCell>
                                     <div className={styles.actions}>
-                                        <Button
-                                            icon={<PersonEditRegular/>}
-                                            appearance="subtle"
-                                            disabled={user.id == appUser?.id}
-                                            onClick={() => handleEditUser(user)}
-                                        />
-                                        {user.isActive && (
-                                            <Button
-                                                appearance="subtle"
-                                                onClick={() => handleDeactivateUser(user.id?.toString() || "")}
-                                                disabled={user.id == appUser?.id}>
-                                                Deactivate
-                                            </Button>
-                                        )}
                                     </div>
+                                    <Menu positioning={{autoSize: true}}>
+                                        <MenuTrigger disableButtonEnhancement>
+                                            <Button icon={<MoreHorizontalRegular/>}
+                                                    appearance={"subtle"}/>
+                                        </MenuTrigger>
+                                        <MenuPopover>
+                                            <MenuList>
+                                                <MenuItem icon={<PersonEditRegular/>}
+                                                          disabled={user.id == appUser?.id}
+                                                          onClick={() => onEditOrgAppUser(user)}>
+                                                    Edit
+                                                </MenuItem>
+                                            </MenuList>
+                                        </MenuPopover>
+                                    </Menu>
                                 </TableCell>
                             </TableRow>
                         ))}

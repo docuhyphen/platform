@@ -1,6 +1,6 @@
 import {
     Badge,
-    Button,
+    Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger,
     Spinner,
     Table,
     TableBody,
@@ -8,7 +8,7 @@ import {
     TableCellLayout,
     TableHeader,
     TableHeaderCell,
-    TableRow
+    TableRow, Text
 } from "@fluentui/react-components";
 import * as React from "react";
 import {useEffect, useState} from "react";
@@ -17,7 +17,13 @@ import {useAuth} from "../../../context/AuthContext.tsx";
 import {deleteOrganizationGroup, fetchMyOrganizationGroups} from "../../../services/organizationApi.ts";
 import AddGroupDialog from "./add-group-dialog/AddGroupDialog.tsx";
 import EditGroupDialog from "./edit-group-dialog/EditGroupDialog.tsx";
-import {DeleteRegular, EditRegular, GroupRegular} from "@fluentui/react-icons";
+import {
+    DeleteRegular,
+    EditRegular,
+    GroupRegular,
+    MoreHorizontalRegular,
+    PeopleEditRegular, PersonEditRegular
+} from "@fluentui/react-icons";
 import {useOrganizationGroupTabStyles} from "./OrganizationGroupsTabStyles.tsx";
 import {OrganizationDetailedDto, OrganizationGroupDetailedDto} from "../../models/models.tsx";
 import GroupDeleteDialog from "./group-delete-dialog/GroupDeleteDialog.tsx";
@@ -75,7 +81,7 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
     {
         console.log("Organization groups tab mounted with organization:", appUserPersonOrganization);
 
-        if(appUserPersonOrganization)
+        if (appUserPersonOrganization)
         {
             setOrganizationId(appUserPersonOrganization.id!)
             loadGroups();
@@ -117,18 +123,26 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
                     </Badge>
                 </TableCell>
                 <TableCell>
-                    <div className={styles.actions}>
-                        <Button
-                            icon={<EditRegular/>}
-                            appearance="subtle"
-                            onClick={() => onEditGroup(group)}
-                        />
-                        <Button
-                            icon={<DeleteRegular/>}
-                            appearance="subtle"
-                            onClick={ () => onDeleteGroup(group)}
-                        />
-                    </div>
+                    <Menu positioning={{autoSize: true}}>
+                        <MenuTrigger disableButtonEnhancement>
+                            <Button icon={<MoreHorizontalRegular/>}
+                                    appearance={"subtle"}/>
+                        </MenuTrigger>
+                        <MenuPopover>
+                            <MenuList>
+                                <MenuItem
+                                    icon={<PeopleEditRegular/>}
+                                    onClick={() => onEditGroup(group)}>
+                                    Edit
+                                </MenuItem>
+                                <MenuItem
+                                    icon={<DeleteRegular/>}
+                                    onClick={() => onDeleteGroup(group)}>
+                                    Delete
+                                </MenuItem>
+                            </MenuList>
+                        </MenuPopover>
+                    </Menu>
                 </TableCell>
             </TableRow>
         )
@@ -154,7 +168,7 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
                     <TableRow>
                         {columns.map((column) => (
                             <TableHeaderCell key={column.columnKey}>
-                                {column.label}
+                                <Text weight={"semibold"}> {column.label}</Text>
                             </TableHeaderCell>
                         ))}
                     </TableRow>
