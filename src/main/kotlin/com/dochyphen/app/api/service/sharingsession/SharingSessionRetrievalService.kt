@@ -11,6 +11,7 @@ import com.dochyphen.app.api.model.entity.SharingSessionStatus.ACCEPTED_STARTED
 import com.dochyphen.app.api.model.entity.SharingSessionStatus.INITIATED
 import com.dochyphen.app.api.repository.SharingSessionRepository
 import com.dochyphen.app.api.resource.ResourceEndpointDelayHelper
+import com.yubico.webauthn.extension.appid.AppId
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
@@ -138,5 +139,10 @@ class SharingSessionRetrievalService @Inject constructor(
             currentPage = page,
             pageSize = size
         )
+    }
+
+    fun getSharingSessionsLinkedToAppUserId(appUserId: UUID): List<SharingSession>
+    {
+        return sharingSessionRepository.getAppUserLinkedSharingSessions(appUserId)
     }
 }

@@ -237,6 +237,40 @@ export const deactivateOrganizationUser = async (organizationId: string, appUser
     }
 };
 
+export const checkAppUserIsDeletable = async (organizationId: string, appUserId: string, token?: string) =>
+{
+    try
+    {
+        await apiClient.get(`/organizations/${organizationId}/app-users/${appUserId}?check=DELETABLE`, {
+            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+        });
+        return true;
+    }
+    catch (error: any)
+    {
+        if (error.response?.status === 409)
+        {
+            return false;
+        }
+        throw error.response?.data || error.message;
+    }
+};
+
+export const deleteOrganizationAppUser = async (organizationId: string, appUserId: string, token?: string) =>
+{
+    try
+    {
+        const response = await apiClient.delete(`/organizations/${organizationId}/app-users/${appUserId}`, {
+            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+        });
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
 export const fetchPairedOrganizations = async (token?: string): Promise<Organization[]> =>
 {
     try

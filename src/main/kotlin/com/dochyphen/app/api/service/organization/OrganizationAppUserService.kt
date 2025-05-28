@@ -14,6 +14,9 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import java.util.*
+import kotlin.collections.remove
+import kotlin.collections.removeAll
+import kotlin.toString
 
 @RequestScoped
 class OrganizationAppUserService @Inject constructor(
@@ -66,8 +69,7 @@ class OrganizationAppUserService @Inject constructor(
             throw IllegalArgumentException("Last name cannot be blank")
         }
 
-        organization.appUsers.find { it -> it.email.trim().lowercase() == email.trim().lowercase() } ?:
-        {
+        organization.appUsers.find { it -> it.email.trim().lowercase() == email.trim().lowercase() } ?: {
             throw IllegalArgumentException("Email already exists")
         }
 
@@ -199,7 +201,8 @@ class OrganizationAppUserService @Inject constructor(
         appUserService.update(appUser)
     }
 
-    fun deactivateAppUser(organizationId: String?, appUserId: String?)
+    @Transactional
+    fun deleteAppUser(organizationId: String?, appUserId: String?)
     {
         if (authTokenContext.authToken.appUser?.role != AppUserRole.ORG_ADMIN)
         {
@@ -216,14 +219,57 @@ class OrganizationAppUserService @Inject constructor(
             throw IllegalArgumentException("App User ID cannot be null or blank")
         }
 
-        organizationGroupService.getOrganizationById(UUID.fromString(organizationId.toString()))
+        val organization = organizationGroupService.getOrganizationById(UUID.fromString(organizationId.toString()))
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
 
         val appUser = appUserService.getById(UUID.fromString(appUserId.toString()))
             ?: throw AppUserNotFoundException("App user not found for id: $appUserId")
 
-        appUser.isActive = false
+        if (!isAppUserIsDeletable(organizationId, appUserId))
+        {
+            throw IllegalArgumentException("App user cannot be deleted")
+        }
 
-        appUserService.update(appUser)
+        val appUserUuid = UUID.fromString(appUserId)
+
+        // First remove the app user from all organization groups
+        for (group in organization.groups) {
+            val membersToRemove = group.members.filter { it.appUser?.id == appUserUuid }
+            if (membersToRemove.isNotEmpty()) {
+                group.members.removeAll(membersToRemove)
+            }
+        }
+
+        // Then remove the app user from the organization
+        organization.appUsers.remove(appUser)
+
+        // Update the entire organization which will cascade to groups
+        organizationRepository.update(organization)
+
+        // Now it's safe to delete the app user
+        appUserService.delete(appUser.id.toString())
+    }
+
+    fun isAppUserIsDeletable(organizationId: String?, appUserId: String?): Boolean
+    {
+        if (organizationId.isNullOrBlank())
+        {
+            throw IllegalArgumentException("Organization ID cannot be null or blank")
+        }
+
+        if (appUserId.isNullOrBlank())
+        {
+            throw IllegalArgumentException("App User ID cannot be null or blank")
+        }
+
+        val organization = organizationGroupService.getOrganizationById(UUID.fromString(organizationId))
+            ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
+
+        val appUser = appUserService.getById(UUID.fromString(appUserId))
+            ?: throw AppUserNotFoundException("App user not found for id: $appUserId")
+
+        return organization.appUsers.contains(appUser)
+//                && appUser.role != AppUserRole.ORG_ADMIN
+                && appUserService.hasLinkedSharingSessions(appUser.id) == false
     }
 }

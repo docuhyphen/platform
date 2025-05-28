@@ -61,6 +61,7 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
     {
         setLoading(true);
         setError(null);
+
         try
         {
             const fetchedGroups = await fetchMyOrganizationGroups(token || undefined);

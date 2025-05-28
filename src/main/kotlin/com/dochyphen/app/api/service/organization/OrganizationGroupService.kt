@@ -238,4 +238,11 @@ class OrganizationGroupService @Inject constructor(
 
         organizationRepository.update(organization)
     }
+
+    @Transactional
+    fun updateOrganizationGroup(group: OrganizationGroup)
+    {
+
+    }
+
 }

@@ -11,6 +11,8 @@ import com.dochyphen.app.api.service.auth.SignOutService
 import com.dochyphen.app.api.service.communication.EmailService
 import com.dochyphen.app.api.service.communication.OtpService
 import com.dochyphen.app.api.service.config.ConfigurationService
+import com.dochyphen.app.api.service.sharingsession.SharingSessionRetrievalService
+import com.yubico.webauthn.data.UserIdentity
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import java.util.*
@@ -23,7 +25,8 @@ class AppUserService @Inject constructor(
     val otpService: OtpService,
     val emailService: EmailService,
     val configurationService: ConfigurationService,
-    val signOutService: SignOutService
+    val signOutService: SignOutService,
+    val sharingSessionService: SharingSessionRetrievalService
 )
 {
     fun getById(id: UUID): AppUser?
@@ -146,5 +149,27 @@ class AppUserService @Inject constructor(
         appUserRepository.update(appUser)
 
         signOutService.signOut(outOfAllDevices = true)
+    }
+
+    fun hasLinkedSharingSessions(appUserId: UUID): Boolean
+    {
+        return sharingSessionService.getSharingSessionsLinkedToAppUserId(appUserId).isNotEmpty()
+    }
+
+    fun delete(appUserId: String?)
+    {
+        val appUser = appUserRepository.findById(UUID.fromString(appUserId ?: throw IllegalArgumentException("App user ID cannot be null")))
+
+        if (appUser == null)
+        {
+            throw IllegalArgumentException("App user not found")
+        }
+
+        if (hasLinkedSharingSessions(appUser.id))
+        {
+            throw IllegalArgumentException("Cannot delete app user with linked sharing sessions")
+        }
+
+        appUserRepository.delete(appUser)
     }
 }

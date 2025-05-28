@@ -15,6 +15,7 @@ import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
+
 @Path("organizations")
 @Produces(APPLICATION_JSON)
 @Consumes(APPLICATION_JSON)
@@ -25,6 +26,11 @@ class OrganizationAppUserResource @Inject constructor(
     companion object
     {
         private val logger = LoggerFactory.getLogger(OrganizationAppUserResource::class.java)
+
+        enum class APP_USER_CHECK
+        {
+            DELETABLE
+        }
     }
 
     @Path("/{organizationId}/app-users")
@@ -219,14 +225,16 @@ class OrganizationAppUserResource @Inject constructor(
 
     @Path("/{organizationId}/app-users/{appUserId}")
     @DELETE
-    fun deactivateAppUser(@PathParam("organizationId") organizationId: String?,
-                          @PathParam("appUserId") appUserId: String?): Response
+    fun deleteAppUser(
+        @PathParam("organizationId") organizationId: String?,
+        @PathParam("appUserId") appUserId: String?
+    ): Response
     {
         ResourceEndpointDelayHelper.delayEndpoint(300, 600)
 
         return try
         {
-            organizationAppUserService.deactivateAppUser(organizationId, appUserId)
+            organizationAppUserService.deleteAppUser(organizationId, appUserId)
 
             Response
                 .status(NO_CONTENT)
@@ -269,6 +277,48 @@ class OrganizationAppUserResource @Inject constructor(
                         .build()
                 }
             }
+        }
+    }
+
+    @Path("/{organizationId}/app-users/{appUserId}")
+    @GET
+    fun doCheck(
+        @QueryParam("check") check: String?,
+        @PathParam("organizationId") organizationId: String?,
+        @PathParam("appUserId") appUserId: String?
+    ): Response
+    {
+        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
+
+        return try
+        {
+            var response = Response.ok().build()
+
+            if (check.isNullOrBlank())
+            {
+                //toDo: return organiation app user
+            }
+            else
+            {
+                when (APP_USER_CHECK.valueOf(check.uppercase()))
+                {
+                    APP_USER_CHECK.DELETABLE ->
+                    {
+                        if(!organizationAppUserService.isAppUserIsDeletable(organizationId, appUserId))
+                        {
+                            response = Response.status(CONFLICT).build()
+                        }
+                    }
+                }
+            }
+
+            response
+        }
+        catch (exception: Exception)
+        {
+            logger.error("Error checking organization app user", exception)
+            val responseError = ResponseError("An error occurred while checking organization app user.")
+            Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
         }
     }
 }

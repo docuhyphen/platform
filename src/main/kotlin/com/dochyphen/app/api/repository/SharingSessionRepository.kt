@@ -324,4 +324,18 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
 
         return jpaQuery.singleResult
     }
+
+    fun getAppUserLinkedSharingSessions(appUserId: UUID): List<SharingSession>
+    {
+        val query = entityManager.createQuery(
+            """
+            SELECT s FROM SharingSession s 
+            WHERE (s.initiator.id = :appUserId OR s.recipient.id = :appUserId) 
+            AND s.isDeleted = false
+        """.trimIndent(),
+            SharingSession::class.java
+        )
+        query.setParameter("appUserId", appUserId)
+        return query.resultList ?: emptyList()
+    }
 }

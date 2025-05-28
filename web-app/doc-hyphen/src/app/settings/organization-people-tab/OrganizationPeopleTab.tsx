@@ -14,12 +14,12 @@ import * as React from "react";
 import {useEffect, useState} from "react";
 import {PersonAddIcon} from "../../components/IconBundles.tsx";
 import {useOrganizationPeopleTabStyles} from "./OrganizationPeopleTabStyles.tsx";
-import {deactivateOrganizationUser, fetchMyOrganizationUsers} from "../../../services/organizationApi.ts";
+import {fetchMyOrganizationUsers} from "../../../services/organizationApi.ts";
 import {useAuth} from "../../../context/AuthContext.tsx";
 import {AppUserDetailedDto, AppUserRole, AppUserRoleDisplayNames} from "../../models/models.tsx";
 import AddAppUserDialog from "./add-app-user-dialog/AddAppUserDialog.tsx";
 import EditUserDialog from "./app-user-edit-dialog/EditUserDialog.tsx";
-import {MoreHorizontalRegular, PersonEditRegular, PersonRegular} from "@fluentui/react-icons";
+import {DeleteRegular, MoreHorizontalRegular, PersonEditRegular, PersonRegular} from "@fluentui/react-icons";
 import AppUserDeactivateDialog from "./app-user-deactivate-dialog/AppUserDeactivateDialog.tsx";
 
 const OrganizationPeopleTab = () =>
@@ -31,6 +31,7 @@ const OrganizationPeopleTab = () =>
     const [error, setError] = useState<string | null>(null);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isDeleteAppUserDialogOpen, setIsDeleteAppUserDialogOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<AppUserDetailedDto | null>(null);
 
     const loadUsers = async () =>
@@ -67,6 +68,12 @@ const OrganizationPeopleTab = () =>
     {
         setSelectedUser(user);
         setIsEditDialogOpen(true);
+    };
+
+    const onDeleteOrgAppUser = (user: AppUserDetailedDto) =>
+    {
+        setSelectedUser(user);
+        setIsDeleteAppUserDialogOpen(true);
     };
 
     const columns = [
@@ -117,7 +124,9 @@ const OrganizationPeopleTab = () =>
                                     </TableCellLayout>
                                 </TableCell>
                                 <TableCell>{user.email}</TableCell>
-                                <TableCell>{AppUserRoleDisplayNames[user.role as keyof typeof AppUserRoleDisplayNames] || user.role}</TableCell>
+                                <TableCell>
+                                    {AppUserRoleDisplayNames[user.role as keyof typeof AppUserRoleDisplayNames] || user.role}
+                                </TableCell>
                                 <TableCell>
                                     <Badge
                                         color={user.isActive ? "success" : "danger"}
@@ -141,6 +150,11 @@ const OrganizationPeopleTab = () =>
                                                           onClick={() => onEditOrgAppUser(user)}>
                                                     Edit
                                                 </MenuItem>
+                                                {/*<MenuItem icon={<DeleteRegular/>}*/}
+                                                {/*          disabled={user.id == appUser?.id}*/}
+                                                {/*          onClick={() => onDeleteOrgAppUser(user)}>*/}
+                                                {/*    Delete*/}
+                                                {/*</MenuItem>*/}
                                             </MenuList>
                                         </MenuPopover>
                                     </Menu>
@@ -173,6 +187,31 @@ const OrganizationPeopleTab = () =>
                     loadUsers();
                 }}
             />
+
+            <AppUserDeactivateDialog
+                isOpen={isDeleteAppUserDialogOpen}
+                onDismiss={() =>
+                {
+                    setSelectedUser(null);
+                    setIsDeleteAppUserDialogOpen(false)
+                }
+                }
+                appUser={selectedUser!}
+                organizationId={appUserPersonOrganization?.id}
+                onDeactivated={(userId) =>
+                {
+                    setIsDeleteAppUserDialogOpen(false)
+                    setSelectedUser(null);
+                    loadUsers();
+                }}
+                onDeleted={(userId) =>
+                {
+                    setIsDeleteAppUserDialogOpen(false)
+                    setSelectedUser(null);
+                    loadUsers();
+                }}
+            />
+
         </div>
     );
 };
