@@ -73,18 +73,21 @@ const Settings = () =>
                          value="appSettings">
                         App Settings
                     </Tab>
-                    <Tab id="TemplatesTab"
-                         icon={<SettingsTemplatesTabIcon/>}
-                         value="templates">
-                        Templates
-                    </Tab>
+                    {appUserPersonOrganization &&
+                        <Tab id="TemplatesTab"
+                             icon={<SettingsTemplatesTabIcon/>}
+                             value="templates">
+                            Templates
+                        </Tab>
+                    }
                 </TabList>
                 <div className={styles.tabs} id={"settings-tabs"}>
                     {selectedValue === "profile" && <ProfileTab/>}
                     {selectedValue === "organization" && <OrganizationTab/>}
                     {selectedValue === "appSettings" && <AppSettingsTab/>}
                     {selectedValue === "people" && <OrganizationPeopleTab/>}
-                    {selectedValue === "groups" && <OrganizationGroupsTab appUserPersonOrganization={appUserPersonOrganization}/>}
+                    {selectedValue === "groups" &&
+                        <OrganizationGroupsTab appUserPersonOrganization={appUserPersonOrganization}/>}
                     {selectedValue === "templates" && <TemplatesTab/>}
                 </div>
             </div>

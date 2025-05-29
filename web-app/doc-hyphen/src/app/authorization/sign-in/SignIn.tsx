@@ -22,7 +22,7 @@ import {
 } from "@fluentui/react-components";
 import {AppUserDetailedDto, ResponseError} from "../../models/models.tsx";
 import {setApiClientAuthToken} from '../../../services/apiClient.ts';
-import {DismissRegular} from "@fluentui/react-icons";
+import {ArrowLeftRegular, DismissRegular} from "@fluentui/react-icons";
 import AppLogo from "../../components/app-logo/AppLogo.tsx";
 import SignInCarousel from "../carousel/SignInCarousel.tsx";
 import {useSignInStyles} from "./SignInStyles.tsx";
@@ -239,15 +239,15 @@ const SignIn: React.FC = () =>
                        onKeyDown={(e) => handleKeyDown(e, onCompleteSignIn)}/>
             </Field>
             <Button appearance="transparent"
-                        size={"small"}
-                        disabled={resendingOtp || signInCompleting}
-                        shape={"circular"}
-                        onClick={onResendOtp}
-                        className={globalStyles.buttonWithLoading}>
-                    <>
-                        {resendingOtp && <Spinner size={"tiny"}/>}
-                        Resend Verification Code
-                    </>
+                    size={"small"}
+                    disabled={resendingOtp || signInCompleting}
+                    shape={"circular"}
+                    onClick={onResendOtp}
+                    className={globalStyles.buttonWithLoading}>
+                <>
+                    {resendingOtp && <Spinner size={"tiny"}/>}
+                    Resend Verification Code
+                </>
             </Button>
         </>
     );
@@ -271,6 +271,22 @@ const SignIn: React.FC = () =>
         )
     );
 
+    const onResetSignIn = () =>
+    {
+        setEmail('');
+        setOtp('');
+        setMfaSessionId('');
+        setPassword('');
+        setSignInInitiating(false);
+        setSignInCompleting(false);
+        setResendingOtp(false);
+        setResetOtpResponseMessage('');
+        setSignInInitiationSuccessfulMsg('');
+        setSignInInitiationSuccessful(false);
+        setResponseErrorMessage(undefined);
+        navigate("/sign-in");
+    }
+
     return (
         <RedirectIfAuthenticated element={
             <section className={authorizationStyles.auth}>
@@ -281,7 +297,15 @@ const SignIn: React.FC = () =>
                         </div>
                         <div className={authorizationStyles.authorizationFormSection}>
 
-                            <Subtitle1 align={"center"}> Sign in</Subtitle1>
+                            <Subtitle1 align={"center"}>
+                                {signInInitiationSuccessful &&
+
+                                    <Button icon={<ArrowLeftRegular/>}
+                                            appearance={"transparent"}
+                                            onClick={() => onResetSignIn()}/>
+                                }
+                                Sign in
+                            </Subtitle1>
 
                             {renderErrorMessage()}
 

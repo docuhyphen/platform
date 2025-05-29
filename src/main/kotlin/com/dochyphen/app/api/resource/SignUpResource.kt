@@ -39,7 +39,7 @@ class SignUpResource @Inject constructor(
             signUpService.initiateSignUp(payload.email.toString().trim().lowercase())
 
             val signUpInitiateResponse =
-                SignUpInitiateResponse(message = "We have sent you an OTP to confirm your email.")
+                SignUpInitiateResponse(message = "We have sent you a verification code to confirm your email.")
             Response.ok(signUpInitiateResponse).build()
         }
         catch (exception: Exception)

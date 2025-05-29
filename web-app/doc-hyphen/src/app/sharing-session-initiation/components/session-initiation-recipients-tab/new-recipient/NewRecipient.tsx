@@ -4,6 +4,7 @@ import {useSessionInitiationRecipientsTabStyles} from "../SessionInitiationRecip
 import {AppUserDetailedDto} from "../../../../models/models.tsx";
 import MyOrgRecipients from "../MyOrgRecipients.tsx";
 import {fetchMyOrganizationUsers} from "../../../../../services/organizationApi";
+import {useAuth} from "../../../../../context/AuthContext.tsx";
 
 export interface SharingSessionNewMainRecipient
 {
@@ -37,6 +38,7 @@ const NewRecipient: React.FC<NewRecipientProps> = (
         lastName: newRecipient?.lastName || ''
     });
 
+    const {appUserPersonOrganization} = useAuth()
     const [selectedInternalRecipients, setSelectedInternalParticipants] = useState<AppUserDetailedDto[]>([]);
     const [orgUsers, setOrgUsers] = useState<AppUserDetailedDto[]>([]);
     const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
@@ -179,7 +181,7 @@ const NewRecipient: React.FC<NewRecipientProps> = (
                 </Field>
             </div>
 
-            {isRecipientDataValid() && (
+            {appUserPersonOrganization && isRecipientDataValid() && (
                 <MyOrgRecipients
                     orgUsers={orgUsers}
                     isLoadingUsers={isLoadingUsers}

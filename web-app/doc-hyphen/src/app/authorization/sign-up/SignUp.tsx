@@ -212,7 +212,7 @@ const SignUp: React.FC = () =>
     const renderOtpSection = () => (
         <>
             <Field
-                label={"OTP"}
+                label={"Verification code"}
                 validationState={otpRegenerationFailedMsg ? "error" : (otpRegenerationSuccessfulMsg ? "success" : "none")}
                 validationMessage={otpRegenerationFailedMsg || otpRegenerationSuccessfulMsg}>
                 <Input type="text"
@@ -228,7 +228,7 @@ const SignUp: React.FC = () =>
                     appearance={"transparent"}
                     className={globalStyles.buttonWithLoading}> {/* Use GlobalStyles */}
                 {regeneratingOtp && <Spinner size={"tiny"}/>}
-                Resend OTP
+                Resend Verification Code
             </Button>
         </>
     );
@@ -284,7 +284,7 @@ const SignUp: React.FC = () =>
                         <Subtitle1 align={"center"}> Create account </Subtitle1>
                         {renderFormErrorMessage()}
                         <Field
-                            label={"Email"}
+                            label={"Enter your email"}
                             validationState={initiationSuccessfulMsg ? "success" : "none"}
                             validationMessage={initiationSuccessfulMsg}>
                             <Input type="email"

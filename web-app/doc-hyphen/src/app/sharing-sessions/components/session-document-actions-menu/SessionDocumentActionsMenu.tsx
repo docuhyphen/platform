@@ -12,6 +12,7 @@ import {
     MoreInfoIcon,
     UploadIcon
 } from "../../../components/IconBundles.tsx";
+import {useAuth} from "../../../../context/AuthContext.tsx";
 
 interface DocumentActionsMenuProps
 {
@@ -35,6 +36,7 @@ const SessionDocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
         onDocumentDeleted
     }) =>
 {
+    const {appUserPersonOrganization} = useAuth();
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [isDownloadDocumentOpen, setIsDownloadDocumentOpen] = React.useState(false);
     const [isSessionEnded, setIsSessionEnded] = React.useState(false);
@@ -84,10 +86,12 @@ const SessionDocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
                                   onClick={() => onPreviewDocument()}>
                             Preview
                         </MenuItem>
-                        <MenuItem icon={<MoreInfoIcon/>}
-                                  onClick={() => onOpenDetailsSidebar()}>
-                            Details
-                        </MenuItem>
+                        {appUserPersonOrganization &&
+                            <MenuItem icon={<MoreInfoIcon/>}
+                                      onClick={() => onOpenDetailsSidebar()}>
+                                Details
+                            </MenuItem>
+                        }
                     </MenuList>
                 </MenuPopover>
             </Menu>

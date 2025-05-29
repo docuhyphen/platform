@@ -136,8 +136,6 @@ const OrganizationPeopleTab = () =>
                                     </Badge>
                                 </TableCell>
                                 <TableCell>
-                                    <div className={styles.actions}>
-                                    </div>
                                     <Menu positioning={{autoSize: true}}>
                                         <MenuTrigger disableButtonEnhancement>
                                             <Button icon={<MoreHorizontalRegular/>}

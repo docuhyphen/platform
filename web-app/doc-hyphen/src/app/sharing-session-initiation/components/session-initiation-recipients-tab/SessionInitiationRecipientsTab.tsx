@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {Field, Radio, RadioGroup} from "@fluentui/react-components";
 import {useSessionInitiationRecipientsTabStyles} from "./SessionInitiationRecipientsTabStyles.tsx";
 import {AppUserDetailedDto, OrganizationBasicDto} from "../../../models/models.tsx";
@@ -6,6 +6,7 @@ import {OrganizationGroupBasicDto} from "../../../../services/organizationApi";
 import MyOrganizationRecipients from "./my-organization-recipients/MyOrganizationRecipients";
 import ExternalOrganizationRecipients from "./external-organization-recipients/ExternalOrganizationRecipients";
 import NewRecipient, {SharingSessionNewMainRecipient} from "./new-recipient/NewRecipient";
+import {useAuth} from "../../../../context/AuthContext.tsx";
 
 export enum SharingSessionInitiationRecipientMode
 {
@@ -34,6 +35,7 @@ interface SessionRecipientsTabProps
 const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (props) =>
 {
     const styles = useSessionInitiationRecipientsTabStyles();
+    const {appUser, appUserPersonOrganization} = useAuth()
 
     const onRecipientModeChange = (
         _: React.FormEvent<HTMLDivElement>,
@@ -54,19 +56,37 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
         }
     }
 
+    useEffect(() =>
+    {
+        console.log("SessionInitiationRecipientsTab useEffect triggered");
+        if (!appUserPersonOrganization)
+        {
+            console.log("appUserPersonOrganization is undefined");
+            if (props.recipientMode)
+            {
+                console.log("Setting recipient mode to USE_EMAIL due to undefined appUserPersonOrganization");
+                props.setRecipientMode(SharingSessionInitiationRecipientMode.USE_EMAIL);
+            }
+        }
+
+    }, [appUserPersonOrganization, props]);
+
     return (
         <div className={styles.recipientsTabContent}>
-            <Field>
-                <RadioGroup
-                    layout={"horizontal"}
-                    value={props.recipientMode}
-                    onChange={onRecipientModeChange}>
-                    <Radio value={SharingSessionInitiationRecipientMode.EXTERNAL_ORG} label="External Organization"/>
-                    <Radio value={SharingSessionInitiationRecipientMode.MY_ORG} label="My Organization"/>
-                    <Radio value={SharingSessionInitiationRecipientMode.USE_EMAIL} label="Use Email"/>
-                </RadioGroup>
-            </Field>
-
+            {appUserPersonOrganization && <>
+                <Field>
+                    <RadioGroup
+                        layout={"horizontal"}
+                        value={props.recipientMode}
+                        onChange={onRecipientModeChange}>
+                        <Radio value={SharingSessionInitiationRecipientMode.EXTERNAL_ORG}
+                               label="External Organization"/>
+                        <Radio value={SharingSessionInitiationRecipientMode.MY_ORG} label="My Organization"/>
+                        <Radio value={SharingSessionInitiationRecipientMode.USE_EMAIL} label="Use Email"/>
+                    </RadioGroup>
+                </Field>
+            </>
+            }
             {props.recipientMode === SharingSessionInitiationRecipientMode.MY_ORG && (
                 <MyOrganizationRecipients
                     recipientOrgUser={props.recipientOrgUser}
