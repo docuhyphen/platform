@@ -12,15 +12,13 @@ import {
     TabValue,
     Text
 } from "@fluentui/react-components";
-import {useOrganizationParingTabStyles} from "./OrganizationParingTabStyles.tsx";
+import {useOrganizationParingTabStyles} from "./ParedOrganizationsTabStyles.tsx";
 import {DismissRegular, LinkAddRegular} from "@fluentui/react-icons";
 import {OrganizationParingRequestsTabIcon, ParedOrganizationsTabIcon} from "../../components/IconBundles.tsx";
 import ProfileTab from "../profile-tab/ProfileTab.tsx";
 import OrganizationTab from "../organization-tab/OrganizationTab.tsx";
-import ParedOrganizationsTab from "./pared-organizations-tab/ParedOrganizationsTab.tsx";
-import OrganizationParingRequestsTab from "./paring-request/ParingRequestsTab.tsx";
 
-const OrganizationPairingTab = () =>
+const ParedOrganizationsTab = () =>
 {
     const tabIds = {
         pairedOrganizations: "PairedOrganizationsTab",
@@ -56,55 +54,15 @@ const OrganizationPairingTab = () =>
         )
     );
 
-    const onInitiatePairing = () =>
-    {
-
-    }
-    const onTabSelect = (event: SelectTabEvent, data: SelectTabData) =>
-    {
-        setSelectedValue(data.value);
-    };
     return <>
         {fetchingOrganization && <Spinner label="Loading"/>}
 
         {tabErrorMessage && renderTabError()}
 
         <section className={styles.container}>
-            <div className={styles.header}>
-                <div></div>
-
-                <Button
-                    icon={<LinkAddRegular/>}
-                    appearance="primary"
-                    shape="circular"
-                    onClick={onInitiatePairing}>
-                    Find & Pair
-                </Button>
-            </div>
-
-            <div className={styles.tabListContainer}>
-                <TabList selectedValue={selectedValue}
-                         onTabSelect={onTabSelect}
-                         size="medium"
-                         vertical>
-                    <Tab id="PairedOrganizationsTab"
-                         icon={<ParedOrganizationsTabIcon/>}
-                         value={tabIds.pairedOrganizations}>
-                        Pared
-                    </Tab>
-                    <Tab id="ParingRequestsTab"
-                         icon={<OrganizationParingRequestsTabIcon/>}
-                         value={tabIds.paringRequests}>
-                        Paring Requests
-                    </Tab>
-                </TabList>
-                <div className={styles.tabs} id={"settings-tabs"}>
-                    {selectedValue === tabIds.pairedOrganizations && <ParedOrganizationsTab/>}
-                    {selectedValue === tabIds.paringRequests && <OrganizationParingRequestsTab/>}
-                </div>
-            </div>
+            <Text size={500}> Pared Organizations </Text>
         </section>
     </>
 }
 
-export default OrganizationPairingTab;
+export default ParedOrganizationsTab;

@@ -77,7 +77,7 @@ import {
     FolderZipFilled,
     FolderZipRegular,
     InfoFilled,
-    InfoRegular,
+    InfoRegular, LinkAddFilled, LinkAddRegular, LinkMultipleFilled, LinkMultipleRegular,
     NotepadEditFilled,
     NotepadEditRegular,
     OptionsFilled,
@@ -113,6 +113,8 @@ import {
 export const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
 export const DocumentAddIcon = bundleIcon(DocumentAddFilled, DocumentAddRegular)
 export const GroupAddIcon = bundleIcon(PeopleTeamAddFilled, PeopleTeamAddRegular)
+export const ParedOrganizationsTabIcon = bundleIcon(LinkMultipleFilled, LinkMultipleRegular)
+export const OrganizationParingRequestsTabIcon = bundleIcon(LinkAddFilled, LinkAddRegular)
 export const SettingsProfileTabIcon = bundleIcon(PersonSettingsFilled, PersonSettingsRegular)
 export const SettingsOrganizationTabIcon = bundleIcon(BuildingFilled, BuildingRegular)
 export const SettingsOrganizationPeopleTabIcon = bundleIcon(BuildingPeopleFilled, BuildingPeopleRegular)

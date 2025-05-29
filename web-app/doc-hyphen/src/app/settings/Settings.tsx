@@ -52,7 +52,9 @@ const Settings = () =>
         <>
             <MainMenu/>
             <div className={styles.container}>
-                <TabList selectedValue={selectedValue} onTabSelect={onTabSelect} size="medium">
+                <TabList selectedValue={selectedValue}
+                         onTabSelect={onTabSelect}
+                         size="medium">
                     <Tab id="ProfileTab"
                          icon={<SettingsProfileTabIcon/>}
                          value={tabIds.profile}>
