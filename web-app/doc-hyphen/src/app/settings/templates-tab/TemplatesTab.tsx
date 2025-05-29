@@ -7,6 +7,7 @@ const TemplatesTab = () =>
     return <>
         <div>
             <Button icon={<TemplateAddIcon/>}
+                    appearance="primary"
                     shape={"circular"}>
                 Create new template
             </Button>

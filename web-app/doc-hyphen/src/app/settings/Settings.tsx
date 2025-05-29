@@ -5,6 +5,7 @@ import {useSettingsStyles} from "./SettingsStyles.tsx";
 import MainMenu from "../components/MainMenu.tsx";
 import OrganizationTab from "./organization-tab/OrganizationTab.tsx";
 import {
+    PairOrgTabIcon,
     SettingsAppSettingsTabIcon,
     SettingsOrganizationGroupsTabIcon,
     SettingsOrganizationPeopleTabIcon,
@@ -19,12 +20,24 @@ import OrganizationGroupsTab from "./organization-groups-tab/OrganizationGroupsT
 import OrganizationPeopleTab from "./organization-people-tab/OrganizationPeopleTab.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {AppUserRole} from "../models/models.tsx";
+import {BuildingBankLinkFilled} from "@fluentui/react-icons";
+import OrganizationPairingTab from "./organization-pairing-tab/OrganizationPairingTab.tsx";
 
 const Settings = () =>
 {
     const {appUser, appUserPersonOrganization} = useAuth();
     const styles = useSettingsStyles();
     const [selectedValue, setSelectedValue] = useState<TabValue>("profile");
+
+    const tabIds = {
+        profile: "ProfileTab",
+        organization: "OrganizationTab",
+        appSettings: "AppSettingsTab",
+        people: "PeopleTab",
+        groups: "GroupsTab",
+        organizationPairing: "OrganizationPairingTab",
+        templates: "TemplatesTab"
+    }
 
     const onTabSelect = (event: SelectTabEvent, data: SelectTabData) =>
     {
@@ -33,7 +46,6 @@ const Settings = () =>
 
     useEffect(() =>
     {
-        console.log("==============Settings useEffect==============", appUserPersonOrganization);
     }, [appUserPersonOrganization]);
 
     return (
@@ -43,14 +55,14 @@ const Settings = () =>
                 <TabList selectedValue={selectedValue} onTabSelect={onTabSelect} size="medium">
                     <Tab id="ProfileTab"
                          icon={<SettingsProfileTabIcon/>}
-                         value="profile">
+                         value={tabIds.profile}>
                         Profile
                     </Tab>
                     {(!appUserPersonOrganization || appUser?.role == AppUserRole.ORG_ADMIN) &&
 
                         <Tab id="OrganizationTab"
                              icon={<SettingsOrganizationTabIcon/>}
-                             value="organization">
+                             value={tabIds.organization}>
                             Your Organization
                         </Tab>
                     }
@@ -58,37 +70,46 @@ const Settings = () =>
 
                         <Tab id="PeopleTab"
                              icon={<SettingsOrganizationPeopleTabIcon/>}
-                             value="people">
+                             value={tabIds.people}>
                             Your People
                         </Tab>
                         <Tab id="GroupsTab"
                              icon={<SettingsOrganizationGroupsTabIcon/>}
-                             value="groups">
+                             value={tabIds.groups}>
                             Groups
                         </Tab>
                     </>
                     }
                     <Tab id="AppSettingsTab"
                          icon={<SettingsAppSettingsTabIcon/>}
-                         value="appSettings">
+                         value={tabIds.appSettings}>
                         App Settings
                     </Tab>
+                    {(!appUserPersonOrganization || appUser?.role == AppUserRole.ORG_ADMIN) &&
+
+                        <Tab id="OrganiationPairingTab"
+                             icon={<PairOrgTabIcon/>}
+                             value={tabIds.organizationPairing}>
+                            Organization Pairing
+                        </Tab>
+                    }
                     {appUserPersonOrganization &&
                         <Tab id="TemplatesTab"
                              icon={<SettingsTemplatesTabIcon/>}
-                             value="templates">
+                             value={tabIds.templates}>
                             Templates
                         </Tab>
                     }
                 </TabList>
                 <div className={styles.tabs} id={"settings-tabs"}>
-                    {selectedValue === "profile" && <ProfileTab/>}
-                    {selectedValue === "organization" && <OrganizationTab/>}
-                    {selectedValue === "appSettings" && <AppSettingsTab/>}
-                    {selectedValue === "people" && <OrganizationPeopleTab/>}
-                    {selectedValue === "groups" &&
+                    {selectedValue === tabIds.profile && <ProfileTab/>}
+                    {selectedValue === tabIds.organization && <OrganizationTab/>}
+                    {selectedValue === tabIds.appSettings && <AppSettingsTab/>}
+                    {selectedValue === tabIds.people && <OrganizationPeopleTab/>}
+                    {selectedValue === tabIds.groups &&
                         <OrganizationGroupsTab appUserPersonOrganization={appUserPersonOrganization}/>}
-                    {selectedValue === "templates" && <TemplatesTab/>}
+                    {selectedValue === tabIds.organizationPairing && <OrganizationPairingTab/>}
+                    {selectedValue === tabIds.templates && <TemplatesTab/>}
                 </div>
             </div>
         </>

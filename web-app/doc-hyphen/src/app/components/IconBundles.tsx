@@ -18,11 +18,19 @@ import {
     ArrowSortUpLinesFilled,
     ArrowSortUpLinesRegular,
     ArrowUploadFilled,
-    ArrowUploadRegular, BookAddFilled, BookAddRegular, BookTemplateFilled, BookTemplateRegular,
+    ArrowUploadRegular,
+    BookAddFilled,
+    BookAddRegular,
+    BookTemplateFilled,
+    BookTemplateRegular,
+    BuildingBankLinkFilled,
+    BuildingBankLinkRegular,
     BuildingFilled,
     BuildingPeopleFilled,
     BuildingPeopleRegular,
-    BuildingRegular, BuildingTownhouseFilled, BuildingTownhouseRegular,
+    BuildingRegular,
+    BuildingTownhouseFilled,
+    BuildingTownhouseRegular,
     bundleIcon,
     CalculatorArrowClockwiseFilled,
     CalculatorArrowClockwiseRegular,
@@ -79,12 +87,17 @@ import {
     PeopleLockFilled,
     PeopleLockRegular,
     PeopleTeamAddFilled,
-    PeopleTeamAddRegular, PeopleTeamFilled,
-    PeopleTeamRegular, PersonAddFilled, PersonAddRegular,
+    PeopleTeamAddRegular,
+    PeopleTeamFilled,
+    PeopleTeamRegular,
+    PersonAddFilled,
+    PersonAddRegular,
     PersonSettingsFilled,
     PersonSettingsRegular,
     SendFilled,
-    SendRegular, SettingsCogMultipleFilled, SettingsCogMultipleRegular,
+    SendRegular,
+    SettingsCogMultipleFilled,
+    SettingsCogMultipleRegular,
     SettingsFilled,
     SettingsRegular,
     WindowEditFilled,
@@ -105,6 +118,7 @@ export const SettingsOrganizationTabIcon = bundleIcon(BuildingFilled, BuildingRe
 export const SettingsOrganizationPeopleTabIcon = bundleIcon(BuildingPeopleFilled, BuildingPeopleRegular)
 export const SettingsOrganizationGroupsTabIcon = bundleIcon(PeopleTeamFilled, PeopleTeamRegular)
 export const SettingsAppSettingsTabIcon = bundleIcon(SettingsCogMultipleFilled, SettingsCogMultipleRegular)
+export const OrganizationPairingTabIcon = bundleIcon(BuildingBankLinkFilled, BuildingBankLinkRegular)
 export const SettingsTemplatesTabIcon = bundleIcon(BookTemplateFilled, BookTemplateRegular)
 export const TemplateAddIcon = bundleIcon(BookAddFilled, BookAddRegular)
 export const PairOrgTabIcon = bundleIcon(BuildingTownhouseFilled, BuildingTownhouseRegular)
