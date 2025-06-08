@@ -1,5 +1,6 @@
 package com.dochyphen.app.api.model.dto
 
+import com.dochyphen.app.api.model.entity.LinkStatus
 import com.dochyphen.app.api.serializer.TimestampSerializer
 import com.dochyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
@@ -67,6 +68,23 @@ data class OrganizationBasicDto(
     val registrationNumber: String?,
 //    val isActive: Boolean?,
 //    val verificationComplete: Boolean?,
+)
+
+@Serializable
+data class OrganizationSharingSessionLinkBasicDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID?,
+    @Serializable(with = TimestampSerializer::class)
+    val createdDate: Timestamp?,
+    val requestingOrganizationId: String? = null,
+    val requestingOrganizationName: String? = null,
+    val requestedOrganizationId: String? = null,
+    val requestedOrganizationName: String? = null,
+    val requestingMessage: String? = null,
+    val status: LinkStatus,
+    @Serializable(with = TimestampSerializer::class)
+    val linkedDate: Timestamp?
+
 )
 
 @Serializable

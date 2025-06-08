@@ -39,6 +39,7 @@ Content-Type: application/json
   "email": "test1@doc-hyphen.com",
   "password": "Qazmko@104"
 }
+> {% client.global.set("mfaSessionId", response.body.mfaSessionId) %}
 
 <> 2025-01-16T214851.200.json
 <> 2025-01-16T214452.200.json
@@ -55,7 +56,8 @@ Content-Type: application/json
 
 {
   "email": "test1@doc-hyphen.com",
-  "otp": "123456"
+  "otp": "123456",
+  "mfaSessionId": "{{mfaSessionId}}"
 }
 > {% client.global.set("Authorization", response.body.token) %}
 

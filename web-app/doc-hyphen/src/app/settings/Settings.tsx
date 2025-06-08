@@ -20,7 +20,6 @@ import OrganizationGroupsTab from "./organization-groups-tab/OrganizationGroupsT
 import OrganizationPeopleTab from "./organization-people-tab/OrganizationPeopleTab.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {AppUserRole} from "../models/models.tsx";
-import {BuildingBankLinkFilled} from "@fluentui/react-icons";
 import OrganizationPairingTab from "./organization-pairing-tab/OrganizationPairingTab.tsx";
 
 const Settings = () =>

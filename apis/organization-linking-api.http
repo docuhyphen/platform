@@ -1,0 +1,19 @@
+### CREATE NEW LINK
+POST {{host}}/organizations/links?requestingOrganizationId=94c85324-1597-4d06-ac07-85e55eb85ac6&requestedOrganizationId=8c8ac762-6595-45a9-8f26-11d3526d2535&message=Hi please accept this pairing request.
+Authorization: Bearer {{Authorization}}
+
+### GET LINKS
+GET {{host}}/organizations/links
+Authorization: Bearer {{Authorization}}
+
+### REJECT LINK REQUEST
+PUT {{host}}/organizations/links/c6db3c1e-f77b-4fdd-aa02-3ecc4617b827?status=REJECTED&rejectionReason=This is a rejection message
+Authorization: Bearer {{Authorization}}
+
+### ACCEPT LINK REQUEST
+PUT {{host}}/organizations/links/c6db3c1e-f77b-4fdd-aa02-3ecc4617b827?status=ACCEPTED
+Authorization: Bearer {{Authorization}}
+
+### DELINK
+DELETE {{host}}/organizations/links/e2bd354f-b119-4dcc-9279-fd36763dddd7
+Authorization: Bearer {{Authorization}}

@@ -126,5 +126,25 @@ class BasicEntityToDtoTransformer
                 }
             }
         }
+
+        fun toDto(organizationSharingSessionLink: OrganizationSharingSessionLink?): OrganizationSharingSessionLinkBasicDto?
+        {
+            return organizationSharingSessionLink?.let {
+                with(organizationSharingSessionLink)
+                {
+                    OrganizationSharingSessionLinkBasicDto(
+                        id,
+                        createdDate,
+                        requestingOrganization?.id.toString(),
+                        requestingOrganization?.name,
+                        requestedOrganization?.id.toString(),
+                        requestedOrganization?.name,
+                        requestingMessage,
+                        status,
+                        linkedDate
+                    )
+                }
+            }
+        }
     }
 }
