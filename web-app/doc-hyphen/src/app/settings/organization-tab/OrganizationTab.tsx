@@ -141,7 +141,8 @@ const OrganizationTab = () =>
     return <>
         {fetchingOrganization &&
             <div style={{display: 'flex', justifyContent: 'center', padding: '20px'}}>
-                <Spinner label="Loading"/>
+                <Spinner label="Loading"
+                         size={"small"}/>
             </div>
         }
 
@@ -239,8 +240,8 @@ const OrganizationTab = () =>
                                 size="small"
                                 onClick={onAddOrEditPhone}
                             >
-                            Add Phone Number
-                        </Button>
+                                Add Phone Number
+                            </Button>
                         )}
                     </Text>
                 </div>

@@ -32,8 +32,6 @@ class OrganizationSharingSessionLinkResource @Inject constructor(
     @Path("/linking")
     fun getOrganizationsForLinking(): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(500, 800)
-
         return try
         {
             val organizations = linkService.getOrganizationsForLinking()

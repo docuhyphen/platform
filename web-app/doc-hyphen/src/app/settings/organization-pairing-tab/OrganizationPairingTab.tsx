@@ -150,7 +150,10 @@ const OrganizationPairingTab = () =>
 
 
     return <>
-        {fetchingOrgPairs && <Spinner label="Loading"/>}
+        {fetchingOrgPairs &&
+            <Spinner label="Loading"
+                     size={"small"}/>
+        }
 
         {tabErrorMessage && renderTabError()}
 

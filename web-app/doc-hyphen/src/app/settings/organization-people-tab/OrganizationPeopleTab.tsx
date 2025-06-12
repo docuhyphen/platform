@@ -91,7 +91,8 @@ const OrganizationPeopleTab = () =>
 
             {loading ? (
                 <div className={styles.loading}>
-                    <Spinner label="Loading..."/>
+                    <Spinner label="Loading..."
+                             size={"small"}/>
                 </div>
             ) : <>
                 <div className={styles.header}>

@@ -89,7 +89,8 @@ const MainMenu: React.FC = () =>
                     <DialogBody>
                         <DialogTitle></DialogTitle>
                         <DialogContent>
-                            <Spinner label="Signing out..."/>
+                            <Spinner label="Signing out..."
+                                     size={"small"}/>
                         </DialogContent>
                     </DialogBody>
                 </DialogSurface>

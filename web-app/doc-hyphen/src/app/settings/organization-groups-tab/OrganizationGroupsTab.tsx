@@ -187,7 +187,8 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
 
             {loading ? (
                 <div className={styles.loading}>
-                    <Spinner label="Loading..."/>
+                    <Spinner label="Loading..."
+                             size={"small"}/>
                 </div>
             ) : renderTable()}
 
