@@ -83,7 +83,9 @@ data class OrganizationSharingSessionLinkBasicDto(
     val requestingMessage: String? = null,
     val status: LinkStatus,
     @Serializable(with = TimestampSerializer::class)
-    val linkedDate: Timestamp?
+    val linkedDate: Timestamp?,
+    @Serializable(with = TimestampSerializer::class)
+    val rejectedDate: Timestamp?
 
 )
 

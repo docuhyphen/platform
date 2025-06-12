@@ -3,8 +3,8 @@ import {makeStyles, tokens} from "@fluentui/react-components";
 export const useOrganizationParingTabStyles = makeStyles({
     tabContainer: {
         display: "flex",
-        flexDirection: "row",
-        gap: "16px"
+        flexDirection: "column",
+        gap: "26px"
     },
     header: {
         display: "flex",
@@ -22,5 +22,11 @@ export const useOrganizationParingTabStyles = makeStyles({
     },
     tabs: {
         flexGrow: "1"
+    },
+    acceptButtonIcon: {
+        color: tokens.colorBrandForeground1
+    },
+    divider: {
+        width: "300px"
     }
 });

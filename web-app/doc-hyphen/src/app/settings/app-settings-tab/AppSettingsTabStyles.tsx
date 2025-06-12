@@ -15,5 +15,9 @@ export const useAppSettingsTabStyles = makeStyles({
 
     dataName: {
         minWidth: "150px"
+    },
+
+    mainDivider: {
+        width: "300px"
     }
 });

@@ -141,7 +141,8 @@ class BasicEntityToDtoTransformer
                         requestedOrganization?.name,
                         requestingMessage,
                         status,
-                        linkedDate
+                        linkedDate,
+                        rejectedDate
                     )
                 }
             }

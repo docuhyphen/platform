@@ -153,7 +153,9 @@ const OrganizationTab = () =>
 
         {organization && !fetchingOrganization && (
             <div className={styles.container}>
-                <Divider alignContent="start" appearance="brand">
+                <Divider alignContent="start"
+                         appearance="brand"
+                         className={styles.mainDivider}>
                     Organization Details
                     <Button
                         icon={<ProfileEditBasicDetailsIcon/>}
@@ -173,7 +175,9 @@ const OrganizationTab = () =>
                     )}
                 </div>
 
-                <Divider alignContent="start" appearance="brand">
+                <Divider alignContent="start"
+                         appearance="brand"
+                         className={styles.mainDivider}>
                     Organization Settings
                 </Divider>
 
@@ -198,7 +202,9 @@ const OrganizationTab = () =>
                     />
                 </>}
 
-                <Divider alignContent="start" appearance="brand">
+                <Divider alignContent="start"
+                         appearance="brand"
+                         className={styles.mainDivider}>
                     Contact Details
                 </Divider>
 

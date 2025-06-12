@@ -15,10 +15,12 @@ import {
 import {useOrganizationParingTabStyles} from "./OrganizationParingTabStyles.tsx";
 import {DismissRegular, LinkAddRegular} from "@fluentui/react-icons";
 import {OrganizationParingRequestsTabIcon, ParedOrganizationsTabIcon} from "../../components/IconBundles.tsx";
-import ProfileTab from "../profile-tab/ProfileTab.tsx";
-import OrganizationTab from "../organization-tab/OrganizationTab.tsx";
 import ParedOrganizationsTab from "./pared-organizations-tab/ParedOrganizationsTab.tsx";
-import OrganizationParingRequestsTab from "./paring-request/ParingRequestsTab.tsx";
+import OrganizationParingRequestsTab from "./paring-requests/ParingRequestsTab.tsx";
+import {fetchOrganizationLinks} from "../../../services/organizationSharingSession.ts";
+import {useAuth} from "../../../context/AuthContext.tsx";
+import {LinkStatus, OrganizationSharingSessionLinkBasicDto, ResponseError} from "../../models/models.tsx";
+import ParingRequestDialog from "./paring-request-dialog/ParingRequestDialog.tsx";
 
 const OrganizationPairingTab = () =>
 {
@@ -27,15 +29,59 @@ const OrganizationPairingTab = () =>
         paringRequests: "ParingRequestsTab"
     }
 
+    const {token} = useAuth()
     const styles = useOrganizationParingTabStyles()
-    const [fetchingOrganization, setFetchingOrganization] = useState(false);
+    const [fetchingOrgPairs, setFetchingOrgPairs] = useState(false);
     const [tabErrorMessage, setTabErrorMessage] = useState<string | null>(null);
-    const [selectedValue, setSelectedValue] = useState<TabValue>(tabIds.pairedOrganizations);
+    const [selectedTab, setSelectedTab] = useState<TabValue>(tabIds.paringRequests);
+    const [pairedOrgs, setPairedOrgs] = useState<OrganizationSharingSessionLinkBasicDto[]>([]);
+    const [orgPairRequests, setOrgPairRequests] = useState<OrganizationSharingSessionLinkBasicDto[]>([]);
+    const [isParingRequestDialogOpen, setIsParingRequestDialogOpen] = useState<boolean>(false);
+
+    const fetchOrgPairs = async () =>
+    {
+        if (fetchingOrgPairs)
+        {
+            return
+        }
+
+        setPairedOrgs([])
+        setOrgPairRequests([])
+        setFetchingOrgPairs(true)
+
+        try
+        {
+            const pairs = (await fetchOrganizationLinks()) as OrganizationSharingSessionLinkBasicDto[]
+
+            if (pairs && pairs.length)
+            {
+                const pared = pairs.filter(
+                    (l: OrganizationSharingSessionLinkBasicDto) => l.status === LinkStatus.ACCEPTED
+                );
+
+                const pairRequests = pairs.filter(
+                    (l: OrganizationSharingSessionLinkBasicDto) => (l.status === LinkStatus.PENDING || l.status === LinkStatus.REJECTED)
+                )
+
+                setPairedOrgs(pared)
+                setOrgPairRequests(pairRequests)
+            }
+        }
+        catch (error: ResponseError | any)
+        {
+            const errorMessage = ((error as ResponseError)?.errorMessage) || "An unknown error occurred attempting to fetch pairs";
+            setTabErrorMessage(errorMessage)
+        }
+        finally
+        {
+            setFetchingOrgPairs(false)
+        }
+    }
 
     useEffect(() =>
     {
-        console.log("Organization pairing tab useEffect");
-    }, []);
+        fetchOrgPairs()
+    }, [token]);
 
     const renderTabError = () => (
         tabErrorMessage && (
@@ -56,54 +102,110 @@ const OrganizationPairingTab = () =>
         )
     );
 
-    const onInitiatePairing = () =>
-    {
-
-    }
     const onTabSelect = (event: SelectTabEvent, data: SelectTabData) =>
     {
-        setSelectedValue(data.value);
+        fetchOrgPairs().then(() =>
+        {
+            setSelectedTab(data.value);
+        })
     };
+
+    const onParingRequestDialogDismiss = () =>
+    {
+        setIsParingRequestDialogOpen(false)
+    }
+
+    const onParingRequestSent = (pair: OrganizationSharingSessionLinkBasicDto) =>
+    {
+        fetchOrgPairs().then(() =>
+        {
+            setIsParingRequestDialogOpen(false)
+            setSelectedTab(tabIds.paringRequests)
+        })
+    }
+
+    const onParingRequestDeleted = (pair: OrganizationSharingSessionLinkBasicDto) =>
+    {
+        fetchOrgPairs().then(() =>
+        {
+            setSelectedTab(tabIds.paringRequests)
+        })
+    }
+
+    const onParingRequestAccepted = (pair: OrganizationSharingSessionLinkBasicDto) =>
+    {
+        fetchOrgPairs().then(() =>
+        {
+            setSelectedTab(tabIds.pairedOrganizations)
+        })
+    }
+
+    const onParingRequestRejected = (pair: OrganizationSharingSessionLinkBasicDto) =>
+    {
+        fetchOrgPairs().then(() =>
+        {
+            setSelectedTab(tabIds.paringRequests)
+        })
+    }
+
+
     return <>
-        {fetchingOrganization && <Spinner label="Loading"/>}
+        {fetchingOrgPairs && <Spinner label="Loading"/>}
 
         {tabErrorMessage && renderTabError()}
 
-        <section className={styles.container}>
-            <div className={styles.header}>
-                <div></div>
+        {!fetchingOrgPairs && <>
 
-                <Button
-                    icon={<LinkAddRegular/>}
-                    appearance="primary"
-                    shape="circular"
-                    onClick={onInitiatePairing}>
-                    Find & Pair
-                </Button>
-            </div>
-
-            <div className={styles.tabListContainer}>
-                <TabList selectedValue={selectedValue}
-                         onTabSelect={onTabSelect}
-                         size="medium"
-                         vertical>
-                    <Tab id="PairedOrganizationsTab"
-                         icon={<ParedOrganizationsTabIcon/>}
-                         value={tabIds.pairedOrganizations}>
-                        Pared
-                    </Tab>
-                    <Tab id="ParingRequestsTab"
-                         icon={<OrganizationParingRequestsTabIcon/>}
-                         value={tabIds.paringRequests}>
-                        Paring Requests
-                    </Tab>
-                </TabList>
-                <div className={styles.tabs} id={"settings-tabs"}>
-                    {selectedValue === tabIds.pairedOrganizations && <ParedOrganizationsTab/>}
-                    {selectedValue === tabIds.paringRequests && <OrganizationParingRequestsTab/>}
+            <section className={styles.container}>
+                <div className={styles.header}>
+                    <Button
+                        icon={<LinkAddRegular/>}
+                        appearance="primary"
+                        shape="circular"
+                        onClick={() => setIsParingRequestDialogOpen(true)}>
+                        Find & Pair
+                    </Button>
                 </div>
-            </div>
-        </section>
+
+                <div className={styles.tabListContainer}>
+                    <TabList selectedValue={selectedTab}
+                             onTabSelect={onTabSelect}
+                             size="medium"
+                             vertical>
+                        <Tab id={tabIds.paringRequests}
+                             icon={<OrganizationParingRequestsTabIcon/>}
+                             value={tabIds.paringRequests}>
+                            Paring Requests
+                        </Tab>
+                        <Tab id={tabIds.pairedOrganizations}
+                             icon={<ParedOrganizationsTabIcon/>}
+                             value={tabIds.pairedOrganizations}>
+                            Pared
+                        </Tab>
+                    </TabList>
+                    <div className={styles.tabs} id={"settings-tabs"}>
+                        {selectedTab === tabIds.pairedOrganizations &&
+                            <ParedOrganizationsTab
+                                orgPairs={pairedOrgs}
+                                onOrgPareUnpaired={() => fetchOrgPairs()}
+                            />
+                        }
+                        {selectedTab === tabIds.paringRequests &&
+                            <OrganizationParingRequestsTab
+                                orgPairs={orgPairRequests}
+                                onOrgPairRequestDeleted={onParingRequestDeleted}
+                                onOrgPairRequestRejected={onParingRequestRejected}
+                                onOrgPairRequestAccepted={onParingRequestAccepted}
+                            />
+                        }
+                    </div>
+                </div>
+            </section>
+            <ParingRequestDialog isOpen={isParingRequestDialogOpen}
+                                 onDismiss={onParingRequestDialogDismiss}
+                                 onRequestSent={onParingRequestSent}/>
+        </>
+        }
     </>
 }
 

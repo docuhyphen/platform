@@ -16,5 +16,9 @@ export const useProfileTabStyles = makeStyles({
     dataEditable: {
         display: "flex",
         gap: "8px"
+    },
+
+    mainDivider: {
+        width: "300px"
     }
 });

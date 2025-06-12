@@ -4,36 +4,40 @@ import {
     MessageBar,
     MessageBarActions,
     MessageBarBody,
-    SelectTabData,
-    SelectTabEvent,
-    Spinner,
-    Tab,
-    TabList,
-    TabValue,
-    Text
+    Text,
+    Table,
+    TableHeader,
+    TableRow,
+    TableHeaderCell,
+    TableBody,
+    TableCell, Menu, MenuTrigger, MenuPopover, MenuList, MenuItem
 } from "@fluentui/react-components";
 import {useOrganizationParingTabStyles} from "./ParedOrganizationsTabStyles.tsx";
-import {DismissRegular, LinkAddRegular} from "@fluentui/react-icons";
-import {OrganizationParingRequestsTabIcon, ParedOrganizationsTabIcon} from "../../components/IconBundles.tsx";
-import ProfileTab from "../profile-tab/ProfileTab.tsx";
-import OrganizationTab from "../organization-tab/OrganizationTab.tsx";
+import {
+    DismissRegular, LinkDismissRegular,
+    MoreHorizontalRegular
+} from "@fluentui/react-icons";
+import {OrganizationSharingSessionLinkBasicDto} from "../../../models/models.tsx";
+import useToken from "../../../../context/useToken";
+import OrganizationUnpairDialog from "./organization-unpair-dialog/OrganizationUnpairDialog.tsx";
 
-const ParedOrganizationsTab = () =>
+interface ParedOrganizationsTabProps
 {
-    const tabIds = {
-        pairedOrganizations: "PairedOrganizationsTab",
-        paringRequests: "ParingRequestsTab"
-    }
+    orgPairs: OrganizationSharingSessionLinkBasicDto[]
+    onOrgPareUnpaired: (orgPair: OrganizationSharingSessionLinkBasicDto) => void
+}
 
-    const styles = useOrganizationParingTabStyles()
-    const [fetchingOrganization, setFetchingOrganization] = useState(false);
-    const [tabErrorMessage, setTabErrorMessage] = useState<string | null>(null);
-    const [selectedValue, setSelectedValue] = useState<TabValue>(tabIds.pairedOrganizations);
-
-    useEffect(() =>
+const ParedOrganizationsTab: React.FC<ParedOrganizationsTabProps> = (
     {
-        console.log("Organization pairing tab useEffect");
-    }, []);
+        orgPairs,
+        onOrgPareUnpaired
+    }) =>
+{
+    const styles = useOrganizationParingTabStyles();
+    const [tabErrorMessage, setTabErrorMessage] = useState<string | null>(null);
+    const [unpairDialogOpen, setUnpairDialogOpen] = useState(false);
+    const [selectedOrgPair, setSelectedOrgPair] = useState<OrganizationSharingSessionLinkBasicDto | null>(null);
+    const token = useToken();
 
     const renderTabError = () => (
         tabErrorMessage && (
@@ -54,15 +58,91 @@ const ParedOrganizationsTab = () =>
         )
     );
 
-    return <>
-        {fetchingOrganization && <Spinner label="Loading"/>}
+    const onUnpair = (orgPair: OrganizationSharingSessionLinkBasicDto) =>
+    {
+        setSelectedOrgPair(orgPair);
+        setUnpairDialogOpen(true);
+    };
 
-        {tabErrorMessage && renderTabError()}
+    const handleUnpairConfirmed = (orgPair: OrganizationSharingSessionLinkBasicDto) =>
+    {
+        setUnpairDialogOpen(false);
+        setSelectedOrgPair(null);
+        onOrgPareUnpaired(orgPair);
+    };
 
-        <section className={styles.container}>
-            <Text size={500}> Pared Organizations </Text>
-        </section>
-    </>
-}
+    const handleUnpairCancelled = () =>
+    {
+        setUnpairDialogOpen(false);
+        setSelectedOrgPair(null);
+    };
+
+    const renderActionsMenu = (orgPair: OrganizationSharingSessionLinkBasicDto) =>
+    {
+        return <>
+            <Menu positioning={{autoSize: true}}>
+                <MenuTrigger disableButtonEnhancement>
+                    <Button icon={<MoreHorizontalRegular/>}
+                            appearance={"subtle"}/>
+                </MenuTrigger>
+                <MenuPopover>
+                    <MenuList>
+                        <MenuItem
+                            icon={<LinkDismissRegular/>}
+                            onClick={() => onUnpair(orgPair)}>
+                            Unpair
+                        </MenuItem>
+                    </MenuList>
+                </MenuPopover>
+            </Menu>
+        </>
+    }
+
+    return (
+        <>
+            {tabErrorMessage && renderTabError()}
+
+            <section className={styles.container}>
+                {(!orgPairs || !orgPairs.length) &&
+                    <Text>
+                        You currently have no organizations you are paired with.
+                    </Text>
+                }
+                {(orgPairs && orgPairs.length > 0) &&
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHeaderCell>Organization Name</TableHeaderCell>
+                                <TableHeaderCell>Request Date</TableHeaderCell>
+                                <TableHeaderCell>Status</TableHeaderCell>
+                                <TableHeaderCell>Action</TableHeaderCell>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {orgPairs && orgPairs.map((orgPair) => (
+                                <TableRow key={orgPair.id}>
+                                    <TableCell>{orgPair.requestingOrganizationName}</TableCell>
+                                    <TableCell>{orgPair.createdDate}</TableCell>
+                                    <TableCell>{orgPair.status}</TableCell>
+                                    <TableCell>
+                                        {renderActionsMenu(orgPair)}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                }
+            </section>
+            <OrganizationUnpairDialog
+                isOpen={unpairDialogOpen}
+                orgPair={selectedOrgPair}
+                onDismiss={handleUnpairCancelled}
+                onUnpaired={handleUnpairConfirmed}
+                setError={setTabErrorMessage}
+                token={token}
+            />
+        </>
+    );
+};
 
 export default ParedOrganizationsTab;

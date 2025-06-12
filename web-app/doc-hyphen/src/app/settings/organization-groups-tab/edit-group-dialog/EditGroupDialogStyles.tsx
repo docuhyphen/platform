@@ -23,4 +23,8 @@ export const useEditGroupDialogStyles = makeStyles({
         paddingTop: "8px"
 
     },
+
+    mainDivider: {
+        width: "300px"
+    }
 });

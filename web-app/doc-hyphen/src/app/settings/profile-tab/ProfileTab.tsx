@@ -24,8 +24,6 @@ const ProfileTab = () =>
 
     useEffect(() =>
     {
-        console.log("ProfileTab mounted");
-        console.log(appUser)
     }, [appUser]);
 
     const notifyLoginChange = async (e, data) =>
@@ -75,10 +73,11 @@ const ProfileTab = () =>
             }
 
             <Divider alignContent={"start"}
-                     appearance={"brand"}>
+                     appearance={"brand"}
+                     className={styles.mainDivider}>
                 Basic Details
                 <Button icon={<ProfileEditBasicDetailsIcon/>}
-                        onClick={ () => setIsBasicDetailsDialogOpen(true)}
+                        onClick={() => setIsBasicDetailsDialogOpen(true)}
                         appearance={"subtle"}/>
             </Divider>
             <div className={styles.dataContainer}>
@@ -88,7 +87,8 @@ const ProfileTab = () =>
             </div>
 
             <Divider alignContent={"start"}
-                     appearance={"brand"}>
+                     appearance={"brand"}
+                     className={styles.mainDivider}>
                 Contact Details
             </Divider>
 
@@ -122,7 +122,8 @@ const ProfileTab = () =>
                 </Text>
             </div>
             <Divider alignContent={"start"}
-                     appearance={"brand"}>
+                     appearance={"brand"}
+                     className={styles.mainDivider}>
                 Security
             </Divider>
             <div>

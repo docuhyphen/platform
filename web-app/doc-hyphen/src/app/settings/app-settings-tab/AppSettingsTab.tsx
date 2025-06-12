@@ -66,7 +66,9 @@ const AppSettingsTab = () =>
                     disabled={isLoading}
                 />
 
-                <Divider appearance="brand" alignContent="start">
+                <Divider appearance="brand"
+                         alignContent="start"
+                className={styles.mainDivider}>
                     Notifications
                 </Divider>
 

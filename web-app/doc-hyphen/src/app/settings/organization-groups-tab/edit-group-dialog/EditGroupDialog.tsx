@@ -214,13 +214,13 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
         setSelectedUsers(newSelectedUsers);
     };
 
-    const onClose = (complete?:boolean) =>
+    const onClose = (complete?: boolean) =>
     {
         setShowingPermissions(false)
         setPermissionManagementAppUser(null)
         setError(null);
 
-        if(complete)
+        if (complete)
         {
             onComplete()
         }
@@ -260,80 +260,86 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                         onClick={() => onManageAppUserPermissions(null)}/>
                 Permissions for <Text weight={"semibold"}>{name}</Text>
             </div>
-            <div>
-                <Divider appearance={"brand"}>Session Permissions</Divider>
-                <Field>
-                    <Checkbox
-                        label="Accept Sessions"
-                        checked={permissions.allowSessionAccept}
-                        onChange={(_, data) => updateUserPermission(appUserId, "allowSessionAccept", !!data.checked)}
-                    />
-                </Field>
-                <Field>
-                    <Checkbox
-                        label="Reject Sessions"
-                        checked={permissions.allowSessionReject}
-                        onChange={(_, data) => updateUserPermission(appUserId, "allowSessionReject", !!data.checked)}
-                    />
-                </Field>
-                <Field>
-                    <Checkbox
-                        label="Edit Sessions"
-                        checked={permissions.allowSessionEdit}
-                        onChange={(_, data) => updateUserPermission(appUserId, "allowSessionEdit", !!data.checked)}
-                    />
-                </Field>
-                <Field>
-                    <Checkbox
-                        label="Delete Sessions"
-                        checked={permissions.allowSessionDelete}
-                        onChange={(_, data) => updateUserPermission(appUserId, "allowSessionDelete", !!data.checked)}
-                    />
-                </Field>
-                <Field>
-                    <Checkbox
-                        label="End Sessions"
-                        checked={permissions.allowSessionEnd}
-                        onChange={(_, data) => updateUserPermission(appUserId, "allowSessionEnd", !!data.checked)}
-                    />
-                </Field>
-                <Divider appearance={"brand"}>Document Permissions</Divider>
-                <Field>
-                    <Checkbox
-                        label="Add Documents"
-                        checked={permissions.allowDocumentAddition}
-                        onChange={(_, data) => updateUserPermission(appUserId, "allowDocumentAddition", !!data.checked)}
-                    />
-                </Field>
-                <Field>
-                    <Checkbox
-                        label="Delete Documents"
-                        checked={permissions.allowDocumentDeletion}
-                        onChange={(_, data) => updateUserPermission(appUserId, "allowDocumentDeletion", !!data.checked)}
-                    />
-                </Field>
-                <Field>
-                    <Checkbox
-                        label="Download Documents"
-                        checked={permissions.allowDocumentDownload}
-                        onChange={(_, data) => updateUserPermission(appUserId, "allowDocumentDownload", !!data.checked)}
-                    />
-                </Field>
-                <Field>
-                    <Checkbox
-                        label="Update Documents"
-                        checked={permissions.allowDocumentUpdate}
-                        onChange={(_, data) => updateUserPermission(appUserId, "allowDocumentUpdate", !!data.checked)}
-                    />
-                </Field>
-                <Field>
-                    <Checkbox
-                        label="Upload Documents"
-                        checked={permissions.allowDocumentUpload}
-                        onChange={(_, data) => updateUserPermission(appUserId, "allowDocumentUpload", !!data.checked)}
-                    />
-                </Field>
-            </div>
+            <Divider appearance={"brand"}
+                     alignContent={"start"}
+                     className={styles.mainDivider}>
+                Session Permissions
+            </Divider>
+            <Field>
+                <Checkbox
+                    label="Accept Sessions"
+                    checked={permissions.allowSessionAccept}
+                    onChange={(_, data) => updateUserPermission(appUserId, "allowSessionAccept", !!data.checked)}
+                />
+            </Field>
+            <Field>
+                <Checkbox
+                    label="Reject Sessions"
+                    checked={permissions.allowSessionReject}
+                    onChange={(_, data) => updateUserPermission(appUserId, "allowSessionReject", !!data.checked)}
+                />
+            </Field>
+            <Field>
+                <Checkbox
+                    label="Edit Sessions"
+                    checked={permissions.allowSessionEdit}
+                    onChange={(_, data) => updateUserPermission(appUserId, "allowSessionEdit", !!data.checked)}
+                />
+            </Field>
+            <Field>
+                <Checkbox
+                    label="Delete Sessions"
+                    checked={permissions.allowSessionDelete}
+                    onChange={(_, data) => updateUserPermission(appUserId, "allowSessionDelete", !!data.checked)}
+                />
+            </Field>
+            <Field>
+                <Checkbox
+                    label="End Sessions"
+                    checked={permissions.allowSessionEnd}
+                    onChange={(_, data) => updateUserPermission(appUserId, "allowSessionEnd", !!data.checked)}
+                />
+            </Field>
+            <Divider appearance={"brand"}
+                     alignContent={"start"}
+                     className={styles.mainDivider}>
+                Document Permissions
+            </Divider>
+            <Field>
+                <Checkbox
+                    label="Add Documents"
+                    checked={permissions.allowDocumentAddition}
+                    onChange={(_, data) => updateUserPermission(appUserId, "allowDocumentAddition", !!data.checked)}
+                />
+            </Field>
+            <Field>
+                <Checkbox
+                    label="Delete Documents"
+                    checked={permissions.allowDocumentDeletion}
+                    onChange={(_, data) => updateUserPermission(appUserId, "allowDocumentDeletion", !!data.checked)}
+                />
+            </Field>
+            <Field>
+                <Checkbox
+                    label="Download Documents"
+                    checked={permissions.allowDocumentDownload}
+                    onChange={(_, data) => updateUserPermission(appUserId, "allowDocumentDownload", !!data.checked)}
+                />
+            </Field>
+            <Field>
+                <Checkbox
+                    label="Update Documents"
+                    checked={permissions.allowDocumentUpdate}
+                    onChange={(_, data) => updateUserPermission(appUserId, "allowDocumentUpdate", !!data.checked)}
+                />
+            </Field>
+            <Field>
+                <Checkbox
+                    label="Upload Documents"
+                    checked={permissions.allowDocumentUpload}
+                    onChange={(_, data) => updateUserPermission(appUserId, "allowDocumentUpload", !!data.checked)}
+                />
+            </Field>
         </section>
     }
 
@@ -410,7 +416,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                                         <Button
                                             onClick={() => setError(null)}
                                             appearance="transparent"
-                                            icon={<DismissRegular />}
+                                            icon={<DismissRegular/>}
                                         />
                                     }
                                 />
@@ -418,12 +424,12 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                         }
 
                         <Field label="Group Name" required>
-                                <Input
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                />
-                            </Field>
+                            <Input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                            />
+                        </Field>
 
                         <Field label="Group Members" required>
                             {loadingUsers ? (

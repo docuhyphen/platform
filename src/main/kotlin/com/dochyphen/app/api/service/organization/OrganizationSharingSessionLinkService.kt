@@ -5,6 +5,7 @@ import com.dochyphen.app.api.exception.OrganizationNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.model.entity.AppUserRole
 import com.dochyphen.app.api.model.entity.LinkStatus
+import com.dochyphen.app.api.model.entity.Organization
 import com.dochyphen.app.api.model.entity.OrganizationSharingSessionLink
 import com.dochyphen.app.api.repository.OrganizationRepository
 import com.dochyphen.app.api.repository.OrganizationSharingSessionLinkRepository
@@ -17,6 +18,7 @@ import jakarta.ws.rs.core.Response
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
+import kotlin.toString
 
 @RequestScoped
 class OrganizationSharingSessionLinkService @Inject constructor(
@@ -28,8 +30,39 @@ class OrganizationSharingSessionLinkService @Inject constructor(
     private val appUserService: OrganizationService,
 )
 {
-    // - getLinksByRequestingOrganization(organizationId: String): List<OrganizationSharingSessionLink>
-    // - getLinksByRequestedOrganization(organizationId: String): List<OrganizationSharingSessionLink>
+    fun getOrganizationsForLinking(): List<Organization>
+    {
+        val appUser = authContext.authToken.appUser
+            ?: throw UnauthorizedException("User must be authenticated")
+
+        if (appUser.role != AppUserRole.ORG_ADMIN)
+        {
+            throw UnauthorizedException("Only organization administrators can view organizations for linking")
+        }
+
+        // Get current user's organization
+        val currentOrganization = organizationRepository.findByAppUserIdAndPersonId(appUser.id, appUser.person?.id!!)
+            ?: throw OrganizationNotFoundException("Current user's organization not found")
+
+        // Get all existing links for the current organization
+        val existingLinks = getLinksByOrganization(currentOrganization.id.toString())
+
+        // Extract organization IDs that are already linked or pending
+        val linkedOrganizationIds = existingLinks?.flatMap { link ->
+            listOfNotNull(
+                link.requestingOrganization?.id,
+                link.requestedOrganization?.id
+            )
+        }?.toSet() ?: emptySet()
+
+        // Get all organizations using the repository method
+        val allOrganizations = organizationRepository.findAll()
+
+        // Filter out current organization and already linked organizations using Kotlin filter
+        return allOrganizations.filter { org ->
+            org.id != currentOrganization.id && !linkedOrganizationIds.contains(org.id)
+        }
+    }
 
     fun createLink(
         requestingOrganizationId: String?,
@@ -203,7 +236,7 @@ class OrganizationSharingSessionLinkService @Inject constructor(
     {
         val appUser = authContext.authToken.appUser
 
-        if(appUser?.role != AppUserRole.ORG_ADMIN)
+        if (appUser?.role != AppUserRole.ORG_ADMIN)
         {
             throw UnauthorizedException("Only organization group admins can see/manage organizations pairs")
         }

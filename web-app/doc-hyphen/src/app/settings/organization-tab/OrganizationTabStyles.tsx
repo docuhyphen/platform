@@ -27,5 +27,9 @@ export const useOrganizationTabStyles = makeStyles({
     dataEditable: {
         display: "flex",
         gap: "8px"
+    },
+
+    mainDivider: {
+        width: "300px"
     }
 });

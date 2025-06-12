@@ -161,7 +161,7 @@ class SignInService @Inject constructor(
                 if (!otpService.verifyEmailOtp(sanitizedOTP, mfaRecord.mfaToken!!))
                 {
                     logger.warn("Sign in completion failed: Invalid OTP for email $sanitizedEmail")
-                    throw InvalidOtpException("Invalid verification")
+                    throw InvalidOtpException("Invalid verification code")
                 }
             }
 

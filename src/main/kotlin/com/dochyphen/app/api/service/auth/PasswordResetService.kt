@@ -103,7 +103,9 @@ class PasswordResetService @Inject constructor(
 
         appUserRepository.update(appUser)
         mfaService.removeMfaRecord(mfaRecord)
-        signOutService.signOut(outOfAllDevices = true)
+
+        //ToDo: sign out of all devices only using app user id
+//        signOutService.signOut(outOfAllDevices = true)
         logger.info("Password reset successfully for email: $email")
     }
 

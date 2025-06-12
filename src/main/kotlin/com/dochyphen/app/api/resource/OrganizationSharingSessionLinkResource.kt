@@ -28,6 +28,48 @@ class OrganizationSharingSessionLinkResource @Inject constructor(
         private val logger = LoggerFactory.getLogger(OrganizationSharingSessionLinkResource::class.java)
     }
 
+    @GET
+    @Path("/linking")
+    fun getOrganizationsForLinking(): Response
+    {
+        ResourceEndpointDelayHelper.delayEndpoint(500, 800)
+
+        return try
+        {
+            val organizations = linkService.getOrganizationsForLinking()
+                .map { org -> BasicEntityToDtoTransformer.toDto(org) }
+                .toTypedArray()
+
+            if (organizations.isNotEmpty())
+            {
+                Response.ok(organizations).build()
+            }
+            else
+            {
+                Response.noContent().build()
+            }
+        }
+        catch (exception: Exception)
+        {
+            logger.error("Error fetching organizations for linking", exception)
+
+            when (exception)
+            {
+                is UnauthorizedException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    Response.status(UNAUTHORIZED).entity(responseError).build()
+                }
+
+                else ->
+                {
+                    val responseError = ResponseError("An error occurred while fetching organizations for linking")
+                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
+        }
+    }
+
     @POST
     fun createLink(
         @QueryParam("requestingOrganizationId") requestingOrganizationId: String?,

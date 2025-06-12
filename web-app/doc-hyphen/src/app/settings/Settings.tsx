@@ -24,10 +24,6 @@ import OrganizationPairingTab from "./organization-pairing-tab/OrganizationPairi
 
 const Settings = () =>
 {
-    const {appUser, appUserPersonOrganization} = useAuth();
-    const styles = useSettingsStyles();
-    const [selectedValue, setSelectedValue] = useState<TabValue>("profile");
-
     const tabIds = {
         profile: "ProfileTab",
         organization: "OrganizationTab",
@@ -37,6 +33,11 @@ const Settings = () =>
         organizationPairing: "OrganizationPairingTab",
         templates: "TemplatesTab"
     }
+
+    const {appUser, appUserPersonOrganization} = useAuth();
+    const styles = useSettingsStyles();
+    const [selectedValue, setSelectedValue] = useState<TabValue>(tabIds.profile);
+
 
     const onTabSelect = (event: SelectTabEvent, data: SelectTabData) =>
     {

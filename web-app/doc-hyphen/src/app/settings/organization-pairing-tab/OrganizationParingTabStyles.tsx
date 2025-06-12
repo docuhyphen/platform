@@ -9,7 +9,7 @@ export const useOrganizationParingTabStyles = makeStyles({
     header: {
         display: "flex",
         marginBottom: "16px",
-        justifyContent: "space-between",
+        justifyContent: "end",
     },
     container: {
         display: "flex",
