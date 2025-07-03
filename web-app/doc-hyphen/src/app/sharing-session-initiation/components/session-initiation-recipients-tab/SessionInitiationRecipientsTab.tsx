@@ -12,7 +12,7 @@ export enum SharingSessionInitiationRecipientMode
 {
     MY_ORG = "MY_ORG",
     EXTERNAL_ORG = "EXTERNAL_ORG",
-    USE_EMAIL = "USE_EMAIL"
+    EMAIL = "EMAIL"
 }
 
 interface SessionRecipientsTabProps
@@ -46,7 +46,7 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
         props.setRecipientOrgUser(undefined);
         props.setRecipientOrgGroup(undefined);
 
-        if (data.value !== SharingSessionInitiationRecipientMode.USE_EMAIL)
+        if (data.value !== SharingSessionInitiationRecipientMode.EMAIL)
         {
             props.setNewRecipient({
                 email: '',
@@ -65,7 +65,7 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
             if (props.recipientMode)
             {
                 console.log("Setting recipient mode to USE_EMAIL due to undefined appUserPersonOrganization");
-                props.setRecipientMode(SharingSessionInitiationRecipientMode.USE_EMAIL);
+                props.setRecipientMode(SharingSessionInitiationRecipientMode.EMAIL);
             }
         }
 
@@ -82,7 +82,7 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
                         <Radio value={SharingSessionInitiationRecipientMode.EXTERNAL_ORG}
                                label="External Organization"/>
                         <Radio value={SharingSessionInitiationRecipientMode.MY_ORG} label="My Organization"/>
-                        <Radio value={SharingSessionInitiationRecipientMode.USE_EMAIL} label="Use Email"/>
+                        <Radio value={SharingSessionInitiationRecipientMode.EMAIL} label="Use Email"/>
                     </RadioGroup>
                 </Field>
             </>
@@ -111,7 +111,7 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
                 />
             )}
 
-            {props.recipientMode === SharingSessionInitiationRecipientMode.USE_EMAIL && (
+            {props.recipientMode === SharingSessionInitiationRecipientMode.EMAIL && (
                 <NewRecipient
                     isRequestingDocuments={props.isRequestingDocuments}
                     setNewRecipient={props.setNewRecipient}

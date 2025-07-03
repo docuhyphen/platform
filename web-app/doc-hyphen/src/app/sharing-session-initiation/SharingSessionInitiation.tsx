@@ -7,7 +7,7 @@ import {
     DialogContent,
     DialogSurface,
     DialogTitle,
-    DialogTrigger,
+    DialogTrigger, Link,
     MessageBar,
     MessageBarActions,
     MessageBarBody,
@@ -15,7 +15,7 @@ import {
     Text,
     Toast,
     Toaster,
-    ToastTitle,
+    ToastTitle, ToastTrigger,
     useId,
     useToastController,
 } from "@fluentui/react-components";
@@ -37,11 +37,10 @@ import SessionInitiationRecipientsTab, {
 } from "./components/session-initiation-recipients-tab/SessionInitiationRecipientsTab.tsx";
 import {publishNewSharingSessionAddition} from '../observable/sharingSessionObservables.ts';
 import {useSharingSessionInitiationStyles} from "./SharingSessionInitiationStyles.tsx";
-import {AppUserDetailedDto, OrganizationBasicDto, SharingSessionRequestDocumentRequest} from "../models/models.tsx";
-import {OrganizationGroupBasicDto} from "../../services/organizationApi.ts";
 import {
-    SharingSessionNewMainRecipient
-} from "./components/session-initiation-recipients-tab/new-recipient/NewRecipient.tsx";
+    SharingSessionInitiationRequest,
+    SharingSessionRequestDocumentRequest
+} from "../models/models.tsx";
 
 const SharingSessionInitiation: React.FC = () =>
 {
@@ -79,7 +78,13 @@ const SharingSessionInitiation: React.FC = () =>
     {
         dispatchToast(
             <Toast>
-                <ToastTitle> {message}</ToastTitle>
+                <ToastTitle action={
+                    <ToastTrigger>
+                        <Link>Dismiss</Link>
+                    </ToastTrigger>
+                }>
+                    {message}
+                </ToastTitle>
             </Toast>, {intent: 'error', timeout: 15000},
         );
     };
@@ -108,14 +113,14 @@ const SharingSessionInitiation: React.FC = () =>
                 }
                 break;
             case SharingSessionInitiationRecipientMode.MY_ORG:
-                if (!recipientOrgUser)
+                if (!recipientOrgUser && !recipientOrgGroup)
                 {
-                    setMessageGroupMessages(['A valid recipient user in your organization is required']);
+                    setMessageGroupMessages(['A valid recipient user or group in your organization is required']);
                     setSelectedTab('recipients-tab');
                     return false;
                 }
                 break;
-            case SharingSessionInitiationRecipientMode.USE_EMAIL:
+            case SharingSessionInitiationRecipientMode.EMAIL:
                 if (!newRecipient || !newRecipient.email)
                 {
                     setMessageGroupMessages(['A valid recipient email is required']);
@@ -135,11 +140,13 @@ const SharingSessionInitiation: React.FC = () =>
 
     const onInitiateSession = async () =>
     {
+
         if (initiatingSession)
         {
             return;
         }
 
+        setMessageGroupMessages([]);
         setInitiatingSession(true);
 
         try
@@ -184,10 +191,26 @@ const SharingSessionInitiation: React.FC = () =>
                 return;
             }
 
+            let recipientType = "EMAIL";
+
+            if( recipientOrgGroup)
+            {
+                recipientType = "GROUP"
+            }
+            else if (recipientOrgUser)
+            {
+                recipientType = "APP_USER"
+
+            }
+
             const sharingSession = {
                 sessionName,
                 description,
+                recipientOrgGroupId: recipientOrgGroup?.id,
+                recipientAppUserId: recipientOrgUser?.id,
                 recipientEmail: newRecipient?.email,
+                recipientFirstName: newRecipient?.firstName,
+                recipientLastName: newRecipient?.lastName,
                 initialShareMessage,
                 sessionDocuments: documents.map((doc: SharingSessionRequestDocumentRequest, _: number) => ({
                     ...doc,
@@ -198,8 +221,9 @@ const SharingSessionInitiation: React.FC = () =>
                 allowDocumentDeletion: allowDocumentDeletions,
                 allowDocumentDownload: allowDocumentDownload,
                 allowDocumentUpdate: allowDocumentUpdate,
-                allowDocumentUpload: allowDocumentUpload
-            };
+                allowDocumentUpload: allowDocumentUpload,
+                recipientType
+            } as SharingSessionInitiationRequest;
 
             const createdSharingSession = await initiateSharingSession(sharingSession);
 

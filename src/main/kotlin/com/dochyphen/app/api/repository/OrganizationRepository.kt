@@ -51,4 +51,28 @@ class OrganizationRepository : BaseRepository<Organization>(Organization::class.
 //        return query.resultList.firstOrNull()
 //            ?: throw IllegalArgumentException("Organization not found for appUserId: $appUserId and appId: $appId")
     }
+
+    fun getLinkedOrganizations(id: UUID, includePublic: Boolean = false): List<Organization>
+    {
+        val query = entityManager.createQuery(
+            """
+        SELECT DISTINCT o FROM Organization o
+        WHERE
+            o.id <> :orgId AND (
+                o.id IN (
+                    SELECT l.requestedOrganization.id FROM OrganizationSharingSessionLink l
+                    WHERE l.requestingOrganization.id = :orgId AND l.status = 'ACCEPTED'
+                    UNION
+                    SELECT l.requestingOrganization.id FROM OrganizationSharingSessionLink l
+                    WHERE l.requestedOrganization.id = :orgId AND l.status = 'ACCEPTED'
+                )
+                OR o.settings.allowShareWithoutPairing = :includePublic
+            )
+        """.trimIndent(),
+            Organization::class.java
+        )
+        query.setParameter("orgId", id)
+        query.setParameter("includePublic", includePublic)
+        return query.resultList
+    }
 }

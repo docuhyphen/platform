@@ -160,10 +160,14 @@ data class UpdateOrganizationAppUserRequest(
 )
 
 @Serializable
-data class SharingSessionInitiationRequest(
+data class SharingSessionInitiationDto(
     var initialShareMessage: String? = null,
     var description: String? = null,
+    var recipientOrgGroupId: String? = null,
+    var recipientAppUserId: String? = null,
     var recipientEmail: String? = null,
+    var recipientFirstName: String? = null,
+    var recipientLastName: String? = null,
     var sessionName: String? = null,
     var sessionDocuments: List<SharingSessionRequestDocumentRequest>? = null,
     var requestRecipientSignIn: Boolean = false,
@@ -174,7 +178,8 @@ data class SharingSessionInitiationRequest(
     var allowDocumentUpload: Boolean = false,
     var participants: List<SharingSessionParticipantRequest>? = null,
     var status: SharingSessionStatus? = null,
-    var rejectionReason: String? = null
+    var rejectionReason: String? = null,
+    var recipientType: SharingSessionRecipientType? = null
     //ToDo: add accepted by, rejected by, ended by
 )
 

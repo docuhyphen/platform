@@ -5,9 +5,8 @@ import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.model.entity.AppUser
 import com.dochyphen.app.api.model.entity.AppUserRole.ORG_ADMIN
 import com.dochyphen.app.api.model.entity.Organization
+import com.dochyphen.app.api.model.entity.OrganizationGroup
 import com.dochyphen.app.api.repository.OrganizationRepository
-import com.dochyphen.app.api.service.AppUserService
-import com.dochyphen.app.api.service.auth.AuthenticationService
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -17,8 +16,6 @@ import java.util.*
 @RequestScoped
 class OrganizationService @Inject constructor(
     private val organizationGroupService: OrganizationGroupService,
-    private val authenticationService: AuthenticationService,
-    private val appUserService: AppUserService,
     private val authTokenContext: AuthTokenContext,
     private val organizationRepository: OrganizationRepository,
 )
@@ -78,6 +75,38 @@ class OrganizationService @Inject constructor(
     fun update(organization: Organization)
     {
         organizationRepository.update(organization)
+    }
+
+    fun getLinkedOrganizations(includePublic: Boolean): List<Organization>
+    {
+        val currentAppUser = authTokenContext.authToken.appUser
+        val currentAppUserPerson = authTokenContext.authToken.appUser?.person!!
+
+        val currentAppUserOrg = organizationRepository.findByAppUserIdAndPersonId(
+            currentAppUser?.id!!,
+            currentAppUserPerson.id
+        )
+
+        return organizationRepository.getLinkedOrganizations(currentAppUserOrg?.id!!, includePublic)
+    }
+
+    fun getLinkedOrganizationsAppUsers(organizationId: String?): List<AppUser>
+    {
+        val currentAppUser = authTokenContext.authToken.appUser
+
+        return getAppUsers(organizationId)
+    }
+
+    fun getLinkedOrganizationsGroups(organizationId: String?): List<OrganizationGroup>
+    {
+        if (organizationId.isNullOrBlank())
+        {
+            throw OrganizationNotFoundException("organization is required")
+        }
+
+        val currentAppUser = authTokenContext.authToken.appUser
+
+        return organizationGroupService.getOrganizationGroups(organizationId)
     }
 }
 

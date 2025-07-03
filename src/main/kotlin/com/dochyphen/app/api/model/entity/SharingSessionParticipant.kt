@@ -25,6 +25,7 @@ class SharingSessionParticipant {
     @JoinColumn(name = "app_user_id", nullable = true)
     var appUser: AppUser? = null
 
+    //This is meant for adding participants from both organizations as groups
     @ManyToOne
     @JoinColumn(name = "organization_group_id", nullable = true)
     var organizationGroup: OrganizationGroup? = null

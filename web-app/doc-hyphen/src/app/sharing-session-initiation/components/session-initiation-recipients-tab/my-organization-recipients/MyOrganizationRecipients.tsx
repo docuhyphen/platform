@@ -48,7 +48,7 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
     const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
     const [isLoadingGroups, setIsLoadingGroups] = useState<boolean>(false);
     const [myOrgUsers, setMyOrgUsers] = useState<AppUserDetailedDto[]>([]);
-    const [myOrgGroups, setMyOrgGroups] = useState<OrganizationGroupBasicDto[]>([]);
+    const [myOrgGroups, setMyOrgGroups] = useState<any[]>([]);
     const [selectedOrgUser, setSelectedOrgUser] = useState<AppUserDetailedDto | null>(null);
     const [selectedOrgGroup, setSelectedOrgGroup] = useState<OrganizationGroupBasicDto | null>(null);
     const [selectedInternalRecipients, setSelectedInternalParticipants] = useState<AppUserDetailedDto[]>([]);
@@ -178,13 +178,19 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
 
     const filteredGroups = myOrgGroups
         .filter(group => !groupSearchQuery || group.name.toLowerCase().includes(groupSearchQuery.toLowerCase()))
-        .map(group => (
-            <Option key={group.id}
-                    text={group.name}
-                    value={group.id || ''}>
-                {`${group.name} (${group.memberCount} members)`}
-            </Option>
-        ));
+        .map(group =>
+        {
+            const orgGroupCount = group.members.length
+            const orgGroupCountText = orgGroupCount > 1 ? "s" : ""
+
+            return (
+                <Option key={group.id}
+                        text={group.name}
+                        value={group.id || ''}>
+                    {`${group.name} (${orgGroupCount} member${orgGroupCountText})`}
+                </Option>
+            )
+        });
 
     const onShareWithChange = (_: React.FormEvent<HTMLDivElement>, data: { value: string }) =>
     {

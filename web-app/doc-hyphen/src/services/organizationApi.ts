@@ -61,7 +61,7 @@ export interface OrganizationGroupBasicDto
     name: string;
     description?: string;
     organizationId: string;
-    memberCount: number;
+    members: any;
 }
 
 export const fetchOrganizationGroups = async (organizationId: string, token?: string) =>
@@ -275,7 +275,37 @@ export const fetchPairedOrganizations = async (token?: string): Promise<Organiza
 {
     try
     {
-        const response = await apiClient.get('/organizations', {
+        const response = await apiClient.get('/organizations/linked', {
+            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+        });
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+export const fetchPairedOrganizationUsers = async (orgId?: string, token?: string): Promise<any[]> =>
+{
+    try
+    {
+        const response = await apiClient.get(`/organizations/linked/${orgId}/app-users`, {
+            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+        });
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+export const fetchPairedOrganizationGroups  = async (orgId?: string, token?: string): Promise<Organization[]> =>
+{
+    try
+    {
+        const response = await apiClient.get(`/organizations/linked/${orgId}/groups`, {
             headers: token ? {Authorization: `Bearer ${token}`} : undefined
         });
         return response.data;

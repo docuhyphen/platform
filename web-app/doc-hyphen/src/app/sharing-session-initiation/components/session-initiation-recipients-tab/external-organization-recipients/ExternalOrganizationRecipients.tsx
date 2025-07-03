@@ -12,9 +12,10 @@ import {
 } from "@fluentui/react-components";
 import {AppUserDetailedDto, OrganizationBasicDto} from "../../../../models/models.tsx";
 import {
-    fetchOrganizationGroups,
     fetchOrganizationUsers,
+    fetchPairedOrganizationGroups,
     fetchPairedOrganizations,
+    fetchPairedOrganizationUsers,
     OrganizationGroupBasicDto
 } from "../../../../../services/organizationApi";
 import MyOrgRecipients from "../MyOrgRecipients.tsx";
@@ -50,7 +51,7 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
         setInternalParticipants
     }) =>
 {
-    const {appUser} = useAuth()
+    const {appUser, appUserPersonOrganization, token} = useAuth()
     const [isLoadingOrgs, setIsLoadingOrgs] = useState<boolean>(false);
     const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
     const [isLoadingGroups, setIsLoadingGroups] = useState<boolean>(false);
@@ -65,6 +66,7 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
     const [pairedOrgs, setPairedOrgs] = useState<OrganizationBasicDto[]>([]);
     const [orgUsers, setOrgUsers] = useState<AppUserDetailedDto[]>([]);
     const [orgGroups, setOrgGroups] = useState<OrganizationGroupBasicDto[]>([]);
+    const [myOrgUsers, setMyOrgUsers] = useState<AppUserDetailedDto[]>([]);
 
     const filteredPairedOrgs = pairedOrgs
         .filter(org => !orgSearchQuery || org.name.toLowerCase().includes(orgSearchQuery.toLowerCase()))
@@ -139,7 +141,6 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
 
         if (recipientOrgUser)
         {
-
             if (recipientOrgUser.id !== appUser?.id)
             {
                 setSelectedOrgUser(recipientOrgUser as unknown as AppUserDetailedDto);
@@ -171,6 +172,7 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
     useEffect(() =>
     {
         loadPairedOrganizations();
+        loadMyOrgAppUsers()
     }, []);
 
     useEffect(() =>
@@ -206,13 +208,32 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
         }
     };
 
+    const loadMyOrgAppUsers = async () =>
+    {
+        setIsLoadingOrgs(true);
+
+        try
+        {
+            const orgs = await fetchOrganizationUsers(appUserPersonOrganization.id, token);
+            setMyOrgUsers(orgs);
+        }
+        catch (error)
+        {
+            console.error("Error loading paired organizations:", error);
+        }
+        finally
+        {
+            setIsLoadingOrgs(false);
+        }
+    };
+
     const loadOrganizationUsers = async (orgId: string) =>
     {
         setIsLoadingUsers(true);
 
         try
         {
-            const users = await fetchOrganizationUsers(orgId);
+            const users = await fetchPairedOrganizationUsers(orgId);
             setOrgUsers(users);
         }
         catch (error)
@@ -231,7 +252,7 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
 
         try
         {
-            const groups = await fetchOrganizationGroups(orgId);
+            const groups = await fetchPairedOrganizationGroups(orgId);
             setOrgGroups(groups);
         }
         catch (error)
@@ -282,8 +303,8 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
 
         if (org)
         {
-            setSelectedOrg(org || null);
-            setOrgSearchQuery(org ? org.name : "");
+            setSelectedOrg(org);
+            setOrgSearchQuery(org.name);
 
             setRecipientOrg(org);
             setRecipientOrgUser(undefined);
@@ -355,7 +376,7 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
 
     const getFilteredOrgUsers = () =>
     {
-        let usersToFilter = [...orgUsers];
+        let usersToFilter = [...myOrgUsers];
 
         usersToFilter = usersToFilter.filter(user => user.id !== appUser?.id);
 
@@ -371,7 +392,7 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
     {
         return <>
             <Field label={
-                <InfoLabel info="Only organizations you have paired with will be shown">
+                <InfoLabel info="Only organizations that are public or you have paired with will be shown here">
                     Organization
                 </InfoLabel>}>
                 <Combobox

@@ -13,7 +13,6 @@ import java.util.*
 @Serializable
 class SharingSession
 {
-
     @Id
     @Serializable(with = UUIDSerializer::class)
     var id: UUID = UUID.randomUUID()
@@ -50,9 +49,17 @@ class SharingSession
     @JoinColumn(name = "initiator_id", unique = false)
     var initiator: AppUser? = null
 
+    @Column(name = "recipient_type", nullable = false)
+    @Enumerated(EnumType.STRING)
+    var recipientType:  SharingSessionRecipientType =  SharingSessionRecipientType.EMAIL
+
     @ManyToOne(cascade = [CascadeType.PERSIST], fetch = FetchType.EAGER)
     @JoinColumn(name = "recipient_id", unique = false)
     var recipient: AppUser? = null
+
+    @ManyToOne(cascade = [CascadeType.PERSIST], fetch = FetchType.EAGER)
+    @JoinColumn(name = "group_id", unique = false)
+    var recipientGroup: OrganizationGroup? = null
 
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)

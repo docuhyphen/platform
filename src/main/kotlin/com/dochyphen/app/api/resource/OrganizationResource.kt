@@ -2,12 +2,14 @@ package com.dochyphen.app.api.resource
 
 import com.dochyphen.app.api.exception.DataIntegrityException
 import com.dochyphen.app.api.exception.OrganizationNotFoundException
+import com.dochyphen.app.api.model.BasicEntityToDtoTransformer
 import com.dochyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.dochyphen.app.api.model.dto.OrganizationSettingsDto
 import com.dochyphen.app.api.resource.model.ResponseError
 import com.dochyphen.app.api.resource.model.UpdateOrganizationRequest
 import com.dochyphen.app.api.service.SettingsService
 import com.dochyphen.app.api.service.organization.OrganizationService
+import com.dochyphen.app.api.service.organization.OrganizationSharingSessionLinkService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -22,7 +24,8 @@ import org.slf4j.LoggerFactory
 @Consumes(APPLICATION_JSON)
 class OrganizationResource @Inject constructor(
     private val organizationService: OrganizationService,
-    private val settingsService: SettingsService
+    private val settingsService: SettingsService,
+    private val organizationSharingSessionLinkService: OrganizationSharingSessionLinkService
 )
 {
     companion object
@@ -130,6 +133,94 @@ class OrganizationResource @Inject constructor(
                     val responseError = ResponseError("Server error while updating organization settings")
                     Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
+            }
+        }
+    }
+
+    @GET
+    @Path("/linked/")
+    fun getPairedOrganization(): Response
+    {
+        return try
+        {
+            val orgs = organizationService.getLinkedOrganizations(true).map {
+                BasicEntityToDtoTransformer.toDto(it)
+            }.toTypedArray()
+
+            Response.ok(orgs).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is OrganizationNotFoundException ->
+                    Response.status(NOT_FOUND).build()
+
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).build()
+
+                else ->
+                    Response.status(INTERNAL_SERVER_ERROR).build()
+            }
+        }
+    }
+
+    @GET
+    @Path("/linked/{organizationId}/app-users")
+    fun getPairedOrganizationAppUsers(
+        @PathParam("organizationId") organizationId: String?
+    ): Response
+    {
+        return try
+        {
+            val appUsers = organizationService.getLinkedOrganizationsAppUsers(organizationId).map {
+                BasicEntityToDtoTransformer.toLinkedOrgAppUser(it)
+            }.toTypedArray()
+
+            Response.ok(appUsers).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is OrganizationNotFoundException ->
+                    Response.status(NOT_FOUND).build()
+
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).build()
+
+                else ->
+                    Response.status(INTERNAL_SERVER_ERROR).build()
+            }
+        }
+    }
+
+    @GET
+    @Path("/linked/{organizationId}/groups")
+    fun getPairedOrganizationGroups(
+        @PathParam("organizationId") organizationId: String?
+    ): Response
+    {
+        return try
+        {
+            val groups = organizationService.getLinkedOrganizationsGroups(organizationId).map {
+                BasicEntityToDtoTransformer.toLinkedOrgGroup(it)
+            }.toTypedArray()
+
+            Response.ok(groups).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is OrganizationNotFoundException ->
+                    Response.status(NOT_FOUND).build()
+
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).build()
+
+                else ->
+                    Response.status(INTERNAL_SERVER_ERROR).build()
             }
         }
     }

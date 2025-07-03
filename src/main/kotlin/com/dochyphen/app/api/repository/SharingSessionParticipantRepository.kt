@@ -9,7 +9,6 @@ import java.util.*
 class SharingSessionParticipantRepository :
     BaseRepository<SharingSessionParticipant>(SharingSessionParticipant::class.java)
 {
-
     fun countByOrganizationGroupId(groupId: UUID): Long
     {
         val query = entityManager.createQuery(

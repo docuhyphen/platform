@@ -14,6 +14,11 @@ const SessionListItem: React.FC<SessionListItemProps> = ({session, isSelected}) 
 {
     const styles = useSharingSessionStyles();
 
+    const getRecipientEmailOrGroupName = (session: SharingSessionBasicDto) =>
+    {
+
+    }
+
     const listItemCard = () =>
     {
         return <div className={styles.listCard}>
@@ -23,9 +28,9 @@ const SessionListItem: React.FC<SessionListItemProps> = ({session, isSelected}) 
                 </span>
                 <span className={styles.listCardItemDetails}>
                     <div className={`${styles.caption1} ${styles.truncatedText}`}>
-                        {session.recipientEmail.length > 80
-                            ? `${session.recipientEmail.substring(0, 80)}...`
-                            : session.recipientEmail}
+                        {/*{session.recipientEmail.length > 80*/}
+                        {/*    ? `${session.recipientEmail.substring(0, 80)}...`*/}
+                        {/*    : session.recipientEmail}*/}
                     </div>
                     <div className={styles.listCardItemRow}>
                         <Text size={300}

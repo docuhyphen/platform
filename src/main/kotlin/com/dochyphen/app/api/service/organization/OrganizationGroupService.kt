@@ -5,6 +5,7 @@ import com.dochyphen.app.api.exception.OrganizationNotFoundException
 import com.dochyphen.app.api.interceptor.AuthTokenContext
 import com.dochyphen.app.api.model.entity.*
 import com.dochyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
+import com.dochyphen.app.api.repository.OrganizationGroupRepository
 import com.dochyphen.app.api.repository.OrganizationRepository
 import com.dochyphen.app.api.repository.SharingSessionParticipantRepository
 import com.dochyphen.app.api.service.AppUserService
@@ -19,6 +20,7 @@ import java.util.*
 @RequestScoped
 class OrganizationGroupService @Inject constructor(
     private val organizationRepository: OrganizationRepository,
+    private val orgGroupRepo: OrganizationGroupRepository,
     private val sharingSessionParticipantRepository: SharingSessionParticipantRepository,
     private val authTokenContext: AuthTokenContext,
     private val appUserService: AppUserService
@@ -30,6 +32,13 @@ class OrganizationGroupService @Inject constructor(
     companion object
     {
         private val logger = LoggerFactory.getLogger(OrganizationGroupService::class.java)
+    }
+
+    fun getById(groupId: String?): OrganizationGroup?
+    {
+        return groupId ?.let {
+            orgGroupRepo.findById(UUID.fromString(groupId))
+        } ?: throw java.lang.IllegalArgumentException("Group id required")
     }
 
     fun getOrganizationByAppUserIdAndPersonId(appUserId: UUID, personId: UUID): Organization

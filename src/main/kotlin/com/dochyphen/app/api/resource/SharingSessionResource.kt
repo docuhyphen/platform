@@ -8,7 +8,7 @@ import com.dochyphen.app.api.model.BasicEntityToDtoTransformer.Companion.toDto
 import com.dochyphen.app.api.model.dto.SharingSessionBasicDto
 import com.dochyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.dochyphen.app.api.resource.model.ResponseError
-import com.dochyphen.app.api.resource.model.SharingSessionInitiationRequest
+import com.dochyphen.app.api.resource.model.SharingSessionInitiationDto
 import com.dochyphen.app.api.resource.model.UpdateSharingSessionRequest
 import com.dochyphen.app.api.service.sharingsession.*
 import jakarta.inject.Inject
@@ -36,28 +36,13 @@ class SharingSessionResource @Inject constructor(
     }
 
     @POST
-    fun initiateSharingSession(sharingSessionInitiationRequest: SharingSessionInitiationRequest): Response
+    fun initiateSharingSession(sharingSessionInitiationDto: SharingSessionInitiationDto): Response
     {
         ResourceEndpointDelayHelper.delayEndpoint(500, 1500)
 
         return try
         {
-            val sharingSession = with(sharingSessionInitiationRequest) {
-                sharingSessionInitiationService.initiateSharingSession(
-                    initialShareMessage,
-                    description,
-                    recipientEmail,
-                    sessionName,
-                    sessionDocuments,
-                    requestRecipientSignIn,
-                    allowDocumentAddition,
-                    allowDocumentDeletion,
-                    allowDocumentDownload,
-                    allowDocumentUpdate,
-                    allowDocumentUpload,
-                    participants
-                )
-            }
+            val sharingSession = sharingSessionInitiationService.initiateSharingSession(sharingSessionInitiationDto)
 
             Response.ok(toDto(sharingSession)).build()
         }

@@ -147,5 +147,59 @@ class BasicEntityToDtoTransformer
                 }
             }
         }
+
+        fun toLinkedOrgGroup(orgGroup: OrganizationGroup): LinkedOrgGroupDto
+        {
+            return with(orgGroup) {
+
+                LinkedOrgGroupDto(
+                    orgGroup.id,
+                    orgGroup.name,
+                    orgGroup.members.map { toLinkedOrgAppUser(it.appUser) }
+                )
+            }
+        }
+
+        fun toLinkedOrgAppUser(appUser: AppUser?): LinkedOrgAppUserDto?
+        {
+            return appUser?.let {
+
+                with(appUser) {
+                    LinkedOrgAppUserDto(
+                        id,
+                        email,
+                        toLinkedOrgAppUserPerson(person)
+                    )
+                }
+            }
+        }
+
+        fun toLinkOrgAppUser(orgGroupMember: OrganizationGroupMember): LinkedOrgAppUserDto?
+        {
+            return orgGroupMember.appUser?.let {
+                with(it) {
+                    LinkedOrgAppUserDto(
+                        id,
+                        email,
+                        toLinkedOrgAppUserPerson(person)
+                    )
+                }
+            }
+        }
+
+        fun toLinkedOrgAppUserPerson(person: Person?): LinkedOrgAppUserPersonDto?
+        {
+            return person?.let {
+
+                with(it) {
+
+                    LinkedOrgAppUserPersonDto(
+                        id,
+                        firstName!!,
+                        lastName!!
+                    )
+                }
+            }
+        }
     }
 }

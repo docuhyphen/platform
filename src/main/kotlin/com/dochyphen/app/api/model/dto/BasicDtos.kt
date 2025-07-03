@@ -128,3 +128,27 @@ data class DocumentBasicDto(
     val restrictedType: String?,
     val hash: String?,
 )
+
+@Serializable
+data class LinkedOrgGroupDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID?,
+    val name: String?,
+    val members: List<LinkedOrgAppUserDto?>
+)
+
+@Serializable
+data class LinkedOrgAppUserDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID,
+    val email: String,
+    val person: LinkedOrgAppUserPersonDto?,
+)
+
+@Serializable
+data class LinkedOrgAppUserPersonDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID,
+    val firstName: String,
+    val lastName: String,
+)
