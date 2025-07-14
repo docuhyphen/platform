@@ -73,13 +73,29 @@ class SharingSessionInitiationService @Inject constructor(
                 throw IllegalArgumentException("Unsupported recipient type")
         }
 
-        val participants = sessionInitiationDto.participants?.map {
+        val participants = sessionInitiationDto.participants.map { p ->
+
+            var participantAppUser: AppUser? = null
+            var participantGroup: OrganizationGroup? = null
+            var participantType = SharingSessionParticipantType.APP_USER
+
+            if (p.participantType == SharingSessionParticipantType.GROUP)
+            {
+                participantType = SharingSessionParticipantType.APP_USER
+                participantGroup = orgGroupService.getById(p.id)
+            }
+            else
+            {
+                participantAppUser = appUserService.getById(UUID.fromString(p.id))
+            }
 
             SharingSessionParticipant().apply {
-                this.appUser = appUser
+                this.appUser = participantAppUser
+                this.organizationGroup = participantGroup
                 this.addedDate = Timestamp.from(Instant.now())
+                this.participantType = participantType
             }
-        }?.toMutableList() ?: mutableListOf()
+        }.toMutableList()
 
         entityManager.detach(initiator)
         entityManager.detach(recipient)
@@ -121,6 +137,12 @@ class SharingSessionInitiationService @Inject constructor(
             sharingSession.documents.add(document)
         }
 
+
+        participants.forEach {
+            it.sharingSession = sharingSession
+            entityManager.detach(it)
+        }
+
         val savedSharingSession = sharingSessionRepository.save(sharingSession)
 
         logger.info("Sharing session initiated ID: ${sharingSession.id}")
@@ -132,7 +154,7 @@ class SharingSessionInitiationService @Inject constructor(
         sessionInitiationDto: SharingSessionInitiationDto
     )
     {
-        if(sessionInitiationDto.sessionName.isNullOrBlank())
+        if (sessionInitiationDto.sessionName.isNullOrBlank())
         {
             throw IllegalArgumentException("Session name is required")
         }
@@ -183,10 +205,10 @@ class SharingSessionInitiationService @Inject constructor(
             throw IllegalArgumentException("Session documents cannot be empty")
         }
 
-        sessionInitiationDto.participants?.map {
+        sessionInitiationDto.participants.map {
 
-            appUserService.getById(UUID.fromString(it.id))
-                ?: throw AppUserNotFoundException("One of the participants not found")
+//            appUserService.getById(UUID.fromString(it.id))
+//                ?: throw AppUserNotFoundException("One of the participants not found")
         }
     }
 

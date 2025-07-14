@@ -36,7 +36,7 @@ class SharingSessionParticipant {
 
     @ManyToOne
     @JoinColumn(name = "sharing_session_id", nullable = false)
-    lateinit var sharingSession: SharingSession
+    var sharingSession: SharingSession? = null
 
     constructor()
 }

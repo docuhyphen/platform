@@ -109,7 +109,7 @@ class SharingSessionRetrievalService @Inject constructor(
         sortDirection: String
     ): SearchResult
     {
-        ResourceEndpointDelayHelper.delayEndpoint(1000, 3000)
+        ResourceEndpointDelayHelper.delayEndpoint(1000, 2000)
 
         val appUserId =
             authTokenContext.authToken.appUser?.id ?: throw IllegalArgumentException("User not authenticated")

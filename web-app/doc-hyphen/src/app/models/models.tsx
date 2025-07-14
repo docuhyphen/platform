@@ -14,6 +14,12 @@ export enum SharingSessionParticipantRole
     DOWNLOADER = "DOWNLOADER"
 }
 
+export enum SharingSessionParticipantType
+{
+    GROUP = "GROUP",
+    APP_USER = "APP_USER"
+}
+
 export interface ResponseError
 {
     errorMessage?: string;

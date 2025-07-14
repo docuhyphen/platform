@@ -176,7 +176,7 @@ data class SharingSessionInitiationDto(
     var allowDocumentDownload: Boolean = false,
     var allowDocumentUpdate: Boolean = false,
     var allowDocumentUpload: Boolean = false,
-    var participants: List<SharingSessionParticipantRequest>? = null,
+    var participants: List<SharingSessionParticipantRequest> = listOf(),
     var status: SharingSessionStatus? = null,
     var rejectionReason: String? = null,
     var recipientType: SharingSessionRecipientType? = null
@@ -232,6 +232,7 @@ class SharingSessionRequestDocumentRequest
 class SharingSessionParticipantRequest
 {
     var id: String = ""
+    var participantType: SharingSessionParticipantType = SharingSessionParticipantType.APP_USER
 }
 
 @Serializable

@@ -38,7 +38,7 @@ import SessionInitiationRecipientsTab, {
 import {publishNewSharingSessionAddition} from '../observable/sharingSessionObservables.ts';
 import {useSharingSessionInitiationStyles} from "./SharingSessionInitiationStyles.tsx";
 import {
-    SharingSessionInitiationRequest,
+    SharingSessionInitiationRequest, SharingSessionParticipantRole, SharingSessionParticipantType,
     SharingSessionRequestDocumentRequest
 } from "../models/models.tsx";
 
@@ -193,7 +193,7 @@ const SharingSessionInitiation: React.FC = () =>
 
             let recipientType = "EMAIL";
 
-            if( recipientOrgGroup)
+            if (recipientOrgGroup)
             {
                 recipientType = "GROUP"
             }
@@ -222,7 +222,10 @@ const SharingSessionInitiation: React.FC = () =>
                 allowDocumentDownload: allowDocumentDownload,
                 allowDocumentUpdate: allowDocumentUpdate,
                 allowDocumentUpload: allowDocumentUpload,
-                recipientType
+                recipientType,
+                participants: internalParticipants?.map(p => {
+                    return {id: p.id, participantType: SharingSessionParticipantType.APP_USER}
+                })
             } as SharingSessionInitiationRequest;
 
             const createdSharingSession = await initiateSharingSession(sharingSession);
