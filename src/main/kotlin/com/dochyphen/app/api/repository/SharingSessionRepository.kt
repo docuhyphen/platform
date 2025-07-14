@@ -46,8 +46,24 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
             "SELECT s FROM SharingSession s WHERE s.recipient.id = :recipientId",
             SharingSession::class.java
         )
+
         query.setParameter("recipientId", recipient)
         return query.resultList
+    }
+
+    fun findByParticipatingAppUser(appUserId: UUID): List<SharingSession>
+    {
+        val query = """
+            SELECT DISTINCT ss FROM SharingSession ss
+            LEFT JOIN ss.participants p
+            LEFT JOIN p.organizationGroup og
+            LEFT JOIN og.members m
+            WHERE p.appUser.id = :appUserId
+               OR (p.organizationGroup IS NOT NULL AND m.appUser.id = :appUserId)
+        """
+        return entityManager.createQuery(query, SharingSession::class.java)
+            .setParameter("appUserId", appUserId)
+            .resultList
     }
 
     @Transactional
@@ -193,11 +209,14 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
         sortDirection: String
     ): List<SharingSession>
     {
-        val queryBuilder = StringBuilder(
-            """
-        SELECT DISTINCT s FROM SharingSession s
-        WHERE (s.initiator.id = :appUserId OR s.recipient.id = :appUserId)
-        AND s.isDeleted = false
+        val queryBuilder = StringBuilder("""
+            SELECT DISTINCT s FROM SharingSession s
+            LEFT JOIN s.recipient r
+            LEFT JOIN s.recipientGroup rg
+            WHERE (s.initiator.id = :appUserId 
+                   OR r.id = :appUserId 
+                   OR EXISTS (SELECT m FROM OrganizationGroupMember m WHERE m.organizationGroup.id = rg.id AND m.appUser.id = :appUserId))
+            AND s.isDeleted = false
         """
         )
 
@@ -270,24 +289,26 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
         initiatedBy: Boolean?
     ): Long
     {
-        val queryBuilder = StringBuilder(
-            """
-        SELECT COUNT(DISTINCT s) FROM SharingSession s
-        WHERE (s.initiator.id = :appUserId OR s.recipient.id = :appUserId)
-        AND s.isDeleted = false
+        val queryBuilder = StringBuilder("""
+            SELECT COUNT(DISTINCT s) FROM SharingSession s
+            LEFT JOIN s.recipient r
+            LEFT JOIN s.recipientGroup rg
+            WHERE (s.initiator.id = :appUserId
+                   OR r.id = :appUserId
+                   OR EXISTS (SELECT m FROM OrganizationGroupMember m WHERE m.organizationGroup.id = rg.id AND m.appUser.id = :appUserId))
+            AND s.isDeleted = false
         """
         )
 
         if (!query.isNullOrBlank())
         {
-            queryBuilder.append(
-                """
-            AND (
-                LOWER(s.sessionName) LIKE LOWER(:query)
-                OR LOWER(s.description) LIKE LOWER(:query)
-                OR LOWER(s.initiator.email) LIKE LOWER(:query)
-                OR LOWER(s.recipient.email) LIKE LOWER(:query)
-            )
+            queryBuilder.append("""
+                AND (
+                    LOWER(s.sessionName) LIKE LOWER(:query)
+                    OR LOWER(s.description) LIKE LOWER(:query)
+                    OR LOWER(s.initiator.email) LIKE LOWER(:query)
+                    OR LOWER(s.recipient.email) LIKE LOWER(:query)
+                )
             """
             )
         }

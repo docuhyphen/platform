@@ -46,11 +46,13 @@ class SharingSessionRetrievalService @Inject constructor(
 
     fun getAllSessionsForSignedInAppUser(): List<SharingSession>
     {
-        val appUserId = authTokenContext.authToken.appUser?.id
-        val initiatedSessions = sharingSessionRepository.findByInitiatorId(appUserId!!)
+        val appUserId = authTokenContext.authToken.appUser?.id ?: return emptyList()
+        val initiatedSessions = sharingSessionRepository.findByInitiatorId(appUserId)
         val receivedSessions = sharingSessionRepository.findByRecipientId(appUserId)
+        val participatingSessions = sharingSessionRepository.findByParticipatingAppUser(appUserId)
 
-        return (initiatedSessions + receivedSessions)
+        return (initiatedSessions + receivedSessions + participatingSessions)
+            .distinctBy { it.id }
             .sortedByDescending { it.createdDate }
             .filter { !it.isDeleted }
             .map { session ->
@@ -107,15 +109,24 @@ class SharingSessionRetrievalService @Inject constructor(
         sortDirection: String
     ): SearchResult
     {
-        ResourceEndpointDelayHelper.delayEndpoint(1500, 3400)
+        ResourceEndpointDelayHelper.delayEndpoint(1000, 3000)
 
-        val appUserId = authTokenContext.authToken.appUser?.id ?: throw IllegalArgumentException("User not authenticated")
+        val appUserId =
+            authTokenContext.authToken.appUser?.id ?: throw IllegalArgumentException("User not authenticated")
 
         val sessions = sharingSessionRepository.searchSessions(
             appUserId,
             query,
-            status?.let { try {
-                SharingSessionStatus.valueOf(it) } catch (e: IllegalArgumentException) { null } },
+            status?.let {
+                try
+                {
+                    SharingSessionStatus.valueOf(it)
+                }
+                catch (e: IllegalArgumentException)
+                {
+                    null
+                }
+            },
             initiatedBy,
             page,
             size,
@@ -126,7 +137,16 @@ class SharingSessionRetrievalService @Inject constructor(
         val totalElements = sharingSessionRepository.countSearchResults(
             appUserId,
             query,
-            status?.let { try { SharingSessionStatus.valueOf(it) } catch (e: IllegalArgumentException) { null } },
+            status?.let {
+                try
+                {
+                    SharingSessionStatus.valueOf(it)
+                }
+                catch (e: IllegalArgumentException)
+                {
+                    null
+                }
+            },
             initiatedBy
         )
 
