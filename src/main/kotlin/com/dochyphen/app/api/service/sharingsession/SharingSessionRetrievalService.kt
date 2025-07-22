@@ -51,7 +51,7 @@ class SharingSessionRetrievalService @Inject constructor(
         val receivedSessions = sharingSessionRepository.findByRecipientId(appUserId)
         val participatingSessions = sharingSessionRepository.findByParticipatingAppUser(appUserId)
 
-        return (initiatedSessions + receivedSessions + participatingSessions)
+        return (participatingSessions)
             .distinctBy { it.id }
             .sortedByDescending { it.createdDate }
             .filter { !it.isDeleted }

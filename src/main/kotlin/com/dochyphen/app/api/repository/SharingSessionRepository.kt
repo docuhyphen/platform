@@ -11,18 +11,25 @@ import java.util.*
 @ApplicationScoped
 class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::class.java)
 {
-    fun userHasSharingSessions(userId: UUID): Boolean
-    {
-        val query = entityManager.createQuery(
-            """
-            SELECT COUNT(s) FROM SharingSession s 
-            WHERE (s.initiator.id = :userId OR s.recipient.id = :userId) 
-            AND s.isDeleted = false
-        """.trimIndent(),
-            Long::class.javaObjectType
-        )
-        query.setParameter("userId", userId)
-        val count = query.singleResult
+    fun userHasSharingSessions(userId: UUID): Boolean {
+        val query = """
+        SELECT COUNT(DISTINCT s) FROM SharingSession s
+        LEFT JOIN s.recipient r
+        LEFT JOIN s.recipientGroup rg
+        LEFT JOIN s.participants p
+        WHERE (s.initiator.id = :appUserId
+               OR r.id = :appUserId
+               OR EXISTS (SELECT m FROM OrganizationGroupMember m WHERE m.organizationGroup.id = rg.id AND m.appUser.id = :appUserId)
+               OR EXISTS (SELECT sp FROM s.participants sp WHERE sp.appUser.id = :appUserId)
+               OR EXISTS (SELECT sp FROM s.participants sp JOIN sp.organizationGroup og JOIN og.members m WHERE m.appUser.id = :appUserId))
+        AND s.isDeleted = false
+    """
+
+        val emQuery = entityManager.createQuery(query, Long::class.java).also {
+            it.setParameter("appUserId", userId)  // Fixed parameter name to match the query
+        }
+
+        val count = emQuery.singleResult ?: 0
         return count > 0
     }
 
@@ -54,12 +61,16 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
     fun findByParticipatingAppUser(appUserId: UUID): List<SharingSession>
     {
         val query = """
-            SELECT DISTINCT ss FROM SharingSession ss
-            LEFT JOIN ss.participants p
-            LEFT JOIN p.organizationGroup og
-            LEFT JOIN og.members m
-            WHERE p.appUser.id = :appUserId
-               OR (p.organizationGroup IS NOT NULL AND m.appUser.id = :appUserId)
+            SELECT DISTINCT s FROM SharingSession s
+        LEFT JOIN s.recipient r
+        LEFT JOIN s.recipientGroup rg
+        LEFT JOIN s.participants p
+        WHERE (s.initiator.id = :appUserId
+               OR r.id = :appUserId
+               OR EXISTS (SELECT m FROM OrganizationGroupMember m WHERE m.organizationGroup.id = rg.id AND m.appUser.id = :appUserId)
+               OR EXISTS (SELECT sp FROM s.participants sp WHERE sp.appUser.id = :appUserId)
+               OR EXISTS (SELECT sp FROM s.participants sp JOIN sp.organizationGroup og JOIN og.members m WHERE m.appUser.id = :appUserId))
+        AND s.isDeleted = false
         """
         return entityManager.createQuery(query, SharingSession::class.java)
             .setParameter("appUserId", appUserId)
@@ -209,28 +220,33 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
         sortDirection: String
     ): List<SharingSession>
     {
-        val queryBuilder = StringBuilder("""
-            SELECT DISTINCT s FROM SharingSession s
-            LEFT JOIN s.recipient r
-            LEFT JOIN s.recipientGroup rg
-            WHERE (s.initiator.id = :appUserId 
-                   OR r.id = :appUserId 
-                   OR EXISTS (SELECT m FROM OrganizationGroupMember m WHERE m.organizationGroup.id = rg.id AND m.appUser.id = :appUserId))
-            AND s.isDeleted = false
-        """
+        val queryBuilder = StringBuilder(
+            """
+        SELECT DISTINCT s FROM SharingSession s
+        LEFT JOIN s.recipient r
+        LEFT JOIN s.recipientGroup rg
+        LEFT JOIN s.participants p
+        WHERE (s.initiator.id = :appUserId
+               OR r.id = :appUserId
+               OR EXISTS (SELECT m FROM OrganizationGroupMember m WHERE m.organizationGroup.id = rg.id AND m.appUser.id = :appUserId)
+               OR EXISTS (SELECT sp FROM s.participants sp WHERE sp.appUser.id = :appUserId)
+               OR EXISTS (SELECT sp FROM s.participants sp JOIN sp.organizationGroup og JOIN og.members m WHERE m.appUser.id = :appUserId))
+        AND s.isDeleted = false
+    """
         )
 
         if (!query.isNullOrBlank())
         {
             queryBuilder.append(
                 """
-            AND (
-                LOWER(s.sessionName) LIKE LOWER(:query)
-                OR LOWER(s.description) LIKE LOWER(:query)
-                OR LOWER(s.initiator.email) LIKE LOWER(:query)
-                OR LOWER(s.recipient.email) LIKE LOWER(:query)
-            )
-            """
+        AND (
+            LOWER(s.sessionName) LIKE LOWER(:query)
+            OR LOWER(s.description) LIKE LOWER(:query)
+            OR LOWER(s.initiator.email) LIKE LOWER(:query)
+            OR (r IS NOT NULL AND LOWER(r.email) LIKE LOWER(:query))
+            OR (rg IS NOT NULL AND LOWER(rg.name) LIKE LOWER(:query))
+        )
+        """
             )
         }
 
@@ -247,7 +263,12 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
             }
             else
             {
-                queryBuilder.append(" AND s.recipient.id = :appUserId")
+                queryBuilder.append(
+                    " AND (r.id = :appUserId " +
+                            "OR EXISTS (SELECT m FROM OrganizationGroupMember m WHERE m.organizationGroup.id = rg.id AND m.appUser.id = :appUserId) " +
+                            "OR EXISTS (SELECT sp FROM s.participants sp WHERE sp.appUser.id = :appUserId) " +
+                            "OR EXISTS (SELECT sp FROM s.participants sp JOIN sp.organizationGroup og JOIN og.members m WHERE m.appUser.id = :appUserId))"
+                )
             }
         }
 
@@ -289,27 +310,33 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
         initiatedBy: Boolean?
     ): Long
     {
-        val queryBuilder = StringBuilder("""
-            SELECT COUNT(DISTINCT s) FROM SharingSession s
-            LEFT JOIN s.recipient r
-            LEFT JOIN s.recipientGroup rg
-            WHERE (s.initiator.id = :appUserId
-                   OR r.id = :appUserId
-                   OR EXISTS (SELECT m FROM OrganizationGroupMember m WHERE m.organizationGroup.id = rg.id AND m.appUser.id = :appUserId))
-            AND s.isDeleted = false
-        """
+        val queryBuilder = StringBuilder(
+            """
+        SELECT COUNT(DISTINCT s) FROM SharingSession s
+        LEFT JOIN s.recipient r
+        LEFT JOIN s.recipientGroup rg
+        LEFT JOIN s.participants p
+        WHERE (s.initiator.id = :appUserId
+               OR r.id = :appUserId
+               OR EXISTS (SELECT m FROM OrganizationGroupMember m WHERE m.organizationGroup.id = rg.id AND m.appUser.id = :appUserId)
+               OR EXISTS (SELECT sp FROM s.participants sp WHERE sp.appUser.id = :appUserId)
+               OR EXISTS (SELECT sp FROM s.participants sp JOIN sp.organizationGroup og JOIN og.members m WHERE m.appUser.id = :appUserId))
+        AND s.isDeleted = false
+    """
         )
 
         if (!query.isNullOrBlank())
         {
-            queryBuilder.append("""
-                AND (
-                    LOWER(s.sessionName) LIKE LOWER(:query)
-                    OR LOWER(s.description) LIKE LOWER(:query)
-                    OR LOWER(s.initiator.email) LIKE LOWER(:query)
-                    OR LOWER(s.recipient.email) LIKE LOWER(:query)
-                )
-            """
+            queryBuilder.append(
+                """
+            AND (
+                LOWER(s.sessionName) LIKE LOWER(:query)
+                OR LOWER(s.description) LIKE LOWER(:query)
+                OR LOWER(s.initiator.email) LIKE LOWER(:query)
+                OR (r IS NOT NULL AND LOWER(r.email) LIKE LOWER(:query))
+                OR (rg IS NOT NULL AND LOWER(rg.name) LIKE LOWER(:query))
+            )
+        """
             )
         }
 
@@ -326,7 +353,12 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
             }
             else
             {
-                queryBuilder.append(" AND s.recipient.id = :appUserId")
+                queryBuilder.append(
+                    " AND (r.id = :appUserId " +
+                            "OR EXISTS (SELECT m FROM OrganizationGroupMember m WHERE m.organizationGroup.id = rg.id AND m.appUser.id = :appUserId) " +
+                            "OR EXISTS (SELECT sp FROM s.participants sp WHERE sp.appUser.id = :appUserId) " +
+                            "OR EXISTS (SELECT sp FROM s.participants sp JOIN sp.organizationGroup og JOIN og.members m WHERE m.appUser.id = :appUserId))"
+                )
             }
         }
 

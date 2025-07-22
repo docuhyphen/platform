@@ -35,7 +35,7 @@ const SessionList: React.FC<SharingSessionListProps> = ({onSelectionChange}) =>
     const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
     const [selectedInitiator, setSelectedInitiator] = useState<boolean | null>(null);
     const [currentPage, setCurrentPage] = useState(0);
-    const [pageSize] = useState(10);
+    const [pageSize] = useState(30);
     const [totalPages, setTotalPages] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
     const [sortBy, setSortBy] = useState('createdDate');

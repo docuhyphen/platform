@@ -79,7 +79,7 @@ const SharingSessions: React.FC = () =>
 
     useEffect(() =>
     {
-        const randomDelay = Math.floor(Math.random() * 5000) + 1000;
+        const randomDelay = Math.floor(Math.random() * 2000) + 1000;
         const timerId = setTimeout(async () =>
         {
             await checkAppUserSessions();
