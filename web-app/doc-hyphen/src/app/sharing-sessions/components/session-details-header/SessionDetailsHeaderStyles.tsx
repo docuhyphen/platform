@@ -31,6 +31,7 @@ export const useSessionDetailsHeaderStyles = makeStyles({
     headerLine1_2: {
         display: "flex",
         flexDirection: "row",
+        alignItems: "center",
         gap: "8px"
     },
 

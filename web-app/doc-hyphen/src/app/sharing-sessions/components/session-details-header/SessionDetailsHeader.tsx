@@ -76,7 +76,7 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                 <div className={styles.header}>
                     {isCollapsed &&
                         <div className={styles.headerLine1}>
-                            <div className={styles.headerLine1_2}>
+                            <div className={styles.headerLine1_2} id={"session-details-header-l1-1"}>
                                 <Caption1>
                                     Started {formatDateTimeWithOrdinal(sessionDetails.createdDate)}
                                 </Caption1>

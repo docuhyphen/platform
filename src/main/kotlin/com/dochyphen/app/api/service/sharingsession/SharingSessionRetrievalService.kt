@@ -11,7 +11,6 @@ import com.dochyphen.app.api.model.entity.SharingSessionStatus.ACCEPTED_STARTED
 import com.dochyphen.app.api.model.entity.SharingSessionStatus.INITIATED
 import com.dochyphen.app.api.repository.SharingSessionRepository
 import com.dochyphen.app.api.resource.ResourceEndpointDelayHelper
-import com.yubico.webauthn.extension.appid.AppId
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
@@ -132,7 +131,14 @@ class SharingSessionRetrievalService @Inject constructor(
             size,
             sortBy,
             sortDirection
-        )
+        ).filter { session ->
+
+            //If a session is initiated then check if the current user is a participent then don't return this session
+            // This is to prevent participants from accepting sharing sessions if they haven't been accepted yet
+            val currentAppUserIsAParticipant = session.participants.any { it.appUser?.id == appUserId }
+
+            !(session.status == INITIATED && currentAppUserIsAParticipant)
+        }
 
         val totalElements = sharingSessionRepository.countSearchResults(
             appUserId,
