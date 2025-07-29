@@ -95,13 +95,13 @@ const Settings = () =>
                             Organization Pairing
                         </Tab>
                     }
-                    {appUserPersonOrganization &&
-                        <Tab id="TemplatesTab"
-                             icon={<SettingsTemplatesTabIcon/>}
-                             value={tabIds.templates}>
-                            Templates
-                        </Tab>
-                    }
+                    {/*{appUserPersonOrganization &&*/}
+                    {/*    <Tab id="TemplatesTab"*/}
+                    {/*         icon={<SettingsTemplatesTabIcon/>}*/}
+                    {/*         value={tabIds.templates}>*/}
+                    {/*        Templates*/}
+                    {/*    </Tab>*/}
+                    {/*}*/}
                 </TabList>
                 <div className={styles.tabs} id={"settings-tabs"}>
                     {selectedValue === tabIds.profile && <ProfileTab/>}

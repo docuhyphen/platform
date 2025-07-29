@@ -53,7 +53,7 @@ const IndividualOnboarding: React.FC = () =>
                                 <Text size={500}>Welcome </Text>
                                 <Text size={400}>
                                     to <Text italic={true}>Doc-Hyphen</Text>! We're thrilled to have you on board. Let's
-                                    get you set you up.
+                                    get you set up.
                                 </Text>
                             </div>
                             <p>

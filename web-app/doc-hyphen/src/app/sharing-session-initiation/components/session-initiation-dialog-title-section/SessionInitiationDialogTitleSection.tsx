@@ -39,14 +39,14 @@ const SessionInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = (
                 {/*<Button size={"small"}>*/}
                 {/*    Generate with AI*/}
                 {/*</Button>*/}
-                {(!choosingTemplate && !sessionInitiatedSuccessfully) &&
-                    <Button appearance={"outline"}
-                            shape={"circular"}
-                            size={"small"}
-                            onClick={() => setChoosingTemplate(true)}>
-                        Choose Template
-                    </Button>
-                }
+                {/*{(!choosingTemplate && !sessionInitiatedSuccessfully) &&*/}
+                {/*    <Button appearance={"outline"}*/}
+                {/*            shape={"circular"}*/}
+                {/*            size={"small"}*/}
+                {/*            onClick={() => setChoosingTemplate(true)}>*/}
+                {/*        Choose Template*/}
+                {/*    </Button>*/}
+                {/*}*/}
                 {choosingTemplate &&
                     <Button appearance={"primary"}
                             shape={"circular"}
