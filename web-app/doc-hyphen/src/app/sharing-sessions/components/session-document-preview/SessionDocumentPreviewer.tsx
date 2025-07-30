@@ -75,7 +75,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     {
         if (pageNumber >= 1 && pageNumber <= numPages)
         {
-            const pageElement = pdfContainerRef.current?.querySelector(`[data-page-number="\${pageNumber}"]`);
+            const pageElement = pdfContainerRef.current?.querySelector(`[data-page-number="${pageNumber}"]`);
 
             if (pageElement)
             {
@@ -83,6 +83,10 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
             }
 
             setCurrentPage(pageNumber);
+
+            if (pdfContainerRef.current) {
+                pdfContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+            }
         }
     };
 
@@ -104,7 +108,10 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
 
     const toggleEnlarge = () =>
     {
-        setIsEnlarged(prev => !prev);
+        setIsEnlarged(prev => {
+            if (prev) setZoomLevel(1.0);
+            return !prev;
+        });
     };
 
     const handleZoomIn = () =>
