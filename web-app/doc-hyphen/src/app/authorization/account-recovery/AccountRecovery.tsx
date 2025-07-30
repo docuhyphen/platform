@@ -16,7 +16,7 @@ import {
     Subtitle1,
     Text
 } from "@fluentui/react-components";
-import {DismissRegular} from "@fluentui/react-icons";
+import {ArrowLeftRegular, DismissRegular} from "@fluentui/react-icons";
 import AppLogo from "../../components/app-logo/AppLogo.tsx";
 import AccountRecoveryCarousel from "../carousel/AccountRecoveryCarousel.tsx";
 import {useAccountRecoveryStyles} from "./AccountRecoveryStyles.tsx";
@@ -253,7 +253,12 @@ const AccountRecovery: React.FC = () =>
                     {!pwdResetSuccessful &&
                         <>
                             <div className={authorizationStyles.authorizationFormSection}>
-                                <Subtitle1 align={"center"}> Recover account </Subtitle1>
+                                <Subtitle1 align={"center"}>
+                                    <Button icon={<ArrowLeftRegular/>}
+                                            appearance={"transparent"}
+                                            onClick={() => navigate("/sign-in")}/>
+                                    Recover account
+                                </Subtitle1>
 
                                 {renderFormErrorMessage()}
 

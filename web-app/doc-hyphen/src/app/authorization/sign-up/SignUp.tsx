@@ -16,7 +16,7 @@ import {
     Subtitle1,
     Text
 } from "@fluentui/react-components";
-import {DismissRegular} from "@fluentui/react-icons";
+import {ArrowLeftRegular, DismissRegular} from "@fluentui/react-icons";
 import AppLogo from "../../components/app-logo/AppLogo.tsx";
 import SignUpCarousel from "../carousel/SignUpCarousel.tsx";
 import {useSignUpStyles} from "./SignUpStyles.tsx";
@@ -281,7 +281,12 @@ const SignUp: React.FC = () =>
                         <AppLogo/>
                     </div>
                     {!signUpSuccessful && <div className={authorizationStyles.authorizationFormSection}>
-                        <Subtitle1 align={"center"}> Create account </Subtitle1>
+                        <Subtitle1 align={"center"}>
+                            <Button icon={<ArrowLeftRegular/>}
+                                    appearance={"transparent"}
+                                    onClick={() => navigate("/sign-in")}/>
+                            Create account
+                        </Subtitle1>
                         {renderFormErrorMessage()}
                         <Field
                             label={"Enter your email"}
