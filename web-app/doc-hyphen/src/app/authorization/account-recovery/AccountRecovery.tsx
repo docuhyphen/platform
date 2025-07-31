@@ -296,7 +296,7 @@ const AccountRecovery: React.FC = () =>
                                             shape={"circular"}
                                             className={globalStyles.buttonWithLoading}>
                                         {initiatingPwdReset && <Spinner size={"tiny"}/>}
-                                        Initiate Password Reset
+                                        Recover
                                     </Button>
                                 }
                                 <div className={accountRecoveryStyles.authHasAccount}>
