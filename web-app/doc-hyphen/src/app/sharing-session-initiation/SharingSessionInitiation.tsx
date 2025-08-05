@@ -418,7 +418,7 @@ const SharingSessionInitiation: React.FC = () =>
         return <>
             {sessionInitiatedSuccessfully ? (
                 <div className={styles.sharingSessionInitiationSuccess}>
-                    <Text size={500}> Sharing Session initiated successfully </Text>
+                    <Text size={500}> Sharing Session started successfully </Text>
                     <Text size={300} italic={true}> {sessionName} </Text>
                     <Button appearance={"transparent"}>Copy Link</Button>
                 </div>

@@ -31,9 +31,7 @@ const SessionInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = (
             <div className={styles.dialogTitle1}>
                 {!sessionInitiatedSuccessfully &&
                     <Text size={500}>
-                        Initiating Sharing Session (
-                        <em>{(requestingDocuments) ? "Requesting" : "Sending"}
-                        </em>)
+                        {(requestingDocuments) ? "Requesting " : "Sending "} Documents
                     </Text>
                 }
                 {/*<Button size={"small"}>*/}
