@@ -1,4 +1,4 @@
-import apiClient from './apiClient';
+import apiClient, {addBearerToHeaderToken} from './apiClient';
 import {
     PasswordResetCompletionRequest,
     PasswordResetInitiationRequest,
@@ -133,7 +133,7 @@ export const signOut = async (outOfAllDevices: boolean, token: string) =>
     {
         const response = await apiClient.post(`/auth/sign-out?outOfAllDevices=${outOfAllDevices}`, {}, {
             headers: {
-                Authorization: `Bearer ${token}`
+                Authorization: addBearerToHeaderToken(token)
             }
         });
         return response.data;

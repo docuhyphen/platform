@@ -1,4 +1,4 @@
-import apiClient from './apiClient';
+import apiClient, {addBearerToHeaderToken} from './apiClient';
 import {
     AppUserDetailedDto,
     Organization,
@@ -12,7 +12,7 @@ export const fetchOrganization = async (organizationId: string, token?: string) 
     try
     {
         const response = await apiClient.get(`/organizations/${organizationId}`, {
-            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
         });
         return response.data;
     }
@@ -30,7 +30,7 @@ export const updateOrganization = async (organizationId: string, data: {
     try
     {
         const response = await apiClient.put(`/organizations/${organizationId}`, data, {
-            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
         });
         return response.data;
     }
@@ -45,7 +45,7 @@ export const updateOrganizationSettings = async (organizationId: string, setting
     try
     {
         const response = await apiClient.put(`/organizations/${organizationId}/settings`, settings, {
-            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
         });
         return response.data;
     }
@@ -69,7 +69,7 @@ export const fetchOrganizationGroups = async (organizationId: string, token?: st
     try
     {
         const response = await apiClient.get(`/organizations/${organizationId}/groups`, {
-            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
         });
         return response.data;
     }
@@ -103,7 +103,7 @@ export const addOrganizationGroup = async (
     try
     {
         const response = await apiClient.post(`/organizations/${organizationId}/groups`, groupData, {
-            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
         });
         return response.data;
     }
@@ -139,7 +139,7 @@ export const updateOrganizationGroup = async (
     try
     {
         const response = await apiClient.put(`/organizations/${organizationId}/groups/${groupId}`, groupData, {
-            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
         });
         return response.data;
     }
@@ -158,7 +158,7 @@ export const deleteOrganizationGroup = async (
     try
     {
         const response = await apiClient.delete(`/organizations/${organizationId}/groups/${groupId}`, {
-            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
         });
         return response.data;
     }
@@ -173,7 +173,7 @@ export const fetchOrganizationUsers = async (organizationId: string, token?: str
     try
     {
         const response = await apiClient.get(`/organizations/${organizationId}/app-users`, {
-            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
         });
         return response.data;
     }
@@ -192,7 +192,7 @@ export const addOrganizationUser = async (
     try
     {
         const response = await apiClient.post(`/organizations/${organizationId}/app-users`, data, {
-            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
         });
         return response.data;
     }
@@ -212,7 +212,7 @@ export const updateOrganizationUser = async (
     try
     {
         const response = await apiClient.put(`/organizations/${organizationId}/app-users/${appUserId}`, data, {
-            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
         });
         return response.data;
     }
@@ -227,7 +227,7 @@ export const deactivateOrganizationUser = async (organizationId: string, appUser
     try
     {
         const response = await apiClient.delete(`/organizations/${organizationId}/app-users/${appUserId}`, {
-            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
         });
         return response.data;
     }
@@ -242,7 +242,7 @@ export const checkAppUserIsDeletable = async (organizationId: string, appUserId:
     try
     {
         await apiClient.get(`/organizations/${organizationId}/app-users/${appUserId}?check=DELETABLE`, {
-            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
         });
         return true;
     }
@@ -261,7 +261,7 @@ export const deleteOrganizationAppUser = async (organizationId: string, appUserI
     try
     {
         const response = await apiClient.delete(`/organizations/${organizationId}/app-users/${appUserId}`, {
-            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
         });
         return response.data;
     }
@@ -276,7 +276,7 @@ export const fetchPairedOrganizations = async (token?: string): Promise<Organiza
     try
     {
         const response = await apiClient.get('/organizations/linked', {
-            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
         });
         return response.data;
     }
@@ -291,7 +291,7 @@ export const fetchPairedOrganizationUsers = async (orgId?: string, token?: strin
     try
     {
         const response = await apiClient.get(`/organizations/linked/${orgId}/app-users`, {
-            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
         });
         return response.data;
     }
@@ -306,7 +306,7 @@ export const fetchPairedOrganizationGroups  = async (orgId?: string, token?: str
     try
     {
         const response = await apiClient.get(`/organizations/linked/${orgId}/groups`, {
-            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
         });
         return response.data;
     }
@@ -347,11 +347,11 @@ const fetchCurrentUserOrganization = async (token?: string): Promise<Organizatio
     try
     {
         const appUser = await apiClient.get('/app-user', {
-            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
         });
 
         const response = await apiClient.get(`/app-user/${appUser.data.id}/person/${appUser.data.person.id}/organization`, {
-            headers: token ? {Authorization: `Bearer ${token}`} : undefined
+            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
         });
 
         return response.data;

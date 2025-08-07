@@ -1,4 +1,4 @@
-import apiClient from './apiClient';
+import apiClient, {addBearerToHeaderToken} from './apiClient';
 import {AppUserSettingsDto, OrganizationRegistrationRequest, PersonRegistrationRequest} from "../app/models/models.tsx";
 
 export const fetchAppUser = async (token: string | null) =>
@@ -7,7 +7,7 @@ export const fetchAppUser = async (token: string | null) =>
     {
         const response = await apiClient.get(`/app-user`, {
             headers: {
-                Authorization: `Bearer ${token}`
+                Authorization: addBearerToHeaderToken(token)
             }
         });
         return response.data;
@@ -24,7 +24,7 @@ export const fetchAppUserPersonOrganization = async (appUserId?: string, personI
     {
         const response = await apiClient.get(`/app-user/${appUserId}/person/${personId}/organization`, {
             headers: {
-                Authorization: `Bearer ${token}`
+                Authorization: addBearerToHeaderToken(token)
             }
         });
         return response.data;
@@ -41,7 +41,7 @@ export const registerIndividual = async (request: PersonRegistrationRequest, tok
     {
         const response = await apiClient.post(`/entity-registration/person`, request, {
             headers: {
-                Authorization: `Bearer ${token}`
+                Authorization: addBearerToHeaderToken(token)
             }
         });
         return response.data;
@@ -58,7 +58,7 @@ export const registerOrganization = async (request: OrganizationRegistrationRequ
     {
         const response = await apiClient.post(`/entity-registration/organization`, request, {
             headers: {
-                Authorization: `Bearer ${token}`
+                Authorization: addBearerToHeaderToken(token)
             }
         });
         return response.data;
@@ -69,13 +69,13 @@ export const registerOrganization = async (request: OrganizationRegistrationRequ
     }
 };
 
-export const updateAppUserSettings = async (request: AppUserSettingsDto,  token: string | null) =>
+export const updateAppUserSettings = async (request: AppUserSettingsDto, token: string | null) =>
 {
     try
     {
         const response = await apiClient.put(`/app-user/settings`, request, {
             headers: {
-                Authorization: `Bearer ${token}`
+                Authorization: addBearerToHeaderToken(token)
             }
         });
         return response.data;
@@ -85,6 +85,7 @@ export const updateAppUserSettings = async (request: AppUserSettingsDto,  token:
         throw error.response?.data || error.message;
     }
 }
+
 export const initiateAppUserEmailUpdate = async (email: string, token: string | null) =>
 {
     try
@@ -94,7 +95,7 @@ export const initiateAppUserEmailUpdate = async (email: string, token: string | 
             {email},
             {
                 headers: {
-                    Authorization: `Bearer ${token}`
+                    Authorization: addBearerToHeaderToken(token)
                 }
             }
         );
@@ -115,7 +116,7 @@ export const completeAppUserEmailUpdate = async (email: string, verificationCode
             {email, verificationCode},
             {
                 headers: {
-                    Authorization: `Bearer ${token}`
+                    Authorization: addBearerToHeaderToken(token)
                 }
             }
         );

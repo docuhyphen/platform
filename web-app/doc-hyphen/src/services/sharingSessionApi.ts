@@ -1,4 +1,4 @@
-import apiClient from './apiClient';
+import apiClient, {addBearerToHeaderToken} from './apiClient';
 import {
     DownloadDocumentsZipRequest,
     NoAuthSharingSessionBasicDto,
@@ -29,7 +29,7 @@ const blobRequest: AxiosRequestConfig = {
 }
 
 const getAuthHeaders = (token: string | null, extraHeaders: Record<string, string> = {}) => ({
-    Authorization: token ? `Bearer ${token}` : '',
+    Authorization: token ? addBearerToHeaderToken(token) : '',
     ...extraHeaders,
 });
 

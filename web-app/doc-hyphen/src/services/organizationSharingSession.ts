@@ -1,4 +1,4 @@
-import apiClient from './apiClient';
+import apiClient, {addBearerToHeaderToken} from './apiClient';
 import {OrganizationBasicDto, OrganizationSharingSessionLinkBasicDto, ResponseError} from "../app/models/models.tsx";
 
 const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
@@ -15,7 +15,7 @@ const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
 };
 
 const getAuthHeaders = (token: string | null) => ({
-    Authorization: token ? `Bearer ${token}` : ''
+    Authorization: token ? addBearerToHeaderToken(token) : ''
 });
 
 export const fetchOrganizationsForLinking = (token?: string | null): Promise<OrganizationBasicDto[] | ResponseError> =>
