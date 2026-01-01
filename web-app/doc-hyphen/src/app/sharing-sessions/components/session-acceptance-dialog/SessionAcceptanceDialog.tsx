@@ -14,7 +14,6 @@ import {
     Textarea
 } from "@fluentui/react-components";
 import {SharingSessionDetailedDto, SharingSessionStatus, UpdateSharingSessionRequest} from "../../../models/models.tsx";
-import useToken from "../../../../context/useToken.tsx";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {fetchSignedInUserAppUserSharingSession, updateSharingSession} from "../../../../services/sharingSessionApi.ts";
 import {useSessionAcceptanceDialogStyles} from "./SessionAcceptanceDialogStyles.tsx";
@@ -35,8 +34,6 @@ const SessionAcceptanceDialog: React.FC<SessionDeleteDialogProps> = (
         onRejected
     }) =>
 {
-
-    const token = useToken();
     const [updatingSession, setUpdatingSession] = React.useState(false);
     const [rejectingSession, setRejectingSession] = React.useState(false);
     const [rejectReason, setRejectReason] = React.useState<string>('');
@@ -101,8 +98,8 @@ const SessionAcceptanceDialog: React.FC<SessionDeleteDialogProps> = (
         setRejectReason(event.target.value);
     };
 
-    return <div>
-        {session && <Dialog modalType="modal" open={isOpen}>
+    return <section id={"session-acceptance-dialog"}>
+        {session && <Dialog modalType="non-modal" open={isOpen}>
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle>New Sharing Session Request</DialogTitle>
@@ -182,7 +179,7 @@ const SessionAcceptanceDialog: React.FC<SessionDeleteDialogProps> = (
             </DialogSurface>
         </Dialog>
         }
-    </div>;
+    </section>;
 };
 
 export default SessionAcceptanceDialog;

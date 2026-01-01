@@ -51,7 +51,7 @@ const SessionDocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
     }, [session]);
 
     return (
-        <>
+        <section className={"document-actions-menu"}>
             <Menu positioning={{autoSize: true}}>
                 <MenuTrigger disableButtonEnhancement>
                     <Button icon={<MoreVerticalRegular/>} appearance="subtle"/>
@@ -106,7 +106,7 @@ const SessionDocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
                                            session={session}
                                            isOpen={isDownloadDocumentOpen}
                                            onDismiss={() => setIsDownloadDocumentOpen(false)}/>
-        </>
+        </section>
     );
 };
 

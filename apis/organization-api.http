@@ -87,7 +87,7 @@ Content-Type: application/json
 
 {
   "role": "ORG_MEMBER",
-  "email": "test4@doc-hyphen.com",
+  "email": "test4@docuhyphen.com",
   "person": {
       "firstName": "John",
       "lastName": "Doe"
@@ -109,7 +109,7 @@ Content-Type:  application/json
 
 {
     "isActive": false,
-    "email": "test5@doc-hyphen.com",
+    "email": "test5@docuhyphen.com",
     "role": "ORG_ADMIN",
     "person": {
       "firstName": "CINTHIA",

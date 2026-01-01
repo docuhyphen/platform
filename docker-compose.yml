@@ -2,7 +2,7 @@ version: '3.8'
 services:
   quarkus-app:
     build: .
-    container_name: doc-hyphen-api
+    container_name: docu-hyphen-api
     ports:
       - "8080:8080"
       - "5005:5005"  # Map debug port

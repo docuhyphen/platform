@@ -3,7 +3,7 @@ POST http://localhost:8080/auth/sign-up/initiation
 Content-Type: application/json
 
 {
-  "email": "test1@doc-hyphen.com"
+  "email": "test1docuhyphen.com"
 }
 
 <> 2025-01-16T214842.200.json
@@ -36,7 +36,7 @@ POST http://localhost:8080/auth/sign-in/initiate
 Content-Type: application/json
 
 {
-  "email": "test1@doc-hyphen.com",
+  "email": "test1docuhyphen.com",
   "password": "Qazmko@104"
 }
 > {% client.global.set("mfaSessionId", response.body.mfaSessionId) %}
@@ -55,7 +55,7 @@ POST http://localhost:8080/auth/sign-in/completion
 Content-Type: application/json
 
 {
-  "email": "test1@doc-hyphen.com",
+  "email": "test1docuhyphen.com",
   "otp": "123456",
   "mfaSessionId": "{{mfaSessionId}}"
 }

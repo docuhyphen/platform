@@ -116,7 +116,7 @@ const ProfileTab = () =>
                                 shape={"circular"}
                                 size={"small"}
                                 onClick={onAddOrEditPhone}>
-                            Add Phone Number
+                            Add phone number
                         </Button>
                     )}
                 </Text>
@@ -130,7 +130,7 @@ const ProfileTab = () =>
                 <Button appearance={"outline"}
                         shape={"circular"}
                         onClick={() => setIsPasswordResetDialogOpen(true)}
-                        size={"medium"}> Change password</Button>
+                        size={"medium"}> change password</Button>
             </div>
             <div>
                 <Button appearance={"outline"}

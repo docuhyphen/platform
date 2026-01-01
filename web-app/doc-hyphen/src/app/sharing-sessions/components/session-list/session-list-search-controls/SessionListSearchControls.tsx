@@ -93,7 +93,7 @@ const SessionListSearchControls: React.FC<SessionListSearchControlsProps> = (
         <section className={styles.container}>
             <Field className={styles.searchField}>
                 <SearchBox
-                    placeholder="Search Sharing Sessions"
+                    placeholder="Search Document Sharing Sessions"
                     maxLength={50}
                     value={searchQuery}
                     onChange={(_, data) => onSearchQueryChange(data.value)}

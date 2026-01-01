@@ -146,7 +146,7 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
                                onChange={onFilterDocuments}/>
                 </Field>
             </div>
-            <div id={"documentsListCards"}
+            <div id={"documents-list-cards"}
                  className={styles.cardListSection}>
                 {filteredDocuments.map((document: DocumentDetailedDto) => renderDocumentsListCard(document))}
             </div>

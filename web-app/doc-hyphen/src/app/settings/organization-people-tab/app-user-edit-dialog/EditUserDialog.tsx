@@ -19,6 +19,7 @@ import {useAuth} from "../../../../context/AuthContext.tsx";
 import {AppUserDetailedDto, AppUserRole, AppUserRoleDisplayNames} from "../../../models/models.tsx";
 import {updateOrganizationUser} from "../../../../services/organizationApi.ts";
 import {useEditUserDialogStyles} from "./EditUserDialogStyles.tsx";
+import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 
 interface EditUserDialogProps
 {
@@ -39,6 +40,8 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
     }) =>
 {
     const styles = useEditUserDialogStyles()
+    const globStyles = useGlobalStyles()
+
     const {token} = useAuth();
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
@@ -164,6 +167,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
                         shape="circular"
                         disabled={savingData || !isFormValid || !hasChanges}
                         onClick={handleSave}
+                        className={globStyles.buttonWithLoading}
                     >
                         {savingData && <Spinner size="tiny"/>}
                         Update User

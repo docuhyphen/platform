@@ -10,7 +10,7 @@ const SessionPreLoader: React.FC = () =>
         <div className={styles.preLoadingContainer}>
             <Spinner labelPosition="after"
                      size="small"
-                     label="Loading Sharing Sessions"/>
+                     label="Loading Document Sharing Sessions"/>
         </div>
     );
 };

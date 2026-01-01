@@ -11,7 +11,7 @@ async function createSharingSession(index)
     const sessionData = {
         sessionName: `Pagination Test ${index}`,
         description: `Test session ${index} for pagination testing`,
-        recipientEmail: "test2@doc-hyphen.com",
+        recipientEmail: "test2@docuhyphen.com",
         initialShareMessage: `Testing pagination with session ${index}`,
         sessionDocuments: [
             {

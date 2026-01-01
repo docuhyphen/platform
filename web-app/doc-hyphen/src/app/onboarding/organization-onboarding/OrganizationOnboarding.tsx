@@ -75,7 +75,7 @@ const OrganizationOnboarding: React.FC = () =>
                         <div>
                             <Text size={500}>Welcome </Text>
                             <Text size={400}>
-                                to <Text italic={true}>Doc-Hyphen</Text>! We're thrilled to have you on board. Let's
+                                to <Text italic={true}>DocHyphen</Text>! We're thrilled to have you on board. Let's
                                 get you set up.
                             </Text>
                         </div>

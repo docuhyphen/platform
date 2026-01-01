@@ -31,7 +31,7 @@ const OrganizationOnboardingDialog: React.FC<OrganizationOnboardingDialogProps> 
                         {orgRegistered &&
                             <Text>
                                 Congratulations! Your organization has been registered successfully.
-                                You can now start using Doc-Hyphen to its full potential for a limited period of time
+                                You can now start using DocHyphen to its full potential for a limited period of time
                                 until we complete your verification.
                             </Text>
 

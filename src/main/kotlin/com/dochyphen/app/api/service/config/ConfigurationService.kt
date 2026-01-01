@@ -7,12 +7,12 @@ class ConfigurationService
 {
     fun getAppBaseURL(): String
     {
-        return "https://doc-hyphen.com"
+        return "http://docuhyphen.com"
     }
 
     fun getMaxSignUpCompletionOtpAttempts(): Long = 3
     fun getSignUpOtpExpiryMins(): Long = 5 //
-    fun getAppEmailSubjectTitle() = "Doc-Hyphen"
+    fun getAppEmailSubjectTitle() = "DocuHyphen"
     fun getAppPhoneSubjectTitle() = getAppEmailSubjectTitle()
     fun getSignInEmailOtpMFAExpiryMins(): Long = 5
     fun getSignInSmsOtpMFAExpiryMins(): Long = 5

@@ -192,7 +192,7 @@ const OrganizationTab = () =>
                     <Switch
                         checked={organizationSettings.allowProfileUpdate}
                         onChange={(_, data) => handleSettingChange('allowProfileUpdate', data.checked)}
-                        label="Allow users to update basic their profiles"
+                        label="Allow users to update their basic profiles"
                         disabled={savingSettings}
                     />
                     <Switch
@@ -240,7 +240,7 @@ const OrganizationTab = () =>
                                 size="small"
                                 onClick={onAddOrEditPhone}
                             >
-                                Add Phone Number
+                                Add phone number
                             </Button>
                         )}
                     </Text>
@@ -275,7 +275,7 @@ const OrganizationTab = () =>
             <section className={styles.orgOnboardingContainer}>
                 <Text>
                     You are not part of an organization. You can onboard your organization to use the full
-                    potential of Doc-Hyphen.
+                    potential of DocHyphen.
                 </Text>
                 <div>
                     <Button shape={"circular"}
