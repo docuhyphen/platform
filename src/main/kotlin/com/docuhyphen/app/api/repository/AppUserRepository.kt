@@ -1,0 +1,33 @@
+package com.docuhyphen.app.api.repository
+
+import com.docuhyphen.app.api.model.entity.AppUser
+import jakarta.enterprise.context.RequestScoped
+import jakarta.persistence.TypedQuery
+
+@RequestScoped
+class AppUserRepository : BaseRepository<AppUser>(AppUser::class.java)
+{
+    fun findByEmail(email: String): AppUser?
+    {
+        val query: TypedQuery<AppUser> = entityManager.createQuery(
+            "SELECT a FROM AppUser a WHERE LOWER(a.email) = LOWER(:email)",
+            AppUser::class.java
+        )
+        query.setParameter("email", email)
+        return query.resultList.firstOrNull()
+    }
+
+    fun findAllActiveUsers(): List<AppUser>
+    {
+        val query: TypedQuery<AppUser> = entityManager.createQuery(
+            "SELECT a FROM AppUser a WHERE a.isActive = true",
+            AppUser::class.java
+        )
+        return query.resultList
+    }
+
+    fun detach(user: AppUser)
+    {
+        entityManager.detach(user)
+    }
+}
