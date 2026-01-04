@@ -130,7 +130,7 @@ const ProfileTab = () =>
                 <Button appearance={"outline"}
                         shape={"circular"}
                         onClick={() => setIsPasswordResetDialogOpen(true)}
-                        size={"medium"}> change password</Button>
+                        size={"medium"}> Change password</Button>
             </div>
             <div>
                 <Button appearance={"outline"}

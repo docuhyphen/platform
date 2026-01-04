@@ -459,6 +459,7 @@ const SharingSessionInitiation: React.FC = () =>
                     </DialogContent>
                     <DialogActions>
                         <SessionInitiationDialogActions
+                            requestingDocuments={requestingDocuments}
                             initiatingSession={initiatingSession}
                             sessionInitiatedSuccessfully={sessionInitiatedSuccessfully}
                             choosingTemplate={choosingTemplate}

@@ -2,8 +2,9 @@ import React from 'react';
 import {Button, DialogTrigger, Spinner} from "@fluentui/react-components";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 
-interface DialogActionsProps
+interface SessionInitiationDialogActionsProps
 {
+    requestingDocuments: boolean;
     initiatingSession: boolean;
     sessionInitiatedSuccessfully: boolean;
     choosingTemplate: boolean;
@@ -11,8 +12,9 @@ interface DialogActionsProps
     onInitiateSession: () => void;
 }
 
-const SessionInitiationDialogActions: React.FC<DialogActionsProps> = (
+const SessionInitiationDialogActions: React.FC<SessionInitiationDialogActionsProps> = (
     {
+        requestingDocuments,
         initiatingSession,
         sessionInitiatedSuccessfully,
         choosingTemplate,
@@ -40,7 +42,7 @@ const SessionInitiationDialogActions: React.FC<DialogActionsProps> = (
                     appearance="primary"
                     shape="circular"
                     className={styles.buttonWithLoading}>
-                    {!initiatingSession ? "Start Session" : (
+                    {!initiatingSession ? (requestingDocuments ? "Request Documents" : "Start Sending Documents") : (
                         <>
                             <Spinner size="tiny"/> Starting Session
                         </>

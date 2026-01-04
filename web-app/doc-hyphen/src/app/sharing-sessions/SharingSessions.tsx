@@ -419,7 +419,7 @@ const SharingSessions: React.FC = () =>
             {!preparingSharingSessions && (appUserHasSessions) && renderSessionsSection()}
             {!preparingSharingSessions && (!appUserHasSessions) &&
                 <div className={styles.containerNoSessions}>
-                    <Text size={500}>You don’t have any sharing sessions yet.</Text>
+                    <Text size={500}>You haven't shared documents with anyone yet.</Text>
                     <Text size={500}>
                         To get started, click <Text italic weight={"semibold"}>Start Sharing</Text> in the main menu and securely
                         share your documents.
