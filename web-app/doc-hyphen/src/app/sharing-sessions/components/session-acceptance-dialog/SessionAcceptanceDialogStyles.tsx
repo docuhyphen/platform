@@ -19,9 +19,9 @@ export const useSessionAcceptanceDialogStyles = makeStyles({
         gap: "8px",
     },
     declineFieldContainer: {
+        width: "100%",
         display: "flex",
         flexDirection: "column",
-        alignItems: "end"
     },
     declineField: {
         width: "100%"

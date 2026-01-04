@@ -102,7 +102,7 @@ const SessionAcceptanceDialog: React.FC<SessionDeleteDialogProps> = (
         {session && <Dialog modalType="non-modal" open={isOpen}>
             <DialogSurface>
                 <DialogBody>
-                    <DialogTitle>New Sharing Session Request</DialogTitle>
+                    <DialogTitle>New Documents Request</DialogTitle>
                     <DialogContent className={styles.dialogContent}>
                         <Text size={400}
                               align={"center"}>

@@ -51,7 +51,7 @@ const SessionInitiationDetailsTab: React.FC<SessionDetailsTabProps> = (
                     placeholder="Optional"
                 />
             </Field>
-            <Field label="Start message">
+            <Field label="Custom message">
                 <Textarea
                     onChange={onInitialShareMessageChange}
                     value={initialShareMessage}
