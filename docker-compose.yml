@@ -1,19 +1,19 @@
 version: '3.8'
+
 services:
   quarkus-app:
-    build: .
-    container_name: docu-hyphen-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: docu-hyphen-app
     ports:
       - "8080:8080"
-      - "5005:5005"  # Map debug port
+      - "5005:5005"
     volumes:
-      - ./src:/app/src
       - ./document-uploads:/app/document-uploads
-      - ./resources:/app/resources
       - ./logs:/app/logs
     environment:
-      - QUARKUS_LAUNCH_DEVMODE=true
-      - QUARKUS_HTTP_HOST=0.0.0.0
+      QUARKUS_HTTP_HOST: 0.0.0.0
     depends_on:
       - postgres
     restart: always

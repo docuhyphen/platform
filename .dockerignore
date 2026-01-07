@@ -1,5 +1,24 @@
-*
-!target/*-runner
-!target/*-runner.jar
-!target/lib/*
-!target/quarkus-app/*
+# Ignore everything by default
+**
+
+# Allow React app explicitly
+!web-app/
+!web-app/*
+
+# Allow Quarkus build output
+!target/
+!target/quarkus-app/
+!target/quarkus-app/**
+
+# Ignore node_modules (we install inside Docker)
+web-app/node_modules/
+
+# Ignore IDE / OS junk
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Runtime data (mounted as volumes)
+logs/
+document-uploads/

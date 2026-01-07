@@ -11,6 +11,6 @@ class EmailService @Inject constructor(var mailer: Mailer)
     fun sendEmail(to: String, subject: String, body: String)
     {
         val mail = Mail.withHtml(to, subject, body)
-        mailer.send(mail)
+//        mailer.send(mail)
     }
 }

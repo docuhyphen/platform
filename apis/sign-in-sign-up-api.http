@@ -3,7 +3,7 @@ POST http://localhost:8080/auth/sign-up/initiation
 Content-Type: application/json
 
 {
-  "email": "test1docuhyphen.com"
+  "email": "test2@docuhyphen.com"
 }
 
 <> 2025-01-16T214842.200.json
@@ -14,7 +14,7 @@ POST http://localhost:8080/auth/sign-up/completion
 Content-Type: application/json
 
 {
-  "email": "test5@example.com",
+  "email": "test1@docuhyphen.com",
   "otp": "123456",
   "password": "StrongPassword1!",
   "confirmationPassword": "StrongPassword1!"
