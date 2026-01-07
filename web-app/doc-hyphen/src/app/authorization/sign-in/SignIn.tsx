@@ -231,7 +231,7 @@ const SignIn: React.FC = () =>
             <Field label={"Verification Code"}
                    validationState={"none"}
                    validationMessage={""}
-                   hint={resetOtpResponseMessage ? `${resetOtpResponseMessage}` : "The verification code has been sent to your email"}>
+                   hint={resetOtpResponseMessage ? `${resetOtpResponseMessage}` : "A verification code has been sent to your email"}>
                 <Input value={otp}
                        autoComplete="false"
                        disabled={resendingOtp || signInCompleting}

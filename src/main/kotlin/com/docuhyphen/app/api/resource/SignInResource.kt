@@ -36,9 +36,9 @@ class SignInResource @Inject constructor(
     {
         return try
         {
-            ResourceEndpointDelayHelper.delayEndpoint(3000, 6000)
+            ResourceEndpointDelayHelper.delayEndpoint(4000, 6000)
 
-            var mfaSession = with(payload) {
+            val mfaSession = with(payload) {
 
                 signInService.initiateSignIn(email, password, getClientIpAddress(request))
             }

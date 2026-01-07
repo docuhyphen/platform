@@ -42,7 +42,7 @@ const SessionInitiationDialogActions: React.FC<SessionInitiationDialogActionsPro
                     appearance="primary"
                     shape="circular"
                     className={styles.buttonWithLoading}>
-                    {!initiatingSession ? (requestingDocuments ? "Request Documents" : "Start Sending Documents") : (
+                    {!initiatingSession ? (requestingDocuments ? "Request Documents" : "Send Documents") : (
                         <>
                             <Spinner size="tiny"/> Starting Session
                         </>
