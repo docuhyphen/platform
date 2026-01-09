@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const appStyles = makeStyles({
     page: {
@@ -133,15 +133,51 @@ export const appStyles = makeStyles({
     },
 
     forWhoSection: {
-        textAlign: "center",
-        listStyle: "none",
-        padding: "0 16px",
-        marginTop: "0"
+        padding: "16px",
+        color: "white",
+        marginTop: "0",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: `${tokens.colorBrandForeground1}`,
     },
     noWrap: {
         whiteSpace: "nowrap",
     },
     btnLong: {
         minWidth: "130px",
+    },
+
+    whoForGrid: {
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+        gap: "24px",
+        marginTop: "24px",
+        justifyItems: "center", // centers cards in their grid cell
+    },
+
+    whoForCard: {
+        width: "100%",
+        maxWidth: "320px", // keeps cards visually consistent
+    },
+
+    whoForList: {
+        marginTop: "8px",
+        paddingLeft: "16px",
+
+        display: "flex",
+        flexDirection: "column",
+        gap: "12px",
+
+        "& li": {
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px",
+        },
+    },
+
+    whoForSubtitle: {
+        textAlign: "center",
+        maxWidth: "700px",
+        margin: "0 auto",
     },
 });

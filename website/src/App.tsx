@@ -144,35 +144,140 @@ export default function App()
             </section>
 
             {/* Who it's for */}
-            <Title2 align={"center"} className={styles.sectionTitle}>Who it’s for</Title2>
-            <ul className={styles.forWhoSection}>
-                <li>
-                    <Text size={400}>
-                        Accounting and audit firms
-                    </Text>
-                </li>
-                <li>
-                    <Text size={400}>
-                        Financial services and advisors
-                    </Text>
-                </li>
-                <li>
-                    <Text size={400}>
-                        Legal practices
-                    </Text>
-                </li>
-                <li>
-                    <Text size={400}>
-                        Small businesses handling sensitive customer data
-                    </Text>
-                </li>
-                <li>
-                    <Text size={400}>
-                        ... and many more.
-                    </Text>
-                </li>
-            </ul>
+            <section className={styles.forWhoSection}>
+                <Title2 align="center">
+                    Who it’s for
+                </Title2>
 
+                <Text className={styles.whoForSubtitle}>
+                    Built for organizations that handle sensitive documents and require security,
+                    compliance, and accountability.
+                </Text>
+
+                <section className={styles.whoForGrid}>
+
+                    {/* Financial & Professional Services */}
+                    <Card className={styles.whoForCard}>
+                        <CardHeader header={<Text weight="semibold">Financial & Professional Services</Text>}/>
+                        <ul className={styles.whoForList}>
+                            <li>
+                                <Text weight="semibold">Accounting & audit firms</Text>
+                                <Text size={300}>
+                                    Secure exchange of tax records, financial statements, and supporting documents.
+                                </Text>
+                            </li>
+                            <li>
+                                <Text weight="semibold">Financial advisors & wealth managers</Text>
+                                <Text size={300}>
+                                    Protect client identity and financial data while maintaining full audit trails.
+                                </Text>
+                            </li>
+                            <li>
+                                <Text weight="semibold">Banks & lending institutions</Text>
+                                <Text size={300}>
+                                    Collect and share KYC, income verification, and compliance documents securely.
+                                </Text>
+                            </li>
+                        </ul>
+                    </Card>
+
+                    {/* Insurance & Risk Management */}
+                    <Card className={styles.whoForCard}>
+                        <CardHeader header={<Text weight="semibold">Insurance & Risk Management</Text>}/>
+                        <ul className={styles.whoForList}>
+                            <li>
+                                <Text weight="semibold">Insurance companies</Text>
+                                <Text size={300}>
+                                    Secure handling of policy documents, claims, and customer identity records.
+                                </Text>
+                            </li>
+                            <li>
+                                <Text weight="semibold">Insurance brokers & underwriters</Text>
+                                <Text size={300}>
+                                    Controlled document sharing between clients, insurers, and assessors.
+                                </Text>
+                            </li>
+                            <li>
+                                <Text weight="semibold">Claims management firms</Text>
+                                <Text size={300}>
+                                    Track document submissions with visibility and accountability.
+                                </Text>
+                            </li>
+                        </ul>
+                    </Card>
+
+                    {/* Legal & Regulatory */}
+                    <Card className={styles.whoForCard}>
+                        <CardHeader header={<Text weight="semibold">Legal & Regulatory</Text>}/>
+                        <ul className={styles.whoForList}>
+                            <li>
+                                <Text weight="semibold">Law firms & legal practices</Text>
+                                <Text size={300}>
+                                    Exchange contracts, affidavits, and sensitive legal documents with clients.
+                                </Text>
+                            </li>
+                            <li>
+                                <Text weight="semibold">Compliance & risk consultancies</Text>
+                                <Text size={300}>
+                                    Maintain verifiable audit trails for regulated workflows.
+                                </Text>
+                            </li>
+                            <li>
+                                <Text weight="semibold">Corporate secretarial services</Text>
+                                <Text size={300}>
+                                    Secure storage and exchange of statutory and company records.
+                                </Text>
+                            </li>
+                        </ul>
+                    </Card>
+
+                    {/* Corporate & Enterprise Operations */}
+                    <Card className={styles.whoForCard}>
+                        <CardHeader header={<Text weight="semibold">Corporate & Enterprise Operations</Text>}/>
+                        <ul className={styles.whoForList}>
+                            <li>
+                                <Text weight="semibold">Medium to large enterprises</Text>
+                                <Text size={300}>
+                                    Internal and external document sharing with verified parties.
+                                </Text>
+                            </li>
+                            <li>
+                                <Text weight="semibold">Procurement & vendor onboarding teams</Text>
+                                <Text size={300}>
+                                    Collect compliance documents from suppliers securely.
+                                </Text>
+                            </li>
+                            <li>
+                                <Text weight="semibold">HR & payroll departments</Text>
+                                <Text size={300}>
+                                    Exchange employee identity, tax, and contract documents safely.
+                                </Text>
+                            </li>
+                        </ul>
+                    </Card>
+
+                    {/* Small & Growing Businesses */}
+                    <Card className={styles.whoForCard}>
+                        <CardHeader header={<Text weight="semibold">Small & Growing Businesses</Text>}/>
+                        <ul className={styles.whoForList}>
+                            <li>
+                                <Text weight="semibold">SMEs handling customer data</Text>
+                                <Text size={300}>
+                                    A professional, secure alternative to email and generic file sharing.
+                                </Text>
+                            </li>
+                            <li>
+                                <Text weight="semibold">Startups in regulated industries</Text>
+                                <Text size={300}>
+                                    Compliance-ready document sharing without enterprise overhead.
+                                </Text>
+                            </li>
+                        </ul>
+                    </Card>
+
+                </section>
+
+            </section>
             {/* Final CTA */}
             <section className={styles.footerCta}>
                 <Text weight={"regular"} size={600}>Stop sending sensitive documents by email</Text>
