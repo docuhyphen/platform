@@ -1,0 +1,216 @@
+import {makeStyles, tokens, typographyStyles,} from "@fluentui/react-components";
+
+export const useSharingSessionStyles = makeStyles({
+
+    caption2: typographyStyles.caption2,
+    caption1: typographyStyles.caption1,
+    body1Strong: typographyStyles.body1Strong,
+
+    emptyState: {
+        display: "flex",
+        width: "100%",
+        height: "100%",
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: "60px",
+        boxSizing: "border-box"
+    },
+
+    skeletonRecipientEmail: {
+        width: "150px",
+    },
+
+    skeletonSessionName: {
+        flex: 1,
+        marginRight: "10px",
+    },
+
+    skeletonCreatedDate: {
+        width: "50px",
+        marginRight: "10px",
+    },
+
+    skeletonSessionDescription: {
+        flex: "1",
+        marginRight: "10px",
+    },
+
+    truncatedText: {
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        maxWidth: "100%"
+    },
+
+    sessionName: {
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        maxWidth: "calc(100% - 60px)"
+    },
+
+    sessionDescription: {
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        maxWidth: "100%",
+        width: "100%",
+    },
+
+    createdDate: {
+        width: "100px",
+        display: "flex",
+        justifyContent: "end",
+        alignItems: "center"
+    },
+
+    sharingSessionsListContainer: {
+        minWidth: "400px",
+        maxWidth: "400px",
+        border: "1px solid rgba(0, 0, 0, .1)",
+        position: "relative",
+        borderRadius: "4px",
+        background: "white",
+        display: "flex",
+        flexDirection: "column"
+    },
+
+    sharingSessionsListContainerCollapsed: {
+
+        minWidth: "60px",
+        maxWidth: "60px",
+        overflow: "hidden",
+        border: "1px solid rgba(0, 0, 0, .1)",
+        position: "relative",
+        borderRadius: "4px",
+        background: "white",
+        display: "flex",
+        flexDirection: "column",
+        "::after": {
+            content: "''",
+            position: "absolute",
+            right: "0",
+            top: "0",
+            width: "100%",
+            height: "calc(100% - 48px)",
+            background: "linear-gradient(to right, rgba(255, 255, 255, 0), white)",
+        }
+    },
+
+    sharingSessionsListHeader: {
+        background: "white",
+        boxShadow: "rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px",
+        width: "100%",
+        height: "48px",
+        padding: "8px",
+        boxSizing: "border-box",
+        display: "flex",
+        gap: "8px",
+    },
+
+    filterSearchField: {
+        flex: 1,
+    },
+
+    listCard: {
+        width: "100%",
+        padding: "8px",
+        borderBottom: "1px solid rgba(0, 0, 0, .1)",
+        boxSizing: "border-box"
+    },
+
+    listCardLastChild: {
+        borderBottom: "none",
+    },
+
+    listCardHover: {
+        transition: "all 0.1s ease",
+        background: "white",
+        borderLeft: "3px solid #4b6496",
+    },
+
+    sharingSessionsListFooter: {
+        background: "white",
+        padding: "8px",
+        fontSize: "12px",
+        width: "100%",
+        boxSizing: "border-box",
+        display: "flex",
+        justifyContent: "space-between",
+        boxShadow: "rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px -2px 4px",
+    },
+    footerControls: {
+        display: "flex"
+    },
+
+    sharingSessionsListBody: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "4px",
+        overflow: "auto",
+        height: "100%",
+        paddingTop: "2px",
+        boxSizing: "border-box",
+        scrollbarWidth: "thin",
+        scrollbarColor: "#888 #f1f1f1",
+        flex: 1,
+        minWidth: "380px"
+    },
+
+    sharingSessionsListBodyWebkitScrollbar: {
+        width: "12px",
+    },
+
+    sharingSessionsListBodyWebkitScrollbarTrack: {
+        background: "#f1f1f1",
+    },
+
+    sharingSessionsListBodyWebkitScrollbarThumb: {
+        backgroundColor: `${tokens.colorBrandForeground1}`,
+        borderRadius: "10px",
+        border: "3px solid #f1f1f1",
+    },
+
+    sharingSessionsListBodyWebkitScrollbarThumbHover: {
+        backgroundColor: `${tokens.colorBrandForeground1}`,
+    },
+
+    listCardItem: {
+        display: "flex",
+        flexDirection: "row",
+        gap: "12px",
+        boxSizing: "border-box",
+        maxWidth: "100%"
+    },
+
+    listCardItemDetails: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "4px",
+        flex: 1,
+        width: "calc(100% - 86px)"
+    },
+
+    listCardItemRow: {
+        display: "flex",
+        justifyContent: "space-between",
+        gap: "4px",
+    },
+
+    sharingSessionsListSelectedItem: {
+        background: "white",
+        borderLeft: "3px solid",
+        transition: "all 0.1s ease",
+        borderLeftColor: tokens.colorBrandForeground1,
+    },
+
+    sharingSessionsListItem: {
+        "&:hover": {
+            background: "white",
+            borderLeft: "3px solid",
+            borderLeftColor: tokens.colorBrandForeground1,
+            transition: "all 0.1s ease",
+        },
+    }
+});
