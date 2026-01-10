@@ -100,6 +100,25 @@ class SharingSessionDocumentService @Inject constructor(
     }
 
     @Transactional
+    fun updateDocument(
+        sessionId: String,
+        document: Document
+    ): Document
+    {
+        val sharingSession = getSharingSession(sessionId)
+        validateTitle(document.title)
+
+        if (document.isDeleted)
+        {
+            throw SharingSessionDocumentNotFoundException("Document not found")
+        }
+
+        sessionRepo.update(sharingSession)
+        auditService.logAction(document, DocumentAuditLogAction.UPDATE, authTokenContext.authToken.appUser!!)
+        return document
+    }
+
+    @Transactional
     fun uploadDocument(
         file: File?,
         extension: String?,
@@ -130,6 +149,8 @@ class SharingSessionDocumentService @Inject constructor(
         sessionRepo.update(sharingSession)
 
         fileStorageService.uploadDocument(file!!, "${document.id}$extension")
+        updateDocument(sessionId, document)
+
         auditService.logAction(document, DocumentAuditLogAction.UPLOAD, appUser)
 
         sendUploadNotification(sharingSession, appUser, document.title)
