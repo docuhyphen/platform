@@ -22,6 +22,10 @@ export const useAuthorizationStyles = makeStyles({
         borderRadius: "16px",
         boxShadow: "15px 15px 15px rgba(0, 0, 0, .1)",
         background: "rgb(255, 255, 255)",
+
+        "@media (max-width: 768px)": {
+            margin: "16px"
+        },
     },
     authSection1: {
         borderRadius: "16px 0 0 16px",
@@ -32,6 +36,10 @@ export const useAuthorizationStyles = makeStyles({
         flex: 1,
         padding: "38px",
         maxWidth: "50%",
+
+        "@media (max-width: 768px)": {
+            maxWidth: "100%",
+        },
     },
     authSection2: {
         borderRadius: "0 16px 16px 0",
@@ -42,6 +50,10 @@ export const useAuthorizationStyles = makeStyles({
         flex: 1,
         padding: "38px",
         maxWidth: "50%",
+
+        "@media (max-width: 768px)": {
+            display: "none",
+        },
     },
     commonAuthSection: {
         height: "100%",
