@@ -31,6 +31,9 @@ import {
 } from "../observable/sharingSessionObservables.ts";
 import SessionDocumentPreviewer from "./components/session-document-preview/SessionDocumentPreviewer.tsx";
 import SessionAcceptanceDialog from "./components/session-acceptance-dialog/SessionAcceptanceDialog.tsx";
+import SessionInitiationDialogTrigger
+    from "../sharing-session-initiation/components/session-initiation-dialog-trigger/SessionInitiationDialogTrigger.tsx";
+import useSharingSessionInitiatingState from "../sharing-session-initiation/hooks/useSharingSessionInitiatingState.ts";
 
 const SharingSessions: React.FC = () =>
 {
@@ -419,11 +422,17 @@ const SharingSessions: React.FC = () =>
             {!preparingSharingSessions && (appUserHasSessions) && renderSessionsSection()}
             {!preparingSharingSessions && (!appUserHasSessions) &&
                 <div className={styles.containerNoSessions}>
-                    <Text size={500}>You haven't shared documents with anyone yet.</Text>
-                    <Text size={500}>
-                        To get started, click <Text italic weight={"semibold"}>Start Sharing</Text> in the main menu and securely
+                    <Text size={500}
+                          weight={"semibold"}
+                          align={"center"}>
+                        You haven't shared documents with anyone yet.</Text>
+                    <Text size={300}
+                          align={"center"}>
+                        To get started, click
+                        <Text italic weight={"semibold"}> Start Sharing</Text> in the main menu and securely
                         share your documents.
                     </Text>
+                    <img alt={"no-sessions-image"} src={"/no-sessions.png"} className={styles.noSessionImg}/>
                 </div>
             }
         </>

@@ -64,7 +64,9 @@ class SignInResource @Inject constructor(
 
                 else ->
                 {
-                    Response.status(INTERNAL_SERVER_ERROR).entity(mapOf("error" to exception.message)).build()
+                    logger.error("Error initiating sign in", exception)
+                    val responseError = ResponseError("A server error occurred while signing in.")
+                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
             }
         }

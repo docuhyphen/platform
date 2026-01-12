@@ -86,11 +86,11 @@ class SignUpService @Inject constructor(
 
             emailService.sendEmail(
                 sanitized, "${configurationService.getAppEmailSubjectTitle()} | Sign Up", """
-            Thank you for signing up with Secure Document Share.
-            Here's the OTP you'll need to continue: $otp
+            Thank you for signing up with ${configurationService.getAppEmailSubjectTitle()}.
+            Here's the Verification code you'll need to continue: $otp
             Alternatively, you can click on this link: $emailConfirmationLink
             
-            NOTE: The OTP expires in $expirationMinutes minutes.
+            NOTE: The verification code expires in $expirationMinutes minutes.
         """.trimIndent()
             )
 

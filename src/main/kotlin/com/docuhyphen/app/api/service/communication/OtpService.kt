@@ -8,8 +8,7 @@ class OtpService
 {
     fun generateEmailOtp(): String
     {
-//        return (100000..999999).random().toString()
-        return "123456"
+        return (100000..999999).random().toString()
     }
 
     fun generateSmsOtp(): String

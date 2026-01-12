@@ -20,6 +20,8 @@ export const useSharingSessionsStyles = makeStyles({
         flexDirection: "column",
         justifyContent: "center",
         alignItems: "center",
+        maxWidth: "600px",
+        margin: "auto"
     },
     sharingSessionDocumentsContainer: {
         display: "flex",
@@ -64,5 +66,8 @@ export const useSharingSessionsStyles = makeStyles({
         gap: "8px",
         flex: "1",
         minWidth: "200px"
+    },
+    noSessionImg: {
+        width: "300px"
     },
 });

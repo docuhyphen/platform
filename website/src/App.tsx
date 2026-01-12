@@ -55,7 +55,7 @@ export default function App()
             <Title2 align={"center"} className={styles.sectionTitle}>The problem</Title2>
             <section className={styles.theProblemSection}>
                 <div>
-                    <img src={"/The-problem-image.png"} className={styles.theProblemImg}/>
+                    <img src={"/the-problem-image.png"} className={styles.theProblemImg}/>
                     <br/>
                     <Text italic={true}>
                         Traditional tools aren’t just inconvenient — they put sensitive information, your business, and
