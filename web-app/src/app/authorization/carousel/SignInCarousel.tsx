@@ -9,8 +9,8 @@ const SignInCarousel: React.FC = () =>
             description: "Ensure your password is long, complex, and unique for each account. Avoid using common words or personal information."
         },
         {
-            title: "Enable Two-Factor Authentication (2FA)",
-            description: "Add an extra layer of security by enabling 2FA. This helps prevent unauthorized access even if your password is compromised."
+            title: "Two-Factor Authentication (2FA)",
+            description: "Two-Factor Authentication (2FA) is enabled by default to add an extra layer of security. This helps prevent unauthorized access even if your password is compromised."
         },
         {
             title: "Beware of Phishing Attempts",
