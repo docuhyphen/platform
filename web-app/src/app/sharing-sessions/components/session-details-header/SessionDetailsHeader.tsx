@@ -133,7 +133,7 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                                         <MenuItem
                                             icon={<SessionDetailedViewIcon/>}
                                             onClick={() => setIsSessionDetailedViewDialogOpen(true)}>
-                                            Detailed View
+                                            Details
                                         </MenuItem>
                                         <Divider/>
                                         {sessionDetails.status === SharingSessionStatus.ACCEPTED_STARTED
