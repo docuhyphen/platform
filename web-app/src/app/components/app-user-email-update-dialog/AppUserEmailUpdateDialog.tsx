@@ -169,7 +169,7 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
                         </Field>
 
                         {updateInitiated && (
-                            <Field label="Verification Code">
+                            <Field label="Verification code">
                                 <Text size={200} block>
                                     A verification code has been sent to {email}. Please enter it below.
                                 </Text>

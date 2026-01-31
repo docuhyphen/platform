@@ -109,14 +109,14 @@ const BasicDetailsEditDialog: React.FC<BasicDetailsEditDialogProps> = (
                 <DialogContent className={styles.dialogContentContainer}>
                     {error && <div style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
 
-                    <Field label={"First Name"}>
+                    <Field label={"Your first name"}>
                         <Input type={"text"}
                                value={firstName}
                                maxLength={30}
                                onChange={(e) => setFirstName(e.target.value)}/>
                     </Field>
 
-                    <Field label={"Last Name"}>
+                    <Field label={"Your last name"}>
                         <Input type={"text"}
                                value={lastName}
                                maxLength={30}

@@ -4,7 +4,7 @@ import SignUpStatus
 
 class EmailNotFoundException() : Exception("Email not found")
 class InvalidOtpException(message: String? = "Invalid otp") : RuntimeException(message)
-class OtpRequiredException() : RuntimeException("Otp is required")
+class OtpRequiredException() : RuntimeException("Verification code is required")
 class PasswordMismatchException() : RuntimeException("Passwords do not match")
 class PasswordContainsEmailException() : RuntimeException("Passwords cannot contain email")
 class MaxAttemptsOTPExceededException(minutesTillNextAttempt: String) : RuntimeException(minutesTillNextAttempt)

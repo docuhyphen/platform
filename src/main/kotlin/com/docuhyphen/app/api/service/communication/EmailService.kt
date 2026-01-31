@@ -33,18 +33,28 @@ class EmailService @Inject constructor()
             .build()
     }
 
-    fun sendEmail(to: String, subject: String, body: String) {
+    fun sendEmail(to: String, subject: String, body: String, useHtml: Boolean? = false)
+    {
         val destination = Destination.builder()
             .toAddresses(to)
             .build()
 
+        val messageBody = if (useHtml == true)
+        {
+            Body.builder()
+                .html(Content.builder().data(body).charset("UTF-8").build())
+                .build()
+        }
+        else
+        {
+            Body.builder()
+                .text(Content.builder().data(body).charset("UTF-8").build())
+                .build()
+        }
+
         val message = Message.builder()
             .subject(Content.builder().data(subject).charset("UTF-8").build())
-            .body(
-                Body.builder()
-                    .text(Content.builder().data(body).charset("UTF-8").build())
-                    .build()
-            )
+            .body(messageBody)
             .build()
 
         val request = SendEmailRequest.builder()

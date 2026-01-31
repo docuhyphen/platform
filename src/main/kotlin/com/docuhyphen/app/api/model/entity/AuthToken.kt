@@ -25,7 +25,7 @@ class AuthToken {
     @Column(name = "expiry_date")
     var expiryDateTime: Timestamp? = null
 
-    @Column(name = "token", nullable = false)
+    @Column(name = "token", nullable = false, length = 2048)
     var token: String? = null
 
     @Column(name = "otp")

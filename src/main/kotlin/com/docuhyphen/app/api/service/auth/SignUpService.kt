@@ -87,7 +87,7 @@ class SignUpService @Inject constructor(
             emailService.sendEmail(
                 sanitized, "${configurationService.getAppEmailSubjectTitle()} | Sign Up", """
             Thank you for signing up with ${configurationService.getAppEmailSubjectTitle()}.
-            Here's the Verification code you'll need to continue: $otp
+            Here's the verification code you'll need to continue: $otp
             Alternatively, you can click on this link: $emailConfirmationLink
             
             NOTE: The verification code expires in $expirationMinutes minutes.
@@ -141,7 +141,7 @@ class SignUpService @Inject constructor(
                 val minutesRemaining = Duration.between(LocalDateTime.now(), lockEndTime).toMinutes() + 1
                 logger.warn("Sign up OTP regeneration failed: Account is locked. Minutes remaining: $minutesRemaining")
                 throw OtpMaxRetryLimitReachedException(
-                    "Account is temporarily locked. Please wait $minutesRemaining minutes before requesting a new OTP."
+                    "Account is temporarily locked. Please wait $minutesRemaining minutes before requesting a new verification code."
                 )
             }
             else
@@ -182,7 +182,9 @@ class SignUpService @Inject constructor(
 
             signUpRepository.update(signUpEntity)
             logger.warn("Sign up OTP regeneration failed: Cooldown period active. Minutes remaining: $minutesRemaining")
-            throw OtpRegenerationCooldownException("Please wait $minutesRemaining minutes before requesting a new OTP.")
+
+            val sInMinutesTxt = if(minutesRemaining > 0) "s" else ""
+            throw OtpRegenerationCooldownException("Please wait $minutesRemaining minute$sInMinutesTxt before requesting a new verification code.")
         }
 
         val newOtp = otpService.generateEmailOtp()
@@ -198,8 +200,8 @@ class SignUpService @Inject constructor(
 
         emailService.sendEmail(
             to = email,
-            subject = "${configurationService.getAppEmailSubjectTitle()} | Your OTP has been regenerated",
-            body = "Your new OTP is: $newOtp. It will expire in ${configurationService.getSignUpOtpExpiryMins()} minutes."
+            subject = "${configurationService.getAppEmailSubjectTitle()} | Sign Up verification code",
+            body = "Your verification code is: $newOtp. It will expire in ${configurationService.getSignUpOtpExpiryMins()} minutes."
         )
 
         logger.info("Sign up OTP regeneration successful")
@@ -318,7 +320,7 @@ class SignUpService @Inject constructor(
 
         if (minutesRemaining <= 0) {
             logger.warn("Sign up completion failed. Max attempts reached. Cooldown period expired.")
-            throw OTPExpiredException("Your OTP has expired, please request a new one.")
+            throw OTPExpiredException("Your verification code expired, please request a new one.")
         }
 
         // Max attempts reached - mark as expired_max_retries
@@ -337,7 +339,7 @@ class SignUpService @Inject constructor(
         if (signUpEntity.otpExpiryTimestamp.isBefore(LocalDateTime.now()))
         {
             logger.warn("Sign up completion failed. OTP expired.")
-            throw OTPExpiredException("Your OTP has expired")
+            throw OTPExpiredException("Your verification code has expired")
         }
 
         if (!BCrypt.checkpw(providedOtp, signUpEntity.otp))

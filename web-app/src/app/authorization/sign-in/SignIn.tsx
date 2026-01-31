@@ -93,7 +93,7 @@ const SignIn: React.FC = () =>
 
         if (!otp)
         {
-            setResponseErrorMessage("OTP is required.");
+            setResponseErrorMessage("Verification code is required.");
             return;
         }
 
@@ -228,7 +228,7 @@ const SignIn: React.FC = () =>
         <>
             <span>{signInInitiationSuccessfulMsg}</span>
 
-            <Field label={"Verification Code"}
+            <Field label={"Verification code"}
                    validationState={"none"}
                    validationMessage={""}
                    hint={resetOtpResponseMessage ? `${resetOtpResponseMessage}` : "A verification code has been sent to your email"}>
@@ -246,7 +246,7 @@ const SignIn: React.FC = () =>
                     className={globalStyles.buttonWithLoading}>
                 <>
                     {resendingOtp && <Spinner size={"tiny"}/>}
-                    Resend Verification Code
+                    Resend verification code
                 </>
             </Button>
         </>

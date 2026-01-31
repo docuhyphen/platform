@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.configuration.FreeMarkerConfig
 import com.docuhyphen.app.api.exception.InvalidOtpException
 import com.docuhyphen.app.api.exception.InvalidSignInCredentialsException
 import com.docuhyphen.app.api.exception.MaxAttemptsOTPExceededException
@@ -33,6 +34,7 @@ class SignInService @Inject constructor(
     private val emailService: EmailService,
 )
 {
+
     companion object
     {
         private val logger = LoggerFactory.getLogger(SignInService::class.java)
@@ -172,7 +174,6 @@ class SignInService @Inject constructor(
             }
         }
 
-
         mfaRecord.status = MultifactorAuthenticationStatus.COMPLETED
         mfaService.updateRecord(mfaRecord)
 
@@ -242,7 +243,7 @@ class SignInService @Inject constructor(
                 emailService.sendEmail(
                     to = mfaRecord.appUser!!.email,
                     subject = "${configurationService.getAppEmailSubjectTitle()} | Sign In Verification",
-                    body = """Your new verification code for your sign in is: $newOtp.
+                    body = """Your new sign in verification code is: $newOtp.
                             |It will expire in ${configurationService.getSignInEmailOtpMFAExpiryMins()} minutes.
                             |If you didn't request this code, please ignore this email.""".trimMargin()
                 )

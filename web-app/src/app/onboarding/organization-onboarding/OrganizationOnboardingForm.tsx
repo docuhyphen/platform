@@ -122,11 +122,11 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
             {(!appUserPersonOrganization) &&
                 <div className={styles.container}>
                     <Field
-                        label={"Organization Name"}
+                        label={"Your organization name"}
                         validationState={"none"}
                         validationMessage={""}>
                         <Input type="text"
-                               maxLength={30}
+                               maxLength={120}
                                value={organizationName}
                                onChange={onOrganizationNameChange}/>
                     </Field>
@@ -157,11 +157,11 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
                             validationState={"none"}
                             validationMessage={""}>
                             <Input type="text"
-                                   maxLength={30}
+                                   maxLength={120}
                                    value={organizationEmail}
                                    onChange={onOrganizationEmailChange}/>
                         </Field>
-                        <Checkbox label={"Use my email"}
+                        <Checkbox label={"Use my account sign in email"}
                                   onChange={onUseAppUserEmailCheck}/>
                     </div>
                     {!isOnDialog && renderRegisterButton()}

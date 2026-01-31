@@ -360,12 +360,12 @@ class SharingSessionDocumentService @Inject constructor(
     {
         if (sharingSession.initiator?.id != appUser.id && sharingSession.recipient?.id != appUser.id)
         {
-            throw IllegalArgumentException("User does not have permission to upload document")
+            throw IllegalArgumentException("Permission to upload document not granted")
         }
 
         if (sharingSession.initiator?.id != appUser.id && !sharingSession.allowDocumentUpload)
         {
-            throw IllegalArgumentException("User does not have permission to upload document")
+            throw IllegalArgumentException("Permission to upload document not granted")
         }
     }
 

@@ -60,10 +60,10 @@ class PasswordResetService @Inject constructor(
 
         emailService.sendEmail(
             email,
-            "${configurationService.getAppEmailSubjectTitle()} | Password reset",
+            "${configurationService.getAppEmailSubjectTitle()} | Account recovery",
             """
-                You have requested that your password be reset.
-                To continue, you will need this OTP $otp
+                You have requested to recover your account.
+                To continue, you will need this verification code $otp
             """.trimIndent()
         )
 
@@ -83,7 +83,7 @@ class PasswordResetService @Inject constructor(
 
         if (mfaRecord.expiryDateTime?.before(Timestamp.from(Instant.now())) == true)
         {
-            throw OTPExpiredException("The OTP has expired.").also {
+            throw OTPExpiredException("Your verification code has expired.").also {
                 logger.warn("Password reset failed. OTP expired for email: $email")
             }
         }

@@ -102,7 +102,7 @@ const SignUp: React.FC = () =>
     {
         if (!formData.otp)
         {
-            setFormErrorMessage("OTP is required");
+            setFormErrorMessage("Verification code is required");
             return false;
         }
 
@@ -228,7 +228,7 @@ const SignUp: React.FC = () =>
                     appearance={"transparent"}
                     className={globalStyles.buttonWithLoading}> {/* Use GlobalStyles */}
                 {regeneratingOtp && <Spinner size={"tiny"}/>}
-                Resend Verification Code
+                Resend verification code
             </Button>
         </>
     );
@@ -340,8 +340,10 @@ const SignUp: React.FC = () =>
                         </Text>
                         <Text align={"center"}
                               italic>
-                            Your Security is our priority, remember to setup your 2FA to help us keep your account
-                            secure, also remember to keep your password safe and secure with a trusted password manager.
+                            <strong> Your account is protected </strong>.
+                            Two-factor authentication (2FA) is enabled by default to enhance
+                            your account security. We also recommend keeping your password
+                            secure with a trusted password manager.
                         </Text>
                         <Button onClick={() => navigate("/sign-in")}
                                 appearance={"primary"}

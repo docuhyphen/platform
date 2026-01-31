@@ -76,7 +76,7 @@ const OnBoardingBreadcrumbs: React.FC<OnBoardingBreadcrumbsProps> = (
                 text="Your Profile"
                 isCurrentStep={isIndividualOnboarding}/>
             <BreadcrumbItem
-                text="Your Organizationn"
+                text="Your Organization"
                 weight={isOrgOnboarding ? "regular" : "semibold"}
                 disabled={!registerOrganization}
                 isCurrentStep={isOrgOnboarding}

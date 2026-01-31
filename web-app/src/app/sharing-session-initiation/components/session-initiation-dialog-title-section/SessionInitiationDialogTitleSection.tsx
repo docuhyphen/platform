@@ -31,7 +31,7 @@ const SessionInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = (
             <div className={styles.dialogTitle1}>
                 {!sessionInitiatedSuccessfully &&
                     <Text size={500}>
-                        {(requestingDocuments) ? "Requesting " : "Sending "} Documents
+                        {(requestingDocuments) ? "Request" : "Send "} Documents
                     </Text>
                 }
                 {/*<Button size={"small"}>*/}

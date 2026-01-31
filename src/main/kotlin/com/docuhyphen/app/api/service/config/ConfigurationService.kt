@@ -21,7 +21,7 @@ class ConfigurationService
     fun getPasswordResetOtpExpiryMins(): Long = 10
     fun getMaxOtpRequestsPerMinute() = 5L
     fun getJwtSecret() =
-        "myverysecurekeythatis32byteslong" //ToDo: store in a secure location get from environment variable or AWS Secrets Manager
+        "myverysecurekeythatis32byteslong*)&GAS&G_A(&F9*FDA(&_FD_A(&F+(D&FA" //ToDo: store in a secure location get from environment variable or AWS Secrets Manager
 
 //    fun getJwtSecret(): String = System.getenv("JWT_SECRET") ?: throw IllegalStateException("JWT_SECRET not set")
 }

@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.communication
 
+import com.docuhyphen.app.api.configuration.FreeMarkerConfig
 import com.docuhyphen.app.api.model.dto.MfaSessionDto
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.MfaRecord
@@ -9,7 +10,9 @@ import com.docuhyphen.app.api.repository.MfaRecordRepository
 import com.docuhyphen.app.api.service.auth.PasskeyService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.ApplicationScoped
+import jakarta.inject.Inject
 import jakarta.transaction.Transactional
+import java.io.StringWriter
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
@@ -25,6 +28,9 @@ class MfaService(
     private val otpService: OtpService,
 )
 {
+    @Inject
+    lateinit var freeMarkerConfig: FreeMarkerConfig
+
     @Transactional
     fun createMfaSession(user: AppUser, mfaType: MultifactorAuthenticationType, ipAddress: String): MfaSessionDto
     {
@@ -110,12 +116,21 @@ class MfaService(
 
     fun doEmailMFA(appUser: AppUser, mfaToken: String)
     {
+        val template = freeMarkerConfig.configuration.getTemplate("sign-in-email-MFA.ftl")
+
+        val model = mapOf(
+            "verificationCode" to mfaToken,
+            "expiryMinutes" to configurationService.getSignInEmailOtpMFAExpiryMins()
+        )
+
+        val writer = StringWriter()
+        template.process(model, writer)
+
         emailService.sendEmail(
             to = appUser.email,
-            subject = "${configurationService.getAppEmailSubjectTitle()} | Sign In OTP",
-            body = """Your OTP for sign in is: $mfaToken. 
-                            |It will expire in ${configurationService.getSignInEmailOtpMFAExpiryMins()} minutes.
-                            |If you didn't request this code, please ignore this email.""".trimMargin()
+            subject = "${configurationService.getAppEmailSubjectTitle()} | Sign In",
+            body = writer.toString(),
+            useHtml = true
         )
     }
 

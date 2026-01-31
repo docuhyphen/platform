@@ -140,7 +140,6 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
             }
             else
             {
-                alert("Onboarding Individual")
                 navigate('/sharing-sessions');
             }
         }

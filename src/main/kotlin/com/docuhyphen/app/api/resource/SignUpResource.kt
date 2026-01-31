@@ -39,7 +39,7 @@ class SignUpResource @Inject constructor(
             signUpService.initiateSignUp(payload.email.toString().trim().lowercase())
 
             val signUpInitiateResponse =
-                SignUpInitiateResponse(message = "We have sent you a verification code to confirm your email.")
+                SignUpInitiateResponse(message = "We've sent you a verification code to confirm your email.")
             Response.ok(signUpInitiateResponse).build()
         }
         catch (exception: Exception)
@@ -133,7 +133,7 @@ class SignUpResource @Inject constructor(
         {
             signUpService.regenerateOtp(request.email)
             val otpRegenerationResponse =
-                SignUpCompletionResponse("OTP regenerated successfully")
+                SignUpCompletionResponse("Verification resent successfully")
             Response.ok(otpRegenerationResponse).build()
         }
         catch (exception: Exception)

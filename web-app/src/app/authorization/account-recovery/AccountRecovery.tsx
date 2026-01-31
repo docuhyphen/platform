@@ -74,7 +74,7 @@ const AccountRecovery: React.FC = () =>
         {
             await initiatePasswordReset({email: formData.email});
             setPwdResetInitiationSuccessful(true);
-            setPwdResetSuccessfulMsg("If you have an account with us, an OTP has been sent to your email address.");
+            setPwdResetSuccessfulMsg("If you have an account with us, a verification code has been sent to your email address.");
         }
         catch (error)
         {
@@ -182,7 +182,7 @@ const AccountRecovery: React.FC = () =>
     const renderOtpSection = () => (
         <>
             <Field
-                label={"OTP"}
+                label={"Verification code"}
                 validationState={otpRegenerationFailedMsg ? "error" : (otpRegenerationSuccessfulMsg ? "success" : "none")}
                 validationMessage={otpRegenerationFailedMsg || otpRegenerationSuccessfulMsg}>
                 <Input type="text"
@@ -198,7 +198,7 @@ const AccountRecovery: React.FC = () =>
                     appearance={"transparent"}
                     className={globalStyles.buttonWithLoading}>
                 {regeneratingOtp && <Spinner size={"tiny"}/>}
-                Resend OTP
+                Resend verification code
             </Button>
         </>
     );
@@ -319,16 +319,10 @@ const AccountRecovery: React.FC = () =>
                                 <Text align={"center"} size={300}>
                                     Your password has been updated successfully.
                                 </Text>
-                                <Text align={"center"} italic>
-                                    For added security, consider enabling 2FA to protect your account. Also, ensure your
-                                    new password is
-                                    strong and stored securely in a trusted password manager.
-                                </Text>
                                 <Button onClick={() => navigate("/sign-in")} appearance={"primary"} shape={"circular"}>
                                     Sign In
                                 </Button>
                             </section>
-                            <div>.</div>
                         </>
                     }
                 </section>

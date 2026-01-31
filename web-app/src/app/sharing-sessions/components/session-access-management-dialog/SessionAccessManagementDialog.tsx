@@ -117,7 +117,7 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
                                             className={globalStyles.buttonWithLoading}
                                             appearance={"transparent"}>
                                         {/*<Spinner size={"tiny"}/>*/}
-                                        Resend OTP
+                                        Send one time password
                                     </Button>
                                 }
                             </div>

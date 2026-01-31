@@ -69,7 +69,6 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
         console.log(processing, contactDetails)
         if (processing || !contactDetails?.id) return;
 
-        alert("")
         if (!phoneNumber)
         {
             setError("Phone number is required");

@@ -147,7 +147,7 @@ class SignInResource @Inject constructor(
 
                 else ->
                 {
-                    val responseError = ResponseError("Something went wrong while trying to resend OTP.")
+                    val responseError = ResponseError("Something went wrong while trying to resend verification code.")
                     logger.error("Error resending OTP", exception)
                     Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
