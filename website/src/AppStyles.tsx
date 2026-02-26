@@ -6,7 +6,6 @@ export const appStyles = makeStyles({
         position: "relative",
         display: "flex",
         flexDirection: "column",
-        gap: "32px",
         width: "100%",
         overflow: "hidden",
         backgroundColor: "#f8faff",
@@ -33,10 +32,25 @@ export const appStyles = makeStyles({
         },
     },
 
+    sectionContainerWrapper: {
+
+        padding: "24px 32px",
+        boxSizing: "border-box",
+
+        "@media (max-width: 768px)": {
+            padding: "16px 32x",
+        },
+    },
 
     mainMenuContainer: {
 
-        background: "rgba(255, 255, 255, 0.4)"
+        background: "rgba(255, 255, 255, 0.6)",
+        padding: "0 32px",
+        boxSizing: "border-box",
+
+        "@media (max-width: 768px)": {
+            padding: "0px 16px",
+        },
     },
 
     mainMenu: {
@@ -47,30 +61,25 @@ export const appStyles = makeStyles({
         maxWidth: "100%",
         margin: "0 auto",
         justifyContent: "space-between",
-        padding: "16px",
+        padding: "16px 0"
+    },
+
+    section1ContainerWrapper: {
+        background: `linear-gradient(180deg, #f7efe9 50%, #ffffff 100%)`,
+        width: "100%",
     },
 
     section1Container: {
-        background: `
-      linear-gradient(
-        180deg,
-        #f7efe9 50%,
-        #ffffff 100%)`,
-        width: "100%",
-        padding: 0
-    },
-
-    section1Intro: {
         display: "flex",
         flexDirection: "column",
         gap: "16px",
         maxWidth: "960px",
         margin: "0 auto",
-        padding: "120px 24px",
+        padding: "120px 0px",
         textAlign: "center",
 
         "@media (max-width: 768px)": {
-            padding: "32px 16px",
+            padding: "32px 0px",
         },
     },
 
@@ -97,6 +106,11 @@ export const appStyles = makeStyles({
         flexWrap: "wrap",
         gap: "16px",
         marginTop: "24px",
+
+        "@media (max-width: 768px)": {
+            flexDirection: "column",
+            gap: "8px"
+        },
     },
 
     section2ContainerWrapper: {
@@ -114,24 +128,22 @@ export const appStyles = makeStyles({
         display: "flex",
         alignItems:"center",
         "& > :first-child": {
-            flex: "0 0 50%",   // don't grow, don't shrink, 40% width
+            flex: "0 0 50%",
         },
 
         "& > :last-child": {
-            flex: "0 0 50%",   // don't grow, don't shrink, 60% width
+            flex: "0 0 50%",
         },
 
         "@media (max-width: 768px)": {
             flexDirection: "column",
             gap: "16px",
-            padding: "0 16px",
         },
     },
 
     section3ContainerWrapper: {
         display: "flex",
         flexDirection: "row",
-        gap: "24px",
         maxWidth: "960px",
         margin: "0 auto",
         alignItems: "flex-start",
@@ -139,44 +151,48 @@ export const appStyles = makeStyles({
         "@media (max-width: 768px)": {
             flexDirection: "column",
             gap: "16px",
-            padding: "0 16px",
         },
     },
 
     section3Container: {
-        display: "flex",
-        flexDirection: "column",
-        gap: "12px",
 
-        "& ul": {
-            margin: 0,
-            padding: 0,
-            listStyle: "none",
-            display: "flex",
-            gap: "28px",
+        display: "grid",
+        gap: "24px",
+        gridTemplateColumns: "repeat(2, 1fr)",
 
-            "& li": {
-                padding: "24px",
-                borderRadius: "12px"
-            },
-            "& li:nth-child(1)": {
-                backgroundColor: "#F2F7FB",
-                borderLeft: "4px solid #5B9BD5"
-            },
-            "& li:nth-child(2)": {
-                backgroundColor: "#F6F4FA",
-                borderLeft: "4px solid #8E7CC3"
-            },
-            "& li:nth-child(3)": {
-                backgroundColor: "#F1F9F7",
-                borderLeft: "4px solid #4FB3A8"
-            },
-            "& li:nth-child(4)": {
-                backgroundColor: "#FBF7F1",
-                borderLeft: "4px solid #C7A76C"
-            },
-        }
+        "@media (max-width: 768px)": {
+            gridTemplateColumns: "1fr",
+            gap: "16px",
+        },
+    },
 
+    section3Card: {
+        padding: "24px",
+        borderRadius: "12px"
+    },
+
+    section3Card1: {
+
+        backgroundColor: "#F2F7FB",
+        borderLeft: "4px solid #5B9BD5"
+    },
+
+    section3Card2: {
+
+        backgroundColor: "#F6F4FA",
+        borderLeft: "4px solid #8E7CC3"
+    },
+
+    section3Card3: {
+
+        backgroundColor: "#F1F9F7",
+        borderLeft: "4px solid #4FB3A8"
+    },
+
+    section3Card4: {
+
+        backgroundColor: "#FBF7F1",
+        borderLeft: "4px solid #C7A76C"
     },
 
     section3CardTitleContainer: {
@@ -185,16 +201,41 @@ export const appStyles = makeStyles({
         minHeight: "48px"
     },
 
-    theSolutionSection: {
+    section4ContainerWrapper: {
+
+        display: "flex",
+        gap: "24px",
+        maxWidth: "960px",
+        margin: "0 auto",
+        alignItems: "flex-start",
+    },
+
+    section4Container: {
+        flexDirection: "column",
+        display: "flex",
+        "& > :first-child": {
+            flex: "0 0 50%",
+        },
+
+        "& > :last-child": {
+            flex: "0 0 50%",
+        },
+
+        "@media (max-width: 768px)": {
+            flexDirection: "column",
+            gap: "16px",
+        },
+    },
+
+    section5ContainerWrapper: {
         display: "flex",
         flexDirection: "column",
         gap: "16px",
-        maxWidth: "960px",
+    },
+
+    section5Container: {
         margin: "0 auto",
-        padding: "0 16px",
-    },
-
-    cards: {
+        maxWidth: "960px",
         display: "grid",
         gridTemplateColumns: "repeat(2, 1fr)",
         gap: "24px",
@@ -204,39 +245,16 @@ export const appStyles = makeStyles({
         },
     },
 
-    solutionSection: {
-        display: "grid",
-        gridTemplateColumns: "repeat(2, 1fr)",
-        gap: "24px",
-        "@media (max-width: 768px)": {
-            gridTemplateColumns: "1fr",
-            gap: "16px",
-        },
+    section6ContainerWrapper: {
+        backgroundColor: `${tokens.colorBrandForeground1}`,
     },
 
-    footerCta: {
-        textAlign: "center",
-        padding: "48px 16px",
-        background: `
-      linear-gradient(
-        -360deg,
-        #f7efe9 0%,
-        #ffffff 100%)`,
-    },
-
-
-    sectionTitle: {
-        color: "#4c6495",
-        fontWeight: "normal",
-    },
-
-    forWhoSection: {
-        padding: "16px",
+    section6Container: {
+        margin: "0 auto",
+        maxWidth: "960px",
         color: "white",
-        marginTop: "0",
         display: "flex",
         flexDirection: "column",
-        backgroundColor: `${tokens.colorBrandForeground1}`,
     },
 
     noWrap: {
@@ -249,15 +267,27 @@ export const appStyles = makeStyles({
 
     whoForGrid: {
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
         gap: "24px",
         margin: "24px 0",
-        justifyItems: "center", // centers cards in their grid cell
+        justifyItems: "center",
+        gridTemplateColumns: "repeat(2, 1fr)",
+
+        "@media (max-width: 768px)": {
+            gridTemplateColumns: "1fr",
+            gap: "16px",
+        },
+        // "@media (min-width: 640px)": {
+        //     gridTemplateColumns: "repeat(2, 1fr)",
+        // },
+        //
+        // "@media (min-width: 1200px)": {
+        //     gridTemplateColumns: "repeat(4, 1fr)",
+        // },
     },
 
     whoForCard: {
         width: "100%",
-        maxWidth: "320px", // keeps cards visually consistent
+        // maxWidth: "320px", // keeps cards visually consistent
     },
 
     whoForList: {
@@ -279,5 +309,31 @@ export const appStyles = makeStyles({
         textAlign: "center",
         maxWidth: "700px",
         margin: "0 auto",
+    },
+
+    solutionSection: {
+        display: "grid",
+        gridTemplateColumns: "repeat(2, 1fr)",
+        gap: "24px",
+        "@media (max-width: 768px)": {
+            gridTemplateColumns: "1fr",
+            gap: "16px",
+        },
+    },
+
+    footerCta: {
+        textAlign: "center",
+        padding: "48px 16px",
+        background: `linear-gradient(-360deg, #f7efe9 0%, #ffffff 100%)`,
+    },
+
+    sectionTitle: {
+        color: tokens.colorBrandForeground1,
+        fontWeight: tokens.fontWeightSemibold,
+
+        // "@media (max-width: 768px)": {
+        //     fontSize: "1.5rem",
+        //     lineHeight: "1.5rem"
+        // }
     },
 });

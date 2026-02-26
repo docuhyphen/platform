@@ -3,21 +3,10 @@ import {
     Title2,
     Text,
     Card,
-    CardHeader, CounterBadge, Badge, TabList, type SelectTabEvent, type SelectTabData, type TabValue, Tab, Title3,
-    Title1, Divider, LargeTitle,
+    CardHeader, Badge, Divider, LargeTitle, mergeClasses,
 } from "@fluentui/react-components";
 import AppLogo from "./app-logo/AppLogo.tsx";
 import {appStyles} from "./AppStyles.tsx";
-import {
-    DocumentLockColor,
-    History24Regular, HistoryColor,
-    LockShieldColor, ScanPersonColor,
-    ScanText24Filled,
-    ShareAndroidColor,
-    Shield24Filled
-} from "@fluentui/react-icons";
-import {Share24Filled} from "@fluentui/react-icons/fonts";
-import React from "react";
 
 export default function App()
 {
@@ -25,23 +14,23 @@ export default function App()
 
     return (
         <main className={styles.page}>
-            <section className={styles.section1Container}>
-                <section className={styles.mainMenuContainer}>
-                    <section className={styles.mainMenu}>
-                        <AppLogo/>
-                        <div>
-                            <Button appearance="outline"
-                                    as="a"
-                                    className={styles.btnLong}
-                                    target={"_blank"}
-                                    shape={"circular"}
-                                    href="https://app.docuhyphen.com/sign-in">
-                                Sign In
-                            </Button>
-                        </div>
-                    </section>
+            <section className={styles.mainMenuContainer}>
+                <section className={styles.mainMenu}>
+                    <AppLogo/>
+                    <div>
+                        <Button appearance="subtle"
+                                as="a"
+                                className={styles.btnLong}
+                                target={"_blank"}
+                                shape={"circular"}
+                                href="https://app.docuhyphen.com/sign-in">
+                            Sign In
+                        </Button>
+                    </div>
                 </section>
-                <section className={styles.section1Intro}>
+            </section>
+            <section className={mergeClasses(styles.sectionContainerWrapper, styles.section1ContainerWrapper)}>
+                <section className={styles.section1Container}>
                     <LargeTitle align="center"
                                 className={styles.section1Title}>
                         Welcome to{" "}
@@ -75,8 +64,7 @@ export default function App()
                     </div>
                 </section>
             </section>
-
-            <section className={styles.section2ContainerWrapper}>
+            <section className={mergeClasses(styles.sectionContainerWrapper, styles.section2ContainerWrapper)}>
                 <div className={styles.section2Container}>
                     <Title2 align={"start"}
                             className={styles.sectionTitle}>
@@ -98,99 +86,86 @@ export default function App()
                 </div>
             </section>
 
-            <section className={styles.section3ContainerWrapper}>
+            <section className={mergeClasses(styles.sectionContainerWrapper, styles.section3ContainerWrapper)}>
                 <div className={styles.section3Container}>
-                    <ul>
-                        <li>
-                            <div>
-                                <Text weight="semibold"
-                                      className={styles.section3CardTitleContainer}>
-                                    <Badge size={"large"}
-                                           appearance={"filled"}> 1 </Badge>
-                                    High risk of unauthorized access
-                                </Text><br/>
-                                <Text>
-                                    Sensitive documents can be intercepted, forwarded
-                                    without permission, downloaded to unsecured devices,
-                                    or stored indefinitely in inboxes and shared drives.
-                                    Once sent, control is lost.
-                                </Text>
-                            </div>
-                        </li>
-
-                        <li>
-                            <div>
-                                <Text weight="semibold"
-                                      className={styles.section3CardTitleContainer}>
-                                    <Badge size={"large"}
-                                           appearance={"filled"}> 2 </Badge>
-                                    Uncontrolled document distribution
-                                </Text><br/>
-                                <Text>
-                                    Links can be forwarded. Emails can be mistyped.
-                                    Attachments can be duplicated and redistributed.
-                                    There’s no reliable way to verify the intended
-                                    recipient or restrict downstream sharing.
-                                </Text>
-                            </div>
-                        </li>
-
-                        <li>
-                            <div>
-                                <Text weight="semibold"
-                                      className={styles.section3CardTitleContainer}>
-                                    <Badge size={"large"}
-                                           appearance={"filled"}>
-                                        3
-                                    </Badge>
-                                    No defensible audit trail
-                                </Text>
-                                <br/>
-                                <Text>
-                                    Most tools provide little visibility into who accessed documents,
-                                    when they were accessed, or what actions were taken.
-                                    When disputes or investigations arise, proof is often unavailable.
-                                </Text>
-                            </div>
-                        </li>
-
-                        <li>
-                            <div>
-                                <Text weight="semibold"
-                                      className={styles.section3CardTitleContainer}>
-                                    <Badge size={"large"}
-                                           appearance={"filled"}>
-                                        4
-                                    </Badge>
-                                    Regulatory exposure (POPIA, GDPR & similar laws)
-                                </Text>
-                                <br/>
-                                <Text>
-                                    Data protection regulations require secure processing, controlled
-                                    access, and demonstrable accountability. Without encryption, access
-                                    control, and detailed logging, organizations risk fines, legal exposure,
-                                    and reputational damage.
-                                </Text>
-                            </div>
-                        </li>
-                    </ul>
+                    <div className={mergeClasses(styles.section3Card, styles.section3Card1)}>
+                        <Text weight="semibold"
+                              className={styles.section3CardTitleContainer}>
+                            <Badge size={"large"}
+                                   appearance={"filled"}> 1 </Badge>
+                            High risk of unauthorized access
+                        </Text>
+                        <Text>
+                            Sensitive documents can be intercepted, forwarded
+                            without permission, downloaded to unsecured devices,
+                            or stored indefinitely in inboxes and shared drives.
+                            Once sent, control is lost.
+                        </Text>
+                    </div>
+                    <div className={mergeClasses(styles.section3Card, styles.section3Card2)}>
+                        <Text weight="semibold"
+                              className={styles.section3CardTitleContainer}>
+                            <Badge size={"large"}
+                                   appearance={"filled"}> 2 </Badge>
+                            Uncontrolled document distribution
+                        </Text>
+                        <Text>
+                            Links can be forwarded. Emails can be mistyped.
+                            Attachments can be duplicated and redistributed.
+                            There’s no reliable way to verify the intended
+                            recipient or restrict downstream sharing.
+                        </Text>
+                    </div>
+                    <div className={mergeClasses(styles.section3Card, styles.section3Card3)}>
+                        <Text weight="semibold"
+                              className={styles.section3CardTitleContainer}>
+                            <Badge size={"large"}
+                                   appearance={"filled"}>
+                                3
+                            </Badge>
+                            No defensible audit trail
+                        </Text>
+                        <Text>
+                            Most tools provide little visibility into who accessed documents,
+                            when they were accessed, or what actions were taken.
+                            When disputes or investigations arise, proof is often unavailable.
+                        </Text>
+                    </div>
+                    <div className={mergeClasses(styles.section3Card, styles.section3Card4)}>
+                        <Text weight="semibold"
+                              className={styles.section3CardTitleContainer}>
+                            <Badge size={"large"}
+                                   appearance={"filled"}>
+                                4
+                            </Badge>
+                            Regulatory exposure (POPIA, GDPR & similar laws)
+                        </Text>
+                        <Text>
+                            Data protection regulations require secure processing, controlled
+                            access, and demonstrable accountability. Without encryption, access
+                            control, and detailed logging, organizations risk fines, legal exposure,
+                            and reputational damage.
+                        </Text>
+                    </div>
                 </div>
             </section>
 
             <Divider></Divider>
 
-            <Title2 align={"center"}
-                    className={styles.sectionTitle}>
-                Secure, Controlled & Compliant Document Exchange
-            </Title2>
-
-            <section className={styles.theSolutionSection}>
-                <Text align="center" size={500}>
-                    A purpose-built platform designed specifically for exchanging
-                    sensitive business and customer documents — securely, transparently,
-                    and compliantly.
-                </Text>
-                <div className={styles.cards}>
+            <section className={mergeClasses(styles.sectionContainerWrapper, styles.section4ContainerWrapper)}>
+                <section className={styles.section4Container}>
+                    <Title2 className={styles.sectionTitle}>
+                        Secure, Controlled & Compliant Document Exchange
+                    </Title2>
+                    <Text size={500}>
+                        A purpose-built platform designed specifically for exchanging
+                        sensitive business and customer documents, securely, transparently,
+                        and compliantly.
+                    </Text>
+                </section>
+            </section>
+            <section className={mergeClasses(styles.sectionContainerWrapper, styles.section5ContainerWrapper)}>
+                <div className={styles.section5Container}>
                     <Card appearance="filled-alternative">
                         <CardHeader header={
                             <Badge size={"extra-large"}
@@ -243,168 +218,169 @@ export default function App()
                 </div>
             </section>
 
-            <section className={styles.forWhoSection}>
-                <Title2 align="center">
-                    Who This Platform Is Built For...
-                </Title2>
+            <section className={mergeClasses(styles.sectionContainerWrapper, styles.section6ContainerWrapper)}>
+                <section className={styles.section6Container}>
+                    <Title2 align="center">
+                        Who This Platform Is Built For...
+                    </Title2>
 
-                <Text className={styles.whoForSubtitle} size={500}>
-                    Built for organizations that handle sensitive documents
-                    and require security, compliance, and accountability.
-                </Text>
+                    <Text className={styles.whoForSubtitle} size={500}>
+                        Built for organizations that handle sensitive documents
+                        and require security, compliance, and accountability.
+                    </Text>
 
-                <section className={styles.whoForGrid}>
+                    <section className={styles.whoForGrid}>
 
-                    <Card className={styles.whoForCard}>
-                        <CardHeader header={
-                            <Badge size={"extra-large"}
-                                   appearance={"tint"}>
-                                <Text weight={"bold"}> Financial & Professional Services</Text>
-                            </Badge>}/>
-                        <ul className={styles.whoForList}>
-                            <li>
-                                <Text weight="semibold">
-                                    Accounting & audit firms
-                                </Text>
-                                <Text size={300}>
-                                    Secure exchange of tax records, financial statements,
-                                    and supporting documents.
-                                </Text>
-                            </li>
-                            <li>
-                                <Text weight="semibold">
-                                    Financial advisors & wealth managers
-                                </Text>
-                                <Text size={300}>
-                                    Protect client identity and financial data while maintaining
-                                    full audit trails.
-                                </Text>
-                            </li>
-                            <li>
-                                <Text weight="semibold">
-                                    Banks & lending institutions
-                                </Text>
-                                <Text size={300}>
-                                    Collect and share KYC, income verification, and compliance
-                                    documents securely.
-                                </Text>
-                            </li>
-                        </ul>
-                    </Card>
-
-                    <Card className={styles.whoForCard}>
-                        <CardHeader header={
-                            <Badge size={"extra-large"}
-                                   appearance={"tint"}>
-                                <Text weight={"bold"}> Insurance & Risk Management </Text>
-                            </Badge>}/>
-                        <ul className={styles.whoForList}>
-                            <li>
-                                <Text weight="semibold">
-                                    Insurance companies
-                                </Text>
-                                <Text size={300}>
-                                    Secure handling of policy documents, claims, and customer identity records.
-                                </Text>
-                            </li>
-                            <li>
-                                <Text weight="semibold">
-                                    Insurance brokers & underwriters
-                                </Text>
-                                <Text size={300}>
-                                    Controlled document sharing between clients, insurers, and assessors.
-                                </Text>
-                            </li>
-                            <li>
-                                <Text weight="semibold">
-                                    Claims management firms
-                                </Text>
-                                <Text size={300}>
-                                    Track document submissions with visibility and accountability.
-                                </Text>
-                            </li>
-                        </ul>
-                    </Card>
-
-                    {/* Legal & Regulatory */}
-                    <Card className={styles.whoForCard}>
-                        <CardHeader
-                            header={
+                        <Card className={styles.whoForCard}>
+                            <CardHeader header={
                                 <Badge size={"extra-large"}
                                        appearance={"tint"}>
-                                    <Text weight={"bold"}> Legal & Regulatory</Text>
+                                    <Text weight={"bold"}> Financial & Professional Services</Text>
                                 </Badge>}/>
-                        <ul className={styles.whoForList}>
-                            <li>
-                                <Text weight="semibold">
-                                    Law firms & legal practices
-                                </Text>
-                                <Text size={300}>
-                                    Exchange contracts, affidavits, and sensitive
-                                    legal documents with clients.
-                                </Text>
-                            </li>
-                            <li>
-                                <Text weight="semibold">
-                                    Compliance & risk consultancies
-                                </Text>
-                                <Text size={300}>
-                                    Maintain verifiable audit trails for regulated workflows.
-                                </Text>
-                            </li>
-                            <li>
-                                <Text weight="semibold">
-                                    Corporate secretarial services
-                                </Text>
-                                <Text size={300}>
-                                    Secure storage and exchange of statutory and company records.
-                                </Text>
-                            </li>
-                        </ul>
-                    </Card>
+                            <ul className={styles.whoForList}>
+                                <li>
+                                    <Text weight="semibold">
+                                        Accounting & audit firms
+                                    </Text>
+                                    <Text size={300}>
+                                        Secure exchange of tax records, financial statements,
+                                        and supporting documents.
+                                    </Text>
+                                </li>
+                                <li>
+                                    <Text weight="semibold">
+                                        Financial advisors & wealth managers
+                                    </Text>
+                                    <Text size={300}>
+                                        Protect client identity and financial data while maintaining
+                                        full audit trails.
+                                    </Text>
+                                </li>
+                                <li>
+                                    <Text weight="semibold">
+                                        Banks & lending institutions
+                                    </Text>
+                                    <Text size={300}>
+                                        Collect and share KYC, income verification, and compliance
+                                        documents securely.
+                                    </Text>
+                                </li>
+                            </ul>
+                        </Card>
 
-                    <Card className={styles.whoForCard}>
-                        <CardHeader header={
-                            <Badge size={"extra-large"}
-                                   appearance={"tint"}>
-                                <Text weight={"bold"}> Corporate & Enterprise Operations</Text>
-                            </Badge>}/>
-                        <ul className={styles.whoForList}>
-                            <li>
-                                <Text weight="semibold">
-                                    Medium to large enterprises
-                                </Text>
-                                <Text size={300}>
-                                    Internal and external document sharing with verified parties.
-                                </Text>
-                            </li>
-                            <li>
-                                <Text weight="semibold">
-                                    Procurement & vendor onboarding teams
-                                </Text>
-                                <Text size={300}>
-                                    Collect compliance documents from suppliers securely.
-                                </Text>
-                            </li>
-                            <li>
-                                <Text weight="semibold">
-                                    HR & payroll departments
-                                </Text>
-                                <Text size={300}>
-                                    Exchange employee identity, tax, and contract documents safely.
-                                </Text>
-                            </li>
-                        </ul>
-                    </Card>
+                        <Card className={styles.whoForCard}>
+                            <CardHeader header={
+                                <Badge size={"extra-large"}
+                                       appearance={"tint"}>
+                                    <Text weight={"bold"}> Insurance & Risk Management </Text>
+                                </Badge>}/>
+                            <ul className={styles.whoForList}>
+                                <li>
+                                    <Text weight="semibold">
+                                        Insurance companies
+                                    </Text>
+                                    <Text size={300}>
+                                        Secure handling of policy documents, claims, and customer identity records.
+                                    </Text>
+                                </li>
+                                <li>
+                                    <Text weight="semibold">
+                                        Insurance brokers & underwriters
+                                    </Text>
+                                    <Text size={300}>
+                                        Controlled document sharing between clients, insurers, and assessors.
+                                    </Text>
+                                </li>
+                                <li>
+                                    <Text weight="semibold">
+                                        Claims management firms
+                                    </Text>
+                                    <Text size={300}>
+                                        Track document submissions with visibility and accountability.
+                                    </Text>
+                                </li>
+                            </ul>
+                        </Card>
+
+                        {/* Legal & Regulatory */}
+                        <Card className={styles.whoForCard}>
+                            <CardHeader
+                                header={
+                                    <Badge size={"extra-large"}
+                                           appearance={"tint"}>
+                                        <Text weight={"bold"}> Legal & Regulatory</Text>
+                                    </Badge>}/>
+                            <ul className={styles.whoForList}>
+                                <li>
+                                    <Text weight="semibold">
+                                        Law firms & legal practices
+                                    </Text>
+                                    <Text size={300}>
+                                        Exchange contracts, affidavits, and sensitive
+                                        legal documents with clients.
+                                    </Text>
+                                </li>
+                                <li>
+                                    <Text weight="semibold">
+                                        Compliance & risk consultancies
+                                    </Text>
+                                    <Text size={300}>
+                                        Maintain verifiable audit trails for regulated workflows.
+                                    </Text>
+                                </li>
+                                <li>
+                                    <Text weight="semibold">
+                                        Corporate secretarial services
+                                    </Text>
+                                    <Text size={300}>
+                                        Secure storage and exchange of statutory and company records.
+                                    </Text>
+                                </li>
+                            </ul>
+                        </Card>
+
+                        <Card className={styles.whoForCard}>
+                            <CardHeader header={
+                                <Badge size={"extra-large"}
+                                       appearance={"tint"}>
+                                    <Text weight={"bold"}> Corporate & Enterprise Operations</Text>
+                                </Badge>}/>
+                            <ul className={styles.whoForList}>
+                                <li>
+                                    <Text weight="semibold">
+                                        Medium to large enterprises
+                                    </Text>
+                                    <Text size={300}>
+                                        Internal and external document sharing with verified parties.
+                                    </Text>
+                                </li>
+                                <li>
+                                    <Text weight="semibold">
+                                        Procurement & vendor onboarding teams
+                                    </Text>
+                                    <Text size={300}>
+                                        Collect compliance documents from suppliers securely.
+                                    </Text>
+                                </li>
+                                <li>
+                                    <Text weight="semibold">
+                                        HR & payroll departments
+                                    </Text>
+                                    <Text size={300}>
+                                        Exchange employee identity, tax, and contract documents safely.
+                                    </Text>
+                                </li>
+                            </ul>
+                        </Card>
+                    </section>
                 </section>
             </section>
-
             <section className={styles.footerCta}>
                 <Text weight={"regular"}
                       size={600}>
                     Take Control of Your Sensitive Documents
                 </Text>
-                <div className={styles.actions}>
+                <div>
                     <Button appearance="primary"
                             as="a"
                             size={"large"}
