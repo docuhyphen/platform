@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Docu-Hyphen Verification Code Resend</title>
+    <title>DocuHyphen Verification Code Resend</title>
 </head>
 <body style="margin:0; padding:0; background-color:#f4f6f8; font-family: Arial, Helvetica, sans-serif;">
 
@@ -16,7 +16,7 @@
                 <tr>
                     <td align="left" style="padding:20px;">
                         <img src="https://assets.docuhyphen.com/email/logo.jpg"
-                             alt="Docu-Hyphen"
+                             alt="DocuHyphen"
                              width="40"
                              style="display:block; border:0; outline:none;"/>
                         <!-- Optional heading -->
@@ -69,7 +69,7 @@
                 <!-- Footer -->
                 <tr align="center">
                     <td style="padding:20px; font-size:12px; color:#777777;">
-                        <p style="margin:0;">© 2026 Docu-Hyphen</p>
+                        <p style="margin:0;">© 2026 DocuHyphen</p>
                     </td>
                 </tr>
             </table>

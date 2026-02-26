@@ -16,7 +16,7 @@ const SessionListSidebarToggle: React.FC<SessionListSidebarToggleProps> = (
 {
     return (
         <Tooltip
-            content={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            content={isSidebarCollapsed ? "Expand sidebar" : "Minimise sidebar"}
             relationship={"description"}>
             <Button
                 size="small"

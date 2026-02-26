@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Docu-Hyphen Verification Code</title>
+    <title>DocuHyphen Verification Code</title>
 </head>
 <body style="margin:0; padding:0; background-color:#f4f6f8; font-family: Arial, Helvetica, sans-serif;">
 
@@ -57,7 +57,7 @@
                 </tr>
                 <tr align="center">
                     <td style="padding:20px; font-size:12px; color:#777777;">
-                        <p style="margin:0;"> © Docu-Hyphen. All rights reserved. </p>
+                        <p style="margin:0;"> © DocuHyphen. All rights reserved. </p>
                     </td>
                 </tr>
             </table>

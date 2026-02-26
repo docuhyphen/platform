@@ -117,7 +117,7 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
                                             className={globalStyles.buttonWithLoading}
                                             appearance={"transparent"}>
                                         {/*<Spinner size={"tiny"}/>*/}
-                                        Send one time password
+                                        Send access code
                                     </Button>
                                 }
                             </div>
