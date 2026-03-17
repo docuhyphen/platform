@@ -8,12 +8,14 @@
     "buildWTsc": "tsc -b && vite build",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate:industry-pdfs": "node scripts/generate-industry-demo-pdfs.mjs"
   },
   "dependencies": {
     "@fluentui/react-components": "^9.72.9",
     "@fluentui/react-icons": "^2.0.316",
     "axios": "^1.13.2",
+    "pdfkit": "^0.17.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.12.0"

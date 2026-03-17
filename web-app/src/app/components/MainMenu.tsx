@@ -24,6 +24,38 @@ import {useGlobalStyles} from "../../GlobalStyles.tsx";
 import {SettingsIcon, SharingSessionIcon, SignOutButtonIcon} from "./IconBundles.tsx";
 import NotificationList from './main-menu/notification/NotificationList';
 
+const MAX_DISPLAY_EMAIL_LENGTH = 36;
+
+function formatEmailForDisplay(email?: string, maxLength: number = MAX_DISPLAY_EMAIL_LENGTH): string | undefined
+{
+    if (!email)
+    {
+        return undefined;
+    }
+
+    if (email.length <= maxLength)
+    {
+        return email;
+    }
+
+    const atIndex = email.indexOf('@');
+    if (atIndex === -1)
+    {
+        return `${email.slice(0, Math.max(0, maxLength - 3))}...`;
+    }
+
+    const localPart = email.slice(0, atIndex);
+    const domainPart = email.slice(atIndex + 1);
+    const allowedLocalLength = maxLength - domainPart.length - 4;
+
+    if (allowedLocalLength < 6)
+    {
+        return `${email.slice(0, Math.max(0, maxLength - 3))}...`;
+    }
+
+    return `${localPart.slice(0, allowedLocalLength)}...@${domainPart}`;
+}
+
 const MainMenu: React.FC = () =>
 {
     const {appUser} = useAuth();
@@ -64,10 +96,11 @@ const MainMenu: React.FC = () =>
             {/*</Button>*/}
             <Menu>
                 <MenuTrigger disableButtonEnhancement>
-                    <MenuButton appearance="transparent">
+                    <MenuButton appearance="transparent"
+                                title={appUser?.email}>
                         <Persona
                             name={`${appUser?.person?.firstName} ${appUser?.person?.lastName}`}
-                            secondaryText={appUser?.email}/>
+                            secondaryText={formatEmailForDisplay(appUser?.email)}/>
                     </MenuButton>
                 </MenuTrigger>
 
