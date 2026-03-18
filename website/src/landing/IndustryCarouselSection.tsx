@@ -189,12 +189,20 @@ export function IndustryCarouselSection()
         },
     ];
 
+    const updateActiveSlide = (nextIndex: number) => {
+        setActiveIndustrySlide(nextIndex);
+        window.dispatchEvent(new CustomEvent("industry-slide-change", {
+            detail: {index: nextIndex},
+        }));
+    };
+
     const goToPreviousIndustrySlide = () => {
-        setActiveIndustrySlide((current) => current === 0 ? industrySlides.length - 1 : current - 1);
+        const nextIndex = activeIndustrySlide === 0 ? industrySlides.length - 1 : activeIndustrySlide - 1;
+        updateActiveSlide(nextIndex);
     };
 
     const goToNextIndustrySlide = () => {
-        setActiveIndustrySlide((current) => (current + 1) % industrySlides.length);
+        updateActiveSlide((activeIndustrySlide + 1) % industrySlides.length);
     };
 
     return (
@@ -256,7 +264,7 @@ export function IndustryCarouselSection()
                             styles.indicator,
                             index === activeIndustrySlide && styles.indicatorActive,
                         )}
-                        onClick={() => setActiveIndustrySlide(index)}
+                        onClick={() => updateActiveSlide(index)}
                         aria-label={`Go to ${slide.title}`}
                         aria-current={index === activeIndustrySlide ? "true" : undefined}
                     />

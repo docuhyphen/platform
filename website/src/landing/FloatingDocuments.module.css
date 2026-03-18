@@ -1,0 +1,89 @@
+.container {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.card {
+    position: absolute;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 4px 14px rgba(32, 52, 77, 0.14), 0 2px 6px rgba(32, 52, 77, 0.08);
+    border: 1px solid rgba(78, 109, 150, 0.18);
+    will-change: transform;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-fill-mode: both;
+}
+
+.pathA { animation-name: floatA; }
+.pathB { animation-name: floatB; }
+.pathC { animation-name: floatC; }
+
+.accent {
+    width: 100%;
+    height: 8px;
+    border-radius: 6px 6px 0 0;
+}
+
+.body {
+    padding: 8px 9px 7px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.line {
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(32, 52, 77, 0.15);
+}
+
+.lineShort {
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(32, 52, 77, 0.12);
+    width: 55%;
+}
+
+@keyframes floatA {
+    0%   { transform: translateX(-160px) translateY(0px)   rotate(-1.5deg); }
+    50%  { transform: translateX(50vw)   translateY(-20px) rotate(0.8deg);  }
+    100% { transform: translateX(calc(100vw + 160px)) translateY(0px) rotate(-0.5deg); }
+}
+
+@keyframes floatB {
+    0%   { transform: translateX(-160px) translateY(0px)  rotate(1deg);   }
+    50%  { transform: translateX(50vw)   translateY(24px) rotate(-1.5deg);}
+    100% { transform: translateX(calc(100vw + 160px)) translateY(10px) rotate(0.5deg); }
+}
+
+@keyframes floatC {
+    0%   { transform: translateX(-160px) translateY(6px)   rotate(0.5deg);  }
+    30%  { transform: translateX(30vw)   translateY(-14px) rotate(-1deg);   }
+    70%  { transform: translateX(70vw)   translateY(20px)  rotate(1.5deg);  }
+    100% { transform: translateX(calc(100vw + 160px)) translateY(4px) rotate(-0.5deg); }
+}
+
+@media (max-width: 48em) {
+    .card {
+        transform: scale(0.86);
+        transform-origin: center;
+    }
+
+    .accent {
+        height: 6px;
+    }
+
+    .body {
+        padding: 6px 7px 6px;
+        gap: 5px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .container { display: none; }
+}
+

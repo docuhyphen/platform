@@ -1,6 +1,6 @@
 export const BREAKPOINT_MOBILE = "@media (max-width: 48em)";
 export const WIDTH_CONTENT = "73rem";
-export const WIDTH_HERO = "60rem";
+export const WIDTH_HERO = "70rem";
 export const WIDTH_SUBTITLE = "43.75rem";
 
 export const SPACE_XS = "0.5rem";

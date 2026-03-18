@@ -28,5 +28,15 @@ export const appStyles = makeStyles({
             zIndex: 1,
         },
     },
+
+    mainContent: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "2.75rem",
+
+        "@media (max-width: 48em)": {
+            gap: "2rem",
+        },
+    },
 });
 
