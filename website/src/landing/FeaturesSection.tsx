@@ -1,4 +1,14 @@
-import {Badge, Button, Card, CardHeader, Text, Title2, makeStyles, mergeClasses, tokens} from "@fluentui/react-components";
+import {
+    Badge,
+    Button,
+    Card,
+    CardHeader,
+    Text,
+    Title2,
+    makeStyles,
+    mergeClasses,
+    tokens
+} from "@fluentui/react-components";
 import {ChevronLeft20Regular, ChevronRight20Regular} from "@fluentui/react-icons";
 import {useState} from "react";
 import {
@@ -10,7 +20,7 @@ import {
     SPACE_MD,
     SPACE_SM,
     SPACE_XS,
-    WIDTH_CONTENT,
+    WIDTH_CONTENT, WIDTH_SUBTITLE,
 } from "./shared.ts";
 
 type FeatureItem = {
@@ -30,6 +40,7 @@ const useStyles = makeStyles({
     introWrapper: {
         padding: SECTION_PADDING_DESKTOP,
         boxSizing: "border-box",
+        marginTop: "4rem",
 
         [BREAKPOINT_MOBILE]: {
             padding: SECTION_PADDING_MOBILE,
@@ -48,6 +59,7 @@ const useStyles = makeStyles({
     sectionTitle: {
         color: tokens.colorBrandForeground1,
         fontWeight: tokens.fontWeightSemibold,
+        fontSize: tokens.fontSizeHero800
     },
 
     carouselSection: {
@@ -157,7 +169,7 @@ const useStyles = makeStyles({
         borderRadius: "50%",
         border: "none",
         cursor: "pointer",
-        backgroundColor: tokens.colorNeutralStroke2,
+        backgroundColor: tokens.colorNeutralStroke1,
         transitionProperty: "background-color, transform",
         transitionDuration: "200ms",
         transitionTimingFunction: "ease",
@@ -268,8 +280,9 @@ const useStyles = makeStyles({
     },
 
     cardBody: {
-        background: "#0000001c",
-        padding: "8px",
+        background: "rgba(0,0,0,0.20)",
+        padding: "16px 8px",
+        flex: 1,
         borderRadius: "0.6rem",
     },
 
@@ -283,6 +296,13 @@ const useStyles = makeStyles({
 
     featureBody: {
         color: "#d6e1f2",
+        paddingTop: "1.2rem"
+    },
+
+    subheading: {
+        maxWidth: WIDTH_SUBTITLE,
+        color: tokens.colorNeutralForeground1,
+        fontWeight: "100"
     },
 });
 
@@ -292,15 +312,30 @@ export function FeaturesSection()
     const [activeIndustrySlide, setActiveIndustrySlide] = useState<number>(0);
 
     const featureThemeClasses = [
+        styles.featureThemeRealEstate,
+        styles.featureThemeLegal,
+        styles.featureThemeHealthcare,
         styles.featureThemeAccounting,
         styles.featureThemeBanking,
-        styles.featureThemeLegal,
-        styles.featureThemeRealEstate,
-        styles.featureThemeHealthcare,
     ];
     const activeThemeClass = featureThemeClasses[activeIndustrySlide] || styles.featureThemeAccounting;
 
     const industrySlides: IndustrySlide[] = [
+        {
+            title: "Real Estate & Property Management",
+            visualClass: styles.industryVisualRealEstate,
+            screenshotSrc: "/demo-screenshots/app-screenshot-real-estate.JPG",
+        },
+        {
+            title: "Law Firms & Legal Practices",
+            visualClass: styles.industryVisualLaw,
+            screenshotSrc: "/demo-screenshots/app-screenshot-legal.JPG",
+        },
+        {
+            title: "Healthcare & Medical Practices",
+            visualClass: styles.industryVisualHealthcare,
+            screenshotSrc: "/demo-screenshots/app-screenshot-healthcare.JPG",
+        },
         {
             title: "Accounting & Audit Firms",
             visualClass: styles.industryVisualAccounting,
@@ -311,28 +346,15 @@ export function FeaturesSection()
             visualClass: styles.industryVisualBanking,
             screenshotSrc: "/demo-screenshots/app-screenshot-banking-lending.JPG",
         },
-        {
-            title: "Law Firms & Legal Practices",
-            visualClass: styles.industryVisualLaw,
-            screenshotSrc: "/demo-screenshots/app-screenshot-legal.JPG",
-        },
-        {
-            title: "Real Estate & Property Management",
-            visualClass: styles.industryVisualRealEstate,
-            screenshotSrc: "/demo-screenshots/app-screenshot-real-estate.JPG",
-        },
-        {
-            title: "Healthcare & Medical Practices",
-            visualClass: styles.industryVisualHealthcare,
-            screenshotSrc: "/demo-screenshots/app-screenshot-healthcare.JPG",
-        },
     ];
 
-    const goToPreviousIndustrySlide = () => {
+    const goToPreviousIndustrySlide = () =>
+    {
         setActiveIndustrySlide((current) => current === 0 ? industrySlides.length - 1 : current - 1);
     };
 
-    const goToNextIndustrySlide = () => {
+    const goToNextIndustrySlide = () =>
+    {
         setActiveIndustrySlide((current) => (current + 1) % industrySlides.length);
     };
 
@@ -364,15 +386,14 @@ export function FeaturesSection()
                     <Title2 className={styles.sectionTitle}>
                         Secure, Controlled &amp; Compliant Document Exchange
                     </Title2>
-                    <Text size={500}>
+                    <Text size={500} className={styles.subheading}>
                         A purpose-built platform designed specifically for exchanging
                         sensitive business and customer documents, securely, transparently,
                         and compliantly.
                     </Text>
                 </section>
             </section>
-
-            <section className={styles.carouselSection} id="appImageSection">
+            <section className={styles.carouselSection}>
                 <div className={styles.carouselViewport}>
                     <div
                         className={styles.carouselTrack}
@@ -391,8 +412,10 @@ export function FeaturesSection()
                                             alt={`${slide.title} app screenshot`}
                                             loading="lazy"
                                         />
-                                        <Card className={mergeClasses(styles.carouselTitleCard, styles.carouselImageOverlay, slide.visualClass)}>
-                                            <Text weight="semibold" className={styles.carouselTitleText}>{slide.title}</Text>
+                                        <Card
+                                            className={mergeClasses(styles.carouselTitleCard, styles.carouselImageOverlay, slide.visualClass)}>
+                                            <Text weight="semibold"
+                                                  className={styles.carouselTitleText}>{slide.title}</Text>
                                         </Card>
                                     </div>
                                 </div>
@@ -426,6 +449,7 @@ export function FeaturesSection()
                         <button
                             key={slide.title}
                             type="button"
+
                             className={mergeClasses(
                                 styles.carouselIndicator,
                                 index === activeIndustrySlide && styles.carouselIndicatorActive,
@@ -441,7 +465,8 @@ export function FeaturesSection()
             <section className={styles.cardsWrapper}>
                 <div className={styles.cards}>
                     {features.map((feature) => (
-                        <Card key={feature.title} appearance="filled" className={mergeClasses(styles.featureCard, activeThemeClass)}>
+                        <Card key={feature.title} appearance="filled"
+                              className={mergeClasses(styles.featureCard, activeThemeClass)}>
                             <img
                                 className={styles.featureImage}
                                 src={feature.imageSrc}
@@ -452,16 +477,16 @@ export function FeaturesSection()
                                 <CardHeader
                                     header={
                                         <Badge size="extra-large" appearance="filled" className={styles.featureBadge}>
-                                            <Text weight="bold" className={styles.featureTitleText}>{feature.title}</Text>
+                                            <Text weight="bold"
+                                                  className={styles.featureTitleText}>{feature.title}</Text>
                                         </Badge>
                                     }
                                 />
-                                <Text className={styles.featureBody}>{feature.body}</Text>
+                                <div className={styles.featureBody}>{feature.body}</div>
                             </div>
                         </Card>
                     ))}
                 </div>
             </section>
-        </>
-    );
+        </>);
 }

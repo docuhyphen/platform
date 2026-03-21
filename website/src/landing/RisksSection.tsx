@@ -9,7 +9,7 @@ import {
     SPACE_MD,
     SPACE_SM,
     SPACE_XS,
-    WIDTH_CONTENT,
+    WIDTH_CONTENT, WIDTH_SUBTITLE,
 } from "./shared.ts";
 
 type RiskItem = {
@@ -39,7 +39,7 @@ const useStyles = makeStyles({
         flexDirection: "column",
         gap: SPACE_LG,
         maxWidth: WIDTH_CONTENT,
-        margin: "0 auto",
+        margin: "4rem auto",
         alignItems: "flex-start",
     },
 
@@ -55,13 +55,9 @@ const useStyles = makeStyles({
     },
 
     cardsWrapper: {
-        padding: SECTION_PADDING_DESKTOP,
         boxSizing: "border-box",
         background: "white",
-
-        [BREAKPOINT_MOBILE]: {
-            padding: SECTION_PADDING_MOBILE,
-        },
+        marginTop: "2rem",
     },
 
     cardsContainer: {
@@ -149,6 +145,13 @@ const useStyles = makeStyles({
     sectionTitle: {
         color: tokens.colorBrandForeground1,
         fontWeight: tokens.fontWeightSemibold,
+        fontSize: tokens.fontSizeHero800
+    },
+
+    subheading: {
+        maxWidth: WIDTH_SUBTITLE,
+        color: tokens.colorNeutralForeground1,
+        fontWeight: "100"
     },
 });
 
@@ -157,7 +160,8 @@ export function RisksSection()
     const styles = useStyles();
     const [expandedCards, setExpandedCards] = useState<Record<number, boolean>>({});
 
-    const toggleCard = (riskId: number) => {
+    const toggleCard = (riskId: number) =>
+    {
         setExpandedCards((prev) => ({
             ...prev,
             [riskId]: !prev[riskId],
@@ -213,49 +217,47 @@ export function RisksSection()
                 <div className={styles.introWrapper}>
                     <div className={styles.intro}>
                         <Title2 align="start" className={styles.sectionTitle}>
-                            The Hidden Risks of Everyday Document Sharing
+                            Did you know?
                         </Title2>
-                        <div>
-                            <Text size={500}>
-                                Critical business documents are routinely shared through tools not designed for
-                                security, auditability, or control — creating significant risk exposure
-                            </Text>
-                        </div>
+                        <Text size={500} className={styles.subheading}>
+                            The hidden risks of everyday document sharing
+                        </Text>
                     </div>
                 </div>
+
+                <section className={styles.cardsWrapper}>
+                    <div className={styles.cardsContainer}>
+                        {risks.map((risk) =>
+                        {
+                            const isExpanded = !!expandedCards[risk.id];
+
+                            return (
+                                <div key={risk.id} className={mergeClasses(styles.card, risk.variantClass)}>
+
+                                    <div className={styles.cardContent}>
+                                        <Text className={styles.cardSubtitle} weight="semibold">
+                                            <Badge size="large" appearance="filled">{risk.id}</Badge>
+                                            {risk.subtitle}
+                                        </Text>
+                                        <Text weight="bold" className={styles.cardTitle}>{risk.title}</Text>
+
+                                        <Button
+                                            appearance="transparent"
+                                            className={styles.readMoreButton}
+                                            onClick={() => toggleCard(risk.id)}
+                                        >
+                                            {isExpanded ? "Read less" : "Read more"}
+                                        </Button>
+
+                                        {isExpanded && <Text className={styles.cardParagraph}>{risk.body}</Text>}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </section>
+
             </section>
-
-            <section className={styles.cardsWrapper}>
-                <div className={styles.cardsContainer}>
-                    {risks.map((risk) => {
-                        const isExpanded = !!expandedCards[risk.id];
-
-                        return (
-                        <div key={risk.id} className={mergeClasses(styles.card, risk.variantClass)}>
-
-                            <div className={styles.cardContent}>
-                                <Text className={styles.cardSubtitle} weight="semibold">
-                                    <Badge size="large" appearance="filled">{risk.id}</Badge>
-                                    {risk.subtitle}
-                                </Text>
-                                <Text weight="bold" className={styles.cardTitle}>{risk.title}</Text>
-
-                                <Button
-                                    appearance="transparent"
-                                    className={styles.readMoreButton}
-                                    onClick={() => toggleCard(risk.id)}
-                                >
-                                    {isExpanded ? "Read less" : "Read more"}
-                                </Button>
-
-                                {isExpanded && <Text className={styles.cardParagraph}>{risk.body}</Text>}
-                            </div>
-                        </div>
-                        );
-                    })}
-                </div>
-            </section>
-
             <Divider/>
         </>
     );

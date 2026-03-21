@@ -206,7 +206,7 @@ export function SpeakToSalesDialog({trigger}: SpeakToSalesDialogProps)
                         {submitStatus === "success" && (
                             <div className={styles.feedback}>
                                 <CheckmarkCircle24Regular className={`${styles.feedbackIcon} ${styles.successIcon}`}/>
-                                <Text size={500} weight="semibold">Enquiry received — thank you!</Text>
+                                <Text size={500} weight="semibold">Enquiry received, thank you!</Text>
                                 <Text>
                                     Our sales team will review your details and be in touch shortly
                                     to arrange a personalised demo.

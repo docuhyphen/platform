@@ -4,6 +4,7 @@ import {
     AccordionItem,
     AccordionPanel,
     Text,
+    Title2,
     makeStyles,
     tokens,
 } from "@fluentui/react-components";
@@ -45,6 +46,22 @@ const useStyles = makeStyles({
         },
     },
 
+    intro: {
+        display: "flex",
+        flexDirection: "column",
+        gap: SPACE_SM,
+        maxWidth: WIDTH_CONTENT,
+        margin: "3rem auto",
+        marginBottom: SPACE_LG,
+        alignItems: "flex-start",
+    },
+
+    sectionTitle: {
+        color: tokens.colorBrandForeground1,
+        fontWeight: tokens.fontWeightSemibold,
+        fontSize: tokens.fontSizeHero800
+    },
+
     container: {
         boxSizing: "border-box",
         margin: "0 auto",
@@ -65,8 +82,10 @@ const useStyles = makeStyles({
         },
     },
 
-    subtitle: {
+    subheading: {
         maxWidth: WIDTH_SUBTITLE,
+        color: tokens.colorNeutralForeground1,
+        fontWeight: "100"
     },
 
     accordionHeader: {
@@ -74,6 +93,7 @@ const useStyles = makeStyles({
         fontSize: tokens.fontSizeBase500,
         lineHeight: tokens.lineHeightBase500,
         fontWeight: tokens.fontWeightSemibold,
+        marginTop: "1.3rem"
     },
 
     accordionPanel: {
@@ -101,7 +121,7 @@ const useStyles = makeStyles({
 export function AudienceSection()
 {
     const styles = useStyles();
-    const [openItem, setOpenItem] = useState<number>(1);
+    const [openItem, setOpenItem] = useState<number>(0);
 
     const audienceGroups: AudienceGroup[] = [
         {
@@ -176,12 +196,16 @@ export function AudienceSection()
 
     return (
         <section className={styles.wrapper}>
-            <section className={styles.container}>
-                <Text className={styles.subtitle} size={500}>
-                    Built for organizations that handle sensitive documents
-                    and require security, compliance, and accountability.
+            <section className={styles.intro}>
+                <Title2 className={styles.sectionTitle}>
+                    Industry Coverage
+                </Title2>
+                <Text className={styles.subheading} size={500}>
+                    Check out some use cases for your industry
                 </Text>
+            </section>
 
+            <section className={styles.container}>
                 <Accordion
                     collapsible
                     openItems={openItem ? [openItem] : []}

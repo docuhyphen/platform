@@ -9,12 +9,12 @@ export const SPACE_MD = "1rem";
 export const SPACE_LG = "1.5rem";
 export const SPACE_XL = "2rem";
 
-export const SECTION_PADDING_DESKTOP = "1.5rem 2rem";
-export const SECTION_PADDING_MOBILE = "1rem 1.6rem";
+export const SECTION_PADDING_DESKTOP = "5rem 2rem";
+export const SECTION_PADDING_MOBILE = "2rem 1.6rem";
 export const MENU_PADDING_DESKTOP = "0 2rem";
 export const MENU_PADDING_MOBILE = "0 1rem";
 
-export const CARD_RADIUS = "0";
+export const CARD_RADIUS = "1.1rem";
 export const SECTION6_RADIUS_DESKTOP = "2rem";
 export const SECTION6_RADIUS_MOBILE = "1rem";
 export const TITLE_MIN_HEIGHT = "3em";
