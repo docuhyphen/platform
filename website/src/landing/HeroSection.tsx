@@ -101,7 +101,7 @@ const useStyles = makeStyles({
         margin: "0 auto",
         fontSize: tokens.fontSizeBase500,
         lineHeight: tokens.lineHeightBase500,
-        fontWeight: tokens.fontWeightRegular,
+        fontWeight: "100",
         color: tokens.colorNeutralForeground1,
     },
 
