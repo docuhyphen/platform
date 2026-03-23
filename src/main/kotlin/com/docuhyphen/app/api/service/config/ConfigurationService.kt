@@ -7,7 +7,7 @@ class ConfigurationService
 {
     fun getAppBaseURL(): String
     {
-        return "http://docuhyphen.com"
+        return "https://docuhyphen.com"
     }
 
     fun getMaxSignUpCompletionOtpAttempts(): Long = 3
