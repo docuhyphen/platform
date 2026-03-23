@@ -1,19 +1,22 @@
 package com.docuhyphen.app.api.service.config
 
+import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.context.RequestScoped
+import jakarta.inject.Singleton
+import org.eclipse.microprofile.config.inject.ConfigProperty
 
-@RequestScoped
+@ApplicationScoped
 class ConfigurationService
 {
-    fun getAppBaseURL(): String
-    {
-        return "https://docuhyphen.com"
-    }
+    @ConfigProperty(name = "app.base-url", defaultValue = "http://localhost:5173")
+    lateinit var baseUrl: String
+
+    @ConfigProperty(name = "app.email.subject-title", defaultValue = "DocuHyphen")
+    lateinit var emailSubjectTitle: String
 
     fun getMaxSignUpCompletionOtpAttempts(): Long = 3
     fun getSignUpOtpExpiryMins(): Long = 5 //
-    fun getAppEmailSubjectTitle() = "DocuHyphen"
-    fun getAppPhoneSubjectTitle() = getAppEmailSubjectTitle()
+    fun getAppPhoneSubjectTitle() = emailSubjectTitle
     fun getSignInEmailOtpMFAExpiryMins(): Long = 5
     fun getSignInSmsOtpMFAExpiryMins(): Long = 5
     fun getSignInTokenExpiryHours(): Long = 1

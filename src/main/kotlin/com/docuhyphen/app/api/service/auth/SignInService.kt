@@ -242,7 +242,7 @@ class SignInService @Inject constructor(
             EMAIL -> {
                 emailService.sendEmail(
                     to = mfaRecord.appUser!!.email,
-                    subject = "${configurationService.getAppEmailSubjectTitle()} | Sign In Verification",
+                    subject = "${configurationService.emailSubjectTitle} | Sign In Verification",
                     body = """Your new sign in verification code is: $newOtp.
                             |It will expire in ${configurationService.getSignInEmailOtpMFAExpiryMins()} minutes.
                             |If you didn't request this code, please ignore this email.""".trimMargin()

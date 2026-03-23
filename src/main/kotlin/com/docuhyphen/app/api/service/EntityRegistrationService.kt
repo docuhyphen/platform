@@ -143,11 +143,11 @@ class EntityRegistrationService @Inject constructor(
 
         emailService.sendEmail(
             appUser.email,
-            "${configurationService.getAppEmailSubjectTitle()} | Organization registration",
+            "${configurationService.emailSubjectTitle} | Organization registration",
             "Hi ${appUser.person!!.firstName} ${appUser.person!!.lastName},\n\n" +
                     "Your Organization registration request has been received. " +
                     "Please wait for the administrator to approve your request.\n\n" +
-                    "Thank you for using ${configurationService.getAppEmailSubjectTitle()}!"
+                    "Thank you for using ${configurationService.emailSubjectTitle}!"
         )
 
         organizationVerificationProducer.sendToQueue(organization)

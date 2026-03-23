@@ -128,7 +128,7 @@ class MfaService(
 
         emailService.sendEmail(
             to = appUser.email,
-            subject = "${configurationService.getAppEmailSubjectTitle()} | Sign In",
+            subject = "${configurationService.emailSubjectTitle} | Sign In",
             body = writer.toString(),
             useHtml = true
         )

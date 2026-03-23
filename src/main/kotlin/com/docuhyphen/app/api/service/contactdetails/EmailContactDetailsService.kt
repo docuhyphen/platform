@@ -68,7 +68,7 @@ class EmailContactDetailsService @Inject constructor(
 
         emailService.sendEmail(
             email,
-            "${configurationService.getAppEmailSubjectTitle()} Email Verification",
+            "${configurationService.emailSubjectTitle} Email Verification",
             "Your verification code is: $verificationCode"
         )
     }
@@ -156,7 +156,7 @@ class EmailContactDetailsService @Inject constructor(
 
         emailService.sendEmail(
             email,
-            "${configurationService.getAppEmailSubjectTitle()} Email Verification",
+            "${configurationService.emailSubjectTitle} Email Verification",
             "Your verification code is: $verificationCode"
         )
     }

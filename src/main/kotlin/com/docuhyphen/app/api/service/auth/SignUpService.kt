@@ -7,6 +7,7 @@ import SignUpStatus
 import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.repository.SignUpRepository
 import com.docuhyphen.app.api.service.communication.EmailService
+import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.ApplicationScoped
@@ -21,6 +22,7 @@ class SignUpService @Inject constructor(
     private val signUpRepository: SignUpRepository,
     private val appUserRepository: AppUserRepository,
     private val emailService: EmailService,
+    private val emailTemplateService: EmailTemplateService,
     private val otpService: OtpService,
     private val configurationService: ConfigurationService,
     private val authenticationService: AuthenticationService,
@@ -57,8 +59,6 @@ class SignUpService @Inject constructor(
 
             val otp = otpService.generateEmailOtp()
             val expirationMinutes = configurationService.getSignUpOtpExpiryMins()
-            val appBaseUrl = configurationService.getAppBaseURL()
-            val emailConfirmationLink = "$appBaseUrl/sign-up/email-confirm?email=$sanitized&otp=$otp"
 
             if (existingSignUp != null)
             {
@@ -84,17 +84,16 @@ class SignUpService @Inject constructor(
                 signUpRepository.save(signUpEntity)
             }
 
+            val emailBody = emailTemplateService.renderSignUpInitiationEmail(sanitized, otp, expirationMinutes)
+
             emailService.sendEmail(
-                sanitized, "${configurationService.getAppEmailSubjectTitle()} | Sign Up", """
-            Thank you for signing up with ${configurationService.getAppEmailSubjectTitle()}.
-            Here's the verification code you'll need to continue: $otp
-            Alternatively, you can click on this link: $emailConfirmationLink
-            
-            NOTE: The verification code expires in $expirationMinutes minutes.
-        """.trimIndent()
+                to = sanitized,
+                subject = "${configurationService.emailSubjectTitle} | Email Verification",
+                body = emailBody,
+                useHtml = true
             )
 
-            logger.info("Sign up successful. Email: $sanitized, otp: $otp")
+            logger.info("Sign up successful. Email: $sanitized, verification code: $otp")
         }
         catch (exception: Exception)
         {
@@ -198,10 +197,13 @@ class SignUpService @Inject constructor(
 
         signUpRepository.update(signUpEntity)
 
+        val emailBody = emailTemplateService.renderSignUpOtpRegenerationEmail(newOtp, otpExpiryMinutes)
+
         emailService.sendEmail(
             to = email,
-            subject = "${configurationService.getAppEmailSubjectTitle()} | Sign Up verification code",
-            body = "Your verification code is: $newOtp. It will expire in ${configurationService.getSignUpOtpExpiryMins()} minutes."
+            subject = "${configurationService.emailSubjectTitle} | Sign Up verification code",
+            body = emailBody,
+            useHtml = true
         )
 
         logger.info("Sign up OTP regeneration successful")
@@ -366,6 +368,14 @@ class SignUpService @Inject constructor(
         }.also {
             logger.info("Successfully signed up")
             appUserRepository.save(it)
+
+            val emailBody = emailTemplateService.renderSignUpCompletionEmail(email)
+            emailService.sendEmail(
+                to = email,
+                subject = "${configurationService.emailSubjectTitle} | Account Created Successfully",
+                body = emailBody,
+                useHtml = true
+            )
         }
     }
 }

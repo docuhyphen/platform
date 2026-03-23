@@ -109,7 +109,7 @@ class OrganizationSharingSessionLinkService @Inject constructor(
             {
                 emailService.sendEmail(
                     orgAppUser.email,
-                    "${configurationService.getAppEmailSubjectTitle()} | Paring Request",
+                    "${configurationService.emailSubjectTitle} | Paring Request",
                     """
                         You have a new paring request from ${appUser.person?.firstName} ${appUser.person?.lastName} 
                         (${requestingOrganization.name}).
@@ -172,7 +172,7 @@ class OrganizationSharingSessionLinkService @Inject constructor(
             {
                 emailService.sendEmail(
                     orgAppUser.email,
-                    "${configurationService.getAppEmailSubjectTitle()} | Paring Request Accepted",
+                    "${configurationService.emailSubjectTitle} | Paring Request Accepted",
                     """
                         Your paring request from ${appUser.person?.firstName} ${appUser.person?.lastName} 
                         (${link.requestingOrganization?.name}) has been accepted. You may now start Sharing Documents.

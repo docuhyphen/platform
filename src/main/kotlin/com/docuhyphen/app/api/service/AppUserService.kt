@@ -112,7 +112,7 @@ class AppUserService @Inject constructor(
 
         emailService.sendEmail(
             email,
-            "${configurationService.getAppEmailSubjectTitle()} Email Verification",
+            "${configurationService.emailSubjectTitle} Email Verification",
             "Your verification code is: $verificationCode"
         )
     }

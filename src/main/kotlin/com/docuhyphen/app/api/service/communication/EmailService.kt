@@ -63,6 +63,6 @@ class EmailService @Inject constructor()
             .message(message)
             .build()
 
-//        sesClient.sendEmail(request)
+        sesClient.sendEmail(request)
     }
 }

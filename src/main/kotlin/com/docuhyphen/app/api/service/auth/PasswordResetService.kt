@@ -60,7 +60,7 @@ class PasswordResetService @Inject constructor(
 
         emailService.sendEmail(
             email,
-            "${configurationService.getAppEmailSubjectTitle()} | Account recovery",
+            "${configurationService.emailSubjectTitle} | Account recovery",
             """
                 You have requested to recover your account.
                 To continue, you will need this verification code $otp
