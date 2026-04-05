@@ -245,8 +245,7 @@ export function HeroSection()
                     styles.supportingHidden,
                     isSupportingVisible && styles.supportingVisible,
                 )}>
-                    Request, send, and track sensitive documents with encryption,
-                    verification, and full audit trails.
+                    Request, Send, Track, and Collaborate on your most important documents
                 </Text>
 
                 <div className={mergeClasses(
