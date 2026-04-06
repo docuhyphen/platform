@@ -9,7 +9,7 @@
 <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color:#f4f6f8;">
     <tr>
         <td align="center" style="padding:20px;">
-            <table width="600" border="0" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px; background-color:#ffffff; border:1px solid #dddddd;">
+            <table width="600" border="0" cellpadding="0" cellspacing="0" style="width:480px; max-width:480px; background-color:#ffffff; border:1px solid #dddddd;">
                 <tr>
                     <td style="padding:20px; border-bottom:1px solid #e0e0e0;">
                         <img src="https://assets.docuhyphen.com/email/logo.jpg" alt="${appName!'DocuHyphen'}" width="48" border="0" style="display:block;">
