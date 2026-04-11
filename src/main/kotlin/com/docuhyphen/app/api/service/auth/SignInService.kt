@@ -4,6 +4,9 @@ import com.docuhyphen.app.api.exception.InvalidOtpException
 import com.docuhyphen.app.api.exception.InvalidSignInCredentialsException
 import com.docuhyphen.app.api.exception.MaxAttemptsOTPExceededException
 import com.docuhyphen.app.api.exception.OTPExpiredException
+import com.docuhyphen.app.api.exception.TooManyRequestsException
+import com.docuhyphen.app.api.extension.maskEmailForLogs
+import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.model.dto.MfaSessionDto
 import com.docuhyphen.app.api.model.entity.AuthToken
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationStatus
@@ -66,13 +69,13 @@ class SignInService @Inject constructor(
             throw InvalidSignInCredentialsException()
         }
 
-        val sanitizedEmail = email.trim().lowercase()
+        val sanitizedEmail = email.normalizeEmailOrNull()!!
 
-        val appUser = appUserService.findByEmail(email) ?: throw InvalidSignInCredentialsException()
+        val appUser = appUserService.findByEmail(sanitizedEmail) ?: throw InvalidSignInCredentialsException()
 
         if (!authenticationService.validatePassword(password, appUser.password!!))
         {
-            logger.warn("Sign in failed: Invalid password for email $sanitizedEmail")
+            logger.warn("Sign in failed: Invalid password for {}", sanitizedEmail.maskEmailForLogs())
             throw InvalidSignInCredentialsException()
         }
 
@@ -89,12 +92,12 @@ class SignInService @Inject constructor(
             MultifactorAuthenticationType.PASSKEY -> TODO("Implement passkey OTP sending")
             else ->
             {
-                logger.warn("Sign in failed: MFA type is NONE for email $sanitizedEmail")
+                logger.warn("Sign in failed: MFA type is NONE for {}", sanitizedEmail.maskEmailForLogs())
                 throw InvalidSignInCredentialsException()
             }
         }
 
-        logger.info("Sign in initiated for email $sanitizedEmail. OTP sent.")
+        logger.info("Sign in initiated for {}", sanitizedEmail.maskEmailForLogs())
 
         return mfaSession
     }
@@ -122,14 +125,14 @@ class SignInService @Inject constructor(
             throw InvalidOtpException("Invalid verification code")
         }
 
-        val sanitizedEmail = email.trim().lowercase()
+        val sanitizedEmail = email.normalizeEmailOrNull()!!
         val sanitizedOTP = otp.trim()
         val mfaRecord =
             mfaService.getMfaRecordByEmailAndSessionId(sanitizedEmail, sessionId) ?: throw InvalidOtpException("Invalid verification code")
 
         if (mfaRecord.expiryDateTime!!.before(Timestamp.from(Instant.now())))
         {
-            logger.warn("Sign in completion failed: verification code expired for email $sanitizedEmail")
+            logger.warn("Sign in completion failed: verification code expired for {}", sanitizedEmail.maskEmailForLogs())
 
             throw OTPExpiredException("Verification code expired.")
         }
@@ -151,26 +154,26 @@ class SignInService @Inject constructor(
             {
                 if (mfaRecord.status == MultifactorAuthenticationStatus.COMPLETED)
                 {
-                    logger.warn("Sign in completion failed: OTP already used for email $sanitizedEmail")
+                    logger.warn("Sign in completion failed: OTP already used for {}", sanitizedEmail.maskEmailForLogs())
                     throw InvalidOtpException("Invalid verification code")
                 }
 
                 if (mfaRecord.status == MultifactorAuthenticationStatus.LOCKED)
                 {
-                    logger.warn("Sign in completion failed: OTP locked for email $sanitizedEmail")
+                    logger.warn("Sign in completion failed: OTP locked for {}", sanitizedEmail.maskEmailForLogs())
                     throw MaxAttemptsOTPExceededException("Too many invalid attempts.")
                 }
 
                 if (!otpService.verifyEmailOtp(sanitizedOTP, mfaRecord.mfaToken!!))
                 {
-                    logger.warn("Sign in completion failed: Invalid OTP for email $sanitizedEmail")
+                    logger.warn("Sign in completion failed: Invalid OTP for {}", sanitizedEmail.maskEmailForLogs())
                     throw InvalidOtpException("Invalid verification code")
                 }
             }
 
             else ->
             {
-                logger.warn("Sign in completion failed: Unsupported MFA type for email $sanitizedEmail")
+                logger.warn("Sign in completion failed: Unsupported MFA type for {}", sanitizedEmail.maskEmailForLogs())
                 throw Exception("Server error: unsupported MFA type.")
             }
         }
@@ -193,7 +196,7 @@ class SignInService @Inject constructor(
         authenticationService.saveAuthToken(authToken)
         mfaService.removeMfaRecord(mfaRecord)
 
-        logger.info("Sign in completed for email $sanitizedEmail. JWT token generated.")
+        logger.info("Sign in completed for {}", sanitizedEmail.maskEmailForLogs())
         return signInToken
     }
 
@@ -218,21 +221,30 @@ class SignInService @Inject constructor(
             throw InvalidSignInCredentialsException()
         }
 
-        val sanitizedEmail = email.trim().lowercase()
+        val sanitizedEmail = email.normalizeEmailOrNull()!!
         val mfaRecord =
             mfaService.getMfaRecordByEmailAndSessionId(sanitizedEmail, sessionId) ?: throw InvalidSignInCredentialsException()
 
         if (mfaRecord.status == MultifactorAuthenticationStatus.COMPLETED)
         {
-            logger.warn("Redo MFA failed: OTP already used for email $sanitizedEmail")
+            logger.warn("Redo MFA failed: OTP already used for {}", sanitizedEmail.maskEmailForLogs())
             throw InvalidSignInCredentialsException()
         }
 
         if (mfaRecord.status == MultifactorAuthenticationStatus.LOCKED)
         {
-            logger.warn("Redo MFA failed: OTP locked for email $sanitizedEmail")
+            logger.warn("Redo MFA failed: OTP locked for {}", sanitizedEmail.maskEmailForLogs())
             throw MaxAttemptsOTPExceededException("Too many invalid attempts.")
         }
+
+        val resendCooldownSeconds = configurationService.getSignInResendCooldownSeconds()
+        val cooldownUntil = mfaRecord.createdDate.toInstant().plusSeconds(resendCooldownSeconds)
+        if (Instant.now().isBefore(cooldownUntil))
+        {
+            throw TooManyRequestsException("Please wait before requesting another verification code.")
+        }
+
+        mfaService.enforceRateLimits(sanitizedEmail, mfaRecord.ipAddress ?: "0.0.0.0")
 
         // Regenerate OTP and get the plaintext version for sending
         val newOtp = mfaService.regenerateOtp(mfaRecord)
@@ -257,12 +269,12 @@ class SignInService @Inject constructor(
             MultifactorAuthenticationType.PASSKEY -> TODO("Implement passkey OTP sending")
             else ->
             {
-                logger.warn("Redo MFA failed: Unsupported MFA type for email $sanitizedEmail")
+                logger.warn("Redo MFA failed: Unsupported MFA type for {}", sanitizedEmail.maskEmailForLogs())
                 throw Exception("Server error: unsupported MFA type.")
             }
         }
 
-        logger.info("Redo MFA initiated for email $sanitizedEmail. New OTP sent.")
+        logger.info("Redo MFA initiated for {}", sanitizedEmail.maskEmailForLogs())
 
         return MfaSessionDto().apply {
             this.id = UUID.fromString(mfaRecord.sessionId)
@@ -270,4 +282,5 @@ class SignInService @Inject constructor(
             this.mfaTokenHashed = mfaRecord.mfaToken
         }
     }
+
 }

@@ -1,6 +1,8 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.exception.*
+import com.docuhyphen.app.api.extension.maskEmailForLogs
+import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.SignUpEntity
 import SignUpStatus
@@ -35,17 +37,17 @@ class SignUpService @Inject constructor(
 
     fun initiateSignUp(email: String?)
     {
-        if (email.isNullOrBlank())
+        val sanitized: String? = email.normalizeEmailOrNull()
+
+        if (sanitized == null)
         {
             logger.warn("Sign up failed: Email is null or blank")
             throw EmailRequiredException()
         }
 
-        val sanitized = email.trim().lowercase();
-
         if (authenticationService.isEmailInvalid(sanitized))
         {
-            logger.warn("Sign up failed: Email ($sanitized) validation failed")
+            logger.warn("Sign up failed: Email validation failed for {}", sanitized.maskEmailForLogs())
             throw InvalidEmailException()
         }
 
@@ -70,7 +72,7 @@ class SignUpService @Inject constructor(
                 existingSignUp.apply {
                     this.otp = otpService.hashOtp(otp)
 
-                    this.otpExpiryTimestamp = LocalDateTime.now().plusMinutes(expirationMinutes.toLong())
+                    this.otpExpiryTimestamp = LocalDateTime.now().plusMinutes(expirationMinutes)
                 }
                 signUpRepository.update(existingSignUp)
             }
@@ -79,7 +81,7 @@ class SignUpService @Inject constructor(
                 val signUpEntity = SignUpEntity().apply {
                     this.email = sanitized
                     this.otp = otpService.hashOtp(otp)
-                    this.otpExpiryTimestamp = LocalDateTime.now().plusMinutes(expirationMinutes.toLong())
+                    this.otpExpiryTimestamp = LocalDateTime.now().plusMinutes(expirationMinutes)
                 }
                 signUpRepository.save(signUpEntity)
             }
@@ -93,7 +95,7 @@ class SignUpService @Inject constructor(
                 useHtml = true
             )
 
-            logger.info("Sign up successful. Email: $sanitized, verification code: $otp")
+            logger.info("Sign up initiation successful for {}", sanitized.maskEmailForLogs())
         }
         catch (exception: Exception)
         {
@@ -104,27 +106,29 @@ class SignUpService @Inject constructor(
 
     fun regenerateOtp(email: String?)
     {
-        if (email.isNullOrBlank())
+        val sanitizedEmail: String? = email.normalizeEmailOrNull()
+
+        if (sanitizedEmail == null)
         {
             logger.warn("Sign up OTP regeneration failed: Email is null or blank")
             throw EmailRequiredException()
         }
 
-        if (authenticationService.isEmailInvalid(email))
+        if (authenticationService.isEmailInvalid(sanitizedEmail))
         {
-            logger.warn("Sign up OTP generation failed: Email ($email) validation failed")
+            logger.warn("Sign up OTP regeneration failed: Email validation failed for {}", sanitizedEmail.maskEmailForLogs())
             throw InvalidEmailException()
         }
 
-        appUserRepository.findByEmail(email)?.let {
+        appUserRepository.findByEmail(sanitizedEmail)?.let {
             throw AppUserExistsException()
         }
 
-        val signUpEntity = signUpRepository.findByEmail(email)
+        val signUpEntity = signUpRepository.findByEmail(sanitizedEmail)
 
         if (signUpEntity == null)
         {
-            logger.warn("Sign up OTP regeneration failed: Entity not found by ($email)")
+            logger.warn("Sign up OTP regeneration failed: Entity not found for {}", sanitizedEmail.maskEmailForLogs())
             throw EmailNotFoundException()
         }
 
@@ -152,7 +156,7 @@ class SignUpService @Inject constructor(
         }
 
         // Calculate when the last OTP was generated based on expiry timestamp
-        val otpExpiryMinutes = configurationService.getSignUpOtpExpiryMins().toLong()
+        val otpExpiryMinutes = configurationService.getSignUpOtpExpiryMins()
         val lastOtpGeneratedTime = signUpEntity.otpExpiryTimestamp.minusMinutes(otpExpiryMinutes)
         val regenerationCooldownMinutes = 3L
         val cooldownEndTime = lastOtpGeneratedTime.plusMinutes(regenerationCooldownMinutes)
@@ -200,7 +204,7 @@ class SignUpService @Inject constructor(
         val emailBody = emailTemplateService.renderSignUpOtpRegenerationEmail(newOtp, otpExpiryMinutes)
 
         emailService.sendEmail(
-            to = email,
+            to = sanitizedEmail,
             subject = "${configurationService.emailSubjectTitle} | Sign Up verification code",
             body = emailBody,
             useHtml = true
@@ -211,33 +215,35 @@ class SignUpService @Inject constructor(
 
     fun completeSignUp(email: String?, otp: String?, password: String?, passwordConfirmation: String?): AppUser
     {
-        validateInputs(email, otp, password, passwordConfirmation)
+        val normalizedEmail = validateInputs(email, otp, password, passwordConfirmation)
 
-        val signUpEntity = signUpRepository.findByEmail(email!!) ?: throw EmailNotFoundException().also {
-            logger.warn("Sign up completion failed: Entity not found with email ($email)")
+        val signUpEntity = signUpRepository.findByEmail(normalizedEmail) ?: throw EmailNotFoundException().also {
+            logger.warn("Sign up completion failed: Entity not found for {}", normalizedEmail.maskEmailForLogs())
         }
 
         handleAttempts(signUpEntity)
 
         ensureOtpValidity(signUpEntity, otp)
 
-        return finalizeSignUp(signUpEntity, email, password!!)
+        return finalizeSignUp(signUpEntity, normalizedEmail, password!!)
     }
 
-    private fun validateInputs(email: String?, otp: String?, password: String?, passwordConfirmation: String?)
+    private fun validateInputs(email: String?, otp: String?, password: String?, passwordConfirmation: String?): String
     {
-        if (email.isNullOrBlank())
+        val normalizedEmail: String? = email.normalizeEmailOrNull()
+
+        if (normalizedEmail == null)
         {
             throw EmailRequiredException().also {
                 logger.warn("Sign up completion failed: Email is null or blank")
             }
         }
 
-        appUserRepository.findByEmail(email)?.let {
+        appUserRepository.findByEmail(normalizedEmail)?.let {
             throw AppUserExistsException()
         }
 
-        if (authenticationService.isEmailInvalid(email))
+        if (authenticationService.isEmailInvalid(normalizedEmail))
         {
             throw InvalidEmailException().also { logger.warn("Sign up completion failed: Email validation failed") }
         }
@@ -269,10 +275,12 @@ class SignUpService @Inject constructor(
             throw PasswordMismatchException().also { logger.warn("Sign up completion failed: Passwords do not match") }
         }
 
-        if (password.contains(email))
+        if (password.lowercase().contains(normalizedEmail))
         {
             throw PasswordContainsEmailException().also { logger.warn("Sign up completion failed: Password contains email") }
         }
+
+        return normalizedEmail
     }
 
     private fun handleAttempts(signUpEntity: SignUpEntity)
@@ -378,4 +386,5 @@ class SignUpService @Inject constructor(
             )
         }
     }
+
 }

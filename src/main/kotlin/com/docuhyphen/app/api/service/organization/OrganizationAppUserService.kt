@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.service.organization
 
 import com.docuhyphen.app.api.exception.AppUserNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
+import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AppUserRole
@@ -51,7 +52,9 @@ class OrganizationAppUserService @Inject constructor(
             throw IllegalArgumentException("Role cannot be null")
         }
 
-        if (email.isNullOrBlank() || authenticationService.isEmailInvalid(email))
+        val normalizedEmail = email.normalizeEmailOrNull()
+
+        if (normalizedEmail == null || authenticationService.isEmailInvalid(normalizedEmail))
         {
             throw IllegalArgumentException("A valid email is required")
         }
@@ -66,22 +69,18 @@ class OrganizationAppUserService @Inject constructor(
             throw IllegalArgumentException("Last name cannot be blank")
         }
 
-        organization.appUsers.find { it -> it.email.trim().lowercase() == email.trim().lowercase() } ?: {
-            throw IllegalArgumentException("Email already exists")
-        }
-
-        if (organization.appUsers.any { it.email.lowercase() == email.lowercase() })
+        if (organization.appUsers.any { it.email.normalizeEmailOrNull() == normalizedEmail })
         {
             throw IllegalArgumentException("App user with that email already exists")
         }
 
-        var appUserPerson = Person().apply {
+        val appUserPerson = Person().apply {
             this.firstName = firstName
             this.lastName = lastName
         }
 
         val appUser = AppUser().apply {
-            this.email = email
+            this.email = normalizedEmail
             this.role = role
             person = appUserPerson
         }
@@ -158,20 +157,21 @@ class OrganizationAppUserService @Inject constructor(
         }
 
         email?.let {
+            val normalizedEmail = it.normalizeEmailOrNull()
 
-            if (it.isBlank() || authenticationService.isEmailInvalid(it))
+            if (normalizedEmail == null || authenticationService.isEmailInvalid(normalizedEmail))
             {
                 throw IllegalArgumentException("A valid email is required")
             }
 
-            val appUserByEmail = appUserService.getAppUserByEmail(it)
+            val appUserByEmail = appUserService.getAppUserByEmail(normalizedEmail)
 
             if (appUserByEmail != null && appUser.id != appUserByEmail.id)
             {
                 throw IllegalArgumentException("Email already exists")
             }
 
-            appUser.email = it.trim()
+            appUser.email = normalizedEmail
 
             //ToDo: send email reset link
         }

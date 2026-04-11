@@ -119,6 +119,24 @@ class MfaRecordRepository : BaseRepository<MfaRecord>(MfaRecord::class.java)
         return query.executeUpdate()
     }
 
+    fun deletePendingSessionsByEmailExcept(email: String, currentSessionId: String): Int
+    {
+        val queryString = """
+            DELETE FROM MfaRecord m
+            WHERE m.appUser.id IN (
+                SELECT a.id FROM AppUser a WHERE LOWER(a.email) = LOWER(:appUserEmail)
+            )
+            AND m.sessionId != :sessionId
+            AND m.status = 'PENDING'
+        """
+
+        val query = entityManager.createQuery(queryString)
+        query.setParameter("appUserEmail", email)
+        query.setParameter("sessionId", currentSessionId)
+
+        return query.executeUpdate()
+    }
+
     fun updateStatusForExpiredRecords(expiryThreshold: Timestamp): Int
     {
         val queryString = """

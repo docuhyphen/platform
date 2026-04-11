@@ -2,7 +2,6 @@ package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.exception.*
 import com.docuhyphen.app.api.resource.model.*
-import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.auth.SignUpService
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes
@@ -19,7 +18,6 @@ import org.slf4j.LoggerFactory
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 class SignUpResource @Inject constructor(
-    private val authenticationService: AuthenticationService,
     private val signUpService: SignUpService,
 )
 {
@@ -34,12 +32,14 @@ class SignUpResource @Inject constructor(
     {
         ResourceEndpointDelayHelper.delayEndpoint(3000, 6000)
 
+        val genericInitiationMessage = "If the email is eligible, we've sent a verification code."
+
         return try
         {
-            signUpService.initiateSignUp(payload.email.toString().trim().lowercase())
+            signUpService.initiateSignUp(payload.email)
 
             val signUpInitiateResponse =
-                SignUpInitiateResponse(message = "We've sent you a verification code to confirm your email.")
+                SignUpInitiateResponse(message = genericInitiationMessage)
             Response.ok(signUpInitiateResponse).build()
         }
         catch (exception: Exception)
@@ -48,13 +48,18 @@ class SignUpResource @Inject constructor(
             {
                 is ExistingSignUpException ->
                 {
-                    val signUpInitiateResponse = SignUpInitiateResponse(message = exception.message)
+                    val signUpInitiateResponse = SignUpInitiateResponse(message = genericInitiationMessage)
+                    Response.ok(signUpInitiateResponse).build()
+                }
+
+                is AppUserExistsException,
+                is EmailExistsException ->
+                {
+                    val signUpInitiateResponse = SignUpInitiateResponse(message = genericInitiationMessage)
                     Response.ok(signUpInitiateResponse).build()
                 }
 
                 is EmailRequiredException,
-                is AppUserExistsException,
-                is EmailExistsException,
                 is InvalidEmailException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message))
                     .build()
 
@@ -129,21 +134,28 @@ class SignUpResource @Inject constructor(
     {
         ResourceEndpointDelayHelper.delayEndpoint(1500, 3000)
 
+        val genericRegenerationMessage = "If verification is pending for this email, a new code has been sent."
+
         return try
         {
             signUpService.regenerateOtp(request.email)
             val otpRegenerationResponse =
-                SignUpCompletionResponse("Verification resent successfully")
+                SignUpCompletionResponse(genericRegenerationMessage)
             Response.ok(otpRegenerationResponse).build()
         }
         catch (exception: Exception)
         {
             when (exception)
             {
+                is EmailNotFoundException,
+                is AppUserExistsException ->
+                {
+                    val otpRegenerationResponse = SignUpCompletionResponse(genericRegenerationMessage)
+                    Response.ok(otpRegenerationResponse).build()
+                }
+
                 is EmailRequiredException,
                 is OtpRegenerationCooldownException,
-                is EmailNotFoundException,
-                is AppUserExistsException,
                 is OtpMaxRetryLimitReachedException ->
                 {
                     val responseError = ResponseError(exception.message)

@@ -2,24 +2,35 @@ package com.docuhyphen.app.api.service.communication
 
 import jakarta.enterprise.context.ApplicationScoped
 import org.mindrot.jbcrypt.BCrypt
+import java.security.SecureRandom
 
 @ApplicationScoped
 class OtpService
 {
+    companion object
+    {
+        private val secureRandom = SecureRandom()
+    }
+
     fun generateEmailOtp(): String
     {
-        return (100000..999999).random().toString()
+        return generateSixDigitOtp()
     }
 
 
     fun generateSmsOtp(): String
     {
-        return (100000..999999).random().toString()
+        return generateSixDigitOtp()
     }
 
     fun generatePhoneVerificationCode(): String
     {
-        return (100000..999999).random().toString()
+        return generateSixDigitOtp()
+    }
+
+    private fun generateSixDigitOtp(): String
+    {
+        return (secureRandom.nextInt(900000) + 100000).toString()
     }
 
     fun hashOtp(otp: String): String = BCrypt.hashpw(otp, BCrypt.gensalt())

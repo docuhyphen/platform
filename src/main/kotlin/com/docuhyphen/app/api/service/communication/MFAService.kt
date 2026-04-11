@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.communication
 
+import com.docuhyphen.app.api.exception.TooManyRequestsException
 import com.docuhyphen.app.api.model.dto.MfaSessionDto
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.MfaRecord
@@ -50,13 +51,8 @@ class MfaService(
             this.ipAddress = ipAddress
         }
 
-//        // Invalidate previous sessions only if configured to do so
-//        if (configurationService.shouldInvalidatePreviousSessions())
-//        {
-//            invalidatePreviousSessions(user.email, sessionId)
-//        }
-
         mfaRecordRepository.save(mfaRecord)
+        mfaRecordRepository.deletePendingSessionsByEmailExcept(user.email, sessionId)
 
         return MfaSessionDto().apply {
             this.id = UUID.fromString(sessionId)
@@ -70,11 +66,13 @@ class MfaService(
         // Generate new OTP
         val newOtp = otpService.generateEmailOtp()
         val hashedOtp = otpService.hashOtp(newOtp)
+        val now = Timestamp.from(Instant.now())
 
         // Update record
         mfaRecord.mfaToken = hashedOtp
         // Optionally reset attempts count
         mfaRecord.attemptCount = 0
+        mfaRecord.createdDate = now
         // Update expiry time to give full time again
         mfaRecord.expiryDateTime = Timestamp.from(
             Instant.now().plusMillis(MINUTES.toMillis(configurationService.getSignInEmailOtpMFAExpiryMins()))
@@ -86,27 +84,13 @@ class MfaService(
     }
 
     fun enforceRateLimits(email: String, ipAddress: String) {
-//        // Check user-specific rate limit (per email)
-//        val recentUserRequests = mfaRecordRepository.countRecentRequestsByEmail(
-//            email,
-//            Timestamp.from(Instant.now().minusSeconds(60))
-//        )
-//
-//        if (recentUserRequests >= configurationService.getMaxOtpRequestsPerUserPerMinute()) {
-//            throw TooManyRequestsException("Rate limit exceeded for this user. Please try again in a few minutes.")
-//        }
-//
-//        // Check IP-based rate limit with higher threshold for shared environments
-//        val recentIpRequests = mfaRecordRepository.countRecentRequestsByIp(
-//            ipAddress,
-//            Timestamp.from(Instant.now().minusSeconds(60))
-//        )
-//
-//        // Use a much higher threshold for IP-based limits
-//        if (recentIpRequests >= configurationService.getMaxOtpRequestsPerIpPerMinute()) {
-//            // Optional: Log potential abuse from this IP
-//            throw TooManyRequestsException("Rate limit exceeded from this network. Please try again in a few minutes.")
-//        }
+        val threshold = Timestamp.from(Instant.now().minusSeconds(60))
+        val requestCount = mfaRecordRepository.countRecentRequestsByEmailAndIp(email, ipAddress, threshold)
+
+        if (requestCount >= configurationService.getMaxOtpRequestsPerMinute())
+        {
+            throw TooManyRequestsException("Too many sign in attempts. Please try again shortly.")
+        }
     }
 
     fun doEmailMFA(appUser: AppUser, mfaToken: String)
