@@ -10,6 +10,7 @@ import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.repository.PersonRepositoryRepository
 import com.docuhyphen.app.api.service.communication.EmailService
+import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -25,6 +26,7 @@ class EntityRegistrationService @Inject constructor(
     private val appUserService: AppUserService,
     private var configurationService: ConfigurationService,
     private var emailService: EmailService,
+    private val emailTemplateService: EmailTemplateService,
     private val organizationVerificationProducer: OrganizationVerificationProducer
 )
 {
@@ -141,13 +143,20 @@ class EntityRegistrationService @Inject constructor(
         organizationRepository.save(organization)
         logger.info("Organization registration successful for registration number $registrationNumber.")
 
+        val emailBody = emailTemplateService.renderOrganizationRegistrationEmail(
+            firstName = appUser.person!!.firstName!!,
+            lastName = appUser.person!!.lastName!!,
+            organizationName = organizationName,
+            registrationNumber = registrationNumber,
+            organizationEmail = email,
+            organizationPhone = phoneNumber,
+        )
+
         emailService.sendEmail(
             appUser.email,
-            "${configurationService.emailSubjectTitle} | Organization registration",
-            "Hi ${appUser.person!!.firstName} ${appUser.person!!.lastName},\n\n" +
-                    "Your Organization registration request has been received. " +
-                    "Please wait for the administrator to approve your request.\n\n" +
-                    "Thank you for using ${configurationService.emailSubjectTitle}!"
+            "${configurationService.emailSubjectTitle} | Organization Registration",
+            emailBody,
+            useHtml = true,
         )
 
         organizationVerificationProducer.sendToQueue(organization)

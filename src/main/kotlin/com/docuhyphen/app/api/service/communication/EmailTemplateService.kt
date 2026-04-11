@@ -84,5 +84,51 @@ class EmailTemplateService @Inject constructor(
 
         return renderTemplate("sign-in-email-reMFA.ftl", model)
     }
+
+    fun renderOrganizationRegistrationEmail(
+        firstName: String,
+        lastName: String,
+        organizationName: String,
+        registrationNumber: String,
+        organizationEmail: String?,
+        organizationPhone: String?,
+    ): String
+    {
+        val model = mutableMapOf<String, Any>(
+            "firstName" to firstName,
+            "lastName" to lastName,
+            "organizationName" to organizationName,
+            "registrationNumber" to registrationNumber,
+            "appName" to configurationService.emailSubjectTitle,
+            "appBaseUrl" to configurationService.baseUrl,
+        )
+
+        if (!organizationEmail.isNullOrBlank())
+        {
+            model["organizationEmail"] = organizationEmail
+        }
+        if (!organizationPhone.isNullOrBlank())
+        {
+            model["organizationPhone"] = organizationPhone
+        }
+
+        return renderTemplate("organization-registration.ftl", model)
+    }
+
+    fun renderOrganizationUpdateEmail(
+        organizationName: String,
+        updatedFields: List<String>,
+        updatedBy: String,
+    ): String
+    {
+        val model = mapOf(
+            "organizationName" to organizationName,
+            "updatedFields" to updatedFields,
+            "updatedBy" to updatedBy,
+            "appName" to configurationService.emailSubjectTitle,
+        )
+
+        return renderTemplate("organization-update.ftl", model)
+    }
 }
 

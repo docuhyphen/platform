@@ -1,4 +1,4 @@
-<#assign emailTitle = (appName!'DocuHyphen') + " - Email Verification">
+<#assign emailTitle = (appName!'DocuHyphen') + " - Sign Up Email Verification">
 <#include "email-header.ftl">
 
 <p style="margin:0 0 14px 0;"><strong>Welcome to ${appName!'DocuHyphen'}.</strong></p>

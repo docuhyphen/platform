@@ -90,7 +90,7 @@ class SignUpService @Inject constructor(
 
             emailService.sendEmail(
                 to = sanitized,
-                subject = "${configurationService.emailSubjectTitle} | Email Verification",
+                subject = "${configurationService.emailSubjectTitle} | Sign Up Email Verification",
                 body = emailBody,
                 useHtml = true
             )
