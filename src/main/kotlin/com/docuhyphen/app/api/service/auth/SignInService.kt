@@ -1,6 +1,5 @@
 package com.docuhyphen.app.api.service.auth
 
-import com.docuhyphen.app.api.configuration.FreeMarkerConfig
 import com.docuhyphen.app.api.exception.InvalidOtpException
 import com.docuhyphen.app.api.exception.InvalidSignInCredentialsException
 import com.docuhyphen.app.api.exception.MaxAttemptsOTPExceededException
@@ -12,6 +11,7 @@ import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType.EMAIL
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.communication.EmailService
+import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.MfaService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
@@ -32,6 +32,7 @@ class SignInService @Inject constructor(
     private val otpService: OtpService,
     private val configurationService: ConfigurationService,
     private val emailService: EmailService,
+    private val emailTemplateService: EmailTemplateService,
 )
 {
 
@@ -240,12 +241,16 @@ class SignInService @Inject constructor(
         when (mfaRecord.mfaType)
         {
             EMAIL -> {
+                val emailBody = emailTemplateService.renderSignInMfaResendEmail(
+                    otp = newOtp,
+                    expiryMinutes = configurationService.getSignInEmailOtpMFAExpiryMins(),
+                )
+
                 emailService.sendEmail(
                     to = mfaRecord.appUser!!.email,
                     subject = "${configurationService.emailSubjectTitle} | Sign In Verification",
-                    body = """Your new sign in verification code is: $newOtp.
-                            |It will expire in ${configurationService.getSignInEmailOtpMFAExpiryMins()} minutes.
-                            |If you didn't request this code, please ignore this email.""".trimMargin()
+                    body = emailBody,
+                    useHtml = true,
                 )
             }
             MultifactorAuthenticationType.SMS -> TODO("Implement SMS OTP sending")

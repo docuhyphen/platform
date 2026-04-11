@@ -62,5 +62,27 @@ class EmailTemplateService @Inject constructor(
 
         return renderTemplate("sign-up-otp-regeneration.ftl", model)
     }
+
+    fun renderSignInMfaEmail(otp: String, expiryMinutes: Long): String
+    {
+        val model = mapOf(
+            "verificationCode" to otp,
+            "expiryMinutes" to expiryMinutes,
+            "appName" to configurationService.emailSubjectTitle
+        )
+
+        return renderTemplate("sign-in-email-MFA.ftl", model)
+    }
+
+    fun renderSignInMfaResendEmail(otp: String, expiryMinutes: Long): String
+    {
+        val model = mapOf(
+            "verificationCode" to otp,
+            "expiryMinutes" to expiryMinutes,
+            "appName" to configurationService.emailSubjectTitle
+        )
+
+        return renderTemplate("sign-in-email-reMFA.ftl", model)
+    }
 }
 
