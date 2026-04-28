@@ -1,18 +1,24 @@
-import React, {createContext, ReactNode, useContext, useEffect, useRef, useState} from 'react';
+import React, {createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {fetchAppUser, fetchAppUserPersonOrganization} from '../services/appUserApi.ts';
-import {AppUserDetailedDto, OrganizationBasicDto, OrganizationDetailedDto} from "../app/models/models.tsx";
+import {AppUserDetailedDto, OrganizationDetailedDto} from "../app/models/models.tsx";
 import {isTokenExpired} from "../utils/helpers.ts";
 import {useLocation, useNavigate} from "react-router-dom";
 import {setApiClientAuthToken} from "../services/apiClient.ts";
+import {refreshTokens as refreshTokensApi} from "../services/authApi.ts";
 
 interface AuthContextType
 {
     token: string | null;
     setToken: (token: string | null) => void;
+    accessToken: string | null;
+    idToken: string | null;
+    setAccessToken: (token: string | null) => void;
+    setIdToken: (token: string | null) => void;
     appUser: AppUserDetailedDto | null;
     setAppUser: (user: AppUserDetailedDto | null) => void;
     appUserPersonOrganization: OrganizationDetailedDto | null;
     setAppUserPersonOrganization: (organization: OrganizationDetailedDto | null) => void;
+    refreshTokens: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,28 +27,131 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
 {
     const navigate = useNavigate();
     const location = useLocation();
-    const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
+
+    // Keep backward-compatible `token` (alias for accessToken) + new accessToken/idToken
+    const [accessToken, setAccessTokenState] = useState<string | null>(() => sessionStorage.getItem('accessToken'));
+    const [idToken, setIdTokenState] = useState<string | null>(() => sessionStorage.getItem('idToken'));
     const tokenExpirationIntervalRef = useRef<number | null>(null);
     const [appUser, setAppUser] = useState<AppUserDetailedDto | null>(null);
     const [appUserPersonOrganization, setAppUserPersonOrganization] = useState<OrganizationDetailedDto | null>(null);
 
+    // Convenience alias
+    const token = accessToken;
+
+    const setAccessToken = useCallback((t: string | null) =>
+    {
+        setAccessTokenState(t);
+        if (t)
+        {
+            sessionStorage.setItem('accessToken', t);
+        }
+        else
+        {
+            sessionStorage.removeItem('accessToken');
+        }
+        setApiClientAuthToken(t);
+    }, []);
+
+    const setIdToken = useCallback((t: string | null) =>
+    {
+        setIdTokenState(t);
+        if (t) sessionStorage.setItem('idToken', t);
+        else sessionStorage.removeItem('idToken');
+    }, []);
+
+    const setToken = useCallback((t: string | null) =>
+    {
+        setAccessToken(t);
+        if (!t)
+        {
+            setIdToken(null);
+        }
+    }, [setAccessToken, setIdToken]);
+
+    // Try to refresh tokens on app load (cookie-based)
+    const refreshTokens = useCallback(async () =>
+    {
+        try
+        {
+            const data = await refreshTokensApi();
+            if (data?.accessToken)
+            {
+                setAccessToken(data.accessToken);
+                if (data.idToken) setIdToken(data.idToken);
+            }
+        }
+        catch
+        {
+            // No valid refresh token — user is not logged in
+            console.log("No active session (refresh token unavailable)");
+        }
+    }, [setAccessToken, setIdToken]);
+
+    // On mount, attempt to refresh tokens if we don't have a valid access token
     useEffect(() =>
     {
-        tokenExpirationIntervalRef.current = window.setInterval(() =>
+        const doInitialRefresh = async () =>
         {
-            setToken((currentToken) =>
+            if (!accessToken || isTokenExpired(accessToken))
             {
-                if (currentToken && isTokenExpired(currentToken))
-                {
-                    alert("Session expired");
-                    saveToken(null);
-                    redirectToSessionExpired();
-                    return null;
-                }
+                await refreshTokens();
+            }
+            else
+            {
+                setApiClientAuthToken(accessToken);
+            }
+        };
+        doInitialRefresh();
+    }, []);
 
-                return currentToken;
-            });
-        }, 5000);
+    // Listen for token-refreshed events from the axios interceptor
+    useEffect(() =>
+    {
+        const handleTokensRefreshed = (e: Event) =>
+        {
+            const detail = (e as CustomEvent).detail;
+            if (detail?.accessToken) setAccessToken(detail.accessToken);
+            if (detail?.idToken) setIdToken(detail.idToken);
+        };
+
+        const handleSessionExpired = () =>
+        {
+            setAccessToken(null);
+            setIdToken(null);
+            setAppUser(null);
+            setAppUserPersonOrganization(null);
+            redirectToSessionExpired();
+        };
+
+        window.addEventListener('tokens-refreshed', handleTokensRefreshed);
+        window.addEventListener('auth-session-expired', handleSessionExpired);
+
+        return () =>
+        {
+            window.removeEventListener('tokens-refreshed', handleTokensRefreshed);
+            window.removeEventListener('auth-session-expired', handleSessionExpired);
+        };
+    }, [setAccessToken, setIdToken]);
+
+    // Token expiration polling (check every 30s, attempt refresh before expiry)
+    useEffect(() =>
+    {
+        tokenExpirationIntervalRef.current = window.setInterval(async () =>
+        {
+            if (accessToken && isTokenExpired(accessToken))
+            {
+                try
+                {
+                    await refreshTokens();
+                }
+                catch
+                {
+                    setAccessToken(null);
+                    setIdToken(null);
+                    redirectToSessionExpired();
+                }
+            }
+        }, 30000);
 
         return () =>
         {
@@ -51,47 +160,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
                 clearInterval(tokenExpirationIntervalRef.current);
             }
         };
-    }, []);
+    }, [accessToken, refreshTokens]);
 
     useEffect(() =>
     {
-        if (token === null)
-        {
-            localStorage.removeItem('token');
-            setApiClientAuthToken(null);
-        }
-        else
-        {
-            localStorage.setItem('token', token);
-            setApiClientAuthToken(token);
-        }
-    }, [token]);
-
-    useEffect(() =>
-    {
-        if (!token)
+        if (!accessToken)
         {
             setAppUser(null);
             setAppUserPersonOrganization(null);
             return;
         }
 
-        if (isTokenExpired(token))
+        if (isTokenExpired(accessToken))
         {
-            redirectToSessionExpired();
+            // Will be handled by the interval / interceptor
             return;
         }
 
         fetchUserData();
-    }, [token, appUser, location.pathname]);
+    }, [accessToken, appUser, location.pathname]);
 
     const fetchUserData = async () =>
     {
         try
         {
-            if (!appUser && token)
+            if (!appUser && accessToken)
             {
-                const user = await fetchAppUser(token);
+                const user = await fetchAppUser(accessToken);
                 setAppUser(user);
             }
 
@@ -101,11 +196,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
                 return;
             }
 
-            if (appUser?.person && !appUserPersonOrganization && token)
+            if (appUser?.person && !appUserPersonOrganization && accessToken)
             {
                 try
                 {
-                    setAppUserPersonOrganization(await fetchAppUserPersonOrganization(appUser?.id, appUser?.person?.id, token));
+                    setAppUserPersonOrganization(await fetchAppUserPersonOrganization(appUser?.id, appUser?.person?.id, accessToken));
                 }
                 catch (error: any)
                 {
@@ -119,29 +214,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         catch (error: any)
         {
             console.error("Failed to fetch user data:", error);
-            saveToken(null);
+            setAccessToken(null);
+            setIdToken(null);
             redirectToLogin();
-        }
-    };
-
-    const saveToken = (newToken: string | null) =>
-    {
-        setToken(newToken);
-        if (newToken)
-        {
-            localStorage.setItem("token", newToken);
-        }
-        else
-        {
-            localStorage.removeItem("token");
-            setAppUser(null);
-            setAppUserPersonOrganization(null);
         }
     };
 
     const redirectToLogin = () =>
     {
-        if (!["/sign-in", "/sign-up", "/account-recovery", "/nas", "/app-session-expired"].includes(location.pathname))
+        const publicPaths = ["/sign-in", "/sign-up", "/account-recovery", "/nas", "/app-session-expired", "/oauth/callback", "/oauth/link-confirm"];
+        if (!publicPaths.includes(location.pathname))
         {
             navigate("/sign-in");
         }
@@ -151,7 +233,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
     {
         if (!["/app-session-expired"].includes(location.pathname))
         {
-            console.log("Now navigating to /app-session-expired");
             navigate("/app-session-expired");
         }
     }
@@ -161,10 +242,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
             value={{
                 token,
                 setToken,
+                accessToken,
+                idToken,
+                setAccessToken,
+                setIdToken,
                 appUser,
                 setAppUser,
                 appUserPersonOrganization,
-                setAppUserPersonOrganization
+                setAppUserPersonOrganization,
+                refreshTokens,
             }}>
             {children}
         </AuthContext.Provider>

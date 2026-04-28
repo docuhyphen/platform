@@ -8,7 +8,6 @@ import com.docuhyphen.app.api.exception.TooManyRequestsException
 import com.docuhyphen.app.api.extension.maskEmailForLogs
 import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.model.dto.MfaSessionDto
-import com.docuhyphen.app.api.model.entity.AuthToken
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationStatus
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType.EMAIL
@@ -25,11 +24,11 @@ import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 
 @RequestScoped
 class SignInService @Inject constructor(
     private val authenticationService: AuthenticationService,
+    private val tokenIssuanceService: TokenIssuanceService,
     private val mfaService: MfaService,
     private val appUserService: AppUserService,
     private val otpService: OtpService,
@@ -103,7 +102,7 @@ class SignInService @Inject constructor(
     }
 
     @Transactional
-    fun completeSignIn(email: String?, otp: String?, sessionId: String?): String
+    fun completeSignIn(email: String?, otp: String?, sessionId: String?): TokenTriple
     {
         if (email.isNullOrBlank() || otp.isNullOrBlank() || sessionId.isNullOrBlank())
         {
@@ -181,23 +180,13 @@ class SignInService @Inject constructor(
         mfaRecord.status = MultifactorAuthenticationStatus.COMPLETED
         mfaService.updateRecord(mfaRecord)
 
-        // Generate JWT token
-        val signInToken = authenticationService.generateSignInToken(mfaRecord.appUser!!)
+        // Issue token triple via shared service
+        val tokenTriple = tokenIssuanceService.issueTokenTriple(mfaRecord.appUser!!)
 
-        // Save AuthToken to AuthTokenRepository
-        val authToken = AuthToken().apply {
-            this.appUser = mfaRecord.appUser
-            this.token = signInToken
-            this.expiryDateTime = Timestamp.from(
-                Instant.now().plusMillis(TimeUnit.HOURS.toMillis(configurationService.getSignInTokenExpiryHours()))
-            )
-        }
-
-        authenticationService.saveAuthToken(authToken)
         mfaService.removeMfaRecord(mfaRecord)
 
         logger.info("Sign in completed for {}", sanitizedEmail.maskEmailForLogs())
-        return signInToken
+        return tokenTriple
     }
 
     @Transactional

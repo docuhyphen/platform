@@ -28,6 +28,13 @@ class AuthToken {
     @Column(name = "token", nullable = false, length = 2048)
     var token: String? = null
 
+    @Column(name = "jti", nullable = true, unique = true)
+    var jti: String? = null
+
+    @Column(name = "token_type", nullable = true)
+    @Enumerated(EnumType.STRING)
+    var tokenType: AuthTokenType? = AuthTokenType.REFRESH
+
     @Column(name = "otp")
     var otp: String? = null
 

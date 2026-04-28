@@ -1,12 +1,11 @@
 package com.docuhyphen.app.api.service.auth
 
-import com.docuhyphen.app.api.exception.AuthTokenInvalidException
-import com.docuhyphen.app.api.exception.AuthTokenNotFoundException
 import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AuthToken
-import com.docuhyphen.app.api.repository.AuthTokenRepository
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.model.entity.AuthTokenType.ACCESS
+import com.docuhyphen.app.api.model.entity.AuthTokenType.ID
+import com.docuhyphen.app.api.model.entity.AuthTokenType.REFRESH
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
 import jakarta.enterprise.context.RequestScoped
@@ -19,9 +18,8 @@ import javax.crypto.SecretKey
 
 @RequestScoped
 class AuthenticationService @Inject constructor(
-    private val authTokenRepository: AuthTokenRepository,
-    private val appUserService: AppUserService,
     private val configurationService: ConfigurationService,
+    private val refreshTokenStore: RefreshTokenStore,
 )
 {
     val jwtSecretKey: SecretKey = Keys.hmacShaKeyFor(configurationService.getJwtSecret().toByteArray())
@@ -64,73 +62,155 @@ class AuthenticationService @Inject constructor(
         return true
     }
 
-    fun generateSignInToken(appUser: AppUser): String
+    fun generateAccessToken(appUser: AppUser): String
     {
-        val tokenExpiryHrs = configurationService.getSignInTokenExpiryHours()
-        val expiration = Date(System.currentTimeMillis() + TimeUnit.HOURS.toMillis(tokenExpiryHrs))
+        val expiryMinutes = configurationService.getAccessTokenExpiryMinutes()
+        val expiration = Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(expiryMinutes))
 
         return Jwts.builder()
             .subject(appUser.id.toString())
             .claim("email", appUser.email)
+            .claim("role", appUser.role.name)
+            .claim("token_type", ACCESS.name)
             .issuedAt(Date())
             .expiration(expiration)
             .signWith(jwtSecretKey)
             .compact()
     }
 
-    fun authenticateToken(token: String?): AuthToken?
+    fun generateApplicationAccessToken(applicationId: UUID): String
     {
-        if (token.isNullOrBlank())
-        {
-            logger.warn("Failed to get auth token: token is null or blank")
-            return null
-        }
-
-        val secret = configurationService.getJwtSecret()
-        val key = Keys.hmacShaKeyFor(secret.toByteArray())
-
-        return try
-        {
-            val claims = Jwts.parser()
-                .verifyWith(key)
-                .build()
-                .parseSignedClaims(token)
-                .payload
-
-            val userId = UUID.fromString(claims.subject)
-
-            appUserService.getById(userId) ?: throw AuthTokenNotFoundException()
-
-            return authTokenRepository.findByToken(token) ?: throw AuthTokenNotFoundException()
-        }
-        catch (e: Exception)
-        {
-            logger.warn("Invalid token: ${e.message}")
-            throw AuthTokenInvalidException()
-        }
-    }
-
-    fun refreshToken(oldToken: String): String
-    {
-        val claims = Jwts.parser()
-            .verifyWith(jwtSecretKey)
-            .build()
-            .parseSignedClaims(oldToken)
-            .payload
-
-        val newExpiration =
-            Date(System.currentTimeMillis() + TimeUnit.HOURS.toMillis(configurationService.getSignInTokenExpiryHours()))
+        val expiryMinutes = configurationService.getAccessTokenExpiryMinutes()
+        val expiration = Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(expiryMinutes))
 
         return Jwts.builder()
-            .claims(claims)
+            .subject(applicationId.toString())
+            .claim("token_type", ACCESS.name)
+            .claim("type", "APPLICATION")
             .issuedAt(Date())
-            .expiration(newExpiration)
+            .expiration(expiration)
             .signWith(jwtSecretKey)
             .compact()
     }
 
-    fun saveAuthToken(authToken: AuthToken)
+    fun generateIdToken(appUser: AppUser): String
     {
-        authTokenRepository.save(authToken)
+        val expiryMinutes = configurationService.getIdTokenExpiryMinutes()
+        val expiration = Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(expiryMinutes))
+
+        val builder = Jwts.builder()
+            .subject(appUser.id.toString())
+            .claim("email", appUser.email)
+            .claim("token_type", ID.name)
+
+        appUser.person?.let { person ->
+            builder.claim("firstName", person.firstName)
+            builder.claim("lastName", person.lastName)
+        }
+
+        return builder
+            .issuedAt(Date())
+            .expiration(expiration)
+            .signWith(jwtSecretKey)
+            .compact()
+    }
+
+    fun generateRefreshToken(appUser: AppUser): Pair<String, String>
+    {
+        val expiryDays = configurationService.getRefreshTokenExpiryDays()
+        val expiration = Date(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(expiryDays))
+        val jti = UUID.randomUUID().toString()
+
+        val token = Jwts.builder()
+            .subject(appUser.id.toString())
+            .claim("token_type", REFRESH.name)
+            .id(jti)
+            .issuedAt(Date())
+            .expiration(expiration)
+            .signWith(jwtSecretKey)
+            .compact()
+
+        return Pair(token, jti)
+    }
+
+    fun generateLinkToken(email: String, provider: String, externalSubjectId: String): String
+    {
+        val expiryMinutes = configurationService.getLinkTokenExpiryMinutes()
+        val expiration = Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(expiryMinutes))
+
+        return Jwts.builder()
+            .subject(email)
+            .claim("provider", provider)
+            .claim("externalSubjectId", externalSubjectId)
+            .claim("token_type", "LINK")
+            .issuedAt(Date())
+            .expiration(expiration)
+            .signWith(jwtSecretKey)
+            .compact()
+    }
+
+    // ── Token verification ──
+
+    fun verifyAccessToken(token: String?): Claims?
+    {
+        if (token.isNullOrBlank())
+        {
+            logger.warn("Access token is null or blank")
+            return null
+        }
+
+        return try
+        {
+            Jwts.parser()
+                .verifyWith(jwtSecretKey)
+                .build()
+                .parseSignedClaims(token)
+                .payload
+        }
+        catch (e: Exception)
+        {
+            logger.warn("Invalid access token: ${e.message}")
+            null
+        }
+    }
+
+    fun parseTokenClaims(token: String): Claims?
+    {
+        return try
+        {
+            Jwts.parser()
+                .verifyWith(jwtSecretKey)
+                .build()
+                .parseSignedClaims(token)
+                .payload
+        }
+        catch (e: Exception)
+        {
+            logger.warn("Invalid token: ${e.message}")
+            null
+        }
+    }
+
+    // ── Refresh token operations (delegated to Redis) ──
+
+    fun saveRefreshToken(appUser: AppUser, refreshToken: String, jti: String)
+    {
+        val expirySeconds = TimeUnit.DAYS.toSeconds(configurationService.getRefreshTokenExpiryDays())
+        refreshTokenStore.save(appUser.id, jti, refreshToken, expirySeconds)
+    }
+
+    fun findRefreshTokenByJti(jti: String): StoredRefreshToken?
+    {
+        return refreshTokenStore.findByJti(jti)
+    }
+
+    fun deleteRefreshTokenByJti(jti: String)
+    {
+        refreshTokenStore.deleteByJti(jti)
+    }
+
+    fun deleteAllRefreshTokensForUser(userId: UUID)
+    {
+        refreshTokenStore.deleteAllByUserId(userId)
     }
 }

@@ -1,6 +1,8 @@
 package com.docuhyphen.app.api.interceptor
 
 import com.docuhyphen.app.api.model.entity.AuthToken
+import com.docuhyphen.app.api.model.entity.AuthTokenType.ACCESS
+import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.enterprise.inject.Produces
@@ -47,6 +49,7 @@ class AuthTokenProducer
 @Provider
 class EndpointVerificationFilter @Inject constructor(
     private val authenticationService: AuthenticationService,
+    private val appUserService: AppUserService,
 ) : ContainerRequestFilter
 {
     private val logger = LoggerFactory.getLogger(EndpointVerificationFilter::class.java.name)
@@ -58,8 +61,12 @@ class EndpointVerificationFilter @Inject constructor(
         "/auth/sign-in/initiate",
         "/auth/sign-in/otp-regeneration",
         "/auth/sign-in/completion",
+        "/auth/sign-in/lookup",
         "/auth/password-reset/initiation",
         "/auth/password-reset/completion",
+        "/auth/token/refresh",
+        "/auth/oauth/",
+        "/auth/application/token",
         "/no-auth/sharing-sessions",
     )
 
@@ -86,26 +93,42 @@ class EndpointVerificationFilter @Inject constructor(
         }
 
         val token = authorizationHeader.removePrefix("Bearer ").trim()
-        val authToken = try
+
+        val claims = authenticationService.verifyAccessToken(token)
+        if (claims == null)
         {
-            authenticationService.authenticateToken(token)
+            logger.warn("Invalid access token for request to $requestUri")
+            abortRequest(requestContext, "Unauthorized request")
+            return
+        }
+
+        val userId = try
+        {
+            java.util.UUID.fromString(claims.subject)
         }
         catch (e: Exception)
         {
-            logger.warn("Invalid token for request to $requestUri: ${e.message}")
+            logger.warn("Invalid subject in access token")
             abortRequest(requestContext, "Unauthorized request")
             return
         }
 
-        if (authToken == null)
+        val appUser = appUserService.getById(userId)
+        if (appUser == null)
         {
-            logger.warn("Invalid token for request to $requestUri.")
+            logger.warn("User not found for access token subject=$userId")
             abortRequest(requestContext, "Unauthorized request")
             return
         }
 
-        authenticationContext.authToken = authToken
-        logger.info("Successfully authenticated")
+        val virtualToken = AuthToken().apply {
+            this.appUser = appUser
+            this.token = token
+            this.tokenType = ACCESS
+        }
+
+        authenticationContext.authToken = virtualToken
+        logger.info("Successfully authenticated user={}", userId)
     }
 
     private fun abortRequest(requestContext: ContainerRequestContext, message: String)

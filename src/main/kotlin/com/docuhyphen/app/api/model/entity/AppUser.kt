@@ -75,6 +75,11 @@ class AppUser
     @OneToOne(cascade = [ALL], fetch = LAZY)
     @JoinColumn(name = "settings_id")
     var settings: AppUserSettings? = null
+
+    @OneToMany(mappedBy = "appUser", cascade = [ALL], fetch = LAZY)
+    @kotlinx.serialization.Transient
+    var identityProviderLinks: MutableList<IdentityProviderLink> = mutableListOf()
+
     constructor()
 }
 

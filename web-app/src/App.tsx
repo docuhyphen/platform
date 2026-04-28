@@ -16,6 +16,8 @@ import ProtectedRoute from "./app/components/ProtectedRoutes.tsx";
 import AppSessionExpired from "./app/app-session-expired/AppSessionExpired.tsx";
 import {NotificationProvider} from "./context/NotificationContext.tsx";
 import Home from "./app/home/Home.tsx";
+import OAuthCallback from "./app/authorization/oauth/OAuthCallback.tsx";
+import OAuthLinkConfirm from "./app/authorization/oauth/OAuthLinkConfirm.tsx";
 
 const App: React.FC = () =>
 {
@@ -82,6 +84,12 @@ const App: React.FC = () =>
                                    <ProtectedRoute path='/sign-in'
                                                    element={<SharingSessions/>}/>
                                }/>
+
+                        <Route path="/oauth/callback"
+                               element={<OAuthCallback/>}/>
+
+                        <Route path="/oauth/link-confirm"
+                               element={<OAuthLinkConfirm/>}/>
 
                         <Route path="*"
                                element={

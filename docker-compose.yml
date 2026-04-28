@@ -16,6 +16,7 @@ services:
       QUARKUS_HTTP_HOST: 0.0.0.0
     depends_on:
       - postgres
+      - redis
     restart: always
 
   postgres:
@@ -31,5 +32,15 @@ services:
       - postgres-data:/var/lib/postgresql/data
     restart: always
 
+  redis:
+    image: redis:7-alpine
+    container_name: doc-hyphen-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: always
+
 volumes:
   postgres-data:
+  redis-data:

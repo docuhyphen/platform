@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {completeSignIn, initiateSignIn, regenerateSignInOtp} from '../../../services/authApi.ts';
+import {completeSignIn, initiateSignIn, lookupSignInMethod, regenerateSignInOtp} from '../../../services/authApi.ts';
 import {fetchAppUser, fetchAppUserPersonOrganization,} from '../../../services/appUserApi.ts';
 import {useAuth} from '../../../context/AuthContext.tsx';
 import {useNavigate} from 'react-router-dom';
@@ -29,20 +29,23 @@ import {useSignInStyles} from "./SignInStyles.tsx";
 import {useAuthorizationStyles} from "../AuthorizationStyles.tsx";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 
+type SignInStep = 'EMAIL_ENTRY' | 'PASSWORD_ENTRY' | 'MFA_ENTRY';
+
 const SignIn: React.FC = () =>
 {
+    const [step, setStep] = useState<SignInStep>('EMAIL_ENTRY');
     const [email, setEmail] = useState<string>('');
     const [otp, setOtp] = useState<string>('');
     const [mfaSessionId, setMfaSessionId] = useState<string>('');
     const [password, setPassword] = useState<string>('');
+    const [lookingUp, setLookingUp] = useState<boolean>(false);
     const [signInInitiating, setSignInInitiating] = useState<boolean>(false);
     const [signInCompleting, setSignInCompleting] = useState<boolean>(false);
     const [resendingOtp, setResendingOtp] = useState<boolean>(false);
     const [resetOtpResponseMessage, setResetOtpResponseMessage] = useState<boolean>(false);
     const [signInInitiationSuccessfulMsg, setSignInInitiationSuccessfulMsg] = useState<string>('');
-    const [signInInitiationSuccessful, setSignInInitiationSuccessful] = useState<boolean>(false);
     const [responseErrorMessage, setResponseErrorMessage] = useState<string | undefined>('');
-    const {setToken, setAppUser, setAppUserPersonOrganization} = useAuth();
+    const {setToken, setAccessToken, setIdToken, setAppUser, setAppUserPersonOrganization} = useAuth();
     const navigate = useNavigate();
     const signInStyles = useSignInStyles();
     const authorizationStyles = useAuthorizationStyles();
@@ -54,6 +57,49 @@ const SignIn: React.FC = () =>
 
     const token = useToken();
 
+    // Identifier-first lookup
+    const onLookupEmail = async () =>
+    {
+        if (lookingUp) return;
+        if (!email)
+        {
+            setResponseErrorMessage("Email is required.");
+            return;
+        }
+
+        setLookingUp(true);
+        setResponseErrorMessage(undefined);
+
+        try
+        {
+            const response = await lookupSignInMethod({email});
+
+            if (response.authMethod === 'INTERNAL')
+            {
+                setStep('PASSWORD_ENTRY');
+            }
+            else if (response.redirectUrl)
+            {
+                // External IDP — redirect browser
+                window.location.href = response.redirectUrl;
+            }
+            else
+            {
+                // Fallback to internal
+                setStep('PASSWORD_ENTRY');
+            }
+        }
+        catch (error)
+        {
+            setResponseErrorMessage((error as ResponseError)?.errorMessage ?? "An error occurred.");
+        }
+        finally
+        {
+            setLookingUp(false);
+        }
+    };
+
+    // Internal password + MFA initiation
     const onInitiateSignIn = async () =>
     {
         if (signInInitiating) return;
@@ -74,11 +120,10 @@ const SignIn: React.FC = () =>
 
             setMfaSessionId(response?.mfaSessionId);
             setSignInInitiationSuccessfulMsg(response?.message);
-            setSignInInitiationSuccessful(true);
+            setStep('MFA_ENTRY');
         }
         catch (error)
         {
-            setSignInInitiationSuccessful(false);
             setResponseErrorMessage((error as ResponseError)?.errorMessage ?? "An unknown error occurred signing in.");
         }
         finally
@@ -87,6 +132,7 @@ const SignIn: React.FC = () =>
         }
     };
 
+    // Complete sign-in with MFA OTP
     const onCompleteSignIn = async () =>
     {
         if (signInCompleting) return;
@@ -105,14 +151,17 @@ const SignIn: React.FC = () =>
             const signInCompletionRequest = {email, otp, mfaSessionId};
             const response = await completeSignIn(signInCompletionRequest);
 
-            setToken(response.token);
-            setApiClientAuthToken(response.token);
+            // Use new token triple if available, fall back to legacy token
+            const activeToken = response.accessToken;
+            setAccessToken(activeToken);
+            if (response.idToken) setIdToken(response.idToken);
+            setApiClientAuthToken(activeToken);
 
             let appUser: AppUserDetailedDto | null = null;
 
             try
             {
-                appUser = await fetchAppUser(token);
+                appUser = await fetchAppUser(activeToken);
                 setAppUser(appUser);
             }
             catch (error)
@@ -125,11 +174,9 @@ const SignIn: React.FC = () =>
 
             try
             {
-                //ToDo: check for a field in the appUser object to determine if the user has completed onboarding
-                // This to support external sign in flows using external providers like Microsoft
                 if (appUser && appUser.person)
                 {
-                    const organization = await fetchAppUserPersonOrganization(appUser.id, appUser.person?.id, token?.toString());
+                    const organization = await fetchAppUserPersonOrganization(appUser.id, appUser.person?.id, activeToken?.toString());
                     setAppUserPersonOrganization(organization);
                     navigate("/sharing-sessions");
                     return;
@@ -140,23 +187,16 @@ const SignIn: React.FC = () =>
                     return;
                 }
             }
-            catch (error)
+            catch
             {
-                // Handle error
+                // Navigate to sharing sessions even if org fetch fails
+                navigate("/sharing-sessions");
             }
         }
         catch (error)
         {
-            const responseErrorMessage = (error as ResponseError)?.errorMessage
-
-            if (responseErrorMessage)
-            {
-                setResponseErrorMessage((error as ResponseError)?.errorMessage);
-            }
-            else
-            {
-                setResponseErrorMessage("An unknown error occurred signing in.");
-            }
+            const errMsg = (error as ResponseError)?.errorMessage;
+            setResponseErrorMessage(errMsg || "An unknown error occurred signing in.");
         }
         finally
         {
@@ -193,65 +233,6 @@ const SignIn: React.FC = () =>
         }
     };
 
-    const renderInitiateSignInButton = () => (
-        <Button onClick={onInitiateSignIn}
-                appearance="primary"
-                className={globalStyles.buttonWithLoading}
-                shape={"circular"}>
-            {signInInitiating &&
-                <>
-                    <Spinner size={"tiny"}/>
-                    Signing in
-                </>
-            }
-            {!signInInitiating && "Sign In"}
-        </Button>
-    );
-
-    const renderCompleteSignInButton = () => (
-        <Button onClick={onCompleteSignIn}
-                disabled={resendingOtp}
-                appearance="primary"
-                className={globalStyles.buttonWithLoading}
-                shape={"circular"}>
-            {signInCompleting &&
-                <>
-                    <Spinner size={"tiny"}/>
-                    Verifying Code
-                </>
-            }
-            {!signInCompleting && "Verify Code"}
-        </Button>
-    );
-
-    const renderOtpSection = () => (
-        <>
-            <span>{signInInitiationSuccessfulMsg}</span>
-
-            <Field label={"Verification code"}
-                   validationState={"none"}
-                   validationMessage={""}
-                   hint={resetOtpResponseMessage ? `${resetOtpResponseMessage}` : "A verification code has been sent to your email"}>
-                <Input value={otp}
-                       autoComplete="false"
-                       disabled={resendingOtp || signInCompleting}
-                       onChange={onOtpChange}
-                       onKeyDown={(e) => handleKeyDown(e, onCompleteSignIn)}/>
-            </Field>
-            <Button appearance="transparent"
-                    size={"small"}
-                    disabled={resendingOtp || signInCompleting}
-                    shape={"circular"}
-                    onClick={onResendOtp}
-                    className={globalStyles.buttonWithLoading}>
-                <>
-                    {resendingOtp && <Spinner size={"tiny"}/>}
-                    Resend verification code
-                </>
-            </Button>
-        </>
-    );
-
     const renderErrorMessage = () => (
         responseErrorMessage && (
             <MessageBar intent={"error"}>
@@ -280,11 +261,10 @@ const SignIn: React.FC = () =>
         setSignInInitiating(false);
         setSignInCompleting(false);
         setResendingOtp(false);
-        setResetOtpResponseMessage('');
+        setResetOtpResponseMessage(false);
         setSignInInitiationSuccessfulMsg('');
-        setSignInInitiationSuccessful(false);
         setResponseErrorMessage(undefined);
-        navigate("/sign-in");
+        setStep('EMAIL_ENTRY');
     }
 
     return (
@@ -298,8 +278,7 @@ const SignIn: React.FC = () =>
                         <div className={authorizationStyles.authorizationFormSection}>
 
                             <Subtitle1 align={"center"}>
-                                {signInInitiationSuccessful &&
-
+                                {step !== 'EMAIL_ENTRY' &&
                                     <Button icon={<ArrowLeftRegular/>}
                                             appearance={"transparent"}
                                             onClick={() => onResetSignIn()}/>
@@ -309,29 +288,89 @@ const SignIn: React.FC = () =>
 
                             {renderErrorMessage()}
 
-                            <Field label={"Email"}
-                                   validationState={"none"}
-                                   validationMessage={""}>
-                                <Input value={email}
-                                       type="email"
-                                       onChange={onEmailChange}
-                                       onKeyDown={(e) => handleKeyDown(e, onInitiateSignIn)}/>
-                            </Field>
+                            {step === 'EMAIL_ENTRY' && (
+                                <>
+                                    <Field label={"Email"}
+                                           validationState={"none"}
+                                           validationMessage={""}>
+                                        <Input value={email}
+                                               type="email"
+                                               onChange={onEmailChange}
+                                               onKeyDown={(e) => handleKeyDown(e, onLookupEmail)}/>
+                                    </Field>
 
-                            <Field label={"Password"}
-                                   validationState={"none"}
-                                   validationMessage={""}>
-                                <Input type="password"
-                                       value={password}
-                                       onChange={onPasswordChange}
-                                       onKeyDown={(e) => handleKeyDown(e, onInitiateSignIn)}/>
-                            </Field>
+                                    <Button onClick={onLookupEmail}
+                                            appearance="primary"
+                                            className={globalStyles.buttonWithLoading}
+                                            shape={"circular"}>
+                                        {lookingUp && <><Spinner size={"tiny"}/> Checking...</>}
+                                        {!lookingUp && "Continue"}
+                                    </Button>
+                                </>
+                            )}
 
-                            {signInInitiationSuccessful && renderOtpSection()}
+                            {step === 'PASSWORD_ENTRY' && (
+                                <>
+                                    <Field label={"Email"}>
+                                        <Input value={email} type="email" disabled/>
+                                    </Field>
 
-                            {!signInInitiationSuccessful && renderInitiateSignInButton()}
+                                    <Field label={"Password"}
+                                           validationState={"none"}
+                                           validationMessage={""}>
+                                        <Input type="password"
+                                               value={password}
+                                               onChange={onPasswordChange}
+                                               onKeyDown={(e) => handleKeyDown(e, onInitiateSignIn)}/>
+                                    </Field>
 
-                            {signInInitiationSuccessful && renderCompleteSignInButton()}
+                                    <Button onClick={onInitiateSignIn}
+                                            appearance="primary"
+                                            className={globalStyles.buttonWithLoading}
+                                            shape={"circular"}>
+                                        {signInInitiating && <><Spinner size={"tiny"}/> Signing in</>}
+                                        {!signInInitiating && "Sign In"}
+                                    </Button>
+                                </>
+                            )}
+
+                            {step === 'MFA_ENTRY' && (
+                                <>
+                                    <span>{signInInitiationSuccessfulMsg}</span>
+
+                                    <Field label={"Verification code"}
+                                           validationState={"none"}
+                                           validationMessage={""}
+                                           hint={resetOtpResponseMessage ? `${resetOtpResponseMessage}` : "A verification code has been sent to your email"}>
+                                        <Input value={otp}
+                                               autoComplete="false"
+                                               disabled={resendingOtp || signInCompleting}
+                                               onChange={onOtpChange}
+                                               onKeyDown={(e) => handleKeyDown(e, onCompleteSignIn)}/>
+                                    </Field>
+
+                                    <Button appearance="transparent"
+                                            size={"small"}
+                                            disabled={resendingOtp || signInCompleting}
+                                            shape={"circular"}
+                                            onClick={onResendOtp}
+                                            className={globalStyles.buttonWithLoading}>
+                                        <>
+                                            {resendingOtp && <Spinner size={"tiny"}/>}
+                                            Resend verification code
+                                        </>
+                                    </Button>
+
+                                    <Button onClick={onCompleteSignIn}
+                                            disabled={resendingOtp}
+                                            appearance="primary"
+                                            className={globalStyles.buttonWithLoading}
+                                            shape={"circular"}>
+                                        {signInCompleting && <><Spinner size={"tiny"}/> Verifying Code</>}
+                                        {!signInCompleting && "Verify Code"}
+                                    </Button>
+                                </>
+                            )}
 
                             <div className={signInStyles.authNoAccount}>
 

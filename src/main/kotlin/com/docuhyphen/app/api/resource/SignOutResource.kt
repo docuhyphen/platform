@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.SignOutService
+import com.docuhyphen.app.api.service.auth.TokenIssuanceService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory
 @Consumes(MediaType.APPLICATION_JSON)
 class SignOutResource @Inject constructor(
     private val signOutService: SignOutService,
+    private val tokenIssuanceService: TokenIssuanceService,
 )
 {
     companion object
@@ -30,7 +32,8 @@ class SignOutResource @Inject constructor(
         {
             ResourceEndpointDelayHelper.delayEndpoint(3000, 6000)
             signOutService.signOut(outOfAllDevices)
-            Response.ok().build()
+            val clearCookie = tokenIssuanceService.buildClearRefreshTokenCookie()
+            Response.ok().cookie(clearCookie).build()
         }
         catch (exception: Exception)
         {

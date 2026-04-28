@@ -16,11 +16,28 @@ class AuthTokenRepository : BaseRepository<AuthToken>(AuthToken::class.java)
             .firstOrNull()
     }
 
+    fun findByJti(jti: String): AuthToken?
+    {
+        return entityManager.createQuery(
+            "SELECT s FROM AuthToken s WHERE s.jti = :jti", AuthToken::class.java
+        ).setParameter("jti", jti)
+            .resultList
+            .firstOrNull()
+    }
+
     fun deleteAllByUserId(userId: UUID)
     {
         entityManager.createQuery(
             "DELETE FROM AuthToken s WHERE s.appUser.id = :userId"
         ).setParameter("userId", userId)
+            .executeUpdate()
+    }
+
+    fun deleteByJti(jti: String)
+    {
+        entityManager.createQuery(
+            "DELETE FROM AuthToken s WHERE s.jti = :jti"
+        ).setParameter("jti", jti)
             .executeUpdate()
     }
 }

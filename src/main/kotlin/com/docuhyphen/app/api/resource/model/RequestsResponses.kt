@@ -41,7 +41,71 @@ data class SignInCompletionRequest(
 
 @Serializable
 data class SignInCompletionResponse(
-    var token: String? = null
+    val accessToken: String,
+    val idToken: String,
+)
+
+@Serializable
+data class SignInLookupRequest(
+    val email: String? = null,
+)
+
+@Serializable
+data class SignInLookupResponse(
+    val authMethod: String,
+    val redirectUrl: String? = null,
+)
+
+@Serializable
+data class TokenRefreshResponse(
+    val accessToken: String,
+    val idToken: String,
+)
+
+@Serializable
+data class OAuthLinkConfirmRequest(
+    val linkToken: String? = null,
+    val password: String? = null,
+)
+
+@Serializable
+data class OAuthLinkConfirmResponse(
+    val accessToken: String,
+    val idToken: String,
+)
+
+@Serializable
+data class IdentityProviderLinkDto(
+    val provider: String,
+    val externalEmail: String,
+    val createdDate: String,
+)
+
+@Serializable
+data class LinkProviderInitiateRequest(
+    val provider: String? = null,
+)
+
+@Serializable
+data class LinkProviderInitiateResponse(
+    val redirectUrl: String,
+)
+
+@Serializable
+data class ApplicationTokenRequest(
+    val apiKey: String? = null,
+    val apiSecret: String? = null,
+)
+
+@Serializable
+data class ApplicationTokenResponse(
+    val accessToken: String,
+)
+
+@Serializable
+data class SetupPasswordRequest(
+    val password: String? = null,
+    val confirmationPassword: String? = null,
 )
 
 @Serializable

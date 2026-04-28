@@ -4,6 +4,7 @@ import {useNavigate} from "react-router-dom";
 import {
     Button,
     Caption1,
+    Divider,
     Field,
     InfoLabel,
     Input,
@@ -315,10 +316,32 @@ const SignUp: React.FC = () =>
                             <Button onClick={onInitiateSignUp}
                                     appearance={"primary"}
                                     shape={"circular"}
-                                    className={globalStyles.buttonWithLoading}> {/* Use GlobalStyles */}
+                                    className={globalStyles.buttonWithLoading}>
                                 {initiatingSignUp && <Spinner size={"tiny"}/>}
                                 Sign Up
                             </Button>}
+
+                        {!initiationSuccessful && <>
+                            <div><Divider>OR</Divider></div>
+
+                            <Button onClick={() => {
+                                const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+                                window.location.href = `${apiBaseUrl}/auth/oauth/MICROSOFT/authorize?flow=signup`;
+                            }}
+                                    appearance={"secondary"}
+                                    shape={"circular"}>
+                                Sign up with Microsoft
+                            </Button>
+
+                            <Button onClick={() => {
+                                const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+                                window.location.href = `${apiBaseUrl}/auth/oauth/GOOGLE/authorize?flow=signup`;
+                            }}
+                                    appearance={"secondary"}
+                                    shape={"circular"}>
+                                Sign up with Google
+                            </Button>
+                        </>}
                         <div className={signUpStyles.authHasAccount}>
                             <Caption1> Already have an account? &nbsp;
                                 <Link onClick={() => navigate("/sign-in")}

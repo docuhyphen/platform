@@ -22,7 +22,7 @@ class NotificationService
 
         this.reconnectAttempts = 0;
 
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('accessToken');
         if (!token)
         {
             console.error("Cannot connect to WebSocket: No authentication token found");

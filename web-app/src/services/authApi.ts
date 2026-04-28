@@ -1,14 +1,110 @@
 import apiClient, {addBearerToHeaderToken} from './apiClient';
 import {
+    OAuthLinkConfirmRequest,
     PasswordResetCompletionRequest,
     PasswordResetInitiationRequest,
+    SetupPasswordRequest,
     SignInCompletionRequest,
     SignInInitiationRequest,
+    SignInLookupRequest,
     SignInOtpRegenerationRequest,
     SignUpCompletionRequest,
     SignUpInitiationRequest,
     SignUpOtpRegenerationRequest
 } from "../app/models/models.tsx";
+
+export const lookupSignInMethod = async (request: SignInLookupRequest) =>
+{
+    try
+    {
+        const response = await apiClient.post(`/auth/sign-in/lookup`, request);
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+export const refreshTokens = async () =>
+{
+    try
+    {
+        const response = await apiClient.post(`/auth/token/refresh`);
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+export const confirmOAuthLink = async (request: OAuthLinkConfirmRequest) =>
+{
+    try
+    {
+        const response = await apiClient.post(`/auth/oauth/link-confirm`, request);
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+// ── Identity Provider Management ──
+
+export const getIdentityProviders = async () =>
+{
+    try
+    {
+        const response = await apiClient.get(`/auth/identity-providers`);
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+export const initiateLinkProvider = async (provider: string) =>
+{
+    try
+    {
+        const response = await apiClient.post(`/auth/identity-providers/link/initiate`, {provider});
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+export const unlinkProvider = async (provider: string) =>
+{
+    try
+    {
+        const response = await apiClient.delete(`/auth/identity-providers/${provider}`);
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+export const setupPassword = async (request: SetupPasswordRequest) =>
+{
+    try
+    {
+        const response = await apiClient.post(`/auth/identity-providers/internal/setup-password`, request);
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
 
 export const initiateSignUp = async (request: SignUpInitiationRequest) =>
 {

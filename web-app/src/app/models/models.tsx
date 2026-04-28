@@ -36,15 +36,11 @@ export interface SignInResponse
     message: string;
 }
 
-export interface SignInCompletionRequest
-{
-    otp?: string;
-    email?: string;
-}
-
 export interface SignInCompletionResponse
 {
     token?: string;
+    accessToken?: string;
+    idToken?: string;
 }
 
 export interface SignOutRequest
@@ -58,11 +54,6 @@ export interface SignUpCompletionRequest
     otp?: string;
     password?: string;
     confirmationPassword?: string;
-}
-
-export interface SignUpCompletionResponse
-{
-    message?: string;
 }
 
 export interface PasswordResetCompletionRequest
@@ -450,6 +441,68 @@ export interface AppUserDetailedDto
     role: AppUserRole
     person: PersonDetailedDto
     settings: AppUserSettingsDto
+    identityProviders?: IdentityProviderLinkDto[]
+}
+
+// ── OAuth / Multi-IDP Types ──
+
+export enum IdentityProviderType
+{
+    INTERNAL = "INTERNAL",
+    MICROSOFT = "MICROSOFT",
+    GOOGLE = "GOOGLE",
+}
+
+export interface IdentityProviderLinkDto
+{
+    provider: string;
+    externalEmail: string;
+    createdDate: string;
+}
+
+export interface SignInLookupRequest
+{
+    email: string;
+}
+
+export interface SignInLookupResponse
+{
+    authMethod: string;
+    redirectUrl?: string;
+}
+
+export interface OAuthLinkConfirmRequest
+{
+    linkToken: string;
+    password: string;
+}
+
+export interface OAuthLinkConfirmResponse
+{
+    accessToken: string;
+    idToken: string;
+}
+
+export interface TokenRefreshResponse
+{
+    accessToken: string;
+    idToken: string;
+}
+
+export interface LinkProviderInitiateRequest
+{
+    provider: string;
+}
+
+export interface LinkProviderInitiateResponse
+{
+    redirectUrl: string;
+}
+
+export interface SetupPasswordRequest
+{
+    password: string;
+    confirmationPassword: string;
 }
 
 export interface DocumentAuditDetailedDto
@@ -506,6 +559,7 @@ export interface SignInCompletionRequest
 {
     email: string
     otp: string
+    mfaSessionId?: string
 }
 
 export interface DocumentVersion
@@ -565,18 +619,6 @@ export interface OrganizationSettingsDto
     allowEmailUpdate: boolean;
 }
 
-export interface AppUserSettingsDto
-{
-    autoPreviewDocuments: boolean;
-    notifyShareStart: boolean;
-    notifyShareAccept: boolean;
-    notifyShareDecline: boolean;
-    notifyShareEnd: boolean;
-    notifyDocComment: boolean;
-    notifyDocDelete: boolean;
-    notifyDocAdd: boolean;
-    notifyDocUpload: boolean;
-}
 
 export interface OrganizationGroupMemberPermissionDto
 {

@@ -25,21 +25,47 @@ class ConfigurationService @Inject constructor(
 
     @ConfigProperty(name = "app.security.jwt.aws-secret-id")
     val jwtAwsSecretId: String?,
+
+    @ConfigProperty(name = "app.oauth.microsoft.client-id", defaultValue = "")
+    val microsoftOAuthClientId: String,
+
+    @ConfigProperty(name = "app.oauth.microsoft.client-secret", defaultValue = "")
+    val microsoftOAuthClientSecret: String,
+
+    @ConfigProperty(name = "app.oauth.microsoft.tenant-id", defaultValue = "common")
+    val microsoftOAuthTenantId: String,
+
+    @ConfigProperty(name = "app.oauth.microsoft.redirect-uri", defaultValue = "")
+    val microsoftOAuthRedirectUri: String,
+
+    @ConfigProperty(name = "app.oauth.google.client-id", defaultValue = "")
+    val googleOAuthClientId: String,
+
+    @ConfigProperty(name = "app.oauth.google.client-secret", defaultValue = "")
+    val googleOAuthClientSecret: String,
+
+    @ConfigProperty(name = "app.oauth.google.redirect-uri", defaultValue = "")
+    val googleOAuthRedirectUri: String,
 )
 {
     @Volatile
     private var cachedJwtSecret: String? = null
 
     fun getMaxSignUpCompletionOtpAttempts(): Long = 3
-    fun getSignUpOtpExpiryMins(): Long = 5 //
+    fun getSignUpOtpExpiryMins(): Long = 5
     fun getAppPhoneSubjectTitle() = emailSubjectTitle
     fun getSignInEmailOtpMFAExpiryMins(): Long = 5
     fun getSignInSmsOtpMFAExpiryMins(): Long = 5
-    fun getSignInTokenExpiryHours(): Long = 1
     fun getMaxSignInAttempts(): Long = 3
     fun getPasswordResetOtpExpiryMins(): Long = 10
     fun getMaxOtpRequestsPerMinute() = 5L
     fun getSignInResendCooldownSeconds(): Long = 30
+
+    // New token model expiry config
+    fun getAccessTokenExpiryMinutes(): Long = 15
+    fun getIdTokenExpiryMinutes(): Long = 15
+    fun getRefreshTokenExpiryDays(): Long = 7
+    fun getLinkTokenExpiryMinutes(): Long = 5
 
     fun getJwtSecret(): String
     {

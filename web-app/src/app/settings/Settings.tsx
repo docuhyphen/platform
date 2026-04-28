@@ -1,4 +1,3 @@
-import * as React from "react";
 import {useEffect, useState} from "react";
 import {SelectTabData, SelectTabEvent, Tab, TabList, TabValue,} from "@fluentui/react-components";
 import {useSettingsStyles} from "./SettingsStyles.tsx";
@@ -11,7 +10,6 @@ import {
     SettingsOrganizationPeopleTabIcon,
     SettingsOrganizationTabIcon,
     SettingsProfileTabIcon,
-    SettingsTemplatesTabIcon
 } from "../components/IconBundles.tsx";
 import TemplatesTab from "./templates-tab/TemplatesTab.tsx";
 import AppSettingsTab from "./app-settings-tab/AppSettingsTab.tsx";
@@ -21,11 +19,13 @@ import OrganizationPeopleTab from "./organization-people-tab/OrganizationPeopleT
 import {useAuth} from "../../context/AuthContext.tsx";
 import {AppUserRole} from "../models/models.tsx";
 import OrganizationPairingTab from "./organization-pairing-tab/OrganizationPairingTab.tsx";
+import LinkedAccountsTab from "./linked-accounts-tab/LinkedAccountsTab.tsx";
 
 const Settings = () =>
 {
     const tabIds = {
         profile: "ProfileTab",
+        linkedAccounts: "LinkedAccountsTab",
         organization: "OrganizationTab",
         appSettings: "AppSettingsTab",
         people: "PeopleTab",
@@ -39,7 +39,7 @@ const Settings = () =>
     const [selectedValue, setSelectedValue] = useState<TabValue>(tabIds.profile);
 
 
-    const onTabSelect = (event: SelectTabEvent, data: SelectTabData) =>
+    const onTabSelect = (_event: SelectTabEvent, data: SelectTabData) =>
     {
         setSelectedValue(data.value);
     };
@@ -59,6 +59,10 @@ const Settings = () =>
                          icon={<SettingsProfileTabIcon/>}
                          value={tabIds.profile}>
                         Profile
+                    </Tab>
+                    <Tab id="LinkedAccountsTab"
+                         value={tabIds.linkedAccounts}>
+                        Linked Accounts
                     </Tab>
                     {(!appUserPersonOrganization || appUser?.role == AppUserRole.ORG_ADMIN) &&
 
@@ -105,6 +109,7 @@ const Settings = () =>
                 </TabList>
                 <div className={styles.tabs} id={"settings-tabs"}>
                     {selectedValue === tabIds.profile && <ProfileTab/>}
+                    {selectedValue === tabIds.linkedAccounts && <LinkedAccountsTab/>}
                     {selectedValue === tabIds.organization && <OrganizationTab/>}
                     {selectedValue === tabIds.appSettings && <AppSettingsTab/>}
                     {selectedValue === tabIds.people && <OrganizationPeopleTab/>}

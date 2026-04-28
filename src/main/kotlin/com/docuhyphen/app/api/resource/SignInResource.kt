@@ -1,8 +1,14 @@
 package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.exception.*
+import com.docuhyphen.app.api.model.entity.IdentityProviderType
+import com.docuhyphen.app.api.repository.IdentityProviderLinkRepository
 import com.docuhyphen.app.api.resource.model.*
+import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.SignInService
+import com.docuhyphen.app.api.service.auth.TokenIssuanceService
+import com.docuhyphen.app.api.service.auth.idp.IdentityProviderRegistry
+import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.POST
@@ -20,11 +26,80 @@ import org.slf4j.LoggerFactory
 @Consumes(MediaType.APPLICATION_JSON)
 class SignInResource @Inject constructor(
     private val signInService: SignInService,
+    private val appUserService: AppUserService,
+    private val identityProviderLinkRepository: IdentityProviderLinkRepository,
+    private val identityProviderRegistry: IdentityProviderRegistry,
+    private val tokenIssuanceService: TokenIssuanceService,
+    private val configurationService: ConfigurationService,
 )
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(SignInResource::class.java)
+    }
+
+    @POST
+    @Path("/lookup")
+    fun lookupSignInMethod(
+        payload: SignInLookupRequest
+    ): Response
+    {
+        return try
+        {
+            ResourceEndpointDelayHelper.delayEndpoint(500, 1500)
+
+            val email = payload.email?.trim()?.lowercase()
+            if (email.isNullOrBlank())
+            {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(ResponseError("Email is required"))
+                    .build()
+            }
+
+            val appUser = appUserService.findByEmail(email)
+
+            if (appUser == null)
+            {
+                // Don't leak user existence — return INTERNAL so the password step will fail
+                return Response.ok(SignInLookupResponse(authMethod = "INTERNAL")).build()
+            }
+
+            val links = identityProviderLinkRepository.findAllByAppUserId(appUser.id)
+
+            // If user has external IDP links, prefer the first external one
+            val externalLink = links.firstOrNull {
+                it.provider != IdentityProviderType.INTERNAL
+            }
+
+            if (externalLink != null)
+            {
+                val provider = identityProviderRegistry.getProvider(externalLink.provider)
+                val redirectUri = when (externalLink.provider)
+                {
+                    IdentityProviderType.MICROSOFT -> configurationService.microsoftOAuthRedirectUri
+                    IdentityProviderType.GOOGLE -> configurationService.googleOAuthRedirectUri
+                    else -> ""
+                }
+                val state = "email=$email&flow=signin"
+                val authUrl = provider.buildAuthorizationUrl(state, redirectUri)
+                return Response.ok(
+                    SignInLookupResponse(
+                        authMethod = externalLink.provider.name,
+                        redirectUrl = authUrl
+                    )
+                ).build()
+            }
+
+            // Default to INTERNAL
+            Response.ok(SignInLookupResponse(authMethod = "INTERNAL")).build()
+        }
+        catch (exception: Exception)
+        {
+            logger.error("Error during sign-in lookup", exception)
+            Response.status(INTERNAL_SERVER_ERROR)
+                .entity(ResponseError("An error occurred during sign-in lookup."))
+                .build()
+        }
     }
 
     @POST
@@ -82,11 +157,16 @@ class SignInResource @Inject constructor(
         {
             ResourceEndpointDelayHelper.delayEndpoint(1000, 3000)
 
-            val signInToken = with(payload) {
+            val tokenTriple = with(payload) {
                 signInService.completeSignIn(email, otp, mfaSessionId)
             }
-            val signInCompletionResponse = SignInCompletionResponse(signInToken)
-            Response.ok(signInCompletionResponse).build()
+
+            val signInCompletionResponse = SignInCompletionResponse(
+                accessToken = tokenTriple.accessToken,
+                idToken = tokenTriple.idToken,
+            )
+            val cookie = tokenIssuanceService.buildRefreshTokenCookie(tokenTriple.refreshToken)
+            Response.ok(signInCompletionResponse).cookie(cookie).build()
         }
         catch (exception: Exception)
         {
@@ -117,6 +197,7 @@ class SignInResource @Inject constructor(
         payload: ResendOtpRequest
     ): Response
     {
+        // ...existing otp-regeneration code unchanged...
         return try
         {
             ResourceEndpointDelayHelper.delayEndpoint(3000, 6000)
@@ -174,7 +255,6 @@ class SignInResource @Inject constructor(
             ipAddress = request.remoteAddress()?.host() ?: "0.0.0.0"
         }
 
-        // If we got a comma-separated list (from X-Forwarded-For), take the first one
         if (!ipAddress.isNullOrBlank() && ipAddress.contains(","))
         {
             ipAddress = ipAddress.split(",")[0].trim()
