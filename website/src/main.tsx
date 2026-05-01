@@ -3,6 +3,7 @@ import './index.css'
 import App from './App.tsx'
 import type {BrandVariants, Theme} from '@fluentui/react-components';
 import {createDarkTheme, createLightTheme, FluentProvider} from "@fluentui/react-components";
+import {BrowserRouter} from "react-router-dom";
 
 const mainTheme: BrandVariants = {
     10: "#030204",
@@ -35,10 +36,9 @@ darkTheme.colorBrandForeground1 = mainTheme[110];
 darkTheme.colorBrandForeground2 = mainTheme[120];
 
 createRoot(document.getElementById('docu-hyphen-app')!).render(
-    // <StrictMode>
     <FluentProvider theme={lightTheme} id="fluent-provider">
-        <App/>
+        <BrowserRouter>
+            <App/>
+        </BrowserRouter>
     </FluentProvider>
-    // </StrictMode>,
 )
-

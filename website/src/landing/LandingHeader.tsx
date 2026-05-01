@@ -9,6 +9,7 @@ import {
 	SPACE_MD,
 	WIDTH_CONTENT,
 } from "./shared.ts";
+import {Link} from "react-router-dom";
 
 const useStyles = makeStyles({
 	wrapper: {
@@ -35,6 +36,22 @@ const useStyles = makeStyles({
 	signInButton: {
 		minWidth: BUTTON_MIN_WIDTH,
 	},
+
+	linkGroup: {
+		display: "flex",
+		alignItems: "center",
+		gap: SPACE_MD,
+	},
+
+	helpLink: {
+		color: tokens.colorNeutralForeground2,
+		textDecorationLine: "none",
+		fontSize: tokens.fontSizeBase300,
+
+		":hover": {
+			textDecorationLine: "underline",
+		},
+	},
 });
 
 export function LandingHeader()
@@ -45,19 +62,26 @@ export function LandingHeader()
 		<header className={styles.wrapper}>
 			<nav className={styles.nav} aria-label="Primary">
 				<AppLogo/>
-				<Button
-					appearance="outline"
-					as="a"
-					className={styles.signInButton}
-					target="_blank"
-					rel="noopener noreferrer"
-					shape="circular"
-					href={SIGN_IN_URL}
-				>
-					Sign In
-				</Button>
+				<div className={styles.linkGroup}>
+					<Link to="/help/idp-setup" className={styles.helpLink}>
+						IdP Setup Guide
+					</Link>
+					<Link to="/help/security-faq" className={styles.helpLink}>
+						Security FAQ
+					</Link>
+					<Button
+						appearance="outline"
+						as="a"
+						className={styles.signInButton}
+						target="_blank"
+						rel="noopener noreferrer"
+						shape="circular"
+						href={SIGN_IN_URL}
+					>
+						Sign In
+					</Button>
+				</div>
 			</nav>
 		</header>
 	);
 }
-
