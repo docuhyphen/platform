@@ -20,12 +20,14 @@ import {useAuth} from "../../context/AuthContext.tsx";
 import {AppUserRole} from "../models/models.tsx";
 import OrganizationPairingTab from "./organization-pairing-tab/OrganizationPairingTab.tsx";
 import LinkedAccountsTab from "./linked-accounts-tab/LinkedAccountsTab.tsx";
+import SessionsTab from "./sessions-tab/SessionsTab.tsx";
 
 const Settings = () =>
 {
     const tabIds = {
         profile: "ProfileTab",
         linkedAccounts: "LinkedAccountsTab",
+        sessions: "SessionsTab",
         organization: "OrganizationTab",
         appSettings: "AppSettingsTab",
         people: "PeopleTab",
@@ -63,6 +65,10 @@ const Settings = () =>
                     <Tab id="LinkedAccountsTab"
                          value={tabIds.linkedAccounts}>
                         Linked Accounts
+                    </Tab>
+                    <Tab id="SessionsTab"
+                         value={tabIds.sessions}>
+                        Sessions
                     </Tab>
                     {(!appUserPersonOrganization || appUser?.role == AppUserRole.ORG_ADMIN) &&
 
@@ -110,6 +116,7 @@ const Settings = () =>
                 <div className={styles.tabs} id={"settings-tabs"}>
                     {selectedValue === tabIds.profile && <ProfileTab/>}
                     {selectedValue === tabIds.linkedAccounts && <LinkedAccountsTab/>}
+                    {selectedValue === tabIds.sessions && <SessionsTab/>}
                     {selectedValue === tabIds.organization && <OrganizationTab/>}
                     {selectedValue === tabIds.appSettings && <AppSettingsTab/>}
                     {selectedValue === tabIds.people && <OrganizationPeopleTab/>}

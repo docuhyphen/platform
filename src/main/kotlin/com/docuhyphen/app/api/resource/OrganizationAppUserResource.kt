@@ -6,6 +6,7 @@ import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.resource.model.AddOrganizationAppUserRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpdateOrganizationAppUserRequest
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.organization.OrganizationAppUserService
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -15,6 +16,11 @@ import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
+
+enum class APP_USER_CHECK
+{
+    DELETABLE
+}
 
 @Path("organizations")
 @Produces(APPLICATION_JSON)
@@ -26,11 +32,6 @@ class OrganizationAppUserResource @Inject constructor(
     companion object
     {
         private val logger = LoggerFactory.getLogger(OrganizationAppUserResource::class.java)
-
-        enum class APP_USER_CHECK
-        {
-            DELETABLE
-        }
     }
 
     @Path("/{organizationId}/app-users")
@@ -38,6 +39,9 @@ class OrganizationAppUserResource @Inject constructor(
     @Transactional
     fun addAppUser(
         @PathParam("organizationId") organizationId: String,
+        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
+        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
+        @HeaderParam("X-Request-Id") requestId: String?,
         addOrganizationAppUserRequest: AddOrganizationAppUserRequest
     ): Response
     {
@@ -46,13 +50,19 @@ class OrganizationAppUserResource @Inject constructor(
         return try
         {
             val appUser = with(addOrganizationAppUserRequest) {
+                val adminApprovalContext = AdminApprovalContext(
+                    stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
+                    dualApprovalId = dualApprovalId,
+                    requestId = requestId,
+                )
 
                 organizationAppUserService.addAppUser(
                     organizationId,
                     role,
                     email,
                     person?.firstName,
-                    person?.lastName
+                    person?.lastName,
+                    adminApprovalContext,
                 )
             }
 
@@ -161,6 +171,9 @@ class OrganizationAppUserResource @Inject constructor(
     fun updateAppUser(
         @PathParam("organizationId") organizationId: String?,
         @PathParam("appUserId") appUserId: String?,
+        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
+        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
+        @HeaderParam("X-Request-Id") requestId: String?,
         updateOrganizationAppUserRequest: UpdateOrganizationAppUserRequest
     ): Response
     {
@@ -170,6 +183,11 @@ class OrganizationAppUserResource @Inject constructor(
         {
             with(updateOrganizationAppUserRequest)
             {
+                val adminApprovalContext = AdminApprovalContext(
+                    stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
+                    dualApprovalId = dualApprovalId,
+                    requestId = requestId,
+                )
                 organizationAppUserService.updateAppUser(
                     organizationId,
                     appUserId,
@@ -178,6 +196,7 @@ class OrganizationAppUserResource @Inject constructor(
                     email,
                     this.person?.firstName,
                     this.person?.lastName,
+                    adminApprovalContext,
                 )
             }
 
@@ -227,14 +246,22 @@ class OrganizationAppUserResource @Inject constructor(
     @DELETE
     fun deleteAppUser(
         @PathParam("organizationId") organizationId: String?,
-        @PathParam("appUserId") appUserId: String?
+        @PathParam("appUserId") appUserId: String?,
+        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
+        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
+        @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
         ResourceEndpointDelayHelper.delayEndpoint(300, 600)
 
         return try
         {
-            organizationAppUserService.deleteAppUser(organizationId, appUserId)
+            val adminApprovalContext = AdminApprovalContext(
+                stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
+                dualApprovalId = dualApprovalId,
+                requestId = requestId,
+            )
+            organizationAppUserService.deleteAppUser(organizationId, appUserId, adminApprovalContext)
 
             Response
                 .status(NO_CONTENT)

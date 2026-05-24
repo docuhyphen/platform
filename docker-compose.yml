@@ -21,9 +21,9 @@ services:
 
   postgres:
     image: postgres:15
-    container_name: doc-hyphen-postgres-db
+    container_name: docu-hyphen-postgres-db
     environment:
-      POSTGRES_DB: doc-hyphen-postgres-db
+      POSTGRES_DB: docu-hyphen-postgres-db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: admin
     ports:

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import {attachDpopToAxiosConfig} from './dpop';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -22,12 +23,15 @@ export const setApiClientAuthToken = (token: string | null) =>
 
 export const getApiClientAuthToken = (): string | null => authToken;
 
-apiClient.interceptors.request.use((config) =>
+apiClient.interceptors.request.use(async (config) =>
     {
         if (authToken)
         {
             config.headers['Authorization'] = `Bearer ${authToken}`;
         }
+
+        // DPoP: attach a fresh per-request proof when enabled. No-op when disabled.
+        await attachDpopToAxiosConfig(config as any);
 
         return config;
     },
@@ -86,6 +90,17 @@ apiClient.interceptors.response.use(
                 // Refresh failed — redirect to session expired
                 window.dispatchEvent(new CustomEvent('auth-session-expired'));
                 return Promise.reject(refreshError);
+            }
+        }
+
+        // 403 with a deprovisioning or security reason code → treat as forced session end
+        if (error.response?.status === 403)
+        {
+            const reasonCode: string = error.response?.data?.reasonCode ?? '';
+            const deprovisionReasons = ['ACCOUNT_DEPROVISIONED', 'ORG_MEMBERSHIP_INACTIVE', 'SECURITY_SIGN_OUT'];
+            if (deprovisionReasons.includes(reasonCode))
+            {
+                window.dispatchEvent(new CustomEvent('auth-session-expired', {detail: {reason: reasonCode}}));
             }
         }
 

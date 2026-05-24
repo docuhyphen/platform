@@ -48,12 +48,23 @@ data class SignInCompletionResponse(
 @Serializable
 data class SignInLookupRequest(
     val email: String? = null,
+    val orgId: String? = null,
 )
 
 @Serializable
 data class SignInLookupResponse(
     val authMethod: String,
     val redirectUrl: String? = null,
+    val outcome: String? = null,
+    val fallbackAuthMethod: String? = null,
+    val organizations: List<SignInLookupOrganizationOption> = emptyList(),
+    val availableProviders: List<String> = emptyList(),
+)
+
+@Serializable
+data class SignInLookupOrganizationOption(
+    val id: String,
+    val name: String,
 )
 
 @Serializable
@@ -145,6 +156,22 @@ data class SignUpRegenerationRequest(var email: String? = null)
 
 @Serializable
 data class SignUpRegenerationResponse(var message: String? = null)
+
+/** Request body for POST /auth/sign-up/email-confirm — the opaque-token completion path. */
+@Serializable
+data class SignUpEmailConfirmRequest(
+    val token: String? = null,
+    val password: String? = null,
+    val confirmationPassword: String? = null
+)
+
+/** Response from POST /auth/sign-up/email-confirm. */
+@Serializable
+data class SignUpEmailConfirmResponse(var message: String? = null)
+
+/** Response from GET /auth/sign-up/email-confirm/{token} — token introspection (no consumption). */
+@Serializable
+data class SignUpEmailConfirmCheckResponse(var email: String? = null)
 
 @Serializable
 data class PasswordResetInitiationRequest(var email: String? = null)
@@ -340,3 +367,264 @@ data class CompleteAddOrUpdateEmailRequest(
     val email: String,
     val verificationCode: String
 )
+
+@Serializable
+data class AdminApprovalInitiateRequest(
+    val action: String,
+    val reason: String? = null,
+    val expiresMinutes: Long? = null,
+)
+
+@Serializable
+data class AdminApprovalInitiateResponse(
+    val approvalId: String,
+    val status: String,
+)
+
+@Serializable
+data class AdminApprovalApproveResponse(
+    val approvalId: String,
+    val status: String,
+)
+
+@Serializable
+data class OrganizationIdpSecretRotateRequest(
+    val newClientSecret: String,
+)
+
+@Serializable
+data class OrganizationIdpSecretActivateRequest(
+    val versionId: String,
+)
+
+@Serializable
+data class OrganizationIdpSecretRetireRequest(
+    val recoveryWindowDays: Int = 7,
+)
+
+@Serializable
+data class OrganizationIdpSecretRotationResponse(
+    val secretRef: String,
+    val previousVersionId: String? = null,
+    val activeVersionId: String,
+    val overlapUntilEpochMillis: Long? = null,
+)
+
+@Serializable
+data class OrganizationIdpSecretStatusResponse(
+    val secretRef: String,
+    val disabled: Boolean,
+    val rotationPhase: String? = null,
+    val currentVersionId: String? = null,
+    val previousVersionId: String? = null,
+    val pendingVersionId: String? = null,
+    val overlapUntilEpochMillis: Long? = null,
+    val overlapActive: Boolean,
+)
+
+@Serializable
+data class OrganizationIdpSecretRollbackResponse(
+    val secretRef: String,
+    val rolledBackToVersionId: String,
+    val previousCurrentVersionId: String? = null,
+)
+
+@Serializable
+data class OrganizationIdpConfigRequest(
+    val provider: String,
+    val clientId: String,
+    val clientSecretRef: String,
+    val tenantId: String? = null,
+    val scopes: List<String> = emptyList(),
+    val isActive: Boolean = true,
+    val accessTokenExpiryMinutes: Long? = null,
+    val refreshTokenExpiryDays: Long? = null,
+    val maxSessionDurationHours: Long? = null,
+    val oidcIssuer: String? = null,
+    val allowedAudiences: List<String> = emptyList(),
+    val allowedAlgs: List<String> = emptyList(),
+    val requiredClaims: List<String> = emptyList(),
+)
+
+@Serializable
+data class OrganizationIdpConfigResponse(
+    val id: String,
+    val organizationId: String,
+    val provider: String,
+    val clientId: String,
+    val clientSecretRef: String,
+    val tenantId: String? = null,
+    val scopes: List<String> = emptyList(),
+    val isActive: Boolean,
+    val accessTokenExpiryMinutes: Long? = null,
+    val refreshTokenExpiryDays: Long? = null,
+    val maxSessionDurationHours: Long? = null,
+    val oidcIssuer: String? = null,
+    val allowedAudiences: List<String> = emptyList(),
+    val allowedAlgs: List<String> = emptyList(),
+    val requiredClaims: List<String> = emptyList(),
+    val createdDate: String,
+    val updatedDate: String,
+)
+
+@Serializable
+data class OrganizationIdpSecretRotationRunResponse(
+    val evaluated: Int,
+    val rotated: Int,
+    val failed: Int,
+    val skipped: Int = 0,
+)
+
+@Serializable
+data class OrganizationIdpSecretRotationPreviewCandidate(
+    val configId: String,
+    val provider: String,
+    val secretRef: String,
+    val updatedDate: String,
+    val due: Boolean,
+    val overdueByDays: Long,
+)
+
+@Serializable
+data class OrganizationIdpSecretRotationPreviewResponse(
+    val intervalDays: Long,
+    val evaluated: Int,
+    val dueCount: Int,
+    val candidates: List<OrganizationIdpSecretRotationPreviewCandidate>,
+)
+
+@Serializable
+data class OrganizationIdpSecretRotationStatusItemResponse(
+    val configId: String,
+    val provider: String,
+    val secretRef: String,
+    val disabled: Boolean,
+    val rotationPhase: String? = null,
+    val currentVersionId: String? = null,
+    val previousVersionId: String? = null,
+    val pendingVersionId: String? = null,
+    val overlapUntilEpochMillis: Long? = null,
+    val overlapActive: Boolean,
+    val due: Boolean,
+    val overdueByDays: Long,
+)
+
+@Serializable
+data class OrganizationIdpSecretRotationStatusResponse(
+    val intervalDays: Long,
+    val evaluated: Int,
+    val dueCount: Int,
+    val overlapActiveCount: Int,
+    val disabledCount: Int,
+    val retirePhaseCount: Int,
+    val items: List<OrganizationIdpSecretRotationStatusItemResponse>,
+)
+
+@Serializable
+data class PlatformOrganizationSubscriptionPolicyRequest(
+    val tierCode: String,
+    val maxUsers: Long? = null,
+    val changeReason: String? = null,
+)
+
+@Serializable
+data class PlatformOrganizationSubscriptionPolicyResponse(
+    val organizationId: String,
+    val tierCode: String,
+    val maxUsers: Long? = null,
+    val currentActiveUsers: Long,
+    val changeReason: String? = null,
+    val persisted: Boolean,
+    val createdDate: String? = null,
+    val updatedDate: String? = null,
+)
+
+@Serializable
+data class PlatformOrganizationSubscriptionPolicyListResponse(
+    val total: Int,
+    val limit: Int,
+    val offset: Int,
+    val items: List<PlatformOrganizationSubscriptionPolicyResponse>,
+)
+
+@Serializable
+data class AuthAuditEventResponse(
+    val id: String,
+    val actorId: String? = null,
+    val action: String,
+    val outcome: String,
+    val reasonCode: String? = null,
+    val sessionId: String? = null,
+    val organizationId: String? = null,
+    val requestId: String? = null,
+    val actionReason: String? = null,
+    val beforeSnapshot: String? = null,
+    val afterSnapshot: String? = null,
+    val eventHash: String,
+    val prevEventHash: String? = null,
+    val createdDate: String,
+)
+
+@Serializable
+data class SecurityIncidentResponse(
+    val id: String,
+    val incidentType: String,
+    val severity: String,
+    val actorId: String? = null,
+    val requestId: String? = null,
+    val details: String? = null,
+    val createdDate: String,
+)
+
+@Serializable
+data class OrganizationAuthSessionPolicyResponse(
+    val organizationId: String,
+    val appUserId: String? = null,
+    val accessTokenExpiryMinutes: Long,
+    val refreshTokenExpiryDays: Long,
+    val maxSessionDurationHours: Long,
+)
+
+@Serializable
+data class LogoutPropagationInfoResponse(
+    val platformLogoutAuthoritative: Boolean,
+    val idpGlobalLogoutEquivalent: Boolean,
+    val message: String,
+    val exposureBounds: List<String>,
+)
+
+@Serializable
+data class ApplicationScopeProbeResponse(
+    val endpointGroup: String,
+    val authorized: Boolean,
+    val issuedAtEpochMillis: Long,
+)
+
+@Serializable
+data class UserSessionDto(
+    val sessionId: String,
+    val deviceId: String? = null,
+    val deviceName: String? = null,
+    val ipAddress: String? = null,
+    val userAgent: String? = null,
+    val createdDate: String,
+    val lastSeenAt: String,
+    val expiresAt: String? = null,
+)
+
+@Serializable
+data class UserSessionListResponse(
+    val sessions: List<UserSessionDto>,
+    val total: Int,
+)
+
+@Serializable
+data class OrgMemberCapacityResponse(
+    val organizationId: String,
+    val tierCode: String,
+    val maxUsers: Long? = null,
+    val activeUsers: Long,
+    val atCap: Boolean,
+    val nearCap: Boolean,
+)
+

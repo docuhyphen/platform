@@ -1,27 +1,49 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {useNavigate, useSearchParams} from 'react-router-dom';
 import {useAuth} from '../../../context/AuthContext.tsx';
 import {setApiClientAuthToken} from '../../../services/apiClient.ts';
 import {fetchAppUser, fetchAppUserPersonOrganization} from '../../../services/appUserApi.ts';
-import {Spinner, Text} from "@fluentui/react-components";
+import {Button, MessageBar, MessageBarBody, Spinner, Text} from "@fluentui/react-components";
+
+const ERROR_MESSAGES: Record<string, string> = {
+    ACCOUNT_DEPROVISIONED: "Your account has been deprovisioned. Please contact your administrator.",
+    ORG_MEMBERSHIP_INACTIVE: "Your organization membership is no longer active.",
+    USER_CAP_EXCEEDED: "Your organization has reached its user limit. Please contact your administrator.",
+    CSRF_VALIDATION_FAILED: "Security validation failed. Please try signing in again.",
+    OIDC_VALIDATION_FAILED: "Identity verification failed. Please try again or contact support.",
+    OAUTH_STATE_INVALID: "Sign-in session expired or was tampered with. Please try again.",
+    SECURITY_SIGN_OUT: "You were signed out for security reasons. Please sign in again.",
+};
 
 const OAuthCallback: React.FC = () =>
 {
     const [searchParams] = useSearchParams();
     const {setAccessToken, setIdToken, setAppUser, setAppUserPersonOrganization} = useAuth();
     const navigate = useNavigate();
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     useEffect(() =>
     {
         const processCallback = async () =>
         {
+            const error = searchParams.get('error');
+            const errorCode = searchParams.get('errorCode');
+
+            if (error || errorCode)
+            {
+                const code = errorCode || error || '';
+                const message = ERROR_MESSAGES[code.toUpperCase()] ?? `Sign-in failed: ${error ?? 'Unknown error'}. Please try again.`;
+                setErrorMessage(message);
+                return;
+            }
+
             const accessToken = searchParams.get('accessToken');
             const idToken = searchParams.get('idToken');
             const isNewUser = searchParams.get('isNewUser') === 'true';
 
             if (!accessToken)
             {
-                navigate('/sign-in?error=OAuth+authentication+failed');
+                setErrorMessage("OAuth sign-in did not complete. Please try again.");
                 return;
             }
 
@@ -60,14 +82,26 @@ const OAuthCallback: React.FC = () =>
             }
             catch
             {
-                //ToDo: must probably navigate to an error page because an error can happen for any reason
-                // That does not mean that a person is not onboarded
                 navigate('/onboarding/individual');
             }
         };
 
         processCallback();
     }, []);
+
+    if (errorMessage)
+    {
+        return (
+            <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '16px', padding: '32px', maxWidth: '480px', margin: '0 auto'}}>
+                <MessageBar intent="error" style={{width: '100%'}}>
+                    <MessageBarBody>{errorMessage}</MessageBarBody>
+                </MessageBar>
+                <Button appearance="primary" shape="circular" onClick={() => navigate('/sign-in')}>
+                    Back to Sign In
+                </Button>
+            </div>
+        );
+    }
 
     return (
         <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '16px'}}>
@@ -78,4 +112,3 @@ const OAuthCallback: React.FC = () =>
 };
 
 export default OAuthCallback;
-

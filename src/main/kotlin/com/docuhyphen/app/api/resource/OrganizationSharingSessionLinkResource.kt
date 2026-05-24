@@ -2,10 +2,12 @@ package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.exception.OrganizationLinkNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
-import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer
 import com.docuhyphen.app.api.model.entity.LinkStatus
 import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.service.auth.DirectoryLookupGuardService
+import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.organization.OrganizationSharingSessionLinkService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
@@ -20,7 +22,8 @@ import org.slf4j.LoggerFactory
 @Consumes(APPLICATION_JSON)
 class OrganizationSharingSessionLinkResource @Inject constructor(
     private val linkService: OrganizationSharingSessionLinkService,
-    private val authTokenContext: AuthTokenContext
+    private val configurationService: ConfigurationService,
+    private val directoryLookupGuardService: DirectoryLookupGuardService,
 )
 {
     companion object
@@ -30,12 +33,25 @@ class OrganizationSharingSessionLinkResource @Inject constructor(
 
     @GET
     @Path("/linking")
-    fun getOrganizationsForLinking(): Response
+    fun getOrganizationsForLinking(
+        @HeaderParam("X-Request-Id") requestId: String?,
+    ): Response
     {
         return try
         {
+            val limitedResponse = directoryLookupGuardService.enforce(
+                endpointKey = "organizations-linking",
+                targetOrganizationId = null,
+                requestId = requestId,
+            )
+            if (limitedResponse != null)
+            {
+                return limitedResponse
+            }
+
             val organizations = linkService.getOrganizationsForLinking()
                 .map { org -> BasicEntityToDtoTransformer.toDto(org) }
+                .take(configurationService.getDirectoryLookupMaxResults())
                 .toTypedArray()
 
             if (organizations.isNotEmpty())
@@ -72,13 +88,17 @@ class OrganizationSharingSessionLinkResource @Inject constructor(
     fun createLink(
         @QueryParam("requestingOrganizationId") requestingOrganizationId: String?,
         @QueryParam("requestedOrganizationId") requestedOrganizationId: String?,
-        @QueryParam("message") message: String? = null
+        @QueryParam("message") message: String? = null,
+        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
+        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
+        @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
         return try
         {
+            val adminApprovalContext = buildAdminApprovalContext(stepUpAuth, dualApprovalId, requestId)
             val link = linkService.createLink(
-                requestingOrganizationId, requestedOrganizationId, message
+                requestingOrganizationId, requestedOrganizationId, message, adminApprovalContext
             )
 
             Response.ok(BasicEntityToDtoTransformer.toDto(link)).build()
@@ -91,23 +111,17 @@ class OrganizationSharingSessionLinkResource @Inject constructor(
             {
                 is OrganizationNotFoundException ->
                 {
-                    val responseError = ResponseError(exception.message)
-
-                    Response.status(NOT_FOUND).entity(responseError).build()
+                    errorResponse(NOT_FOUND, exception.message)
                 }
 
                 is IllegalArgumentException ->
                 {
-                    val responseError = ResponseError(exception.message)
-
-                    Response.status(BAD_REQUEST).entity(responseError).build()
+                    errorResponse(BAD_REQUEST, exception.message)
                 }
 
                 else ->
                 {
-                    val responseError = ResponseError("An error occurred while creating the organization link")
-
-                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                    errorResponse(INTERNAL_SERVER_ERROR, "An error occurred while creating the organization link")
                 }
             }
         }
@@ -137,26 +151,24 @@ class OrganizationSharingSessionLinkResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            logger.error("Error fetching organization links", exception)
+
             when (exception)
             {
                 is UnauthorizedException ->
                 {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(UNAUTHORIZED).entity(responseError).build()
+                    errorResponse(UNAUTHORIZED, exception.message)
                 }
 
                 is OrganizationNotFoundException,
                 is IllegalArgumentException ->
                 {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(BAD_REQUEST).entity(responseError).build()
+                    errorResponse(BAD_REQUEST, exception.message)
                 }
 
                 else ->
                 {
-                    val responseError = ResponseError("An error occurred while creating the organization link")
-
-                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                    errorResponse(INTERNAL_SERVER_ERROR, "An error occurred while fetching organization links")
                 }
             }
         }
@@ -168,36 +180,36 @@ class OrganizationSharingSessionLinkResource @Inject constructor(
         @PathParam("linkId") linkId: String?,
         @QueryParam("status") status: LinkStatus?,
         @QueryParam("rejectionReason") rejectionReason: String?,
+        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
+        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
+        @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
         return try
         {
-            linkService.acceptLink(linkId, status, rejectionReason)
+            val adminApprovalContext = buildAdminApprovalContext(stepUpAuth, dualApprovalId, requestId)
+            linkService.acceptLink(linkId, status, rejectionReason, adminApprovalContext)
             Response.ok().build()
         }
         catch (exception: Exception)
         {
+            logger.error("Error updating organization link status", exception)
+
             when (exception)
             {
                 is OrganizationLinkNotFoundException ->
                 {
-                    val responseError = ResponseError(exception.message)
-
-                    Response.status(NOT_FOUND).entity(responseError).build()
+                    errorResponse(NOT_FOUND, exception.message)
                 }
 
                 is IllegalArgumentException ->
                 {
-                    val responseError = ResponseError(exception.message)
-
-                    Response.status(BAD_REQUEST).entity(responseError).build()
+                    errorResponse(BAD_REQUEST, exception.message)
                 }
 
                 else ->
                 {
-                    val responseError = ResponseError("An error occurred while creating the organization link")
-
-                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                    errorResponse(INTERNAL_SERVER_ERROR, "An error occurred while updating the organization link")
                 }
             }
         }
@@ -207,38 +219,56 @@ class OrganizationSharingSessionLinkResource @Inject constructor(
     @DELETE
     fun deLink(
         @PathParam("linkId") linkId: String?,
+        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
+        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
+        @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
         return try
         {
-            linkService.deLink(linkId)
+            val adminApprovalContext = buildAdminApprovalContext(stepUpAuth, dualApprovalId, requestId)
+            linkService.deLink(linkId, adminApprovalContext)
             Response.ok().build()
         }
         catch (exception: Exception)
         {
+            logger.error("Error removing organization link", exception)
+
             when (exception)
             {
                 is OrganizationLinkNotFoundException ->
                 {
-                    val responseError = ResponseError(exception.message)
-
-                    Response.status(NOT_FOUND).entity(responseError).build()
+                    errorResponse(NOT_FOUND, exception.message)
                 }
 
                 is IllegalArgumentException ->
                 {
-                    val responseError = ResponseError(exception.message)
-
-                    Response.status(BAD_REQUEST).entity(responseError).build()
+                    errorResponse(BAD_REQUEST, exception.message)
                 }
 
                 else ->
                 {
-                    val responseError = ResponseError("An error occurred while creating the organization link")
-
-                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                    errorResponse(INTERNAL_SERVER_ERROR, "An error occurred while removing the organization link")
                 }
             }
         }
+    }
+
+    private fun buildAdminApprovalContext(
+        stepUpAuth: String?,
+        dualApprovalId: String?,
+        requestId: String?,
+    ): AdminApprovalContext
+    {
+        return AdminApprovalContext(
+            stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
+            dualApprovalId = dualApprovalId,
+            requestId = requestId,
+        )
+    }
+
+    private fun errorResponse(status: Response.Status, message: String?): Response
+    {
+        return Response.status(status).entity(ResponseError(message)).build()
     }
 }

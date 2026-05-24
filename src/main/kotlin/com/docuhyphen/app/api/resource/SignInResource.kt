@@ -5,12 +5,21 @@ import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.repository.IdentityProviderLinkRepository
 import com.docuhyphen.app.api.resource.model.*
 import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.auth.AuthAuditService
+import com.docuhyphen.app.api.service.auth.AuthRateLimitService
+import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.auth.SignInService
 import com.docuhyphen.app.api.service.auth.TokenIssuanceService
+import com.docuhyphen.app.api.service.auth.OAuthStateService
+import com.docuhyphen.app.api.service.auth.OrganizationIdentityPolicyService
+import com.docuhyphen.app.api.service.auth.SecurityIncidentService
 import com.docuhyphen.app.api.service.auth.idp.IdentityProviderRegistry
+import com.docuhyphen.app.api.model.entity.SecurityIncidentSeverity
+import com.docuhyphen.app.api.model.entity.SecurityIncidentType
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.HeaderParam
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.Produces
@@ -20,6 +29,8 @@ import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
 import jakarta.ws.rs.core.Response.Status.UNAUTHORIZED
 import org.slf4j.LoggerFactory
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 @Path("/auth/sign-in")
 @Produces(MediaType.APPLICATION_JSON)
@@ -31,6 +42,11 @@ class SignInResource @Inject constructor(
     private val identityProviderRegistry: IdentityProviderRegistry,
     private val tokenIssuanceService: TokenIssuanceService,
     private val configurationService: ConfigurationService,
+    private val oauthStateService: OAuthStateService,
+    private val organizationIdentityPolicyService: OrganizationIdentityPolicyService,
+    private val authAuditService: AuthAuditService,
+    private val authRateLimitService: AuthRateLimitService,
+    private val securityIncidentService: SecurityIncidentService,
 )
 {
     companion object
@@ -41,85 +57,262 @@ class SignInResource @Inject constructor(
     @POST
     @Path("/lookup")
     fun lookupSignInMethod(
+        @Context request: io.vertx.core.http.HttpServerRequest,
+        @HeaderParam("X-Request-Id") requestId: String?,
         payload: SignInLookupRequest
     ): Response
     {
-        return try
+        return ResourceEndpointDelayHelper.withFixedFloor(1500) { try
         {
-            ResourceEndpointDelayHelper.delayEndpoint(500, 1500)
+            val clientIp = getClientIpAddress(request)
+            if (authRateLimitService.isLimited(
+                    key = "auth:lookup:$clientIp",
+                    maxPerMinute = configurationService.getAuthRateLimitLookupPerMinute(),
+                ))
+            {
+                securityIncidentService.record(
+                    incidentType = SecurityIncidentType.AUTH_RATE_LIMIT_LOOKUP,
+                    severity = SecurityIncidentSeverity.MEDIUM,
+                    requestId = requestId,
+                    details = "ip=$clientIp",
+                )
+                authAuditService.emit(
+                    action = "SIGN_IN_LOOKUP",
+                    outcome = "DENY",
+                    reasonCode = RevocationReasonCode.SECURITY_POLICY,
+                    requestId = requestId,
+                )
+                return Response.status(429).entity(ResponseError("Too many requests. Please try again later.")).build()
+            }
 
             val email = payload.email?.trim()?.lowercase()
-            if (email.isNullOrBlank())
+            if (email.isNullOrBlank() || email.length < 5)
             {
+                securityIncidentService.record(
+                    incidentType = SecurityIncidentType.AUTH_LOOKUP_SUSPICIOUS_PATTERN,
+                    severity = SecurityIncidentSeverity.LOW,
+                    requestId = requestId,
+                    details = "ip=$clientIp;reason=invalid_email_shape;len=${email?.length ?: 0}",
+                )
+                authAuditService.emit(
+                    action = "SIGN_IN_LOOKUP",
+                    outcome = "DENY",
+                    reasonCode = RevocationReasonCode.SECURITY_POLICY,
+                    requestId = requestId,
+                    reason = "Invalid lookup input",
+                )
                 return Response.status(Response.Status.BAD_REQUEST)
                     .entity(ResponseError("Email is required"))
                     .build()
             }
 
-            val appUser = appUserService.findByEmail(email)
-
-            if (appUser == null)
+            // If client already selected an org (second lookup call after MULTIPLE_ORGS picker), resolve that org directly
+            val selectedOrgId = payload.orgId?.trim()?.takeIf { it.isNotBlank() }?.let { runCatching { java.util.UUID.fromString(it) }.getOrNull() }
+            if (selectedOrgId != null)
             {
-                // Don't leak user existence — return INTERNAL so the password step will fail
-                return Response.ok(SignInLookupResponse(authMethod = "INTERNAL")).build()
-            }
-
-            val links = identityProviderLinkRepository.findAllByAppUserId(appUser.id)
-
-            // If user has external IDP links, prefer the first external one
-            val externalLink = links.firstOrNull {
-                it.provider != IdentityProviderType.INTERNAL
-            }
-
-            if (externalLink != null)
-            {
-                val provider = identityProviderRegistry.getProvider(externalLink.provider)
-                val redirectUri = when (externalLink.provider)
+                val org = organizationIdentityPolicyService.findOrganizationById(selectedOrgId)
+                if (org != null)
                 {
-                    IdentityProviderType.MICROSOFT -> configurationService.microsoftOAuthRedirectUri
-                    IdentityProviderType.GOOGLE -> configurationService.googleOAuthRedirectUri
-                    else -> ""
+                    val orgProviders = organizationIdentityPolicyService.findActiveProviderConfigsForOrganization(org.id)
+                    val preferredExternal = orgProviders.firstOrNull { !it.provider.equals("INTERNAL", ignoreCase = true) }
+                    if (preferredExternal != null)
+                    {
+                        val providerType = runCatching { IdentityProviderType.valueOf(preferredExternal.provider.uppercase()) }.getOrNull()
+                        if (providerType != null && providerType != IdentityProviderType.INTERNAL)
+                        {
+                            val redirectUrl = buildAuthorizeUrl(
+                                providerType = providerType,
+                                flow = "signin",
+                                orgIdpConfigId = preferredExternal.id.toString(),
+                            )
+                            return Response.ok(
+                                SignInLookupResponse(
+                                    authMethod = providerType.name,
+                                    redirectUrl = redirectUrl,
+                                    outcome = "ORG_FOUND",
+                                    fallbackAuthMethod = "INTERNAL",
+                                    organizations = listOf(SignInLookupOrganizationOption(id = org.id.toString(), name = org.name)),
+                                    availableProviders = listOf(providerType.name, "INTERNAL"),
+                                )
+                            ).build()
+                        }
+                    }
+                    return Response.ok(
+                        SignInLookupResponse(
+                            authMethod = "INTERNAL",
+                            outcome = "ORG_FOUND",
+                            fallbackAuthMethod = "INTERNAL",
+                            organizations = listOf(SignInLookupOrganizationOption(id = org.id.toString(), name = org.name)),
+                            availableProviders = listOf("INTERNAL"),
+                        )
+                    ).build()
                 }
-                val state = "email=$email&flow=signin"
-                val authUrl = provider.buildAuthorizationUrl(state, redirectUri)
+            }
+
+            val domainOrganizations = organizationIdentityPolicyService.resolveOrganizationsForEmail(email)
+
+            if (domainOrganizations.size > 1)
+            {
+                if (domainOrganizations.size >= 5)
+                {
+                    securityIncidentService.record(
+                        incidentType = SecurityIncidentType.AUTH_LOOKUP_SUSPICIOUS_PATTERN,
+                        severity = SecurityIncidentSeverity.MEDIUM,
+                        requestId = requestId,
+                        details = "ip=$clientIp;reason=high_org_fanout;count=${domainOrganizations.size}",
+                    )
+                }
+
+                val organizations = domainOrganizations
+                    .map { org -> SignInLookupOrganizationOption(id = org.id.toString(), name = org.name) }
+
                 return Response.ok(
                     SignInLookupResponse(
-                        authMethod = externalLink.provider.name,
-                        redirectUrl = authUrl
+                        authMethod = "INTERNAL",
+                        outcome = "MULTIPLE_ORGS",
+                        organizations = organizations,
+                        availableProviders = listOf("INTERNAL"),
                     )
                 ).build()
             }
 
-            // Default to INTERNAL
-            Response.ok(SignInLookupResponse(authMethod = "INTERNAL")).build()
+            if (domainOrganizations.size == 1)
+            {
+                val organization = domainOrganizations.first()
+                val orgProviders = organizationIdentityPolicyService.findActiveProviderConfigsForOrganization(organization.id)
+                val preferredExternal = orgProviders.firstOrNull { !it.provider.equals("INTERNAL", ignoreCase = true) }
+
+                if (preferredExternal != null)
+                {
+                    val providerType = runCatching { IdentityProviderType.valueOf(preferredExternal.provider.uppercase()) }.getOrNull()
+                    if (providerType != null && providerType != IdentityProviderType.INTERNAL)
+                    {
+                        val redirectUrl = buildAuthorizeUrl(
+                            providerType = providerType,
+                            flow = "signin",
+                            orgIdpConfigId = preferredExternal.id.toString(),
+                        )
+                        return Response.ok(
+                            SignInLookupResponse(
+                                authMethod = providerType.name,
+                                redirectUrl = redirectUrl,
+                                outcome = "ORG_FOUND",
+                                fallbackAuthMethod = "INTERNAL",
+                                organizations = listOf(SignInLookupOrganizationOption(id = organization.id.toString(), name = organization.name)),
+                                availableProviders = listOf(providerType.name, "INTERNAL"),
+                            )
+                        ).build()
+                    }
+                }
+
+                return Response.ok(
+                    SignInLookupResponse(
+                        authMethod = "INTERNAL",
+                        outcome = "ORG_FOUND",
+                        fallbackAuthMethod = "INTERNAL",
+                        organizations = listOf(SignInLookupOrganizationOption(id = organization.id.toString(), name = organization.name)),
+                        availableProviders = listOf("INTERNAL"),
+                    )
+                ).build()
+            }
+
+            val platformProviders = identityProviderRegistry.getAllProviders()
+                .map { it.getProviderType() }
+                .filter { it != IdentityProviderType.INTERNAL }
+                .map { it.name }
+                .sorted()
+
+            Response.ok(
+                SignInLookupResponse(
+                    authMethod = "INTERNAL",
+                    outcome = "NO_ORG",
+                    availableProviders = listOf("INTERNAL") + platformProviders,
+                )
+            ).build()
+                .also {
+                    authAuditService.emit(
+                        action = "SIGN_IN_LOOKUP",
+                        outcome = "SUCCESS",
+                        requestId = requestId,
+                    )
+                }
         }
         catch (exception: Exception)
         {
             logger.error("Error during sign-in lookup", exception)
+            authAuditService.emit(
+                action = "SIGN_IN_LOOKUP",
+                outcome = "DENY",
+                reasonCode = RevocationReasonCode.SECURITY_POLICY,
+                requestId = requestId,
+            )
             Response.status(INTERNAL_SERVER_ERROR)
                 .entity(ResponseError("An error occurred during sign-in lookup."))
                 .build()
         }
+        }
+    }
+
+    private fun buildAuthorizeUrl(providerType: IdentityProviderType, flow: String, orgIdpConfigId: String?): String
+    {
+        val base = configurationService.baseUrl.trimEnd('/')
+        val provider = providerType.name.lowercase()
+        val flowEncoded = URLEncoder.encode(flow, StandardCharsets.UTF_8)
+        val orgIdpPart = orgIdpConfigId
+            ?.takeIf { it.isNotBlank() }
+            ?.let { "&orgIdpConfigId=${URLEncoder.encode(it, StandardCharsets.UTF_8)}" }
+            .orEmpty()
+
+        return "$base/auth/oauth/$provider/authorize?flow=$flowEncoded$orgIdpPart"
     }
 
     @POST
     @Path("/initiate")
     fun signIn(
         @Context request: io.vertx.core.http.HttpServerRequest,
+        @HeaderParam("X-Request-Id") requestId: String?,
         payload: SignInRequest
     ): Response
     {
         return try
         {
+            val clientIp = getClientIpAddress(request)
+            if (authRateLimitService.isLimited(
+                    key = "auth:sign-in:initiate:$clientIp",
+                    maxPerMinute = configurationService.getAuthRateLimitSignInInitiatePerMinute(),
+                ))
+            {
+                securityIncidentService.record(
+                    incidentType = SecurityIncidentType.AUTH_RATE_LIMIT_SIGNIN_INITIATE,
+                    severity = SecurityIncidentSeverity.HIGH,
+                    requestId = requestId,
+                    details = "ip=$clientIp",
+                )
+                authAuditService.emit(
+                    action = "SIGN_IN_INITIATE",
+                    outcome = "DENY",
+                    reasonCode = RevocationReasonCode.SECURITY_POLICY,
+                    requestId = requestId,
+                )
+                return Response.status(429).entity(ResponseError("Too many requests. Please try again later.")).build()
+            }
+
             ResourceEndpointDelayHelper.delayEndpoint(4000, 6000)
 
             val mfaSession = with(payload) {
 
-                signInService.initiateSignIn(email, password, getClientIpAddress(request))
+                signInService.initiateSignIn(email, password, clientIp)
             }
 
             val signInResponse = SignInResponse("", mfaSession.id.toString())
             Response.ok(signInResponse).build()
+                .also {
+                    authAuditService.emit(
+                        action = "SIGN_IN_INITIATE",
+                        outcome = "SUCCESS",
+                        requestId = requestId,
+                    )
+                }
         }
         catch (exception: Exception)
         {
@@ -128,18 +321,36 @@ class SignInResource @Inject constructor(
                 is TooManyRequestsException ->
                 {
                     val responseError = ResponseError(exception.message)
+                    authAuditService.emit(
+                        action = "SIGN_IN_INITIATE",
+                        outcome = "DENY",
+                        reasonCode = RevocationReasonCode.SECURITY_POLICY,
+                        requestId = requestId,
+                    )
                     Response.status(429).entity(responseError).build()
                 }
 
                 is InvalidSignInCredentialsException ->
                 {
                     val responseError = ResponseError(exception.message)
+                    authAuditService.emit(
+                        action = "SIGN_IN_INITIATE",
+                        outcome = "DENY",
+                        reasonCode = RevocationReasonCode.SECURITY_POLICY,
+                        requestId = requestId,
+                    )
                     Response.status(UNAUTHORIZED).entity(responseError).build()
                 }
 
                 else ->
                 {
                     logger.error("Error initiating sign in", exception)
+                    authAuditService.emit(
+                        action = "SIGN_IN_INITIATE",
+                        outcome = "DENY",
+                        reasonCode = RevocationReasonCode.SECURITY_POLICY,
+                        requestId = requestId,
+                    )
                     val responseError = ResponseError("A server error occurred while signing in.")
                     Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
@@ -150,11 +361,34 @@ class SignInResource @Inject constructor(
     @POST
     @Path("/completion")
     fun completeSignIn(
+        @Context request: io.vertx.core.http.HttpServerRequest,
+        @HeaderParam("X-Request-Id") requestId: String?,
         payload: SignInCompletionRequest
     ): Response
     {
         return try
         {
+            val clientIp = getClientIpAddress(request)
+            if (authRateLimitService.isLimited(
+                    key = "auth:sign-in:completion:$clientIp",
+                    maxPerMinute = configurationService.getAuthRateLimitSignInCompletionPerMinute(),
+                ))
+            {
+                securityIncidentService.record(
+                    incidentType = SecurityIncidentType.AUTH_RATE_LIMIT_SIGNIN_COMPLETION,
+                    severity = SecurityIncidentSeverity.HIGH,
+                    requestId = requestId,
+                    details = "ip=$clientIp",
+                )
+                authAuditService.emit(
+                    action = "SIGN_IN_COMPLETION",
+                    outcome = "DENY",
+                    reasonCode = RevocationReasonCode.SECURITY_POLICY,
+                    requestId = requestId,
+                )
+                return Response.status(429).entity(ResponseError("Too many requests. Please try again later.")).build()
+            }
+
             ResourceEndpointDelayHelper.delayEndpoint(1000, 3000)
 
             val tokenTriple = with(payload) {
@@ -165,8 +399,28 @@ class SignInResource @Inject constructor(
                 accessToken = tokenTriple.accessToken,
                 idToken = tokenTriple.idToken,
             )
-            val cookie = tokenIssuanceService.buildRefreshTokenCookie(tokenTriple.refreshToken)
-            Response.ok(signInCompletionResponse).cookie(cookie).build()
+            val policyUser = payload.email
+                ?.trim()
+                ?.lowercase()
+                ?.let { appUserService.findByEmail(it) }
+            val refreshCookie = if (policyUser != null)
+            {
+                tokenIssuanceService.buildRefreshTokenCookieWithPolicy(tokenTriple.refreshToken, policyUser)
+            }
+            else
+            {
+                tokenIssuanceService.buildRefreshTokenCookie(tokenTriple.refreshToken)
+            }
+            val csrfToken = tokenIssuanceService.generateCsrfToken()
+            val csrfCookie = tokenIssuanceService.buildCsrfTokenCookie(csrfToken)
+            Response.ok(signInCompletionResponse).cookie(refreshCookie, csrfCookie).build()
+                .also {
+                    authAuditService.emit(
+                        action = "SIGN_IN_COMPLETION",
+                        outcome = "SUCCESS",
+                        requestId = requestId,
+                    )
+                }
         }
         catch (exception: Exception)
         {
@@ -178,6 +432,12 @@ class SignInResource @Inject constructor(
                 is InvalidOtpException ->
                 {
                     val responseError = ResponseError(exception.message)
+                    authAuditService.emit(
+                        action = "SIGN_IN_COMPLETION",
+                        outcome = "DENY",
+                        reasonCode = RevocationReasonCode.SECURITY_POLICY,
+                        requestId = requestId,
+                    )
                     Response.status(UNAUTHORIZED).entity(responseError).build()
                 }
 
@@ -185,6 +445,12 @@ class SignInResource @Inject constructor(
                 {
                     val responseError = ResponseError("Something went wrong while trying to complete sign-in.")
                     logger.error("Error completing sign-in", exception)
+                    authAuditService.emit(
+                        action = "SIGN_IN_COMPLETION",
+                        outcome = "DENY",
+                        reasonCode = RevocationReasonCode.SECURITY_POLICY,
+                        requestId = requestId,
+                    )
                     Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
             }

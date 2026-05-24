@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.service.sharingsession
 import com.docuhyphen.app.api.exception.InvalidEmailException
 import com.docuhyphen.app.api.exception.AppUserNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationGroupNotFoundException
+import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.entity.SharingSessionRecipientType.APP_USER
@@ -12,9 +13,13 @@ import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.repository.SharingSessionRepository
 import com.docuhyphen.app.api.resource.model.SharingSessionInitiationDto
 import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.auth.AuthAuditService
+import com.docuhyphen.app.api.service.auth.AuthRateLimitService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
+import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.communication.AppNotificationService
 import com.docuhyphen.app.api.service.communication.EmailService
+import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -34,6 +39,9 @@ class SharingSessionInitiationService @Inject constructor(
     private val emailService: EmailService,
     private val authTokenContext: AuthTokenContext,
     private val authenticationService: AuthenticationService,
+    private val authRateLimitService: AuthRateLimitService,
+    private val configurationService: ConfigurationService,
+    private val authAuditService: AuthAuditService,
     private val appNotificationService: AppNotificationService,
     private val orgGroupService: OrganizationGroupService
 )
@@ -50,6 +58,24 @@ class SharingSessionInitiationService @Inject constructor(
     fun initiateSharingSession(sessionInitiationDto: SharingSessionInitiationDto): SharingSession
     {
         val initiator = authTokenContext.authToken.appUser!!
+
+        if (sessionInitiationDto.recipientType == EMAIL)
+        {
+            val limited = authRateLimitService.isLimited(
+                key = "directory:recipient-resolve:${initiator.id}",
+                maxPerMinute = configurationService.getAuthRateLimitLookupPerMinute(),
+            )
+            if (limited)
+            {
+                authAuditService.emit(
+                    action = "RECIPIENT_RESOLVE",
+                    outcome = "DENY",
+                    reasonCode = RevocationReasonCode.SECURITY_POLICY,
+                    actorId = initiator.id,
+                )
+                throw IllegalArgumentException("Too many recipient lookup requests. Please try again later.")
+            }
+        }
 
         validateSharingSessionFields(initiator, sessionInitiationDto)
 
@@ -73,7 +99,12 @@ class SharingSessionInitiationService @Inject constructor(
                 throw IllegalArgumentException("Unsupported recipient type")
         }
 
-        val participants = sessionInitiationDto.participants.map { p ->
+        val participants = sessionInitiationDto.participants
+            .filterNot { p ->
+                p.participantType != SharingSessionParticipantType.GROUP &&
+                    runCatching { UUID.fromString(p.id) }.getOrNull() == initiator.id
+            }
+            .map { p ->
 
             var participantAppUser: AppUser? = null
             var participantGroup: OrganizationGroup? = null
@@ -163,7 +194,12 @@ class SharingSessionInitiationService @Inject constructor(
         {
             EMAIL ->
             {
-                if (initiator.email == sessionInitiationDto.recipientEmail)
+                if ((sessionInitiationDto.recipientEmail?.trim()?.length ?: 0) < 5)
+                {
+                    throw InvalidEmailException("Recipient email is invalid")
+                }
+
+                if (initiator.email.normalizeEmailOrNull() == sessionInitiationDto.recipientEmail.normalizeEmailOrNull())
                 {
                     throw IllegalArgumentException("Recipient and Initiator cannot be the same")
                 }
@@ -180,7 +216,12 @@ class SharingSessionInitiationService @Inject constructor(
             {
                 sessionInitiationDto.recipientAppUserId?.let {
 
-                    appUserService.getById(UUID.fromString(it))
+                    val recipientId = UUID.fromString(it)
+                    if (recipientId == initiator.id)
+                    {
+                        throw IllegalArgumentException("Recipient and Initiator cannot be the same")
+                    }
+                    appUserService.getById(recipientId)
                         ?: throw AppUserNotFoundException("Recipient not found")
 
                 } ?: throw AppUserNotFoundException("Recipient not found")

@@ -9,6 +9,9 @@ import com.docuhyphen.app.api.repository.OrganizationGroupRepository
 import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.repository.SharingSessionParticipantRepository
 import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.auth.AdminActionGuardService
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.service.auth.AuthAuditService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
@@ -23,7 +26,9 @@ class OrganizationGroupService @Inject constructor(
     private val orgGroupRepo: OrganizationGroupRepository,
     private val sharingSessionParticipantRepository: SharingSessionParticipantRepository,
     private val authTokenContext: AuthTokenContext,
-    private val appUserService: AppUserService
+    private val appUserService: AppUserService,
+    private val adminActionGuardService: AdminActionGuardService,
+    private val authAuditService: AuthAuditService,
 )
 {
     @PersistenceContext
@@ -58,13 +63,21 @@ class OrganizationGroupService @Inject constructor(
     fun addOrganizationGroup(
         organizationId: String,
         name: String?,
-        members: List<OrganizationGroupMemberModel>
+        members: List<OrganizationGroupMemberModel>,
+        adminApprovalContext: AdminApprovalContext,
     )
     {
         if (authTokenContext.authToken.appUser?.role != AppUserRole.ORG_ADMIN)
         {
             throw IllegalArgumentException("User does not have permission to create groups")
         }
+
+        adminActionGuardService.enforce(
+            action = "ORG_GROUP_ADD",
+            actorId = authTokenContext.authToken.appUser?.id,
+            context = adminApprovalContext,
+            requireDualApproval = false,
+        )
 
         val organization = organizationRepository.findById(UUID.fromString(organizationId))
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
@@ -122,6 +135,17 @@ class OrganizationGroupService @Inject constructor(
         //using the repo throws an error: Transaction is not active
         entityManager.merge(organization)
         entityManager.flush()
+
+        authAuditService.emit(
+            action = "ORG_GROUP_ADD",
+            outcome = "SUCCESS",
+            actorId = authTokenContext.authToken.appUser?.id,
+            organizationId = organization.id,
+            requestId = adminApprovalContext.requestId,
+            reason = "Organization admin added group",
+            beforeSnapshot = null,
+            afterSnapshot = groupSnapshot(newGroup),
+        )
     }
 
     fun getOrganizationGroups(organizationId: String): List<OrganizationGroup>
@@ -139,12 +163,19 @@ class OrganizationGroupService @Inject constructor(
     }
 
     @Transactional
-    fun deleteOrganizationGroup(organizationId: String?, groupId: String?)
+    fun deleteOrganizationGroup(organizationId: String?, groupId: String?, adminApprovalContext: AdminApprovalContext)
     {
         if (authTokenContext.authToken.appUser?.role != AppUserRole.ORG_ADMIN)
         {
             throw IllegalArgumentException("User does not have permission to create groups")
         }
+
+        adminActionGuardService.enforce(
+            action = "ORG_GROUP_DELETE",
+            actorId = authTokenContext.authToken.appUser?.id,
+            context = adminApprovalContext,
+            requireDualApproval = true,
+        )
 
         if (organizationId.isNullOrBlank() || groupId.isNullOrBlank())
         {
@@ -156,6 +187,7 @@ class OrganizationGroupService @Inject constructor(
 
         val group = organization.groups.find { it.id.toString() == groupId }
             ?: throw OrganizationGroupNotFoundException("Group not found for id: $groupId")
+        val beforeSnapshot = groupSnapshot(group)
 
         val linkedSessionCount = sharingSessionParticipantRepository.countByOrganizationGroupId(group.id)
 
@@ -164,11 +196,33 @@ class OrganizationGroupService @Inject constructor(
             logger.info("Group ${group.name} is linked to $linkedSessionCount sessions. Deactivating instead of deleting.")
             group.isActive = false
             organizationRepository.update(organization)
+
+            authAuditService.emit(
+                action = "ORG_GROUP_DELETE",
+                outcome = "SUCCESS",
+                actorId = authTokenContext.authToken.appUser?.id,
+                organizationId = organization.id,
+                requestId = adminApprovalContext.requestId,
+                reason = "Group linked to active sessions, deactivated instead of hard delete",
+                beforeSnapshot = beforeSnapshot,
+                afterSnapshot = groupSnapshot(group),
+            )
         }
         else
         {
             organization.groups.remove(group)
             organizationRepository.update(organization)
+
+            authAuditService.emit(
+                action = "ORG_GROUP_DELETE",
+                outcome = "SUCCESS",
+                actorId = authTokenContext.authToken.appUser?.id,
+                organizationId = organization.id,
+                requestId = adminApprovalContext.requestId,
+                reason = "Organization admin deleted group",
+                beforeSnapshot = beforeSnapshot,
+                afterSnapshot = "deleted",
+            )
         }
     }
 
@@ -178,13 +232,21 @@ class OrganizationGroupService @Inject constructor(
         groupId: String?,
         groupName: String?,
         isActive: Boolean,
-        members: List<OrganizationGroupMemberModel>
+        members: List<OrganizationGroupMemberModel>,
+        adminApprovalContext: AdminApprovalContext,
     )
     {
         if (authTokenContext.authToken.appUser?.role != AppUserRole.ORG_ADMIN)
         {
             throw IllegalArgumentException("User does not have permission to create groups")
         }
+
+        adminActionGuardService.enforce(
+            action = "ORG_GROUP_UPDATE",
+            actorId = authTokenContext.authToken.appUser?.id,
+            context = adminApprovalContext,
+            requireDualApproval = !isActive,
+        )
 
         if (organizationId.isNullOrBlank() || groupId.isNullOrBlank())
         {
@@ -201,6 +263,7 @@ class OrganizationGroupService @Inject constructor(
 
         val group = organization.groups.find { it.id.toString() == groupId }
             ?: throw OrganizationGroupNotFoundException("Group not found for id: $groupId")
+        val beforeSnapshot = groupSnapshot(group)
 
         val groupNameExists = organization.groups
             .filter { it.id != group.id }
@@ -246,12 +309,37 @@ class OrganizationGroupService @Inject constructor(
         }
 
         organizationRepository.update(organization)
+
+        authAuditService.emit(
+            action = "ORG_GROUP_UPDATE",
+            outcome = "SUCCESS",
+            actorId = authTokenContext.authToken.appUser?.id,
+            organizationId = organization.id,
+            requestId = adminApprovalContext.requestId,
+            reason = "Organization admin updated group",
+            beforeSnapshot = beforeSnapshot,
+            afterSnapshot = groupSnapshot(group),
+        )
     }
 
     @Transactional
     fun updateOrganizationGroup(group: OrganizationGroup)
     {
 
+    }
+
+    private fun groupSnapshot(group: OrganizationGroup): String
+    {
+        val members = group.members
+            .map { member ->
+                val userId = member.appUser?.id?.toString().orEmpty()
+                val permissions = member.permissions
+                "member=$userId:accept=${permissions?.allowSessionAccept};reject=${permissions?.allowSessionReject};edit=${permissions?.allowSessionEdit};delete=${permissions?.allowSessionDelete};end=${permissions?.allowSessionEnd};docAdd=${permissions?.allowDocumentAddition};docDelete=${permissions?.allowDocumentDeletion};docDownload=${permissions?.allowDocumentDownload};docUpdate=${permissions?.allowDocumentUpdate};docUpload=${permissions?.allowDocumentUpload}"
+            }
+            .sorted()
+            .joinToString("|")
+
+        return "id=${group.id};name=${group.name};isActive=${group.isActive};members=[${members}]"
     }
 
 }

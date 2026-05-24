@@ -20,7 +20,7 @@ import {
     Subtitle1,
     Text,
 } from "@fluentui/react-components";
-import {AppUserDetailedDto, ResponseError} from "../../models/models.tsx";
+import {AppUserDetailedDto, ResponseError, SignInLookupOrganizationOption} from "../../models/models.tsx";
 import {setApiClientAuthToken} from '../../../services/apiClient.ts';
 import {ArrowLeftRegular, DismissRegular} from "@fluentui/react-icons";
 import AppLogo from "../../components/app-logo/AppLogo.tsx";
@@ -29,7 +29,7 @@ import {useSignInStyles} from "./SignInStyles.tsx";
 import {useAuthorizationStyles} from "../AuthorizationStyles.tsx";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 
-type SignInStep = 'EMAIL_ENTRY' | 'PASSWORD_ENTRY' | 'MFA_ENTRY';
+type SignInStep = 'EMAIL_ENTRY' | 'ORG_PICKER' | 'PASSWORD_ENTRY' | 'MFA_ENTRY';
 
 const SignIn: React.FC = () =>
 {
@@ -38,6 +38,7 @@ const SignIn: React.FC = () =>
     const [otp, setOtp] = useState<string>('');
     const [mfaSessionId, setMfaSessionId] = useState<string>('');
     const [password, setPassword] = useState<string>('');
+    const [orgOptions, setOrgOptions] = useState<SignInLookupOrganizationOption[]>([]);
     const [lookingUp, setLookingUp] = useState<boolean>(false);
     const [signInInitiating, setSignInInitiating] = useState<boolean>(false);
     const [signInCompleting, setSignInCompleting] = useState<boolean>(false);
@@ -74,18 +75,17 @@ const SignIn: React.FC = () =>
         {
             const response = await lookupSignInMethod({email});
 
-            if (response.authMethod === 'INTERNAL')
+            if (response.outcome === 'MULTIPLE_ORGS' && response.organizations && response.organizations.length > 0)
             {
-                setStep('PASSWORD_ENTRY');
+                setOrgOptions(response.organizations);
+                setStep('ORG_PICKER');
             }
             else if (response.redirectUrl)
             {
-                // External IDP — redirect browser
                 window.location.href = response.redirectUrl;
             }
             else
             {
-                // Fallback to internal
                 setStep('PASSWORD_ENTRY');
             }
         }
@@ -225,6 +225,32 @@ const SignIn: React.FC = () =>
         }
     };
 
+    const onSelectOrg = async (orgId: string) =>
+    {
+        setLookingUp(true);
+        setResponseErrorMessage(undefined);
+        try
+        {
+            const response = await lookupSignInMethod({email, orgId});
+            if (response.redirectUrl)
+            {
+                window.location.href = response.redirectUrl;
+            }
+            else
+            {
+                setStep('PASSWORD_ENTRY');
+            }
+        }
+        catch (error)
+        {
+            setResponseErrorMessage((error as ResponseError)?.errorMessage ?? "An error occurred.");
+        }
+        finally
+        {
+            setLookingUp(false);
+        }
+    };
+
     const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>, action: () => void) =>
     {
         if (event.key === 'Enter')
@@ -264,6 +290,7 @@ const SignIn: React.FC = () =>
         setResetOtpResponseMessage(false);
         setSignInInitiationSuccessfulMsg('');
         setResponseErrorMessage(undefined);
+        setOrgOptions([]);
         setStep('EMAIL_ENTRY');
     }
 
@@ -306,6 +333,27 @@ const SignIn: React.FC = () =>
                                         {lookingUp && <><Spinner size={"tiny"}/> Checking...</>}
                                         {!lookingUp && "Continue"}
                                     </Button>
+                                </>
+                            )}
+
+                            {step === 'ORG_PICKER' && (
+                                <>
+                                    <Text size={300}>Multiple organizations are associated with <strong>{email}</strong>. Select yours to continue.</Text>
+                                    <div style={{display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px'}}>
+                                        {orgOptions.map(org => (
+                                            <Button
+                                                key={org.id}
+                                                appearance="outline"
+                                                shape="circular"
+                                                disabled={lookingUp}
+                                                onClick={() => onSelectOrg(org.id)}
+                                                style={{justifyContent: 'flex-start'}}
+                                            >
+                                                {lookingUp ? <Spinner size="tiny"/> : null}
+                                                {org.name}
+                                            </Button>
+                                        ))}
+                                    </div>
                                 </>
                             )}
 

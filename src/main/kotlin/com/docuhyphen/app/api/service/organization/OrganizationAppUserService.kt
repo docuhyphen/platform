@@ -9,6 +9,9 @@ import com.docuhyphen.app.api.model.entity.AppUserRole
 import com.docuhyphen.app.api.model.entity.Person
 import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.auth.AdminActionGuardService
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -23,6 +26,8 @@ class OrganizationAppUserService @Inject constructor(
     private val appUserService: AppUserService,
     private val authTokenContext: AuthTokenContext,
     private val organizationRepository: OrganizationRepository,
+    private val adminActionGuardService: AdminActionGuardService,
+    private val authAuditService: AuthAuditService,
 )
 {
     companion object
@@ -36,13 +41,21 @@ class OrganizationAppUserService @Inject constructor(
         role: AppUserRole?,
         email: String?,
         firstName: String?,
-        lastName: String?
+        lastName: String?,
+        adminApprovalContext: AdminApprovalContext,
     ): AppUser
     {
         if (authTokenContext.authToken.appUser?.role != AppUserRole.ORG_ADMIN)
         {
             throw IllegalArgumentException("User does not have permission to create groups")
         }
+
+        adminActionGuardService.enforce(
+            action = "ORG_APP_USER_ADD",
+            actorId = authTokenContext.authToken.appUser?.id,
+            context = adminApprovalContext,
+            requireDualApproval = false,
+        )
 
         val organization = organizationGroupService.getOrganizationById(UUID.fromString(organizationId))
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
@@ -89,6 +102,16 @@ class OrganizationAppUserService @Inject constructor(
 
         organizationRepository.update(organization)
 
+        authAuditService.emit(
+            action = "ORG_APP_USER_ADD",
+            outcome = "SUCCESS",
+            actorId = authTokenContext.authToken.appUser?.id,
+            requestId = adminApprovalContext.requestId,
+            reason = "Organization admin added app user",
+            beforeSnapshot = null,
+            afterSnapshot = appUserSnapshot(appUser),
+        )
+
         return appUser
     }
 
@@ -113,13 +136,21 @@ class OrganizationAppUserService @Inject constructor(
         isActive: Boolean?,
         email: String?,
         firstName: String?,
-        lastName: String?
+        lastName: String?,
+        adminApprovalContext: AdminApprovalContext,
     )
     {
         if (authTokenContext.authToken.appUser?.role != AppUserRole.ORG_ADMIN)
         {
             throw IllegalArgumentException("User does not have permission to update app users")
         }
+
+        adminActionGuardService.enforce(
+            action = "ORG_APP_USER_UPDATE",
+            actorId = authTokenContext.authToken.appUser?.id,
+            context = adminApprovalContext,
+            requireDualApproval = isActive == false,
+        )
 
         if (organizationId.isNullOrBlank())
         {
@@ -136,6 +167,8 @@ class OrganizationAppUserService @Inject constructor(
 
         val appUser = appUserService.getById(UUID.fromString(appUserId))
             ?: throw AppUserNotFoundException("App user not found for id: $appUserId")
+
+        val beforeSnapshot = appUserSnapshot(appUser)
 
         isActive?.let {
 
@@ -196,15 +229,32 @@ class OrganizationAppUserService @Inject constructor(
         }
 
         appUserService.update(appUser)
+
+        authAuditService.emit(
+            action = "ORG_APP_USER_UPDATE",
+            outcome = "SUCCESS",
+            actorId = authTokenContext.authToken.appUser?.id,
+            requestId = adminApprovalContext.requestId,
+            reason = "Organization admin updated app user",
+            beforeSnapshot = beforeSnapshot,
+            afterSnapshot = appUserSnapshot(appUser),
+        )
     }
 
     @Transactional
-    fun deleteAppUser(organizationId: String?, appUserId: String?)
+    fun deleteAppUser(organizationId: String?, appUserId: String?, adminApprovalContext: AdminApprovalContext)
     {
         if (authTokenContext.authToken.appUser?.role != AppUserRole.ORG_ADMIN)
         {
             throw IllegalArgumentException("User does not have permission to create groups")
         }
+
+        adminActionGuardService.enforce(
+            action = "ORG_APP_USER_DELETE",
+            actorId = authTokenContext.authToken.appUser?.id,
+            context = adminApprovalContext,
+            requireDualApproval = true,
+        )
 
         if (organizationId.isNullOrBlank())
         {
@@ -221,6 +271,8 @@ class OrganizationAppUserService @Inject constructor(
 
         val appUser = appUserService.getById(UUID.fromString(appUserId.toString()))
             ?: throw AppUserNotFoundException("App user not found for id: $appUserId")
+
+        val beforeSnapshot = appUserSnapshot(appUser)
 
         if (!isAppUserIsDeletable(organizationId, appUserId))
         {
@@ -245,6 +297,16 @@ class OrganizationAppUserService @Inject constructor(
 
         // Now it's safe to delete the app user
         appUserService.delete(appUser.id.toString())
+
+        authAuditService.emit(
+            action = "ORG_APP_USER_DELETE",
+            outcome = "SUCCESS",
+            actorId = authTokenContext.authToken.appUser?.id,
+            requestId = adminApprovalContext.requestId,
+            reason = "Organization admin deleted app user",
+            beforeSnapshot = beforeSnapshot,
+            afterSnapshot = "deleted",
+        )
     }
 
     fun isAppUserIsDeletable(organizationId: String?, appUserId: String?): Boolean
@@ -268,5 +330,10 @@ class OrganizationAppUserService @Inject constructor(
         return organization.appUsers.contains(appUser)
 //                && appUser.role != AppUserRole.ORG_ADMIN
                 && appUserService.hasLinkedSharingSessions(appUser.id) == false
+    }
+
+    private fun appUserSnapshot(appUser: AppUser): String
+    {
+        return "id=${appUser.id};email=${appUser.email};role=${appUser.role};isActive=${appUser.isActive};firstName=${appUser.person?.firstName};lastName=${appUser.person?.lastName}"
     }
 }

@@ -1,10 +1,12 @@
 package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.model.entity.Application
+import com.docuhyphen.app.api.model.entity.ApplicationType
 import com.docuhyphen.app.api.resource.model.ApplicationTokenRequest
 import com.docuhyphen.app.api.resource.model.ApplicationTokenResponse
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.AuthenticationService
+import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
 import jakarta.ws.rs.Consumes
@@ -24,6 +26,7 @@ typealias ApplicationEntity = Application
 @Consumes(MediaType.APPLICATION_JSON)
 class ApplicationAuthResource @Inject constructor(
     private val authenticationService: AuthenticationService,
+    private val configurationService: ConfigurationService,
     private val entityManager: EntityManager,
 )
 {
@@ -76,7 +79,10 @@ class ApplicationAuthResource @Inject constructor(
             application.lastAccessDate = Timestamp.from(Instant.now())
             entityManager.merge(application)
 
-            val accessToken = authenticationService.generateApplicationAccessToken(application.id)
+            val accessToken = authenticationService.generateApplicationAccessToken(
+                applicationId = application.id,
+                scopes = resolveScopesForApplication(application),
+            )
 
             Response.ok(ApplicationTokenResponse(accessToken)).build()
         }
@@ -86,6 +92,17 @@ class ApplicationAuthResource @Inject constructor(
             Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                 .entity(ResponseError("Failed to generate application token"))
                 .build()
+        }
+    }
+
+    private fun resolveScopesForApplication(application: Application): Set<String>
+    {
+        val defaultScopes = configurationService.getApplicationTokenDefaultScopes()
+        return when (application.applicationType)
+        {
+            ApplicationType.INTEGRATION -> defaultScopes + setOf("application:integration")
+            ApplicationType.SERVICE -> defaultScopes + setOf("application:service")
+            else -> defaultScopes
         }
     }
 }

@@ -5,6 +5,7 @@ import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.resource.model.*
 import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.auth.ExternalProviderAlreadyLinkedException
+import com.docuhyphen.app.api.service.auth.OAuthStateService
 import com.docuhyphen.app.api.service.auth.OAuthUserLinkingService
 import com.docuhyphen.app.api.service.auth.idp.IdentityProviderRegistry
 import com.docuhyphen.app.api.service.config.ConfigurationService
@@ -23,6 +24,7 @@ class IdentityProviderResource @Inject constructor(
     private val identityProviderRegistry: IdentityProviderRegistry,
     private val authenticationService: AuthenticationService,
     private val configurationService: ConfigurationService,
+    private val oauthStateService: OAuthStateService,
 )
 {
     companion object
@@ -96,8 +98,8 @@ class IdentityProviderResource @Inject constructor(
                 else -> throw IllegalArgumentException("Linking not supported for $providerType")
             }
 
-            val state = "flow=link&userId=${appUser.id}"
-            val authUrl = provider.buildAuthorizationUrl(state, redirectUri)
+            val signedState = oauthStateService.createSignedState("link", providerType)
+            val authUrl = provider.buildAuthorizationUrl(signedState.token, signedState.nonce, redirectUri)
 
             Response.ok(LinkProviderInitiateResponse(authUrl)).build()
         }

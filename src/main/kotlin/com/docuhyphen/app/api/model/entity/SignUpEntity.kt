@@ -1,6 +1,5 @@
 package com.docuhyphen.app.api.model.entity
 
-import SignUpStatus
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import jakarta.persistence.*
 import kotlinx.serialization.Serializable

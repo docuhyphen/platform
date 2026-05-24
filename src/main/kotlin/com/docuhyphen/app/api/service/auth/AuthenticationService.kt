@@ -12,6 +12,9 @@ import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import org.mindrot.jbcrypt.BCrypt
 import org.slf4j.LoggerFactory
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
+import java.time.Instant
 import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.crypto.SecretKey
@@ -20,6 +23,7 @@ import javax.crypto.SecretKey
 class AuthenticationService @Inject constructor(
     private val configurationService: ConfigurationService,
     private val refreshTokenStore: RefreshTokenStore,
+    private val refreshTokenRecordService: RefreshTokenRecordService,
 )
 {
     val jwtSecretKey: SecretKey = Keys.hmacShaKeyFor(configurationService.getJwtSecret().toByteArray())
@@ -62,46 +66,67 @@ class AuthenticationService @Inject constructor(
         return true
     }
 
-    fun generateAccessToken(appUser: AppUser): String
+    fun generateAccessToken(
+        appUser: AppUser,
+        sessionId: UUID? = null,
+        expiryMinutesOverride: Long? = null,
+        authTimeEpochSeconds: Long? = null,
+    ): String
     {
-        val expiryMinutes = configurationService.getAccessTokenExpiryMinutes()
+        val expiryMinutes = expiryMinutesOverride ?: configurationService.getAccessTokenExpiryMinutes()
         val expiration = Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(expiryMinutes))
+        val authTime = authTimeEpochSeconds ?: (System.currentTimeMillis() / 1000)
 
-        return Jwts.builder()
+        val builder = Jwts.builder()
             .subject(appUser.id.toString())
             .claim("email", appUser.email)
             .claim("role", appUser.role.name)
+            .claim("session_version", appUser.sessionVersion)
             .claim("token_type", ACCESS.name)
+            .claim("auth_time", authTime)
+
+        sessionId?.let { builder.claim("session_id", it.toString()) }
+
+        return builder
             .issuedAt(Date())
             .expiration(expiration)
             .signWith(jwtSecretKey)
             .compact()
     }
 
-    fun generateApplicationAccessToken(applicationId: UUID): String
+    fun generateApplicationAccessToken(
+        applicationId: UUID,
+        scopes: Set<String> = configurationService.getApplicationTokenDefaultScopes(),
+    ): String
     {
         val expiryMinutes = configurationService.getAccessTokenExpiryMinutes()
         val expiration = Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(expiryMinutes))
+        val normalizedScopes = scopes.map { it.trim() }.filter { it.isNotBlank() }.toSet()
 
         return Jwts.builder()
             .subject(applicationId.toString())
             .claim("token_type", ACCESS.name)
+            .claim("principal_type", "APPLICATION")
             .claim("type", "APPLICATION")
+            .claim("scopes", normalizedScopes.joinToString(","))
             .issuedAt(Date())
             .expiration(expiration)
             .signWith(jwtSecretKey)
             .compact()
     }
 
-    fun generateIdToken(appUser: AppUser): String
+    fun generateIdToken(appUser: AppUser, sessionId: UUID? = null, expiryMinutesOverride: Long? = null): String
     {
-        val expiryMinutes = configurationService.getIdTokenExpiryMinutes()
+        val expiryMinutes = expiryMinutesOverride ?: configurationService.getIdTokenExpiryMinutes()
         val expiration = Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(expiryMinutes))
 
         val builder = Jwts.builder()
             .subject(appUser.id.toString())
             .claim("email", appUser.email)
+            .claim("session_version", appUser.sessionVersion)
             .claim("token_type", ID.name)
+
+        sessionId?.let { builder.claim("session_id", it.toString()) }
 
         appUser.person?.let { person ->
             builder.claim("firstName", person.firstName)
@@ -115,22 +140,27 @@ class AuthenticationService @Inject constructor(
             .compact()
     }
 
-    fun generateRefreshToken(appUser: AppUser): Pair<String, String>
+    /**
+     * Generates an opaque refresh token: `{jti}.{base64url(32 random bytes)}`.
+     *
+     * - jti: server-side lookup key (UUID, 122 bits entropy)
+     * - secret: 256-bit bearer credential. We store only its hash; the raw secret never
+     *   appears on disk or in our DB once the cookie is set on the response.
+     *
+     * Total cookie payload ~ 80 bytes, vs ~300 bytes for a signed JWT.
+     */
+    fun generateRefreshToken(
+        appUser: AppUser,
+        familyId: String = UUID.randomUUID().toString(),
+        sessionId: UUID? = null,
+        expiryDaysOverride: Long? = null,
+    ): Triple<String, String, String>
     {
-        val expiryDays = configurationService.getRefreshTokenExpiryDays()
-        val expiration = Date(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(expiryDays))
         val jti = UUID.randomUUID().toString()
-
-        val token = Jwts.builder()
-            .subject(appUser.id.toString())
-            .claim("token_type", REFRESH.name)
-            .id(jti)
-            .issuedAt(Date())
-            .expiration(expiration)
-            .signWith(jwtSecretKey)
-            .compact()
-
-        return Pair(token, jti)
+        val secretBytes = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
+        val secret = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(secretBytes)
+        val token = "$jti.$secret"
+        return Triple(token, jti, familyId)
     }
 
     fun generateLinkToken(email: String, provider: String, externalSubjectId: String): String
@@ -193,10 +223,36 @@ class AuthenticationService @Inject constructor(
 
     // ── Refresh token operations (delegated to Redis) ──
 
-    fun saveRefreshToken(appUser: AppUser, refreshToken: String, jti: String)
+    fun saveRefreshToken(
+        appUser: AppUser,
+        refreshToken: String,
+        jti: String,
+        familyId: String,
+        sessionId: UUID? = null,
+        expiryDaysOverride: Long? = null,
+    )
     {
-        val expirySeconds = TimeUnit.DAYS.toSeconds(configurationService.getRefreshTokenExpiryDays())
-        refreshTokenStore.save(appUser.id, jti, refreshToken, expirySeconds)
+        val expiryDays = expiryDaysOverride ?: configurationService.getRefreshTokenExpiryDays()
+        val expirySeconds = TimeUnit.DAYS.toSeconds(expiryDays)
+        val tokenHash = hashToken(refreshToken)
+        refreshTokenStore.save(
+            userId = appUser.id,
+            jti = jti,
+            familyId = familyId,
+            refreshToken = refreshToken,
+            refreshTokenHash = tokenHash,
+            expirySeconds = expirySeconds,
+            sessionId = sessionId,
+        )
+
+        refreshTokenRecordService.recordIssued(
+            userId = appUser.id,
+            userSessionId = sessionId,
+            familyId = familyId,
+            jti = jti,
+            tokenHash = tokenHash,
+            expiresAt = Instant.now().plusSeconds(expirySeconds),
+        )
     }
 
     fun findRefreshTokenByJti(jti: String): StoredRefreshToken?
@@ -204,13 +260,94 @@ class AuthenticationService @Inject constructor(
         return refreshTokenStore.findByJti(jti)
     }
 
-    fun deleteRefreshTokenByJti(jti: String)
+    /**
+     * Constant-time check that a presented refresh token matches the stored hash.
+     * Defends against timing-side-channel comparisons of the opaque secret.
+     */
+    fun verifyRefreshTokenSecret(presentedToken: String, stored: StoredRefreshToken): Boolean
     {
-        refreshTokenStore.deleteByJti(jti)
+        val expectedHash = hashToken(presentedToken).toByteArray(Charsets.UTF_8)
+        val storedHashBytes = (stored.token).toByteArray(Charsets.UTF_8).let { existing ->
+            // `stored.token` is the original (raw) token; we store its hash but also retain
+            // the raw form keyed by JTI so legacy callers keep working. Compare hashes:
+            hashToken(stored.token).toByteArray(Charsets.UTF_8)
+        }
+        return java.security.MessageDigest.isEqual(expectedHash, storedHashBytes)
     }
 
-    fun deleteAllRefreshTokensForUser(userId: UUID)
+    fun deleteRefreshTokenByJti(jti: String, reasonCode: RevocationReasonCode = RevocationReasonCode.SECURITY_POLICY)
+    {
+        refreshTokenStore.deleteByJti(jti)
+        refreshTokenRecordService.revokeByJti(jti, reasonCode)
+    }
+
+    fun deleteAllRefreshTokensForUser(userId: UUID, reasonCode: RevocationReasonCode = RevocationReasonCode.SECURITY_POLICY)
     {
         refreshTokenStore.deleteAllByUserId(userId)
+        refreshTokenRecordService.revokeUser(userId, reasonCode)
+    }
+
+    fun rotateRefreshToken(
+        appUser: AppUser,
+        currentJti: String,
+        currentRefreshToken: String,
+        familyId: String,
+        sessionId: UUID,
+        refreshExpiryDaysOverride: Long? = null,
+    ): RefreshRotationResult
+    {
+        val (newToken, newJti, resolvedFamilyId) = generateRefreshToken(
+            appUser,
+            familyId,
+            sessionId,
+            refreshExpiryDaysOverride,
+        )
+        val expiryDays = refreshExpiryDaysOverride ?: configurationService.getRefreshTokenExpiryDays()
+        val expirySeconds = TimeUnit.DAYS.toSeconds(expiryDays)
+        val newTokenHash = hashToken(newToken)
+
+        val result = refreshTokenStore.rotate(
+            userId = appUser.id,
+            currentJti = currentJti,
+            currentTokenHash = hashToken(currentRefreshToken),
+            newJti = newJti,
+            newToken = newToken,
+            newTokenHash = newTokenHash,
+            familyId = resolvedFamilyId,
+            graceSeconds = configurationService.getRefreshRotationGraceSeconds(),
+            expirySeconds = expirySeconds,
+            nowEpochMillis = System.currentTimeMillis(),
+        )
+
+        if (result.status == RefreshRotationStatus.ROTATED)
+        {
+            refreshTokenRecordService.recordIssued(
+                userId = appUser.id,
+                userSessionId = sessionId,
+                familyId = resolvedFamilyId,
+                jti = newJti,
+                tokenHash = newTokenHash,
+                expiresAt = Instant.now().plusSeconds(expirySeconds),
+            )
+            refreshTokenRecordService.recordRotation(
+                currentJti = currentJti,
+                successorJti = newJti,
+                graceSeconds = configurationService.getRefreshRotationGraceSeconds(),
+            )
+        }
+
+        return result
+    }
+
+    fun revokeRefreshFamily(familyId: String, reasonCode: RevocationReasonCode)
+    {
+        refreshTokenStore.revokeFamily(familyId, reasonCode)
+        refreshTokenRecordService.revokeFamily(familyId, reasonCode)
+    }
+
+    private fun hashToken(token: String): String
+    {
+        val digest = MessageDigest.getInstance("SHA-256").digest(token.toByteArray(StandardCharsets.UTF_8))
+        return digest.joinToString("") { "%02x".format(it) }
     }
 }

@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.extension.maskEmailForLogs
 import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.SignUpEntity
-import SignUpStatus
+import com.docuhyphen.app.api.model.entity.SignUpStatus
 import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.repository.SignUpRepository
 import com.docuhyphen.app.api.service.communication.EmailService
@@ -28,6 +28,7 @@ class SignUpService @Inject constructor(
     private val otpService: OtpService,
     private val configurationService: ConfigurationService,
     private val authenticationService: AuthenticationService,
+    private val signUpEmailConfirmationTokenService: SignUpEmailConfirmationTokenService,
 )
 {
     companion object
@@ -86,7 +87,8 @@ class SignUpService @Inject constructor(
                 signUpRepository.save(signUpEntity)
             }
 
-            val emailBody = emailTemplateService.renderSignUpInitiationEmail(sanitized, otp, expirationMinutes)
+            val confirmationToken = signUpEmailConfirmationTokenService.issueToken(sanitized, expirationMinutes)
+            val emailBody = emailTemplateService.renderSignUpInitiationEmail(sanitized, otp, confirmationToken, expirationMinutes)
 
             emailService.sendEmail(
                 to = sanitized,
@@ -201,7 +203,8 @@ class SignUpService @Inject constructor(
 
         signUpRepository.update(signUpEntity)
 
-        val emailBody = emailTemplateService.renderSignUpOtpRegenerationEmail(newOtp, otpExpiryMinutes)
+        val confirmationToken = signUpEmailConfirmationTokenService.issueToken(sanitizedEmail, otpExpiryMinutes)
+        val emailBody = emailTemplateService.renderSignUpOtpRegenerationEmail(newOtp, confirmationToken, otpExpiryMinutes)
 
         emailService.sendEmail(
             to = sanitizedEmail,
@@ -211,6 +214,105 @@ class SignUpService @Inject constructor(
         )
 
         logger.info("Sign up OTP regeneration successful")
+    }
+
+    /**
+     * Look up the email a confirmation token belongs to without consuming the token.
+     * Used by the GET introspection endpoint so the frontend can show "verifying
+     * user@example.com" before the user submits a password.
+     *
+     * Returns null if the token is missing, expired, or malformed — the resource
+     * layer maps that to a 404 with a generic error message.
+     */
+    fun peekEmailFromConfirmationToken(token: String?): String?
+    {
+        if (token.isNullOrBlank()) return null
+        return signUpEmailConfirmationTokenService.peekToken(token)
+    }
+
+    /**
+     * Token-based completion path: the user clicked the verification link in their
+     * email. The opaque token both proves the user controls the email address AND
+     * acts as the one-time consent — there's no separate OTP to type. The OTP
+     * still exists in the DB as a fallback for the manual-entry flow.
+     *
+     * Atomic single-use is enforced by Redis GETDEL inside the token service.
+     */
+    fun completeSignUpViaToken(token: String?, password: String?, passwordConfirmation: String?): AppUser
+    {
+        if (token.isNullOrBlank())
+        {
+            logger.warn("Sign up token completion failed: token missing")
+            throw InvalidSignUpConfirmationTokenException()
+        }
+
+        // Consume the token atomically — every retry after this point operates on
+        // the email we just resolved, and the original token can no longer be used.
+        val email = signUpEmailConfirmationTokenService.consumeToken(token)
+            ?: throw InvalidSignUpConfirmationTokenException().also {
+                logger.warn("Sign up token completion failed: token invalid or expired")
+            }
+
+        val normalizedEmail = validateTokenCompletionInputs(email, password, passwordConfirmation)
+
+        val signUpEntity = signUpRepository.findByEmail(normalizedEmail)
+            ?: throw EmailNotFoundException().also {
+                logger.warn("Sign up token completion failed: signup entity missing for {}",
+                    normalizedEmail.maskEmailForLogs())
+            }
+
+        // OTP expiry on the entity acts as a secondary safety net — if it's
+        // already expired, the user needs to request a new email (which will
+        // regenerate both OTP and token together).
+        if (signUpEntity.otpExpiryTimestamp.isBefore(LocalDateTime.now()))
+        {
+            logger.warn("Sign up token completion failed: signup record expired")
+            throw OTPExpiredException("Your verification link has expired. Please request a new one.")
+        }
+
+        return finalizeSignUp(signUpEntity, normalizedEmail, password!!)
+    }
+
+    /**
+     * Subset of [validateInputs] — we already trust the email since it came out
+     * of Redis (server-issued, server-stored). We only need to validate the
+     * caller-supplied password fields.
+     */
+    private fun validateTokenCompletionInputs(email: String, password: String?, passwordConfirmation: String?): String
+    {
+        val normalizedEmail = email.normalizeEmailOrNull()
+            ?: throw InvalidEmailException().also {
+                logger.warn("Sign up token completion failed: stored email is malformed")
+            }
+
+        appUserRepository.findByEmail(normalizedEmail)?.let { throw AppUserExistsException() }
+
+        if (password.isNullOrBlank())
+        {
+            throw PasswordRequiredException().also { logger.warn("Sign up token completion failed: password missing") }
+        }
+
+        if (passwordConfirmation.isNullOrBlank())
+        {
+            throw ConfirmationPasswordRequiredException().also { logger.warn("Sign up token completion failed: confirmation password missing") }
+        }
+
+        if (!authenticationService.isPasswordStrong(password))
+        {
+            throw PasswordRequirementsNotMetException().also { logger.warn("Sign up token completion failed: password validation failed") }
+        }
+
+        if (password != passwordConfirmation)
+        {
+            throw PasswordMismatchException().also { logger.warn("Sign up token completion failed: passwords do not match") }
+        }
+
+        if (password.lowercase().contains(normalizedEmail))
+        {
+            throw PasswordContainsEmailException().also { logger.warn("Sign up token completion failed: password contains email") }
+        }
+
+        return normalizedEmail
     }
 
     fun completeSignUp(email: String?, otp: String?, password: String?, passwordConfirmation: String?): AppUser

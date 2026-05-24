@@ -1,7 +1,7 @@
 import React, {createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {fetchAppUser, fetchAppUserPersonOrganization} from '../services/appUserApi.ts';
 import {AppUserDetailedDto, OrganizationDetailedDto} from "../app/models/models.tsx";
-import {isTokenExpired} from "../utils/helpers.ts";
+import {getTokenSecondsToExpiry, isTokenExpired} from "../utils/helpers.ts";
 import {useLocation, useNavigate} from "react-router-dom";
 import {setApiClientAuthToken} from "../services/apiClient.ts";
 import {refreshTokens as refreshTokensApi} from "../services/authApi.ts";
@@ -19,6 +19,13 @@ interface AuthContextType
     appUserPersonOrganization: OrganizationDetailedDto | null;
     setAppUserPersonOrganization: (organization: OrganizationDetailedDto | null) => void;
     refreshTokens: () => Promise<void>;
+    /**
+     * True until the initial refresh-token probe on mount has resolved.
+     * Route guards should wait on this — otherwise a fresh browser session
+     * (sessionStorage empty) bounces through /sign-in for a frame while the
+     * refresh is still in flight.
+     */
+    isBootstrapping: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,6 +41,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
     const tokenExpirationIntervalRef = useRef<number | null>(null);
     const [appUser, setAppUser] = useState<AppUserDetailedDto | null>(null);
     const [appUserPersonOrganization, setAppUserPersonOrganization] = useState<OrganizationDetailedDto | null>(null);
+    // Start bootstrapping whenever we don't have a usable access token in sessionStorage.
+    // If we already have one (in-tab reload), we can render immediately.
+    const [isBootstrapping, setIsBootstrapping] = useState<boolean>(() =>
+    {
+        const cached = sessionStorage.getItem('accessToken');
+        return !cached || isTokenExpired(cached);
+    });
 
     // Convenience alias
     const token = accessToken;
@@ -87,18 +101,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         }
     }, [setAccessToken, setIdToken]);
 
-    // On mount, attempt to refresh tokens if we don't have a valid access token
+    // On mount, attempt to refresh tokens if we don't have a valid access token.
+    // Route guards block on `isBootstrapping` until this completes, so a closed-then-reopened
+    // browser doesn't flash the sign-in page while the cookie-based refresh is in flight.
     useEffect(() =>
     {
         const doInitialRefresh = async () =>
         {
-            if (!accessToken || isTokenExpired(accessToken))
+            try
             {
-                await refreshTokens();
+                if (!accessToken || isTokenExpired(accessToken))
+                {
+                    await refreshTokens();
+                }
+                else
+                {
+                    setApiClientAuthToken(accessToken);
+                }
             }
-            else
+            finally
             {
-                setApiClientAuthToken(accessToken);
+                setIsBootstrapping(false);
             }
         };
         doInitialRefresh();
@@ -114,13 +137,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
             if (detail?.idToken) setIdToken(detail.idToken);
         };
 
-        const handleSessionExpired = () =>
+        const handleSessionExpired = (e: Event) =>
         {
+            const reason: string | undefined = (e as CustomEvent).detail?.reason;
             setAccessToken(null);
             setIdToken(null);
             setAppUser(null);
             setAppUserPersonOrganization(null);
-            redirectToSessionExpired();
+            redirectToSessionExpired(reason);
         };
 
         window.addEventListener('tokens-refreshed', handleTokensRefreshed);
@@ -133,9 +157,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         };
     }, [setAccessToken, setIdToken]);
 
-    // Token expiration polling (check every 30s, attempt refresh before expiry)
+    // Proactive silent refresh: schedule a refresh at ~80% of the access-token TTL.
+    // Falls back to 30s polling as a safety net for tokens we can't decode.
     useEffect(() =>
     {
+        if (!accessToken)
+        {
+            return;
+        }
+
+        const ttlSeconds = getTokenSecondsToExpiry(accessToken);
+        const refreshAt = Math.max(5, ttlSeconds * 0.8); // never sooner than 5s, never on an expired token
+        const proactiveTimerId = window.setTimeout(async () =>
+        {
+            try
+            {
+                await refreshTokens();
+            }
+            catch
+            {
+                // refreshTokens swallows errors; the interceptor + polling fallback will handle expiry
+            }
+        }, refreshAt * 1000);
+
         tokenExpirationIntervalRef.current = window.setInterval(async () =>
         {
             if (accessToken && isTokenExpired(accessToken))
@@ -155,6 +199,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
 
         return () =>
         {
+            clearTimeout(proactiveTimerId);
             if (tokenExpirationIntervalRef.current)
             {
                 clearInterval(tokenExpirationIntervalRef.current);
@@ -229,11 +274,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         }
     };
 
-    const redirectToSessionExpired = () =>
+    const redirectToSessionExpired = (reason?: string) =>
     {
         if (!["/app-session-expired"].includes(location.pathname))
         {
-            navigate("/app-session-expired");
+            const path = reason ? `/app-session-expired?reason=${encodeURIComponent(reason)}` : "/app-session-expired";
+            navigate(path);
         }
     }
 
@@ -251,6 +297,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
                 appUserPersonOrganization,
                 setAppUserPersonOrganization,
                 refreshTokens,
+                isBootstrapping,
             }}>
             {children}
         </AuthContext.Provider>

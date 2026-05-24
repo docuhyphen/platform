@@ -4,9 +4,22 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.eclipse.microprofile.config.inject.ConfigProperty
 
+/**
+ * Central configuration facade.
+ *
+ * Core infrastructure properties (base URL, JWT, AWS, secrets rotation) are owned here.
+ * Auth-specific properties are delegated to [AuthConfigService].
+ * OAuth/OIDC/audit/SCIM properties are delegated to [OAuthConfigService].
+ *
+ * Splitting avoids the JVM 64 KB method-size limit that Quarkus ArC can hit when a single
+ * class has many @ConfigProperty constructor parameters (each becomes a Supplier<T> in
+ * the generated *_Bean constructor).
+ */
 @ApplicationScoped
 class ConfigurationService @Inject constructor(
     private val awsSecretsManagerService: AwsSecretsManagerService,
+    private val authConfig: AuthConfigService,
+    private val oauthConfig: OAuthConfigService,
 
     @ConfigProperty(name = "app.base-url")
     val baseUrl: String,
@@ -26,30 +39,40 @@ class ConfigurationService @Inject constructor(
     @ConfigProperty(name = "app.security.jwt.aws-secret-id")
     val jwtAwsSecretId: String?,
 
-    @ConfigProperty(name = "app.oauth.microsoft.client-id", defaultValue = "")
-    val microsoftOAuthClientId: String,
+    @ConfigProperty(name = "app.secrets.org-idp.region", defaultValue = "af-south-1")
+    private val orgIdpSecretsRegionConfig: String,
 
-    @ConfigProperty(name = "app.oauth.microsoft.client-secret", defaultValue = "")
-    val microsoftOAuthClientSecret: String,
+    @ConfigProperty(name = "app.secrets.org-idp.prefix", defaultValue = "docuhyphen/org")
+    private val orgIdpSecretsPrefixConfig: String,
 
-    @ConfigProperty(name = "app.oauth.microsoft.tenant-id", defaultValue = "common")
-    val microsoftOAuthTenantId: String,
+    @ConfigProperty(name = "app.secrets.rotation.enabled", defaultValue = "true")
+    private val secretsRotationEnabledConfig: Boolean,
 
-    @ConfigProperty(name = "app.oauth.microsoft.redirect-uri", defaultValue = "")
-    val microsoftOAuthRedirectUri: String,
+    @ConfigProperty(name = "app.secrets.rotation.interval-days", defaultValue = "90")
+    private val secretsRotationIntervalDaysConfig: Long,
 
-    @ConfigProperty(name = "app.oauth.google.client-id", defaultValue = "")
-    val googleOAuthClientId: String,
+    @ConfigProperty(name = "app.secrets.rotation.overlap-hours", defaultValue = "24")
+    private val secretsRotationOverlapHoursConfig: Long,
 
-    @ConfigProperty(name = "app.oauth.google.client-secret", defaultValue = "")
-    val googleOAuthClientSecret: String,
+    @ConfigProperty(name = "app.secrets.rotation.allow-previous-during-overlap", defaultValue = "true")
+    private val secretsRotationAllowPreviousDuringOverlapConfig: Boolean,
 
-    @ConfigProperty(name = "app.oauth.google.redirect-uri", defaultValue = "")
-    val googleOAuthRedirectUri: String,
+    @ConfigProperty(name = "app.secrets.rotation.rollback.enabled", defaultValue = "true")
+    private val secretsRotationRollbackEnabledConfig: Boolean,
+
+    @ConfigProperty(name = "app.secrets.rotation.rollback.require-monitor-phase", defaultValue = "true")
+    private val secretsRotationRollbackRequireMonitorPhaseConfig: Boolean,
+
+    @ConfigProperty(name = "app.secrets.rotation.runtime.allowed-phases", defaultValue = "MONITOR,ACTIVATE")
+    private val secretsRotationRuntimeAllowedPhasesConfig: String,
 )
 {
     @Volatile
     private var cachedJwtSecret: String? = null
+
+    // -------------------------------------------------------------------------
+    // Core / general
+    // -------------------------------------------------------------------------
 
     fun getMaxSignUpCompletionOtpAttempts(): Long = 3
     fun getSignUpOtpExpiryMins(): Long = 5
@@ -61,11 +84,27 @@ class ConfigurationService @Inject constructor(
     fun getMaxOtpRequestsPerMinute() = 5L
     fun getSignInResendCooldownSeconds(): Long = 30
 
-    // New token model expiry config
-    fun getAccessTokenExpiryMinutes(): Long = 15
-    fun getIdTokenExpiryMinutes(): Long = 15
-    fun getRefreshTokenExpiryDays(): Long = 7
-    fun getLinkTokenExpiryMinutes(): Long = 5
+    // -------------------------------------------------------------------------
+    // Org-IdP secrets / rotation
+    // -------------------------------------------------------------------------
+
+    fun getOrgIdpSecretsRegion(): String = orgIdpSecretsRegionConfig
+    fun getOrgIdpSecretsPrefix(): String = orgIdpSecretsPrefixConfig
+    fun isSecretsRotationEnabled(): Boolean = secretsRotationEnabledConfig
+    fun getSecretsRotationIntervalDays(): Long = secretsRotationIntervalDaysConfig
+    fun getSecretsRotationOverlapHours(): Long = secretsRotationOverlapHoursConfig
+    fun isSecretsRotationAllowPreviousDuringOverlapEnabled(): Boolean = secretsRotationAllowPreviousDuringOverlapConfig
+    fun isSecretsRotationRollbackEnabled(): Boolean = secretsRotationRollbackEnabledConfig
+    fun isSecretsRotationRollbackRequireMonitorPhaseEnabled(): Boolean = secretsRotationRollbackRequireMonitorPhaseConfig
+    fun getSecretsRotationRuntimeAllowedPhases(): Set<String> = secretsRotationRuntimeAllowedPhasesConfig
+        .split(',')
+        .map { it.trim().uppercase() }
+        .filter { it.isNotBlank() }
+        .toSet()
+
+    // -------------------------------------------------------------------------
+    // JWT secret resolution
+    // -------------------------------------------------------------------------
 
     fun getJwtSecret(): String
     {
@@ -95,4 +134,72 @@ class ConfigurationService @Inject constructor(
         cachedJwtSecret = resolvedSecret
         return resolvedSecret
     }
+
+    // -------------------------------------------------------------------------
+    // Auth token / session — delegated to AuthConfigService
+    // -------------------------------------------------------------------------
+
+    fun getAccessTokenExpiryMinutes(): Long = authConfig.getAccessTokenExpiryMinutes()
+    fun getIdTokenExpiryMinutes(): Long = 15
+    fun getRefreshTokenExpiryDays(): Long = authConfig.getRefreshTokenExpiryDays()
+    fun getLinkTokenExpiryMinutes(): Long = 5
+    fun getRefreshRotationGraceSeconds(): Long = authConfig.getRefreshRotationGraceSeconds()
+    fun isAuthSessionVersionEnabled(): Boolean = authConfig.isAuthSessionVersionEnabled()
+    fun isAuthRefreshRotationEnabled(): Boolean = authConfig.isAuthRefreshRotationEnabled()
+    fun isAuthRefreshReuseDetectionEnabled(): Boolean = authConfig.isAuthRefreshReuseDetectionEnabled()
+    fun isAuthRefreshStrictReuseDetectionEnabled(): Boolean = authConfig.isAuthRefreshStrictReuseDetectionEnabled()
+    fun getDefaultSessionMaxDurationHours(): Long = authConfig.getDefaultSessionMaxDurationHours()
+    fun getMinAccessTokenExpiryMinutes(): Long = authConfig.getMinAccessTokenExpiryMinutes()
+    fun getMaxAccessTokenExpiryMinutes(): Long = authConfig.getMaxAccessTokenExpiryMinutes()
+    fun getMinRefreshTokenExpiryDays(): Long = authConfig.getMinRefreshTokenExpiryDays()
+    fun getMaxRefreshTokenExpiryDays(): Long = authConfig.getMaxRefreshTokenExpiryDays()
+    fun getMinSessionMaxDurationHours(): Long = authConfig.getMinSessionMaxDurationHours()
+    fun getMaxSessionMaxDurationHours(): Long = authConfig.getMaxSessionMaxDurationHours()
+    fun isCsrfEnabled(): Boolean = authConfig.isCsrfEnabled()
+    fun isCsrfRequireOriginCheckEnabled(): Boolean = authConfig.isCsrfRequireOriginCheckEnabled()
+    val csrfEnabled: Boolean get() = authConfig.csrfEnabled
+    val csrfRequireOriginCheck: Boolean get() = authConfig.csrfRequireOriginCheck
+    fun getOauthStateTtlSeconds(): Long = authConfig.getOauthStateTtlSeconds()
+    fun getOidcAllowedClockSkewSeconds(): Long = authConfig.getOidcAllowedClockSkewSeconds()
+    fun isDpopEnabled(): Boolean = authConfig.isDpopEnabled()
+    fun isAuthRateLimitEnabled(): Boolean = authConfig.isAuthRateLimitEnabled()
+    fun getAuthRateLimitLookupPerMinute(): Long = authConfig.getAuthRateLimitLookupPerMinute()
+    fun getAuthRateLimitCallbackPerMinute(): Long = authConfig.getAuthRateLimitCallbackPerMinute()
+    fun getAuthRateLimitRefreshPerMinute(): Long = authConfig.getAuthRateLimitRefreshPerMinute()
+    fun getAuthRateLimitLogoutPerMinute(): Long = authConfig.getAuthRateLimitLogoutPerMinute()
+    fun getAuthRateLimitAuthorizePerMinute(): Long = authConfig.getAuthRateLimitAuthorizePerMinute()
+    fun getAuthRateLimitSignInInitiatePerMinute(): Long = authConfig.getAuthRateLimitSignInInitiatePerMinute()
+    fun getAuthRateLimitSignInCompletionPerMinute(): Long = authConfig.getAuthRateLimitSignInCompletionPerMinute()
+    fun getAuthRateLimitDirectoryPerMinute(): Long = authConfig.getAuthRateLimitDirectoryPerMinute()
+
+    // -------------------------------------------------------------------------
+    // OAuth providers / OIDC / application tokens / audit / SCIM — delegated to OAuthConfigService
+    // -------------------------------------------------------------------------
+
+    val microsoftOAuthClientId: String get() = oauthConfig.getMicrosoftOAuthClientId()
+    val microsoftOAuthClientSecret: String get() = oauthConfig.getMicrosoftOAuthClientSecret()
+    val microsoftOAuthTenantId: String get() = oauthConfig.getMicrosoftOAuthTenantId()
+    val microsoftOAuthRedirectUri: String get() = oauthConfig.getMicrosoftOAuthRedirectUri()
+
+    val googleOAuthClientId: String get() = oauthConfig.getGoogleOAuthClientId()
+    val googleOAuthClientSecret: String get() = oauthConfig.getGoogleOAuthClientSecret()
+    val googleOAuthRedirectUri: String get() = oauthConfig.getGoogleOAuthRedirectUri()
+
+    fun isOidcRequireAzpWhenMultiAudEnabled(): Boolean = oauthConfig.isOidcRequireAzpWhenMultiAudEnabled()
+    fun getOidcRequiredClaimsGoogle(): Set<String> = oauthConfig.getOidcRequiredClaimsGoogle()
+    fun getOidcRequiredClaimsMicrosoft(): Set<String> = oauthConfig.getOidcRequiredClaimsMicrosoft()
+
+    fun getApplicationTokenDefaultScopes(): Set<String> = oauthConfig.getApplicationTokenDefaultScopes()
+    fun getApplicationTokenRequiredScope(): String = oauthConfig.getApplicationTokenRequiredScope()
+    fun getApplicationTokenIntegrationScope(): String = oauthConfig.getApplicationTokenIntegrationScope()
+    fun getApplicationTokenServiceScope(): String = oauthConfig.getApplicationTokenServiceScope()
+    fun getApplicationTokenAllowedEndpointPrefixes(): Set<String> = oauthConfig.getApplicationTokenAllowedEndpointPrefixes()
+
+    fun isAuditImmutableEnabled(): Boolean = oauthConfig.isAuditImmutableEnabled()
+    fun isAuditWormSinkEnabled(): Boolean = oauthConfig.isAuditWormSinkEnabled()
+    fun getAuditWormDirectory(): String = oauthConfig.getAuditWormDirectory()
+
+    fun getScimBearerToken(): String = oauthConfig.getScimBearerToken()
+    fun getDirectoryLookupMaxResults(): Int = oauthConfig.getDirectoryLookupMaxResults()
+    fun getDirectoryLookupMinQueryLength(): Int = oauthConfig.getDirectoryLookupMinQueryLength()
 }

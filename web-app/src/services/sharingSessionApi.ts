@@ -73,17 +73,14 @@ export const checkSignedInAppUserHasSharingSessions = async (token: string | nul
     }
     catch (error: any)
     {
-        // Log the error and handle it appropriately
-        console.error("Error during API request:", error);
-
-        // Handle network or unexpected errors
+        // Log and rethrow — callers decide how to surface the failure. Service-
+        // layer alert() popups blocked the UI and double-fired (caller also alerted).
+        console.error("Error checking sharing sessions:", error);
         if (error.response)
         {
             console.error("Error response data:", error.response.data);
         }
-
-        alert("Failed to check for sharing sessions");
-        throw error; // Rethrow error to propagate it further if needed
+        throw error.response?.data || error;
     }
 };
 

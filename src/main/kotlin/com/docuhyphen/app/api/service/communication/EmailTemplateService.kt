@@ -5,6 +5,8 @@ import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.io.StringWriter
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 @ApplicationScoped
 class EmailTemplateService @Inject constructor(
@@ -20,9 +22,13 @@ class EmailTemplateService @Inject constructor(
         return writer.toString()
     }
 
-    fun renderSignUpInitiationEmail(email: String, otp: String, expiryMinutes: Long): String
+    fun renderSignUpInitiationEmail(email: String, otp: String, confirmationToken: String, expiryMinutes: Long): String
     {
-        val emailConfirmationLink = "${configurationService.baseUrl}/sign-up/email-confirm?email=${email}&otp=${otp}"
+        // The confirmation link uses an opaque single-use token (no email/OTP in URL)
+        // so it stays safe in browser history, Referer headers, and proxy logs.
+        val encodedToken = URLEncoder.encode(confirmationToken, StandardCharsets.UTF_8)
+        val emailConfirmationLink =
+            "${configurationService.baseUrl}/sign-up/email-confirm?token=$encodedToken"
 
         val model = mapOf(
             "email" to email,
@@ -52,11 +58,16 @@ class EmailTemplateService @Inject constructor(
      * Renders OTP regeneration email
      * Sent when user requests a new verification code
      */
-    fun renderSignUpOtpRegenerationEmail(otp: String, expiryMinutes: Long): String
+    fun renderSignUpOtpRegenerationEmail(otp: String, confirmationToken: String, expiryMinutes: Long): String
     {
+        val encodedToken = URLEncoder.encode(confirmationToken, StandardCharsets.UTF_8)
+        val emailConfirmationLink =
+            "${configurationService.baseUrl}/sign-up/email-confirm?token=$encodedToken"
+
         val model = mapOf(
             "verificationCode" to otp,
             "expiryMinutes" to expiryMinutes,
+            "confirmationLink" to emailConfirmationLink,
             "appName" to configurationService.emailSubjectTitle
         )
 

@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.service.config.ConfigurationService
 import io.vertx.mutiny.redis.client.Command
 import io.vertx.mutiny.redis.client.Redis
 import io.vertx.mutiny.redis.client.Request
@@ -11,6 +12,7 @@ import java.util.UUID
 @ApplicationScoped
 class RedisRefreshTokenStore @Inject constructor(
     private val redis: Redis,
+    private val configurationService: ConfigurationService,
 ) : RefreshTokenStore
 {
     companion object
@@ -19,30 +21,141 @@ class RedisRefreshTokenStore @Inject constructor(
 
         private const val TOKEN_KEY_PREFIX = "refresh_token:"
         private const val USER_TOKENS_KEY_PREFIX = "user_refresh_tokens:"
+        private const val FAMILY_TOKENS_KEY_PREFIX = "refresh_token_family:"
+
+        private const val LUA_ROTATE = """
+            local currentKey = KEYS[1]
+            local newKey = KEYS[2]
+            local userSetKey = KEYS[3]
+            local familySetKey = KEYS[4]
+
+            local expectedUserId = ARGV[1]
+            local expectedTokenHash = ARGV[2]
+            local newJti = ARGV[3]
+            local newToken = ARGV[4]
+            local newTokenHash = ARGV[5]
+            local familyId = ARGV[6]
+            local nowMillis = tonumber(ARGV[7])
+            local graceSeconds = tonumber(ARGV[8])
+            local expirySeconds = tonumber(ARGV[9])
+
+            if redis.call('EXISTS', currentKey) == 0 then
+              return {'NOT_FOUND'}
+            end
+
+            local userId = redis.call('HGET', currentKey, 'userId')
+            local tokenHash = redis.call('HGET', currentKey, 'tokenHash')
+            local status = redis.call('HGET', currentKey, 'status')
+            local currentFamilyId = redis.call('HGET', currentKey, 'familyId')
+
+            if userId ~= expectedUserId or tokenHash ~= expectedTokenHash or currentFamilyId ~= familyId then
+              return {'INVALID'}
+            end
+
+            if status == 'REVOKED' then
+              return {'REVOKED', familyId}
+            end
+
+            if status == 'CONSUMED' then
+              local strictReuse = ARGV[10]
+              local graceUntil = tonumber(redis.call('HGET', currentKey, 'graceUntil') or '0')
+              local successorJti = redis.call('HGET', currentKey, 'successorJti')
+              local replayCount = tonumber(redis.call('HGET', currentKey, 'replayCount') or '0')
+
+              -- Strict mode: any consumed-token presentation = reuse.
+              -- Lenient mode: tolerate exactly one grace replay; second replay = reuse.
+              if strictReuse == 'true' then
+                return {'REUSE_DETECTED', familyId}
+              end
+
+              if graceUntil >= nowMillis and successorJti and replayCount < 1 then
+                redis.call('HSET', currentKey, 'replayCount', tostring(replayCount + 1))
+                local successorToken = redis.call('HGET', 'refresh_token:' .. successorJti, 'token')
+                return {'GRACE_REPLAY', familyId, successorJti or '', successorToken or ''}
+              end
+              return {'REUSE_DETECTED', familyId}
+            end
+
+            if status ~= 'ACTIVE' then
+              return {'INVALID'}
+            end
+
+            local sessionId = redis.call('HGET', currentKey, 'sessionId')
+
+            local graceUntil = nowMillis + (graceSeconds * 1000)
+            redis.call('HSET', currentKey,
+                'status', 'CONSUMED',
+                'consumedAt', tostring(nowMillis),
+                'graceUntil', tostring(graceUntil),
+                'successorJti', newJti)
+
+            redis.call('HSET', newKey,
+                'userId', expectedUserId,
+                'token', newToken,
+                'tokenHash', newTokenHash,
+                'jti', newJti,
+                'familyId', familyId,
+                'status', 'ACTIVE')
+            if sessionId and sessionId ~= '' then
+              redis.call('HSET', newKey, 'sessionId', sessionId)
+            end
+
+            redis.call('EXPIRE', newKey, expirySeconds)
+            redis.call('SADD', userSetKey, newJti)
+            redis.call('EXPIRE', userSetKey, expirySeconds)
+            redis.call('SADD', familySetKey, newJti)
+            redis.call('EXPIRE', familySetKey, expirySeconds)
+
+            return {'ROTATED', familyId, newJti, newToken}
+        """
+
+        private const val LUA_REVOKE_FAMILY = """
+            local familySetKey = KEYS[1]
+            local reasonCode = ARGV[2]
+            local jtis = redis.call('SMEMBERS', familySetKey)
+            for _, jti in ipairs(jtis) do
+              local tokenKey = 'refresh_token:' .. jti
+              if redis.call('EXISTS', tokenKey) == 1 then
+                redis.call('HSET', tokenKey, 'status', 'REVOKED')
+                redis.call('HSET', tokenKey, 'revokedAt', ARGV[1])
+                redis.call('HSET', tokenKey, 'revocationReasonCode', reasonCode)
+              end
+            end
+            return jtis
+        """
     }
 
-    override fun save(userId: UUID, jti: String, refreshToken: String, expirySeconds: Long)
+    override fun save(
+        userId: UUID,
+        jti: String,
+        familyId: String,
+        refreshToken: String,
+        refreshTokenHash: String,
+        expirySeconds: Long,
+        sessionId: UUID?,
+    )
     {
         val tokenKey = "$TOKEN_KEY_PREFIX$jti"
         val userTokensKey = "$USER_TOKENS_KEY_PREFIX$userId"
+        val familyTokensKey = "$FAMILY_TOKENS_KEY_PREFIX$familyId"
 
-        // Store token data as a hash
-        redis.send(
-            Request.cmd(Command.HSET)
-                .arg(tokenKey)
-                .arg("userId").arg(userId.toString())
-                .arg("token").arg(refreshToken)
-                .arg("jti").arg(jti)
-        ).await().indefinitely()
+        val req = Request.cmd(Command.HSET)
+            .arg(tokenKey)
+            .arg("userId").arg(userId.toString())
+            .arg("token").arg(refreshToken)
+            .arg("tokenHash").arg(refreshTokenHash)
+            .arg("jti").arg(jti)
+            .arg("familyId").arg(familyId)
+            .arg("status").arg("ACTIVE")
+        if (sessionId != null) req.arg("sessionId").arg(sessionId.toString())
+        redis.send(req).await().indefinitely()
 
-        // Set TTL
         redis.send(
             Request.cmd(Command.EXPIRE)
                 .arg(tokenKey)
                 .arg(expirySeconds.toString())
         ).await().indefinitely()
 
-        // Track jti under user's set
         redis.send(
             Request.cmd(Command.SADD)
                 .arg(userTokensKey)
@@ -55,7 +168,72 @@ class RedisRefreshTokenStore @Inject constructor(
                 .arg(expirySeconds.toString())
         ).await().indefinitely()
 
-        logger.debug("Saved refresh token jti={} for userId={}", jti, userId)
+        redis.send(
+            Request.cmd(Command.SADD)
+                .arg(familyTokensKey)
+                .arg(jti)
+        ).await().indefinitely()
+
+        redis.send(
+            Request.cmd(Command.EXPIRE)
+                .arg(familyTokensKey)
+                .arg(expirySeconds.toString())
+        ).await().indefinitely()
+
+        logger.debug("Saved refresh token jti={} familyId={} for userId={}", jti, familyId, userId)
+    }
+
+    override fun rotate(
+        userId: UUID,
+        currentJti: String,
+        currentTokenHash: String,
+        newJti: String,
+        newToken: String,
+        newTokenHash: String,
+        familyId: String,
+        graceSeconds: Long,
+        expirySeconds: Long,
+        nowEpochMillis: Long,
+    ): RefreshRotationResult
+    {
+        val strictReuse = configurationService.isAuthRefreshStrictReuseDetectionEnabled()
+        val response = redis.send(
+            Request.cmd(Command.EVAL)
+                .arg(LUA_ROTATE)
+                .arg("4")
+                .arg("$TOKEN_KEY_PREFIX$currentJti")
+                .arg("$TOKEN_KEY_PREFIX$newJti")
+                .arg("$USER_TOKENS_KEY_PREFIX$userId")
+                .arg("$FAMILY_TOKENS_KEY_PREFIX$familyId")
+                .arg(userId.toString())
+                .arg(currentTokenHash)
+                .arg(newJti)
+                .arg(newToken)
+                .arg(newTokenHash)
+                .arg(familyId)
+                .arg(nowEpochMillis.toString())
+                .arg(graceSeconds.toString())
+                .arg(expirySeconds.toString())
+                .arg(strictReuse.toString())
+        ).await().indefinitely()
+
+        if (response == null || response.size() == 0)
+        {
+            return RefreshRotationResult(status = RefreshRotationStatus.INVALID)
+        }
+
+        val statusRaw = response.get(0)?.toString() ?: return RefreshRotationResult(RefreshRotationStatus.INVALID)
+        val status = runCatching { RefreshRotationStatus.valueOf(statusRaw) }.getOrDefault(RefreshRotationStatus.INVALID)
+        val resolvedFamilyId = response.get(1)?.toString()
+        val successorJti = response.get(2)?.toString()?.ifBlank { null }
+        val successorToken = response.get(3)?.toString()?.ifBlank { null }
+
+        return RefreshRotationResult(
+            status = status,
+            familyId = resolvedFamilyId,
+            successorJti = successorJti,
+            successorToken = successorToken,
+        )
     }
 
     override fun findByJti(jti: String): StoredRefreshToken?
@@ -82,6 +260,11 @@ class RedisRefreshTokenStore @Inject constructor(
             userId = UUID.fromString(data["userId"]),
             token = data["token"] ?: return null,
             jti = data["jti"] ?: return null,
+            familyId = data["familyId"] ?: return null,
+            status = data["status"] ?: return null,
+            sessionId = data["sessionId"]?.let { runCatching { UUID.fromString(it) }.getOrNull() },
+            successorJti = data["successorJti"],
+            graceUntilEpochMillis = data["graceUntil"]?.toLongOrNull(),
         )
     }
 
@@ -89,12 +272,15 @@ class RedisRefreshTokenStore @Inject constructor(
     {
         val tokenKey = "$TOKEN_KEY_PREFIX$jti"
 
-        // Get userId before deleting so we can clean up the user set
-        val response = redis.send(
+        val userIdResponse = redis.send(
             Request.cmd(Command.HGET).arg(tokenKey).arg("userId")
         ).await().indefinitely()
+        val familyIdResponse = redis.send(
+            Request.cmd(Command.HGET).arg(tokenKey).arg("familyId")
+        ).await().indefinitely()
 
-        val userId = response?.toString()
+        val userId = userIdResponse?.toString()
+        val familyId = familyIdResponse?.toString()
 
         redis.send(
             Request.cmd(Command.DEL).arg(tokenKey)
@@ -105,6 +291,15 @@ class RedisRefreshTokenStore @Inject constructor(
             redis.send(
                 Request.cmd(Command.SREM)
                     .arg("$USER_TOKENS_KEY_PREFIX$userId")
+                    .arg(jti)
+            ).await().indefinitely()
+        }
+
+        if (familyId != null)
+        {
+            redis.send(
+                Request.cmd(Command.SREM)
+                    .arg("$FAMILY_TOKENS_KEY_PREFIX$familyId")
                     .arg(jti)
             ).await().indefinitely()
         }
@@ -131,9 +326,24 @@ class RedisRefreshTokenStore @Inject constructor(
         }
 
         jtis.forEach { jti ->
+            val familyId = redis.send(
+                Request.cmd(Command.HGET)
+                    .arg("$TOKEN_KEY_PREFIX$jti")
+                    .arg("familyId")
+            ).await().indefinitely()?.toString()
+
             redis.send(
                 Request.cmd(Command.DEL).arg("$TOKEN_KEY_PREFIX$jti")
             ).await().indefinitely()
+
+            if (!familyId.isNullOrBlank())
+            {
+                redis.send(
+                    Request.cmd(Command.SREM)
+                        .arg("$FAMILY_TOKENS_KEY_PREFIX$familyId")
+                        .arg(jti)
+                ).await().indefinitely()
+            }
         }
 
         redis.send(
@@ -141,6 +351,20 @@ class RedisRefreshTokenStore @Inject constructor(
         ).await().indefinitely()
 
         logger.debug("Deleted all refresh tokens for userId={} (count={})", userId, jtis.size)
+    }
+
+    override fun revokeFamily(familyId: String, reasonCode: RevocationReasonCode)
+    {
+        redis.send(
+            Request.cmd(Command.EVAL)
+                .arg(LUA_REVOKE_FAMILY)
+                .arg("1")
+                .arg("$FAMILY_TOKENS_KEY_PREFIX$familyId")
+                .arg(System.currentTimeMillis().toString())
+                .arg(reasonCode.name)
+        ).await().indefinitely()
+
+        logger.warn("Revoked refresh token familyId={} reasonCode={}", familyId, reasonCode)
     }
 }
 

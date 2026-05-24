@@ -2,6 +2,8 @@ package com.docuhyphen.app.api.model.entity
 
 enum class AppUserRole
 {
+    PLATFORM_ADMIN,
+
     APPLICATION,
 
     APP_USER,

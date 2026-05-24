@@ -1,6 +1,7 @@
 import apiClient, {addBearerToHeaderToken} from './apiClient';
 import {
     OAuthLinkConfirmRequest,
+    OrgMemberCapacityResponse,
     PasswordResetCompletionRequest,
     PasswordResetInitiationRequest,
     SetupPasswordRequest,
@@ -9,8 +10,12 @@ import {
     SignInLookupRequest,
     SignInOtpRegenerationRequest,
     SignUpCompletionRequest,
+    SignUpEmailConfirmCheckResponse,
+    SignUpEmailConfirmRequest,
+    SignUpEmailConfirmResponse,
     SignUpInitiationRequest,
-    SignUpOtpRegenerationRequest
+    SignUpOtpRegenerationRequest,
+    UserSessionListResponse,
 } from "../app/models/models.tsx";
 
 export const lookupSignInMethod = async (request: SignInLookupRequest) =>
@@ -132,6 +137,41 @@ export const completeSignUp = async (request: SignUpCompletionRequest) =>
     }
 };
 
+/**
+ * GET /auth/sign-up/email-confirm/{token} — peek at the email a confirmation
+ * token belongs to without consuming the token. Used to validate the link
+ * and show context on the email-confirm page before the user submits.
+ */
+export const checkSignUpEmailConfirmToken = async (token: string): Promise<SignUpEmailConfirmCheckResponse> =>
+{
+    try
+    {
+        const response = await apiClient.get(`/auth/sign-up/email-confirm/${encodeURIComponent(token)}`);
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+/**
+ * POST /auth/sign-up/email-confirm — complete sign-up via the opaque-token flow.
+ * The token is consumed atomically server-side on success.
+ */
+export const confirmSignUpEmail = async (request: SignUpEmailConfirmRequest): Promise<SignUpEmailConfirmResponse> =>
+{
+    try
+    {
+        const response = await apiClient.post(`/auth/sign-up/email-confirm`, request);
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
 export const initiatePasswordReset = async (request: PasswordResetInitiationRequest) =>
 {
     try
@@ -232,6 +272,48 @@ export const signOut = async (outOfAllDevices: boolean, token: string) =>
                 Authorization: addBearerToHeaderToken(token)
             }
         });
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+// ── Session Management ──
+
+export const listUserSessions = async (): Promise<UserSessionListResponse> =>
+{
+    try
+    {
+        const response = await apiClient.get(`/auth/sessions`);
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+export const revokeUserSession = async (sessionId: string): Promise<void> =>
+{
+    try
+    {
+        await apiClient.delete(`/auth/sessions/${sessionId}`);
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+// ── Org Capacity ──
+
+export const getOrgMemberCapacity = async (orgId: string): Promise<OrgMemberCapacityResponse> =>
+{
+    try
+    {
+        const response = await apiClient.get(`/auth/organizations/${orgId}/member-capacity`);
         return response.data;
     }
     catch (error: any)

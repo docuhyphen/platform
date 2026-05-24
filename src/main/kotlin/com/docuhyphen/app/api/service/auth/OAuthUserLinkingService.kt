@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.model.entity.AppUser
+import com.docuhyphen.app.api.model.entity.AppUserRole
 import com.docuhyphen.app.api.model.entity.IdentityProviderLink
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.repository.IdentityProviderLinkRepository
@@ -10,6 +11,8 @@ import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
+import java.sql.Timestamp
+import java.time.Instant
 import java.util.UUID
 
 data class LinkOrCreateResult(
@@ -24,6 +27,7 @@ class OAuthUserLinkingService @Inject constructor(
     private val appUserService: AppUserService,
     private val identityProviderLinkRepository: IdentityProviderLinkRepository,
     private val authenticationService: AuthenticationService,
+    private val organizationIdentityPolicyService: OrganizationIdentityPolicyService,
 )
 {
     companion object
@@ -83,11 +87,17 @@ class OAuthUserLinkingService @Inject constructor(
         // No user exists — create new AppUser
         logger.info("Creating new AppUser for OAuth email={}", userInfo.email)
 
+        // Enforce platform-managed organization user caps for JIT provisioning.
+        organizationIdentityPolicyService.enforceUserCapForEmail(userInfo.email)
+
         val newUser = AppUser().apply {
             this.email = userInfo.email.lowercase()
             this.password = null
             this.passwordSalt = null
             this.emailVerificationComplete = true
+            this.role = AppUserRole.ORG_MEMBER
+            this.roleSource = "JIT_IDP"
+            this.roleAssignedAt = Timestamp.from(Instant.now())
         }
 
         if (userInfo.firstName != null || userInfo.lastName != null)

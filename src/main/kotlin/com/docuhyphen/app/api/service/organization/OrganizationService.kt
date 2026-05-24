@@ -7,6 +7,9 @@ import com.docuhyphen.app.api.model.entity.AppUserRole.ORG_ADMIN
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationGroup
 import com.docuhyphen.app.api.repository.OrganizationRepository
+import com.docuhyphen.app.api.service.auth.AdminActionGuardService
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
@@ -22,6 +25,8 @@ class OrganizationService @Inject constructor(
     private val organizationGroupService: OrganizationGroupService,
     private val authTokenContext: AuthTokenContext,
     private val organizationRepository: OrganizationRepository,
+    private val adminActionGuardService: AdminActionGuardService,
+    private val authAuditService: AuthAuditService,
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
     private val configurationService: ConfigurationService,
@@ -37,12 +42,20 @@ class OrganizationService @Inject constructor(
         organizationId: String?,
         name: String?,
         registrationNumber: String?,
+        adminApprovalContext: AdminApprovalContext,
     )
     {
         if (authTokenContext.authToken.appUser?.role != ORG_ADMIN)
         {
             throw UnauthorizedException("User does not have permission to update organizations")
         }
+
+        adminActionGuardService.enforce(
+            action = "ORG_UPDATE",
+            actorId = authTokenContext.authToken.appUser?.id,
+            context = adminApprovalContext,
+            requireDualApproval = !registrationNumber.isNullOrBlank(),
+        )
 
         if (organizationId.isNullOrBlank())
         {
@@ -51,6 +64,7 @@ class OrganizationService @Inject constructor(
 
         val organization = organizationGroupService.getOrganizationById(UUID.fromString(organizationId))
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
+        val beforeSnapshot = organizationSnapshot(organization)
 
         val updatedFields = mutableListOf<String>()
 
@@ -68,10 +82,41 @@ class OrganizationService @Inject constructor(
 
         organizationRepository.update(organization)
 
+        authAuditService.emit(
+            action = "ORG_UPDATE",
+            outcome = "SUCCESS",
+            actorId = authTokenContext.authToken.appUser?.id,
+            organizationId = organization.id,
+            requestId = adminApprovalContext.requestId,
+            reason = if (updatedFields.isEmpty()) "Organization update requested with no effective field changes" else updatedFields.joinToString("; "),
+            beforeSnapshot = beforeSnapshot,
+            afterSnapshot = organizationSnapshot(organization),
+        )
+
         if (updatedFields.isNotEmpty())
         {
             sendOrganizationUpdateEmail(organization, updatedFields)
         }
+    }
+
+    fun enforceAdminSafeguardForSettingsUpdate(organizationId: String?, adminApprovalContext: AdminApprovalContext)
+    {
+        if (authTokenContext.authToken.appUser?.role != ORG_ADMIN)
+        {
+            throw UnauthorizedException("User does not have permission to update organization settings")
+        }
+
+        if (organizationId.isNullOrBlank())
+        {
+            throw OrganizationNotFoundException("Organization ID cannot be null or blank")
+        }
+
+        adminActionGuardService.enforce(
+            action = "ORG_SETTINGS_UPDATE",
+            actorId = authTokenContext.authToken.appUser?.id,
+            context = adminApprovalContext,
+            requireDualApproval = true,
+        )
     }
 
     fun getOrganizationById(organizationId: UUID): Organization
@@ -156,6 +201,11 @@ class OrganizationService @Inject constructor(
                 logger.error("Failed to send organization update email to {}", appUser.email, e)
             }
         }
+    }
+
+    private fun organizationSnapshot(organization: Organization): String
+    {
+        return "id=${organization.id};name=${organization.name};registrationNumber=${organization.registrationNumber};isActive=${organization.isActive};verificationComplete=${organization.verificationComplete};appUsers=${organization.appUsers.size};groups=${organization.groups.size}"
     }
 }
 

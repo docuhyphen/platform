@@ -8,6 +8,9 @@ import com.docuhyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
 import com.docuhyphen.app.api.resource.model.AddOrganizationGroupRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpdateOrganizationGroupRequest
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.service.auth.DirectoryLookupGuardService
+import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -21,7 +24,9 @@ import org.slf4j.LoggerFactory
 @Produces(APPLICATION_JSON)
 @Consumes(APPLICATION_JSON)
 class OrganizationGroupResource @Inject constructor(
-    private val organizationGroupService: OrganizationGroupService
+    private val organizationGroupService: OrganizationGroupService,
+    private val configurationService: ConfigurationService,
+    private val directoryLookupGuardService: DirectoryLookupGuardService,
 )
 {
     companion object
@@ -34,6 +39,9 @@ class OrganizationGroupResource @Inject constructor(
     @Transactional
     fun addOrganizationGroup(
         @PathParam("organizationId") organizationId: String,
+        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
+        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
+        @HeaderParam("X-Request-Id") requestId: String?,
         addOrganizationGroupRequest: AddOrganizationGroupRequest
     ): Response
     {
@@ -60,10 +68,17 @@ class OrganizationGroupResource @Inject constructor(
                 )
             } ?: emptyList()
 
+            val adminApprovalContext = AdminApprovalContext(
+                stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
+                dualApprovalId = dualApprovalId,
+                requestId = requestId,
+            )
+
             organizationGroupService.addOrganizationGroup(
                 organizationId,
                 addOrganizationGroupRequest.name,
-                members
+                members,
+                adminApprovalContext,
             )
 
             return Response.status(CREATED).build()
@@ -112,6 +127,9 @@ class OrganizationGroupResource @Inject constructor(
     fun updateOrganizationGroup(
         @PathParam("organizationId") organizationId: String,
         @PathParam("groupId") groupId: String,
+        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
+        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
+        @HeaderParam("X-Request-Id") requestId: String?,
         updateOrganizationGroupRequest: UpdateOrganizationGroupRequest
     ): Response
     {
@@ -137,9 +155,15 @@ class OrganizationGroupResource @Inject constructor(
                 )
             } ?: emptyList()
 
+            val adminApprovalContext = AdminApprovalContext(
+                stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
+                dualApprovalId = dualApprovalId,
+                requestId = requestId,
+            )
+
             with(updateOrganizationGroupRequest) {
                 organizationGroupService.updateOrganizationGroup(
-                    organizationId, groupId, name, isActive, groupMembers
+                    organizationId, groupId, name, isActive, groupMembers, adminApprovalContext
                 )
             }
 
@@ -177,16 +201,28 @@ class OrganizationGroupResource @Inject constructor(
     @Path("/{organizationId}/groups")
     @GET
     fun getOrganizationGroups(
-        @PathParam("organizationId") organizationId: String
+        @PathParam("organizationId") organizationId: String,
+        @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
         ResourceEndpointDelayHelper.delayEndpoint(300, 600)
 
         return try
         {
-            var groups = organizationGroupService
+            val limitedResponse = directoryLookupGuardService.enforce(
+                endpointKey = "organization-groups",
+                targetOrganizationId = organizationId,
+                requestId = requestId,
+            )
+            if (limitedResponse != null)
+            {
+                return limitedResponse
+            }
+
+            val groups = organizationGroupService
                 .getOrganizationGroups(organizationId)
                 .map { DetailedEntityToDtoTransformer.toDto(it) }
+                .take(configurationService.getDirectoryLookupMaxResults())
                 .toTypedArray()
 
             Response.ok(groups).build()
@@ -230,13 +266,22 @@ class OrganizationGroupResource @Inject constructor(
     @Path("/{organizationId}/groups/{groupId}")
     fun deleteOrganizationGroup(
         @PathParam("organizationId") organizationId: String?,
-        @PathParam("groupId") groupId: String?): Response
+        @PathParam("groupId") groupId: String?,
+        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
+        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
+        @HeaderParam("X-Request-Id") requestId: String?,
+    ): Response
     {
         ResourceEndpointDelayHelper.delayEndpoint(300, 600)
 
         return try
         {
-            organizationGroupService.deleteOrganizationGroup(organizationId, groupId)
+            val adminApprovalContext = AdminApprovalContext(
+                stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
+                dualApprovalId = dualApprovalId,
+                requestId = requestId,
+            )
+            organizationGroupService.deleteOrganizationGroup(organizationId, groupId, adminApprovalContext)
 
             Response.status(NO_CONTENT).build()
         }

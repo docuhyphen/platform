@@ -12,6 +12,7 @@ import OrganizationOnboarding from "./app/onboarding/organization-onboarding/Org
 import SignIn from "./app/authorization/sign-in/SignIn.tsx";
 import AccountRecovery from "./app/authorization/account-recovery/AccountRecovery.tsx";
 import SignUp from "./app/authorization/sign-up/SignUp.tsx";
+import SignUpEmailConfirm from "./app/authorization/sign-up/SignUpEmailConfirm.tsx";
 import ProtectedRoute from "./app/components/ProtectedRoutes.tsx";
 import AppSessionExpired from "./app/app-session-expired/AppSessionExpired.tsx";
 import {NotificationProvider} from "./context/NotificationContext.tsx";
@@ -40,6 +41,11 @@ const App: React.FC = () =>
                                element={
                                    <RedirectIfNotAuthenticated element={<SignUp/>
                                    }/>
+                               }/>
+
+                        <Route path="/sign-up/email-confirm"
+                               element={
+                                   <RedirectIfNotAuthenticated element={<SignUpEmailConfirm/>}/>
                                }/>
 
                         <Route path="/account-recovery"

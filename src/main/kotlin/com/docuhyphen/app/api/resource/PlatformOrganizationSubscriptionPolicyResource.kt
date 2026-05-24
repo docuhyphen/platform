@@ -1,0 +1,177 @@
+package com.docuhyphen.app.api.resource
+
+import com.docuhyphen.app.api.resource.model.PlatformOrganizationSubscriptionPolicyRequest
+import com.docuhyphen.app.api.resource.model.PlatformOrganizationSubscriptionPolicyListResponse
+import com.docuhyphen.app.api.resource.model.PlatformOrganizationSubscriptionPolicyResponse
+import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.service.auth.PlatformOrganizationSubscriptionPolicyService
+import com.docuhyphen.app.api.service.auth.PolicyResult
+import io.quarkus.security.UnauthorizedException
+import jakarta.inject.Inject
+import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.DELETE
+import jakarta.ws.rs.GET
+import jakarta.ws.rs.HeaderParam
+import jakarta.ws.rs.PUT
+import jakarta.ws.rs.Path
+import jakarta.ws.rs.PathParam
+import jakarta.ws.rs.Produces
+import jakarta.ws.rs.QueryParam
+import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
+import jakarta.ws.rs.core.Response
+import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
+import jakarta.ws.rs.core.Response.Status.FORBIDDEN
+import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
+import org.slf4j.LoggerFactory
+
+@Path("/platform/organizations/{organizationId}/subscription-policy")
+@Produces(APPLICATION_JSON)
+@Consumes(APPLICATION_JSON)
+class PlatformOrganizationSubscriptionPolicyResource @Inject constructor(
+    private val platformOrganizationSubscriptionPolicyService: PlatformOrganizationSubscriptionPolicyService,
+)
+{
+    companion object
+    {
+        private val logger = LoggerFactory.getLogger(PlatformOrganizationSubscriptionPolicyResource::class.java)
+    }
+
+    @GET
+    @Path("/list")
+    fun listPolicies(
+        @PathParam("organizationId") organizationId: String,
+        @QueryParam("limit") limit: Int?,
+        @QueryParam("offset") offset: Int?,
+        @QueryParam("tierCode") tierCode: String?,
+        @QueryParam("persistedOnly") persistedOnly: Boolean?,
+        @HeaderParam("X-Request-Id") requestId: String?,
+    ): Response
+    {
+        return try
+        {
+            val result = platformOrganizationSubscriptionPolicyService.listPolicies(
+                organizationId = organizationId,
+                limit = limit ?: 50,
+                offset = offset ?: 0,
+                tierCode = tierCode,
+                persistedOnly = persistedOnly,
+                requestId = requestId,
+            )
+
+            Response.ok(
+                PlatformOrganizationSubscriptionPolicyListResponse(
+                    total = result.total,
+                    limit = result.limit,
+                    offset = result.offset,
+                    items = result.items.map { it.toResponse() },
+                )
+            ).build()
+        }
+        catch (exception: Exception)
+        {
+            handleException("Error listing platform organization subscription policies", exception)
+        }
+    }
+
+    @GET
+    fun getEffectivePolicy(
+        @PathParam("organizationId") organizationId: String,
+        @HeaderParam("X-Request-Id") requestId: String?,
+    ): Response
+    {
+        return try
+        {
+            val policy = platformOrganizationSubscriptionPolicyService.getEffectivePolicy(organizationId, requestId)
+            Response.ok(policy.toResponse()).build()
+        }
+        catch (exception: Exception)
+        {
+            handleException("Error fetching platform organization subscription policy", exception)
+        }
+    }
+
+    @DELETE
+    fun deletePolicy(
+        @PathParam("organizationId") organizationId: String,
+        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
+        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
+        @HeaderParam("X-Request-Id") requestId: String?,
+    ): Response
+    {
+        return try
+        {
+            val policy = platformOrganizationSubscriptionPolicyService.deletePolicy(
+                organizationId = organizationId,
+                adminApprovalContext = buildAdminApprovalContext(stepUpAuth, dualApprovalId, requestId),
+            )
+            Response.ok(policy.toResponse()).build()
+        }
+        catch (exception: Exception)
+        {
+            handleException("Error deleting platform organization subscription policy", exception)
+        }
+    }
+
+    @PUT
+    fun upsertPolicy(
+        @PathParam("organizationId") organizationId: String,
+        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
+        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
+        @HeaderParam("X-Request-Id") requestId: String?,
+        payload: PlatformOrganizationSubscriptionPolicyRequest,
+    ): Response
+    {
+        return try
+        {
+            val policy = platformOrganizationSubscriptionPolicyService.upsertPolicy(
+                organizationId = organizationId,
+                request = payload,
+                adminApprovalContext = buildAdminApprovalContext(stepUpAuth, dualApprovalId, requestId),
+            )
+            Response.ok(policy.toResponse()).build()
+        }
+        catch (exception: Exception)
+        {
+            handleException("Error upserting platform organization subscription policy", exception)
+        }
+    }
+
+    private fun buildAdminApprovalContext(stepUpAuth: String?, dualApprovalId: String?, requestId: String?): AdminApprovalContext
+    {
+        return AdminApprovalContext(
+            stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
+            dualApprovalId = dualApprovalId,
+            requestId = requestId,
+        )
+    }
+
+    private fun PolicyResult.toResponse(): PlatformOrganizationSubscriptionPolicyResponse
+    {
+        return PlatformOrganizationSubscriptionPolicyResponse(
+            organizationId = organizationId.toString(),
+            tierCode = tierCode,
+            maxUsers = maxUsers,
+            currentActiveUsers = currentActiveUsers,
+            changeReason = changeReason,
+            persisted = persisted,
+            createdDate = createdDate?.toString(),
+            updatedDate = updatedDate?.toString(),
+        )
+    }
+
+    private fun handleException(message: String, exception: Exception): Response
+    {
+        logger.error(message, exception)
+
+        return when (exception)
+        {
+            is UnauthorizedException -> Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+            is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+            else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred")).build()
+        }
+    }
+}
+
+
+

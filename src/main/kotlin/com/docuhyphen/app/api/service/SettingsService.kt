@@ -6,9 +6,13 @@ import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.dto.AppUserSettingsDto
 import com.docuhyphen.app.api.model.dto.OrganizationSettingsDto
 import com.docuhyphen.app.api.model.entity.AppUserSettings
+import com.docuhyphen.app.api.model.entity.AppUserRole.ORG_ADMIN
 import com.docuhyphen.app.api.model.entity.OrganizationSettings
+import com.docuhyphen.app.api.service.auth.AdminActionGuardService
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.ServiceActionAuthorizationService
 import com.docuhyphen.app.api.service.organization.OrganizationService
+import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -22,6 +26,7 @@ class SettingsService @Inject constructor(
     var authTokenContext: AuthTokenContext,
     var appUserService: AppUserService,
     var organizationService: OrganizationService,
+    var adminActionGuardService: AdminActionGuardService,
 )
 {
     @Transactional
@@ -102,11 +107,23 @@ class SettingsService @Inject constructor(
     @Transactional
     fun updateOrganizationSettings(
         organizationId: String,
-        settingsDto: OrganizationSettingsDto
+        settingsDto: OrganizationSettingsDto,
+        adminApprovalContext: AdminApprovalContext,
     ): OrganizationSettings
     {
-        // Get current user from auth context
         val currentUser = authTokenContext.authToken.appUser!!
+
+        if (currentUser.role != ORG_ADMIN)
+        {
+            throw UnauthorizedException("User does not have permission to update organization settings")
+        }
+
+        adminActionGuardService.enforce(
+            action = "ORG_SETTINGS_UPDATE",
+            actorId = currentUser.id,
+            context = adminApprovalContext,
+            requireDualApproval = true,
+        )
 
         // Get the organization
         val organization = try

@@ -5,13 +5,16 @@ import com.docuhyphen.app.api.resource.model.*
 import com.docuhyphen.app.api.service.auth.SignUpService
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.GET
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.Path
+import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
 import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
+import jakarta.ws.rs.core.Response.Status.NOT_FOUND
 import org.slf4j.LoggerFactory
 
 @Path("/auth/sign-up")
@@ -123,6 +126,103 @@ class SignUpResource @Inject constructor(
                     Response.status(INTERNAL_SERVER_ERROR)
                         .entity(responseError)
                         .build()
+                }
+            }
+        }
+    }
+
+    /**
+     * Introspect a verification-link token without consuming it.
+     *
+     * The frontend hits this on /sign-up/email-confirm page load so it can
+     * display "Verifying you@example.com" before the user submits a password
+     * — and so an invalid/expired link surfaces immediately instead of after
+     * a wasted password entry.
+     *
+     * Returns 404 for any reason the token can't be resolved (missing, expired,
+     * malformed) — never leaks the distinction.
+     */
+    @GET
+    @Path("/email-confirm/{token}")
+    fun checkEmailConfirmToken(@PathParam("token") token: String?): Response
+    {
+        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
+
+        return try
+        {
+            val email = signUpService.peekEmailFromConfirmationToken(token)
+
+            if (email.isNullOrBlank())
+            {
+                val responseError = ResponseError("This verification link is invalid or has expired.")
+                Response.status(NOT_FOUND).entity(responseError).build()
+            }
+            else
+            {
+                Response.ok(SignUpEmailConfirmCheckResponse(email = email)).build()
+            }
+        }
+        catch (exception: Exception)
+        {
+            logger.error("Error checking sign-up confirmation token", exception)
+            val responseError = ResponseError("A server error occurred while validating the verification link.")
+            Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+        }
+    }
+
+    /**
+     * Complete sign-up via the opaque-token flow (user clicked the email link).
+     * No OTP, email, or other PII is required from the client — the token alone
+     * resolves to the verified email address, and the user just supplies their
+     * desired password.
+     *
+     * The token is consumed atomically on successful resolution, so a leaked
+     * URL can't be replayed after the first valid use.
+     */
+    @POST
+    @Path("/email-confirm")
+    fun confirmEmailWithToken(request: SignUpEmailConfirmRequest): Response
+    {
+        ResourceEndpointDelayHelper.delayEndpoint(1500, 3000)
+
+        return try
+        {
+            with(request) {
+                signUpService.completeSignUpViaToken(token, password, confirmationPassword)
+            }
+            Response.ok(SignUpEmailConfirmResponse("Sign up successful!")).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is InvalidSignUpConfirmationTokenException ->
+                {
+                    Response.status(NOT_FOUND)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
+                is AppUserExistsException,
+                is InvalidEmailException,
+                is PasswordRequiredException,
+                is ConfirmationPasswordRequiredException,
+                is PasswordRequirementsNotMetException,
+                is PasswordMismatchException,
+                is PasswordContainsEmailException,
+                is EmailNotFoundException,
+                is OTPExpiredException ->
+                {
+                    Response.status(BAD_REQUEST)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
+                else ->
+                {
+                    logger.error("Error confirming sign up via token", exception)
+                    val responseError = ResponseError("A server error occurred while completing sign up.")
+                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
             }
         }

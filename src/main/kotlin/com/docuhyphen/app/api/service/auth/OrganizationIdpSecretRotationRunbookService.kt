@@ -1,0 +1,100 @@
+package com.docuhyphen.app.api.service.auth
+
+import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.entity.AppUserRole
+import com.docuhyphen.app.api.repository.OrganizationRepository
+import io.quarkus.security.UnauthorizedException
+import jakarta.enterprise.context.RequestScoped
+import jakarta.inject.Inject
+import java.util.UUID
+
+@RequestScoped
+class OrganizationIdpSecretRotationRunbookService @Inject constructor(
+    private val authTokenContext: AuthTokenContext,
+    private val organizationRepository: OrganizationRepository,
+    private val adminActionGuardService: AdminActionGuardService,
+    private val rotationSchedulerService: OrganizationIdpSecretRotationSchedulerService,
+)
+{
+    fun previewEmergencyRotationCandidates(organizationId: String): OrganizationIdpRotationPreviewResult
+    {
+        val actor = requireOrgAdminActor(organizationId)
+        val orgId = runCatching { UUID.fromString(organizationId) }
+            .getOrElse { throw IllegalArgumentException("Invalid organization ID format") }
+
+        return rotationSchedulerService.previewRotationForOrganization(orgId)
+            .also {
+                adminActionGuardService.enforce(
+                    action = "ORG_IDP_SECRET_ROTATION_PREVIEW",
+                    actorId = actor.id,
+                    context = AdminApprovalContext(
+                        stepUpAuthenticated = true,
+                        dualApprovalId = null,
+                        requestId = null,
+                    ),
+                    requireDualApproval = false,
+                )
+            }
+    }
+
+    fun runEmergencyRotation(
+        organizationId: String,
+        adminApprovalContext: AdminApprovalContext,
+    ): OrganizationIdpRotationRunResult
+    {
+        val actor = requireOrgAdminActor(organizationId)
+
+        val orgId = runCatching { UUID.fromString(organizationId) }
+            .getOrElse { throw IllegalArgumentException("Invalid organization ID format") }
+
+        adminActionGuardService.enforce(
+            action = "ORG_IDP_SECRET_ROTATION_RUNBOOK",
+            actorId = actor.id,
+            context = adminApprovalContext,
+            requireDualApproval = true,
+        )
+
+        return rotationSchedulerService.runManualRotationForOrganization(
+            organizationId = orgId,
+            actorId = actor.id,
+            requestId = adminApprovalContext.requestId,
+        )
+    }
+
+    fun getRotationStatus(organizationId: String): OrganizationIdpRotationStatusResult
+    {
+        requireOrgAdminActor(organizationId)
+
+        val orgId = runCatching { UUID.fromString(organizationId) }
+            .getOrElse { throw IllegalArgumentException("Invalid organization ID format") }
+
+        return rotationSchedulerService.statusForOrganization(orgId)
+    }
+
+    private fun requireOrgAdminActor(organizationId: String): com.docuhyphen.app.api.model.entity.AppUser
+    {
+        val actor = authTokenContext.authToken.appUser
+            ?: throw UnauthorizedException("User is not authenticated")
+
+        if (actor.role != AppUserRole.ORG_ADMIN)
+        {
+            throw UnauthorizedException("User does not have permission to run emergency secret rotation")
+        }
+
+        val orgId = runCatching { UUID.fromString(organizationId) }
+            .getOrElse { throw IllegalArgumentException("Invalid organization ID format") }
+
+        val actorOrg = organizationRepository.findByAppUserIdAndPersonId(actor.id, actor.person?.id!!)
+            ?: throw UnauthorizedException("User is not associated with an organization")
+
+        if (actorOrg.id != orgId)
+        {
+            throw UnauthorizedException("User cannot run rotation for another organization")
+        }
+
+        return actor
+    }
+}
+
+
+

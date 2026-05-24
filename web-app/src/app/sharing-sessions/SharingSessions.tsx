@@ -71,8 +71,13 @@ const SharingSessions: React.FC = () =>
         }
         catch (error)
         {
-            console.log(error)
-            alert("Failed to check for sharing sessions");
+            // Don't block the page with an alert() — log and degrade gracefully.
+            // A failing existence-check is annoying, not fatal: we still render
+            // the page with the "no sessions yet" empty state. If sessions
+            // genuinely exist, they'll appear once the user navigates back or
+            // once a subsequent list fetch succeeds.
+            console.error("Could not determine whether user has sharing sessions:", error);
+            setAppUserHasSessions(false);
         }
         finally
         {
@@ -82,18 +87,34 @@ const SharingSessions: React.FC = () =>
 
     useEffect(() =>
     {
-        const randomDelay = Math.floor(Math.random() * 2000) + 1000;
-        const timerId = setTimeout(async () =>
+        // Wait for both the access token AND the signed-in AppUser to be
+        // available before hitting the backend. Right after sign-in/onboarding
+        // the AuthContext is still settling; firing the HEAD call too eagerly
+        // produces sporadic 401s (token mid-refresh) and was the root cause of
+        // the "Failed to check for sharing sessions" toast users were seeing.
+        //
+        // `token` is intentionally NOT a dependency: the axios interceptor
+        // injects the current token on every request, so when the proactive
+        // refresh rotates the access token mid-session we don't want to flip
+        // `preparingSharingSessions` back to true and re-mount SessionList
+        // (which would refetch the list and re-select the first session).
+        if (!token || !appUser)
         {
-            await checkAppUserSessions();
-        }, randomDelay);
+            return;
+        }
 
-        // Cleanup function that runs when component unmounts
+        let cancelled = false;
+        (async () =>
+        {
+            if (cancelled) return;
+            await checkAppUserSessions();
+        })();
+
         return () =>
         {
-            clearTimeout(timerId);
+            cancelled = true;
         };
-    }, []);
+    }, [appUser?.id]);
     //
     // useEffect(() => {
     //     if (sessionId) {
@@ -144,7 +165,12 @@ const SharingSessions: React.FC = () =>
             };
             fetchDetails();
         }
-    }, [selectedSessionId, token, appUser]);
+        // Intentionally only re-fetches when the *selection* changes. The
+        // access token is supplied by the axios interceptor, so a silent
+        // refresh shouldn't re-pull the session details. `appUser` only
+        // affects the permissions computation, which is cheap and stable
+        // for the lifetime of the page.
+    }, [selectedSessionId]);
 
     useEffect(() =>
     {

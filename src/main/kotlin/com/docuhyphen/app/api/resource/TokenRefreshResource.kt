@@ -4,10 +4,25 @@ import com.docuhyphen.app.api.model.entity.AuthTokenType.REFRESH
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.TokenRefreshResponse
 import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.auth.AuthAuditService
+import com.docuhyphen.app.api.service.auth.AuthRateLimitService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
+import com.docuhyphen.app.api.service.auth.CsrfProtectionService
+import com.docuhyphen.app.api.service.auth.RefreshRotationStatus
+import com.docuhyphen.app.api.service.auth.RevocationReasonCode
+import com.docuhyphen.app.api.service.auth.RiskLevel
+import com.docuhyphen.app.api.service.auth.RiskSignalService
+import com.docuhyphen.app.api.service.auth.AuthSessionPolicyService
+import com.docuhyphen.app.api.service.auth.OrganizationMembershipValidationService
+import com.docuhyphen.app.api.model.entity.SecurityIncidentSeverity
+import com.docuhyphen.app.api.model.entity.SecurityIncidentType
+import com.docuhyphen.app.api.service.auth.SecurityIncidentService
 import com.docuhyphen.app.api.service.auth.TokenIssuanceService
+import com.docuhyphen.app.api.service.auth.UserSessionService
+import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
+import jakarta.ws.rs.core.Context
 import jakarta.ws.rs.core.Cookie
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
@@ -21,6 +36,15 @@ class TokenRefreshResource @Inject constructor(
     private val authenticationService: AuthenticationService,
     private val tokenIssuanceService: TokenIssuanceService,
     private val appUserService: AppUserService,
+    private val authSessionPolicyService: AuthSessionPolicyService,
+    private val organizationMembershipValidationService: OrganizationMembershipValidationService,
+    private val csrfProtectionService: CsrfProtectionService,
+    private val authAuditService: AuthAuditService,
+    private val authRateLimitService: AuthRateLimitService,
+    private val configurationService: ConfigurationService,
+    private val userSessionService: UserSessionService,
+    private val securityIncidentService: SecurityIncidentService,
+    private val riskSignalService: RiskSignalService,
 )
 {
     companion object
@@ -32,10 +56,59 @@ class TokenRefreshResource @Inject constructor(
     @Path("/refresh")
     fun refreshToken(
         @CookieParam("refresh_token") refreshTokenCookie: Cookie?,
+        @CookieParam("csrf_token") csrfCookie: Cookie?,
+        @HeaderParam("X-CSRF-Token") csrfHeader: String?,
+        @HeaderParam("Origin") originHeader: String?,
+        @HeaderParam("Referer") refererHeader: String?,
+        @HeaderParam("User-Agent") userAgent: String?,
+        @HeaderParam("X-Request-Id") requestId: String?,
+        @Context request: io.vertx.core.http.HttpServerRequest,
     ): Response
     {
         return try
         {
+            val clientIp = getClientIpAddress(request)
+            if (authRateLimitService.isLimited(
+                    key = "auth:refresh:$clientIp",
+                    maxPerMinute = configurationService.getAuthRateLimitRefreshPerMinute(),
+                ))
+            {
+                securityIncidentService.record(
+                    incidentType = SecurityIncidentType.AUTH_RATE_LIMIT_REFRESH,
+                    severity = SecurityIncidentSeverity.MEDIUM,
+                    requestId = requestId,
+                    details = "ip=$clientIp",
+                )
+                authAuditService.emit(
+                    action = "TOKEN_REFRESH",
+                    outcome = "DENY",
+                    reasonCode = RevocationReasonCode.SECURITY_POLICY,
+                    requestId = requestId,
+                )
+                return Response.status(429)
+                    .entity(ResponseError("Too many requests. Please try again later."))
+                    .build()
+            }
+
+            if (!csrfProtectionService.verify(csrfCookie?.value, csrfHeader, originHeader, refererHeader))
+            {
+                securityIncidentService.record(
+                    incidentType = SecurityIncidentType.CSRF_VALIDATION_FAILURE,
+                    severity = SecurityIncidentSeverity.HIGH,
+                    requestId = requestId,
+                    details = "origin=$originHeader;ip=$clientIp",
+                )
+                authAuditService.emit(
+                    action = "TOKEN_REFRESH",
+                    outcome = "DENY",
+                    reasonCode = RevocationReasonCode.CSRF_VALIDATION_FAILED,
+                    requestId = requestId,
+                )
+                return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ResponseError("CSRF validation failed"))
+                    .build()
+            }
+
             val refreshTokenValue = refreshTokenCookie?.value
             if (refreshTokenValue.isNullOrBlank())
             {
@@ -44,52 +117,239 @@ class TokenRefreshResource @Inject constructor(
                     .build()
             }
 
-            val claims = authenticationService.parseTokenClaims(refreshTokenValue)
+            // Opaque refresh token: cookie value is "{jti}.{secret}". Split, look up by jti
+            // in Redis (server-side source of truth), then verify the secret against the stored hash.
+            val parts = refreshTokenValue.split('.', limit = 2)
+            if (parts.size != 2 || parts[0].isBlank() || parts[1].isBlank())
+            {
+                return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ResponseError("Invalid refresh token format"))
+                    .build()
+            }
+            val jti = parts[0]
+            val stored = authenticationService.findRefreshTokenByJti(jti)
                 ?: return Response.status(Response.Status.UNAUTHORIZED)
                     .entity(ResponseError("Invalid or expired refresh token"))
                     .build()
 
-            val tokenType = claims["token_type"] as? String
-            if (tokenType != REFRESH.name)
-            {
-                return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(ResponseError("Invalid token type"))
-                    .build()
-            }
-
-            val jti = claims.id
-            if (jti.isNullOrBlank())
-            {
+            // Constant-time hash comparison against the stored token hash.
+            if (!authenticationService.verifyRefreshTokenSecret(refreshTokenValue, stored)) {
                 return Response.status(Response.Status.UNAUTHORIZED)
                     .entity(ResponseError("Invalid refresh token"))
                     .build()
             }
 
-            // Verify refresh token exists in Redis (not revoked)
-            val storedToken = authenticationService.findRefreshTokenByJti(jti)
-            if (storedToken == null)
-            {
-                logger.warn("Refresh token not found in store (possibly revoked): jti=$jti")
-                return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(ResponseError("Refresh token has been revoked"))
-                    .build()
-            }
+            val familyId = stored.familyId
+            val sessionId = stored.sessionId
+                ?: run {
 
-            val userId = UUID.fromString(claims.subject)
+                    authenticationService.deleteRefreshTokenByJti(jti)
+                    logger.warn("Refresh token jti={} has no sessionId — pre-session token, forcing re-auth", jti)
+                    return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity(ResponseError("SESSION_EXPIRED"))
+                        .build()
+                }
+
+            val userId = stored.userId
             val appUser = appUserService.getById(userId)
                 ?: return Response.status(Response.Status.UNAUTHORIZED)
                     .entity(ResponseError("User not found"))
                     .build()
 
-            // Rotate: delete old refresh token, issue new triple
-            authenticationService.deleteRefreshTokenByJti(jti)
+            if (!appUser.isActive || appUser.deprovisionedAt != null)
+            {
+                authenticationService.deleteAllRefreshTokensForUser(appUser.id)
+                authAuditService.emit(
+                    action = "TOKEN_REFRESH",
+                    outcome = "DENY",
+                    reasonCode = RevocationReasonCode.DEPROVISIONED,
+                    actorId = appUser.id,
+                    requestId = requestId,
+                )
+                return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ResponseError("User is inactive"))
+                    .build()
+            }
 
-            val tokenTriple = tokenIssuanceService.issueTokenTriple(appUser)
-            val cookie = tokenIssuanceService.buildRefreshTokenCookie(tokenTriple.refreshToken)
+            val membershipValidation = organizationMembershipValidationService.validateForSessionAccess(appUser)
+            if (!membershipValidation.valid)
+            {
+                val reasonCode = membershipValidation.reasonCode ?: RevocationReasonCode.SECURITY_POLICY
+                authenticationService.deleteAllRefreshTokensForUser(appUser.id, reasonCode)
+                userSessionService.revokeAllUserSessions(appUser.id, reasonCode)
+                authAuditService.emit(
+                    action = "TOKEN_REFRESH",
+                    outcome = "DENY",
+                    reasonCode = reasonCode,
+                    actorId = appUser.id,
+                    requestId = requestId,
+                    reason = membershipValidation.message,
+                )
+                return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ResponseError(membershipValidation.message ?: "Organization membership is inactive"))
+                    .build()
+            }
 
-            Response.ok(TokenRefreshResponse(tokenTriple.accessToken, tokenTriple.idToken))
-                .cookie(cookie)
+            // Per-session revocation check (replaces the older session_version JWT claim).
+            // O(1) Redis lookup; entries TTL out after the refresh-token window.
+            // The interceptor performs the same check on every authenticated request.
+            if (!userSessionService.isActiveSession(sessionId, appUser.id))
+            {
+                authenticationService.deleteAllRefreshTokensForUser(appUser.id)
+                authAuditService.emit(
+                    action = "TOKEN_REFRESH",
+                    outcome = "DENY",
+                    reasonCode = RevocationReasonCode.REFRESH_INVALID,
+                    actorId = appUser.id,
+                    sessionId = sessionId.toString(),
+                    requestId = requestId,
+                )
+                return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ResponseError("Session is no longer active"))
+                    .build()
+            }
+
+            // Risk-based check: compare current request context against the session's stored fingerprint.
+            // HIGH risk (both IP /16 and UA family changed) → terminate the session and force re-auth.
+            val session = userSessionService.findSession(sessionId)
+            if (session != null)
+            {
+                val risk = riskSignalService.evaluate(session, clientIp, userAgent, requestId)
+                if (risk.level == RiskLevel.HIGH)
+                {
+                    authenticationService.deleteAllRefreshTokensForUser(appUser.id, RevocationReasonCode.RISK_SIGNAL_DETECTED)
+                    userSessionService.revokeSession(sessionId, RevocationReasonCode.RISK_SIGNAL_DETECTED)
+                    authAuditService.emit(
+                        action = "TOKEN_REFRESH",
+                        outcome = "DENY",
+                        reasonCode = RevocationReasonCode.RISK_SIGNAL_DETECTED,
+                        actorId = appUser.id,
+                        sessionId = sessionId.toString(),
+                        requestId = requestId,
+                        reason = "Risk signals: ${risk.reasons.joinToString(",")}",
+                    )
+                    return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity(ResponseError("Session terminated for security reasons."))
+                        .build()
+                }
+            }
+
+            val policy = authSessionPolicyService.resolveForAppUser(appUser)
+
+            val rotationEnabled = configurationService.isAuthRefreshRotationEnabled()
+            val reuseDetectionEnabled = configurationService.isAuthRefreshReuseDetectionEnabled()
+
+            val rotation = if (rotationEnabled)
+            {
+                authenticationService.rotateRefreshToken(
+                    appUser = appUser,
+                    currentJti = jti,
+                    currentRefreshToken = refreshTokenValue,
+                    familyId = familyId,
+                    sessionId = sessionId,
+                    refreshExpiryDaysOverride = policy.refreshTokenExpiryDays,
+                )
+            }
+            else
+            {
+                null
+            }
+
+            if (rotationEnabled && reuseDetectionEnabled && rotation?.status == RefreshRotationStatus.REUSE_DETECTED)
+            {
+                securityIncidentService.record(
+                    incidentType = SecurityIncidentType.REFRESH_TOKEN_REUSE_DETECTED,
+                    severity = SecurityIncidentSeverity.CRITICAL,
+                    actorId = appUser.id,
+                    requestId = requestId,
+                    details = "sessionId=$sessionId;familyId=${rotation.familyId}",
+                )
+                rotation.familyId?.let {
+                    authenticationService.revokeRefreshFamily(it, RevocationReasonCode.REFRESH_REUSE_DETECTED)
+                }
+                authenticationService.deleteAllRefreshTokensForUser(appUser.id)
+                userSessionService.revokeSession(sessionId, RevocationReasonCode.REFRESH_REUSE_DETECTED)
+                logger.warn("Refresh token replay detected for user={} family={}", appUser.id, rotation.familyId)
+                authAuditService.emit(
+                    action = "TOKEN_REFRESH",
+                    outcome = "DENY",
+                    reasonCode = RevocationReasonCode.REFRESH_REUSE_DETECTED,
+                    actorId = appUser.id,
+                    sessionId = sessionId.toString(),
+                    requestId = requestId,
+                )
+                return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ResponseError("Refresh token has been revoked"))
+                    .build()
+            }
+
+            if (rotationEnabled && rotation?.status != RefreshRotationStatus.ROTATED && rotation?.status != RefreshRotationStatus.GRACE_REPLAY)
+            {
+                authAuditService.emit(
+                    action = "TOKEN_REFRESH",
+                    outcome = "DENY",
+                    reasonCode = RevocationReasonCode.REFRESH_INVALID,
+                    actorId = appUser.id,
+                    requestId = requestId,
+                )
+                return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ResponseError("Invalid refresh token"))
+                    .build()
+            }
+
+            val successorToken = if (rotationEnabled)
+            {
+                rotation?.successorToken
+                    ?: return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity(ResponseError("Invalid refresh token state"))
+                        .build()
+            }
+            else
+            {
+                val stored = authenticationService.findRefreshTokenByJti(jti)
+                if (stored == null || stored.userId != appUser.id || stored.status.equals("REVOKED", ignoreCase = true))
+                {
+                    authAuditService.emit(
+                        action = "TOKEN_REFRESH",
+                        outcome = "DENY",
+                        reasonCode = RevocationReasonCode.REFRESH_INVALID,
+                        actorId = appUser.id,
+                        requestId = requestId,
+                    )
+                    return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity(ResponseError("Invalid refresh token"))
+                        .build()
+                }
+                refreshTokenValue
+            }
+
+            // Preserve auth_time from the session — refresh is not a re-auth, so the freshness
+            // window must not be reset just because the access token was renewed.
+            val sessionAuthTimeEpoch = userSessionService.findSession(sessionId)?.lastAuthTime?.toInstant()?.epochSecond
+            val accessToken = authenticationService.generateAccessToken(
+                appUser = appUser,
+                sessionId = sessionId,
+                expiryMinutesOverride = policy.accessTokenExpiryMinutes,
+                authTimeEpochSeconds = sessionAuthTimeEpoch,
+            )
+            val idToken = authenticationService.generateIdToken(appUser, sessionId, policy.accessTokenExpiryMinutes)
+            val refreshCookie = tokenIssuanceService.buildRefreshTokenCookieWithPolicy(successorToken, appUser)
+            val csrfToken = tokenIssuanceService.generateCsrfToken()
+            val csrfTokenCookie = tokenIssuanceService.buildCsrfTokenCookie(csrfToken)
+            userSessionService.touchSession(sessionId)
+
+            Response.ok(TokenRefreshResponse(accessToken, idToken))
+                .cookie(refreshCookie, csrfTokenCookie)
                 .build()
+                .also {
+                    authAuditService.emit(
+                        action = "TOKEN_REFRESH",
+                        outcome = "SUCCESS",
+                        actorId = appUser.id,
+                        sessionId = sessionId.toString(),
+                        requestId = requestId,
+                    )
+                }
         }
         catch (e: Exception)
         {
@@ -99,5 +359,32 @@ class TokenRefreshResource @Inject constructor(
                 .entity(ResponseError("Failed to refresh token"))
                 .build()
         }
+    }
+
+    private fun getClientIpAddress(request: io.vertx.core.http.HttpServerRequest): String
+    {
+        var ipAddress = request.getHeader("X-Forwarded-For")
+
+        if (ipAddress.isNullOrBlank() || "unknown".equals(ipAddress, ignoreCase = true))
+        {
+            ipAddress = request.getHeader("Proxy-Client-IP")
+        }
+
+        if (ipAddress.isNullOrBlank() || "unknown".equals(ipAddress, ignoreCase = true))
+        {
+            ipAddress = request.getHeader("X-Real-IP")
+        }
+
+        if (ipAddress.isNullOrBlank() || "unknown".equals(ipAddress, ignoreCase = true))
+        {
+            ipAddress = request.remoteAddress()?.host() ?: "0.0.0.0"
+        }
+
+        if (ipAddress.contains(","))
+        {
+            ipAddress = ipAddress.split(",")[0].trim()
+        }
+
+        return ipAddress
     }
 }

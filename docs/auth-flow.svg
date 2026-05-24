@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 2100" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#455a64"/>
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#c62828"/>
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2e7d32"/>
+    </marker>
+
+    <style>
+      .title { font-size: 24px; font-weight: 700; fill: #263238; }
+      .section { font-size: 16px; font-weight: 700; fill: #37474f; }
+      .box-text { font-size: 13px; fill: #263238; }
+      .box-title { font-size: 13px; font-weight: 700; fill: #1565c0; }
+      .box-title-deny { font-size: 13px; font-weight: 700; fill: #c62828; }
+      .box-title-success { font-size: 13px; font-weight: 700; fill: #2e7d32; }
+      .small { font-size: 11px; fill: #546e7a; }
+      .smaller { font-size: 10px; fill: #607d8b; }
+      .annotation { font-size: 11px; font-style: italic; fill: #6a1b9a; }
+      .flow-edge { stroke: #455a64; stroke-width: 1.6; fill: none; }
+      .flow-edge-deny { stroke: #c62828; stroke-width: 1.6; fill: none; }
+      .flow-edge-success { stroke: #2e7d32; stroke-width: 1.6; fill: none; }
+      .flow-edge-dashed { stroke: #6a1b9a; stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
+      .box { fill: #e3f2fd; stroke: #1976d2; stroke-width: 1.5; }
+      .box-success { fill: #e8f5e9; stroke: #2e7d32; stroke-width: 1.5; }
+      .box-deny { fill: #ffebee; stroke: #c62828; stroke-width: 1.5; }
+      .box-decision { fill: #fff8e1; stroke: #f57f17; stroke-width: 1.5; }
+      .box-security { fill: #f3e5f5; stroke: #6a1b9a; stroke-width: 1.5; stroke-dasharray: 4 3; }
+      .terminator { fill: #cfd8dc; stroke: #455a64; stroke-width: 1.5; }
+    </style>
+  </defs>
+
+  <!-- Title -->
+  <text x="750" y="40" class="title" text-anchor="middle">DocuHyphen Authentication System — High-Level Flow</text>
+  <text x="750" y="62" class="small" text-anchor="middle">Platform is the sole session authority. IdP tokens never reach the browser. All paths emit immutable audit + WORM mirror.</text>
+
+  <!-- ============================== 1. ENTRY & DISCOVERY ============================== -->
+  <text x="60" y="100" class="section">1 · Sign-In Discovery</text>
+
+  <!-- User -->
+  <g>
+    <ellipse cx="540" cy="135" rx="55" ry="22" class="terminator"/>
+    <text x="540" y="139" text-anchor="middle" class="box-text" font-weight="700">User</text>
+  </g>
+
+  <!-- Lookup -->
+  <g>
+    <rect x="430" y="180" width="220" height="80" rx="8" class="box"/>
+    <text x="540" y="200" text-anchor="middle" class="box-title">POST /auth/sign-in/lookup</text>
+    <text x="540" y="218" text-anchor="middle" class="small">email → resolve verified domains</text>
+    <text x="540" y="234" text-anchor="middle" class="small">rate-limit per-IP · uniform-timing floor</text>
+    <text x="540" y="250" text-anchor="middle" class="small">anti-enumeration (min query length)</text>
+  </g>
+  <line x1="540" y1="157" x2="540" y2="180" class="flow-edge" marker-end="url(#arrow)"/>
+
+  <!-- Three outcomes -->
+  <g>
+    <rect x="80" y="310" width="200" height="60" rx="8" class="box-decision"/>
+    <text x="180" y="332" text-anchor="middle" class="box-title">NO_ORG</text>
+    <text x="180" y="350" text-anchor="middle" class="small">No verified org for email</text>
+    <text x="180" y="364" text-anchor="middle" class="small">→ INTERNAL + platform IdPs</text>
+  </g>
+  <g>
+    <rect x="430" y="310" width="220" height="60" rx="8" class="box-decision"/>
+    <text x="540" y="332" text-anchor="middle" class="box-title">ORG_FOUND</text>
+    <text x="540" y="350" text-anchor="middle" class="small">1 verified org for domain</text>
+    <text x="540" y="364" text-anchor="middle" class="small">→ org's IdP redirect (+ INTERNAL)</text>
+  </g>
+  <g>
+    <rect x="800" y="310" width="220" height="60" rx="8" class="box-decision"/>
+    <text x="910" y="332" text-anchor="middle" class="box-title">MULTIPLE_ORGS</text>
+    <text x="910" y="350" text-anchor="middle" class="small">Multiple orgs for domain</text>
+    <text x="910" y="364" text-anchor="middle" class="small">→ org picker, re-lookup w/ orgId</text>
+  </g>
+  <line x1="490" y1="260" x2="200" y2="310" class="flow-edge" marker-end="url(#arrow)"/>
+  <line x1="540" y1="260" x2="540" y2="310" class="flow-edge" marker-end="url(#arrow)"/>
+  <line x1="590" y1="260" x2="890" y2="310" class="flow-edge" marker-end="url(#arrow)"/>
+
+  <!-- MULTIPLE_ORGS loops back -->
+  <path d="M 1020 340 Q 1100 340 1100 240 Q 1100 200 660 200" class="flow-edge-dashed" marker-end="url(#arrow)"/>
+  <text x="1108" y="270" class="annotation">user picks org →</text>
+  <text x="1108" y="284" class="annotation">resubmit with orgId</text>
+
+  <!-- ============================== 2. SIGN-IN PATHS ============================== -->
+  <text x="60" y="430" class="section">2 · Sign-In Paths</text>
+
+  <!-- LEFT: OAuth -->
+  <g>
+    <rect x="80" y="460" width="320" height="120" rx="8" class="box"/>
+    <text x="240" y="481" text-anchor="middle" class="box-title">External OAuth — Authorize</text>
+    <text x="240" y="500" text-anchor="middle" class="small">GET /auth/oauth/{provider}/authorize</text>
+    <text x="240" y="516" text-anchor="middle" class="small">· signed state JWT (Redis-stored nonce)</text>
+    <text x="240" y="530" text-anchor="middle" class="small">· PKCE: code_challenge=S256(code_verifier)</text>
+    <text x="240" y="544" text-anchor="middle" class="small">· runtime org IdP credentials (Secrets Mgr)</text>
+    <text x="240" y="558" text-anchor="middle" class="small">· redirect → IdP consent screen</text>
+    <text x="240" y="572" text-anchor="middle" class="small">· rate-limit per-IP</text>
+  </g>
+
+  <g>
+    <rect x="80" y="610" width="320" height="170" rx="8" class="box"/>
+    <text x="240" y="631" text-anchor="middle" class="box-title">OAuth Callback</text>
+    <text x="240" y="650" text-anchor="middle" class="small">GET /auth/oauth/{provider}/callback</text>
+    <text x="240" y="666" text-anchor="middle" class="small">· verify + consume signed state (one-shot)</text>
+    <text x="240" y="680" text-anchor="middle" class="small">· exchange code + code_verifier → tokens</text>
+    <text x="240" y="694" text-anchor="middle" class="small">· strict OIDC validation:</text>
+    <text x="240" y="708" text-anchor="middle" class="small">   iss/aud/azp/exp/nbf/iat/nonce/alg/sig</text>
+    <text x="240" y="722" text-anchor="middle" class="small">· tenant check (MS tid / Google hd)</text>
+    <text x="240" y="736" text-anchor="middle" class="small">· JIT provision (role floor = ORG_MEMBER)</text>
+    <text x="240" y="750" text-anchor="middle" class="small">· enforce per-org maxUsers cap</text>
+    <text x="240" y="764" text-anchor="middle" class="small">· never expose IdP tokens to browser</text>
+  </g>
+
+  <!-- RIGHT: Internal -->
+  <g>
+    <rect x="700" y="460" width="320" height="120" rx="8" class="box"/>
+    <text x="860" y="481" text-anchor="middle" class="box-title">Internal Sign-In — Initiate</text>
+    <text x="860" y="500" text-anchor="middle" class="small">POST /auth/sign-in/initiate {email, password}</text>
+    <text x="860" y="516" text-anchor="middle" class="small">· BCrypt validate</text>
+    <text x="860" y="530" text-anchor="middle" class="small">· issue MFA session (OTP via email/SMS)</text>
+    <text x="860" y="544" text-anchor="middle" class="small">· rate-limit · max attempt counter</text>
+    <text x="860" y="558" text-anchor="middle" class="small">· response: mfaSessionId (no tokens yet)</text>
+  </g>
+
+  <g>
+    <rect x="700" y="610" width="320" height="170" rx="8" class="box"/>
+    <text x="860" y="631" text-anchor="middle" class="box-title">Internal Sign-In — Completion</text>
+    <text x="860" y="650" text-anchor="middle" class="small">POST /auth/sign-in/completion {email, otp, sid}</text>
+    <text x="860" y="668" text-anchor="middle" class="small">· verify OTP (TTL bounded, replay-safe)</text>
+    <text x="860" y="682" text-anchor="middle" class="small">· max OTP attempts → deny + audit</text>
+    <text x="860" y="696" text-anchor="middle" class="small">· active user / org membership check</text>
+    <text x="860" y="710" text-anchor="middle" class="small">· deprovisioned / inactive → DENY</text>
+    <text x="860" y="724" text-anchor="middle" class="small">· response: access + id tokens (refresh cookie)</text>
+  </g>
+
+  <!-- arrows from discovery boxes -->
+  <line x1="180" y1="370" x2="180" y2="460" class="flow-edge" marker-end="url(#arrow)"/>
+  <line x1="500" y1="370" x2="280" y2="460" class="flow-edge" marker-end="url(#arrow)"/>
+  <line x1="580" y1="370" x2="800" y2="460" class="flow-edge" marker-end="url(#arrow)"/>
+  <line x1="910" y1="370" x2="900" y2="460" class="flow-edge" marker-end="url(#arrow)"/>
+  <line x1="240" y1="580" x2="240" y2="610" class="flow-edge" marker-end="url(#arrow)"/>
+  <line x1="860" y1="580" x2="860" y2="610" class="flow-edge" marker-end="url(#arrow)"/>
+
+  <!-- ============================== 3. TOKEN ISSUANCE ============================== -->
+  <text x="60" y="830" class="section">3 · Token Issuance</text>
+
+  <g>
+    <rect x="320" y="860" width="560" height="170" rx="8" class="box-success"/>
+    <text x="600" y="881" text-anchor="middle" class="box-title-success">TokenIssuanceService.issueTokenTriple()</text>
+    <text x="600" y="903" text-anchor="middle" class="small">Create UserSession (UUID, deviceCtx, lastAuthTime=now, expiresAt by policy)</text>
+    <text x="600" y="919" text-anchor="middle" class="small">Mint access token: { sub, sessionId, auth_time, [cnf.jkt if DPoP] }, signed JWT, short TTL</text>
+    <text x="600" y="935" text-anchor="middle" class="small">Mint id token (claims for the client)</text>
+    <text x="600" y="951" text-anchor="middle" class="small">Mint refresh token: opaque "{jti}.{secret}" — 80B, hash stored Redis-side</text>
+    <text x="600" y="967" text-anchor="middle" class="small">Persist refresh record in Redis: { userId, jti, familyId, sessionId, tokenHash, status=ACTIVE }</text>
+    <text x="600" y="983" text-anchor="middle" class="small">Mint CSRF token, build cookies: refresh = HttpOnly + Secure + SameSite=Strict + path=/auth/token</text>
+    <text x="600" y="999" text-anchor="middle" class="small">Return access + id tokens in body; refresh + csrf in cookies</text>
+    <text x="600" y="1015" text-anchor="middle" class="small">Emit AUTH_SUCCESS audit → DB hash-chain → WORM JSONL mirror</text>
+  </g>
+  <line x1="240" y1="780" x2="450" y2="860" class="flow-edge-success" marker-end="url(#arrow-green)"/>
+  <line x1="860" y1="780" x2="750" y2="860" class="flow-edge-success" marker-end="url(#arrow-green)"/>
+
+  <!-- ============================== 4. AUTHENTICATED REQUEST ============================== -->
+  <text x="60" y="1080" class="section">4 · Authenticated Request — runs on every protected endpoint</text>
+
+  <g>
+    <rect x="80" y="1110" width="700" height="240" rx="8" class="box"/>
+    <text x="430" y="1131" text-anchor="middle" class="box-title">EndpointAuthorizationFilter</text>
+    <text x="430" y="1153" text-anchor="middle" class="small">1. Extract Bearer access token from Authorization header</text>
+    <text x="430" y="1169" text-anchor="middle" class="small">2. Verify JWT signature + expiry (HMAC, server-side secret)</text>
+    <text x="430" y="1185" text-anchor="middle" class="small">3. Token type must be ACCESS (no refresh / link / app tokens here)</text>
+    <text x="430" y="1201" text-anchor="middle" class="small">4. Look up AppUser; require isActive=true and deprovisionedAt=null</text>
+    <text x="430" y="1217" text-anchor="middle" class="small">5. Validate org membership (active org, active role)</text>
+    <text x="430" y="1233" text-anchor="middle" class="small">6. SessionRevocationCache.isRevoked(sessionId)? — O(1) Redis EXISTS check</text>
+    <text x="430" y="1249" text-anchor="middle" class="small">7. userSessionService.isActiveSession(sessionId, userId)? — DB confirms not expired</text>
+    <text x="430" y="1265" text-anchor="middle" class="small">8. userSessionService.touchSession(sessionId) — update lastSeenAt</text>
+    <text x="430" y="1281" text-anchor="middle" class="small">9. If app.auth.dpop.enabled &amp; token has cnf.jkt: verify DPoP proof JWS</text>
+    <text x="430" y="1297" text-anchor="middle" class="small">    · htm + htu + iat + jti (replay-protected in Redis)</text>
+    <text x="430" y="1311" text-anchor="middle" class="small">    · ES256 signature verified with embedded JWK; thumbprint must equal cnf.jkt</text>
+    <text x="430" y="1327" text-anchor="middle" class="small">10. Sensitive endpoints additionally call stepUpAuthService.isFresh(maxAge)</text>
+    <text x="430" y="1343" text-anchor="middle" class="small">     · checks auth_time claim ≤ 5 min old; else 401 STEP_UP_REQUIRED</text>
+  </g>
+
+  <!-- Authenticated decision -->
+  <g>
+    <polygon points="900,1170 1100,1230 900,1290 700,1230" class="box-decision"/>
+    <text x="900" y="1226" text-anchor="middle" class="box-title">All checks pass?</text>
+    <text x="900" y="1244" text-anchor="middle" class="small">any failure → audit + 401</text>
+  </g>
+  <line x1="780" y1="1230" x2="700" y2="1230" class="flow-edge" marker-end="url(#arrow)"/>
+
+  <g>
+    <rect x="1130" y="1140" width="220" height="80" rx="8" class="box-success"/>
+    <text x="1240" y="1162" text-anchor="middle" class="box-title-success">Access granted</text>
+    <text x="1240" y="1180" text-anchor="middle" class="small">resource handler runs</text>
+    <text x="1240" y="1194" text-anchor="middle" class="small">virtualToken in request scope</text>
+    <text x="1240" y="1208" text-anchor="middle" class="small">audit on side-effect actions</text>
+  </g>
+  <g>
+    <rect x="1130" y="1240" width="220" height="80" rx="8" class="box-deny"/>
+    <text x="1240" y="1262" text-anchor="middle" class="box-title-deny">401 / 403</text>
+    <text x="1240" y="1280" text-anchor="middle" class="small">reason code emitted</text>
+    <text x="1240" y="1294" text-anchor="middle" class="small">client → /app-session-expired</text>
+    <text x="1240" y="1308" text-anchor="middle" class="small">with reason in URL</text>
+  </g>
+  <line x1="1100" y1="1210" x2="1130" y2="1180" class="flow-edge-success" marker-end="url(#arrow-green)"/>
+  <line x1="1100" y1="1250" x2="1130" y2="1280" class="flow-edge-deny" marker-end="url(#arrow-red)"/>
+  <text x="1110" y="1175" class="small" fill="#2e7d32">pass</text>
+  <text x="1110" y="1295" class="small" fill="#c62828">fail</text>
+
+  <!-- ============================== 5. REFRESH CYCLE ============================== -->
+  <text x="60" y="1410" class="section">5 · Refresh Cycle — proactive, every ~80 % of access TTL or on 401</text>
+
+  <g>
+    <rect x="80" y="1440" width="320" height="190" rx="8" class="box"/>
+    <text x="240" y="1461" text-anchor="middle" class="box-title">Client → POST /auth/token/refresh</text>
+    <text x="240" y="1480" text-anchor="middle" class="small">· refresh cookie (opaque "{jti}.{secret}")</text>
+    <text x="240" y="1494" text-anchor="middle" class="small">· CSRF cookie + X-CSRF-Token header</text>
+    <text x="240" y="1508" text-anchor="middle" class="small">· Origin (and Referer fallback) check</text>
+    <text x="240" y="1522" text-anchor="middle" class="small">Frontend AuthContext schedules at 80 % TTL</text>
+    <text x="240" y="1538" text-anchor="middle" class="small">DPoP proof attached if enabled</text>
+    <text x="240" y="1560" text-anchor="middle" class="annotation">Proactive — never wait for expiry/401</text>
+    <text x="240" y="1574" text-anchor="middle" class="small">apiClient interceptor handles 401 fallback</text>
+    <text x="240" y="1592" text-anchor="middle" class="small">on refresh fail → auth-session-expired event</text>
+    <text x="240" y="1608" text-anchor="middle" class="small">→ navigate /app-session-expired?reason=...</text>
+  </g>
+
+  <g>
+    <rect x="450" y="1440" width="430" height="190" rx="8" class="box"/>
+    <text x="665" y="1461" text-anchor="middle" class="box-title">Server: validate &amp; rotate</text>
+    <text x="665" y="1480" text-anchor="middle" class="small">Split cookie → jti + secret</text>
+    <text x="665" y="1494" text-anchor="middle" class="small">Redis HGETALL refresh_token:{jti} → StoredRefreshToken</text>
+    <text x="665" y="1508" text-anchor="middle" class="small">Constant-time compare sha256(secret) vs stored tokenHash</text>
+    <text x="665" y="1522" text-anchor="middle" class="small">Reload AppUser → check active, deprovisionedAt, membership</text>
+    <text x="665" y="1538" text-anchor="middle" class="small">SessionRevocationCache + isActiveSession</text>
+    <text x="665" y="1552" text-anchor="middle" class="small">RiskSignalService.evaluate(session, ip, ua)</text>
+    <text x="665" y="1566" text-anchor="middle" class="small">   ip /16 changed + ua family changed → HIGH → revoke</text>
+    <text x="665" y="1582" text-anchor="middle" class="small">Atomic Lua: ACTIVE → CONSUMED → mint successor</text>
+    <text x="665" y="1596" text-anchor="middle" class="small">   grace-replay limited to 1; 2nd reuse → kill family</text>
+    <text x="665" y="1612" text-anchor="middle" class="small">Preserve auth_time from session.lastAuthTime</text>
+  </g>
+
+  <g>
+    <rect x="930" y="1440" width="300" height="190" rx="8" class="box-success"/>
+    <text x="1080" y="1461" text-anchor="middle" class="box-title-success">New token triple</text>
+    <text x="1080" y="1483" text-anchor="middle" class="small">New access JWT (auth_time preserved)</text>
+    <text x="1080" y="1499" text-anchor="middle" class="small">New id token</text>
+    <text x="1080" y="1515" text-anchor="middle" class="small">New opaque refresh (new jti)</text>
+    <text x="1080" y="1531" text-anchor="middle" class="small">Replace refresh + csrf cookies</text>
+    <text x="1080" y="1551" text-anchor="middle" class="small">Touch session lastSeenAt</text>
+    <text x="1080" y="1567" text-anchor="middle" class="small">Audit TOKEN_REFRESH = SUCCESS</text>
+    <text x="1080" y="1590" text-anchor="middle" class="annotation">Old jti now in CONSUMED state</text>
+    <text x="1080" y="1604" text-anchor="middle" class="annotation">with grace window for 1 retry</text>
+  </g>
+
+  <line x1="400" y1="1535" x2="450" y2="1535" class="flow-edge" marker-end="url(#arrow)"/>
+  <line x1="880" y1="1535" x2="930" y2="1535" class="flow-edge-success" marker-end="url(#arrow-green)"/>
+
+  <!-- Refresh fail path -->
+  <path d="M 665 1630 Q 665 1700 1240 1700 Q 1380 1700 1380 1320" class="flow-edge-deny" marker-end="url(#arrow-red)"/>
+  <text x="1080" y="1690" class="annotation" fill="#c62828">reuse / risk / deprovision → revoke family + session, audit, 401</text>
+
+  <!-- ============================== 6. TERMINATION ============================== -->
+  <text x="60" y="1780" class="section">6 · Termination — user-driven, admin-driven, or SCIM-driven</text>
+
+  <g>
+    <rect x="60" y="1810" width="320" height="170" rx="8" class="box-deny"/>
+    <text x="220" y="1831" text-anchor="middle" class="box-title-deny">User sign-out</text>
+    <text x="220" y="1850" text-anchor="middle" class="small">POST /auth/sign-out?outOfAllDevices=…</text>
+    <text x="220" y="1866" text-anchor="middle" class="small">CSRF + Origin/Referer required</text>
+    <text x="220" y="1882" text-anchor="middle" class="small">Revoke this session (or all sessions for user)</text>
+    <text x="220" y="1898" text-anchor="middle" class="small">SessionRevocationCache.markRevoked(sid)</text>
+    <text x="220" y="1914" text-anchor="middle" class="small">Delete refresh family from Redis</text>
+    <text x="220" y="1930" text-anchor="middle" class="small">Clear refresh + csrf cookies (max-age=0)</text>
+    <text x="220" y="1946" text-anchor="middle" class="small">Audit SIGN_OUT (DB + WORM)</text>
+    <text x="220" y="1964" text-anchor="middle" class="annotation">IdP sign-out not equivalent — platform is sole authority</text>
+  </g>
+
+  <g>
+    <rect x="410" y="1810" width="320" height="170" rx="8" class="box-deny"/>
+    <text x="570" y="1831" text-anchor="middle" class="box-title-deny">Admin-driven revoke</text>
+    <text x="570" y="1850" text-anchor="middle" class="small">ORG_ADMIN / PLATFORM_ADMIN</text>
+    <text x="570" y="1866" text-anchor="middle" class="small">DELETE /auth/sessions/{sessionId}</text>
+    <text x="570" y="1882" text-anchor="middle" class="small">Step-up auth required for admin actions</text>
+    <text x="570" y="1898" text-anchor="middle" class="small">Optional dual-approval for high-impact ops</text>
+    <text x="570" y="1914" text-anchor="middle" class="small">Same path: revoke session + drop refresh</text>
+    <text x="570" y="1930" text-anchor="middle" class="small">Reason: ADMIN_REVOKE</text>
+    <text x="570" y="1946" text-anchor="middle" class="small">Immutable audit + actor + before/after snap</text>
+    <text x="570" y="1964" text-anchor="middle" class="annotation">All admin actions stamped with actorRole</text>
+  </g>
+
+  <g>
+    <rect x="760" y="1810" width="320" height="170" rx="8" class="box-deny"/>
+    <text x="920" y="1831" text-anchor="middle" class="box-title-deny">Auto-terminated</text>
+    <text x="920" y="1850" text-anchor="middle" class="small">Risk signal: HIGH on refresh</text>
+    <text x="920" y="1866" text-anchor="middle" class="small">Refresh reuse detected (out-of-grace)</text>
+    <text x="920" y="1882" text-anchor="middle" class="small">Session expired (policy maxSessionDuration)</text>
+    <text x="920" y="1898" text-anchor="middle" class="small">User deprovisioned mid-session</text>
+    <text x="920" y="1914" text-anchor="middle" class="small">Org/membership becomes inactive</text>
+    <text x="920" y="1930" text-anchor="middle" class="small">Reason codes: REFRESH_REUSE_DETECTED,</text>
+    <text x="920" y="1944" text-anchor="middle" class="small">SESSION_EXPIRED, DEPROVISIONED,</text>
+    <text x="920" y="1958" text-anchor="middle" class="small">RISK_SIGNAL_DETECTED, …</text>
+  </g>
+
+  <g>
+    <rect x="1110" y="1810" width="320" height="170" rx="8" class="box-deny"/>
+    <text x="1270" y="1831" text-anchor="middle" class="box-title-deny">SCIM 2.0 lifecycle</text>
+    <text x="1270" y="1850" text-anchor="middle" class="small">/scim/v2/Users (RFC 7644)</text>
+    <text x="1270" y="1866" text-anchor="middle" class="small">Static bearer auth (app.scim.bearer-token)</text>
+    <text x="1270" y="1882" text-anchor="middle" class="small">POST = provision; PUT/PATCH active=false;</text>
+    <text x="1270" y="1898" text-anchor="middle" class="small">DELETE = deprovision (no hard-delete)</text>
+    <text x="1270" y="1914" text-anchor="middle" class="small">Sets AppUser.deprovisionedAt = now</text>
+    <text x="1270" y="1930" text-anchor="middle" class="small">revokeAllUserSessions(DEPROVISIONED)</text>
+    <text x="1270" y="1946" text-anchor="middle" class="small">SessionRevocationCache → 401 on next request</text>
+    <text x="1270" y="1964" text-anchor="middle" class="annotation">Upstream IdP (Okta/Azure AD) driven</text>
+  </g>
+
+  <!-- arrows from auth + refresh to termination -->
+  <path d="M 750 1330 L 750 1410 L 220 1410 L 220 1810" class="flow-edge-deny" marker-end="url(#arrow-red)"/>
+  <path d="M 1240 1320 L 1240 1430 L 920 1810" class="flow-edge-deny" marker-end="url(#arrow-red)"/>
+
+  <!-- ============================== SECURITY CONTROLS SIDEBAR (right) ============================== -->
+  <g>
+    <rect x="40" y="2010" width="1420" height="70" rx="8" class="box-security"/>
+    <text x="60" y="2032" class="section" fill="#6a1b9a">Cross-cutting security controls</text>
+    <text x="60" y="2052" class="small">PKCE on all OAuth flows · OIDC validation (iss/aud/azp/exp/nbf/iat/nonce/alg/sig/tid/hd) · Atomic Redis refresh rotation with reuse detection · CSRF (cookie+header+Origin/Referer)</text>
+    <text x="60" y="2068" class="small">Per-endpoint rate limits + abuse detection · Anti-enumeration (uniform timing, min query length, result caps) · DPoP optional sender-binding · Step-up auth for sensitive ops</text>
+  </g>
+
+  <!-- AUDIT PIPELINE annotation -->
+  <g>
+    <rect x="1280" y="100" width="200" height="170" rx="8" class="box-security"/>
+    <text x="1380" y="123" text-anchor="middle" class="section" fill="#6a1b9a" font-size="14">Audit Pipeline</text>
+    <text x="1380" y="146" text-anchor="middle" class="small">Every action calls</text>
+    <text x="1380" y="160" text-anchor="middle" class="small">AuthAuditService.emit(...)</text>
+    <text x="1380" y="180" text-anchor="middle" class="annotation">→ DB (hash chain)</text>
+    <text x="1380" y="196" text-anchor="middle" class="annotation">→ WORM JSONL mirror</text>
+    <text x="1380" y="212" text-anchor="middle" class="annotation">→ structured log line</text>
+    <text x="1380" y="234" text-anchor="middle" class="small">Sanitize PII / tokens</text>
+    <text x="1380" y="248" text-anchor="middle" class="small">prevEventHash chain</text>
+    <text x="1380" y="262" text-anchor="middle" class="small">verifyDay() startup check</text>
+  </g>
+
+  <!-- legend -->
+  <g transform="translate(40, 2095)">
+    <rect x="0" y="-15" width="14" height="14" class="box"/>
+    <text x="22" y="-3" class="smaller">Normal flow</text>
+    <rect x="120" y="-15" width="14" height="14" class="box-decision"/>
+    <text x="142" y="-3" class="smaller">Decision / branch</text>
+    <rect x="260" y="-15" width="14" height="14" class="box-success"/>
+    <text x="282" y="-3" class="smaller">Success</text>
+    <rect x="360" y="-15" width="14" height="14" class="box-deny"/>
+    <text x="382" y="-3" class="smaller">Deny / termination</text>
+    <rect x="500" y="-15" width="14" height="14" class="box-security"/>
+    <text x="522" y="-3" class="smaller">Security / audit (cross-cutting)</text>
+  </g>
+
+</svg>

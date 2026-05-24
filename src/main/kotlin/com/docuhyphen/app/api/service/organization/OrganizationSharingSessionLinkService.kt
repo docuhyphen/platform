@@ -9,6 +9,9 @@ import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationSharingSessionLink
 import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.repository.OrganizationSharingSessionLinkRepository
+import com.docuhyphen.app.api.service.auth.AdminActionGuardService
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import io.quarkus.security.UnauthorizedException
@@ -27,6 +30,8 @@ class OrganizationSharingSessionLinkService @Inject constructor(
     private val emailService: EmailService,
     private val configurationService: ConfigurationService,
     private val appUserService: OrganizationService,
+    private val adminActionGuardService: AdminActionGuardService,
+    private val authAuditService: AuthAuditService,
 )
 {
     fun getOrganizationsForLinking(): List<Organization>
@@ -66,7 +71,8 @@ class OrganizationSharingSessionLinkService @Inject constructor(
     fun createLink(
         requestingOrganizationId: String?,
         requestedOrganizationId: String?,
-        message: String? = null
+        message: String? = null,
+        adminApprovalContext: AdminApprovalContext,
     ): OrganizationSharingSessionLink
     {
         if (requestedOrganizationId.isNullOrBlank())
@@ -89,6 +95,13 @@ class OrganizationSharingSessionLinkService @Inject constructor(
             throw IllegalArgumentException("Only organization administrators can create sharing session links")
         }
 
+        adminActionGuardService.enforce(
+            action = "ORG_LINK_CREATE",
+            actorId = appUser.id,
+            context = adminApprovalContext,
+            requireDualApproval = false,
+        )
+
         requestingOrganization.appUsers.firstOrNull { it -> it.id == appUser.id }
             ?: throw IllegalArgumentException("App user is not part of the requesting organization")
 
@@ -100,6 +113,17 @@ class OrganizationSharingSessionLinkService @Inject constructor(
         }
 
         val createdLink = organizationSharingSessionLinkRepository.save(link)
+
+        authAuditService.emit(
+            action = "ORG_LINK_CREATE",
+            outcome = "SUCCESS",
+            actorId = appUser.id,
+            organizationId = requestingOrganization.id,
+            requestId = adminApprovalContext.requestId,
+            reason = "Organization admin created organization link request",
+            beforeSnapshot = null,
+            afterSnapshot = linkSnapshot(createdLink),
+        )
 
         //ToDo: Send email to the organization admin
 
@@ -124,7 +148,8 @@ class OrganizationSharingSessionLinkService @Inject constructor(
     fun acceptLink(
         linkId: String?,
         linkStatus: LinkStatus?,
-        rejectionReason: String? = null
+        rejectionReason: String? = null,
+        adminApprovalContext: AdminApprovalContext,
     ): OrganizationSharingSessionLink
     {
         if (linkId.isNullOrBlank())
@@ -136,6 +161,7 @@ class OrganizationSharingSessionLinkService @Inject constructor(
 
         val link = organizationSharingSessionLinkRepository.findById(UUID.fromString(linkId))
             ?: throw OrganizationLinkNotFoundException("Link not found")
+        val beforeSnapshot = linkSnapshot(link)
 
         if (link.status != LinkStatus.PENDING)
         {
@@ -148,6 +174,13 @@ class OrganizationSharingSessionLinkService @Inject constructor(
         {
             throw IllegalArgumentException("Only organization administrators can accept or delcine sharing session links")
         }
+
+        adminActionGuardService.enforce(
+            action = "ORG_LINK_DECIDE",
+            actorId = appUser.id,
+            context = adminApprovalContext,
+            requireDualApproval = linkStatus == LinkStatus.REJECTED,
+        )
 
 //        link.requestedOrganization?.appUsers?.firstOrNull { it -> it.id == appUser.id }
 //            ?: throw IllegalArgumentException("App user is not part of the requested organization")
@@ -165,6 +198,17 @@ class OrganizationSharingSessionLinkService @Inject constructor(
         }
 
         val acceptedLink = organizationSharingSessionLinkRepository.update(link)
+
+        authAuditService.emit(
+            action = "ORG_LINK_DECIDE",
+            outcome = "SUCCESS",
+            actorId = appUser.id,
+            organizationId = link.requestedOrganization?.id,
+            requestId = adminApprovalContext.requestId,
+            reason = "Organization admin changed link status to ${linkStatus.name}",
+            beforeSnapshot = beforeSnapshot,
+            afterSnapshot = linkSnapshot(acceptedLink),
+        )
 
         link.requestingOrganization?.appUsers?.forEach { orgAppUser ->
 
@@ -212,10 +256,11 @@ class OrganizationSharingSessionLinkService @Inject constructor(
         }
     }
 
-    fun deLink(linkId: String?)
+    fun deLink(linkId: String?, adminApprovalContext: AdminApprovalContext)
     {
         val link = organizationSharingSessionLinkRepository.findById(UUID.fromString(linkId))
             ?: throw OrganizationLinkNotFoundException()
+        val beforeSnapshot = linkSnapshot(link)
 
         val appUser = authContext.authToken.appUser
 
@@ -224,11 +269,29 @@ class OrganizationSharingSessionLinkService @Inject constructor(
             throw IllegalArgumentException("Only organization administrators can view sharing session links")
         }
 
+        adminActionGuardService.enforce(
+            action = "ORG_LINK_DELETE",
+            actorId = appUser.id,
+            context = adminApprovalContext,
+            requireDualApproval = true,
+        )
+
         //ToDO: validate of appUser is part of the requesting or requested organization
 
         //ToDo: decide whether to send a notification email
 
         organizationSharingSessionLinkRepository.deleteById(link.id)
+
+        authAuditService.emit(
+            action = "ORG_LINK_DELETE",
+            outcome = "SUCCESS",
+            actorId = appUser.id,
+            organizationId = link.requestingOrganization?.id,
+            requestId = adminApprovalContext.requestId,
+            reason = "Organization admin removed organization link",
+            beforeSnapshot = beforeSnapshot,
+            afterSnapshot = "deleted",
+        )
     }
 
     fun getLinksByCurrentAppUser(): List<OrganizationSharingSessionLink>?
@@ -243,5 +306,10 @@ class OrganizationSharingSessionLinkService @Inject constructor(
         val appUserOrg = organizationRepository.findByAppUserIdAndPersonId(appUser.id, appUser.person?.id!!)
 
         return getLinksByOrganization(appUserOrg?.id.toString())
+    }
+
+    private fun linkSnapshot(link: OrganizationSharingSessionLink): String
+    {
+        return "id=${link.id};status=${link.status};requestingOrgId=${link.requestingOrganization?.id};requestedOrgId=${link.requestedOrganization?.id};createdDate=${link.createdDate};linkedDate=${link.linkedDate};rejectedDate=${link.rejectedDate};rejectionReason=${link.rejectionReason};requestingMessage=${link.requestingMessage}"
     }
 }

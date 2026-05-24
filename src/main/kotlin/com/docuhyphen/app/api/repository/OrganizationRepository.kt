@@ -75,4 +75,36 @@ class OrganizationRepository : BaseRepository<Organization>(Organization::class.
         query.setParameter("includePublic", includePublic)
         return query.resultList
     }
+
+    fun findByVerifiedContactEmailDomain(domain: String): Organization?
+    {
+        val query = entityManager.createQuery(
+            """
+                SELECT o FROM Organization o
+                WHERE o.isActive = true
+                  AND o.verificationComplete = true
+                  AND o.contactDetails.email IS NOT NULL
+                  AND LOWER(SUBSTRING(o.contactDetails.email, LOCATE('@', o.contactDetails.email) + 1)) = :domain
+            """.trimIndent(),
+            Organization::class.java,
+        )
+        query.setParameter("domain", domain.lowercase())
+        return query.resultList.firstOrNull()
+    }
+
+    fun findAllByVerifiedContactEmailDomain(domain: String): List<Organization>
+    {
+        val query = entityManager.createQuery(
+            """
+                SELECT o FROM Organization o
+                WHERE o.isActive = true
+                  AND o.verificationComplete = true
+                  AND o.contactDetails.email IS NOT NULL
+                  AND LOWER(SUBSTRING(o.contactDetails.email, LOCATE('@', o.contactDetails.email) + 1)) = :domain
+            """.trimIndent(),
+            Organization::class.java,
+        )
+        query.setParameter("domain", domain.lowercase())
+        return query.resultList
+    }
 }

@@ -3,7 +3,10 @@ package com.docuhyphen.app.api.interceptor
 import com.docuhyphen.app.api.model.entity.AuthToken
 import com.docuhyphen.app.api.model.entity.AuthTokenType.ACCESS
 import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.auth.ApplicationTokenBoundaryService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
+import com.docuhyphen.app.api.service.auth.OrganizationMembershipValidationService
+import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.enterprise.inject.Produces
 import jakarta.inject.Inject
@@ -49,7 +52,13 @@ class AuthTokenProducer
 @Provider
 class EndpointVerificationFilter @Inject constructor(
     private val authenticationService: AuthenticationService,
+    private val applicationTokenBoundaryService: ApplicationTokenBoundaryService,
     private val appUserService: AppUserService,
+    private val userSessionService: com.docuhyphen.app.api.service.auth.UserSessionService,
+    private val sessionRevocationCache: com.docuhyphen.app.api.service.auth.SessionRevocationCache,
+    private val dpopValidationService: com.docuhyphen.app.api.service.auth.DpopValidationService,
+    private val organizationMembershipValidationService: OrganizationMembershipValidationService,
+    private val configurationService: ConfigurationService,
 ) : ContainerRequestFilter
 {
     private val logger = LoggerFactory.getLogger(EndpointVerificationFilter::class.java.name)
@@ -68,6 +77,7 @@ class EndpointVerificationFilter @Inject constructor(
         "/auth/oauth/",
         "/auth/application/token",
         "/no-auth/sharing-sessions",
+        "/scim/", // SCIM endpoints use their own static bearer token, validated in the resource.
     )
 
     @Inject
@@ -102,6 +112,41 @@ class EndpointVerificationFilter @Inject constructor(
             return
         }
 
+        val tokenType = (claims["token_type"] as? String)?.trim()?.uppercase().orEmpty()
+        if (tokenType != ACCESS.name)
+        {
+            logger.warn("Non-access token used for protected request uri={}", requestUri)
+            abortRequest(requestContext, "Unauthorized request")
+            return
+        }
+
+        if (applicationTokenBoundaryService.isApplicationPrincipal(claims))
+        {
+            val scopes = applicationTokenBoundaryService.extractScopes(claims)
+            if (!applicationTokenBoundaryService.isApplicationTokenAllowedForPath(requestUri, scopes))
+            {
+                logger.warn("Application token denied for uri={} scopes={}", requestUri, scopes)
+                abortRequest(requestContext, "Unauthorized request")
+                return
+            }
+
+            val virtualToken = AuthToken().apply {
+                this.token = token
+                this.tokenType = ACCESS
+            }
+
+            authenticationContext.authToken = virtualToken
+            logger.info("Successfully authorized application token for uri={}", requestUri)
+            return
+        }
+
+        if (applicationTokenBoundaryService.isApplicationEndpoint(requestUri))
+        {
+            logger.warn("User-session token denied from application-only endpoint uri={}", requestUri)
+            abortRequest(requestContext, "Unauthorized request")
+            return
+        }
+
         val userId = try
         {
             java.util.UUID.fromString(claims.subject)
@@ -119,6 +164,93 @@ class EndpointVerificationFilter @Inject constructor(
             logger.warn("User not found for access token subject=$userId")
             abortRequest(requestContext, "Unauthorized request")
             return
+        }
+
+        if (!appUser.isActive || appUser.deprovisionedAt != null)
+        {
+            logger.warn("Inactive or deprovisioned user attempted access user={}", userId)
+            abortRequest(requestContext, "Unauthorized request")
+            return
+        }
+
+        val membershipValidation = organizationMembershipValidationService.validateForSessionAccess(appUser)
+        if (!membershipValidation.valid)
+        {
+            logger.warn(
+                "Inactive organization/membership attempted access user={} reason={}",
+                userId,
+                membershipValidation.reasonCode,
+            )
+            abortRequest(requestContext, "Unauthorized request")
+            return
+        }
+
+        if (configurationService.isAuthSessionVersionEnabled())
+        {
+            val tokenSessionVersion = (claims["session_version"] as? Number)?.toLong() ?: 0L
+            if (tokenSessionVersion != appUser.sessionVersion)
+            {
+                logger.warn("Session version mismatch for user={} tokenVersion={} currentVersion={}", userId, tokenSessionVersion, appUser.sessionVersion)
+                abortRequest(requestContext, "Unauthorized request")
+                return
+            }
+        }
+
+        val sessionIdRaw = claims["session_id"] as? String
+        if (sessionIdRaw.isNullOrBlank())
+        {
+            logger.warn("Missing session_id claim for user={}", userId)
+            abortRequest(requestContext, "Unauthorized request")
+            return
+        }
+
+        val sessionId = try
+        {
+            java.util.UUID.fromString(sessionIdRaw)
+        }
+        catch (_: Exception)
+        {
+            logger.warn("Invalid session_id claim format for user={}", userId)
+            abortRequest(requestContext, "Unauthorized request")
+            return
+        }
+
+        // O(1) Redis check first — covers in-flight revocations between DB writes and cache eviction.
+        if (sessionRevocationCache.isRevoked(sessionId))
+        {
+            logger.warn("Revoked session (Redis) sessionId={} user={}", sessionId, userId)
+            abortRequest(requestContext, "Unauthorized request")
+            return
+        }
+
+        if (!userSessionService.isActiveSession(sessionId, userId))
+        {
+            logger.warn("Inactive or missing user session sessionId={} user={}", sessionId, userId)
+            abortRequest(requestContext, "Unauthorized request")
+            return
+        }
+
+        userSessionService.touchSession(sessionId)
+
+        // DPoP (RFC 9449) sender-constraint check. Required when enabled and the access token
+        // carries a `cnf.jkt` claim. The proof's JWK thumbprint must match.
+        if (configurationService.isDpopEnabled())
+        {
+            val cnf = claims["cnf"] as? Map<*, *>
+            val expectedJkt = cnf?.get("jkt") as? String
+            if (!expectedJkt.isNullOrBlank())
+            {
+                val dpopHeader = requestContext.getHeaderString("DPoP")
+                val httpMethod = requestContext.method ?: "GET"
+                val requestUrl = requestContext.uriInfo.requestUri.toString()
+                val verify = dpopValidationService.verify(dpopHeader, httpMethod, requestUrl)
+                if (!verify.valid || verify.jwkThumbprint != expectedJkt)
+                {
+                    logger.warn("DPoP verification failed user={} reason={}", userId, verify.reason)
+                    abortRequest(requestContext, "DPoP proof required")
+                    return
+                }
+            }
         }
 
         val virtualToken = AuthToken().apply {

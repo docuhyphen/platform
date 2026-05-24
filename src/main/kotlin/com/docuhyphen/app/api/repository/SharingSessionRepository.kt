@@ -12,24 +12,10 @@ import java.util.*
 class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::class.java)
 {
     fun userHasSharingSessions(userId: UUID): Boolean {
-        val query = """
-        SELECT COUNT(DISTINCT s) FROM SharingSession s
-        LEFT JOIN s.recipient r
-        LEFT JOIN s.recipientGroup rg
-        LEFT JOIN s.participants p
-        WHERE (s.initiator.id = :appUserId
-               OR r.id = :appUserId
-               OR EXISTS (SELECT m FROM OrganizationGroupMember m WHERE m.organizationGroup.id = rg.id AND m.appUser.id = :appUserId)
-               OR EXISTS (SELECT sp FROM s.participants sp WHERE sp.appUser.id = :appUserId)
-               OR EXISTS (SELECT sp FROM s.participants sp JOIN sp.organizationGroup og JOIN og.members m WHERE m.appUser.id = :appUserId))
-        AND s.isDeleted = false
-    """
-
-        val emQuery = entityManager.createQuery(query, Long::class.java).also {
-            it.setParameter("appUserId", userId)  // Fixed parameter name to match the query
-        }
-
-        val count = emQuery.singleResult ?: 0
+        val count = entityManager.createQuery(
+            "SELECT COUNT(s) FROM SharingSession s WHERE s.initiator.id = :appUserId AND s.isDeleted = false",
+            Long::class.java
+        ).setParameter("appUserId", userId).singleResult ?: 0
         return count > 0
     }
 

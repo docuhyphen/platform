@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.exception
 
-import SignUpStatus
+import com.docuhyphen.app.api.model.entity.SignUpStatus
 
 class EmailNotFoundException() : Exception("Email not found")
 class InvalidOtpException(message: String? = "Invalid otp") : RuntimeException(message)
@@ -17,6 +17,7 @@ class InvalidEmailException(message: String = "Email is invalid") : RuntimeExcep
 class EmailExistsException() : RuntimeException("Email already exists")
 class AppUserExistsException() : RuntimeException("An account with this email already exists")
 class ExistingSignUpException() : RuntimeException("It seems you've already initiated the sign-up process. Please check your email for the OTP to continue")
+class InvalidSignUpConfirmationTokenException(message: String = "This verification link is invalid or has expired.") : RuntimeException(message)
 class EmailRequiredException() : RuntimeException("Email is required")
 class PasswordRequiredException() : RuntimeException("Password is required")
 class ConfirmationPasswordRequiredException() : RuntimeException("Confirmation password is required")

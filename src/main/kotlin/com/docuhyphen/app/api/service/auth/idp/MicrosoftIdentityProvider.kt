@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets
 @ApplicationScoped
 class MicrosoftIdentityProvider @Inject constructor(
     private val configurationService: ConfigurationService,
+    private val oidcJwksService: OidcJwksService,
 ) : IdentityProviderStrategy
 {
     companion object
@@ -27,36 +28,60 @@ class MicrosoftIdentityProvider @Inject constructor(
 
     override fun getProviderType(): IdentityProviderType = MICROSOFT
 
-    override fun buildAuthorizationUrl(state: String, redirectUri: String): String
+    override fun buildAuthorizationUrl(
+        state: String,
+        nonce: String,
+        redirectUri: String,
+        runtimeCredentials: RuntimeIdpCredentials?,
+        codeChallenge: String?,
+    ): String
     {
-        val tenantId = configurationService.microsoftOAuthTenantId
-        val clientId = configurationService.microsoftOAuthClientId
+        val tenantId = runtimeCredentials?.tenantId?.takeIf { it.isNotBlank() } ?: configurationService.microsoftOAuthTenantId
+        val clientId = runtimeCredentials?.clientId?.takeIf { it.isNotBlank() } ?: configurationService.microsoftOAuthClientId
+        val scopes = runtimeCredentials?.scopes?.takeIf { it.isNotBlank() } ?: "openid email profile"
         val encodedRedirectUri = URLEncoder.encode(redirectUri, StandardCharsets.UTF_8)
         val encodedState = URLEncoder.encode(state, StandardCharsets.UTF_8)
+        val encodedNonce = URLEncoder.encode(nonce, StandardCharsets.UTF_8)
+        val pkcePart = codeChallenge?.takeIf { it.isNotBlank() }
+            ?.let { "&code_challenge=${URLEncoder.encode(it, StandardCharsets.UTF_8)}&code_challenge_method=S256" }
+            .orEmpty()
 
         return "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/authorize" +
                 "?client_id=$clientId" +
                 "&response_type=code" +
                 "&redirect_uri=$encodedRedirectUri" +
                 "&response_mode=query" +
-                "&scope=${URLEncoder.encode("openid email profile", StandardCharsets.UTF_8)}" +
-                "&state=$encodedState"
+                "&scope=${URLEncoder.encode(scopes, StandardCharsets.UTF_8)}" +
+                "&state=$encodedState" +
+                "&nonce=$encodedNonce" +
+                pkcePart
     }
 
-    override fun exchangeCodeForTokens(code: String, redirectUri: String): OAuthTokenResponse
+    override fun exchangeCodeForTokens(
+        code: String,
+        redirectUri: String,
+        runtimeCredentials: RuntimeIdpCredentials?,
+        codeVerifier: String?,
+    ): OAuthTokenResponse
     {
-        val tenantId = configurationService.microsoftOAuthTenantId
-        val clientId = configurationService.microsoftOAuthClientId
-        val clientSecret = configurationService.microsoftOAuthClientSecret
+        val tenantId = runtimeCredentials?.tenantId?.takeIf { it.isNotBlank() } ?: configurationService.microsoftOAuthTenantId
+        val clientId = runtimeCredentials?.clientId?.takeIf { it.isNotBlank() } ?: configurationService.microsoftOAuthClientId
+        val clientSecret = runtimeCredentials?.clientSecret?.takeIf { it.isNotBlank() } ?: configurationService.microsoftOAuthClientSecret
+        val scopes = runtimeCredentials?.scopes?.takeIf { it.isNotBlank() } ?: "openid email profile"
 
         val tokenUrl = "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token"
+
+        val verifierPart = codeVerifier?.takeIf { it.isNotBlank() }
+            ?.let { "&code_verifier=${URLEncoder.encode(it, StandardCharsets.UTF_8)}" }
+            .orEmpty()
 
         val body = "grant_type=authorization_code" +
                 "&client_id=${URLEncoder.encode(clientId, StandardCharsets.UTF_8)}" +
                 "&client_secret=${URLEncoder.encode(clientSecret, StandardCharsets.UTF_8)}" +
                 "&code=${URLEncoder.encode(code, StandardCharsets.UTF_8)}" +
                 "&redirect_uri=${URLEncoder.encode(redirectUri, StandardCharsets.UTF_8)}" +
-                "&scope=${URLEncoder.encode("openid email profile", StandardCharsets.UTF_8)}"
+                "&scope=${URLEncoder.encode(scopes, StandardCharsets.UTF_8)}" +
+                verifierPart
 
         val httpClient = HttpClient.newHttpClient()
 
@@ -89,15 +114,97 @@ class MicrosoftIdentityProvider @Inject constructor(
         )
     }
 
-    override fun validateIdToken(idToken: String): OAuthUserInfo = parseIdTokenPayload(idToken)
+    override fun validateIdToken(idToken: String, expectedNonce: String, runtimeCredentials: RuntimeIdpCredentials?): OAuthUserInfo =
+        parseIdTokenPayload(idToken, expectedNonce, runtimeCredentials)
 
-    private fun parseIdTokenPayload(idToken: String): OAuthUserInfo
+    private fun parseIdTokenPayload(
+        idToken: String,
+        expectedNonce: String? = null,
+        runtimeCredentials: RuntimeIdpCredentials? = null,
+    ): OAuthUserInfo
     {
         val parts = idToken.split(".")
         if (parts.size != 3) throw RuntimeException("Invalid Microsoft ID token format")
 
+        val headerJson = String(java.util.Base64.getUrlDecoder().decode(parts[0]))
+        val header = OAuthJsonParser.parseJsonToMap(headerJson)
+        val alg = header["alg"] as? String ?: throw RuntimeException("Missing alg in Microsoft ID token")
+        val kid = header["kid"] as? String ?: throw RuntimeException("Missing kid in Microsoft ID token")
+        val allowedAlgs = runtimeCredentials?.allowedAlgs?.ifEmpty { setOf("RS256") } ?: setOf("RS256")
+        if (!allowedAlgs.contains(alg) || kid.isBlank())
+        {
+            throw RuntimeException("Unsupported Microsoft ID token header")
+        }
+
+        val tenantId = runtimeCredentials?.tenantId?.takeIf { it.isNotBlank() } ?: configurationService.microsoftOAuthTenantId
+        oidcJwksService.verifySignature(
+            jwt = idToken,
+            jwksUrl = "https://login.microsoftonline.com/$tenantId/discovery/v2.0/keys",
+            expectedKid = kid,
+        )
+
         val payloadJson = String(java.util.Base64.getUrlDecoder().decode(parts[1]))
         val claims = OAuthJsonParser.parseJsonToMap(payloadJson)
+
+        validateRequiredClaims(claims, runtimeCredentials)
+
+        val issuer = claims["iss"] as? String ?: throw RuntimeException("Missing iss in Microsoft ID token")
+        val expectedIssuer = runtimeCredentials?.oidcIssuer?.takeIf { it.isNotBlank() }
+        if (expectedIssuer != null)
+        {
+            if (issuer != expectedIssuer)
+            {
+                throw RuntimeException("Invalid Microsoft issuer")
+            }
+        }
+        else if (!issuer.contains("login.microsoftonline.com"))
+        {
+            throw RuntimeException("Invalid Microsoft issuer")
+        }
+
+        val acceptedAudiences = (runtimeCredentials?.allowedAudiences ?: emptySet()).ifEmpty {
+            setOf(runtimeCredentials?.clientId?.takeIf { it.isNotBlank() } ?: configurationService.microsoftOAuthClientId)
+        }
+        val audience = claims["aud"] as? String ?: throw RuntimeException("Missing aud in Microsoft ID token")
+        if (!acceptedAudiences.contains(audience))
+        {
+            throw RuntimeException("Invalid Microsoft audience")
+        }
+
+        val azp = claims["azp"] as? String
+        if (configurationService.isOidcRequireAzpWhenMultiAudEnabled())
+        {
+            val audList = claims["aud"] as? List<*>
+            if (audList != null && audList.size > 1)
+            {
+                if (azp.isNullOrBlank() || !acceptedAudiences.contains(azp))
+                {
+                    throw RuntimeException("Invalid Microsoft azp for multi-audience token")
+                }
+            }
+        }
+
+        expectedNonce?.let { nonce ->
+            val tokenNonce = claims["nonce"] as? String ?: throw RuntimeException("Missing nonce in Microsoft ID token")
+            if (tokenNonce != nonce)
+            {
+                throw RuntimeException("Microsoft nonce mismatch")
+            }
+        }
+
+        validateTemporalClaims(claims)
+
+        // Tenant claim check: when a tenantId is configured, the token's tid must match.
+        // "common"/"organizations" are multi-tenant placeholders — accept any tid in that case.
+        val configuredTenantId = runtimeCredentials?.tenantId?.takeIf { it.isNotBlank() } ?: configurationService.microsoftOAuthTenantId
+        if (!configuredTenantId.isNullOrBlank() && configuredTenantId !in setOf("common", "organizations", "consumers"))
+        {
+            val tokenTid = claims["tid"] as? String
+            if (tokenTid.isNullOrBlank() || tokenTid != configuredTenantId)
+            {
+                throw RuntimeException("Microsoft tid claim does not match configured tenant")
+            }
+        }
 
         return OAuthUserInfo(
             email = (claims[EMAIL.claimName] as? String)
@@ -109,5 +216,43 @@ class MicrosoftIdentityProvider @Inject constructor(
             firstName = claims[GIVEN_NAME.claimName] as? String,
             lastName = claims[FAMILY_NAME.claimName] as? String,
         )
+    }
+
+    private fun validateTemporalClaims(claims: Map<String, Any?>)
+    {
+        val nowEpochSeconds = System.currentTimeMillis() / 1000
+        val skew = configurationService.getOidcAllowedClockSkewSeconds()
+
+        val exp = (claims["exp"] as? Number)?.toLong() ?: throw RuntimeException("Missing exp in Microsoft ID token")
+        val iat = (claims["iat"] as? Number)?.toLong() ?: throw RuntimeException("Missing iat in Microsoft ID token")
+        val nbf = (claims["nbf"] as? Number)?.toLong()
+
+        if (exp + skew < nowEpochSeconds)
+        {
+            throw RuntimeException("Microsoft ID token expired")
+        }
+
+        if (iat - skew > nowEpochSeconds)
+        {
+            throw RuntimeException("Microsoft ID token issued in the future")
+        }
+
+        if (nbf != null && nbf - skew > nowEpochSeconds)
+        {
+            throw RuntimeException("Microsoft ID token not valid yet")
+        }
+    }
+
+    private fun validateRequiredClaims(claims: Map<String, Any?>, runtimeCredentials: RuntimeIdpCredentials?)
+    {
+        val requiredClaims = runtimeCredentials?.requiredClaims?.ifEmpty { configurationService.getOidcRequiredClaimsMicrosoft() }
+            ?: configurationService.getOidcRequiredClaimsMicrosoft()
+        requiredClaims.forEach { claimName ->
+            val value = claims[claimName]
+            if (value == null || (value is String && value.isBlank()))
+            {
+                throw RuntimeException("Missing required Microsoft claim: $claimName")
+            }
+        }
     }
 }

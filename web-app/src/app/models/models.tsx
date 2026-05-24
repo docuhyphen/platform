@@ -463,12 +463,51 @@ export interface IdentityProviderLinkDto
 export interface SignInLookupRequest
 {
     email: string;
+    orgId?: string;
+}
+
+export interface SignInLookupOrganizationOption
+{
+    id: string;
+    name: string;
 }
 
 export interface SignInLookupResponse
 {
     authMethod: string;
     redirectUrl?: string;
+    outcome?: 'ORG_FOUND' | 'MULTIPLE_ORGS' | 'NO_ORG';
+    fallbackAuthMethod?: string;
+    organizations?: SignInLookupOrganizationOption[];
+    availableProviders?: string[];
+}
+
+export interface UserSessionDto
+{
+    sessionId: string;
+    deviceId?: string;
+    deviceName?: string;
+    ipAddress?: string;
+    userAgent?: string;
+    createdDate: string;
+    lastSeenAt: string;
+    expiresAt?: string;
+}
+
+export interface UserSessionListResponse
+{
+    sessions: UserSessionDto[];
+    total: number;
+}
+
+export interface OrgMemberCapacityResponse
+{
+    organizationId: string;
+    tierCode: string;
+    maxUsers?: number;
+    activeUsers: number;
+    atCap: boolean;
+    nearCap: boolean;
 }
 
 export interface OAuthLinkConfirmRequest
@@ -541,6 +580,25 @@ export interface SignUpInitiationRequest
 export interface SignUpOtpRegenerationRequest
 {
     email: string
+}
+
+/** Request body for POST /auth/sign-up/email-confirm — opaque-token flow. */
+export interface SignUpEmailConfirmRequest
+{
+    token: string;
+    password: string;
+    confirmationPassword: string;
+}
+
+export interface SignUpEmailConfirmResponse
+{
+    message?: string;
+}
+
+/** Response from GET /auth/sign-up/email-confirm/{token} — token introspection. */
+export interface SignUpEmailConfirmCheckResponse
+{
+    email: string;
 }
 
 export interface SignInOtpRegenerationRequest

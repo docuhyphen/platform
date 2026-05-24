@@ -16,6 +16,7 @@
     </tr>
 </table>
 
+<p style="margin:0 0 14px 0;">Verification link: <a href="${confirmationLink}" style="color:#1f73b7;">${confirmationLink}</a></p>
 <p style="margin:0 0 14px 0;">This code expires in <strong>${expiryMinutes}</strong> minute<#if expiryMinutes != 1>s</#if>.</p>
 <p style="margin:0 0 14px 0;">If you did not request this code, please ignore this email.</p>
 

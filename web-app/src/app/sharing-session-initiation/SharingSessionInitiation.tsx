@@ -41,10 +41,12 @@ import {
     SharingSessionInitiationRequest, SharingSessionParticipantRole, SharingSessionParticipantType,
     SharingSessionRequestDocumentRequest
 } from "../models/models.tsx";
+import {useAuth} from "../../context/AuthContext.tsx";
 
 const SharingSessionInitiation: React.FC = () =>
 {
     const styles = useSharingSessionInitiationStyles();
+    const {appUser} = useAuth();
     const {
         choosingTemplate, setChoosingTemplate,
         sessionName, setSessionName,
@@ -111,11 +113,23 @@ const SharingSessionInitiation: React.FC = () =>
                     setSelectedTab('recipients-tab');
                     return false;
                 }
+                if (recipientOrgUser && appUser && recipientOrgUser.id === appUser.id)
+                {
+                    setMessageGroupMessages(['You cannot be the recipient of your own sharing session']);
+                    setSelectedTab('recipients-tab');
+                    return false;
+                }
                 break;
             case SharingSessionInitiationRecipientMode.MY_ORG:
                 if (!recipientOrgUser && !recipientOrgGroup)
                 {
                     setMessageGroupMessages(['A valid recipient user or group in your organization is required']);
+                    setSelectedTab('recipients-tab');
+                    return false;
+                }
+                if (recipientOrgUser && appUser && recipientOrgUser.id === appUser.id)
+                {
+                    setMessageGroupMessages(['You cannot be the recipient of your own sharing session']);
                     setSelectedTab('recipients-tab');
                     return false;
                 }
@@ -130,6 +144,12 @@ const SharingSessionInitiation: React.FC = () =>
                 if (!newRecipient.firstName || !newRecipient.lastName)
                 {
                     setMessageGroupMessages(['Recipient first and last name are required']);
+                    setSelectedTab('recipients-tab');
+                    return false;
+                }
+                if (appUser?.email && newRecipient.email.trim().toLowerCase() === appUser.email.trim().toLowerCase())
+                {
+                    setMessageGroupMessages(['You cannot be the recipient of your own sharing session']);
                     setSelectedTab('recipients-tab');
                     return false;
                 }
@@ -223,9 +243,11 @@ const SharingSessionInitiation: React.FC = () =>
                 allowDocumentUpdate: allowDocumentUpdate,
                 allowDocumentUpload: allowDocumentUpload,
                 recipientType,
-                participants: internalParticipants?.map(p => {
-                    return {id: p.id, participantType: SharingSessionParticipantType.APP_USER}
-                })
+                participants: internalParticipants
+                    ?.filter(p => !appUser || p.id !== appUser.id)
+                    ?.map(p => {
+                        return {id: p.id, participantType: SharingSessionParticipantType.APP_USER}
+                    })
             } as SharingSessionInitiationRequest;
 
             const createdSharingSession = await initiateSharingSession(sharingSession);

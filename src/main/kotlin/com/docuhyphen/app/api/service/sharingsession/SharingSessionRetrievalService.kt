@@ -19,6 +19,15 @@ import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
 import java.util.*
 
+@Serializable
+data class SearchResult(
+    val content: Array<SharingSessionBasicDto?>,
+    val totalElements: Long,
+    val totalPages: Int,
+    val currentPage: Int,
+    val pageSize: Int
+)
+
 @ApplicationScoped
 class SharingSessionRetrievalService @Inject constructor(
     private val sharingSessionRepository: SharingSessionRepository,
@@ -63,8 +72,14 @@ class SharingSessionRetrievalService @Inject constructor(
 
     fun checkUserHasSharingSessions(): Boolean
     {
-        val appUserId = authTokenContext.authToken.appUser?.id
-        return sharingSessionRepository.userHasSharingSessions(appUserId!!)
+        // Defensive: NPE-ing here would surface as a generic 500 with a misleading
+        // "Failed to check for sharing sessions" alert on the frontend. The auth
+        // filter normally guarantees appUser is populated, but treat a missing
+        // principal as "no sessions" rather than crashing — the filter already
+        // rejects truly unauthenticated calls upstream, so reaching here with a
+        // null appUser is a soft anomaly, not a security boundary.
+        val appUserId = authTokenContext.authToken.appUser?.id ?: return false
+        return sharingSessionRepository.userHasSharingSessions(appUserId)
     }
 
     fun getNoAuthSharingSession(sessionId: String): SharingSession
@@ -88,15 +103,6 @@ class SharingSessionRetrievalService @Inject constructor(
 
         return session
     }
-
-    @Serializable
-    data class SearchResult(
-        val content: Array<SharingSessionBasicDto?>,
-        val totalElements: Long,
-        val totalPages: Int,
-        val currentPage: Int,
-        val pageSize: Int
-    )
 
     fun searchSharingSessions(
         query: String?,

@@ -72,6 +72,20 @@ class AppUser
     @Column(name = "is_temporary", nullable = false)
     var isTemporary: Boolean = false
 
+    @Column(name = "session_version", nullable = false)
+    var sessionVersion: Long = 0
+
+    @Column(name = "deprovisioned_at", nullable = true)
+    @Serializable(with = TimestampSerializer::class)
+    var deprovisionedAt: Timestamp? = null
+
+    @Column(name = "role_source", nullable = true)
+    var roleSource: String? = null
+
+    @Column(name = "role_assigned_at", nullable = true)
+    @Serializable(with = TimestampSerializer::class)
+    var roleAssignedAt: Timestamp? = null
+
     @OneToOne(cascade = [ALL], fetch = LAZY)
     @JoinColumn(name = "settings_id")
     var settings: AppUserSettings? = null

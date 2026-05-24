@@ -1,6 +1,7 @@
 import {
     Badge,
-    Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger,
+    Button, Caption1, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger,
+    ProgressBar,
     Spinner,
     Table,
     TableBody,
@@ -16,7 +17,8 @@ import {PersonAddIcon} from "../../components/IconBundles.tsx";
 import {useOrganizationPeopleTabStyles} from "./OrganizationPeopleTabStyles.tsx";
 import {fetchMyOrganizationUsers} from "../../../services/organizationApi.ts";
 import {useAuth} from "../../../context/AuthContext.tsx";
-import {AppUserDetailedDto, AppUserRole, AppUserRoleDisplayNames} from "../../models/models.tsx";
+import {AppUserDetailedDto, AppUserRole, AppUserRoleDisplayNames, OrgMemberCapacityResponse} from "../../models/models.tsx";
+import {getOrgMemberCapacity} from "../../../services/authApi.ts";
 import AddAppUserDialog from "./add-app-user-dialog/AddAppUserDialog.tsx";
 import EditUserDialog from "./app-user-edit-dialog/EditUserDialog.tsx";
 import {DeleteRegular, MoreHorizontalRegular, PersonEditRegular, PersonRegular} from "@fluentui/react-icons";
@@ -33,6 +35,7 @@ const OrganizationPeopleTab = () =>
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isDeleteAppUserDialogOpen, setIsDeleteAppUserDialogOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<AppUserDetailedDto | null>(null);
+    const [capacity, setCapacity] = useState<OrgMemberCapacityResponse | null>(null);
 
     const loadUsers = async () =>
     {
@@ -54,9 +57,24 @@ const OrganizationPeopleTab = () =>
         }
     };
 
+    const loadCapacity = async () =>
+    {
+        if (!appUserPersonOrganization?.id) return;
+        try
+        {
+            const cap = await getOrgMemberCapacity(appUserPersonOrganization.id);
+            setCapacity(cap);
+        }
+        catch
+        {
+            // Capacity indicator is non-critical; fail silently
+        }
+    };
+
     useEffect(() =>
     {
         loadUsers();
+        loadCapacity();
     }, []);
 
     const handleAddUser = () =>
@@ -88,6 +106,36 @@ const OrganizationPeopleTab = () =>
         <div className={styles.container}>
 
             {error && <div className={styles.error}>{error}</div>}
+
+            {capacity && (
+                <div style={{padding: '12px 16px', borderRadius: '8px', border: '1px solid #e0e0e0', display: 'flex', flexDirection: 'column', gap: '6px'}}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                        <Caption1>
+                            <strong>Member capacity</strong> &nbsp;·&nbsp; Tier: {capacity.tierCode}
+                        </Caption1>
+                        <Caption1>
+                            {capacity.activeUsers}{capacity.maxUsers != null ? ` / ${capacity.maxUsers}` : ' / Unlimited'}
+                        </Caption1>
+                    </div>
+                    {capacity.maxUsers != null && (
+                        <ProgressBar
+                            value={capacity.activeUsers / capacity.maxUsers}
+                            color={capacity.atCap ? "error" : capacity.nearCap ? "warning" : "brand"}
+                            thickness="medium"
+                        />
+                    )}
+                    {capacity.atCap && (
+                        <Caption1 style={{color: 'var(--colorPaletteRedForeground1)'}}>
+                            Organization has reached its user limit. Upgrade your plan to add more members.
+                        </Caption1>
+                    )}
+                    {!capacity.atCap && capacity.nearCap && (
+                        <Caption1 style={{color: 'var(--colorPaletteYellowForeground1)'}}>
+                            Approaching user limit.
+                        </Caption1>
+                    )}
+                </div>
+            )}
 
             {loading ? (
                 <div className={styles.loading}>

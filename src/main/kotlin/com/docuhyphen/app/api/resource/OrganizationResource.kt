@@ -2,13 +2,15 @@ package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.exception.DataIntegrityException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
-import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer
 import com.docuhyphen.app.api.model.dto.OrganizationSettingsDto
+import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpdateOrganizationRequest
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.service.auth.DirectoryLookupGuardService
 import com.docuhyphen.app.api.service.SettingsService
 import com.docuhyphen.app.api.service.organization.OrganizationService
-import com.docuhyphen.app.api.service.organization.OrganizationSharingSessionLinkService
+import com.docuhyphen.app.api.service.config.ConfigurationService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -24,7 +26,8 @@ import org.slf4j.LoggerFactory
 class OrganizationResource @Inject constructor(
     private val organizationService: OrganizationService,
     private val settingsService: SettingsService,
-    private val organizationSharingSessionLinkService: OrganizationSharingSessionLinkService
+    private val configurationService: ConfigurationService,
+    private val directoryLookupGuardService: DirectoryLookupGuardService,
 )
 {
     companion object
@@ -37,17 +40,27 @@ class OrganizationResource @Inject constructor(
     @Transactional
     fun updateOrganization(
         @PathParam("organizationId") organizationId: String?,
+        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
+        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
+        @HeaderParam("X-Request-Id") requestId: String?,
         updateOrganizationRequest: UpdateOrganizationRequest
     ): Response
     {
         return try
         {
+            val adminApprovalContext = AdminApprovalContext(
+                stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
+                dualApprovalId = dualApprovalId,
+                requestId = requestId,
+            )
+
             with(updateOrganizationRequest)
             {
                 organizationService.updateOrganization(
                     organizationId,
                     name,
-                    registrationNumber
+                    registrationNumber,
+                    adminApprovalContext,
                 )
             }
 
@@ -95,12 +108,21 @@ class OrganizationResource @Inject constructor(
     @Transactional
     fun updateOrganizationSettings(
         @PathParam("organizationId") organizationId: String,
+        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
+        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
+        @HeaderParam("X-Request-Id") requestId: String?,
         settingsDto: OrganizationSettingsDto
     ): Response
     {
         return try
         {
-            settingsService.updateOrganizationSettings(organizationId, settingsDto)
+            val adminApprovalContext = AdminApprovalContext(
+                stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
+                dualApprovalId = dualApprovalId,
+                requestId = requestId,
+            )
+
+            settingsService.updateOrganizationSettings(organizationId, settingsDto, adminApprovalContext)
             Response.ok(settingsDto).build()
         }
         catch (exception: Exception)
@@ -167,14 +189,25 @@ class OrganizationResource @Inject constructor(
     @GET
     @Path("/linked/{organizationId}/app-users")
     fun getPairedOrganizationAppUsers(
-        @PathParam("organizationId") organizationId: String?
+        @PathParam("organizationId") organizationId: String?,
+        @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
         return try
         {
+            val limitedResponse = enforceDirectoryLookupRateLimit(
+                targetOrganizationId = organizationId,
+                endpointKey = "linked-app-users",
+                requestId = requestId,
+            )
+            if (limitedResponse != null)
+            {
+                return limitedResponse
+            }
+
             val appUsers = organizationService.getLinkedOrganizationsAppUsers(organizationId).map {
                 BasicEntityToDtoTransformer.toLinkedOrgAppUser(it)
-            }.toTypedArray()
+            }.take(configurationService.getDirectoryLookupMaxResults()).toTypedArray()
 
             Response.ok(appUsers).build()
         }
@@ -197,14 +230,25 @@ class OrganizationResource @Inject constructor(
     @GET
     @Path("/linked/{organizationId}/groups")
     fun getPairedOrganizationGroups(
-        @PathParam("organizationId") organizationId: String?
+        @PathParam("organizationId") organizationId: String?,
+        @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
         return try
         {
+            val limitedResponse = enforceDirectoryLookupRateLimit(
+                targetOrganizationId = organizationId,
+                endpointKey = "linked-groups",
+                requestId = requestId,
+            )
+            if (limitedResponse != null)
+            {
+                return limitedResponse
+            }
+
             val groups = organizationService.getLinkedOrganizationsGroups(organizationId).map {
                 BasicEntityToDtoTransformer.toLinkedOrgGroup(it)
-            }.toTypedArray()
+            }.take(configurationService.getDirectoryLookupMaxResults()).toTypedArray()
 
             Response.ok(groups).build()
         }
@@ -222,5 +266,14 @@ class OrganizationResource @Inject constructor(
                     Response.status(INTERNAL_SERVER_ERROR).build()
             }
         }
+    }
+
+    private fun enforceDirectoryLookupRateLimit(
+        targetOrganizationId: String?,
+        endpointKey: String,
+        requestId: String?,
+    ): Response?
+    {
+        return directoryLookupGuardService.enforce(endpointKey, targetOrganizationId, requestId)
     }
 }
