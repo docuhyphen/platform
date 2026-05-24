@@ -9,11 +9,16 @@ import com.docuhyphen.app.api.model.entity.Person
 import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.service.auth.SignOutService
 import com.docuhyphen.app.api.service.communication.EmailService
+import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.sharingsession.SharingSessionRetrievalService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
+import org.slf4j.LoggerFactory
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 @RequestScoped
@@ -23,11 +28,18 @@ class AppUserService @Inject constructor(
     val authTokenContext: AuthTokenContext,
     val otpService: OtpService,
     val emailService: EmailService,
+    val emailTemplateService: EmailTemplateService,
     val configurationService: ConfigurationService,
     val signOutService: SignOutService,
     val sharingSessionService: SharingSessionRetrievalService
 )
 {
+    companion object
+    {
+        private val logger = LoggerFactory.getLogger(AppUserService::class.java)
+        private val UTC_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm 'UTC'").withZone(ZoneOffset.UTC)
+    }
+
     fun getById(id: UUID): AppUser?
     {
         return appUserRepository.findById(id)
@@ -76,12 +88,35 @@ class AppUserService @Inject constructor(
             throw IllegalArgumentException("Last name cannot be null or blank")
         }
 
-        appUser.person = Person().apply {
-            this.firstName = personDto.firstName
-            this.lastName = personDto.lastName
+        val newFirst = personDto.firstName.trim()
+        val newLast = personDto.lastName.trim()
+
+        // Mutate the existing Person in place rather than replacing the reference.
+        // Replacing would orphan the existing person row and (with cascade=ALL) make
+        // Hibernate try to re-INSERT the old id, blowing up on the person_pkey unique
+        // constraint. If the user somehow has no Person yet, create one for them.
+        val person = appUser.person ?: Person().also { appUser.person = it }
+
+        val changes = mutableListOf<String>()
+        if (person.firstName != newFirst)
+        {
+            changes.add("First name changed from \"${person.firstName ?: ""}\" to \"$newFirst\"")
+            person.firstName = newFirst
+        }
+        if (person.lastName != newLast)
+        {
+            changes.add("Last name changed from \"${person.lastName ?: ""}\" to \"$newLast\"")
+            person.lastName = newLast
+        }
+
+        if (changes.isEmpty())
+        {
+            return
         }
 
         appUserRepository.update(appUser)
+
+        sendProfileUpdatedEmail(appUser, changes)
     }
 
     fun initiateEmailUpdate(email: String?)
@@ -105,16 +140,76 @@ class AppUserService @Inject constructor(
             }
         }
 
-        val verificationCode = otpService.generateEmailOtp()
+        // Step 1 of two-step flow: send a code to the OLD email.
+        val oldEmailCode = otpService.generateEmailOtp()
         appUser.pendingEmail = email
-        appUser.pendingEmailVerificationCode = verificationCode
+        appUser.pendingEmailOldVerificationCode = oldEmailCode
+        appUser.pendingEmailOldVerified = false
+        appUser.pendingEmailVerificationCode = null
         appUserRepository.update(appUser)
 
-        emailService.sendEmail(
-            email,
-            "${configurationService.emailSubjectTitle} Email Verification",
-            "Your verification code is: $verificationCode"
-        )
+        try
+        {
+            val body = emailTemplateService.renderEmailUpdateOldVerificationEmail(
+                newEmail = email,
+                verificationCode = oldEmailCode,
+                expiryMinutes = configurationService.getSignUpOtpExpiryMins(),
+            )
+            emailService.sendEmail(
+                to = appUser.email,
+                subject = "${configurationService.emailSubjectTitle} | Confirm email change",
+                body = body,
+                useHtml = true,
+            )
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to send email-update OLD verification to {}", appUser.email, e)
+        }
+    }
+
+    fun confirmOldEmailForUpdate(verificationCode: String?)
+    {
+        val appUser = authTokenContext.authToken.appUser!!
+
+        if (verificationCode.isNullOrBlank())
+        {
+            throw IllegalArgumentException("Verification code cannot be null or blank")
+        }
+
+        if (appUser.pendingEmail.isNullOrBlank())
+        {
+            throw IllegalArgumentException("No pending email change to confirm")
+        }
+
+        if (appUser.pendingEmailOldVerificationCode != verificationCode)
+        {
+            throw IllegalArgumentException("Invalid verification code")
+        }
+
+        val newEmailCode = otpService.generateEmailOtp()
+        appUser.pendingEmailOldVerified = true
+        appUser.pendingEmailVerificationCode = newEmailCode
+        appUserRepository.update(appUser)
+
+        try
+        {
+            val body = emailTemplateService.renderEmailUpdateNewVerificationEmail(
+                newEmail = appUser.pendingEmail!!,
+                verificationCode = newEmailCode,
+                expiryMinutes = configurationService.getSignUpOtpExpiryMins(),
+            )
+            emailService.sendEmail(
+                to = appUser.pendingEmail!!,
+                subject = "${configurationService.emailSubjectTitle} | Verify your new email",
+                body = body,
+                useHtml = true,
+            )
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to send email-update NEW verification to {}", appUser.pendingEmail, e)
+        }
     }
 
     fun completeEmailUpdate(email: String?, verificationCode: String?)
@@ -136,16 +231,42 @@ class AppUserService @Inject constructor(
             throw IllegalArgumentException("Email does not match the pending email")
         }
 
+        if (appUser.pendingEmailOldVerified != true)
+        {
+            throw IllegalArgumentException("Current email must be verified before completing the change")
+        }
+
         if (appUser.pendingEmailVerificationCode != verificationCode)
         {
             throw IllegalArgumentException("Invalid verification code")
         }
 
+        val previousEmail = appUser.email
         appUser.email = email
         appUser.pendingEmail = null
         appUser.pendingEmailVerificationCode = null
+        appUser.pendingEmailOldVerificationCode = null
+        appUser.pendingEmailOldVerified = false
         appUser.emailVerificationComplete = true
         appUserRepository.update(appUser)
+
+        try
+        {
+            val body = emailTemplateService.renderEmailUpdateCompletionEmail(
+                oldEmail = previousEmail,
+                newEmail = email,
+            )
+            emailService.sendEmail(
+                to = previousEmail,
+                subject = "${configurationService.emailSubjectTitle} | Email address changed",
+                body = body,
+                useHtml = true,
+            )
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to send email-update completion notice to {}", previousEmail, e)
+        }
 
         signOutService.signOut(outOfAllDevices = true)
     }
@@ -169,6 +290,43 @@ class AppUserService @Inject constructor(
             throw IllegalArgumentException("Cannot delete app user with linked sharing sessions")
         }
 
+        val deletedEmail = appUser.email
         appUserRepository.delete(appUser)
+
+        try
+        {
+            val body = emailTemplateService.renderAccountDeletedEmail(
+                email = deletedEmail,
+                deletedAt = UTC_FORMATTER.format(Instant.now()),
+            )
+            emailService.sendEmail(
+                to = deletedEmail,
+                subject = "${configurationService.emailSubjectTitle} | Account deleted",
+                body = body,
+                useHtml = true,
+            )
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to send account-deleted email to {}", deletedEmail, e)
+        }
+    }
+
+    private fun sendProfileUpdatedEmail(appUser: AppUser, updatedFields: List<String>)
+    {
+        try
+        {
+            val body = emailTemplateService.renderProfileUpdatedEmail(updatedFields)
+            emailService.sendEmail(
+                to = appUser.email,
+                subject = "${configurationService.emailSubjectTitle} | Profile updated",
+                body = body,
+                useHtml = true,
+            )
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to send profile-updated email to {}", appUser.email, e)
+        }
     }
 }

@@ -13,6 +13,9 @@ import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
+import com.docuhyphen.app.api.service.communication.EmailService
+import com.docuhyphen.app.api.service.communication.EmailTemplateService
+import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -28,6 +31,9 @@ class OrganizationAppUserService @Inject constructor(
     private val organizationRepository: OrganizationRepository,
     private val adminActionGuardService: AdminActionGuardService,
     private val authAuditService: AuthAuditService,
+    private val emailService: EmailService,
+    private val emailTemplateService: EmailTemplateService,
+    private val configurationService: ConfigurationService,
 )
 {
     companion object
@@ -112,6 +118,8 @@ class OrganizationAppUserService @Inject constructor(
             afterSnapshot = appUserSnapshot(appUser),
         )
 
+        sendOrganizationMemberAddedEmail(appUser, organization.name, role, isNewUser = true)
+
         return appUser
     }
 
@@ -162,13 +170,14 @@ class OrganizationAppUserService @Inject constructor(
             throw IllegalArgumentException("App User ID cannot be null or blank")
         }
 
-        organizationGroupService.getOrganizationById(UUID.fromString(organizationId.toString()))
+        val organization = organizationGroupService.getOrganizationById(UUID.fromString(organizationId.toString()))
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
 
         val appUser = appUserService.getById(UUID.fromString(appUserId))
             ?: throw AppUserNotFoundException("App user not found for id: $appUserId")
 
         val beforeSnapshot = appUserSnapshot(appUser)
+        val previousRole = appUser.role
 
         isActive?.let {
 
@@ -179,7 +188,7 @@ class OrganizationAppUserService @Inject constructor(
 
         role?.let {
 
-            try
+            val parsedRole = try
             {
                 AppUserRole.valueOf(role)
             }
@@ -187,6 +196,8 @@ class OrganizationAppUserService @Inject constructor(
             {
                 throw IllegalArgumentException("Invalid role: $role")
             }
+
+            appUser.role = parsedRole
         }
 
         email?.let {
@@ -239,6 +250,11 @@ class OrganizationAppUserService @Inject constructor(
             beforeSnapshot = beforeSnapshot,
             afterSnapshot = appUserSnapshot(appUser),
         )
+
+        if (previousRole != appUser.role)
+        {
+            sendRoleChangedEmail(appUser, organization.name, previousRole, appUser.role)
+        }
     }
 
     @Transactional
@@ -295,6 +311,8 @@ class OrganizationAppUserService @Inject constructor(
         // Update the entire organization which will cascade to groups
         organizationRepository.update(organization)
 
+        sendOrganizationMemberRemovedEmail(appUser, organization.name)
+
         // Now it's safe to delete the app user
         appUserService.delete(appUser.id.toString())
 
@@ -335,5 +353,91 @@ class OrganizationAppUserService @Inject constructor(
     private fun appUserSnapshot(appUser: AppUser): String
     {
         return "id=${appUser.id};email=${appUser.email};role=${appUser.role};isActive=${appUser.isActive};firstName=${appUser.person?.firstName};lastName=${appUser.person?.lastName}"
+    }
+
+    private fun actorLabel(): String
+    {
+        val actor = authTokenContext.authToken.appUser ?: return "an administrator"
+        return actor.person?.let { "${it.firstName} ${it.lastName}" } ?: actor.email
+    }
+
+    private fun sendOrganizationMemberAddedEmail(
+        appUser: AppUser,
+        organizationName: String,
+        role: AppUserRole,
+        isNewUser: Boolean,
+    )
+    {
+        try
+        {
+            val body = emailTemplateService.renderOrganizationMemberAddedEmail(
+                firstName = appUser.person?.firstName ?: "there",
+                organizationName = organizationName,
+                role = role.name,
+                addedBy = actorLabel(),
+                isNewUser = isNewUser,
+            )
+            emailService.sendEmail(
+                to = appUser.email,
+                subject = "${configurationService.emailSubjectTitle} | Added to $organizationName",
+                body = body,
+                useHtml = true,
+            )
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to send org-member-added email to {}", appUser.email, e)
+        }
+    }
+
+    private fun sendOrganizationMemberRemovedEmail(appUser: AppUser, organizationName: String)
+    {
+        try
+        {
+            val body = emailTemplateService.renderOrganizationMemberRemovedEmail(
+                firstName = appUser.person?.firstName ?: "there",
+                organizationName = organizationName,
+                removedBy = actorLabel(),
+            )
+            emailService.sendEmail(
+                to = appUser.email,
+                subject = "${configurationService.emailSubjectTitle} | Removed from $organizationName",
+                body = body,
+                useHtml = true,
+            )
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to send org-member-removed email to {}", appUser.email, e)
+        }
+    }
+
+    private fun sendRoleChangedEmail(
+        appUser: AppUser,
+        organizationName: String,
+        oldRole: AppUserRole,
+        newRole: AppUserRole,
+    )
+    {
+        try
+        {
+            val body = emailTemplateService.renderRoleChangedEmail(
+                firstName = appUser.person?.firstName ?: "there",
+                organizationName = organizationName,
+                oldRole = oldRole.name,
+                newRole = newRole.name,
+                changedBy = actorLabel(),
+            )
+            emailService.sendEmail(
+                to = appUser.email,
+                subject = "${configurationService.emailSubjectTitle} | Your role was changed",
+                body = body,
+                useHtml = true,
+            )
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to send role-changed email to {}", appUser.email, e)
+        }
     }
 }

@@ -46,6 +46,12 @@ class AppUser
     @Column(name = "pending_email_verification_code", nullable = true)
     var pendingEmailVerificationCode: String? = null
 
+    @Column(name = "pending_email_old_verification_code", nullable = true)
+    var pendingEmailOldVerificationCode: String? = null
+
+    @Column(name = "pending_email_old_verified", nullable = true)
+    var pendingEmailOldVerified: Boolean? = false
+
     @Column(name = "email_verification_completed", nullable = true)
     var emailVerificationComplete: Boolean? = false
 

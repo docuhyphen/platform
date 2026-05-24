@@ -12,6 +12,9 @@ import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
+import com.docuhyphen.app.api.service.communication.EmailService
+import com.docuhyphen.app.api.service.communication.EmailTemplateService
+import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
@@ -29,6 +32,9 @@ class OrganizationGroupService @Inject constructor(
     private val appUserService: AppUserService,
     private val adminActionGuardService: AdminActionGuardService,
     private val authAuditService: AuthAuditService,
+    private val emailService: EmailService,
+    private val emailTemplateService: EmailTemplateService,
+    private val configurationService: ConfigurationService,
 )
 {
     @PersistenceContext
@@ -146,6 +152,10 @@ class OrganizationGroupService @Inject constructor(
             beforeSnapshot = null,
             afterSnapshot = groupSnapshot(newGroup),
         )
+
+        newGroup.members.forEach { member ->
+            member.appUser?.let { sendGroupMemberAddedEmail(it, newGroup.name, organization.name) }
+        }
     }
 
     fun getOrganizationGroups(organizationId: String): List<OrganizationGroup>
@@ -274,6 +284,20 @@ class OrganizationGroupService @Inject constructor(
             throw IllegalArgumentException("Group name already exists in this organization")
         }
 
+        val previousName = group.name
+        val previousActive = group.isActive
+        val previousMemberIds = group.members.mapNotNull { it.appUser?.id }.toSet()
+        val newMemberIds = members.map { UUID.fromString(it.appUserId) }.toSet()
+        val groupUpdateFields = mutableListOf<String>()
+        if (previousName != groupName.trim())
+        {
+            groupUpdateFields.add("Renamed from \"$previousName\" to \"${groupName.trim()}\"")
+        }
+        if (previousActive != isActive)
+        {
+            groupUpdateFields.add(if (isActive) "Group reactivated" else "Group deactivated")
+        }
+
         group.name = groupName.trim()
         group.isActive = isActive
         group.members.clear()
@@ -320,12 +344,112 @@ class OrganizationGroupService @Inject constructor(
             beforeSnapshot = beforeSnapshot,
             afterSnapshot = groupSnapshot(group),
         )
+
+        val addedMemberIds = newMemberIds - previousMemberIds
+        val removedMemberIds = previousMemberIds - newMemberIds
+        val retainedMemberIds = previousMemberIds intersect newMemberIds
+
+        addedMemberIds.forEach { memberId ->
+            appUserService.getById(memberId)?.let { sendGroupMemberAddedEmail(it, group.name, organization.name) }
+        }
+        removedMemberIds.forEach { memberId ->
+            appUserService.getById(memberId)?.let { sendGroupMemberRemovedEmail(it, group.name, organization.name) }
+        }
+        if (groupUpdateFields.isNotEmpty())
+        {
+            retainedMemberIds.forEach { memberId ->
+                appUserService.getById(memberId)?.let {
+                    sendGroupUpdatedEmail(it, group.name, organization.name, groupUpdateFields)
+                }
+            }
+        }
     }
 
     @Transactional
     fun updateOrganizationGroup(group: OrganizationGroup)
     {
 
+    }
+
+    private fun actorLabel(): String
+    {
+        val actor = authTokenContext.authToken.appUser ?: return "an administrator"
+        return actor.person?.let { "${it.firstName} ${it.lastName}" } ?: actor.email
+    }
+
+    private fun sendGroupMemberAddedEmail(appUser: AppUser, groupName: String, organizationName: String)
+    {
+        try
+        {
+            val body = emailTemplateService.renderGroupMemberAddedEmail(
+                firstName = appUser.person?.firstName ?: "there",
+                groupName = groupName,
+                organizationName = organizationName,
+                addedBy = actorLabel(),
+            )
+            emailService.sendEmail(
+                to = appUser.email,
+                subject = "${configurationService.emailSubjectTitle} | Added to $groupName",
+                body = body,
+                useHtml = true,
+            )
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to send group-member-added email to {}", appUser.email, e)
+        }
+    }
+
+    private fun sendGroupMemberRemovedEmail(appUser: AppUser, groupName: String, organizationName: String)
+    {
+        try
+        {
+            val body = emailTemplateService.renderGroupMemberRemovedEmail(
+                firstName = appUser.person?.firstName ?: "there",
+                groupName = groupName,
+                organizationName = organizationName,
+                removedBy = actorLabel(),
+            )
+            emailService.sendEmail(
+                to = appUser.email,
+                subject = "${configurationService.emailSubjectTitle} | Removed from $groupName",
+                body = body,
+                useHtml = true,
+            )
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to send group-member-removed email to {}", appUser.email, e)
+        }
+    }
+
+    private fun sendGroupUpdatedEmail(
+        appUser: AppUser,
+        groupName: String,
+        organizationName: String,
+        updatedFields: List<String>,
+    )
+    {
+        try
+        {
+            val body = emailTemplateService.renderGroupUpdatedEmail(
+                firstName = appUser.person?.firstName ?: "there",
+                groupName = groupName,
+                organizationName = organizationName,
+                updatedBy = actorLabel(),
+                updatedFields = updatedFields,
+            )
+            emailService.sendEmail(
+                to = appUser.email,
+                subject = "${configurationService.emailSubjectTitle} | Group updated",
+                body = body,
+                useHtml = true,
+            )
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to send group-updated email to {}", appUser.email, e)
+        }
     }
 
     private fun groupSnapshot(group: OrganizationGroup): String

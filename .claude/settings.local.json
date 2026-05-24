@@ -47,7 +47,11 @@
       "PowerShell(mvn compile -q 2>&1)",
       "Bash(ls -la target/classes/com/docuhyphen/app/api/service/auth/TokenIssuanceService.class target/classes/com/docuhyphen/app/api/service/auth/UserSessionService.class 2>/dev/null && echo \"---\" && stat -c \"%y\" target/classes/com/docuhyphen/app/api/service/auth/TokenIssuanceService.class 2>/dev/null || echo \"class not found\")",
       "Bash(javap -p target/classes/com/docuhyphen/app/api/service/auth/TokenIssuanceService.class)",
-      "Bash(javap -c target/classes/com/docuhyphen/app/api/service/auth/TokenIssuanceService.class)"
+      "Bash(javap -c target/classes/com/docuhyphen/app/api/service/auth/TokenIssuanceService.class)",
+      "Bash(./mvnw.cmd compile *)",
+      "Bash(git add *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\website\" -Recurse -Force)",
+      "Bash(Select-Object -First 50)"
     ]
   }
 }

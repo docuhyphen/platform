@@ -6,6 +6,7 @@ import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationStatus
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType
 import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.service.communication.EmailService
+import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.MfaService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
@@ -14,6 +15,8 @@ import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -24,6 +27,7 @@ class PasswordResetService @Inject constructor(
     private val otpService: OtpService,
     private val authenticationService: AuthenticationService,
     private val emailService: EmailService,
+    private val emailTemplateService: EmailTemplateService,
     private val configurationService: ConfigurationService,
     private val signOutService: SignOutService
 )
@@ -31,6 +35,7 @@ class PasswordResetService @Inject constructor(
     companion object
     {
         private val logger = LoggerFactory.getLogger(PasswordResetService::class.java)
+        private val UTC_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm 'UTC'").withZone(ZoneOffset.UTC)
     }
 
     fun initiatePasswordReset(email: String?)
@@ -58,13 +63,15 @@ class PasswordResetService @Inject constructor(
 
         mfaService.saveMfaRecord(mfaRecord)
 
+        val body = emailTemplateService.renderPasswordResetRequestEmail(
+            verificationCode = otp,
+            expiryMinutes = expiryMinutes,
+        )
         emailService.sendEmail(
-            email,
-            "${configurationService.emailSubjectTitle} | Account recovery",
-            """
-                You have requested to recover your account.
-                To continue, you will need this verification code $otp
-            """.trimIndent()
+            to = email,
+            subject = "${configurationService.emailSubjectTitle} | Account recovery",
+            body = body,
+            useHtml = true,
         )
 
         logger.info("Password reset OTP sent to email: $email")
@@ -103,6 +110,24 @@ class PasswordResetService @Inject constructor(
 
         appUserRepository.update(appUser)
         mfaService.removeMfaRecord(mfaRecord)
+
+        try
+        {
+            val body = emailTemplateService.renderPasswordChangedEmail(
+                email = appUser.email,
+                changedAt = UTC_FORMATTER.format(Instant.now()),
+            )
+            emailService.sendEmail(
+                to = appUser.email,
+                subject = "${configurationService.emailSubjectTitle} | Password changed",
+                body = body,
+                useHtml = true,
+            )
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to send password-changed confirmation to {}", appUser.email, e)
+        }
 
         //ToDo: sign out of all devices only using app user id
 //        signOutService.signOut(outOfAllDevices = true)

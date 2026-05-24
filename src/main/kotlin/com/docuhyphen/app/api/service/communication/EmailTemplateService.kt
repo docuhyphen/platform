@@ -141,5 +141,239 @@ class EmailTemplateService @Inject constructor(
 
         return renderTemplate("organization-update.ftl", model)
     }
+
+    fun renderEmailUpdateOldVerificationEmail(newEmail: String, verificationCode: String, expiryMinutes: Long): String
+    {
+        val model = mapOf(
+            "newEmail" to newEmail,
+            "verificationCode" to verificationCode,
+            "expiryMinutes" to expiryMinutes,
+            "appName" to configurationService.emailSubjectTitle,
+        )
+
+        return renderTemplate("email-update-old-verification.ftl", model)
+    }
+
+    fun renderEmailUpdateNewVerificationEmail(newEmail: String, verificationCode: String, expiryMinutes: Long): String
+    {
+        val model = mapOf(
+            "newEmail" to newEmail,
+            "verificationCode" to verificationCode,
+            "expiryMinutes" to expiryMinutes,
+            "appName" to configurationService.emailSubjectTitle,
+        )
+
+        return renderTemplate("email-update-new-verification.ftl", model)
+    }
+
+    fun renderEmailUpdateCompletionEmail(oldEmail: String, newEmail: String): String
+    {
+        val model = mapOf(
+            "oldEmail" to oldEmail,
+            "newEmail" to newEmail,
+            "appName" to configurationService.emailSubjectTitle,
+        )
+
+        return renderTemplate("email-update-completion.ftl", model)
+    }
+
+    fun renderProfileUpdatedEmail(updatedFields: List<String>): String
+    {
+        val model = mapOf(
+            "updatedFields" to updatedFields,
+            "appName" to configurationService.emailSubjectTitle,
+        )
+
+        return renderTemplate("profile-updated.ftl", model)
+    }
+
+    fun renderOrganizationMemberAddedEmail(
+        firstName: String,
+        organizationName: String,
+        role: String,
+        addedBy: String,
+        isNewUser: Boolean,
+    ): String
+    {
+        val model = mapOf(
+            "firstName" to firstName,
+            "organizationName" to organizationName,
+            "role" to role,
+            "addedBy" to addedBy,
+            "isNewUser" to isNewUser,
+            "appName" to configurationService.emailSubjectTitle,
+            "appBaseUrl" to configurationService.baseUrl,
+        )
+
+        return renderTemplate("organization-member-added.ftl", model)
+    }
+
+    fun renderOrganizationMemberRemovedEmail(
+        firstName: String,
+        organizationName: String,
+        removedBy: String,
+    ): String
+    {
+        val model = mapOf(
+            "firstName" to firstName,
+            "organizationName" to organizationName,
+            "removedBy" to removedBy,
+            "appName" to configurationService.emailSubjectTitle,
+        )
+
+        return renderTemplate("organization-member-removed.ftl", model)
+    }
+
+    fun renderGroupMemberAddedEmail(
+        firstName: String,
+        groupName: String,
+        organizationName: String,
+        addedBy: String,
+    ): String
+    {
+        val model = mapOf(
+            "firstName" to firstName,
+            "groupName" to groupName,
+            "organizationName" to organizationName,
+            "addedBy" to addedBy,
+            "appName" to configurationService.emailSubjectTitle,
+            "appBaseUrl" to configurationService.baseUrl,
+        )
+
+        return renderTemplate("group-member-added.ftl", model)
+    }
+
+    fun renderGroupMemberRemovedEmail(
+        firstName: String,
+        groupName: String,
+        organizationName: String,
+        removedBy: String,
+    ): String
+    {
+        val model = mapOf(
+            "firstName" to firstName,
+            "groupName" to groupName,
+            "organizationName" to organizationName,
+            "removedBy" to removedBy,
+            "appName" to configurationService.emailSubjectTitle,
+        )
+
+        return renderTemplate("group-member-removed.ftl", model)
+    }
+
+    fun renderGroupUpdatedEmail(
+        firstName: String,
+        groupName: String,
+        organizationName: String,
+        updatedBy: String,
+        updatedFields: List<String>,
+    ): String
+    {
+        val model = mapOf(
+            "firstName" to firstName,
+            "groupName" to groupName,
+            "organizationName" to organizationName,
+            "updatedBy" to updatedBy,
+            "updatedFields" to updatedFields,
+            "appName" to configurationService.emailSubjectTitle,
+        )
+
+        return renderTemplate("group-updated.ftl", model)
+    }
+
+    fun renderRoleChangedEmail(
+        firstName: String,
+        organizationName: String,
+        oldRole: String,
+        newRole: String,
+        changedBy: String,
+    ): String
+    {
+        val model = mapOf(
+            "firstName" to firstName,
+            "organizationName" to organizationName,
+            "oldRole" to oldRole,
+            "newRole" to newRole,
+            "changedBy" to changedBy,
+            "appName" to configurationService.emailSubjectTitle,
+        )
+
+        return renderTemplate("role-changed.ftl", model)
+    }
+
+    fun renderSharingSessionCreatedRecipientEmail(
+        sessionId: String,
+        sessionName: String,
+        initiatorName: String,
+        initiatorOrganization: String?,
+        sessionMessage: String?,
+        documents: List<String>,
+    ): String
+    {
+        val sessionLink = "${configurationService.baseUrl}/sharing-sessions/$sessionId"
+        val model = mutableMapOf<String, Any>(
+            "sessionName" to sessionName,
+            "initiatorName" to initiatorName,
+            "documents" to documents,
+            "sessionLink" to sessionLink,
+            "appName" to configurationService.emailSubjectTitle,
+        )
+        if (!initiatorOrganization.isNullOrBlank()) model["initiatorOrganization"] = initiatorOrganization
+        if (!sessionMessage.isNullOrBlank()) model["sessionMessage"] = sessionMessage
+
+        return renderTemplate("sharing-session-created-recipient.ftl", model)
+    }
+
+    fun renderSharingSessionCreatedInitiatorEmail(
+        sessionId: String,
+        sessionName: String,
+        recipientLabel: String,
+        documents: List<String>,
+    ): String
+    {
+        val sessionLink = "${configurationService.baseUrl}/sharing-sessions/$sessionId"
+        val model = mapOf(
+            "sessionName" to sessionName,
+            "recipientLabel" to recipientLabel,
+            "documents" to documents,
+            "sessionLink" to sessionLink,
+            "appName" to configurationService.emailSubjectTitle,
+        )
+
+        return renderTemplate("sharing-session-created-initiator.ftl", model)
+    }
+
+    fun renderPasswordResetRequestEmail(verificationCode: String, expiryMinutes: Long): String
+    {
+        val model = mapOf(
+            "verificationCode" to verificationCode,
+            "expiryMinutes" to expiryMinutes,
+            "appName" to configurationService.emailSubjectTitle,
+        )
+
+        return renderTemplate("password-reset-request.ftl", model)
+    }
+
+    fun renderPasswordChangedEmail(email: String, changedAt: String): String
+    {
+        val model = mapOf(
+            "email" to email,
+            "changedAt" to changedAt,
+            "appName" to configurationService.emailSubjectTitle,
+        )
+
+        return renderTemplate("password-changed.ftl", model)
+    }
+
+    fun renderAccountDeletedEmail(email: String, deletedAt: String): String
+    {
+        val model = mapOf(
+            "email" to email,
+            "deletedAt" to deletedAt,
+            "appName" to configurationService.emailSubjectTitle,
+        )
+
+        return renderTemplate("account-deleted.ftl", model)
+    }
 }
 

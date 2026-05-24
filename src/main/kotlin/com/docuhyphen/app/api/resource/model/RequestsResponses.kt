@@ -369,6 +369,11 @@ data class CompleteAddOrUpdateEmailRequest(
 )
 
 @Serializable
+data class ConfirmOldEmailForUpdateRequest(
+    val verificationCode: String
+)
+
+@Serializable
 data class AdminApprovalInitiateRequest(
     val action: String,
     val reason: String? = null,

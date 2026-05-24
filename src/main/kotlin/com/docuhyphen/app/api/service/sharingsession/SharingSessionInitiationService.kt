@@ -19,6 +19,7 @@ import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.communication.AppNotificationService
 import com.docuhyphen.app.api.service.communication.EmailService
+import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import jakarta.enterprise.context.ApplicationScoped
@@ -37,6 +38,7 @@ class SharingSessionInitiationService @Inject constructor(
     private val appUserRepository: AppUserRepository,
     private val appUserService: AppUserService,
     private val emailService: EmailService,
+    private val emailTemplateService: EmailTemplateService,
     private val authTokenContext: AuthTokenContext,
     private val authenticationService: AuthenticationService,
     private val authRateLimitService: AuthRateLimitService,
@@ -176,6 +178,14 @@ class SharingSessionInitiationService @Inject constructor(
 
         val savedSharingSession = sharingSessionRepository.save(sharingSession)
 
+        sendNotifications(
+            recipientType = sessionInitiationDto.recipientType!!,
+            initiator = initiator,
+            recipientAppUser = appUserRecipient,
+            recipientOrgGroup = orgGroupRecipient,
+            sharingSession = savedSharingSession,
+        )
+
         logger.info("Sharing session initiated ID: ${sharingSession.id}")
         return savedSharingSession
     }
@@ -258,51 +268,75 @@ class SharingSessionInitiationService @Inject constructor(
         initiator: AppUser,
         recipientAppUser: AppUser?,
         recipientOrgGroup: OrganizationGroup?,
-        documents: List<Document>
+        sharingSession: SharingSession,
     )
     {
-//        val initiatorOrganization = initiator?.person?.contactDetails?.organization?.name ?: "N/A"
-//
-//        if (recipientType != GROUP)
-//        {
-//            val recipientEmail =
-//                emailService.sendEmail(
-//                    recipientEmail,
-//                    "Document Request from ${initiator?.person?.firstName} ${initiator?.person?.lastName}",
-//                    """
-//                You have been requested to upload the following documents: ${sessionDocuments.joinToString(", ")}.
-//                Please use the following link to upload your documents: [link]
-//
-//                Organization Details: $initiatorOrganization
-//
-//                If you do not recognize this request, please report it here: [report_link]
-//            """.trimIndent()
-//                )
-//
-//        }
-//        else if (recipientType == GROUP)
-//        {
-//
-//        }
-//
-//        emailService.sendEmail(
-//            initiator!!.email,
-//            "Document Request Sent to ${recipient.email}",
-//            "You have successfully requested ${recipient.email} to upload the following documents: ${
-//                sessionDocuments.joinToString(
-//                    ", "
-//                )
-//            }."
-//        )
-//
-//        appNotificationService.sendNotification(
-//            recipient.id.toString(),
-//            "Document Request from ${initiator.person?.firstName} ${initiator.person?.lastName}",
-//            "You have been requested to upload the following documents: ${
-//                sessionDocuments.joinToString(
-//                    ", "
-//                )
-//            }."
-//        )
+        val initiatorName = initiator.person?.let { "${it.firstName} ${it.lastName}" } ?: initiator.email
+        val documentTitles = sharingSession.documents.map { it.title }
+        val sessionIdStr = sharingSession.id.toString()
+        val subjectTitle = configurationService.emailSubjectTitle
+
+        val recipientEmails: List<Pair<String, String>> = when (recipientType)
+        {
+            GROUP -> recipientOrgGroup?.members
+                ?.mapNotNull { it.appUser }
+                ?.filter { it.id != initiator.id }
+                ?.map { it.email to (it.person?.firstName ?: "there") }
+                ?: emptyList()
+            else -> recipientAppUser
+                ?.takeIf { !it.email.isNullOrBlank() }
+                ?.let { listOf(it.email to (it.person?.firstName ?: "there")) }
+                ?: emptyList()
+        }
+
+        val recipientLabel = when (recipientType)
+        {
+            GROUP -> recipientOrgGroup?.name?.let { "Group: $it" } ?: "Group"
+            else -> recipientAppUser?.email ?: "Recipient"
+        }
+
+        recipientEmails.forEach { (email, _) ->
+            try
+            {
+                val body = emailTemplateService.renderSharingSessionCreatedRecipientEmail(
+                    sessionId = sessionIdStr,
+                    sessionName = sharingSession.sessionName.orEmpty(),
+                    initiatorName = initiatorName,
+                    initiatorOrganization = null,
+                    sessionMessage = sharingSession.initialShareMessage,
+                    documents = documentTitles,
+                )
+                emailService.sendEmail(
+                    to = email,
+                    subject = "$subjectTitle | Document request from $initiatorName",
+                    body = body,
+                    useHtml = true,
+                )
+            }
+            catch (e: Exception)
+            {
+                logger.error("Failed to send sharing-session recipient email to {}", email, e)
+            }
+        }
+
+        try
+        {
+            val body = emailTemplateService.renderSharingSessionCreatedInitiatorEmail(
+                sessionId = sessionIdStr,
+                sessionName = sharingSession.sessionName.orEmpty(),
+                recipientLabel = recipientLabel,
+                documents = documentTitles,
+            )
+            emailService.sendEmail(
+                to = initiator.email,
+                subject = "$subjectTitle | Document request sent",
+                body = body,
+                useHtml = true,
+            )
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to send sharing-session initiator email to {}", initiator.email, e)
+        }
     }
 }

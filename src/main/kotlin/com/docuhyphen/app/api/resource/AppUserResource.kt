@@ -8,6 +8,7 @@ import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.model.dto.AppUserSettingsDto
 import com.docuhyphen.app.api.model.dto.PersonBasicDto
 import com.docuhyphen.app.api.resource.model.CompleteAddOrUpdateEmailRequest
+import com.docuhyphen.app.api.resource.model.ConfirmOldEmailForUpdateRequest
 import com.docuhyphen.app.api.resource.model.InitiateAddOrUpdateEmailRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.AppUserService
@@ -211,6 +212,47 @@ class AppUserResource @Inject constructor(
                 {
                     logger.error("Error updating user email", exception)
                     val responseError = ResponseError("A server error occurred while updating user email.")
+                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
+        }
+    }
+
+    /**
+     * Confirm the OLD email of the currently logged in appUser before sending a code to the NEW email.
+     * */
+    @POST
+    @Path("email/update-confirm-old")
+    @Transactional
+    fun confirmOldEmailForUpdate(request: ConfirmOldEmailForUpdateRequest): Response
+    {
+        ResourceEndpointDelayHelper.delayEndpoint(1500, 2500)
+
+        return try
+        {
+            appUserService.confirmOldEmailForUpdate(request.verificationCode)
+            Response.ok().build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is UnauthorizedException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
+                }
+
+                is AppUserNotFoundException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
+                }
+
+                else ->
+                {
+                    logger.error("Error confirming old email for update", exception)
+                    val responseError = ResponseError("A server error occurred while confirming the current email.")
                     Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
             }
