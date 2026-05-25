@@ -11,6 +11,7 @@ import {
 } from "@fluentui/react-components";
 import {ChevronLeft20Regular, ChevronRight20Regular} from "@fluentui/react-icons";
 import {useState} from "react";
+import {Link} from "react-router-dom";
 import {
     BREAKPOINT_MOBILE,
     CARD_RADIUS,
@@ -34,6 +35,7 @@ type IndustrySlide = {
     title: string;
     visualClass: string;
     screenshotSrc: string;
+    slug: string;
 };
 
 const useStyles = makeStyles({
@@ -325,26 +327,31 @@ export function FeaturesSection()
             title: "Real Estate & Property Management",
             visualClass: styles.industryVisualRealEstate,
             screenshotSrc: "/demo-screenshots/app-screenshot-real-estate.JPG",
+            slug: "real-estate",
         },
         {
             title: "Law Firms & Legal Practices",
             visualClass: styles.industryVisualLaw,
             screenshotSrc: "/demo-screenshots/app-screenshot-legal.JPG",
+            slug: "legal",
         },
         {
             title: "Healthcare & Medical Practices",
             visualClass: styles.industryVisualHealthcare,
             screenshotSrc: "/demo-screenshots/app-screenshot-healthcare.JPG",
+            slug: "healthcare",
         },
         {
             title: "Accounting & Audit Firms",
             visualClass: styles.industryVisualAccounting,
             screenshotSrc: "/demo-screenshots/app-screenshot-accounting.JPG",
+            slug: "accounting",
         },
         {
             title: "Banks & Lending Institutions",
             visualClass: styles.industryVisualBanking,
             screenshotSrc: "/demo-screenshots/app-screenshot-banking-lending.JPG",
+            slug: "banking",
         },
     ];
 
@@ -401,9 +408,11 @@ export function FeaturesSection()
                     >
                         {industrySlides.map((slide) => (
                             <article key={slide.title} className={styles.carouselSlide}>
-                                <div
+                                <Link
+                                    to={`/solutions/${slide.slug}`}
                                     className={mergeClasses(styles.carouselImagePlaceholder, slide.visualClass)}
-                                    aria-label={`${slide.title} screenshot placeholder`}
+                                    aria-label={`View ${slide.title} solution`}
+                                    style={{display: "block", textDecoration: "none"}}
                                 >
                                     <div className={styles.carouselImageFrame}>
                                         <img
@@ -418,7 +427,7 @@ export function FeaturesSection()
                                                   className={styles.carouselTitleText}>{slide.title}</Text>
                                         </Card>
                                     </div>
-                                </div>
+                                </Link>
                             </article>
                         ))}
                     </div>

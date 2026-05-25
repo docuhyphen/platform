@@ -17,6 +17,6 @@
 </table>
 
 <p style="margin:0 0 14px 0;">This code expires in <strong>${expiryMinutes}</strong> minute<#if expiryMinutes != 1>s</#if>.</p>
-<p style="margin:0 0 14px 0;">If you did not request a password reset, ignore this email &mdash; your password has not been changed.</p>
+<p style="margin:0 0 14px 0;">If you did not request a password reset, ignore this email, your password has not been changed.</p>
 
 <#include "email-footer.ftl">

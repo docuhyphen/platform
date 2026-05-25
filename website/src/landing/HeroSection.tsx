@@ -143,13 +143,20 @@ const useStyles = makeStyles({
         pointerEvents: "auto",
     },
 
+    trustLine: {
+        marginTop: SPACE_MD,
+        color: tokens.colorNeutralForeground3,
+        fontSize: tokens.fontSizeBase200,
+        letterSpacing: "0.02em",
+    },
+
     buttonBase: {
         minWidth: BUTTON_MIN_WIDTH,
     },
 
     primaryCta: {
         minWidth: "12rem",
-        minHeight: "2.9rem",
+        minHeight: "2.5rem",
         fontSize: tokens.fontSizeBase400,
         lineHeight: tokens.lineHeightBase400,
         fontWeight: tokens.fontWeightSemibold,
@@ -165,7 +172,7 @@ const useStyles = makeStyles({
     },
 
     secondaryCta: {
-        minWidth: "8.5rem",
+        minWidth: "12rem",
         minHeight: "2.5rem",
         fontSize: tokens.fontSizeBase300,
         lineHeight: tokens.lineHeightBase300,
@@ -189,7 +196,7 @@ export function HeroSection()
 
     useEffect(() => {
         let index = 0;
-        const startDelayMs = 2600;
+        const startDelayMs = 600;
         const charDelayMs = 50;
         const revealActionsDelayMs = 180;
         let intervalId: number | undefined;

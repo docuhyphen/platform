@@ -18,6 +18,6 @@
 </table>
 
 <p style="margin:0 0 14px 0;">This code expires in <strong>${expiryMinutes}</strong> minute<#if expiryMinutes != 1>s</#if>.</p>
-<p style="margin:0 0 14px 0;">If you did not request this change, ignore this email and consider changing your password &mdash; your address has not been changed.</p>
+<p style="margin:0 0 14px 0;">If you did not request this change, ignore this email and consider changing your password, your address has not been changed.</p>
 
 <#include "email-footer.ftl">

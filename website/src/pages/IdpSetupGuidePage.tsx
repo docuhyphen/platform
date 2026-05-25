@@ -1,24 +1,9 @@
-import {Button, makeStyles, Text, tokens} from "@fluentui/react-components";
-import {Link} from "react-router-dom";
-import {LandingHeader} from "../landing/LandingHeader.tsx";
-import {WIDTH_CONTENT} from "../landing/shared.ts";
+import {makeStyles, Text, tokens} from "@fluentui/react-components";
+import {LinkButton} from "../shared/LinkButton.tsx";
+import {PageShell} from "../shared/PageShell.tsx";
+import {Breadcrumbs} from "../shared/Breadcrumbs.tsx";
 
 const useStyles = makeStyles({
-    page: {
-        minHeight: "100%",
-        backgroundColor: "#f8faff",
-    },
-
-    content: {
-        width: WIDTH_CONTENT,
-        maxWidth: "100%",
-        margin: "0 auto",
-        padding: "2rem 2rem 3rem",
-        boxSizing: "border-box",
-        display: "flex",
-        flexDirection: "column",
-        gap: "1.25rem",
-    },
 
     section: {
         backgroundColor: tokens.colorNeutralBackground1,
@@ -66,10 +51,12 @@ export function IdpSetupGuidePage()
     const styles = useStyles();
 
     return (
-        <div className={styles.page}>
-            <LandingHeader/>
-            <main className={styles.content}>
-                <h1 className={styles.heading}>IdP Setup Guide: Microsoft and Google</h1>
+        <PageShell>
+            <Breadcrumbs trail={[
+                {label: "Resources", to: "/resources"},
+                {label: "IdP Setup Guide"},
+            ]}/>
+            <h1 className={styles.heading}>IdP Setup Guide: Microsoft and Google</h1>
                 <Text>
                     Use this guide to configure your organization's identity provider so users can sign in with SSO.
                     Steps focus on the data DocuHyphen requires and validation checks your admins should complete.
@@ -137,15 +124,14 @@ export function IdpSetupGuidePage()
                 </section>
 
                 <div className={styles.buttonRow}>
-                    <Button as={Link} to="/help/security-faq" appearance="secondary" shape="circular">
+                    <LinkButton to="/help/security-faq" appearance="secondary" shape="circular">
                         View Security FAQ
-                    </Button>
-                    <Button as={Link} to="/" appearance="outline" shape="circular">
-                        Back to Home
-                    </Button>
+                    </LinkButton>
+                    <LinkButton to="/resources" appearance="outline" shape="circular">
+                        Back to Resources
+                    </LinkButton>
                 </div>
-            </main>
-        </div>
+        </PageShell>
     );
 }
 

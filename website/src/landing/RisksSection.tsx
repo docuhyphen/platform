@@ -78,6 +78,16 @@ const useStyles = makeStyles({
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
+        boxShadow: tokens.shadow4,
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
+        transitionProperty: "transform, box-shadow",
+        transitionDuration: "200ms",
+        transitionTimingFunction: "ease",
+
+        ":hover": {
+            transform: "translateY(-2px)",
+            boxShadow: tokens.shadow8,
+        },
     },
 
     card1: {
