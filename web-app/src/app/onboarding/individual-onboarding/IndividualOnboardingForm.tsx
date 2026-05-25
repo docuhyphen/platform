@@ -180,6 +180,7 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
                    validationState={"none"}
                    validationMessage={""}>
                 <Input type="text"
+                       maxLength={60}
                        value={firstName}
                        onChange={onFirstNameChange}/>
             </Field>
@@ -188,6 +189,7 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
                    validationState={"none"}
                    validationMessage={""}>
                 <Input type="text"
+                       maxLength={60}
                        value={lastName}
                        onChange={onLastNameChange}/>
             </Field>

@@ -342,6 +342,18 @@ class SignInResource @Inject constructor(
                     Response.status(UNAUTHORIZED).entity(responseError).build()
                 }
 
+                is InactiveAccountException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    authAuditService.emit(
+                        action = "SIGN_IN_INITIATE",
+                        outcome = "DENY",
+                        reasonCode = RevocationReasonCode.DEPROVISIONED,
+                        requestId = requestId,
+                    )
+                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
+                }
+
                 else ->
                 {
                     logger.error("Error initiating sign in", exception)
@@ -392,7 +404,10 @@ class SignInResource @Inject constructor(
             ResourceEndpointDelayHelper.delayEndpoint(1000, 3000)
 
             val tokenTriple = with(payload) {
-                signInService.completeSignIn(email, otp, mfaSessionId)
+                signInService.completeSignIn(email, otp, mfaSessionId,
+                    userAgent = request.getHeader("User-Agent"),
+                    ipAddress = clientIp,
+                )
             }
 
             val signInCompletionResponse = SignInCompletionResponse(

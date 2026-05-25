@@ -5,6 +5,7 @@ import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UserSessionDto
 import com.docuhyphen.app.api.resource.model.UserSessionListResponse
 import com.docuhyphen.app.api.service.auth.AuthAuditService
+import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.auth.UserSessionService
 import jakarta.inject.Inject
@@ -21,6 +22,7 @@ class UserSessionResource @Inject constructor(
     private val userSessionService: UserSessionService,
     private val authTokenContext: AuthTokenContext,
     private val authAuditService: AuthAuditService,
+    private val authenticationService: AuthenticationService,
 )
 {
     companion object
@@ -35,6 +37,9 @@ class UserSessionResource @Inject constructor(
         {
             val appUser = authTokenContext.authToken.appUser!!
             val sessions = userSessionService.listActiveSessions(appUser.id)
+            val currentSessionId = authenticationService
+                .verifyAccessToken(authTokenContext.authToken.token)
+                ?.let { it["session_id"] as? String }
             val dtos = sessions.map { s ->
                 UserSessionDto(
                     sessionId = s.sessionId.toString(),
@@ -45,6 +50,7 @@ class UserSessionResource @Inject constructor(
                     createdDate = s.createdDate.toInstant().toString(),
                     lastSeenAt = s.lastSeenAt.toInstant().toString(),
                     expiresAt = s.expiresAt?.toInstant()?.toString(),
+                    isCurrent = s.sessionId.toString() == currentSessionId,
                 )
             }
             Response.ok(UserSessionListResponse(sessions = dtos, total = dtos.size)).build()

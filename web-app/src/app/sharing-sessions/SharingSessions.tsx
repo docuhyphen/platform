@@ -85,6 +85,14 @@ const SharingSessions: React.FC = () =>
         }
     }
 
+    // Pre-select a session passed via the email link (?s=<sessionId>).
+    useEffect(() =>
+    {
+        const params = new URLSearchParams(window.location.search);
+        const deepLinkedId = params.get('s');
+        if (deepLinkedId) setSelectedSessionId(deepLinkedId);
+    }, []);
+
     useEffect(() =>
     {
         // Wait for both the access token AND the signed-in AppUser to be

@@ -29,10 +29,10 @@ class TokenIssuanceService @Inject constructor(
     }
 
     @Transactional
-    fun issueTokenTriple(appUser: AppUser): TokenTriple
+    fun issueTokenTriple(appUser: AppUser, userAgent: String? = null, ipAddress: String? = null): TokenTriple
     {
         val policy = authSessionPolicyService.resolveForAppUser(appUser)
-        val userSession = userSessionService.createSession(appUser, policy.maxSessionDurationHours)
+        val userSession = userSessionService.createSession(appUser, policy.maxSessionDurationHours, userAgent, ipAddress)
         val accessToken = authenticationService.generateAccessToken(
             appUser,
             userSession.sessionId,

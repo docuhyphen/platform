@@ -218,6 +218,7 @@ const SignUp: React.FC = () =>
                 validationMessage={otpRegenerationFailedMsg || otpRegenerationSuccessfulMsg}>
                 <Input type="text"
                        name="otp"
+                       maxLength={6}
                        value={formData.otp}
                        autoComplete="false"
                        onChange={handleChange}
@@ -242,6 +243,7 @@ const SignUp: React.FC = () =>
                 validationMessage={""}>
                 <Input type="password"
                        name="password"
+                       maxLength={30}
                        value={formData.password}
                        disabled={regeneratingOtp}
                        onChange={handleChange}
@@ -266,6 +268,7 @@ const SignUp: React.FC = () =>
                 validationMessage={""}>
                 <Input type={"password"}
                        name="confirmationPassword"
+                       maxLength={30}
                        value={formData.confirmationPassword}
                        disabled={regeneratingOtp}
                        onChange={handleChange}
@@ -295,6 +298,7 @@ const SignUp: React.FC = () =>
                             validationMessage={initiationSuccessfulMsg}>
                             <Input type="email"
                                    name="email"
+                                   maxLength={254}
                                    autoComplete={"false"}
                                    value={formData.email}
                                    onChange={handleChange}

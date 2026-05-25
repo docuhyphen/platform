@@ -286,6 +286,7 @@ const SignUpEmailConfirm: React.FC = () =>
                     validationMessage={""}>
                     <Input type="password"
                            name="password"
+                           maxLength={30}
                            value={password}
                            disabled={completingSignUp || regeneratingOtp}
                            onChange={onPasswordChange}
@@ -310,6 +311,7 @@ const SignUpEmailConfirm: React.FC = () =>
                     validationMessage={""}>
                     <Input type={"password"}
                            name="confirmationPassword"
+                           maxLength={30}
                            value={confirmationPassword}
                            disabled={completingSignUp || regeneratingOtp}
                            onChange={onPasswordChange}

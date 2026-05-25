@@ -291,7 +291,7 @@ export function PricingPage()
         <PageShell>
             <section className={styles.hero}>
                 <Title1 className={styles.heroTitle}>Simple, transparent pricing</Title1>
-                <Text size={500} className={styles.heroSubtitle}>
+                <Text size={500} className={styles.heroSubtitle} align={"center"}>
                     Start free. Scale with controls when your team needs them. Talk to us for enterprise compliance.
                 </Text>
                 {/*<div className={styles.toggleRow}>*/}

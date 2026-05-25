@@ -492,6 +492,7 @@ export interface UserSessionDto
     createdDate: string;
     lastSeenAt: string;
     expiresAt?: string;
+    isCurrent?: boolean;
 }
 
 export interface UserSessionListResponse

@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.exception.InactiveAccountException
 import com.docuhyphen.app.api.exception.InvalidOtpException
 import com.docuhyphen.app.api.exception.InvalidSignInCredentialsException
 import com.docuhyphen.app.api.exception.MaxAttemptsOTPExceededException
@@ -72,6 +73,12 @@ class SignInService @Inject constructor(
 
         val appUser = appUserService.findByEmail(sanitizedEmail) ?: throw InvalidSignInCredentialsException()
 
+        if (!appUser.isActive || appUser.deprovisionedAt != null)
+        {
+            logger.warn("Sign in blocked: inactive/deprovisioned account for {}", sanitizedEmail.maskEmailForLogs())
+            throw InactiveAccountException()
+        }
+
         if (!authenticationService.validatePassword(password, appUser.password!!))
         {
             logger.warn("Sign in failed: Invalid password for {}", sanitizedEmail.maskEmailForLogs())
@@ -102,7 +109,7 @@ class SignInService @Inject constructor(
     }
 
     @Transactional
-    fun completeSignIn(email: String?, otp: String?, sessionId: String?): TokenTriple
+    fun completeSignIn(email: String?, otp: String?, sessionId: String?, userAgent: String? = null, ipAddress: String? = null): TokenTriple
     {
         if (email.isNullOrBlank() || otp.isNullOrBlank() || sessionId.isNullOrBlank())
         {
@@ -181,7 +188,7 @@ class SignInService @Inject constructor(
         mfaService.updateRecord(mfaRecord)
 
         // Issue token triple via shared service
-        val tokenTriple = tokenIssuanceService.issueTokenTriple(mfaRecord.appUser!!)
+        val tokenTriple = tokenIssuanceService.issueTokenTriple(mfaRecord.appUser!!, userAgent, ipAddress)
 
         mfaService.removeMfaRecord(mfaRecord)
 

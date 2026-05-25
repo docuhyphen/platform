@@ -167,7 +167,7 @@ export function SecurityPage()
             <section className={styles.hero}>
                 <Text className={styles.heroEyebrow}>Security &amp; Trust</Text>
                 <Title1 className={styles.heroTitle}>Security is the product.</Title1>
-                <Text size={500} className={styles.heroBlurb}>
+                <Text size={500} className={styles.heroBlurb} align={"center"}>
                     DocuHyphen is built for teams that cannot afford to lose track of a single document. Here's
                     how we protect customer data.
                 </Text>

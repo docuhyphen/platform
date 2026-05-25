@@ -615,6 +615,8 @@ data class UserSessionDto(
     val createdDate: String,
     val lastSeenAt: String,
     val expiresAt: String? = null,
+    /** True for the session that issued the access token used to make the current request. */
+    val isCurrent: Boolean = false,
 )
 
 @Serializable

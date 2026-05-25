@@ -215,7 +215,7 @@ export function PricingTeaserSection()
             <div className={styles.container}>
                 <div className={styles.intro}>
                     <Title2 className={styles.sectionTitle}>Pricing built for every stage</Title2>
-                    <Text size={500} className={styles.subheading}>
+                    <Text size={500} className={styles.subheading} align={"center"}>
                         Start free. Scale with controls when you need them. Talk to us for enterprise needs.
                     </Text>
                 </div>

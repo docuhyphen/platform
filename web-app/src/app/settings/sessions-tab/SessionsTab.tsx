@@ -14,6 +14,7 @@ import {DeleteRegular} from "@fluentui/react-icons";
 import {UserSessionDto} from "../../models/models.tsx";
 import {listUserSessions, revokeUserSession} from "../../../services/authApi.ts";
 import {useSessionsTabStyles} from "./SessionsTabStyles.tsx";
+import {realtimeService} from "../../../services/NotificationService.tsx";
 
 const formatDate = (iso: string) =>
     new Date(iso).toLocaleString(undefined, {dateStyle: "medium", timeStyle: "short"});
@@ -33,7 +34,14 @@ const SessionsTab: React.FC = () =>
         try
         {
             const res = await listUserSessions();
-            setSessions(res.sessions);
+            // Surface the user's own device first — both for quick recognition and so the
+            // destructive "Sign out" action sits where they expect.
+            const ordered = [...res.sessions].sort((a, b) =>
+            {
+                if (!!a.isCurrent !== !!b.isCurrent) return a.isCurrent ? -1 : 1;
+                return new Date(b.lastSeenAt).getTime() - new Date(a.lastSeenAt).getTime();
+            });
+            setSessions(ordered);
         }
         catch
         {
@@ -46,6 +54,36 @@ const SessionsTab: React.FC = () =>
     };
 
     useEffect(() => { load(); }, []);
+
+    useEffect(() =>
+    {
+        const offCreated = realtimeService.on('SESSION_CREATED', (msg) =>
+        {
+            if (!msg.session) return;
+            const newSession: UserSessionDto = {...msg.session, isCurrent: false};
+            setSessions(prev =>
+            {
+                if (prev.some(s => s.sessionId === newSession.sessionId)) return prev;
+                return [...prev, newSession].sort((a, b) =>
+                {
+                    if (!!a.isCurrent !== !!b.isCurrent) return a.isCurrent ? -1 : 1;
+                    return new Date(b.lastSeenAt).getTime() - new Date(a.lastSeenAt).getTime();
+                });
+            });
+        });
+
+        const offRemoved = realtimeService.on('SESSION_REMOVED', (msg) =>
+        {
+            if (!msg.userSessionId) return;
+            setSessions(prev => prev.filter(s => s.sessionId !== msg.userSessionId));
+        });
+
+        return () =>
+        {
+            offCreated();
+            offRemoved();
+        };
+    }, []);
 
     const handleRevoke = async (sessionId: string) =>
     {
@@ -69,9 +107,6 @@ const SessionsTab: React.FC = () =>
         <div className={styles.container}>
             <div className={styles.header}>
                 <Title3>Active Sessions</Title3>
-                <Button appearance="subtle" size="small" onClick={load} disabled={loading}>
-                    Refresh
-                </Button>
             </div>
 
             <Caption1>
@@ -95,6 +130,14 @@ const SessionsTab: React.FC = () =>
                     <div className={styles.sessionMeta}>
                         <Subtitle2>
                             {session.deviceName ?? session.userAgent?.split(' ')[0] ?? "Unknown device"}
+                            {session.isCurrent && (
+                                <>
+                                    &nbsp;
+                                    <Badge appearance="filled" color="brand" size="small">
+                                        This device
+                                    </Badge>
+                                </>
+                            )}
                         </Subtitle2>
                         {session.ipAddress && (
                             <Caption1>IP: {session.ipAddress}</Caption1>
@@ -114,7 +157,9 @@ const SessionsTab: React.FC = () =>
                             disabled={revoking === session.sessionId}
                             onClick={() => handleRevoke(session.sessionId)}
                         >
-                            {revoking === session.sessionId ? <Spinner size="tiny"/> : "Revoke"}
+                            {revoking === session.sessionId
+                                ? <Spinner size="tiny"/>
+                                : session.isCurrent ? "Sign out" : "Revoke"}
                         </Button>
                     </div>
                 </div>

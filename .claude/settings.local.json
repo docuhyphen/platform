@@ -55,7 +55,14 @@
       "Bash(npm run *)",
       "Bash(xargs grep -l \"revoke\\\\|signout\\\\|sign out\\\\|logout\" -i)",
       "Bash(xargs grep -l \"password\\\\|reset\" -i)",
-      "Bash(xargs grep -l \"WebSocket\\\\|websocket\\\\|socket\\\\.io\\\\|@ServerEndpoint\")"
+      "Bash(xargs grep -l \"WebSocket\\\\|websocket\\\\|socket\\\\.io\\\\|@ServerEndpoint\")",
+      "Bash(del \"src\\\\main\\\\kotlin\\\\com\\\\docuhyphen\\\\app\\\\api\\\\websocket\\\\NotificationWebSocket.kt\")",
+      "Bash(./mvnw -q -DskipTests compile)",
+      "Bash(./mvnw -DskipTests clean compile)",
+      "Bash(./mvnw -DskipTests compile)",
+      "Bash(node node_modules/typescript/bin/tsc --noEmit -p tsconfig.app.json)",
+      "Bash(mvn -q compile -pl .)",
+      "Bash(./mvnw -q compile)"
     ]
   }
 }

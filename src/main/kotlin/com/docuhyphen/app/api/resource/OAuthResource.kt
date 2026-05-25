@@ -251,7 +251,10 @@ class OAuthResource @Inject constructor(
             }
 
             // Issue token triple
-            val tokenTriple = tokenIssuanceService.issueTokenTriple(result.appUser)
+            val tokenTriple = tokenIssuanceService.issueTokenTriple(result.appUser,
+                userAgent = request.getHeader("User-Agent"),
+                ipAddress = clientIp,
+            )
             val refreshCookie = tokenIssuanceService.buildRefreshTokenCookieWithPolicy(tokenTriple.refreshToken, result.appUser)
             val csrfToken = tokenIssuanceService.generateCsrfToken()
             val csrfCookie = tokenIssuanceService.buildCsrfTokenCookie(csrfToken)
@@ -301,6 +304,7 @@ class OAuthResource @Inject constructor(
     fun linkConfirm(
         payload: OAuthLinkConfirmRequest,
         @HeaderParam("X-Request-Id") requestId: String?,
+        @Context request: io.vertx.core.http.HttpServerRequest,
     ): Response
     {
         return try
@@ -349,7 +353,10 @@ class OAuthResource @Inject constructor(
             oauthUserLinkingService.createLink(appUser, providerType, externalSubjectId, email)
 
             // Issue token triple
-            val tokenTriple = tokenIssuanceService.issueTokenTriple(appUser)
+            val tokenTriple = tokenIssuanceService.issueTokenTriple(appUser,
+                userAgent = request.getHeader("User-Agent"),
+                ipAddress = getClientIpAddress(request),
+            )
             val refreshCookie = tokenIssuanceService.buildRefreshTokenCookieWithPolicy(tokenTriple.refreshToken, appUser)
             val csrfToken = tokenIssuanceService.generateCsrfToken()
             val csrfCookie = tokenIssuanceService.buildCsrfTokenCookie(csrfToken)

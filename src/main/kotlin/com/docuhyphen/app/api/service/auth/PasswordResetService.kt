@@ -47,6 +47,15 @@ class PasswordResetService @Inject constructor(
                 logger.warn("Password reset request failed. User not found for email: $email")
             }
 
+        if (!appUser.isActive || appUser.deprovisionedAt != null)
+        {
+            // Don't reveal account state on the public initiate endpoint — surface the
+            // same neutral outcome the resource layer maps EmailNotFoundException to.
+            throw EmailNotFoundException().also {
+                logger.warn("Password reset blocked: inactive/deprovisioned account for email: $email")
+            }
+        }
+
         val otp = otpService.generateEmailOtp()
         val expiryMinutes = configurationService.getPasswordResetOtpExpiryMins()
         val expiryDate = Timestamp.from(Instant.now().plusSeconds(TimeUnit.MINUTES.toSeconds(expiryMinutes)))
@@ -100,6 +109,13 @@ class PasswordResetService @Inject constructor(
                 logger.error("Password reset failed. App user not found for email: $email after OTP verification")
             }
 
+        if (!appUser.isActive || appUser.deprovisionedAt != null)
+        {
+            throw EmailNotFoundException().also {
+                logger.warn("Password reset completion blocked: inactive/deprovisioned account for email: $email")
+            }
+        }
+
         val passwordSalt = authenticationService.generatePasswordSalt()
         val hashedPassword = authenticationService.hashPassword(newPassword!!, passwordSalt)
 
@@ -129,8 +145,14 @@ class PasswordResetService @Inject constructor(
             logger.error("Failed to send password-changed confirmation to {}", appUser.email, e)
         }
 
-        //ToDo: sign out of all devices only using app user id
-//        signOutService.signOut(outOfAllDevices = true)
+        // Revoke every active session + refresh token for this user. Any other browser that
+        // was already signed in receives SESSION_REVOKED over the realtime channel and is
+        // logged out immediately; subsequent API calls also fail at the auth filter.
+        runCatching {
+            signOutService.signOutByUserId(appUser.id, RevocationReasonCode.PASSWORD_CHANGED)
+        }.onFailure { e ->
+            logger.error("Password reset succeeded but session revocation failed for user={}", appUser.id, e)
+        }
         logger.info("Password reset successfully for email: $email")
     }
 

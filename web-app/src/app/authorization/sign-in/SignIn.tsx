@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {completeSignIn, initiateSignIn, lookupSignInMethod, regenerateSignInOtp} from '../../../services/authApi.ts';
 import {fetchAppUser, fetchAppUserPersonOrganization,} from '../../../services/appUserApi.ts';
 import {useAuth} from '../../../context/AuthContext.tsx';
@@ -28,6 +28,10 @@ import SignInCarousel from "../carousel/SignInCarousel.tsx";
 import {useSignInStyles} from "./SignInStyles.tsx";
 import {useAuthorizationStyles} from "../AuthorizationStyles.tsx";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
+import validator from 'validator';
+
+const SIGN_IN_SESSION_DURATION_MS = 30 * 60 * 1000; // 30 minutes
+const RESEND_COOLDOWN_SECONDS = 30;
 
 type SignInStep = 'EMAIL_ENTRY' | 'ORG_PICKER' | 'PASSWORD_ENTRY' | 'MFA_ENTRY';
 
@@ -43,9 +47,13 @@ const SignIn: React.FC = () =>
     const [signInInitiating, setSignInInitiating] = useState<boolean>(false);
     const [signInCompleting, setSignInCompleting] = useState<boolean>(false);
     const [resendingOtp, setResendingOtp] = useState<boolean>(false);
-    const [resetOtpResponseMessage, setResetOtpResponseMessage] = useState<boolean>(false);
+    const [resetOtpResponseMessage, setResetOtpResponseMessage] = useState<string>('');
     const [signInInitiationSuccessfulMsg, setSignInInitiationSuccessfulMsg] = useState<string>('');
     const [responseErrorMessage, setResponseErrorMessage] = useState<string | undefined>('');
+    const [resendCooldownRemaining, setResendCooldownRemaining] = useState<number>(0);
+    const [sessionExpired, setSessionExpired] = useState<boolean>(false);
+    const sessionTimerRef = useRef<number | null>(null);
+    const cooldownTimerRef = useRef<number | null>(null);
     const {setToken, setAccessToken, setIdToken, setAppUser, setAppUserPersonOrganization} = useAuth();
     const navigate = useNavigate();
     const signInStyles = useSignInStyles();
@@ -65,6 +73,11 @@ const SignIn: React.FC = () =>
         if (!email)
         {
             setResponseErrorMessage("Email is required.");
+            return;
+        }
+        if (!validator.isEmail(email))
+        {
+            setResponseErrorMessage("Please enter a valid email address.");
             return;
         }
 
@@ -121,6 +134,8 @@ const SignIn: React.FC = () =>
             setMfaSessionId(response?.mfaSessionId);
             setSignInInitiationSuccessfulMsg(response?.message);
             setStep('MFA_ENTRY');
+            startSessionTimer();
+            startResendCooldown();
         }
         catch (error)
         {
@@ -206,14 +221,18 @@ const SignIn: React.FC = () =>
 
     const onResendOtp = async () =>
     {
+        if (resendingOtp || resendCooldownRemaining > 0 || sessionExpired) return;
+
         setResponseErrorMessage(undefined);
+        setResetOtpResponseMessage('');
         setResendingOtp(true);
 
         try
         {
             const regenerateResponse = await regenerateSignInOtp({email, mfaSessionId});
-            setResetOtpResponseMessage(regenerateResponse.message)
-            setOtp("")
+            setResetOtpResponseMessage(regenerateResponse.message || "A new verification code has been sent to your email.");
+            setOtp("");
+            startResendCooldown();
         }
         catch (error)
         {
@@ -224,6 +243,50 @@ const SignIn: React.FC = () =>
             setResendingOtp(false);
         }
     };
+
+    const startSessionTimer = () =>
+    {
+        if (sessionTimerRef.current)
+        {
+            clearTimeout(sessionTimerRef.current);
+        }
+        setSessionExpired(false);
+        sessionTimerRef.current = window.setTimeout(() =>
+        {
+            setSessionExpired(true);
+        }, SIGN_IN_SESSION_DURATION_MS);
+    };
+
+    const startResendCooldown = () =>
+    {
+        if (cooldownTimerRef.current)
+        {
+            clearInterval(cooldownTimerRef.current);
+        }
+        setResendCooldownRemaining(RESEND_COOLDOWN_SECONDS);
+        cooldownTimerRef.current = window.setInterval(() =>
+        {
+            setResendCooldownRemaining((prev) =>
+            {
+                if (prev <= 1)
+                {
+                    if (cooldownTimerRef.current)
+                    {
+                        clearInterval(cooldownTimerRef.current);
+                        cooldownTimerRef.current = null;
+                    }
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    useEffect(() => () =>
+    {
+        if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
+        if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+    }, []);
 
     const onSelectOrg = async (orgId: string) =>
     {
@@ -287,11 +350,23 @@ const SignIn: React.FC = () =>
         setSignInInitiating(false);
         setSignInCompleting(false);
         setResendingOtp(false);
-        setResetOtpResponseMessage(false);
+        setResetOtpResponseMessage('');
         setSignInInitiationSuccessfulMsg('');
         setResponseErrorMessage(undefined);
         setOrgOptions([]);
         setStep('EMAIL_ENTRY');
+        setSessionExpired(false);
+        setResendCooldownRemaining(0);
+        if (sessionTimerRef.current)
+        {
+            clearTimeout(sessionTimerRef.current);
+            sessionTimerRef.current = null;
+        }
+        if (cooldownTimerRef.current)
+        {
+            clearInterval(cooldownTimerRef.current);
+            cooldownTimerRef.current = null;
+        }
     }
 
     return (
@@ -322,6 +397,7 @@ const SignIn: React.FC = () =>
                                            validationMessage={""}>
                                         <Input value={email}
                                                type="email"
+                                               maxLength={254}
                                                onChange={onEmailChange}
                                                onKeyDown={(e) => handleKeyDown(e, onLookupEmail)}/>
                                     </Field>
@@ -368,6 +444,7 @@ const SignIn: React.FC = () =>
                                            validationMessage={""}>
                                         <Input type="password"
                                                value={password}
+                                               maxLength={30}
                                                onChange={onPasswordChange}
                                                onKeyDown={(e) => handleKeyDown(e, onInitiateSignIn)}/>
                                     </Field>
@@ -386,37 +463,58 @@ const SignIn: React.FC = () =>
                                 <>
                                     <span>{signInInitiationSuccessfulMsg}</span>
 
+                                    {sessionExpired && (
+                                        <MessageBar intent="warning">
+                                            <MessageBarBody>
+                                                Your sign-in session has expired. Please sign in again.
+                                            </MessageBarBody>
+                                        </MessageBar>
+                                    )}
+
                                     <Field label={"Verification code"}
-                                           validationState={"none"}
-                                           validationMessage={""}
-                                           hint={resetOtpResponseMessage ? `${resetOtpResponseMessage}` : "A verification code has been sent to your email"}>
+                                           validationState={resetOtpResponseMessage ? "success" : "none"}
+                                           validationMessage={resetOtpResponseMessage}
+                                           hint={resetOtpResponseMessage ? undefined : "A verification code has been sent to your email"}>
                                         <Input value={otp}
+                                               maxLength={6}
                                                autoComplete="false"
-                                               disabled={resendingOtp || signInCompleting}
+                                               disabled={resendingOtp || signInCompleting || sessionExpired}
                                                onChange={onOtpChange}
                                                onKeyDown={(e) => handleKeyDown(e, onCompleteSignIn)}/>
                                     </Field>
 
                                     <Button appearance="transparent"
                                             size={"small"}
-                                            disabled={resendingOtp || signInCompleting}
+                                            disabled={resendingOtp || signInCompleting || sessionExpired || resendCooldownRemaining > 0}
                                             shape={"circular"}
                                             onClick={onResendOtp}
                                             className={globalStyles.buttonWithLoading}>
                                         <>
                                             {resendingOtp && <Spinner size={"tiny"}/>}
-                                            Resend verification code
+                                            {resendCooldownRemaining > 0
+                                                ? `Resend verification code (${resendCooldownRemaining}s)`
+                                                : "Resend verification code"}
                                         </>
                                     </Button>
 
-                                    <Button onClick={onCompleteSignIn}
-                                            disabled={resendingOtp}
-                                            appearance="primary"
-                                            className={globalStyles.buttonWithLoading}
-                                            shape={"circular"}>
-                                        {signInCompleting && <><Spinner size={"tiny"}/> Verifying Code</>}
-                                        {!signInCompleting && "Verify Code"}
-                                    </Button>
+                                    {!sessionExpired && (
+                                        <Button onClick={onCompleteSignIn}
+                                                disabled={resendingOtp}
+                                                appearance="primary"
+                                                className={globalStyles.buttonWithLoading}
+                                                shape={"circular"}>
+                                            {signInCompleting && <><Spinner size={"tiny"}/> Verifying Code</>}
+                                            {!signInCompleting && "Verify Code"}
+                                        </Button>
+                                    )}
+
+                                    {sessionExpired && (
+                                        <Button onClick={onResetSignIn}
+                                                appearance="primary"
+                                                shape={"circular"}>
+                                            Start over
+                                        </Button>
+                                    )}
                                 </>
                             )}
 

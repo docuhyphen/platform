@@ -4,6 +4,7 @@ enum class RevocationReasonCode
 {
     LOGOUT_DEVICE,
     LOGOUT_ALL_DEVICES,
+    PASSWORD_CHANGED,
     ADMIN_REVOKE,
     DEPROVISIONED,
     ORG_INACTIVE,

@@ -1,12 +1,24 @@
 import React, {ChangeEvent, useState} from 'react';
-import {Button, Checkbox, Field, Input, InputOnChangeData, Spinner} from "@fluentui/react-components";
+import {
+    Button,
+    Checkbox,
+    Field,
+    Input,
+    InputOnChangeData,
+    MessageBar,
+    MessageBarActions,
+    MessageBarBody,
+    Spinner
+} from "@fluentui/react-components";
+import {DismissRegular} from "@fluentui/react-icons";
 import {registerOrganization} from "../../../services/appUserApi.ts";
 import useToken from "../../../context/useToken.tsx";
-import {OrganizationBasicDto} from "../../models/models.tsx";
+import {OrganizationBasicDto, ResponseError} from "../../models/models.tsx";
 import {useNavigate} from "react-router-dom";
 import {useAuth} from "../../../context/AuthContext.tsx";
 import {useOrganizationOnboardingForm} from './OrganizationOnboardingFormStyles.tsx';
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
+import validator from 'validator';
 
 
 interface OrganizationOnboardingFormProps
@@ -30,27 +42,63 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
     const [organizationPhone, setOrganizationPhone] = useState('');
     const [registeringOrg, setRegisteringOrg] = useState(false);
     const [orgRegistered, setOrgRegistered] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | undefined>();
     const token = useToken();
     const navigate = useNavigate();
     const {setAppUserPersonOrganization, appUserPersonOrganization, appUser} = useAuth();
     const styles = useOrganizationOnboardingForm();
     const globalStyles = useGlobalStyles();
 
+    const validateInputs = (): boolean =>
+    {
+        if (!organizationName.trim())
+        {
+            setErrorMessage("Organization name is required.");
+            return false;
+        }
+        if (!registrationNumber.trim())
+        {
+            setErrorMessage("Registration number is required.");
+            return false;
+        }
+        if (organizationEmail.trim() && !validator.isEmail(organizationEmail.trim()))
+        {
+            setErrorMessage("Please enter a valid organization email.");
+            return false;
+        }
+        if (organizationPhone.trim() && !validator.isMobilePhone(organizationPhone.trim(), 'any', {strictMode: false}))
+        {
+            setErrorMessage("Please enter a valid phone number.");
+            return false;
+        }
+        return true;
+    };
+
     const onRegisterOrganization = async () =>
     {
+        if (registeringOrg) return;
+
+        setErrorMessage(undefined);
+
+        if (!validateInputs())
+        {
+            return;
+        }
+
         setRegisteringOrg(true);
 
         try
         {
             const organization = {
-                name: organizationName,
-                registrationNumber,
-                email: organizationEmail,
-                phoneNumber: organizationPhone,
+                name: organizationName.trim(),
+                registrationNumber: registrationNumber.trim(),
+                email: organizationEmail.trim(),
+                phoneNumber: organizationPhone.trim(),
             };
             const registeredOrganization: OrganizationBasicDto = await registerOrganization(organization, token);
 
             setAppUserPersonOrganization(registeredOrganization);
+            setOrgRegistered(true);
 
             if (onOrganizationRegistered)
             {
@@ -60,12 +108,32 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
         catch (error)
         {
             console.error('Registration failed', error);
+            setErrorMessage((error as ResponseError)?.errorMessage || "Failed to register organization. Please try again.");
         }
         finally
         {
             setRegisteringOrg(false);
         }
     };
+
+    const renderErrorMessage = () => (
+        errorMessage && (
+            <MessageBar intent={"error"}>
+                <MessageBarBody>
+                    {errorMessage}
+                </MessageBarBody>
+                <MessageBarActions
+                    containerAction={
+                        <Button
+                            onClick={() => setErrorMessage(undefined)}
+                            appearance="transparent"
+                            icon={<DismissRegular/>}
+                        />
+                    }
+                />
+            </MessageBar>
+        )
+    );
 
     const onOrganizationNameChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
     {
@@ -121,8 +189,10 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
         <>
             {(!appUserPersonOrganization) &&
                 <div className={styles.container}>
+                    {renderErrorMessage()}
                     <Field
                         label={"Your organization name"}
+                        required
                         validationState={"none"}
                         validationMessage={""}>
                         <Input type="text"
@@ -133,6 +203,7 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
 
                     <Field
                         label={"Registration Number"}
+                        required
                         validationState={"none"}
                         validationMessage={""}>
                         <Input type="text"

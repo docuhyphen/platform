@@ -23,7 +23,6 @@ const IndividualOnboarding: React.FC = () =>
         }
         else
         {
-            alert("Navigating to sharing sessions from individual onboarding");
             navigate('/sharing-sessions');
         }
     }, []);

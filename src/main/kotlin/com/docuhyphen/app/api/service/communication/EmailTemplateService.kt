@@ -310,7 +310,7 @@ class EmailTemplateService @Inject constructor(
         documents: List<String>,
     ): String
     {
-        val sessionLink = "${configurationService.baseUrl}/sharing-sessions/$sessionId"
+        val sessionLink = "${configurationService.baseUrl}/sharing-sessions?s=$sessionId"
         val model = mutableMapOf<String, Any>(
             "sessionName" to sessionName,
             "initiatorName" to initiatorName,
@@ -331,7 +331,7 @@ class EmailTemplateService @Inject constructor(
         documents: List<String>,
     ): String
     {
-        val sessionLink = "${configurationService.baseUrl}/sharing-sessions/$sessionId"
+        val sessionLink = "${configurationService.baseUrl}/sharing-sessions?s=$sessionId"
         val model = mapOf(
             "sessionName" to sessionName,
             "recipientLabel" to recipientLabel,

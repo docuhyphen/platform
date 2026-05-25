@@ -11,9 +11,9 @@ import com.docuhyphen.app.api.model.entity.SharingSessionDocumentComment
 import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.repository.DocumentCommentRepository
 import com.docuhyphen.app.api.repository.SharingSessionDocumentRepository
+import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.repository.SharingSessionRepository
 import com.docuhyphen.app.api.service.AppUserService
-import com.docuhyphen.app.api.websocket.NotificationWebSocket
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -28,7 +28,7 @@ class SharingSessionDocumentCommentsService @Inject constructor(
     private val sharingSessionDocumentRepository: SharingSessionDocumentRepository,
     private val appUserRepository: AppUserRepository,
     private val appUserService: AppUserService,
-    private val notificationWebSocket: NotificationWebSocket,
+    private val realtimeEventService: RealtimeEventService,
     private val sharingSessionDocumentAuditService: SharingSessionDocumentAuditService,
     private val authTokenContext: AuthTokenContext,
     private val documentCommentRepository: DocumentCommentRepository,
@@ -80,11 +80,20 @@ class SharingSessionDocumentCommentsService @Inject constructor(
 
         val session = sharingSessionRepository.findById(UUID.fromString(sessionId))
         val targetUserId = if (user.id == session!!.recipient!!.id) {
-            session.initiator!!.id.toString()
+            session.initiator!!.id
         } else {
-            session.recipient!!.id.toString()
+            session.recipient!!.id
         }
-        notificationWebSocket.broadcastToUser(targetUserId, notification)
+        realtimeEventService.broadcastNotificationToUser(targetUserId, notification)
+        // Anyone viewing this sharing session sees the new comment live regardless of
+        // whether they're the comment target.
+        realtimeEventService.broadcastToSharingSession(
+            UUID.fromString(sessionId),
+            com.docuhyphen.app.api.realtime.RealtimeMessage(
+                type = com.docuhyphen.app.api.realtime.RealtimeMessageType.NOTIFICATION,
+                notification = notification,
+            )
+        )
 
         return comment
     }
