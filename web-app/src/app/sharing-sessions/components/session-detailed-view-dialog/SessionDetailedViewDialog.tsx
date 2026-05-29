@@ -1,6 +1,7 @@
 import {SharingSessionDetailedDto, SharingSessionStatus} from "../../../models/models.tsx";
 import React from "react";
 import {
+    Badge,
     Button,
     Dialog,
     DialogActions,
@@ -8,22 +9,19 @@ import {
     DialogContent,
     DialogSurface,
     DialogTitle,
-    Field,
-    Input,
-    mergeClasses,
     Text
 } from "@fluentui/react-components";
 import {formatDateWithOrdinal} from "../../../helpers.ts";
 import {useSessionDDetailedViewDialogStyles} from "./SessionDetailedViewDialogStyles.tsx";
 
-interface SessionDeleteDialogProps
+interface SessionDetailedViewDialogProps
 {
     isOpen: boolean;
     onDismiss: () => void;
-    session: SharingSessionDetailedDto;
+    session: SharingSessionDetailedDto | null;
 }
 
-const SessionDetailedViewDialog: React.FC<SessionDeleteDialogProps> = (
+const SessionDetailedViewDialog: React.FC<SessionDetailedViewDialogProps> = (
     {
         isOpen,
         onDismiss,
@@ -31,6 +29,37 @@ const SessionDetailedViewDialog: React.FC<SessionDeleteDialogProps> = (
     }) =>
 {
     const styles = useSessionDDetailedViewDialogStyles();
+
+    if (!session) return null;
+
+    const normalizeStatus = (
+        status?: SharingSessionStatus | string,
+        endDate?: string | null
+    ): SharingSessionStatus =>
+    {
+        const normalizedStatus = typeof status === "string" ? status.trim().toUpperCase() : status;
+
+        switch (normalizedStatus)
+        {
+            case SharingSessionStatus.ACCEPTED_STARTED:
+            case "ACCEPTED":
+            case "STARTED":
+            case "IN_PROGRESS":
+                return SharingSessionStatus.ACCEPTED_STARTED;
+            case SharingSessionStatus.REJECTED:
+                return SharingSessionStatus.REJECTED;
+            case SharingSessionStatus.ENDED:
+            case "COMPLETED":
+            case "CLOSED":
+                return SharingSessionStatus.ENDED;
+            case SharingSessionStatus.INITIATED:
+                return SharingSessionStatus.INITIATED;
+            default:
+                return endDate ? SharingSessionStatus.ENDED : SharingSessionStatus.INITIATED;
+        }
+    };
+
+    const currentStatus = normalizeStatus(session.status, session.endDate);
 
     const getStatusAsText = (status: SharingSessionStatus) =>
     {
@@ -47,85 +76,132 @@ const SessionDetailedViewDialog: React.FC<SessionDeleteDialogProps> = (
             default:
                 return "Unknown";
         }
-    }
+    };
 
-    const getInitiatedBy = () =>
+    const formatParticipant = (participant: SharingSessionDetailedDto['initiator']) =>
     {
-        return `${session.initiator?.person?.firstName} ${session.initiator?.person?.lastName} (${session.initiator?.email})`;
-    }
+        const name = [participant?.person?.firstName, participant?.person?.lastName]
+            .filter(Boolean)
+            .join(' ')
+            .trim();
+        const email = participant?.email;
 
-    const getMainRecipient = () =>
-    {
-        return `${session.recipient?.person?.firstName} ${session.recipient?.person?.lastName} (${session.recipient?.email})`;
-    }
+        if (name && email) return `${name} (${email})`;
+        if (name) return name;
+        if (email) return email;
+        return "Not provided";
+    };
 
-    const getStatusList = () =>
+    const getStatusChipProps = (status?: SharingSessionStatus) =>
     {
-        return Object.values(SharingSessionStatus).map((status) =>
+        switch (status)
         {
-            const commonClass = styles.sessionStatus;
-            const statusClass = styles[`sessionStatus${status}` as keyof typeof styles];
-            const currentStatusClass = styles[`sessionCurrentStatus` as keyof typeof styles];
+            case SharingSessionStatus.ACCEPTED_STARTED:
+                return {appearance: "filled" as const, color: "brand" as const};
+            case SharingSessionStatus.REJECTED:
+                return {appearance: "filled" as const, color: "danger" as const};
+            case SharingSessionStatus.ENDED:
+                return {appearance: "filled" as const, color: "subtle" as const};
+            case SharingSessionStatus.INITIATED:
+            default:
+                return {appearance: "filled" as const, color: "success" as const};
+        }
+    };
 
-            return <>
-                {session.status === status &&
-                    <div className={mergeClasses(commonClass, statusClass, currentStatusClass)} key={status}>
-                        <Text weight={"bold"}> {getStatusAsText(status)} </Text>
-                    </div>
-                }
-                {session.status != status &&
+    const getBooleanLabel = (value?: boolean) => value ? "Yes" : "No";
+    const statusChipProps = getStatusChipProps(currentStatus);
 
-                    <div className={mergeClasses(commonClass, statusClass)} key={status}>
-                        {getStatusAsText(status)}
-                    </div>
-                }
-            </>
-        })
-    }
+    const uploadedDocuments = (session.documents || []).filter(document => !!document.uploadDate).length;
+    const requestedDocuments = (session.documents || []).filter(document => !document.uploadDate).length;
 
     return <>
         {<Dialog modalType="alert" open={isOpen}>
-            <DialogSurface>
+            <DialogSurface className={styles.dialogSurface}>
                 <DialogBody>
                     <DialogTitle>Sharing Session Detailed View</DialogTitle>
-                    <DialogContent>
-                        {session && <div className={styles.dialogContent}>
-                            <Field label={"Name"}>
-                                <Input type="text" value={session.sessionName} disabled={true}/>
-                            </Field>
-                            <div className={styles.sessionStatuses}>
-                                {getStatusList()}
+                    <DialogContent className={styles.dialogContent}>
+                        <div className={styles.sectionCard}>
+                            <div className={styles.titleRow}>
+                                <Text size={500} weight="semibold" className={styles.sessionTitleText}>
+                                    {session.sessionName || "Unnamed Session"}
+                                </Text>
+                                <Badge
+                                    appearance={statusChipProps.appearance}
+                                    color={statusChipProps.color}
+                                    shape="rounded"
+                                    className={styles.statusChip}>
+                                    {getStatusAsText(currentStatus)}
+                                </Badge>
                             </div>
-                            <Field label={"Description"}>
-                                <Input type="text" value={session.description || "No Description"} disabled={true}/>
-                            </Field>
-                            <Field label={"Initial Share Message"}>
-                                <Input type="text" value={session.initialShareMessage || "No Message"} disabled={true}/>
-                            </Field>
-                            <Field label={"Started by"}>
-                                <Input type="text" value={getInitiatedBy()} disabled={true}/>
-                            </Field>
-                            <Field label={"Main Recipient"}>
-                                <Input type="text" value={getMainRecipient()} disabled={true}/>
-                            </Field>
-                            <Field label={"Date Initiated"}>
-                                <Input type="text" value={formatDateWithOrdinal(session.createdDate)} disabled={true}/>
-                            </Field>
-                            {session.status === SharingSessionStatus.ENDED &&
-                                <Field label={"Date Ended"}>
-                                    <Input type="text" value={formatDateWithOrdinal(session.endDate)} disabled={true}/>
-                                </Field>
-                            }
-                            {session.status === SharingSessionStatus.REJECTED &&
-                                <Field label={"Date Rejected"}>
-                                    <Input type="text" value={formatDateWithOrdinal(session.endDate)} disabled={true}/>
-                                </Field>
-                            }
-                            {/*<Field label={"Total Documents"}>*/}
-                            {/*    <Input type="text" value={session?.documents?.length || "0"} disabled={true}/>*/}
-                            {/*</Field>*/}
+                            <Text size={300}>{session.description || "No description provided."}</Text>
+                            <Text size={300} italic>{session.initialShareMessage || "No initial share message."}</Text>
                         </div>
-                        }
+
+                        <div className={styles.sectionCard}>
+                            <Text weight="semibold">Lifecycle</Text>
+                            <div className={styles.keyValueGrid}>
+                                <Text className={styles.keyLabel}>Date initiated</Text>
+                                <Text>{formatDateWithOrdinal(session.createdDate)}</Text>
+
+                                <Text className={styles.keyLabel}>Last activity</Text>
+                                <Text>{formatDateWithOrdinal(session.lastActivity)}</Text>
+
+                                {session.endDate && (
+                                    <>
+                                        <Text className={styles.keyLabel}>Date closed</Text>
+                                        <Text>{formatDateWithOrdinal(session.endDate)}</Text>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className={styles.sectionCard}>
+                            <Text weight="semibold">Participants</Text>
+                            <div className={styles.keyValueGrid}>
+                                <Text className={styles.keyLabel}>Initiator</Text>
+                                <Text>{formatParticipant(session.initiator)}</Text>
+
+                                <Text className={styles.keyLabel}>Recipient</Text>
+                                <Text>{formatParticipant(session.recipient)}</Text>
+                            </div>
+                        </div>
+
+                        <div className={styles.sectionCard}>
+                            <Text weight="semibold">Documents</Text>
+                            <div className={styles.keyValueGrid}>
+                                <Text className={styles.keyLabel}>Total</Text>
+                                <Text>{session.documents?.length || 0}</Text>
+
+                                <Text className={styles.keyLabel}>Uploaded</Text>
+                                <Text>{uploadedDocuments}</Text>
+
+                                <Text className={styles.keyLabel}>Requested</Text>
+                                <Text>{requestedDocuments}</Text>
+                            </div>
+                        </div>
+
+                        <div className={styles.sectionCard}>
+                            <Text weight="semibold">Sharing options</Text>
+                            <div className={styles.keyValueGrid}>
+                                <Text className={styles.keyLabel}>Require recipient sign-in</Text>
+                                <Text>{getBooleanLabel(session.requestRecipientSignIn)}</Text>
+
+                                <Text className={styles.keyLabel}>Allow document addition</Text>
+                                <Text>{getBooleanLabel(session.allowDocumentAddition)}</Text>
+
+                                <Text className={styles.keyLabel}>Allow document upload</Text>
+                                <Text>{getBooleanLabel(session.allowDocumentUpload)}</Text>
+
+                                <Text className={styles.keyLabel}>Allow document update</Text>
+                                <Text>{getBooleanLabel(session.allowDocumentUpdate)}</Text>
+
+                                <Text className={styles.keyLabel}>Allow document download</Text>
+                                <Text>{getBooleanLabel(session.allowDocumentDownload)}</Text>
+
+                                <Text className={styles.keyLabel}>Allow document deletion</Text>
+                                <Text>{getBooleanLabel(session.allowDocumentDeletion)}</Text>
+                            </div>
+                        </div>
                     </DialogContent>
                     <DialogActions>
 

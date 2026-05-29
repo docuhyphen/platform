@@ -1,10 +1,13 @@
 import React, {createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {fetchAppUser, fetchAppUserPersonOrganization} from '../services/appUserApi.ts';
-import {AppUserDetailedDto, OrganizationDetailedDto} from "../app/models/models.tsx";
+import {AppUserDetailedDto, AppUserRole, OrganizationDetailedDto} from "../app/models/models.tsx";
 import {getTokenSecondsToExpiry, isTokenExpired} from "../utils/helpers.ts";
 import {useLocation, useNavigate} from "react-router-dom";
 import {setApiClientAuthToken} from "../services/apiClient.ts";
 import {refreshTokens as refreshTokensApi} from "../services/authApi.ts";
+
+const AUTH_EVENT_STORAGE_KEY = 'docuhyphen:auth:event';
+const AUTH_USER_STORAGE_KEY = 'docuhyphen:auth:user-id';
 
 interface AuthContextType
 {
@@ -21,7 +24,7 @@ interface AuthContextType
     refreshTokens: () => Promise<void>;
     /**
      * True until the initial refresh-token probe on mount has resolved.
-     * Route guards should wait on this — otherwise a fresh browser session
+     * Route guards should wait on this,  otherwise a fresh browser session
      * (sessionStorage empty) bounces through /sign-in for a frame while the
      * refresh is still in flight.
      */
@@ -39,6 +42,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
     const [accessToken, setAccessTokenState] = useState<string | null>(() => sessionStorage.getItem('accessToken'));
     const [idToken, setIdTokenState] = useState<string | null>(() => sessionStorage.getItem('idToken'));
     const tokenExpirationIntervalRef = useRef<number | null>(null);
+    const tabIdRef = useRef<string>(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const suppressNextLogoutBroadcastRef = useRef(false);
+    const previousAccessTokenRef = useRef<string | null>(accessToken);
     const [appUser, setAppUser] = useState<AppUserDetailedDto | null>(null);
     const [appUserPersonOrganization, setAppUserPersonOrganization] = useState<OrganizationDetailedDto | null>(null);
     // Start bootstrapping whenever we don't have a usable access token in sessionStorage.
@@ -96,10 +102,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         }
         catch
         {
-            // No valid refresh token — user is not logged in
+            // No valid refresh token,  user is not logged in
             console.log("No active session (refresh token unavailable)");
         }
     }, [setAccessToken, setIdToken]);
+
+    const clearAuthStateAndRedirect = useCallback((path: string = '/sign-in') =>
+    {
+        setAccessToken(null);
+        setIdToken(null);
+        setAppUser(null);
+        setAppUserPersonOrganization(null);
+        navigate(path);
+    }, [setAccessToken, setIdToken, navigate]);
+
+    const broadcastAuthEvent = useCallback((type: 'logout' | 'user-change', userId?: string | null) =>
+    {
+        localStorage.setItem(
+            AUTH_EVENT_STORAGE_KEY,
+            JSON.stringify({
+                type,
+                userId: userId ?? null,
+                sourceTabId: tabIdRef.current,
+                ts: Date.now(),
+            })
+        );
+    }, []);
 
     // On mount, attempt to refresh tokens if we don't have a valid access token.
     // Route guards block on `isBootstrapping` until this completes, so a closed-then-reopened
@@ -140,6 +168,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         const handleSessionExpired = (e: Event) =>
         {
             const reason: string | undefined = (e as CustomEvent).detail?.reason;
+            broadcastAuthEvent('logout');
             setAccessToken(null);
             setIdToken(null);
             setAppUser(null);
@@ -155,7 +184,92 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
             window.removeEventListener('tokens-refreshed', handleTokensRefreshed);
             window.removeEventListener('auth-session-expired', handleSessionExpired);
         };
-    }, [setAccessToken, setIdToken]);
+    }, [setAccessToken, setIdToken, broadcastAuthEvent]);
+
+    useEffect(() =>
+    {
+        const handleStorageEvent = (event: StorageEvent) =>
+        {
+            if (event.key === AUTH_EVENT_STORAGE_KEY && event.newValue)
+            {
+                try
+                {
+                    const payload = JSON.parse(event.newValue) as {
+                        type?: 'logout' | 'user-change';
+                        userId?: string | null;
+                        sourceTabId?: string;
+                    };
+
+                    if (payload.sourceTabId === tabIdRef.current)
+                    {
+                        return;
+                    }
+
+                    if (payload.type === 'logout')
+                    {
+                        suppressNextLogoutBroadcastRef.current = true;
+                        clearAuthStateAndRedirect('/sign-in');
+                        return;
+                    }
+
+                    if (payload.type === 'user-change')
+                    {
+                        const incomingUserId = payload.userId || null;
+                        if (appUser?.id && incomingUserId && incomingUserId !== appUser.id)
+                        {
+                            suppressNextLogoutBroadcastRef.current = true;
+                            clearAuthStateAndRedirect('/sign-in');
+                        }
+                    }
+                }
+                catch
+                {
+                    // Ignore malformed cross-tab payloads.
+                }
+            }
+
+            if (event.key === AUTH_USER_STORAGE_KEY)
+            {
+                const incomingUserId = event.newValue || null;
+                if (appUser?.id && incomingUserId && incomingUserId !== appUser.id)
+                {
+                    suppressNextLogoutBroadcastRef.current = true;
+                    clearAuthStateAndRedirect('/sign-in');
+                }
+            }
+        };
+
+        window.addEventListener('storage', handleStorageEvent);
+        return () => window.removeEventListener('storage', handleStorageEvent);
+    }, [appUser?.id, clearAuthStateAndRedirect]);
+
+    useEffect(() =>
+    {
+        if (token && appUser?.id)
+        {
+            localStorage.setItem(AUTH_USER_STORAGE_KEY, appUser.id);
+            broadcastAuthEvent('user-change', appUser.id);
+        }
+    }, [token, appUser?.id, broadcastAuthEvent]);
+
+    useEffect(() =>
+    {
+        const previousToken = previousAccessTokenRef.current;
+        previousAccessTokenRef.current = accessToken;
+
+        if (previousToken && !accessToken)
+        {
+            localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+            if (suppressNextLogoutBroadcastRef.current)
+            {
+                suppressNextLogoutBroadcastRef.current = false;
+            }
+            else
+            {
+                broadcastAuthEvent('logout');
+            }
+        }
+    }, [accessToken, broadcastAuthEvent]);
 
     // Proactive silent refresh: schedule a refresh at ~80% of the access-token TTL.
     // Falls back to 30s polling as a safety net for tokens we can't decode.
@@ -243,6 +357,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
 
             if (appUser?.person && !appUserPersonOrganization && accessToken)
             {
+                if (appUser.role === AppUserRole.APP_USER)
+                {
+                    // Individual users do not necessarily belong to an organization.
+                    return;
+                }
+
                 try
                 {
                     setAppUserPersonOrganization(await fetchAppUserPersonOrganization(appUser?.id, appUser?.person?.id, accessToken));

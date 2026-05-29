@@ -34,7 +34,7 @@ const SessionsTab: React.FC = () =>
         try
         {
             const res = await listUserSessions();
-            // Surface the user's own device first — both for quick recognition and so the
+            // Surface the user's own device first,  both for quick recognition and so the
             // destructive "Sign out" action sits where they expect.
             const ordered = [...res.sessions].sort((a, b) =>
             {
@@ -124,46 +124,47 @@ const SessionsTab: React.FC = () =>
             {!loading && sessions.length === 0 && (
                 <Text>No active sessions found.</Text>
             )}
-
-            {!loading && sessions.map(session => (
-                <div key={session.sessionId} className={styles.sessionCard}>
-                    <div className={styles.sessionMeta}>
-                        <Subtitle2>
-                            {session.deviceName ?? session.userAgent?.split(' ')[0] ?? "Unknown device"}
-                            {session.isCurrent && (
-                                <>
-                                    &nbsp;
-                                    <Badge appearance="filled" color="brand" size="small">
-                                        This device
-                                    </Badge>
-                                </>
+            <div className={styles.sessionCardContainer}>
+                {!loading && sessions.map(session => (
+                    <div key={session.sessionId} className={styles.sessionCard}>
+                        <div className={styles.sessionMeta}>
+                            <Subtitle2>
+                                {session.deviceName ?? session.userAgent?.split(' ')[0] ?? "Unknown device"}
+                                {session.isCurrent && (
+                                    <>
+                                        &nbsp;
+                                        <Badge appearance="filled" color="brand" size="small">
+                                            This device
+                                        </Badge>
+                                    </>
+                                )}
+                            </Subtitle2>
+                            {session.ipAddress && (
+                                <Caption1>IP: {session.ipAddress}</Caption1>
                             )}
-                        </Subtitle2>
-                        {session.ipAddress && (
-                            <Caption1>IP: {session.ipAddress}</Caption1>
-                        )}
-                        <Caption1>Last active: {formatDate(session.lastSeenAt)}</Caption1>
-                        <Caption1>Created: {formatDate(session.createdDate)}</Caption1>
-                        {session.expiresAt && (
-                            <Caption1>Expires: {formatDate(session.expiresAt)}</Caption1>
-                        )}
+                            <Caption1>Last active: {formatDate(session.lastSeenAt)}</Caption1>
+                            <Caption1>Created: {formatDate(session.createdDate)}</Caption1>
+                            {session.expiresAt && (
+                                <Caption1>Expires: {formatDate(session.expiresAt)}</Caption1>
+                            )}
+                        </div>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                            <Badge appearance="outline" color="informative" size="small">Active</Badge>
+                            <Button
+                                icon={<DeleteRegular/>}
+                                appearance="subtle"
+                                size="small"
+                                disabled={revoking === session.sessionId}
+                                onClick={() => handleRevoke(session.sessionId)}
+                            >
+                                {revoking === session.sessionId
+                                    ? <Spinner size="tiny"/>
+                                    : session.isCurrent ? "Sign out" : "Revoke"}
+                            </Button>
+                        </div>
                     </div>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        <Badge appearance="outline" color="informative" size="small">Active</Badge>
-                        <Button
-                            icon={<DeleteRegular/>}
-                            appearance="subtle"
-                            size="small"
-                            disabled={revoking === session.sessionId}
-                            onClick={() => handleRevoke(session.sessionId)}
-                        >
-                            {revoking === session.sessionId
-                                ? <Spinner size="tiny"/>
-                                : session.isCurrent ? "Sign out" : "Revoke"}
-                        </Button>
-                    </div>
-                </div>
-            ))}
+                ))}
+            </div>
         </div>
     );
 };

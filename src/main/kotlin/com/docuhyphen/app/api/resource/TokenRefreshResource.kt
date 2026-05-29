@@ -144,7 +144,7 @@ class TokenRefreshResource @Inject constructor(
                 ?: run {
 
                     authenticationService.deleteRefreshTokenByJti(jti)
-                    logger.warn("Refresh token jti={} has no sessionId — pre-session token, forcing re-auth", jti)
+                    logger.warn("Refresh token jti={} has no sessionId,  pre-session token, forcing re-auth", jti)
                     return Response.status(Response.Status.UNAUTHORIZED)
                         .entity(ResponseError("SESSION_EXPIRED"))
                         .build()
@@ -323,7 +323,7 @@ class TokenRefreshResource @Inject constructor(
                 refreshTokenValue
             }
 
-            // Preserve auth_time from the session — refresh is not a re-auth, so the freshness
+            // Preserve auth_time from the session,  refresh is not a re-auth, so the freshness
             // window must not be reset just because the access token was renewed.
             val sessionAuthTimeEpoch = userSessionService.findSession(sessionId)?.lastAuthTime?.toInstant()?.epochSecond
             val accessToken = authenticationService.generateAccessToken(

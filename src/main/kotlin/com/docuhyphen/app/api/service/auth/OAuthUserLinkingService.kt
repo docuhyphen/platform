@@ -67,7 +67,7 @@ class OAuthUserLinkingService @Inject constructor(
                 )
             }
 
-            // User exists but no link for this provider — needs password confirmation to link
+            // User exists but no link for this provider,  needs password confirmation to link
             logger.info("AppUser exists for email={}, requesting link confirmation", userInfo.email)
 
             val linkToken = authenticationService.generateLinkToken(
@@ -84,7 +84,7 @@ class OAuthUserLinkingService @Inject constructor(
             )
         }
 
-        // No user exists — create new AppUser
+        // No user exists,  create new AppUser
         logger.info("Creating new AppUser for OAuth email={}", userInfo.email)
 
         // Enforce platform-managed organization user caps for JIT provisioning.

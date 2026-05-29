@@ -75,7 +75,7 @@ class SharingSessionRetrievalService @Inject constructor(
         // Defensive: NPE-ing here would surface as a generic 500 with a misleading
         // "Failed to check for sharing sessions" alert on the frontend. The auth
         // filter normally guarantees appUser is populated, but treat a missing
-        // principal as "no sessions" rather than crashing — the filter already
+        // principal as "no sessions" rather than crashing,  the filter already
         // rejects truly unauthenticated calls upstream, so reaching here with a
         // null appUser is a soft anomaly, not a security boundary.
         val appUserId = authTokenContext.authToken.appUser?.id ?: return false
@@ -114,24 +114,20 @@ class SharingSessionRetrievalService @Inject constructor(
         sortDirection: String
     ): SearchResult
     {
-        ResourceEndpointDelayHelper.delayEndpoint(1000, 2000)
+//        ResourceEndpointDelayHelper.delayEndpoint(1000, 2000)
 
         val appUserId =
             authTokenContext.authToken.appUser?.id ?: throw IllegalArgumentException("User not authenticated")
 
+        val parsedStatuses = status?.split(",")?.mapNotNull {
+            try { SharingSessionStatus.valueOf(it.trim()) }
+            catch (e: IllegalArgumentException) { null }
+        }?.takeIf { it.isNotEmpty() }
+
         val sessions = sharingSessionRepository.searchSessions(
             appUserId,
             query,
-            status?.let {
-                try
-                {
-                    SharingSessionStatus.valueOf(it)
-                }
-                catch (e: IllegalArgumentException)
-                {
-                    null
-                }
-            },
+            parsedStatuses,
             initiatedBy,
             page,
             size,
@@ -149,16 +145,7 @@ class SharingSessionRetrievalService @Inject constructor(
         val totalElements = sharingSessionRepository.countSearchResults(
             appUserId,
             query,
-            status?.let {
-                try
-                {
-                    SharingSessionStatus.valueOf(it)
-                }
-                catch (e: IllegalArgumentException)
-                {
-                    null
-                }
-            },
+            parsedStatuses,
             initiatedBy
         )
 

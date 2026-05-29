@@ -6,5 +6,11 @@ export const useOrganizationEditDialogStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: "16px"
+    },
+    errorContainer: {
+        minHeight: "20px",
+        color: "red",
+        fontSize: "12px",
+        lineHeight: "20px"
     }
 });

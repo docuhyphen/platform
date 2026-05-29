@@ -1,24 +1,34 @@
 import {Dialog, DialogBody, DialogContent, DialogSurface, DialogTitle, Text} from "@fluentui/react-components";
 import React from "react";
 import OrganizationOnboardingForm from "../../../onboarding/organization-onboarding/OrganizationOnboardingForm.tsx";
+import {OrganizationBasicDto} from "../../../models/models.tsx";
 
 interface OrganizationOnboardingDialogProps
 {
     isOpen: boolean,
     onDismiss: () => void,
+    onRegistered?: (organization: OrganizationBasicDto) => void,
 }
 
 const OrganizationOnboardingDialog: React.FC<OrganizationOnboardingDialogProps> = (
     {
         isOpen,
-        onDismiss
+        onDismiss,
+        onRegistered
     }) =>
 {
     const [orgRegistered, setOrgRegistered] = React.useState(false);
 
-    const onOrganizationRegistered = () =>
+    const onOrganizationRegistered = (organization: OrganizationBasicDto) =>
     {
         setOrgRegistered(true);
+        onRegistered?.(organization);
+    }
+
+    const handleDismiss = () =>
+    {
+        setOrgRegistered(false);
+        onDismiss();
     }
 
     return <>
@@ -37,7 +47,7 @@ const OrganizationOnboardingDialog: React.FC<OrganizationOnboardingDialogProps> 
 
                         }
                         <OrganizationOnboardingForm isOnDialog={true}
-                                                        onCancel={onDismiss}
+                                                        onCancel={handleDismiss}
                                                         onOrganizationRegistered={onOrganizationRegistered}/>
                     </DialogContent>
                 </DialogBody>

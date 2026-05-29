@@ -18,6 +18,8 @@ import {useAuth} from "../../../../context/AuthContext.tsx";
 import {addOrganizationUser} from "../../../../services/organizationApi.ts";
 import {useAddAppUserDialogStyles} from "./AddAppUserDialogStyles.tsx";
 import {AppUserRoleDisplayNames} from "../../../models/models.tsx";
+import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
+import {isValidEmail} from "../../../../utils/helpers.ts";
 
 interface AddUserDialogProps
 {
@@ -26,6 +28,29 @@ interface AddUserDialogProps
     organizationId: string;
     onComplete: () => void;
 }
+
+const mapServerErrorMessage = (raw: string | undefined | null): string =>
+{
+    if (!raw) return "Something went wrong. Please try again in a moment.";
+    const lower = raw.toLowerCase();
+    if (lower.includes("already exists"))
+    {
+        return "A user with that email is already in this organization.";
+    }
+    if (lower.includes("valid email"))
+    {
+        return "Please enter a valid email address.";
+    }
+    if (lower.includes("permission"))
+    {
+        return "You do not have permission to add users.";
+    }
+    if (lower.includes("capacity") || lower.includes("limit"))
+    {
+        return "Your organization has reached its member limit. Upgrade your plan to add more users.";
+    }
+    return raw;
+};
 
 const AddAppUserDialog: React.FC<AddUserDialogProps> = (
     {
@@ -36,6 +61,7 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
     }) =>
 {
     const styles = useAddAppUserDialogStyles()
+    const globalStyles = useGlobalStyles()
     const {token} = useAuth();
     const [email, setEmail] = useState("");
     const [firstName, setFirstName] = useState("");
@@ -44,11 +70,28 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
     const [savingData, setSavingData] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const extractErrorMessage = (e: any): string =>
+    {
+        if (typeof e === "string") return mapServerErrorMessage(e);
+        const msg = e?.errorMessage || e?.message || e?.response?.data?.errorMessage || e?.response?.data?.message;
+        return mapServerErrorMessage(msg);
+    }
+
     const handleSave = async () =>
     {
-        console.log("handle save", organizationId)
-
         if (!organizationId) return;
+
+        if (!isValidEmail(email.trim()))
+        {
+            setError("Please enter a valid email address.");
+            return;
+        }
+
+        if (!firstName.trim() || !lastName.trim())
+        {
+            setError("First name and last name are required.");
+            return;
+        }
 
         setSavingData(true);
         setError(null);
@@ -58,11 +101,11 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
             await addOrganizationUser(
                 organizationId,
                 {
-                    email,
+                    email: email.trim().toLowerCase(),
                     role,
                     person: {
-                        firstName,
-                        lastName
+                        firstName: firstName.trim(),
+                        lastName: lastName.trim()
                     }
                 },
                 token || undefined
@@ -72,7 +115,7 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
         }
         catch (err: any)
         {
-            setError(err.message || "Failed to add user");
+            setError(extractErrorMessage(err));
             console.error("Failed to add user:", err);
         }
         finally
@@ -91,7 +134,7 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
         onDismiss();
     };
 
-    const isFormValid = email && firstName && lastName && role;
+    const isFormValid = email.trim() && firstName.trim() && lastName.trim() && role;
 
     return (
         <Dialog modalType="alert" open={isOpen}>
@@ -99,13 +142,15 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Add New User</DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
-                        {error && <div style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
+                        <div className={styles.errorContainer}>{error || " "}</div>
 
                         <Field label="Email" required>
                             <Input
                                 type="email"
                                 value={email}
+                                maxLength={254}
                                 onChange={(e) => setEmail(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
                             />
                         </Field>
 
@@ -113,7 +158,9 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
                             <Input
                                 type="text"
                                 value={firstName}
+                                maxLength={50}
                                 onChange={(e) => setFirstName(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
                             />
                         </Field>
 
@@ -121,7 +168,9 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
                             <Input
                                 type="text"
                                 value={lastName}
+                                maxLength={50}
                                 onChange={(e) => setLastName(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
                             />
                         </Field>
 
@@ -141,11 +190,12 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
                     <Button
                         appearance="primary"
                         shape="circular"
+                        className={globalStyles.buttonWithLoading}
                         disabled={savingData || !isFormValid}
                         onClick={handleSave}
                     >
                         {savingData && <Spinner size="tiny"/>}
-                        Add User
+                        {savingData ? "Adding…" : "Add User"}
                     </Button>
                     <DialogTrigger disableButtonEnhancement>
                         <Button

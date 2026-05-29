@@ -42,10 +42,18 @@ class OrganizationIdentityPolicyService @Inject constructor(
     fun enforceUserCapForEmail(email: String)
     {
         val organization = resolveOrganizationForEmail(email) ?: return
-        val policy = organizationSubscriptionPolicyRepository.findByOrganizationId(organization.id) ?: return
-        val maxUsers = policy.maxUsers ?: return
+        val policy = organizationSubscriptionPolicyRepository.findByOrganizationId(organization.id)
+        val tierCode = policy?.tierCode ?: PlatformOrganizationSubscriptionPolicyService.FREE_TIER_CODE
+        val maxUsers = policy?.maxUsers
+            ?: if (tierCode.equals(PlatformOrganizationSubscriptionPolicyService.FREE_TIER_CODE, ignoreCase = true))
+                PlatformOrganizationSubscriptionPolicyService.FREE_TIER_MAX_USERS
+            else null
+        if (maxUsers == null)
+        {
+            return
+        }
 
-        val activeUsers = organization.appUsers.count { it.isActive }
+        val activeUsers = organization.appUsers.count { it.isActive }.toLong()
         if (activeUsers >= maxUsers)
         {
             throw IllegalArgumentException("Organization user limit reached")

@@ -38,8 +38,6 @@ class SharingSessionResource @Inject constructor(
     @POST
     fun initiateSharingSession(sharingSessionInitiationDto: SharingSessionInitiationDto): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(500, 1500)
-
         return try
         {
             val sharingSession = sharingSessionInitiationService.initiateSharingSession(sharingSessionInitiationDto)
@@ -104,7 +102,7 @@ class SharingSessionResource @Inject constructor(
     @GET
     fun getSharingSessions(): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(1000, 3000)
+//        ResourceEndpointDelayHelper.delayEndpoint(1000, 3000)
 
         return try
         {
@@ -152,7 +150,7 @@ class SharingSessionResource @Inject constructor(
     @Path("/{sessionId}")
     fun getSharingSession(@PathParam("sessionId") sessionId: String): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(2000, 4000)
+//        ResourceEndpointDelayHelper.delayEndpoint(2000, 4000)
 
         return try
         {

@@ -284,7 +284,7 @@ const ParingRequestsTab: React.FC<ParingOrganizationsTabProps> = (
             orgPair={currentOrgPairRequest}
             isOpen={isOrgPairRequestRejectDialogOpen}
             onDismiss={() => setIsOrgPairRequestRejectDialogOpen(false)}
-            onRejected={() => onOrgPairRejected}/>
+            onRejected={onOrgPairRejected}/>
     </section>
 }
 

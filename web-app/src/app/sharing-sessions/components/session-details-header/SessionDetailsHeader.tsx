@@ -28,6 +28,8 @@ import {
 } from "../../../components/IconBundles.tsx";
 import {SharingSessionPermissions} from "../../SessionPermissions.ts";
 
+const HEADER_EXPANDED_STORAGE_KEY = 'sharingSessions.header.isExpanded';
+
 interface SessionDetailsHeaderProps
 {
     sessionDetails: SharingSessionDetailedDto | null;
@@ -38,6 +40,7 @@ interface SessionDetailsHeaderProps
     setIsSessionEditDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     setIsSessionAccessManagementDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     sessionPermissions: SharingSessionPermissions;
+    onRecreateRejectedSession: (session: SharingSessionDetailedDto) => void;
 }
 
 const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
@@ -49,21 +52,30 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
         setIsDeletedSessionDialogOpen,
         setIsSessionEditDialogOpen,
         setIsSessionAccessManagementDialogOpen,
-        sessionPermissions
+        sessionPermissions,
+        onRecreateRejectedSession
     }) =>
 {
     const styles = useSessionDetailsHeaderStyles();
-    const [isCollapsed, setIsCollapsed] = React.useState(false);
+    const [isExpanded, setIsExpanded] = React.useState(() =>
+    {
+        if (typeof window === 'undefined') return false;
+        const saved = window.localStorage.getItem(HEADER_EXPANDED_STORAGE_KEY);
+        return saved === 'true';
+    });
 
     useEffect(() =>
     {
-        setIsCollapsed(false);
-    }, []);
+        if (typeof window === 'undefined') return;
+        window.localStorage.setItem(HEADER_EXPANDED_STORAGE_KEY, String(isExpanded));
+    }, [isExpanded]);
 
     const toggleHeaderDetails = () =>
     {
-        setIsCollapsed((prev) => !prev);
+        setIsExpanded((prev) => !prev);
     };
+
+    const detailsToggleTooltip = isExpanded ? "Collapse details" : "Expand details";
 
     const getSessionHeadContainerClass = () =>
     {
@@ -74,7 +86,13 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
         <section className={getSessionHeadContainerClass()}>
             {sessionDetails && (
                 <div className={styles.header}>
-                    {isCollapsed &&
+                    <div
+                        className={styles.headerAnimatedSection}
+                        style={{
+                            maxHeight: isExpanded ? 64 : 0,
+                            opacity: isExpanded ? 1 : 0,
+                            marginTop: isExpanded ? 4 : 0,
+                        }}>
                         <div className={styles.headerLine1}>
                             <div className={styles.headerLine1_2} id={"session-details-header-l1-1"}>
                                 <Caption1>
@@ -89,19 +107,14 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                                     </>
                                 )}
                             </div>
-
-                            <Button
-                                onClick={toggleHeaderDetails}
-                                size={"small"}
-                                appearance={"subtle"}
-                                icon={<ToggleHeaderUpIcon/>}/>
                         </div>
-                    }
+                    </div>
                     <div className={styles.headerLine2}>
-                        <Text size={isCollapsed ? 600 : 500}>{sessionDetails.sessionName}</Text>
+                        <Text size={isExpanded ? 500 : 600}>{sessionDetails.sessionName}</Text>
                         <div className={styles.actions}>
                             <Tooltip content="Add Session Document" relationship="description">
                                 <Button
+                                    id="session-details-header-add-document"
                                     icon={<DocumentAddIcon/>}
                                     appearance="primary"
                                     disabled={sessionDetails.status === SharingSessionStatus.ENDED || !sessionPermissions.canAddSessionDocument}
@@ -110,6 +123,7 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                             </Tooltip>
                             <Tooltip content="Edit" relationship="description">
                                 <Button
+                                    id="session-details-header-edit-session"
                                     icon={<EditSessionIcon/>}
                                     disabled={sessionDetails.status === SharingSessionStatus.ENDED || !sessionPermissions.canEditSessionDocument}
                                     appearance={"subtle"}
@@ -118,6 +132,7 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                             </Tooltip>
                             <Tooltip content="manage access" relationship="description">
                                 <Button
+                                    id="session-details-header-manage-access"
                                     icon={<ManageAccessIcon/>}
                                     disabled={sessionDetails.status === SharingSessionStatus.ENDED || !sessionPermissions.canEditSharingOptions}
                                     appearance={"subtle"}
@@ -126,26 +141,37 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                             </Tooltip>
                             <Menu positioning={{autoSize: true}}>
                                 <MenuTrigger disableButtonEnhancement>
-                                    <Button icon={<MoreVerticalRegular/>} appearance="subtle"/>
+                                    <Button id="session-details-header-more-menu-trigger" icon={<MoreVerticalRegular/>} appearance="subtle"/>
                                 </MenuTrigger>
                                 <MenuPopover>
-                                    <MenuList>
+                                    <MenuList id="session-details-header-more-menu-list">
                                         <MenuItem
+                                            id="session-details-header-menu-more-info"
                                             icon={<SessionDetailedViewIcon/>}
                                             onClick={() => setIsSessionDetailedViewDialogOpen(true)}>
                                             More info
                                         </MenuItem>
+                                        {sessionDetails.status === SharingSessionStatus.REJECTED && sessionPermissions.canDeleteSession && (
+                                            <MenuItem
+                                                id="session-details-header-menu-recreate-request"
+                                                icon={<EditSessionIcon/>}
+                                                onClick={() => onRecreateRejectedSession(sessionDetails)}>
+                                                Recreate Request
+                                            </MenuItem>
+                                        )}
                                         <Divider/>
                                         {sessionDetails.status === SharingSessionStatus.ACCEPTED_STARTED
 
                                         }
                                         <MenuItem
+                                            id="session-details-header-menu-end"
                                             icon={<SessionEndIcon/>}
                                             disabled={sessionDetails.status === SharingSessionStatus.ENDED || !sessionPermissions.canEndSession}
                                             onClick={() => setIsSessionEndDialogOpen(true)}>
                                             End
                                         </MenuItem>
                                         <MenuItem
+                                            id="session-details-header-menu-delete"
                                             icon={<DeleteIcon/>}
                                             disabled={!sessionPermissions.canDeleteSession}
                                             onClick={() => setIsDeletedSessionDialogOpen(true)}>
@@ -155,19 +181,28 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                                 </MenuPopover>
                             </Menu>
 
-                            {!isCollapsed && <Button
-                                onClick={toggleHeaderDetails}
-                                size={"small"}
-                                appearance={"subtle"}
-                                icon={<ToggleHeaderDownIcon/>}/>
-                            }
+                            <Tooltip content={detailsToggleTooltip} relationship="description">
+                                <Button
+                                    id="session-details-header-toggle-details"
+                                    onClick={toggleHeaderDetails}
+                                    size={"small"}
+                                    appearance={"subtle"}
+                                    aria-label={detailsToggleTooltip}
+                                    icon={isExpanded ? <ToggleHeaderUpIcon/> : <ToggleHeaderDownIcon/>}/>
+                            </Tooltip>
                         </div>
                     </div>
-                    {isCollapsed && (
+                    <div
+                        className={styles.headerAnimatedSection}
+                        style={{
+                            maxHeight: isExpanded ? 96 : 0,
+                            opacity: isExpanded ? 1 : 0,
+                            marginTop: isExpanded ? 4 : 0,
+                        }}>
                         <div className={styles.headerLine3}>
                             <Body1>{sessionDetails.description}</Body1>
                         </div>
-                    )}
+                    </div>
                 </div>
             )}
         </section>

@@ -42,6 +42,7 @@ import {
     SharingSessionRequestDocumentRequest
 } from "../models/models.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
+import {recreateRejectedSessionObservable} from "../observable/sharingSessionObservables.ts";
 
 const SharingSessionInitiation: React.FC = () =>
 {
@@ -73,6 +74,7 @@ const SharingSessionInitiation: React.FC = () =>
     } = useSharingSessionInitiatingState();
 
     const toasterId = useId("sharing-session-initiation-toaster");
+    const [isDialogOpen, setIsDialogOpen] = React.useState(false);
 
     const {dispatchToast} = useToastController(toasterId);
 
@@ -98,6 +100,29 @@ const SharingSessionInitiation: React.FC = () =>
 
     const isRecipientValid = (): boolean =>
     {
+        const validateEmailRecipient = (): boolean =>
+        {
+            if (!newRecipient || !newRecipient.email)
+            {
+                setMessageGroupMessages(['A valid recipient email is required']);
+                setSelectedTab('recipients-tab');
+                return false;
+            }
+            if (!newRecipient.firstName || !newRecipient.lastName)
+            {
+                setMessageGroupMessages(['Recipient first and last name are required']);
+                setSelectedTab('recipients-tab');
+                return false;
+            }
+            if (appUser?.email && newRecipient.email.trim().toLowerCase() === appUser.email.trim().toLowerCase())
+            {
+                setMessageGroupMessages(['You cannot be the recipient of your own sharing session']);
+                setSelectedTab('recipients-tab');
+                return false;
+            }
+            return true;
+        };
+
         switch (recipientMode)
         {
             case SharingSessionInitiationRecipientMode.EXTERNAL_ORG:
@@ -134,25 +159,23 @@ const SharingSessionInitiation: React.FC = () =>
                     return false;
                 }
                 break;
+            case SharingSessionInitiationRecipientMode.PEOPLE:
+                // PEOPLE produces either a selected real user (recipientOrgUser) or an
+                // email-based new recipient (newRecipient). Validate whichever was set.
+                if (recipientOrgUser)
+                {
+                    if (appUser && recipientOrgUser.id === appUser.id)
+                    {
+                        setMessageGroupMessages(['You cannot be the recipient of your own sharing session']);
+                        setSelectedTab('recipients-tab');
+                        return false;
+                    }
+                    break;
+                }
+                if (!validateEmailRecipient()) return false;
+                break;
             case SharingSessionInitiationRecipientMode.EMAIL:
-                if (!newRecipient || !newRecipient.email)
-                {
-                    setMessageGroupMessages(['A valid recipient email is required']);
-                    setSelectedTab('recipients-tab');
-                    return false;
-                }
-                if (!newRecipient.firstName || !newRecipient.lastName)
-                {
-                    setMessageGroupMessages(['Recipient first and last name are required']);
-                    setSelectedTab('recipients-tab');
-                    return false;
-                }
-                if (appUser?.email && newRecipient.email.trim().toLowerCase() === appUser.email.trim().toLowerCase())
-                {
-                    setMessageGroupMessages(['You cannot be the recipient of your own sharing session']);
-                    setSelectedTab('recipients-tab');
-                    return false;
-                }
+                if (!validateEmailRecipient()) return false;
                 break;
         }
         return true;
@@ -284,7 +307,7 @@ const SharingSessionInitiation: React.FC = () =>
         } as any]);
     };
 
-    const onCancelInitiation = () =>
+    const resetInitiationForm = () =>
     {
         setSessionInitiatedSuccessfully(false);
         setRecipientOrg(null)
@@ -302,6 +325,62 @@ const SharingSessionInitiation: React.FC = () =>
         setDocuments([]);
         setSelectedTab('recipients-tab');
     };
+
+    const onCancelInitiation = () =>
+    {
+        resetInitiationForm();
+        setIsDialogOpen(false);
+    };
+
+    React.useEffect(() =>
+    {
+        const subscription = recreateRejectedSessionObservable.subscribe(draft =>
+        {
+            setChoosingTemplate(false);
+            setMessageGroupMessages([]);
+            setSessionInitiatedSuccessfully(false);
+            setInitiatingSession(false);
+
+            setSessionName(draft.sessionName || '');
+            setDescription(draft.description || '');
+            setInitialShareMessage(draft.initialShareMessage || '');
+            setRequireSignIn(!!draft.requestRecipientSignIn);
+            setAllowDocumentAdditions(!!draft.allowDocumentAddition);
+            setAllowDocumentDeletions(!!draft.allowDocumentDeletion);
+            setAllowDocumentDownload(!!draft.allowDocumentDownload);
+            setAllowDocumentUpdate(!!draft.allowDocumentUpdate);
+            setAllowDocumentUpload(!!draft.allowDocumentUpload);
+            setDocuments(draft.sessionDocuments || []);
+            setSelectedTab('details-tab');
+            setRecipientOrg(undefined);
+            setRecipientOrgGroup(undefined);
+
+            if (draft.recipientUser)
+            {
+                setRecipientMode(SharingSessionInitiationRecipientMode.PEOPLE);
+                setRecipientOrgUser(draft.recipientUser);
+                setNewRecipient({
+                    email: '',
+                    firstName: '',
+                    lastName: '',
+                });
+            }
+            else
+            {
+                setRecipientMode(SharingSessionInitiationRecipientMode.PEOPLE);
+                setRecipientOrgUser(undefined);
+                setNewRecipient({
+                    email: draft.recipientEmail || '',
+                    firstName: draft.recipientFirstName || '',
+                    lastName: draft.recipientLastName || '',
+                });
+            }
+
+            setIsDialogOpen(true);
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
 
     const renderRecipientsTab = () =>
     {
@@ -455,7 +534,7 @@ const SharingSessionInitiation: React.FC = () =>
     }
 
     return (
-        <Dialog modalType="alert">
+        <Dialog modalType="alert" open={isDialogOpen} onOpenChange={(_, data) => setIsDialogOpen(data.open)}>
             <DialogTrigger disableButtonEnhancement>
                 <SessionInitiationDialogTrigger onRequestingDocumentsChange={handleRequestingDocumentsChange}/>
             </DialogTrigger>
@@ -485,7 +564,8 @@ const SharingSessionInitiation: React.FC = () =>
                             initiatingSession={initiatingSession}
                             sessionInitiatedSuccessfully={sessionInitiatedSuccessfully}
                             choosingTemplate={choosingTemplate}
-                            onCancelInitiation={onCancelInitiation}
+                            onResetInitiation={resetInitiationForm}
+                            onCloseDialog={onCancelInitiation}
                             onInitiateSession={() => onInitiateSession()}
                         />
                     </DialogActions>

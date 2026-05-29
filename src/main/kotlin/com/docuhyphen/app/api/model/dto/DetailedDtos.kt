@@ -48,7 +48,8 @@ data class OrganizationGroupDetailedDto(
     val createdDate: Timestamp?,
     val isActive: Boolean?,
     val name: String?,
-    val members: List<OrganizationGroupMemberDetailedDto?>
+    val members: List<OrganizationGroupMemberDetailedDto?>,
+    val externallyPublished: Boolean = false,
 )
 
 @Serializable

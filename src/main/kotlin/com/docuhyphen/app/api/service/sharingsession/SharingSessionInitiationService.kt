@@ -281,10 +281,11 @@ class SharingSessionInitiationService @Inject constructor(
             GROUP -> recipientOrgGroup?.members
                 ?.mapNotNull { it.appUser }
                 ?.filter { it.id != initiator.id }
+                ?.filter { it.settings?.notifyShareStart != false }
                 ?.map { it.email to (it.person?.firstName ?: "there") }
                 ?: emptyList()
             else -> recipientAppUser
-                ?.takeIf { !it.email.isNullOrBlank() }
+                ?.takeIf { !it.email.isNullOrBlank() && it.settings?.notifyShareStart != false }
                 ?.let { listOf(it.email to (it.person?.firstName ?: "there")) }
                 ?: emptyList()
         }
@@ -319,24 +320,27 @@ class SharingSessionInitiationService @Inject constructor(
             }
         }
 
-        try
+        if (initiator.settings?.notifyShareStart != false)
         {
-            val body = emailTemplateService.renderSharingSessionCreatedInitiatorEmail(
-                sessionId = sessionIdStr,
-                sessionName = sharingSession.sessionName.orEmpty(),
-                recipientLabel = recipientLabel,
-                documents = documentTitles,
-            )
-            emailService.sendEmail(
-                to = initiator.email,
-                subject = "$subjectTitle | Document request sent",
-                body = body,
-                useHtml = true,
-            )
-        }
-        catch (e: Exception)
-        {
-            logger.error("Failed to send sharing-session initiator email to {}", initiator.email, e)
+            try
+            {
+                val body = emailTemplateService.renderSharingSessionCreatedInitiatorEmail(
+                    sessionId = sessionIdStr,
+                    sessionName = sharingSession.sessionName.orEmpty(),
+                    recipientLabel = recipientLabel,
+                    documents = documentTitles,
+                )
+                emailService.sendEmail(
+                    to = initiator.email,
+                    subject = "$subjectTitle | Document request sent",
+                    body = body,
+                    useHtml = true,
+                )
+            }
+            catch (e: Exception)
+            {
+                logger.error("Failed to send sharing-session initiator email to {}", initiator.email, e)
+            }
         }
     }
 }

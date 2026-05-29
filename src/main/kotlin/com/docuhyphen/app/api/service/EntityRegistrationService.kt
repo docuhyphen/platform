@@ -122,6 +122,24 @@ class EntityRegistrationService @Inject constructor(
         }
 
         val appUser = authTokenContext.authToken.appUser!!
+
+        if (appUser.person != null)
+        {
+            val existing = organizationRepository.findByAppUserIdAndPersonId(appUser.id, appUser.person!!.id)
+            if (existing != null)
+            {
+                logger.warn(
+                    "Organization registration failed: user {} already belongs to organization {} (verificationComplete={})",
+                    appUser.id, existing.id, existing.verificationComplete
+                )
+                throw InvalidOrganizationRegistrationException(
+                    if (existing.verificationComplete)
+                        "You are already part of a registered organization."
+                    else
+                        "You already have a registration in progress that is awaiting verification."
+                )
+            }
+        }
         entityManager.detach(appUser)
         val managedAppUser = entityManager.merge(appUser)
 

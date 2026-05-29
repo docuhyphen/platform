@@ -9,7 +9,7 @@ const ProtectedRoute: React.FC<{ element: React.ReactElement, path: string }> = 
     const {token, isBootstrapping} = useAuth();
 
     // Wait for the cookie-based refresh probe to finish before deciding whether
-    // to redirect — otherwise we flash /sign-in for a frame on cold reopen.
+    // to redirect,  otherwise we flash /sign-in for a frame on cold reopen.
     if (isBootstrapping)
     {
         return <AuthBootstrapSplash/>;

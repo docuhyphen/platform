@@ -44,13 +44,8 @@ class PhoneContactDetailsService @Inject constructor(
         val contactDetails = contactDetailsRepo.findById(UUID.fromString(contactDetailsId))
             ?: throw IllegalArgumentException("Contact details not found for ID: $contactDetailsId")
 
-        if (!contactDetails.phoneNumber.isNullOrBlank()) {
+        if (!contactDetails.phoneNumber.isNullOrBlank() && contactDetails.isPhoneVerified == true) {
             throw IllegalArgumentException("Contact already has a phone number. Use update instead of add.")
-        }
-
-        if (contactDetails.phoneNumber == phoneNumber)
-        {
-            throw IllegalArgumentException("Phone number is already associated with the contact details")
         }
 
         val duplicateContactDetails = contactDetailsRepo.findByPhoneNumber(phoneNumber)
@@ -62,7 +57,8 @@ class PhoneContactDetailsService @Inject constructor(
 
         val verificationCode = otpService.generatePhoneVerificationCode()
 
-        contactDetails.phoneNumber = phoneNumber
+        // Track pending phone separately so a cancelled initiation does not block a retry.
+        contactDetails.pendingPhoneNumber = phoneNumber
         contactDetails.phoneVerificationCode = verificationCode
         contactDetails.isPhoneVerified = false
 
@@ -104,7 +100,7 @@ class PhoneContactDetailsService @Inject constructor(
         val contactDetails = contactDetailsRepo.findById(UUID.fromString(contactDetailsId))
             ?: throw IllegalArgumentException("Contact details not found for ID: $contactDetailsId")
 
-        if (contactDetails.phoneNumber != phoneNumber)
+        if (contactDetails.pendingPhoneNumber != phoneNumber)
         {
             throw IllegalArgumentException("Phone number does not match the contact details")
         }
@@ -114,6 +110,8 @@ class PhoneContactDetailsService @Inject constructor(
             throw IllegalArgumentException("Invalid verification code")
         }
 
+        contactDetails.phoneNumber = phoneNumber
+        contactDetails.pendingPhoneNumber = null
         contactDetails.phoneVerificationCode = null
         contactDetails.isPhoneVerified = true
         contactDetailsRepo.update(contactDetails)

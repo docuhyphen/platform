@@ -370,8 +370,16 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                                 onChange={() => toggleUserSelection(user.id?.toString() || "")}
                             />
                         </TableCell>
-                        <TableCell>{user.person?.firstName} {user.person?.lastName}</TableCell>
-                        <TableCell>{user.email}</TableCell>
+                        <TableCell title={`${user.person?.firstName ?? ""} ${user.person?.lastName ?? ""}`.trim()}>
+                            <div style={{maxWidth: "180px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>
+                                {user.person?.firstName} {user.person?.lastName}
+                            </div>
+                        </TableCell>
+                        <TableCell title={user.email}>
+                            <div style={{maxWidth: "220px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>
+                                {user.email}
+                            </div>
+                        </TableCell>
                         <TableCell>
                             {selectedUsers.has(user.id?.toString() || "") && (
                                 <Button size={"small"}
@@ -427,6 +435,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                             <Input
                                 type="text"
                                 value={name}
+                                maxLength={80}
                                 onChange={(e) => setName(e.target.value)}
                             />
                         </Field>

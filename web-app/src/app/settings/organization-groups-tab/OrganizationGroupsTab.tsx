@@ -217,11 +217,14 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
 
             <GroupDeleteDialog
                 isOpen={isGroupDeleteDialogOpen}
+                organizationId={organizationId}
                 group={selectedGroup}
                 onDismiss={() => setIsGroupDeleteDialogOpen(false)}
-                onDeleted={(groupId: string) =>
+                onDeleted={() =>
                 {
-                    loadGroups()
+                    setIsGroupDeleteDialogOpen(false);
+                    setSelectedGroup(null);
+                    loadGroups();
                 }}
             />
         </div>

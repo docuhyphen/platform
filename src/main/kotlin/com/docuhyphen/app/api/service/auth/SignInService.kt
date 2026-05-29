@@ -188,9 +188,36 @@ class SignInService @Inject constructor(
         mfaService.updateRecord(mfaRecord)
 
         // Issue token triple via shared service
-        val tokenTriple = tokenIssuanceService.issueTokenTriple(mfaRecord.appUser!!, userAgent, ipAddress)
+        val signedInUser = mfaRecord.appUser!!
+        val tokenTriple = tokenIssuanceService.issueTokenTriple(signedInUser, userAgent, ipAddress)
 
         mfaService.removeMfaRecord(mfaRecord)
+
+        if (signedInUser.settings?.notifyLogin == true)
+        {
+            try
+            {
+                val whenIso = Instant.now().toString()
+                val deviceLine = userAgent?.takeIf { it.isNotBlank() } ?: "Unknown device"
+                val ipLine = ipAddress?.takeIf { it.isNotBlank() } ?: "Unknown IP"
+                val rendered = emailTemplateService.renderNewSignInAlertEmail(
+                    firstName = signedInUser.person?.firstName,
+                    signInAtIso = whenIso,
+                    device = deviceLine,
+                    ipAddress = ipLine,
+                )
+                emailService.sendEmail(
+                    signedInUser.email,
+                    rendered.subject,
+                    rendered.body,
+                    useHtml = true,
+                )
+            }
+            catch (e: Exception)
+            {
+                logger.warn("Failed to send sign-in notification to {}", sanitizedEmail.maskEmailForLogs(), e)
+            }
+        }
 
         logger.info("Sign in completed for {}", sanitizedEmail.maskEmailForLogs())
         return tokenTriple

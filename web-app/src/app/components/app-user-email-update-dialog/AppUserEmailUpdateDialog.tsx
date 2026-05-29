@@ -15,14 +15,27 @@ import {
 } from "@fluentui/react-components";
 import {useAuth} from "../../../context/AuthContext.tsx";
 import {useNavigate} from "react-router-dom";
-import {completeAppUserEmailUpdate, initiateAppUserEmailUpdate} from "../../../services/appUserApi";
+import {
+    completeAppUserEmailUpdate,
+    confirmOldAppUserEmailForUpdate,
+    initiateAppUserEmailUpdate
+} from "../../../services/appUserApi";
 import {useAppUserEmailUpdateDialogStyles} from "./AppUserEmailUpdateDialogStyles.tsx";
+import {useGlobalStyles} from "../../../GlobalStyles.tsx";
+import {isValidEmail} from "../../../utils/helpers.ts";
 
 interface AppUserEmailUpdateDialogProps
 {
     isOpen: boolean;
     onDismiss: () => void;
     currentEmail?: string;
+}
+
+enum UpdateStage
+{
+    ENTER_EMAIL,
+    CONFIRM_OLD,
+    CONFIRM_NEW
 }
 
 const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
@@ -33,35 +46,43 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
     }) =>
 {
     const styles = useAppUserEmailUpdateDialogStyles()
+    const globalStyles = useGlobalStyles()
     const {token, setToken} = useAuth();
     const navigate = useNavigate();
     const [email, setEmail] = useState<string>("");
     const [processing, setProcessing] = useState(false);
-    const [updateInitiated, setUpdateInitiated] = useState(false);
-    const [verificationCode, setVerificationCode] = useState("");
+    const [stage, setStage] = useState<UpdateStage>(UpdateStage.ENTER_EMAIL);
+    const [oldEmailCode, setOldEmailCode] = useState("");
+    const [newEmailCode, setNewEmailCode] = useState("");
     const [error, setError] = useState<string | null>(null);
 
-    const onEmailChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    const extractErrorMessage = (e: any): string =>
     {
-        setEmail(e.target.value);
-    };
+        if (typeof e === "string") return e;
+        const msg = e?.errorMessage || e?.message || e?.response?.data?.errorMessage || e?.response?.data?.message;
+        if (msg) return msg;
+        return "Something went wrong. Please try again in a moment.";
+    }
 
-    const onVerificationCodeChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    {
-        setVerificationCode(e.target.value);
-    };
-
-    const onInitiateEmailUpdate = async () =>
+    const onInitiate = async () =>
     {
         if (processing) return;
 
-        if (!email)
+        const trimmed = email.trim().toLowerCase();
+
+        if (!trimmed)
         {
             setError("Email is required");
             return;
         }
 
-        if (email === currentEmail)
+        if (!isValidEmail(trimmed))
+        {
+            setError("Please enter a valid email address");
+            return;
+        }
+
+        if (trimmed === currentEmail?.toLowerCase())
         {
             setError("New email is the same as the current one");
             return;
@@ -72,13 +93,13 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
 
         try
         {
-            setEmail(email.toLowerCase())
-            await initiateAppUserEmailUpdate(email, token);
-            setUpdateInitiated(true);
+            setEmail(trimmed);
+            await initiateAppUserEmailUpdate(trimmed, token);
+            setStage(UpdateStage.CONFIRM_OLD);
         }
         catch (e: any)
         {
-            setError(e.errorMessage || "Failed to initiate email update");
+            setError(extractErrorMessage(e));
             console.error("Failed to initiate email update:", e);
         }
         finally
@@ -87,17 +108,11 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
         }
     };
 
-    const onCompleteEmailUpdate = async () =>
+    const onConfirmOld = async () =>
     {
         if (processing) return;
 
-        if (!email)
-        {
-            setError("Email is required");
-            return;
-        }
-
-        if (!verificationCode)
+        if (!oldEmailCode.trim())
         {
             setError("Verification code is required");
             return;
@@ -108,12 +123,37 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
 
         try
         {
+            await confirmOldAppUserEmailForUpdate(oldEmailCode.trim(), token);
+            setStage(UpdateStage.CONFIRM_NEW);
+        }
+        catch (e: any)
+        {
+            setError(extractErrorMessage(e));
+            console.error("Failed to confirm old email:", e);
+        }
+        finally
+        {
+            setProcessing(false);
+        }
+    };
 
-            setEmail(email.toLowerCase())
-            await completeAppUserEmailUpdate(email, verificationCode, token);
+    const onComplete = async () =>
+    {
+        if (processing) return;
 
-            //ToDo: show a redirect message before redirecting
-            // Redirect to sign-in page
+        if (!newEmailCode.trim())
+        {
+            setError("Verification code is required");
+            return;
+        }
+
+        setProcessing(true);
+        setError(null);
+
+        try
+        {
+            await completeAppUserEmailUpdate(email, newEmailCode.trim(), token);
+
             setToken(null);
             navigate("/sign-in", {
                 state: {
@@ -123,7 +163,7 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
         }
         catch (e: any)
         {
-            setError(e.errorMessage || "Failed to complete email update");
+            setError(extractErrorMessage(e));
             console.error("Failed to complete email update:", e);
         }
         finally
@@ -132,14 +172,29 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
         }
     };
 
+    const onPrimaryClick = () =>
+    {
+        if (stage === UpdateStage.ENTER_EMAIL) onInitiate();
+        else if (stage === UpdateStage.CONFIRM_OLD) onConfirmOld();
+        else onComplete();
+    }
+
     const resetDialog = () =>
     {
         setEmail("");
-        setVerificationCode("");
-        setUpdateInitiated(false);
+        setOldEmailCode("");
+        setNewEmailCode("");
+        setStage(UpdateStage.ENTER_EMAIL);
         setError(null);
         onDismiss();
     };
+
+    const primaryLabel = () =>
+    {
+        if (stage === UpdateStage.ENTER_EMAIL) return "Continue";
+        if (stage === UpdateStage.CONFIRM_OLD) return "Verify current email";
+        return "Verify & update";
+    }
 
     return (
         <Dialog modalType="alert" open={isOpen}>
@@ -149,12 +204,13 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
                         Update Email Address
                     </DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
-                        {error && <div style={{color: "red", marginBottom: "10px"}}>{error}</div>}
+                        <div className={styles.errorContainer}>{error || " "}</div>
 
-                        {!updateInitiated && (
+                        {stage === UpdateStage.ENTER_EMAIL && (
                             <Text>
-                                Updating your email will require verification and you will be signed out from all
-                                devices.
+                                Updating your email is a two-step verification process: we'll send a code to your
+                                current email first, then to your new email. You'll be signed out from all
+                                devices on completion.
                             </Text>
                         )}
 
@@ -162,21 +218,39 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
                             <Input
                                 type="email"
                                 value={email}
-                                onChange={onEmailChange}
-                                maxLength={30}
-                                disabled={updateInitiated || processing}
+                                onChange={(e) => setEmail(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") onPrimaryClick(); }}
+                                maxLength={254}
+                                disabled={stage !== UpdateStage.ENTER_EMAIL || processing}
                             />
                         </Field>
 
-                        {updateInitiated && (
-                            <Field label="Verification code">
+                        {stage === UpdateStage.CONFIRM_OLD && (
+                            <Field label="Code sent to your current email">
+                                <Text size={200} block>
+                                    A verification code has been sent to {currentEmail}. Please enter it below.
+                                </Text>
+                                <Input
+                                    type="text"
+                                    value={oldEmailCode}
+                                    onChange={(e) => setOldEmailCode(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === "Enter") onPrimaryClick(); }}
+                                    maxLength={10}
+                                />
+                            </Field>
+                        )}
+
+                        {stage === UpdateStage.CONFIRM_NEW && (
+                            <Field label="Code sent to your new email">
                                 <Text size={200} block>
                                     A verification code has been sent to {email}. Please enter it below.
                                 </Text>
                                 <Input
                                     type="text"
-                                    value={verificationCode}
-                                    onChange={onVerificationCodeChange}
+                                    value={newEmailCode}
+                                    onChange={(e) => setNewEmailCode(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === "Enter") onPrimaryClick(); }}
+                                    maxLength={10}
                                 />
                             </Field>
                         )}
@@ -186,11 +260,12 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
                     <Button
                         appearance="primary"
                         shape="circular"
+                        className={globalStyles.buttonWithLoading}
                         disabled={processing}
-                        onClick={updateInitiated ? onCompleteEmailUpdate : onInitiateEmailUpdate}
+                        onClick={onPrimaryClick}
                     >
                         {processing && <Spinner size="tiny"/>}
-                        {updateInitiated ? "Verify & Update" : "Continue"}
+                        {primaryLabel()}
                     </Button>
                     <DialogTrigger disableButtonEnhancement>
                         <Button

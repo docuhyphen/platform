@@ -30,6 +30,7 @@ const SessionListPagination: React.FC<SessionListPaginationProps> = (
                 content={"First page"}
                 relationship={"description"}>
                 <Button
+                    id="session-list-pagination-first"
                     icon={<FirstPageIcon/>}
                     appearance="subtle"
                     disabled={currentPage === 0}
@@ -41,6 +42,7 @@ const SessionListPagination: React.FC<SessionListPaginationProps> = (
                 content={"Previous page"}
                 relationship={"description"}>
                 <Button
+                    id="session-list-pagination-previous"
                     icon={<PreviousPageIcon/>}
                     appearance="subtle"
                     disabled={currentPage === 0}
@@ -55,6 +57,7 @@ const SessionListPagination: React.FC<SessionListPaginationProps> = (
                 content={"Next page"}
                 relationship={"description"}>
                 <Button
+                    id="session-list-pagination-next"
                     icon={<NextPageIcon/>}
                     appearance="subtle"
                     disabled={currentPage >= totalPages - 1}
@@ -65,6 +68,7 @@ const SessionListPagination: React.FC<SessionListPaginationProps> = (
                 content={"Last page"}
                 relationship={"description"}>
                 <Button
+                    id="session-list-pagination-last"
                     icon={<LastPageIcon/>}
                     appearance="subtle"
                     disabled={currentPage >= totalPages - 1}

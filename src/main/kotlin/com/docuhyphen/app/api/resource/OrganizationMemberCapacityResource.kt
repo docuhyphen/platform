@@ -5,6 +5,7 @@ import com.docuhyphen.app.api.model.entity.AppUserRole
 import com.docuhyphen.app.api.repository.OrganizationSubscriptionPolicyRepository
 import com.docuhyphen.app.api.resource.model.OrgMemberCapacityResponse
 import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.service.auth.PlatformOrganizationSubscriptionPolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
@@ -68,7 +69,11 @@ class OrganizationMemberCapacityResource @Inject constructor(
             }
 
             val policy = organizationSubscriptionPolicyRepository.findByOrganizationId(orgUuid)
+            val tierCode = policy?.tierCode ?: PlatformOrganizationSubscriptionPolicyService.FREE_TIER_CODE
             val maxUsers = policy?.maxUsers
+                ?: if (tierCode.equals(PlatformOrganizationSubscriptionPolicyService.FREE_TIER_CODE, ignoreCase = true))
+                    PlatformOrganizationSubscriptionPolicyService.FREE_TIER_MAX_USERS
+                else null
             val activeUsers = org.appUsers.count { it.isActive }.toLong()
             val atCap = maxUsers != null && activeUsers >= maxUsers
             val nearCap = maxUsers != null && activeUsers >= (maxUsers * 0.8).toLong()
@@ -76,7 +81,7 @@ class OrganizationMemberCapacityResource @Inject constructor(
             Response.ok(
                 OrgMemberCapacityResponse(
                     organizationId = orgUuid.toString(),
-                    tierCode = policy?.tierCode ?: "FREE",
+                    tierCode = tierCode,
                     maxUsers = maxUsers,
                     activeUsers = activeUsers,
                     atCap = atCap,

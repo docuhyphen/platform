@@ -164,7 +164,7 @@ const useStyles = makeStyles({
 
         [BREAKPOINT_MOBILE]: {
             width: "100%",
-            maxWidth: "20rem",
+            maxWidth: "15rem",
             minHeight: "3rem",
             fontSize: tokens.fontSizeBase500,
             lineHeight: tokens.lineHeightBase500,

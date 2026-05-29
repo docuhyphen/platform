@@ -16,6 +16,7 @@ import {useAuth} from "../../../../context/AuthContext.tsx";
 import {OrganizationDetailedDto} from "../../../models/models.tsx";
 import {updateOrganization} from "../../../../services/organizationApi.ts";
 import {useOrganizationEditDialogStyles} from "./OrganizationDetailsEditDialogStyles.tsx";
+import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 
 interface OrganizationDetailsEditDialogProps
 {
@@ -34,15 +35,36 @@ const OrganizationDetailsEditDialog: React.FC<OrganizationDetailsEditDialogProps
     }) =>
 {
     const styles = useOrganizationEditDialogStyles()
+    const globalStyles = useGlobalStyles()
     const {token} = useAuth();
     const [organizationName, setOrganizationName] = useState(organization?.name || "");
     const [registrationNumber, setRegistrationNumber] = useState(organization?.registrationNumber || "");
     const [savingData, setSavingData] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const extractErrorMessage = (e: any): string =>
+    {
+        if (typeof e === "string") return e;
+        const msg = e?.errorMessage || e?.message || e?.response?.data?.errorMessage || e?.response?.data?.message;
+        if (msg) return msg;
+        return "Something went wrong. Please try again in a moment.";
+    }
+
     const handleSave = async () =>
     {
         if (!organization?.id) return;
+
+        if (!organizationName.trim())
+        {
+            setError("Organization name is required");
+            return;
+        }
+
+        if (!registrationNumber.trim())
+        {
+            setError("Registration number is required");
+            return;
+        }
 
         setSavingData(true);
         setError(null);
@@ -52,16 +74,16 @@ const OrganizationDetailsEditDialog: React.FC<OrganizationDetailsEditDialogProps
             await updateOrganization(
                 organization.id,
                 {
-                    name: organizationName,
-                    registrationNumber: registrationNumber
+                    name: organizationName.trim(),
+                    registrationNumber: registrationNumber.trim()
                 },
                 token || undefined
             );
 
             const updatedOrganization = {
                 ...organization,
-                name: organizationName,
-                registrationNumber: registrationNumber
+                name: organizationName.trim(),
+                registrationNumber: registrationNumber.trim()
             };
 
             onComplete(updatedOrganization);
@@ -69,7 +91,7 @@ const OrganizationDetailsEditDialog: React.FC<OrganizationDetailsEditDialogProps
         }
         catch (err: any)
         {
-            setError(err.message || "Failed to update organization details");
+            setError(extractErrorMessage(err));
             console.error("Failed to update organization details:", err);
         }
         finally
@@ -96,14 +118,15 @@ const OrganizationDetailsEditDialog: React.FC<OrganizationDetailsEditDialogProps
                 <DialogBody>
                     <DialogTitle>Update Organization Details</DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
-                        {error && <div style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
+                        <div className={styles.errorContainer}>{error || " "}</div>
 
                         <Field label="Organization Name">
                             <Input
                                 type="text"
                                 value={organizationName}
-                                maxLength={80}
+                                maxLength={120}
                                 onChange={(e) => setOrganizationName(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
                             />
                         </Field>
 
@@ -111,8 +134,9 @@ const OrganizationDetailsEditDialog: React.FC<OrganizationDetailsEditDialogProps
                             <Input
                                 type="text"
                                 value={registrationNumber}
-                                maxLength={80}
+                                maxLength={30}
                                 onChange={(e) => setRegistrationNumber(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
                             />
                         </Field>
                     </DialogContent>
@@ -121,11 +145,12 @@ const OrganizationDetailsEditDialog: React.FC<OrganizationDetailsEditDialogProps
                     <Button
                         appearance="primary"
                         shape="circular"
-                        disabled={savingData || !organizationName || !hasChanges}
+                        className={globalStyles.buttonWithLoading}
+                        disabled={savingData || !organizationName.trim() || !registrationNumber.trim() || !hasChanges}
                         onClick={handleSave}
                     >
                         {savingData && <Spinner size="tiny"/>}
-                        Update
+                        {savingData ? "Updating…" : "Update"}
                     </Button>
                     <DialogTrigger disableButtonEnhancement>
                         <Button

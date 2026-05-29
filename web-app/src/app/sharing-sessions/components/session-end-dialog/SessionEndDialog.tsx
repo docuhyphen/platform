@@ -17,6 +17,7 @@ import {
 } from "@fluentui/react-components";
 import {useSessionEndDialogStyles} from "./SessionEndDialogStyles.tsx";
 import {fetchSignedInUserAppUserSharingSession, updateSharingSession} from "../../../../services/sharingSessionApi.ts";
+import {publishSharingSessionUpdate} from "../../../observable/sharingSessionObservables.ts";
 
 interface SessionEndDialogProps
 {
@@ -52,6 +53,7 @@ const SessionEndDialog: React.FC<SessionEndDialogProps> = (
 
             await updateSharingSession(session.id, request, token);
             const updatedSession = await fetchSignedInUserAppUserSharingSession(session.id, token);
+            publishSharingSessionUpdate(updatedSession as SharingSessionDetailedDto);
             onSessionEnded(updatedSession as SharingSessionDetailedDto);
             setSessionEndNote('');
             onDismiss()

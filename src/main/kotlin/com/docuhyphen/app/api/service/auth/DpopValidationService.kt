@@ -20,7 +20,7 @@ data class DpopVerifyResult(val valid: Boolean, val jwkThumbprint: String? = nul
 /**
  * DPoP (RFC 9449) sender-constraint proof verification.
  *
- * On each protected request the client presents a `DPoP` header — a JWS signed with the
+ * On each protected request the client presents a `DPoP` header,  a JWS signed with the
  * private key whose public key thumbprint is bound to the access token via the `cnf.jkt`
  * claim. This service verifies the proof and returns the JWK thumbprint for the caller
  * to compare against the access token's `cnf.jkt`.

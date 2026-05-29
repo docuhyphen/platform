@@ -9,6 +9,7 @@ import com.docuhyphen.app.api.resource.model.AddSharingSessionDocumentRequest
 import com.docuhyphen.app.api.resource.model.DownloadDocumentsZipRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpdateShareSessionDocumentRequest
+import com.docuhyphen.app.api.service.sharingsession.DocumentPreviewConversionException
 import com.docuhyphen.app.api.service.sharingsession.SharingSessionDocumentService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
@@ -405,6 +406,16 @@ class SharingSessionDocumentsResource @Inject constructor(
                     logger.error("Error generating document preview", exception)
                     val responseError = ResponseError(exception.message)
                     Response.status(Response.Status.BAD_REQUEST).entity(responseError).build()
+                }
+
+                is DocumentPreviewConversionException ->
+                {
+                    logger.warn("Preview conversion unavailable: {}", exception.message)
+                    val responseError = ResponseError(exception.message ?: "Preview conversion failed")
+                    Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                        .header("X-Preview-Reason", "CONVERSION_FAILED")
+                        .entity(responseError)
+                        .build()
                 }
 
                 else ->

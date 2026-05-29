@@ -195,7 +195,7 @@ class MicrosoftIdentityProvider @Inject constructor(
         validateTemporalClaims(claims)
 
         // Tenant claim check: when a tenantId is configured, the token's tid must match.
-        // "common"/"organizations" are multi-tenant placeholders — accept any tid in that case.
+        // "common"/"organizations" are multi-tenant placeholders,  accept any tid in that case.
         val configuredTenantId = runtimeCredentials?.tenantId?.takeIf { it.isNotBlank() } ?: configurationService.microsoftOAuthTenantId
         if (!configuredTenantId.isNullOrBlank() && configuredTenantId !in setOf("common", "organizations", "consumers"))
         {

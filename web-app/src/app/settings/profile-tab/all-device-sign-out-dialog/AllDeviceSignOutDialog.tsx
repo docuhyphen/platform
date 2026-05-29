@@ -52,6 +52,7 @@ const AllDeviceSignOutDialog: React.FC<AllDeviceSignOutDialogProps> = (
                         className={globalStyles.buttonWithLoading}>
                     {signingOut && <Spinner size={"tiny"}/>}
                     <SignOutClickSurface
+                        outOfAllDevices={true}
                         onSignOut={() => setSigningOut(true)}/>
                 </Button>
                 <DialogTrigger disableButtonEnhancement>

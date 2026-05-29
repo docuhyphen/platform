@@ -1,10 +1,4 @@
 import {Text, makeStyles, tokens} from "@fluentui/react-components";
-import {
-    ShieldCheckmark20Regular,
-    LockClosed20Regular,
-    Globe20Regular,
-} from "@fluentui/react-icons";
-import {Link} from "react-router-dom";
 import AppLogo from "../app-logo/AppLogo.tsx";
 import {
     BREAKPOINT_MOBILE,
@@ -43,33 +37,33 @@ const useStyles = makeStyles({
         padding: `${SPACE_LG} 2rem`,
         boxSizing: "border-box",
         display: "flex",
-        flexDirection: "column",
+        flexDirection: "row",
+        justifyContent:"space-between",
         gap: SPACE_LG,
 
         [BREAKPOINT_MOBILE]: {
             padding: `${SPACE_LG} 1rem`,
+            flexDirection: "column",
+            gap: SPACE_MD,
         },
     },
 
     topRow: {
-        display: "grid",
+        display: "flex",
+        flexDirection: "column",
         gridTemplateColumns: "1.4fr repeat(5, 1fr)",
         gap: SPACE_LG,
 
-        "@media (max-width: 64em)": {
-            gridTemplateColumns: "1fr 1fr 1fr",
-            gap: SPACE_MD,
-        },
-
         [BREAKPOINT_MOBILE]: {
-            gridTemplateColumns: "1fr 1fr",
+            flexDirection: "column",
             gap: SPACE_MD,
         },
     },
 
     brand: {
         display: "flex",
-        flexDirection: "column",
+        flexDirection: "row",
+        justifyContent: "center",
         gap: SPACE_SM,
         gridColumn: "span 1",
 
@@ -209,6 +203,9 @@ const columns: FooterColumn[] = [
 export function Footer()
 {
     const styles = useStyles();
+    columns.forEach( column =>
+        column.title = ""
+    )
 
     return (
         <footer className={styles.wrapper}>
@@ -262,7 +259,7 @@ export function Footer()
                 {/*    </span>*/}
                 {/*</div>*/}
 
-                <div className={styles.bottomRow}>
+                <div>
                     <Text className={styles.copy}>
                         &copy; {new Date().getFullYear()} DocuHyphen. All rights reserved.
                     </Text>

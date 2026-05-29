@@ -20,5 +20,16 @@ export const useParingRequestDialogStyles = makeStyles({
 
     field: {
         marginBottom: tokens.spacingVerticalM
+    },
+    errorContainer: {
+        minHeight: "20px",
+        color: "red",
+        fontSize: "12px",
+        lineHeight: "20px"
+    },
+    sendingRow: {
+        display: "flex",
+        alignItems: "center",
+        gap: "8px"
     }
 });

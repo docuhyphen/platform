@@ -72,7 +72,6 @@ const SessionDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
             }
         }
 
-        console.log("Updating document", sessionDocument);
 
     }, [sessionDocument]);
 
@@ -136,7 +135,7 @@ const SessionDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle>Update session document</DialogTitle>
-                    <DialogContent className={styles.documentAddDialogContainer}>
+                    <DialogContent>
                         <Field className={styles.documentTitleField}
                                label="New document name">
                             <Input

@@ -44,6 +44,15 @@ const ParingRequestDialog: React.FC<SessionDeleteDialogProps> = (
     const [selectedOrganizationIds, setSelectedOrganizationIds] = useState<string[]>([]);
     const [message, setMessage] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const extractErrorMessage = (e: any): string =>
+    {
+        if (typeof e === "string") return e;
+        const msg = e?.errorMessage || e?.message || e?.response?.data?.errorMessage || e?.response?.data?.message;
+        if (msg) return msg;
+        return "Something went wrong. Please try again in a moment.";
+    }
 
     const selectedListRef = useRef<HTMLUListElement>(null);
     const comboboxInputRef = useRef<HTMLInputElement>(null);
@@ -59,6 +68,7 @@ const ParingRequestDialog: React.FC<SessionDeleteDialogProps> = (
     const loadOrganizations = async () =>
     {
         setIsLoading(true);
+        setError(null);
 
         try
         {
@@ -68,9 +78,10 @@ const ParingRequestDialog: React.FC<SessionDeleteDialogProps> = (
                 setOrganizations(orgs);
             }
         }
-        catch (error)
+        catch (e)
         {
-            console.error("Failed to load organizations:", error);
+            setError(extractErrorMessage(e));
+            console.error("Failed to load organizations:", e);
         }
         setIsLoading(false);
     };
@@ -80,6 +91,7 @@ const ParingRequestDialog: React.FC<SessionDeleteDialogProps> = (
         if (selectedOrganizationIds.length === 0) return;
 
         setSendingParingRequests(true);
+        setError(null);
         try
         {
             const pairingPromises = selectedOrganizationIds.map(orgId =>
@@ -91,9 +103,10 @@ const ParingRequestDialog: React.FC<SessionDeleteDialogProps> = (
             onDismiss();
             onRequestSent(null)
         }
-        catch (error)
+        catch (e)
         {
-            console.error("Failed to create organization links:", error);
+            setError(extractErrorMessage(e));
+            console.error("Failed to create organization links:", e);
         }
         setSendingParingRequests(false);
     };
@@ -102,6 +115,7 @@ const ParingRequestDialog: React.FC<SessionDeleteDialogProps> = (
     {
         setSelectedOrganizationIds([])
         setMessage("")
+        setError(null)
     }
 
     const onTagClick = (orgId: string, index: number) =>
@@ -136,6 +150,7 @@ const ParingRequestDialog: React.FC<SessionDeleteDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Find & Pair</DialogTitle>
                     <DialogContent className={styles.dialogContent}>
+                        <div className={styles.errorContainer}>{error || " "}</div>
 
                         {isLoading &&
                             <Spinner size={"small"}/>
@@ -199,6 +214,7 @@ const ParingRequestDialog: React.FC<SessionDeleteDialogProps> = (
                         <Button
                             appearance="primary"
                             shape="circular"
+                            className={styles.sendingRow}
                             onClick={onPairSelectedOrgs}
                             disabled={selectedOrganizationIds.length === 0 || sendingParingRequests}>
                             {sendingParingRequests && <Spinner size="tiny"/>}

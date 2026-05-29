@@ -2,6 +2,7 @@ import React, {useRef, useState} from "react";
 import {AppUserDetailedDto} from "../../../models/models.tsx";
 import {Button, Combobox, ComboboxProps, Divider, Field, Option, Spinner} from "@fluentui/react-components";
 import {Dismiss12Regular} from "@fluentui/react-icons";
+import {useAuth} from "../../../../context/AuthContext.tsx";
 
 const MyOrgRecipients: React.FC<{
     orgUsers: AppUserDetailedDto[];
@@ -17,6 +18,7 @@ const MyOrgRecipients: React.FC<{
           setInternalParticipants
       }) =>
 {
+    const {appUser} = useAuth();
     const [internalRecipientsInputValue, setInternalRecipientsInputValue] = useState<string>("");
 
     const comboId = "recipients-combo";
@@ -79,6 +81,7 @@ const MyOrgRecipients: React.FC<{
     };
 
     const filteredUsers = orgUsers
+        .filter(user => user.id !== appUser?.id)
         .filter(user => !internalRecipientsInputValue ||
             user.email.toLowerCase().includes(internalRecipientsInputValue.toLowerCase()) ||
             user.person.firstName?.toLowerCase().includes(internalRecipientsInputValue.toLowerCase()) ||

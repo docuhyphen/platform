@@ -1,12 +1,14 @@
 package com.docuhyphen.app.api.service.organization
 
 import com.docuhyphen.app.api.exception.OrganizationGroupNotFoundException
+import com.docuhyphen.app.api.exception.OrganizationLinkNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
 import com.docuhyphen.app.api.repository.OrganizationGroupRepository
 import com.docuhyphen.app.api.repository.OrganizationRepository
+import com.docuhyphen.app.api.repository.OrganizationSharingSessionLinkRepository
 import com.docuhyphen.app.api.repository.SharingSessionParticipantRepository
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
@@ -35,6 +37,7 @@ class OrganizationGroupService @Inject constructor(
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
     private val configurationService: ConfigurationService,
+    private val orgLinkRepository: OrganizationSharingSessionLinkRepository,
 )
 {
     @PersistenceContext
@@ -71,6 +74,7 @@ class OrganizationGroupService @Inject constructor(
         name: String?,
         members: List<OrganizationGroupMemberModel>,
         adminApprovalContext: AdminApprovalContext,
+        externallyPublished: Boolean = false,
     )
     {
         if (authTokenContext.authToken.appUser?.role != AppUserRole.ORG_ADMIN)
@@ -82,6 +86,7 @@ class OrganizationGroupService @Inject constructor(
             action = "ORG_GROUP_ADD",
             actorId = authTokenContext.authToken.appUser?.id,
             context = adminApprovalContext,
+            requireStepUp = false,
             requireDualApproval = false,
         )
 
@@ -105,6 +110,7 @@ class OrganizationGroupService @Inject constructor(
 
         val newGroup = OrganizationGroup().apply {
             this.name = name.trim()
+            this.externallyPublished = externallyPublished
         }
 
         members.forEach { memberModel ->
@@ -164,6 +170,48 @@ class OrganizationGroupService @Inject constructor(
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
 
         return organization.groups
+    }
+
+    /**
+     * Returns the groups in [pairedOrganizationId] that are externally published, i.e.
+     * intentionally exposed to organizations paired (via an ACCEPTED OrganizationSharingSessionLink)
+     * with [currentOrganizationId]. Used by the sharing-session initiation flow to scope visibility
+     * into trusted external orgs without enumerating users.
+     */
+    fun getPublishedGroupsForPairedOrganization(
+        currentOrganizationId: String,
+        pairedOrganizationId: String,
+    ): List<OrganizationGroup>
+    {
+        if (currentOrganizationId == pairedOrganizationId)
+        {
+            throw IllegalArgumentException("Paired organization must differ from current organization")
+        }
+
+        val currentUUID = UUID.fromString(currentOrganizationId)
+        val pairedUUID = UUID.fromString(pairedOrganizationId)
+
+        val currentOrg = organizationRepository.findById(currentUUID)
+            ?: throw OrganizationNotFoundException("Current organization not found")
+        val pairedOrg = organizationRepository.findById(pairedUUID)
+            ?: throw OrganizationNotFoundException("Paired organization not found")
+
+        val appUser = authTokenContext.authToken.appUser
+            ?: throw IllegalArgumentException("Caller must be authenticated")
+        if (currentOrg.appUsers.none { it.id == appUser.id })
+        {
+            throw IllegalArgumentException("Caller does not belong to the current organization")
+        }
+
+        (orgLinkRepository.findByRequestingOrganization(currentUUID) +
+            orgLinkRepository.findByRequestedOrganization(currentUUID))
+            .firstOrNull { l ->
+                (l.requestingOrganization?.id == pairedUUID || l.requestedOrganization?.id == pairedUUID) &&
+                    l.status == LinkStatus.ACCEPTED
+            }
+            ?: throw OrganizationLinkNotFoundException("No active pairing with the requested organization")
+
+        return pairedOrg.groups.filter { it.externallyPublished && it.isActive }
     }
 
     fun getOrganizationById(uUID: UUID): Organization?
@@ -244,6 +292,7 @@ class OrganizationGroupService @Inject constructor(
         isActive: Boolean,
         members: List<OrganizationGroupMemberModel>,
         adminApprovalContext: AdminApprovalContext,
+        externallyPublished: Boolean = false,
     )
     {
         if (authTokenContext.authToken.appUser?.role != AppUserRole.ORG_ADMIN)
@@ -298,8 +347,14 @@ class OrganizationGroupService @Inject constructor(
             groupUpdateFields.add(if (isActive) "Group reactivated" else "Group deactivated")
         }
 
+        val previousExternallyPublished = group.externallyPublished
         group.name = groupName.trim()
         group.isActive = isActive
+        group.externallyPublished = externallyPublished
+        if (previousExternallyPublished != externallyPublished)
+        {
+            groupUpdateFields.add(if (externallyPublished) "Made visible to paired orgs" else "Hidden from paired orgs")
+        }
         group.members.clear()
 
         members.forEach { memberModel ->

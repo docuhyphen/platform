@@ -12,7 +12,7 @@ import {
 } from "@fluentui/react-components";
 import {DocumentAddIcon, ZipDocumentsIcon} from "../../../components/IconBundles.tsx";
 import SessionDocumentActionsMenu from "../session-document-actions-menu/SessionDocumentActionsMenu.tsx";
-import {DocumentDetailedDto, SharingSessionDetailedDto} from "../../../models/models.tsx";
+import {DocumentDetailedDto, SharingSessionDetailedDto, SharingSessionStatus} from "../../../models/models.tsx";
 import {formatDateTimeWithOrdinal} from "../../../helpers.ts";
 import {useSessionDocumentsListStyles} from "./SessionDocumentsListStyles.tsx";
 import {SharingSessionPermissions} from "../../SessionPermissions.ts";
@@ -21,6 +21,7 @@ interface SessionDocumentsListProps
 {
     sessionDetails: SharingSessionDetailedDto | null;
     filteredDocuments: DocumentDetailedDto[];
+    selectedSessionDocument?: DocumentDetailedDto;
     setSelectedSessionDocument: (document: DocumentDetailedDto) => void;
     setSelectedUpdateSessionDocument: (document: DocumentDetailedDto) => void;
     setIsUploadDocumentDialogOpen: (isOpen: boolean) => void;
@@ -40,6 +41,7 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
     {
         sessionDetails,
         filteredDocuments,
+        selectedSessionDocument,
         setSelectedSessionDocument,
         setSelectedUpdateSessionDocument,
         setIsUploadDocumentDialogOpen,
@@ -56,6 +58,15 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
     }) =>
 {
     const styles = useSessionDocumentsListStyles();
+    const isArchivedSession =
+        sessionDetails?.status === SharingSessionStatus.ENDED ||
+        sessionDetails?.status === SharingSessionStatus.REJECTED;
+    const canUploadInCurrentSession = !isArchivedSession && !!permissions?.canAddSessionDocument;
+
+    const onCardClick = (sessionDocument: DocumentDetailedDto) =>
+    {
+        setSelectedSessionDocument(sessionDocument);
+    };
 
     const renderDocumentsActionsMenu = (sessionDocument: DocumentDetailedDto) =>
     {
@@ -89,7 +100,7 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
 
     const getDocumentCardClasses = (sessionDocument: DocumentDetailedDto) =>
     {
-        if (sessionDocument && sessionDocument.id === setSelectedSessionDocument?.id)
+        if (sessionDocument && sessionDocument.id === selectedSessionDocument?.id)
         {
             return mergeClasses(styles.documentsCard, styles.documentsCardSelected);
         }
@@ -100,7 +111,10 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
     {
         return (
             <Card key={sessionDocument.id}
-                  className={getDocumentCardClasses(sessionDocument)}>
+                  id={`session-document-card-${sessionDocument.id}`}
+                  data-doc-card="true"
+                  className={getDocumentCardClasses(sessionDocument)}
+                  onClick={() => onCardClick(sessionDocument)}>
                 <CardHeader
                     header={<Body1>
                         <b>{sessionDocument.title}</b>
@@ -112,13 +126,18 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
                                     Uploaded {formatDateTimeWithOrdinal(sessionDocument.uploadDate)}
                                 </Caption1>
                             ) : (
-                                <Button appearance="transparent"
-                                        size={"small"}
-                                        icon={<DocumentAddIcon/>} onClick={() =>
-                                {
-                                    setSelectedSessionDocument(sessionDocument);
-                                    setIsUploadDocumentDialogOpen(true);
-                                }}>
+                                <Button
+                                    id={`session-document-upload-new-${sessionDocument.id}`}
+                                    appearance="transparent"
+                                    size={"small"}
+                                    icon={<DocumentAddIcon/>}
+                                    disabled={!canUploadInCurrentSession}
+                                    onClick={() =>
+                                    {
+                                        if (!canUploadInCurrentSession) return;
+                                        setSelectedSessionDocument(sessionDocument);
+                                        setIsUploadDocumentDialogOpen(true);
+                                    }}>
                                     Upload new document
                                     {//ToDo: change text to upload new version when not first upload
                                     }
@@ -138,11 +157,12 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
                 <Tooltip content="Zip all documents"
                          relationship="description">
                     <Button size={"small"} disabled={!permissions?.canDownloadDocumentsZip}
+                            id="session-documents-zip-download"
                             onClick={() => setIsDocumentZipDialogOpen(true)} appearance={"transparent"}
                             icon={<ZipDocumentsIcon/>}/>
                 </Tooltip>
                 <Field className={styles.searchField}>
-                    <SearchBox placeholder={"Filter documents"}
+                    <SearchBox id="session-documents-filter-input" placeholder={"Filter documents"}
                                onChange={onFilterDocuments}/>
                 </Field>
             </div>

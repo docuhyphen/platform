@@ -16,6 +16,7 @@ import {useAuth} from "../../../../context/AuthContext.tsx";
 import apiClient from "../../../../services/apiClient";
 import {AppUserDetailedDto} from "../../../models/models.tsx";
 import {useBasicDetailsEditDialogStyles} from "./BasicDetailsEditDialogStyles.tsx";
+import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 
 interface BasicDetailsEditDialogProps
 {
@@ -31,6 +32,7 @@ const BasicDetailsEditDialog: React.FC<BasicDetailsEditDialogProps> = (
 ) =>
 {
     const styles = useBasicDetailsEditDialogStyles()
+    const globalStyles = useGlobalStyles()
     const {appUser, token, setAppUser} = useAuth()
     const [firstName, setFirstName] = useState(appUser?.person.firstName);
     const [lastName, setLastName] = useState(appUser?.person.lastName);
@@ -44,9 +46,9 @@ const BasicDetailsEditDialog: React.FC<BasicDetailsEditDialogProps> = (
             return
         }
 
-        if (firstName?.length === 0 || lastName?.length === 0)
+        if (!firstName?.trim() || !lastName?.trim())
         {
-            alert("First name and last name are required")
+            setError("First name and last name are required")
             return;
         }
 
@@ -85,7 +87,19 @@ const BasicDetailsEditDialog: React.FC<BasicDetailsEditDialogProps> = (
         catch (e: any)
         {
             console.error("Failed to update profile:", e);
-            setError(e.response?.data?.message || "Failed to update profile");
+            const serverMsg = e?.response?.data?.message || e?.response?.data?.errorMessage;
+            if (serverMsg)
+            {
+                setError(serverMsg);
+            }
+            else if (e?.response?.status >= 500 || !e?.response)
+            {
+                setError("Something went wrong on our side. Please try again in a moment.");
+            }
+            else
+            {
+                setError("Failed to update profile");
+            }
         }
         finally
         {
@@ -107,33 +121,36 @@ const BasicDetailsEditDialog: React.FC<BasicDetailsEditDialogProps> = (
             <DialogBody>
                 <DialogTitle>Update your profile</DialogTitle>
                 <DialogContent className={styles.dialogContentContainer}>
-                    {error && <div style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
+                    <div className={styles.errorContainer}>{error || " "}</div>
 
                     <Field label={"Your first name"}>
                         <Input type={"text"}
                                value={firstName}
                                maxLength={30}
-                               onChange={(e) => setFirstName(e.target.value)}/>
+                               onChange={(e) => setFirstName(e.target.value)}
+                               onKeyDown={(e) => { if (e.key === "Enter") onUpdate(); }}/>
                     </Field>
 
                     <Field label={"Your last name"}>
                         <Input type={"text"}
                                value={lastName}
                                maxLength={30}
-                               onChange={(e) => setLastName(e.target.value)}/>
+                               onChange={(e) => setLastName(e.target.value)}
+                               onKeyDown={(e) => { if (e.key === "Enter") onUpdate(); }}/>
                     </Field>
                 </DialogContent>
             </DialogBody>
             <DialogActions>
                 <Button appearance="primary"
                         shape={"circular"}
+                        className={globalStyles.buttonWithLoading}
                         disabled={
                             updatingProfile ||
                             (firstName === appUser?.person.firstName && lastName === appUser?.person.lastName)
                         }
                         onClick={onUpdate}>
                     {updatingProfile && <Spinner size={"tiny"}/>}
-                    Update
+                    {updatingProfile ? "Updating…" : "Update"}
                 </Button>
                 <DialogTrigger disableButtonEnhancement>
                     <Button appearance="secondary"

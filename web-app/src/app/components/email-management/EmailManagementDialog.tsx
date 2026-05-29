@@ -21,6 +21,8 @@ import {
     initiateEmailUpdate
 } from "../../../services/contactDetailsApi";
 import {useEmailManagementDialogStyles} from "./EmailManagementDialogStyles.tsx";
+import {useGlobalStyles} from "../../../GlobalStyles.tsx";
+import {isValidEmail} from "../../../utils/helpers.ts";
 
 export enum EmailManagementMode
 {
@@ -47,7 +49,23 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
     }) =>
 {
     const styles = useEmailManagementDialogStyles()
+    const globalStyles = useGlobalStyles()
     const {token} = useAuth();
+
+    const extractErrorMessage = (e: any): string =>
+    {
+        if (typeof e === "string") return e;
+        const msg = e?.errorMessage || e?.message || e?.response?.data?.errorMessage || e?.response?.data?.message;
+        if (msg) return msg;
+        return "Something went wrong. Please try again in a moment.";
+    }
+
+    const validateEmail = (value: string | undefined): string | null =>
+    {
+        if (!value || !value.trim()) return "Email is required";
+        if (!isValidEmail(value.trim())) return "Please enter a valid email address";
+        return null;
+    }
     const [email, setEmail] = useState<string | undefined>(contactDetails?.email);
     const [processing, setProcessing] = useState(false);
     const [addOrEditInitiated, setAddOrEditInitiated] = useState(false);
@@ -68,9 +86,10 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
     {
         if (processing || !contactDetails?.id) return;
 
-        if (!email)
+        const validationError = validateEmail(email);
+        if (validationError)
         {
-            setError("Email is required");
+            setError(validationError);
             return;
         }
 
@@ -84,7 +103,7 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
         }
         catch (e: any)
         {
-            setError(e.message || "Failed to initiate email addition");
+            setError(extractErrorMessage(e));
             console.error("Failed to initiate email addition:", e);
         }
         finally
@@ -97,13 +116,14 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
     {
         if (processing || !contactDetails?.id) return;
 
-        if (!email)
+        const validationError = validateEmail(email);
+        if (validationError)
         {
-            setError("Email is required");
+            setError(validationError);
             return;
         }
 
-        if (!verificationCode)
+        if (!verificationCode.trim())
         {
             setError("Verification code is required");
             return;
@@ -114,7 +134,7 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
 
         try
         {
-            await completeEmailAddition(contactDetails.id, email, verificationCode, token);
+            await completeEmailAddition(contactDetails.id, email!, verificationCode, token);
 
             const updatedContactDetails = {
                 ...contactDetails,
@@ -131,7 +151,7 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
         }
         catch (e: any)
         {
-            setError(e.message || "Failed to complete email addition");
+            setError(extractErrorMessage(e));
             console.error("Failed to complete email addition:", e);
         }
         finally
@@ -144,9 +164,10 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
     {
         if (processing || !contactDetails?.id) return;
 
-        if (!email)
+        const validationError = validateEmail(email);
+        if (validationError)
         {
-            setError("Email is required");
+            setError(validationError);
             return;
         }
 
@@ -160,7 +181,7 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
         }
         catch (e: any)
         {
-            setError(e.message || "Failed to initiate email update");
+            setError(extractErrorMessage(e));
             console.error("Failed to initiate email update:", e);
         }
         finally
@@ -173,13 +194,14 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
     {
         if (processing || !contactDetails?.id) return;
 
-        if (!email)
+        const validationError = validateEmail(email);
+        if (validationError)
         {
-            setError("Email is required");
+            setError(validationError);
             return;
         }
 
-        if (!verificationCode)
+        if (!verificationCode.trim())
         {
             setError("Verification code is required");
             return;
@@ -190,7 +212,7 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
 
         try
         {
-            await completeEmailUpdate(contactDetails.id, email, verificationCode, token);
+            await completeEmailUpdate(contactDetails.id, email!, verificationCode, token);
 
             const updatedContactDetails = {
                 ...contactDetails,
@@ -207,7 +229,7 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
         }
         catch (e: any)
         {
-            setError(e.message || "Failed to complete email update");
+            setError(extractErrorMessage(e));
             console.error("Failed to complete email update:", e);
         }
         finally
@@ -259,14 +281,15 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
                         {mode === EmailManagementMode.ADD ? "Add new email" : "Edit email"}
                     </DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
-                        {error && <div style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
+                        <div className={styles.errorContainer}>{error || " "}</div>
 
                         <Field label="Email">
                             <Input
                                 type="email"
                                 value={email || ''}
                                 onChange={onEmailChange}
-                                maxLength={320}
+                                onKeyDown={(e) => { if (e.key === "Enter") onAddOrUpdateEmail(); }}
+                                maxLength={254}
                                 disabled={addOrEditInitiated || processing}
                             />
                         </Field>
@@ -277,6 +300,8 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
                                     type="text"
                                     value={verificationCode}
                                     onChange={onVerificationCodeChange}
+                                    onKeyDown={(e) => { if (e.key === "Enter") onAddOrUpdateEmail(); }}
+                                    maxLength={10}
                                 />
                             </Field>
                         )}
@@ -286,6 +311,7 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
                     <Button
                         appearance="primary"
                         shape="circular"
+                        className={globalStyles.buttonWithLoading}
                         disabled={processing}
                         onClick={onAddOrUpdateEmail}
                     >

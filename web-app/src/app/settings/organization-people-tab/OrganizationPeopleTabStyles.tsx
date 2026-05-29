@@ -42,5 +42,11 @@ export const useOrganizationPeopleTabStyles = makeStyles({
     dataEditable: {
         display: "flex",
         gap: "8px"
+    },
+    truncateCell: {
+        maxWidth: "260px",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
     }
 });

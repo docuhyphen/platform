@@ -1,26 +1,51 @@
 import React from 'react';
-import {Avatar, ListItem, Text} from "@fluentui/react-components";
+import {Avatar, Badge, Divider, ListItem, Text} from "@fluentui/react-components";
 import {useSharingSessionStyles} from "../SessionListStyles.tsx";
-import {SharingSessionBasicDto} from "../../../../models/models.tsx";
+import {SharingSessionBasicDto, SharingSessionStatus} from "../../../../models/models.tsx";
 import {formatDateWithOrdinal} from "../../../../helpers.ts";
+import {SessionListTab} from "../session-list-tabs/SessionListTabs.tsx";
 
 interface SessionListItemProps
 {
     session: SharingSessionBasicDto;
     isSelected: boolean;
+    activeTab: SessionListTab;
 }
 
-const SessionListItem: React.FC<SessionListItemProps> = ({session, isSelected}) =>
+const SessionListItem: React.FC<SessionListItemProps> = ({session, isSelected, activeTab}) =>
 {
     const styles = useSharingSessionStyles();
 
-    const getRecipientEmailOrGroupName = (session: SharingSessionBasicDto) =>
+    const getArchiveStatusMeta = () =>
     {
+        if (activeTab !== 'archive') return null;
 
+        if (session.status === SharingSessionStatus.REJECTED)
+        {
+            return {
+                label: 'Declined',
+                className: styles.archiveStatusChipDeclined,
+                appearance: 'filled' as const,
+                color: 'danger' as const,
+            };
+        }
+
+        return {
+            label: 'Ended',
+            className: styles.archiveStatusChipEnded,
+            appearance: 'outline' as const,
+            color: 'neutral' as const,
+        };
     }
 
     const listItemCard = () =>
     {
+        const sessionName = session.sessionName || "Untitled session";
+        const archiveStatusMeta = getArchiveStatusMeta();
+        const descriptionText = session.description
+            ? (session.description.length > 80 ? `${session.description.substring(0, 80)}...` : session.description)
+            : "\u00A0";
+
         return <div className={styles.listCard}>
             <section className={styles.listCardItem}>
                 <span>
@@ -36,23 +61,32 @@ const SessionListItem: React.FC<SessionListItemProps> = ({session, isSelected}) 
                         <Text size={300}
                               weight={"semibold"}
                               className={styles.sessionName}>
-                            {session.sessionName.length > 80
-                                ? `${session.sessionName.substring(0, 80)}...`
-                                : session.sessionName}
+                            {sessionName.length > 80
+                                ? `${sessionName.substring(0, 80)}...`
+                                : sessionName}
                         </Text>
-                        <Text align={"end"}
-                              size={100}
-                              className={styles.createdDate}>
-                            {formatDateWithOrdinal(session.createdDate)}
-                        </Text>
+                        <div className={styles.titleMetaRow}>
+                            <Text align={"end"}
+                                  size={100}
+                                  className={styles.createdDate}>
+                                {formatDateWithOrdinal(session.createdDate)}
+                            </Text>
+                            {archiveStatusMeta && <Divider vertical className={styles.titleMetaDivider}/>}
+                            {archiveStatusMeta && (
+                                <Badge
+                                    appearance={archiveStatusMeta.appearance}
+                                    color={archiveStatusMeta.color}
+                                    className={archiveStatusMeta.className}>
+                                    {archiveStatusMeta.label}
+                                </Badge>
+                            )}
+                        </div>
                     </div>
                     <div className={styles.sessionDescription}>
                         <Text size={200}
                               italic={true}
                               className={styles.truncatedText}>
-                            {session.description && session.description.length > 80
-                                ? `${session.description.substring(0, 80)}...`
-                                : session.description}
+                            {descriptionText}
                         </Text>
                     </div>
                 </span>

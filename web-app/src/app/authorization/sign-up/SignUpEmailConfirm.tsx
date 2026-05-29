@@ -34,7 +34,7 @@ import {ResponseError} from "../../models/models.tsx";
  *
  * Flow:
  *   1. On mount, GET /auth/sign-up/email-confirm/{token} to validate the
- *      token and pull back the associated email — without consuming it.
+ *      token and pull back the associated email,  without consuming it.
  *   2. Show the email read-only as context. User enters password + confirm.
  *   3. POST /auth/sign-up/email-confirm {token, password, confirmationPassword}.
  *      Server consumes the token atomically and finalises sign-up.

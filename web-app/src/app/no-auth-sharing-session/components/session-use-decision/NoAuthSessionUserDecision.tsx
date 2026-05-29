@@ -20,7 +20,7 @@ import {
 import {useNoAuthSessionDocumentListStyles} from "./NoAuthSessionUserDecisionStyles.tsx";
 import {DismissRegular} from "@fluentui/react-icons";
 import {NoAuthSharingSessionBasicDto, SharingSessionStatus} from "../../../models/models.tsx";
-import {updateNoAuthSharingSession} from "../../../../services/sharingSessionApi.ts";
+import {requestNoAuthSharingSessionOtp, updateNoAuthSharingSession} from "../../../../services/sharingSessionApi.ts";
 
 interface NoAuthSessionUserDecisionProps
 {
@@ -41,12 +41,40 @@ const NoAuthSessionUserDecision: React.FC<NoAuthSessionUserDecisionProps> = (
     const [isDeclineDialogOpen, setIsDeclineDialogOpen] = useState<boolean>(false);
     const [isAcceptingSession, setIsAcceptingSession] = useState<boolean>(false);
     const [isDecliningSession, setIsDecliningSession] = useState<boolean>(false);
-    const [acceptOTP, setAcceptOTP] = useState<string[]>(['', '', '', '', '']);
+    const [acceptOTP, setAcceptOTP] = useState<string[]>(['', '', '', '', '', '']);
+    const [isRequestingOtp, setIsRequestingOtp] = useState<boolean>(false);
+    const [otpRequestNotice, setOtpRequestNotice] = useState<string | undefined>(undefined);
     const styles = useNoAuthSessionDocumentListStyles();
 
     const onAccept = async () =>
     {
         setIsAcceptDialogOpen(true);
+        // Auto-request an OTP on first opening; subsequent re-sends are explicit.
+        await requestOtp();
+    }
+
+    const requestOtp = async () =>
+    {
+        if (isRequestingOtp) return;
+        setIsRequestingOtp(true);
+        setErrorMessage(undefined);
+        setOtpRequestNotice(undefined);
+        try
+        {
+            await requestNoAuthSharingSessionOtp(session.id);
+            setOtpRequestNotice("Verification code sent. Check your email.");
+        }
+        catch (error: any)
+        {
+            const msg = (typeof error === 'object' && error?.message)
+                ? error.message
+                : "Could not send a verification code. Please try again.";
+            setErrorMessage(msg);
+        }
+        finally
+        {
+            setIsRequestingOtp(false);
+        }
     }
 
     const onDecline = async () =>
@@ -57,7 +85,8 @@ const NoAuthSessionUserDecision: React.FC<NoAuthSessionUserDecisionProps> = (
     const onCancelAccept = () =>
     {
         setErrorMessage(undefined);
-        setAcceptOTP(['', '', '', '', '']);
+        setOtpRequestNotice(undefined);
+        setAcceptOTP(['', '', '', '', '', '']);
         setIsAcceptDialogOpen(false);
     }
 
@@ -229,13 +258,23 @@ const NoAuthSessionUserDecision: React.FC<NoAuthSessionUserDecisionProps> = (
                             <DialogTitle>Accepting</DialogTitle>
                             <DialogContent className={styles.acceptDialogContent}>
                                 <Text size={300}>
-                                    Enter the OTP sent to your email address to accept the request. If you didn't
-                                    receive the OTP, contact
-                                    <strong> {` ${session.initiatorFirstName} ${session.initiatorLastName} `} </strong>
-                                    to regenerate the OTP.
+                                    Enter the 6-digit verification code sent to your email address to accept the
+                                    request.
                                 </Text>
 
                                 {renderErrorMessage()}
+
+                                {otpRequestNotice && (
+                                    <MessageBar intent={"success"}>
+                                        <MessageBarBody>{otpRequestNotice}</MessageBarBody>
+                                    </MessageBar>
+                                )}
+
+                                <Link as="button"
+                                      onClick={requestOtp}
+                                      disabled={isRequestingOtp}>
+                                    {isRequestingOtp ? "Sending..." : "Resend verification code"}
+                                </Link>
 
                                 <div className={styles.otpInputGroup}>
                                     {acceptOTP.map((otp, index) => (

@@ -583,7 +583,7 @@ export interface SignUpOtpRegenerationRequest
     email: string
 }
 
-/** Request body for POST /auth/sign-up/email-confirm — opaque-token flow. */
+/** Request body for POST /auth/sign-up/email-confirm,  opaque-token flow. */
 export interface SignUpEmailConfirmRequest
 {
     token: string;
@@ -596,7 +596,7 @@ export interface SignUpEmailConfirmResponse
     message?: string;
 }
 
-/** Response from GET /auth/sign-up/email-confirm/{token} — token introspection. */
+/** Response from GET /auth/sign-up/email-confirm/{token},  token introspection. */
 export interface SignUpEmailConfirmCheckResponse
 {
     email: string;

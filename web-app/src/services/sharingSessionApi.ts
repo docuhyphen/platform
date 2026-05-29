@@ -73,7 +73,7 @@ export const checkSignedInAppUserHasSharingSessions = async (token: string | nul
     }
     catch (error: any)
     {
-        // Log and rethrow — callers decide how to surface the failure. Service-
+        // Log and rethrow,  callers decide how to surface the failure. Service-
         // layer alert() popups blocked the UI and double-fired (caller also alerted).
         console.error("Error checking sharing sessions:", error);
         if (error.response)
@@ -163,6 +163,9 @@ export const downloadSharingSessionDocumentZip = (sessionId: string, request: Do
 
 export const downloadPreviewPDFSharingSessionDocument = (sessionId: string, documentId?: string) =>
     executeRequest(() => apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/preview`, blobRequest));
+
+export const requestNoAuthSharingSessionOtp = (sessionId: string) =>
+    executeRequest(() => apiClient.post(`no-auth/sharing-sessions/${sessionId}/otp`));
 
 export const searchSharingSessions = (
     query?: string,

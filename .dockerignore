@@ -1,24 +1,24 @@
 # Ignore everything by default
 **
 
-# Allow React app explicitly
-!web-app/
-!web-app/*
-
-# Allow Quarkus build output
+# Allow Quarkus build output only (built by Maven before Docker build)
 !target/
 !target/quarkus-app/
 !target/quarkus-app/**
 
-# Ignore node_modules (we install inside Docker)
-web-app/node_modules/
-
-# Ignore IDE / OS junk
+# Explicitly exclude build/dev artefacts that should never enter the image
+target/quarkus-app/lib/deployment/
+src/
+infra/
+website/
+web-app/
 .idea/
 *.iml
 .DS_Store
 Thumbs.db
+*.md
 
-# Runtime data (mounted as volumes)
+# Runtime data (mounted as volumes in local dev; in ECS these are ephemeral)
 logs/
 document-uploads/
+document-versions/

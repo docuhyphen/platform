@@ -1,13 +1,8 @@
 import React from "react";
 import {
     Button,
+    Card,
     Checkbox,
-    Dialog,
-    DialogActions,
-    DialogBody,
-    DialogContent,
-    DialogSurface,
-    DialogTitle,
     Field,
     Spinner,
     Text,
@@ -17,21 +12,35 @@ import {SharingSessionDetailedDto, SharingSessionStatus, UpdateSharingSessionReq
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {fetchSignedInUserAppUserSharingSession, updateSharingSession} from "../../../../services/sharingSessionApi.ts";
 import {useSessionAcceptanceDialogStyles} from "./SessionAcceptanceDialogStyles.tsx";
+import {publishSharingSessionUpdate} from "../../../observable/sharingSessionObservables.ts";
 
-interface SessionDeleteDialogProps
+interface SessionAcceptanceDialogProps
 {
-    isOpen: boolean;
     session: SharingSessionDetailedDto | null;
+    // Controls whether "Decide Later" is shown; dialog remains blocking either way.
+    isSingleSession: boolean;
+    canDecideLater: boolean;
+    activeCount: number;
+    archiveCount: number;
     onAccepted: (session: SharingSessionDetailedDto) => void;
     onRejected: (session: SharingSessionDetailedDto) => void;
+    onDismiss: () => void;
+    onOpenActive: () => void;
+    onOpenArchive: () => void;
 }
 
-const SessionAcceptanceDialog: React.FC<SessionDeleteDialogProps> = (
+const SessionAcceptanceDialog: React.FC<SessionAcceptanceDialogProps> = (
     {
-        isOpen,
         session,
+        isSingleSession,
+        canDecideLater,
+        activeCount,
+        archiveCount,
         onAccepted,
-        onRejected
+        onRejected,
+        onDismiss,
+        onOpenActive,
+        onOpenArchive,
     }) =>
 {
     const [updatingSession, setUpdatingSession] = React.useState(false);
@@ -40,37 +49,30 @@ const SessionAcceptanceDialog: React.FC<SessionDeleteDialogProps> = (
     const globalStyles = useGlobalStyles();
     const styles = useSessionAcceptanceDialogStyles();
 
-    const onAcceptOrRejected = async (status: SharingSessionStatus) =>
+    if (!session) return null;
+
+    const onAcceptOrReject = async (status: SharingSessionStatus) =>
     {
-        if (updatingSession || !session)
-        {
-            return;
-        }
-
+        if (updatingSession) return;
         setUpdatingSession(true);
-
         try
         {
-            const request = {status} as UpdateSharingSessionRequest;
-
-            if (rejectingSession)
-            {
-                request.rejectionReason = rejectReason;
-            }
+            const request: UpdateSharingSessionRequest = {status};
+            if (rejectingSession) request.rejectionReason = rejectReason;
 
             await updateSharingSession(session.id, request);
-            const updatedSession = await fetchSignedInUserAppUserSharingSession(session.id);
+            const updatedSession = await fetchSignedInUserAppUserSharingSession(session.id) as SharingSessionDetailedDto;
+            publishSharingSessionUpdate(updatedSession);
 
             if (rejectingSession)
             {
-                onRejected(updatedSession as SharingSessionDetailedDto);
                 setRejectReason('');
+                onRejected(updatedSession);
             }
             else
             {
-                onAccepted(updatedSession as SharingSessionDetailedDto);
+                onAccepted(updatedSession);
             }
-
         }
         catch (error)
         {
@@ -83,103 +85,173 @@ const SessionAcceptanceDialog: React.FC<SessionDeleteDialogProps> = (
         }
     };
 
-    const onAccept = () =>
+    const cancelDecline = () =>
     {
-        onAcceptOrRejected(SharingSessionStatus.ACCEPTED_STARTED);
+        setRejectingSession(false);
+        setRejectReason('');
     };
 
-    const onReject = () =>
-    {
-        onAcceptOrRejected(SharingSessionStatus.REJECTED);
-    };
+    const initiatorName = [session.initiator?.person?.firstName, session.initiator?.person?.lastName]
+        .filter(Boolean).join(' ') || session.initiator?.email;
+    const initiatorEmail = session.initiator?.email || 'Not provided';
+    const recipientEmail = session.recipient?.email || 'Not provided';
 
-    const onRejectReasonChange = (event: React.ChangeEvent<HTMLTextAreaElement>) =>
-    {
-        setRejectReason(event.target.value);
-    };
+    const requestedDocuments = (session.documents || []).filter(document => !document.uploadDate);
+    const sharedDocuments = (session.documents || []).filter(document => !!document.uploadDate);
 
-    return <section id={"session-acceptance-dialog"}>
-        {session && <Dialog modalType="non-modal" open={isOpen}>
-            <DialogSurface>
-                <DialogBody>
-                    <DialogTitle>New Documents Request</DialogTitle>
-                    <DialogContent className={styles.dialogContent}>
-                        <Text size={400}
-                              align={"center"}>
-                            {session.initiator?.person?.firstName} {session.initiator?.person?.lastName} has requested
-                            to share documents with you.
-                        </Text>
-                        <div className={styles.sessionNameContainer}>
-                            <Text size={300}
-                                  align={"center"}
-                                  weight={"bold"}>
-                                Session
-                            </Text>
-                            <Text size={300}
-                                  align={"center"}>
-                                {session.sessionName}
-                            </Text>
-                        </div>
-                        {session.initialShareMessage &&
-                            <div className={styles.messageContainer}>
-                                <Text size={300}
-                                      align={"center"}
-                                      weight={"bold"}>
-                                    Message
-                                </Text>
-                                <Text size={300}
-                                      align={"center"}>
-                                    {session.initialShareMessage}
-                                </Text>
-                            </div>
-                        }
-                        {rejectingSession &&
-                            <div className={styles.declineFieldContainer}>
-                                <Field>
-                                    <Textarea placeholder={"Reason for declining"}
-                                              value={rejectReason}
-                                              onChange={onRejectReasonChange}
-                                              maxLength={100}/>
-                                </Field>
-                                <Checkbox label={"Report"}/>
-                            </div>
-                        }
-                    </DialogContent>
-                    <DialogActions>
-                        <Button appearance="primary"
-                                disabled={updatingSession}
-                                className={globalStyles.buttonWithLoading}
-                                shape={"circular"}
-                                onClick={onAccept}>
-                            {(!rejectingSession && updatingSession) && <Spinner size={"tiny"}/>}
-                            Accept
+    const cardInner = (
+        <>
+            <Text size={400} weight="semibold" align="center">New Document Request</Text>
+
+            <Text size={300} align="center">
+                <strong>{initiatorName}</strong> has requested to share documents with you.
+            </Text>
+
+            <div className={styles.sessionNameContainer}>
+                <Text size={200} weight="bold" align="center">SESSION</Text>
+                <Text size={300} align="center">{session.sessionName}</Text>
+            </div>
+
+            <div className={styles.participantInfoContainer}>
+                <Text size={200} weight="bold" align="center">PARTICIPANTS</Text>
+                <Text size={200} align="center">Initiator: {initiatorEmail}</Text>
+                <Text size={200} align="center">Recipient: {recipientEmail}</Text>
+            </div>
+
+            {session.initialShareMessage && (
+                <div className={styles.messageContainer}>
+                    <Text size={200} weight="bold" align="center">MESSAGE</Text>
+                    <Text size={300} align="center">{session.initialShareMessage}</Text>
+                </div>
+            )}
+
+            <div className={styles.documentsInfoContainer}>
+                <Text size={200} weight="bold" align="center">DOCUMENTS</Text>
+
+                {requestedDocuments.length > 0 && (
+                    <div className={styles.documentsGroup}>
+                        <Text size={200} weight="semibold" align="center">Requested from you ({requestedDocuments.length})</Text>
+                        {requestedDocuments.slice(0, 5).map(document => (
+                            <Text key={document.id} size={200} align="center">- {document.title}</Text>
+                        ))}
+                    </div>
+                )}
+
+                {sharedDocuments.length > 0 && (
+                    <div className={styles.documentsGroup}>
+                        <Text size={200} weight="semibold" align="center">Already shared ({sharedDocuments.length})</Text>
+                        {sharedDocuments.slice(0, 5).map(document => (
+                            <Text key={document.id} size={200} align="center">- {document.title}</Text>
+                        ))}
+                    </div>
+                )}
+
+                {requestedDocuments.length === 0 && sharedDocuments.length === 0 && (
+                    <Text size={200} align="center">No document details provided yet.</Text>
+                )}
+            </div>
+
+            {rejectingSession && (
+                <div className={styles.declineFieldContainer}>
+                    <Field>
+                        <Textarea
+                            placeholder="Reason for declining (optional)"
+                            value={rejectReason}
+                            onChange={e => setRejectReason(e.target.value)}
+                            maxLength={100}
+                        />
+                    </Field>
+                    <Checkbox label="Report"/>
+                </div>
+            )}
+
+            <div className={styles.actions}>
+                <Button
+                    appearance="primary"
+                    disabled={updatingSession}
+                    className={globalStyles.buttonWithLoading}
+                    shape="circular"
+                    onClick={() => onAcceptOrReject(SharingSessionStatus.ACCEPTED_STARTED)}>
+                    {!rejectingSession && updatingSession && <Spinner size="tiny"/>}
+                    Accept
+                </Button>
+
+                {!rejectingSession && (
+                    <Button
+                        appearance="secondary"
+                        shape="circular"
+                        disabled={updatingSession}
+                        onClick={() => setRejectingSession(true)}>
+                        Decline
+                    </Button>
+                )}
+
+                {rejectingSession && (
+                    <>
+                        <Button
+                            appearance="secondary"
+                            className={globalStyles.buttonWithLoading}
+                            shape="circular"
+                            disabled={updatingSession}
+                            onClick={() => onAcceptOrReject(SharingSessionStatus.REJECTED)}>
+                            {updatingSession && <Spinner size="tiny"/>}
+                            Confirm Decline
                         </Button>
-                        {!rejectingSession &&
+                        <Button
+                            appearance="subtle"
+                            shape="circular"
+                            disabled={updatingSession}
+                            onClick={cancelDecline}>
+                            Cancel
+                        </Button>
+                    </>
+                )}
 
-                            <Button appearance="secondary"
-                                    className={globalStyles.buttonWithLoading}
-                                    shape={"circular"}
-                                    disabled={updatingSession}
-                                    onClick={() => setRejectingSession(true)}>
-                                Decline
+                {!isSingleSession && !rejectingSession && (
+                    canDecideLater ?
+                        <Button
+                            appearance="subtle"
+                            shape="circular"
+                            disabled={updatingSession}
+                            onClick={onDismiss}>
+                            Decide Later
+                        </Button>
+                        :
+                        <>
+                            <Button
+                                appearance="secondary"
+                                shape="circular"
+                                disabled={updatingSession || activeCount === 0}
+                                onClick={onOpenActive}>
+                                Open Active ({activeCount})
                             </Button>
-                        }
-                        {rejectingSession &&
-                            <Button appearance="secondary"
-                                    className={globalStyles.buttonWithLoading}
-                                    shape={"circular"}
-                                    disabled={updatingSession}
-                                    onClick={onReject}>
-                                {rejectingSession && updatingSession && <Spinner size={"tiny"}/>}
-                                Continue Decline
+                            <Button
+                                appearance="secondary"
+                                shape="circular"
+                                disabled={updatingSession || archiveCount === 0}
+                                onClick={onOpenArchive}>
+                                Open Archive ({archiveCount})
                             </Button>
-                        }
-                    </DialogActions>
-                </DialogBody>
-            </DialogSurface>
-        </Dialog>
-        }
-    </section>;
+                        </>
+                )}
+            </div>
+
+            {!rejectingSession && !canDecideLater && (
+                <Text size={200} align="center" className={styles.navigationHint}>
+                    This is the last pending inbox request.
+                </Text>
+            )}
+        </>
+    );
+
+
+    return (
+        <div className={styles.overlay}>
+            <Card className={styles.overlayCard}>
+                {cardInner}
+            </Card>
+        </div>
+    );
 };
 
 export default SessionAcceptanceDialog;

@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.exception.OrganizationGroupNotFoundException
+import com.docuhyphen.app.api.exception.OrganizationLinkNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.model.resourceservice.MemberPermissionsModel
@@ -79,6 +80,7 @@ class OrganizationGroupResource @Inject constructor(
                 addOrganizationGroupRequest.name,
                 members,
                 adminApprovalContext,
+                addOrganizationGroupRequest.externallyPublished,
             )
 
             return Response.status(CREATED).build()
@@ -163,7 +165,7 @@ class OrganizationGroupResource @Inject constructor(
 
             with(updateOrganizationGroupRequest) {
                 organizationGroupService.updateOrganizationGroup(
-                    organizationId, groupId, name, isActive, groupMembers, adminApprovalContext
+                    organizationId, groupId, name, isActive, groupMembers, adminApprovalContext, externallyPublished
                 )
             }
 
@@ -256,6 +258,48 @@ class OrganizationGroupResource @Inject constructor(
                     Response
                         .status(INTERNAL_SERVER_ERROR)
                         .entity(responseError)
+                        .build()
+                }
+            }
+        }
+    }
+
+    @Path("/{organizationId}/paired-organizations/{pairedOrganizationId}/published-groups")
+    @GET
+    fun getPublishedGroupsFromPairedOrganization(
+        @PathParam("organizationId") organizationId: String,
+        @PathParam("pairedOrganizationId") pairedOrganizationId: String,
+    ): Response
+    {
+        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
+
+        return try
+        {
+            val groups = organizationGroupService
+                .getPublishedGroupsForPairedOrganization(organizationId, pairedOrganizationId)
+                .map { DetailedEntityToDtoTransformer.toDto(it) }
+                .toTypedArray()
+
+            Response.ok(groups).build()
+        }
+        catch (exception: Exception)
+        {
+            logger.error("Error getting published groups for paired organization", exception)
+
+            when (exception)
+            {
+                is OrganizationNotFoundException, is OrganizationLinkNotFoundException ->
+                {
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+                }
+                is IllegalArgumentException ->
+                {
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+                }
+                else ->
+                {
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while getting published groups"))
                         .build()
                 }
             }

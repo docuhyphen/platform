@@ -87,7 +87,7 @@ apiClient.interceptors.response.use(
             }
             catch (refreshError)
             {
-                // Refresh failed — redirect to session expired
+                // Refresh failed,  redirect to session expired
                 window.dispatchEvent(new CustomEvent('auth-session-expired'));
                 return Promise.reject(refreshError);
             }

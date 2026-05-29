@@ -191,6 +191,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
                             <Input
                                 type="text"
                                 value={name}
+                                maxLength={80}
                                 onChange={(e) => setName(e.target.value)}
                             />
                         </Field>

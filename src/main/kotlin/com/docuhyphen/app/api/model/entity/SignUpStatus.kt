@@ -7,7 +7,7 @@ package com.docuhyphen.app.api.model.entity
  * package, packaged classes that imported it via `import SignUpStatus`
  * intermittently triggered a Kotlin K2 compiler internal error
  * (`Source classes should be created separately before referencing`) during
- * the FIR → IR conversion — `Fir2IrDeclarationStorage.findIrParent` cannot
+ * the FIR → IR conversion,  `Fir2IrDeclarationStorage.findIrParent` cannot
  * resolve a parent IR module fragment for the unnamed package while a
  * consumer's companion-object is being processed.
  */

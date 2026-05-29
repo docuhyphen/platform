@@ -1,5 +1,5 @@
 import React from 'react';
-import {Button, DialogTrigger, Spinner} from "@fluentui/react-components";
+import {Button, Spinner} from "@fluentui/react-components";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 
 interface SessionInitiationDialogActionsProps
@@ -8,7 +8,8 @@ interface SessionInitiationDialogActionsProps
     initiatingSession: boolean;
     sessionInitiatedSuccessfully: boolean;
     choosingTemplate: boolean;
-    onCancelInitiation: () => void;
+    onResetInitiation: () => void;
+    onCloseDialog: () => void;
     onInitiateSession: () => void;
 }
 
@@ -18,7 +19,8 @@ const SessionInitiationDialogActions: React.FC<SessionInitiationDialogActionsPro
         initiatingSession,
         sessionInitiatedSuccessfully,
         choosingTemplate,
-        onCancelInitiation,
+        onResetInitiation,
+        onCloseDialog,
         onInitiateSession
     }) =>
 {
@@ -30,7 +32,7 @@ const SessionInitiationDialogActions: React.FC<SessionInitiationDialogActionsPro
 
             {(!choosingTemplate && sessionInitiatedSuccessfully) && (
                 <Button appearance="primary"
-                        onClick={onCancelInitiation}
+                        onClick={onResetInitiation}
                         shape={"circular"}>
                     Create another
                 </Button>
@@ -50,15 +52,13 @@ const SessionInitiationDialogActions: React.FC<SessionInitiationDialogActionsPro
                 </Button>
             )}
 
-            <DialogTrigger>
-                <Button
-                    shape={"circular"}
-                    disabled={initiatingSession}
-                    onClick={onCancelInitiation}
-                >
-                    {(!choosingTemplate && sessionInitiatedSuccessfully) ? "Close" : "Cancel"}
-                </Button>
-            </DialogTrigger>
+            <Button
+                shape={"circular"}
+                disabled={initiatingSession}
+                onClick={onCloseDialog}
+            >
+                {(!choosingTemplate && sessionInitiatedSuccessfully) ? "Close" : "Cancel"}
+            </Button>
         </>
     );
 };

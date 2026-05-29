@@ -287,7 +287,11 @@ const OrganizationTab = () =>
                 </div>
             </section>
             <OrganizationOnboardingDialog isOpen={isOnboardingDialogOpen}
-                                          onDismiss={() => setOnboardingDialogOpen(false)}/>
+                                          onDismiss={() => {
+                                              setOnboardingDialogOpen(false);
+                                              getOrganization();
+                                          }}
+                                          onRegistered={() => getOrganization()}/>
         </>
         }
     </>

@@ -17,7 +17,7 @@ import java.util.Base64
  * (43 ASCII chars, no padding). Tokens map to the user's email address and
  * are stored in Redis with a TTL matching the OTP expiry window.
  *
- * Replaces the previous design of passing `?email=&otp=` in the URL — those
+ * Replaces the previous design of passing `?email=&otp=` in the URL,  those
  * values leaked through browser history, Referer headers, and proxy access
  * logs. An opaque token has no exploitable structure and is consumed atomically
  * on the first valid verification (via GETDEL), so even a replay from a

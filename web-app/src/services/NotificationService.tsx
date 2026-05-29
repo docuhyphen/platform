@@ -15,7 +15,7 @@ import {NotificationDto} from '../app/models/models';
  *
  * Backwards compatibility: NotificationContext still imports `notificationService` from
  * this module and calls `connect(appUserId)` / `addMessageHandler`. The legacy methods are
- * preserved — internally they resolve the userSessionId from the access token.
+ * preserved,  internally they resolve the userSessionId from the access token.
  */
 
 export type RealtimeMessageType =
@@ -31,6 +31,10 @@ export type RealtimeMessageType =
     | 'NOTIFICATION'
     | 'PRESENCE_UPDATE'
     | 'SHARING_VIEWERS'
+    | 'SHARING_SESSION_DOCUMENT_ADDED'
+    | 'SHARING_SESSION_DOCUMENT_REMOVED'
+    | 'SHARING_SESSION_DOCUMENT_UPDATED'
+    | 'SHARING_SESSION_STATUS_CHANGED'
     | 'ERROR'
     | 'WELCOME';
 
@@ -60,6 +64,8 @@ export interface RealtimeMessage
     message?: string;
     serverTime?: number;
     session?: RealtimeSessionInfo;
+    documentId?: string;
+    status?: string;
 }
 
 type TypedHandler = (msg: RealtimeMessage) => void;
@@ -92,7 +98,7 @@ class RealtimeService
 
     /**
      * Connect using the current access token in sessionStorage. The userSessionId is
-     * derived from the token's `session_id` claim — callers don't need to pass anything,
+     * derived from the token's `session_id` claim,  callers don't need to pass anything,
      * but for backwards compat we still accept an unused appUserId argument.
      */
     connect(_appUserId?: string): void
@@ -235,7 +241,7 @@ class RealtimeService
             console.info('[Realtime] close', {code: event.code, reason: event.reason, wasClean: event.wasClean});
             this.stopHeartbeat();
             this.socket = null;
-            // Auth failed at handshake — don't reconnect indefinitely; let AuthContext drive
+            // Auth failed at handshake,  don't reconnect indefinitely; let AuthContext drive
             // the next attempt via a token refresh.
             if (event.code === CLOSE_CODE_AUTH_FAILED)
             {

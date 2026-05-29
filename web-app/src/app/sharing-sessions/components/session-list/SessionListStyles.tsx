@@ -1,6 +1,6 @@
 import {makeStyles, tokens, typographyStyles,} from "@fluentui/react-components";
 
-export const useSharingSessionStyles = makeStyles({
+const useSharingSessionStyles = makeStyles({
 
     caption2: typographyStyles.caption2,
     caption1: typographyStyles.caption1,
@@ -44,13 +44,19 @@ export const useSharingSessionStyles = makeStyles({
     },
 
     sessionName: {
+        display: "block",
+        flex: 1,
+        minWidth: 0,
         whiteSpace: "nowrap",
         overflow: "hidden",
         textOverflow: "ellipsis",
-        maxWidth: "calc(100% - 60px)"
+        maxWidth: "none",
     },
 
     sessionDescription: {
+        display: "flex",
+        alignItems: "center",
+        minHeight: "18px",
         whiteSpace: "nowrap",
         overflow: "hidden",
         textOverflow: "ellipsis",
@@ -59,13 +65,15 @@ export const useSharingSessionStyles = makeStyles({
     },
 
     createdDate: {
-        width: "100px",
+        minWidth: "74px",
         display: "flex",
         justifyContent: "end",
-        alignItems: "center"
+        alignItems: "center",
+        whiteSpace: "nowrap",
     },
 
     sharingSessionsListContainer: {
+        width: "400px",
         minWidth: "400px",
         maxWidth: "400px",
         border: "1px solid rgba(0, 0, 0, .1)",
@@ -73,11 +81,14 @@ export const useSharingSessionStyles = makeStyles({
         borderRadius: "4px",
         background: "white",
         display: "flex",
-        flexDirection: "column"
+        flexDirection: "column",
+        overflow: "hidden",
+        transition: "width 220ms ease, min-width 220ms ease, max-width 220ms ease",
     },
 
     sharingSessionsListContainerCollapsed: {
 
+        width: "60px",
         minWidth: "60px",
         maxWidth: "60px",
         overflow: "hidden",
@@ -87,6 +98,7 @@ export const useSharingSessionStyles = makeStyles({
         background: "white",
         display: "flex",
         flexDirection: "column",
+        transition: "width 220ms ease, min-width 220ms ease, max-width 220ms ease",
         "::after": {
             content: "''",
             position: "absolute",
@@ -138,6 +150,7 @@ export const useSharingSessionStyles = makeStyles({
         boxSizing: "border-box",
         display: "flex",
         justifyContent: "space-between",
+        marginTop: "auto",
         boxShadow: "rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px -2px 4px",
     },
     footerControls: {
@@ -196,10 +209,43 @@ export const useSharingSessionStyles = makeStyles({
         display: "flex",
         justifyContent: "space-between",
         gap: "4px",
+        minWidth: 0,
+    },
+
+    titleMetaRow: {
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        whiteSpace: "nowrap",
+        flexShrink: 0,
+    },
+
+    titleMetaDivider: {
+        height: "14px",
+        alignSelf: "center",
+    },
+
+    archiveStatusChipDeclined: {
+        fontWeight: "600",
+        minWidth: "68px",
+        textAlign: "right",
+        whiteSpace: "nowrap",
+    },
+
+    archiveStatusChipEnded: {
+        fontWeight: "600",
+        minWidth: "68px",
+        textAlign: "right",
+        whiteSpace: "nowrap",
+        color: tokens.colorNeutralForeground4,
+        borderTopColor: tokens.colorNeutralForeground4,
+        borderRightColor: tokens.colorNeutralForeground4,
+        borderBottomColor: tokens.colorNeutralForeground4,
+        borderLeftColor: tokens.colorNeutralForeground4,
     },
 
     sharingSessionsListSelectedItem: {
-        background: "white",
+        background: tokens.colorNeutralBackground2,
         borderLeft: "3px solid",
         transition: "all 0.1s ease",
         borderLeftColor: tokens.colorBrandForeground1,
@@ -212,5 +258,20 @@ export const useSharingSessionStyles = makeStyles({
             borderLeftColor: tokens.colorBrandForeground1,
             transition: "all 0.1s ease",
         },
-    }
+    },
+
+    inboxActions: {
+        display: "flex",
+        gap: "6px",
+        marginTop: "6px",
+        paddingTop: "6px",
+        borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+    },
+
+    tabsContainer: {
+        borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    },
 });
+
+export {useSharingSessionStyles};
+export default useSharingSessionStyles;

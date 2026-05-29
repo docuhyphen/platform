@@ -157,7 +157,7 @@ data class SignUpRegenerationRequest(var email: String? = null)
 @Serializable
 data class SignUpRegenerationResponse(var message: String? = null)
 
-/** Request body for POST /auth/sign-up/email-confirm — the opaque-token completion path. */
+/** Request body for POST /auth/sign-up/email-confirm,  the opaque-token completion path. */
 @Serializable
 data class SignUpEmailConfirmRequest(
     val token: String? = null,
@@ -169,7 +169,7 @@ data class SignUpEmailConfirmRequest(
 @Serializable
 data class SignUpEmailConfirmResponse(var message: String? = null)
 
-/** Response from GET /auth/sign-up/email-confirm/{token} — token introspection (no consumption). */
+/** Response from GET /auth/sign-up/email-confirm/{token},  token introspection (no consumption). */
 @Serializable
 data class SignUpEmailConfirmCheckResponse(var email: String? = null)
 
@@ -214,6 +214,7 @@ data class AddOrganizationGroupMemberRequest(
 data class AddOrganizationGroupRequest(
     var name: String? = null,
     var members: List<AddOrganizationGroupMemberRequest>? = mutableListOf(),
+    var externallyPublished: Boolean = false,
 )
 
 @Serializable
@@ -221,6 +222,7 @@ data class UpdateOrganizationGroupRequest(
     var name: String? = null,
     var isActive: Boolean = false,
     var members: List<AddOrganizationGroupMemberRequest>? = mutableListOf(),
+    var externallyPublished: Boolean = false,
 )
 
 @Serializable

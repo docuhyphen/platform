@@ -43,6 +43,12 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
     private val authAuditService: AuthAuditService,
 )
 {
+    companion object
+    {
+        const val FREE_TIER_CODE = "FREE"
+        const val FREE_TIER_MAX_USERS: Long = 3
+    }
+
 
     fun getEffectivePolicy(organizationId: String, requestId: String?): PolicyResult
     {
@@ -54,10 +60,10 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         {
             PolicyResult(
                 organizationId = organization.id,
-                tierCode = "FREE",
-                maxUsers = null,
+                tierCode = FREE_TIER_CODE,
+                maxUsers = FREE_TIER_MAX_USERS,
                 currentActiveUsers = activeUserCount(organization),
-                changeReason = "Implicit default platform policy",
+                changeReason = "Implicit default free-tier policy",
                 persisted = false,
                 createdDate = null,
                 updatedDate = null,
@@ -226,8 +232,8 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
 
         val result = PolicyResult(
             organizationId = organization.id,
-            tierCode = "FREE",
-            maxUsers = null,
+            tierCode = FREE_TIER_CODE,
+            maxUsers = FREE_TIER_MAX_USERS,
             currentActiveUsers = activeUserCount(organization),
             changeReason = "Policy reset to platform default",
             persisted = false,
@@ -372,7 +378,7 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         return PolicyResult(
             organizationId = organization.id,
             tierCode = policy.tierCode,
-            maxUsers = policy.maxUsers,
+            maxUsers = resolveEffectiveMaxUsers(policy.tierCode, policy.maxUsers),
             currentActiveUsers = activeUserCount(organization),
             changeReason = policy.changeReason,
             persisted = true,
@@ -385,14 +391,24 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
     {
         return PolicyResult(
             organizationId = organization.id,
-            tierCode = "FREE",
-            maxUsers = null,
+            tierCode = FREE_TIER_CODE,
+            maxUsers = FREE_TIER_MAX_USERS,
             currentActiveUsers = activeUserCount(organization),
-            changeReason = "Implicit default platform policy",
+            changeReason = "Implicit default free-tier policy",
             persisted = false,
             createdDate = null,
             updatedDate = null,
         )
+    }
+
+    private fun resolveEffectiveMaxUsers(tierCode: String, configuredMaxUsers: Long?): Long?
+    {
+        if (configuredMaxUsers != null)
+        {
+            return configuredMaxUsers
+        }
+
+        return if (tierCode.equals(FREE_TIER_CODE, ignoreCase = true)) FREE_TIER_MAX_USERS else null
     }
 
     private fun snapshot(policy: OrganizationSubscriptionPolicy, organization: Organization): String

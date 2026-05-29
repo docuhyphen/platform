@@ -21,6 +21,8 @@ import {
     initiatePhoneUpdate
 } from "../../../services/contactDetailsApi";
 import {usePhoneManagementDialogStyles} from "./PhoneManagementDialogStyles.tsx";
+import {useGlobalStyles} from "../../../GlobalStyles.tsx";
+import validator from "validator";
 
 export enum PhoneManagementMode
 {
@@ -47,6 +49,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
     }) =>
 {
     const styles = usePhoneManagementDialogStyles()
+    const globalStyles = useGlobalStyles()
     const {token} = useAuth();
     const [phoneNumber, setPhoneNumber] = useState<string | undefined>(contactDetails?.phoneNumber);
     const [processing, setProcessing] = useState(false);
@@ -64,14 +67,32 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
         setVerificationCode(e.target.value);
     }
 
+    const extractErrorMessage = (e: any, fallback: string): string =>
+    {
+        if (typeof e === "string") return e;
+        const msg = e?.errorMessage || e?.message || e?.response?.data?.errorMessage || e?.response?.data?.message;
+        if (msg) return msg;
+        return "Something went wrong. Please try again in a moment.";
+    }
+
+    const validatePhone = (value: string | undefined): string | null =>
+    {
+        if (!value || !value.trim()) return "Phone number is required";
+        if (!validator.isMobilePhone(value.trim(), "any", {strictMode: false}))
+        {
+            return "Please enter a valid phone number";
+        }
+        return null;
+    }
+
     const onInitiateAddPhoneNumber = async () =>
     {
-        console.log(processing, contactDetails)
         if (processing || !contactDetails?.id) return;
 
-        if (!phoneNumber)
+        const validationError = validatePhone(phoneNumber);
+        if (validationError)
         {
-            setError("Phone number is required");
+            setError(validationError);
             return;
         }
 
@@ -80,12 +101,12 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
 
         try
         {
-            await initiatePhoneAddition(contactDetails.id, phoneNumber, token);
+            await initiatePhoneAddition(contactDetails.id, phoneNumber!, token);
             setAddOrEditInitiated(true);
         }
         catch (e: any)
         {
-            setError(e.message || "Failed to initiate phone number addition");
+            setError(extractErrorMessage(e, "Failed to initiate phone number addition"));
             console.error("Failed to initiate phone number addition:", e);
         }
         finally
@@ -98,13 +119,14 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
     {
         if (processing || !contactDetails?.id) return;
 
-        if (!phoneNumber)
+        const validationError = validatePhone(phoneNumber);
+        if (validationError)
         {
-            setError("Phone number is required");
+            setError(validationError);
             return;
         }
 
-        if (!verificationCode)
+        if (!verificationCode.trim())
         {
             setError("Verification code is required");
             return;
@@ -115,7 +137,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
 
         try
         {
-            await completePhoneAddition(contactDetails.id, phoneNumber, verificationCode, token);
+            await completePhoneAddition(contactDetails.id, phoneNumber!, verificationCode, token);
 
             const updatedContactDetails = {
                 ...contactDetails,
@@ -132,7 +154,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
         }
         catch (e: any)
         {
-            setError(e.message || "Failed to complete phone number addition");
+            setError(extractErrorMessage(e, "Failed to complete phone number addition"));
             console.error("Failed to complete phone number addition:", e);
         }
         finally
@@ -145,9 +167,10 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
     {
         if (processing || !contactDetails?.id) return;
 
-        if (!phoneNumber)
+        const validationError = validatePhone(phoneNumber);
+        if (validationError)
         {
-            setError("Phone number is required");
+            setError(validationError);
             return;
         }
 
@@ -156,12 +179,12 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
 
         try
         {
-            await initiatePhoneUpdate(contactDetails.id, phoneNumber, token);
+            await initiatePhoneUpdate(contactDetails.id, phoneNumber!, token);
             setAddOrEditInitiated(true);
         }
         catch (e: any)
         {
-            setError(e.message || "Failed to initiate phone number update");
+            setError(extractErrorMessage(e, "Failed to initiate phone number update"));
             console.error("Failed to initiate phone number update:", e);
         }
         finally
@@ -174,13 +197,14 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
     {
         if (processing || !contactDetails?.id) return;
 
-        if (!phoneNumber)
+        const validationError = validatePhone(phoneNumber);
+        if (validationError)
         {
-            setError("Phone number is required");
+            setError(validationError);
             return;
         }
 
-        if (!verificationCode)
+        if (!verificationCode.trim())
         {
             setError("Verification code is required");
             return;
@@ -191,7 +215,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
 
         try
         {
-            await completePhoneUpdate(contactDetails.id, phoneNumber, verificationCode, token);
+            await completePhoneUpdate(contactDetails.id, phoneNumber!, verificationCode, token);
 
             const updatedContactDetails = {
                 ...contactDetails,
@@ -208,7 +232,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
         }
         catch (e: any)
         {
-            setError(e.message || "Failed to complete phone number update");
+            setError(extractErrorMessage(e, "Failed to complete phone number update"));
             console.error("Failed to complete phone number update:", e);
         }
         finally
@@ -260,7 +284,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
                         {mode === PhoneManagementMode.ADD ? "Add new phone number" : "Edit phone number"}
                     </DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
-                        {error && <div style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
+                        <div className={styles.errorContainer}>{error || " "}</div>
 
                         <Field label="Phone number">
                             <Input
@@ -268,6 +292,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
                                 maxLength={16}
                                 value={phoneNumber || ''}
                                 onChange={onPhoneNumberChange}
+                                onKeyDown={(e) => { if (e.key === "Enter") onAddOrUpdatePhoneNumber(); }}
                                 disabled={addOrEditInitiated || processing}
                             />
                         </Field>
@@ -279,6 +304,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
                                     value={verificationCode}
                                     maxLength={8}
                                     onChange={onVerificationCodeChange}
+                                    onKeyDown={(e) => { if (e.key === "Enter") onAddOrUpdatePhoneNumber(); }}
                                 />
                             </Field>
                         )}
@@ -288,6 +314,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
                     <Button
                         appearance="primary"
                         shape="circular"
+                        className={globalStyles.buttonWithLoading}
                         disabled={processing}
                         onClick={onAddOrUpdatePhoneNumber}
                     >

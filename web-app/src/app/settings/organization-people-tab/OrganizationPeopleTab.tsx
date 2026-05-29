@@ -167,12 +167,14 @@ const OrganizationPeopleTab = () =>
                     <TableBody>
                         {users.map((user) => (
                             <TableRow key={user.id}>
-                                <TableCell>
-                                    <TableCellLayout media={<PersonRegular/>}>
+                                <TableCell title={`${user.person?.firstName ?? ""} ${user.person?.lastName ?? ""}`.trim()}>
+                                    <TableCellLayout truncate media={<PersonRegular/>} className={styles.truncateCell}>
                                         {user.person?.firstName} {user.person?.lastName}
                                     </TableCellLayout>
                                 </TableCell>
-                                <TableCell>{user.email}</TableCell>
+                                <TableCell title={user.email}>
+                                    <div className={styles.truncateCell}>{user.email}</div>
+                                </TableCell>
                                 <TableCell>
                                     {AppUserRoleDisplayNames[user.role as keyof typeof AppUserRoleDisplayNames] || user.role}
                                 </TableCell>

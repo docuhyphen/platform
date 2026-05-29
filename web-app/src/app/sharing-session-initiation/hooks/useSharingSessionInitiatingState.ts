@@ -26,7 +26,7 @@ const useSharingSessionInitiatingState = () =>
     const [selectedTab, setSelectedTab] = useState<string>("recipients-tab");
     const [messageGroupMessages, setMessageGroupMessages] = useState<any>([]);
     const [requestingDocuments, setRequestingDocuments] = useState<boolean>(true);
-    const [recipientMode, setRecipientMode] = useState<SharingSessionInitiationRecipientMode>(SharingSessionInitiationRecipientMode.EXTERNAL_ORG);
+    const [recipientMode, setRecipientMode] = useState<SharingSessionInitiationRecipientMode>(SharingSessionInitiationRecipientMode.PEOPLE);
     const [recipientOrg, setRecipientOrg] = useState<any>();
     const [recipientOrgUser, setRecipientOrgUser] = useState<any | undefined>();
     const [recipientOrgGroup, setRecipientOrgGroup] = useState<any | undefined>();

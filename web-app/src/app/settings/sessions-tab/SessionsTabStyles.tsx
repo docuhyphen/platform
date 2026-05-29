@@ -21,6 +21,16 @@ export const useSessionsTabStyles = makeStyles({
         border: "1px solid #e0e0e0",
         gap: "16px",
     },
+    sessionCardContainer: {
+        display: "flex",
+        flex: "1",
+        flexDirection: "column",
+        overflowY: "auto",
+        overflowX: "hidden",
+        maxHeight: "60vh",
+        minHeight: 0,
+        gap: "8px"
+    },
     sessionMeta: {
         display: "flex",
         flexDirection: "column",

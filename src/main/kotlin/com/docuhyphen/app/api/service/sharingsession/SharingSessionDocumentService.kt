@@ -4,9 +4,13 @@ import com.docuhyphen.app.api.exception.SharingSessionDocumentNotFoundException
 import com.docuhyphen.app.api.exception.SharingSessionNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.realtime.RealtimeEventService
+import com.docuhyphen.app.api.realtime.RealtimeMessage
+import com.docuhyphen.app.api.realtime.RealtimeMessageType
 import com.docuhyphen.app.api.repository.SharingSessionRepository
 import com.docuhyphen.app.api.service.communication.AppNotificationService
 import com.docuhyphen.app.api.service.communication.EmailService
+import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
@@ -24,10 +28,20 @@ class SharingSessionDocumentService @Inject constructor(
     private val auditService: SharingSessionDocumentAuditService,
     private val authTokenContext: AuthTokenContext,
     private val emailService: EmailService,
+    private val emailTemplateService: EmailTemplateService,
     private val fileStorageService: FileStorageService,
-    private val appNotificationService: AppNotificationService
+    private val appNotificationService: AppNotificationService,
+    private val realtimeEventService: RealtimeEventService,
 )
 {
+    private enum class DocumentAction
+    {
+        ADD,
+        UPDATE,
+        DELETE,
+        UPLOAD
+    }
+
     companion object
     {
         private val logger = LoggerFactory.getLogger(SharingSessionDocumentService::class.java)
@@ -42,7 +56,10 @@ class SharingSessionDocumentService @Inject constructor(
     ): Document
     {
         val sharingSession = getSharingSession(sessionId)
+        validateSessionMutability(sharingSession)
+        validateUserPermissions(sharingSession, authTokenContext.authToken.appUser!!, DocumentAction.ADD)
         validateTitle(title)
+        validateDocumentTypeRestriction(documentType, restrictedType)
 
         val document = createDocument(title!!, documentType, restrictedType)
         sharingSession.documents.add(document)
@@ -51,6 +68,8 @@ class SharingSessionDocumentService @Inject constructor(
         val savedDocument = sharingSession.documents.last()
         auditService.logAction(savedDocument, DocumentAuditLogAction.CREATED, authTokenContext.authToken.appUser!!)
 
+        broadcastDocumentEvent(sharingSession.id, RealtimeMessageType.SHARING_SESSION_DOCUMENT_ADDED, savedDocument.id)
+
         return savedDocument
     }
 
@@ -58,7 +77,9 @@ class SharingSessionDocumentService @Inject constructor(
     fun deleteDocument(sessionId: String, documentId: String)
     {
         val sharingSession = getSharingSession(sessionId)
+        validateSessionMutability(sharingSession)
         val document = getDocument(sharingSession, documentId)
+        validateUserPermissions(sharingSession, authTokenContext.authToken.appUser!!, DocumentAction.DELETE)
 
         if (document.isDeleted)
         {
@@ -70,6 +91,8 @@ class SharingSessionDocumentService @Inject constructor(
         sessionRepo.update(sharingSession)
 
         auditService.logAction(document, DocumentAuditLogAction.DELETE, authTokenContext.authToken.appUser!!)
+
+        broadcastDocumentEvent(sharingSession.id, RealtimeMessageType.SHARING_SESSION_DOCUMENT_REMOVED, document.id)
     }
 
     @Transactional
@@ -82,8 +105,11 @@ class SharingSessionDocumentService @Inject constructor(
     ): Document
     {
         val sharingSession = getSharingSession(sessionId)
+        validateSessionMutability(sharingSession)
         val document = getDocument(sharingSession, documentId)
+        validateUserPermissions(sharingSession, authTokenContext.authToken.appUser!!, DocumentAction.UPDATE)
         validateTitle(title)
+        validateDocumentTypeRestriction(type, restrictedType)
 
         if (document.isDeleted)
         {
@@ -91,11 +117,15 @@ class SharingSessionDocumentService @Inject constructor(
         }
 
         document.title = title!!
-        document.type = type
+        // Keep existing file type when metadata-only updates omit `type`.
+        document.type = type ?: document.type
         document.restrictedType = restrictedType
         sessionRepo.update(sharingSession)
 
         auditService.logAction(document, DocumentAuditLogAction.UPDATE, authTokenContext.authToken.appUser!!)
+
+        broadcastDocumentEvent(sharingSession.id, RealtimeMessageType.SHARING_SESSION_DOCUMENT_UPDATED, document.id)
+
         return document
     }
 
@@ -131,6 +161,7 @@ class SharingSessionDocumentService @Inject constructor(
         if (documentId == null) throw IllegalArgumentException("Document ID cannot be null")
 
         val sharingSession = getSharingSession(sessionId)
+        validateSessionMutability(sharingSession)
         val document = getDocument(sharingSession, documentId)
 
         if (document.isDeleted)
@@ -138,10 +169,10 @@ class SharingSessionDocumentService @Inject constructor(
             throw SharingSessionDocumentNotFoundException("Document not found")
         }
 
-        validateFileAndExtension(file, extension)
+        validateFileAndExtension(file, extension, document.restrictedType)
 
         val appUser = authTokenContext.authToken.appUser!!
-        validateUserPermissions(sharingSession, appUser)
+        validateUserPermissions(sharingSession, appUser, DocumentAction.UPLOAD)
 
         document.hash = "hash"
         document.type = DocumentType.fromFileExtension(extension!!)
@@ -153,7 +184,7 @@ class SharingSessionDocumentService @Inject constructor(
 
         auditService.logAction(document, DocumentAuditLogAction.UPLOAD, appUser)
 
-        sendUploadNotification(sharingSession, appUser, document.title)
+        sendUploadNotification(sharingSession, appUser, document)
 
         return document
     }
@@ -196,7 +227,12 @@ class SharingSessionDocumentService @Inject constructor(
             throw SharingSessionDocumentNotFoundException("Document not found")
         }
 
-        validateFileAndExtension(file, extension)
+        if (!sharingSession.allowDocumentUpload)
+        {
+            throw IllegalArgumentException("Permission to upload document not granted")
+        }
+
+        validateFileAndExtension(file, extension, document.restrictedType)
 
 
         document.hash = "hash"
@@ -207,6 +243,8 @@ class SharingSessionDocumentService @Inject constructor(
         fileStorageService.uploadDocument(file!!, "${document.id}$extension")
         sharingSession.recipient?.email?.let { auditService.logAction(document, DocumentAuditLogAction.UPLOAD, it) }
 //        sendUploadNotification(sharingSession, appUser, document.title)
+
+        broadcastDocumentEvent(sharingSession.id, RealtimeMessageType.SHARING_SESSION_DOCUMENT_UPDATED, document.id)
 
         return document
     }
@@ -284,7 +322,7 @@ class SharingSessionDocumentService @Inject constructor(
         title ?: throw IllegalArgumentException("Title cannot be null")
     }
 
-    private fun validateFileAndExtension(file: File?, extension: String?)
+    private fun validateFileAndExtension(file: File?, extension: String?, restrictedType: DocumentType?)
     {
         // Validate null checks
         file ?: throw IllegalArgumentException("File cannot be null")
@@ -294,8 +332,13 @@ class SharingSessionDocumentService @Inject constructor(
         val cleanExtension = if (extension.startsWith(".")) extension else ".$extension"
 
         // Check if extension is supported using the DocumentType enum
-        DocumentType.fromFileExtension(cleanExtension)
+        val documentType = DocumentType.fromFileExtension(cleanExtension)
             ?: throw IllegalArgumentException("Unsupported file extension: $cleanExtension")
+
+        if (restrictedType != null && documentType != restrictedType)
+        {
+            throw IllegalArgumentException("File type must be ${DocumentType.toFileExtension(restrictedType)}")
+        }
 
         // Check file size (10MB limit)
         val maxSizeBytes = 10_485_760L // 10MB
@@ -356,16 +399,48 @@ class SharingSessionDocumentService @Inject constructor(
         }
     }
 
-    private fun validateUserPermissions(sharingSession: SharingSession, appUser: AppUser)
+    private fun validateSessionMutability(sharingSession: SharingSession)
+    {
+        if (sharingSession.status != SharingSessionStatus.INITIATED &&
+            sharingSession.status != SharingSessionStatus.ACCEPTED_STARTED
+        )
+        {
+            throw IllegalArgumentException("Sharing session is not editable")
+        }
+    }
+
+    private fun validateDocumentTypeRestriction(type: DocumentType?, restrictedType: DocumentType?)
+    {
+        if (type != null && restrictedType != null && type != restrictedType)
+        {
+            throw IllegalArgumentException("Document type must match restricted type")
+        }
+    }
+
+    private fun validateUserPermissions(sharingSession: SharingSession, appUser: AppUser, action: DocumentAction)
     {
         if (sharingSession.initiator?.id != appUser.id && sharingSession.recipient?.id != appUser.id)
         {
-            throw IllegalArgumentException("Permission to upload document not granted")
+            throw IllegalArgumentException("Permission to perform document action not granted")
         }
 
-        if (sharingSession.initiator?.id != appUser.id && !sharingSession.allowDocumentUpload)
+        // Initiator can always perform document actions.
+        if (sharingSession.initiator?.id == appUser.id)
         {
-            throw IllegalArgumentException("Permission to upload document not granted")
+            return
+        }
+
+        val recipientAllowed = when (action)
+        {
+            DocumentAction.ADD -> sharingSession.allowDocumentAddition
+            DocumentAction.UPDATE -> sharingSession.allowDocumentUpdate
+            DocumentAction.DELETE -> sharingSession.allowDocumentDeletion
+            DocumentAction.UPLOAD -> sharingSession.allowDocumentUpload
+        }
+
+        if (!recipientAllowed)
+        {
+            throw IllegalArgumentException("Permission to perform document action not granted")
         }
     }
 
@@ -381,27 +456,34 @@ class SharingSessionDocumentService @Inject constructor(
         }
     }
 
-    private fun sendUploadNotification(sharingSession: SharingSession, appUser: AppUser, documentTitle: String)
+    private fun sendUploadNotification(sharingSession: SharingSession, appUser: AppUser, document: Document)
     {
         val recipientEmail = if (sharingSession.initiator?.id == appUser.id)
         {
-            sharingSession.recipient?.email!!
+            sharingSession.recipient?.email
         }
         else
         {
-            sharingSession.initiator?.email!!
-        }
+            sharingSession.initiator?.email
+        } ?: return
 
-        emailService.sendEmail(
-            recipientEmail,
-            "Document uploaded",
-            "Document titled '$documentTitle' uploaded by ${appUser.email}"
+        val model = mapOf(
+            "sessionName" to (sharingSession.sessionName ?: "Sharing session"),
+            "documentTitle" to (document.title ?: "Document"),
+            "uploaderEmail" to appUser.email,
+            "uploadedAt" to (document.uploadDate?.toInstant()?.toString() ?: Instant.now().toString()),
+            "sessionId" to sharingSession.id.toString(),
+            "documentId" to document.id.toString(),
         )
+
+        val subject = "Document uploaded: ${document.title ?: "Document"}"
+        val body = emailTemplateService.renderTemplate("sharing-session-document-uploaded.ftl", model)
+        emailService.sendEmail(recipientEmail, subject, body, useHtml = true)
 
         appNotificationService.sendNotification(
             recipientEmail,
             "Document uploaded",
-            "Document titled '$documentTitle' uploaded by ${appUser.email}"
+            "${document.title ?: "Document"} uploaded in session ${sharingSession.sessionName} by ${appUser.email}"
         )
     }
 
@@ -411,7 +493,7 @@ class SharingSessionDocumentService @Inject constructor(
         val document = getDocument(sharingSession, documentId)
 
         val fileKey = "${document.id}${DocumentType.toFileExtension(document.type!!)}"
-        val originalFile: File = fileStorageService.downloadDocument(fileKey)
+        val originalFile = fileStorageService.downloadDocument(fileKey)
 
         if (fileKey.endsWith(".pdf"))
         {
@@ -438,14 +520,41 @@ class SharingSessionDocumentService @Inject constructor(
             originalFile.parent
         )
 
-        val process = ProcessBuilder(command).start()
+        val process = try
+        {
+            ProcessBuilder(command).start()
+        }
+        catch (e: java.io.IOException)
+        {
+            throw DocumentPreviewConversionException(
+                "LibreOffice (soffice) is not available on this server. Original file can still be downloaded."
+            )
+        }
         val exitCode = process.waitFor()
 
         if (exitCode != 0 || !pdfFile.exists())
         {
-            throw IllegalStateException("PDF conversion failed for file: ${originalFile.name}")
+            throw DocumentPreviewConversionException("PDF conversion failed for file: ${originalFile.name}")
         }
 
         return pdfFile
     }
+
+    private fun broadcastDocumentEvent(sharingSessionId: UUID, type: String, documentId: UUID)
+    {
+        runCatching {
+            realtimeEventService.broadcastToSharingSession(
+                sharingSessionId,
+                RealtimeMessage(
+                    type = type,
+                    sharingSessionId = sharingSessionId.toString(),
+                    documentId = documentId.toString(),
+                )
+            )
+        }.onFailure { e ->
+            logger.warn("Failed to broadcast {} for session={} document={}", type, sharingSessionId, documentId, e)
+        }
+    }
 }
+
+class DocumentPreviewConversionException(message: String) : RuntimeException(message)

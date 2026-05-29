@@ -7,6 +7,8 @@ import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AppUserSettings
 import com.docuhyphen.app.api.model.entity.Person
 import com.docuhyphen.app.api.repository.AppUserRepository
+import com.docuhyphen.app.api.repository.OrganizationRepository
+import com.docuhyphen.app.api.service.auth.ServiceActionAuthorizationService
 import com.docuhyphen.app.api.service.auth.SignOutService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
@@ -24,6 +26,7 @@ import java.util.*
 @RequestScoped
 class AppUserService @Inject constructor(
     val appUserRepository: AppUserRepository,
+    val organizationRepository: OrganizationRepository,
     val settingsService: SettingsService,
     val authTokenContext: AuthTokenContext,
     val otpService: OtpService,
@@ -31,7 +34,8 @@ class AppUserService @Inject constructor(
     val emailTemplateService: EmailTemplateService,
     val configurationService: ConfigurationService,
     val signOutService: SignOutService,
-    val sharingSessionService: SharingSessionRetrievalService
+    val sharingSessionService: SharingSessionRetrievalService,
+    val serviceActionAuthorizationService: ServiceActionAuthorizationService
 )
 {
     companion object
@@ -88,6 +92,12 @@ class AppUserService @Inject constructor(
             throw IllegalArgumentException("Last name cannot be null or blank")
         }
 
+        appUser.person?.id?.let { personId ->
+            organizationRepository.findByAppUserIdAndPersonId(appUser.id, personId)?.let { org ->
+                serviceActionAuthorizationService.validateUserProfileUpdate(appUser, org)
+            }
+        }
+
         val newFirst = personDto.firstName.trim()
         val newLast = personDto.lastName.trim()
 
@@ -122,6 +132,12 @@ class AppUserService @Inject constructor(
     fun initiateEmailUpdate(email: String?)
     {
         val appUser = authTokenContext.authToken.appUser!!
+
+        appUser.person?.id?.let { personId ->
+            organizationRepository.findByAppUserIdAndPersonId(appUser.id, personId)?.let { org ->
+                serviceActionAuthorizationService.validateUserEmailUpdate(appUser, org)
+            }
+        }
 
         if (email.isNullOrBlank())
         {

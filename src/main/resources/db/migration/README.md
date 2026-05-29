@@ -20,8 +20,8 @@ Examples:
 - `V3__create_audit_event_index.sql`
 
 Other prefixes (rarely needed here):
-- `R__<description>.sql` — **repeatable** migration, re-applied whenever its checksum changes (e.g. views, stored procs).
-- `U<version>__<description>.sql` — undo migration (Flyway Teams only — we don't use these).
+- `R__<description>.sql`,  **repeatable** migration, re-applied whenever its checksum changes (e.g. views, stored procs).
+- `U<version>__<description>.sql`,  undo migration (Flyway Teams only,  we don't use these).
 
 ## Rules
 
@@ -39,7 +39,7 @@ Other prefixes (rarely needed here):
    write a new migration that reverses it.
 
 5. **Hibernate is in `validate` mode** in all profiles. If you add/remove/rename an entity
-   field, you MUST add a migration in the same PR — otherwise the app fails to start.
+   field, you MUST add a migration in the same PR,  otherwise the app fails to start.
 
 ## Regenerating V1 from current entities
 
@@ -58,4 +58,4 @@ mvn quarkus:dev
 ```
 
 After V1 is committed and applied to any real environment, this regeneration shortcut
-no longer applies — write a V2, V3, etc. instead.
+no longer applies,  write a V2, V3, etc. instead.

@@ -215,7 +215,7 @@ class EndpointVerificationFilter @Inject constructor(
             return
         }
 
-        // O(1) Redis check first — covers in-flight revocations between DB writes and cache eviction.
+        // O(1) Redis check first,  covers in-flight revocations between DB writes and cache eviction.
         if (sessionRevocationCache.isRevoked(sessionId))
         {
             logger.warn("Revoked session (Redis) sessionId={} user={}", sessionId, userId)

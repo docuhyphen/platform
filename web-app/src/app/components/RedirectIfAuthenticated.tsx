@@ -10,7 +10,7 @@ import AuthBootstrapSplash from "./AuthBootstrapSplash.tsx";
  * Important nuance: during sign-in, `accessToken` is set BEFORE the AppUser
  * has been fetched. If we redirect on `token` alone, the user briefly lands
  * on `/sharing-sessions` (which renders the MainMenu) before SignIn.tsx
- * navigates them on to `/onboarding/individual` — that's the "menu flash"
+ * navigates them on to `/onboarding/individual`,  that's the "menu flash"
  * bug. So we wait until we know the user's onboarding state before
  * redirecting, and we redirect to the *correct* landing page directly.
  *
@@ -25,7 +25,7 @@ const RedirectIfAuthenticated: React.FC<{ element: React.ReactElement }> = ({ele
 {
     const {token, appUser, isBootstrapping} = useAuth();
 
-    // Cookie-based refresh probe still in flight — don't render the public page
+    // Cookie-based refresh probe still in flight,  don't render the public page
     // yet, or the user will see /sign-in flash for a frame before we redirect.
     if (isBootstrapping)
     {

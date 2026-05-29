@@ -38,7 +38,7 @@ const NewRecipient: React.FC<NewRecipientProps> = (
         lastName: newRecipient?.lastName || ''
     });
 
-    const {appUserPersonOrganization} = useAuth()
+    const {appUser, appUserPersonOrganization} = useAuth()
     const [selectedInternalRecipients, setSelectedInternalParticipants] = useState<AppUserDetailedDto[]>([]);
     const [orgUsers, setOrgUsers] = useState<AppUserDetailedDto[]>([]);
     const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
@@ -183,7 +183,7 @@ const NewRecipient: React.FC<NewRecipientProps> = (
 
             {appUserPersonOrganization && isRecipientDataValid() && (
                 <MyOrgRecipients
-                    orgUsers={orgUsers}
+                    orgUsers={orgUsers.filter(u => u.id !== appUser?.id)}
                     isLoadingUsers={isLoadingUsers}
                     selectedInternalRecipients={selectedInternalRecipients}
                     setSelectedInternalParticipants={setSelectedInternalParticipants}

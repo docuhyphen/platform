@@ -20,10 +20,11 @@ class AdminActionGuardService @Inject constructor(
         action: String,
         actorId: UUID?,
         context: AdminApprovalContext,
+        requireStepUp: Boolean = true,
         requireDualApproval: Boolean = false,
     )
     {
-        if (!context.stepUpAuthenticated)
+        if (requireStepUp && !context.stepUpAuthenticated)
         {
             authAuditService.emit(
                 action = action,

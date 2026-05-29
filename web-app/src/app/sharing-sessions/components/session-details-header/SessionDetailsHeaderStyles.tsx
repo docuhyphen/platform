@@ -28,6 +28,20 @@ export const useSessionDetailsHeaderStyles = makeStyles({
         justifyContent: "space-between"
     },
 
+    headerAnimatedSection: {
+        overflow: "hidden",
+        transition: "max-height 200ms ease, opacity 180ms ease, margin-top 180ms ease",
+        maxHeight: "0px",
+        opacity: 0,
+        marginTop: "0px",
+    },
+
+    headerAnimatedSectionExpanded: {
+        maxHeight: "80px",
+        opacity: 1,
+        marginTop: "4px",
+    },
+
     headerLine1_2: {
         display: "flex",
         flexDirection: "row",

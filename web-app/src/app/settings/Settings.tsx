@@ -78,7 +78,7 @@ const Settings = () =>
                             Your Organization
                         </Tab>
                     }
-                    {appUser?.role == AppUserRole.ORG_ADMIN && <>
+                    {appUser?.role == AppUserRole.ORG_ADMIN && appUserPersonOrganization && <>
 
                         <Tab id="PeopleTab"
                              icon={<SettingsOrganizationPeopleTabIcon/>}
@@ -97,7 +97,7 @@ const Settings = () =>
                          value={tabIds.appSettings}>
                         App Settings
                     </Tab>
-                    {(!appUserPersonOrganization || appUser?.role == AppUserRole.ORG_ADMIN) &&
+                    {appUser?.role == AppUserRole.ORG_ADMIN && appUserPersonOrganization &&
 
                         <Tab id="OrganiationPairingTab"
                              icon={<PairOrgTabIcon/>}

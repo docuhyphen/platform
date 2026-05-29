@@ -6,8 +6,6 @@ import {
     InfoLabel,
     Option,
     OptionOnSelectData,
-    Radio,
-    RadioGroup,
     Spinner
 } from "@fluentui/react-components";
 import {AppUserDetailedDto, OrganizationBasicDto} from "../../../../models/models.tsx";
@@ -59,7 +57,10 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
     const [selectedOrgGroup, setSelectedOrgGroup] = useState<OrganizationGroupBasicDto | null>(null);
     const [selectedOrgUser, setSelectedOrgUser] = useState<AppUserDetailedDto | null>(null);
     const [selectedInternalRecipients, setSelectedInternalParticipants] = useState<AppUserDetailedDto[]>([]);
-    const [shareWith, setShareWith] = useState<ShareWithMode>(ShareWithMode.INDIVIDUAL);
+    // Trusted-org v1: when picking recipients in a paired org, only the org's
+    // explicitly published groups are visible, never individual users. The mode
+    // is therefore locked to GROUP and the Individual radio is hidden.
+    const [shareWith, setShareWith] = useState<ShareWithMode>(ShareWithMode.GROUP);
     const [orgSearchQuery, setOrgSearchQuery] = useState<string>("");
     const [orgIndividualSearchQuery, setOrgIndividualSearchQuery] = useState<string>("");
     const [orgGroupSearchQuery, setOrgGroupSearchQuery] = useState<string>("");
@@ -403,34 +404,6 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
                     {filteredPairedOrgs}
                 </Combobox>
             </Field>
-
-            {selectedOrg && (
-                <Field>
-                    <RadioGroup
-                        layout={"horizontal"}
-                        value={shareWith}
-                        onChange={onShareWithChange}>
-                        <Radio value={ShareWithMode.INDIVIDUAL} label="Individual"/>
-                        <Radio value={ShareWithMode.GROUP} label="Group"/>
-                    </RadioGroup>
-                </Field>
-            )}
-
-            {(selectedOrg && shareWith === ShareWithMode.INDIVIDUAL) && (
-                <Field>
-                    {isLoadingUsers ? (
-                        <Spinner size="tiny" label="Loading users..."/>
-                    ) : (
-                        <Combobox
-                            onOptionSelect={onSelectOrgIndividualOptionItem}
-                            placeholder="Select Individual"
-                            onChange={(ev) => setOrgIndividualSearchQuery(ev.target.value)}
-                            value={orgIndividualSearchQuery}>
-                            {filteredOrgIndividuals}
-                        </Combobox>
-                    )}
-                </Field>
-            )}
 
             {(selectedOrg && shareWith === ShareWithMode.GROUP) && (
                 <Field>

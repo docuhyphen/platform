@@ -8,11 +8,14 @@ import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AppUserRole
 import com.docuhyphen.app.api.model.entity.Person
 import com.docuhyphen.app.api.repository.OrganizationRepository
+import com.docuhyphen.app.api.repository.OrganizationSubscriptionPolicyRepository
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
+import com.docuhyphen.app.api.service.auth.PlatformOrganizationSubscriptionPolicyService
+import com.docuhyphen.app.api.service.auth.PasswordResetService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
@@ -29,11 +32,13 @@ class OrganizationAppUserService @Inject constructor(
     private val appUserService: AppUserService,
     private val authTokenContext: AuthTokenContext,
     private val organizationRepository: OrganizationRepository,
+    private val organizationSubscriptionPolicyRepository: OrganizationSubscriptionPolicyRepository,
     private val adminActionGuardService: AdminActionGuardService,
     private val authAuditService: AuthAuditService,
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
     private val configurationService: ConfigurationService,
+    private val passwordResetService: PasswordResetService,
 )
 {
     companion object
@@ -93,6 +98,8 @@ class OrganizationAppUserService @Inject constructor(
             throw IllegalArgumentException("App user with that email already exists")
         }
 
+        enforceOrganizationUserCap(organization)
+
         val appUserPerson = Person().apply {
             this.firstName = firstName
             this.lastName = lastName
@@ -119,6 +126,16 @@ class OrganizationAppUserService @Inject constructor(
         )
 
         sendOrganizationMemberAddedEmail(appUser, organization.name, role, isNewUser = true)
+
+        // Send the new user an OTP they can use via account recovery to set their password and sign in.
+        try
+        {
+            passwordResetService.initiatePasswordReset(appUser.email)
+        }
+        catch (e: Exception)
+        {
+            logger.warn("Failed to send invite (password setup) email to {}", appUser.email, e)
+        }
 
         return appUser
     }
@@ -353,6 +370,26 @@ class OrganizationAppUserService @Inject constructor(
     private fun appUserSnapshot(appUser: AppUser): String
     {
         return "id=${appUser.id};email=${appUser.email};role=${appUser.role};isActive=${appUser.isActive};firstName=${appUser.person?.firstName};lastName=${appUser.person?.lastName}"
+    }
+
+    private fun enforceOrganizationUserCap(organization: com.docuhyphen.app.api.model.entity.Organization)
+    {
+        val policy = organizationSubscriptionPolicyRepository.findByOrganizationId(organization.id)
+        val tierCode = policy?.tierCode ?: PlatformOrganizationSubscriptionPolicyService.FREE_TIER_CODE
+        val maxUsers = policy?.maxUsers
+            ?: if (tierCode.equals(PlatformOrganizationSubscriptionPolicyService.FREE_TIER_CODE, ignoreCase = true))
+                PlatformOrganizationSubscriptionPolicyService.FREE_TIER_MAX_USERS
+            else null
+        if (maxUsers == null)
+        {
+            return
+        }
+
+        val activeUsers = organization.appUsers.count { it.isActive && it.deprovisionedAt == null }.toLong()
+        if (activeUsers >= maxUsers)
+        {
+            throw IllegalArgumentException("Organization user limit reached")
+        }
     }
 
     private fun actorLabel(): String

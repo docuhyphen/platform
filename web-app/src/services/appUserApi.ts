@@ -107,6 +107,27 @@ export const initiateAppUserEmailUpdate = async (email: string, token: string | 
     }
 };
 
+export const confirmOldAppUserEmailForUpdate = async (verificationCode: string, token: string | null) =>
+{
+    try
+    {
+        const response = await apiClient.post(
+            `/app-user/email/update-confirm-old`,
+            {verificationCode},
+            {
+                headers: {
+                    Authorization: addBearerToHeaderToken(token)
+                }
+            }
+        );
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
 export const completeAppUserEmailUpdate = async (email: string, verificationCode: string, token: string | null) =>
 {
     try

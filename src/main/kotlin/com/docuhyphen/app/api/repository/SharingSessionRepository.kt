@@ -13,7 +13,15 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
 {
     fun userHasSharingSessions(userId: UUID): Boolean {
         val count = entityManager.createQuery(
-            "SELECT COUNT(s) FROM SharingSession s WHERE s.initiator.id = :appUserId AND s.isDeleted = false",
+            """SELECT COUNT(DISTINCT s) FROM SharingSession s
+               LEFT JOIN s.recipient r
+               LEFT JOIN s.recipientGroup rg
+               WHERE (s.initiator.id = :appUserId
+                      OR r.id = :appUserId
+                      OR EXISTS (SELECT m FROM OrganizationGroupMember m WHERE m.organizationGroup.id = rg.id AND m.appUser.id = :appUserId)
+                      OR EXISTS (SELECT sp FROM s.participants sp WHERE sp.appUser.id = :appUserId)
+                      OR EXISTS (SELECT sp FROM s.participants sp JOIN sp.organizationGroup og JOIN og.members m WHERE m.appUser.id = :appUserId))
+               AND s.isDeleted = false""",
             Long::class.java
         ).setParameter("appUserId", userId).singleResult ?: 0
         return count > 0
@@ -198,7 +206,7 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
     fun searchSessions(
         appUserId: UUID,
         query: String?,
-        status: SharingSessionStatus?,
+        statuses: List<SharingSessionStatus>?,
         initiatedBy: Boolean?,
         page: Int,
         size: Int,
@@ -218,6 +226,7 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
                OR EXISTS (SELECT sp FROM s.participants sp WHERE sp.appUser.id = :appUserId)
                OR EXISTS (SELECT sp FROM s.participants sp JOIN sp.organizationGroup og JOIN og.members m WHERE m.appUser.id = :appUserId))
         AND s.isDeleted = false
+        AND NOT (s.status = :initiatedStatus AND EXISTS (SELECT 1 FROM s.participants sp WHERE sp.appUser.id = :appUserId))
     """
         )
 
@@ -236,9 +245,9 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
             )
         }
 
-        if (status != null)
+        if (!statuses.isNullOrEmpty())
         {
-            queryBuilder.append(" AND s.status = :status")
+            queryBuilder.append(" AND s.status IN :statuses")
         }
 
         if (initiatedBy != null)
@@ -266,15 +275,16 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
 
         val jpaQuery = entityManager.createQuery(queryBuilder.toString(), SharingSession::class.java)
         jpaQuery.setParameter("appUserId", appUserId)
+        jpaQuery.setParameter("initiatedStatus", SharingSessionStatus.INITIATED)
 
         if (!query.isNullOrBlank())
         {
             jpaQuery.setParameter("query", "%${query.trim()}%")
         }
 
-        if (status != null)
+        if (!statuses.isNullOrEmpty())
         {
-            jpaQuery.setParameter("status", status)
+            jpaQuery.setParameter("statuses", statuses)
         }
 
         jpaQuery.firstResult = page * size
@@ -292,7 +302,7 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
     fun countSearchResults(
         appUserId: UUID,
         query: String?,
-        status: SharingSessionStatus?,
+        statuses: List<SharingSessionStatus>?,
         initiatedBy: Boolean?
     ): Long
     {
@@ -308,6 +318,7 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
                OR EXISTS (SELECT sp FROM s.participants sp WHERE sp.appUser.id = :appUserId)
                OR EXISTS (SELECT sp FROM s.participants sp JOIN sp.organizationGroup og JOIN og.members m WHERE m.appUser.id = :appUserId))
         AND s.isDeleted = false
+        AND NOT (s.status = :initiatedStatus AND EXISTS (SELECT 1 FROM s.participants sp WHERE sp.appUser.id = :appUserId))
     """
         )
 
@@ -326,9 +337,9 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
             )
         }
 
-        if (status != null)
+        if (!statuses.isNullOrEmpty())
         {
-            queryBuilder.append(" AND s.status = :status")
+            queryBuilder.append(" AND s.status IN :statuses")
         }
 
         if (initiatedBy != null)
@@ -350,15 +361,16 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
 
         val jpaQuery = entityManager.createQuery(queryBuilder.toString(), Long::class.java)
         jpaQuery.setParameter("appUserId", appUserId)
+        jpaQuery.setParameter("initiatedStatus", SharingSessionStatus.INITIATED)
 
         if (!query.isNullOrBlank())
         {
             jpaQuery.setParameter("query", "%${query.trim()}%")
         }
 
-        if (status != null)
+        if (!statuses.isNullOrEmpty())
         {
-            jpaQuery.setParameter("status", status)
+            jpaQuery.setParameter("statuses", statuses)
         }
 
         return jpaQuery.singleResult

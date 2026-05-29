@@ -6,8 +6,11 @@ import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.SignUpEntity
 import com.docuhyphen.app.api.model.entity.SignUpStatus
+import com.docuhyphen.app.api.model.entity.SharingSessionStatus
 import com.docuhyphen.app.api.repository.AppUserRepository
+import com.docuhyphen.app.api.repository.SharingSessionRepository
 import com.docuhyphen.app.api.repository.SignUpRepository
+import com.docuhyphen.app.api.service.UserContactService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
@@ -29,6 +32,8 @@ class SignUpService @Inject constructor(
     private val configurationService: ConfigurationService,
     private val authenticationService: AuthenticationService,
     private val signUpEmailConfirmationTokenService: SignUpEmailConfirmationTokenService,
+    private val userContactService: UserContactService,
+    private val sharingSessionRepository: SharingSessionRepository,
 )
 {
     companion object
@@ -54,7 +59,7 @@ class SignUpService @Inject constructor(
 
         try
         {
-            appUserRepository.findByEmail(sanitized)?.let {
+            appUserRepository.findActiveByEmail(sanitized)?.let {
                 throw AppUserExistsException()
             }
 
@@ -221,7 +226,7 @@ class SignUpService @Inject constructor(
      * Used by the GET introspection endpoint so the frontend can show "verifying
      * user@example.com" before the user submits a password.
      *
-     * Returns null if the token is missing, expired, or malformed — the resource
+     * Returns null if the token is missing, expired, or malformed,  the resource
      * layer maps that to a 404 with a generic error message.
      */
     fun peekEmailFromConfirmationToken(token: String?): String?
@@ -233,7 +238,7 @@ class SignUpService @Inject constructor(
     /**
      * Token-based completion path: the user clicked the verification link in their
      * email. The opaque token both proves the user controls the email address AND
-     * acts as the one-time consent — there's no separate OTP to type. The OTP
+     * acts as the one-time consent,  there's no separate OTP to type. The OTP
      * still exists in the DB as a fallback for the manual-entry flow.
      *
      * Atomic single-use is enforced by Redis GETDEL inside the token service.
@@ -246,7 +251,7 @@ class SignUpService @Inject constructor(
             throw InvalidSignUpConfirmationTokenException()
         }
 
-        // Consume the token atomically — every retry after this point operates on
+        // Consume the token atomically,  every retry after this point operates on
         // the email we just resolved, and the original token can no longer be used.
         val email = signUpEmailConfirmationTokenService.consumeToken(token)
             ?: throw InvalidSignUpConfirmationTokenException().also {
@@ -261,7 +266,7 @@ class SignUpService @Inject constructor(
                     normalizedEmail.maskEmailForLogs())
             }
 
-        // OTP expiry on the entity acts as a secondary safety net — if it's
+        // OTP expiry on the entity acts as a secondary safety net,  if it's
         // already expired, the user needs to request a new email (which will
         // regenerate both OTP and token together).
         if (signUpEntity.otpExpiryTimestamp.isBefore(LocalDateTime.now()))
@@ -274,7 +279,7 @@ class SignUpService @Inject constructor(
     }
 
     /**
-     * Subset of [validateInputs] — we already trust the email since it came out
+     * Subset of [validateInputs],  we already trust the email since it came out
      * of Redis (server-issued, server-stored). We only need to validate the
      * caller-supplied password fields.
      */
@@ -285,7 +290,9 @@ class SignUpService @Inject constructor(
                 logger.warn("Sign up token completion failed: stored email is malformed")
             }
 
-        appUserRepository.findByEmail(normalizedEmail)?.let { throw AppUserExistsException() }
+        // Only block when a non-temporary user already owns this email; temp placeholder
+        // rows are upgraded in place by finalizeSignUp().
+        appUserRepository.findActiveByEmail(normalizedEmail)?.let { throw AppUserExistsException() }
 
         if (password.isNullOrBlank())
         {
@@ -341,7 +348,7 @@ class SignUpService @Inject constructor(
             }
         }
 
-        appUserRepository.findByEmail(normalizedEmail)?.let {
+        appUserRepository.findActiveByEmail(normalizedEmail)?.let {
             throw AppUserExistsException()
         }
 
@@ -469,24 +476,81 @@ class SignUpService @Inject constructor(
         val passwordSalt = authenticationService.generatePasswordSalt()
         val hashedPassword = authenticationService.hashPassword(password, passwordSalt)
 
-        return AppUser().apply {
-            this.email = email
-            this.passwordSalt = passwordSalt
-            this.password = hashedPassword
-            this.emailVerificationComplete = true
-            this.isActive = true
-        }.also {
-            logger.info("Successfully signed up")
-            appUserRepository.save(it)
-
-            val emailBody = emailTemplateService.renderSignUpCompletionEmail(email)
-            emailService.sendEmail(
-                to = email,
-                subject = "${configurationService.emailSubjectTitle} | Account Created Successfully",
-                body = emailBody,
-                useHtml = true
-            )
+        // Temp-user merge: if the no-auth recipient flow previously created a placeholder
+        // AppUser for this email, upgrade it in place. The id is preserved so SharingSession,
+        // SharingSessionParticipant, and other FK references all keep pointing at the same
+        // row, no re-pointing or cascading updates needed.
+        val existingTemp = appUserRepository.findTemporaryByEmail(email)
+        val savedUser = if (existingTemp != null)
+        {
+            existingTemp.apply {
+                this.email = email
+                this.passwordSalt = passwordSalt
+                this.password = hashedPassword
+                this.emailVerificationComplete = true
+                this.isActive = true
+                this.isTemporary = false
+            }.also {
+                appUserRepository.update(it)
+                logger.info("Successfully upgraded temp AppUser on sign-up")
+            }
         }
+        else
+        {
+            AppUser().apply {
+                this.email = email
+                this.passwordSalt = passwordSalt
+                this.password = hashedPassword
+                this.emailVerificationComplete = true
+                this.isActive = true
+            }.also {
+                appUserRepository.save(it)
+                logger.info("Successfully signed up new AppUser")
+            }
+        }
+
+        runCatching { seedContactsAfterSignup(savedUser) }
+            .onFailure { logger.warn("Failed to seed contacts after sign-up for {}", email.maskEmailForLogs(), it) }
+
+        val emailBody = emailTemplateService.renderSignUpCompletionEmail(email)
+        emailService.sendEmail(
+            to = email,
+            subject = "${configurationService.emailSubjectTitle} | Account Created Successfully",
+            body = emailBody,
+            useHtml = true
+        )
+
+        return savedUser
+    }
+
+    /**
+     * After a sign-up completes, whether it was a fresh new user or an upgrade of a temp
+     * placeholder, seed the contact graph for any reciprocity-gated relationships that were
+     * deferred at accept time:
+     *
+     * - Backfill `UserContact.contactAppUserId` for rows that previously stored only the
+     *   email (the initiator's view of this user when this user was still temp).
+     * - For every accepted session where this user was the recipient, write the recipient-side
+     *   contact entry (owner=newUser, contact=session.initiator). The initiator-side was
+     *   already recorded at accept time; this completes the bidirectional pair.
+     *
+     * Failures here must never block the sign-up; the caller wraps this in runCatching.
+     */
+    private fun seedContactsAfterSignup(newUser: AppUser)
+    {
+        val updatedRows = userContactService.backfillContactAppUserIdForEmail(newUser.email, newUser.id)
+        if (updatedRows > 0)
+        {
+            logger.info("Backfilled contactAppUserId on {} rows for new user", updatedRows)
+        }
+
+        val pastSessions = sharingSessionRepository.findByRecipientId(newUser.id)
+        pastSessions
+            .filter { it.status == SharingSessionStatus.ACCEPTED_STARTED || it.status == SharingSessionStatus.ENDED }
+            .forEach { session ->
+                val initiator = session.initiator ?: return@forEach
+                userContactService.recordOneWayFromSignupMerge(newUser, initiator, session.id)
+            }
     }
 
 }

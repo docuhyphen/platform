@@ -65,7 +65,7 @@ const solutions: Record<string, SolutionContent> = {
         blurb: "Request consent forms, ID, and medical records from patients via tracked, encrypted share sessions.",
         screenshotSrc: "/demo-screenshots/app-screenshot-healthcare.JPG",
         useCases: [
-            {title: "Patient intake", body: "Collect consent forms and IDs before the first visit — no clipboards."},
+            {title: "Patient intake", body: "Collect consent forms and IDs before the first visit,  no clipboards."},
             {title: "Referral documents", body: "Share imaging and reports between practitioners with auditable handovers."},
             {title: "Insurance claims", body: "Send claim documents to insurers with delivery confirmation."},
         ],

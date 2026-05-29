@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * Tracks which users are online at process level, derived from open realtime sockets.
  *
  * A user is "online" while ≥1 of their userSessions has an active socket. Tab close on one
- * device must not turn them offline if another tab is still connected — hence the refcount.
+ * device must not turn them offline if another tab is still connected,  hence the refcount.
  *
  * Multi-node note: this is in-process. For multi-node presence we'd back this with Redis
  * (HSET `presence:{userId}` socketId 1; `EXPIRE` per heartbeat; pub/sub for fan-out). Kept

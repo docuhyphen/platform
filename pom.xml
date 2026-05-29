@@ -16,7 +16,9 @@
         <quarkus.platform.version>3.17.5</quarkus.platform.version>
         <skipITs>true</skipITs>
         <surefire-plugin.version>3.5.0</surefire-plugin.version>
-        <quarkus.package.type>mutable-jar</quarkus.package.type>
+         <!-- fast-jar: production package type (optimised startup, layered structure).    -->
+        <!-- mutable-jar was for Quarkus dev-mode hot reload only – do not use in prod. -->
+        <quarkus.package.type>fast-jar</quarkus.package.type>
     </properties>
     <dependencyManagement>
         <dependencies>

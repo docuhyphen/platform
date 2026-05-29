@@ -4,7 +4,8 @@ import {
     AccordionItem,
     AccordionPanel,
     Button,
-    Switch,
+    Radio,
+    RadioGroup,
     Text,
     Title1,
     Title3,
@@ -34,7 +35,7 @@ const tiers = [
         annual: 0,
         currency: "R",
         blurb: "For small teams getting started with secure document exchange.",
-        bullets: ["Up to 5 users", "Secure share sessions", "Basic audit log", "Email support"],
+        bullets: ["Up to 3 users", "Secure share sessions", "Basic audit log", "Email support"],
         ctaLabel: "Start free",
         ctaHref: SIGN_UP_URL,
         featured: false,
@@ -42,15 +43,16 @@ const tiers = [
     {
         name: "Business",
         monthly: 180,
-        annual: 249,
+        annual: 144,
         currency: "R",
-        blurb: "For growing teams that need controls, SSO, and integrations.",
+        blurb: "For growing teams that need controls, SSO, and integrations. Save 20% with annual billing.",
         bullets: [
             "Unlimited share sessions",
             "Microsoft & Google SSO",
             "Role-based permissions",
             "Full audit & export",
             "Priority support",
+            "WhatsApp App integration",
         ],
         ctaLabel: "Start trial",
         ctaHref: SIGN_UP_URL,
@@ -68,6 +70,10 @@ const tiers = [
             "Tenant isolation review",
             "Dedicated CSM",
             "Custom data residency",
+            "Full Integration Assistance/Support",
+            "FTP / Google Drive / One Drive Backup",
+            "Microsoft Teams App integration",
+            "Slack App integration",
         ],
         ctaLabel: "Talk to sales",
         ctaHref: null,
@@ -83,7 +89,7 @@ type CompareRow = {
 };
 
 const compareRows: CompareRow[] = [
-    {feature: "Users", starter: "Up to 5", business: "Unlimited", enterprise: "Unlimited"},
+    {feature: "Users", starter: "Up to 3", business: "Unlimited", enterprise: "Unlimited"},
     {feature: "Secure share sessions", starter: true, business: true, enterprise: true},
     {feature: "Microsoft & Google SSO", starter: false, business: true, enterprise: true},
     {feature: "Role-based permissions", starter: false, business: true, enterprise: true},
@@ -93,12 +99,17 @@ const compareRows: CompareRow[] = [
     {feature: "Data Processing Agreement", starter: false, business: true, enterprise: true},
     {feature: "Custom data residency", starter: false, business: false, enterprise: true},
     {feature: "Dedicated customer success", starter: false, business: false, enterprise: true},
+    {feature: "WhatsApp App integration", starter: false, business: true, enterprise: true},
+    {feature: "Full Integration Assistance/Support", starter: false, business: false, enterprise: true},
+    {feature: "FTP / Google Drive / One Drive Backup", starter: false, business: false, enterprise: true},
+    {feature: "Microsoft Teams App integration", starter: false, business: false, enterprise: true},
+    {feature: "Slack App integration", starter: false, business: false, enterprise: true},
 ];
 
 const faqs = [
     {
         q: "Is there really a free tier?",
-        a: "Yes. The Starter plan is free forever for up to 5 users so small teams can use DocuHyphen without commitment.",
+        a: "Yes. The Starter plan is free forever for up to 3 users so small teams can use DocuHyphen without commitment.",
     },
     {
         q: "Can I switch plans later?",
@@ -294,14 +305,17 @@ export function PricingPage()
                 <Text size={500} className={styles.heroSubtitle} align={"center"}>
                     Start free. Scale with controls when your team needs them. Talk to us for enterprise compliance.
                 </Text>
-                {/*<div className={styles.toggleRow}>*/}
-                {/*    <Text weight={annual ? "regular" : "semibold"}>Monthly</Text>*/}
-                {/*    <div>*/}
-                {/*        <Switch checked={annual} onChange={(_, d) => setAnnual(d.checked)}/>*/}
-                {/*    </div>*/}
-                {/*    <Text weight={annual ? "semibold" : "regular"}>Annual</Text>*/}
-                {/*    <span className={styles.savePill}>Save ~17%</span>*/}
-                {/*</div>*/}
+                <div className={styles.toggleRow}>
+                    <RadioGroup
+                        layout="horizontal"
+                        value={annual ? "annual" : "monthly"}
+                        onChange={(_, data) => setAnnual(data.value === "annual")}
+                    >
+                        <Radio value="monthly" label="Monthly"/>
+                        <Radio value="annual" label="Annual"/>
+                    </RadioGroup>
+                    <span className={styles.savePill}>Save 20%</span>
+                </div>
             </section>
 
             <div className={styles.tierGrid}>

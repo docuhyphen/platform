@@ -1,0 +1,40 @@
+<#assign emailTitle = (appName!'DocuHyphen') + " - Sharing Session Ended">
+<#include "email-header.ftl">
+
+<#if audience == "INITIATOR">
+<p style="margin:0 0 14px 0;"><strong>Your sharing session has been ended and moved to archive.</strong></p>
+<#else>
+<p style="margin:0 0 14px 0;"><strong>This sharing session has been ended and moved to archive.</strong></p>
+</#if>
+
+<table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin:0 0 14px 0; border:1px solid #dddddd; background-color:#f0f2f5;">
+    <tr>
+        <td style="padding:12px 20px;">
+            <p style="margin:0 0 6px 0;"><strong>Session:</strong> ${sessionName}</p>
+            <p style="margin:0 0 6px 0;"><strong>Status:</strong> ${statusText}</p>
+            <p style="margin:0 0 6px 0;"><strong>Session ID:</strong> ${sessionId}</p>
+            <p style="margin:0 0 6px 0;"><strong>Initiator:</strong> ${initiatorEmail}</p>
+            <p style="margin:0 0 6px 0;"><strong>Recipient:</strong> ${recipientEmail}</p>
+            <#if documents?has_content>
+            <p style="margin:0 0 6px 0;"><strong>Documents:</strong></p>
+            <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                <#list documents as doc>
+                <tr>
+                    <td style="padding:2px 0; color:#555555;">- ${doc}</td>
+                </tr>
+                </#list>
+            </table>
+            <#else>
+            <p style="margin:0 0 6px 0;"><strong>Documents:</strong> No documents listed.</p>
+            </#if>
+            <p style="margin:6px 0 0 0;"><strong>Last activity:</strong> ${lastActivity}</p>
+            <p style="margin:6px 0 0 0;"><strong>Ended at:</strong> ${endedAt!'Not available'}</p>
+        </td>
+    </tr>
+</table>
+
+<p style="margin:0 0 14px 0;">Further document updates are no longer available for this session.</p>
+<p style="margin:0 0 14px 0;">Open session: <a href="${sessionLink}" style="color:#1f73b7;">${sessionLink}</a></p>
+
+<#include "email-footer.ftl">
+

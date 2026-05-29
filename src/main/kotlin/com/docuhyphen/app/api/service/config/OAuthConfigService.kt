@@ -20,7 +20,7 @@ class OAuthConfigService @Inject constructor(
     // Optional<String>: SmallRye Config 3.x converts "" → null via BuiltInConverter and
     // rejects null injection into a plain String parameter (Kotlin nullable annotations
     // are invisible to SmallRye). Optional<String> is the MicroProfile-blessed way to
-    // declare an optional config value — empty/missing both become Optional.empty().
+    // declare an optional config value,  empty/missing both become Optional.empty().
     // Getters below coerce to "" so all 42 downstream callers continue to see non-null Strings.
     @ConfigProperty(name = "app.oauth.microsoft.client-id")
     private val microsoftOAuthClientId: Optional<String>,

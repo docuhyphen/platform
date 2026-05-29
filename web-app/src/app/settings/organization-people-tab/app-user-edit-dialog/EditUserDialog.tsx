@@ -61,9 +61,23 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
         }
     }, [user]);
 
+    const extractErrorMessage = (e: any): string =>
+    {
+        if (typeof e === "string") return e;
+        const msg = e?.errorMessage || e?.message || e?.response?.data?.errorMessage || e?.response?.data?.message;
+        if (msg) return msg;
+        return "Something went wrong. Please try again in a moment.";
+    }
+
     const handleSave = async () =>
     {
         if (!organizationId || !user?.id) return;
+
+        if (!firstName.trim() || !lastName.trim())
+        {
+            setError("First name and last name are required.");
+            return;
+        }
 
         setSavingData(true);
         setError(null);
@@ -77,8 +91,8 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
                     role,
                     isActive,
                     person: {
-                        firstName,
-                        lastName
+                        firstName: firstName.trim(),
+                        lastName: lastName.trim()
                     }
                 },
                 token || undefined
@@ -88,7 +102,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
         }
         catch (err: any)
         {
-            setError(err.message || "Failed to update user");
+            setError(extractErrorMessage(err));
             console.error("Failed to update user:", err);
         }
         finally
@@ -122,13 +136,15 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Edit User</DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
-                        {error && <div style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
+                        <div className={styles.errorContainer}>{error || " "}</div>
 
                         <Field label="First Name" required>
                             <Input
                                 type="text"
                                 value={firstName}
+                                maxLength={50}
                                 onChange={(e) => setFirstName(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
                             />
                         </Field>
 
@@ -136,7 +152,9 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
                             <Input
                                 type="text"
                                 value={lastName}
+                                maxLength={50}
                                 onChange={(e) => setLastName(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
                             />
                         </Field>
 
@@ -170,7 +188,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
                         className={globStyles.buttonWithLoading}
                     >
                         {savingData && <Spinner size="tiny"/>}
-                        Update User
+                        {savingData ? "Updating…" : "Update User"}
                     </Button>
                     <DialogTrigger disableButtonEnhancement>
                         <Button

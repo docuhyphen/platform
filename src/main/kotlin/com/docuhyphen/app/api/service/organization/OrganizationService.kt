@@ -171,8 +171,18 @@ class OrganizationService @Inject constructor(
         }
 
         val currentAppUser = authTokenContext.authToken.appUser
+            ?: throw OrganizationNotFoundException("Caller must be authenticated")
+        val currentOrg = organizationRepository.findByAppUserIdAndPersonId(
+            currentAppUser.id, currentAppUser.person?.id!!,
+        ) ?: throw OrganizationNotFoundException("Caller has no organization")
 
-        return organizationGroupService.getOrganizationGroups(organizationId)
+        // v1 trusted-org visibility: never enumerate users; expose only the paired org's
+        // explicitly published groups. Pairing must be ACCEPTED. See OrganizationGroupService
+        // for the link check.
+        return organizationGroupService.getPublishedGroupsForPairedOrganization(
+            currentOrg.id.toString(),
+            organizationId,
+        )
     }
 
     private fun sendOrganizationUpdateEmail(organization: Organization, updatedFields: List<String>)

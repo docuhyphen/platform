@@ -35,7 +35,7 @@
   </defs>
 
   <!-- Title -->
-  <text x="750" y="40" class="title" text-anchor="middle">DocuHyphen Authentication System — High-Level Flow</text>
+  <text x="750" y="40" class="title" text-anchor="middle">DocuHyphen Authentication System,  High-Level Flow</text>
   <text x="750" y="62" class="small" text-anchor="middle">Platform is the sole session authority. IdP tokens never reach the browser. All paths emit immutable audit + WORM mirror.</text>
 
   <!-- ============================== 1. ENTRY & DISCOVERY ============================== -->
@@ -91,7 +91,7 @@
   <!-- LEFT: OAuth -->
   <g>
     <rect x="80" y="460" width="320" height="120" rx="8" class="box"/>
-    <text x="240" y="481" text-anchor="middle" class="box-title">External OAuth — Authorize</text>
+    <text x="240" y="481" text-anchor="middle" class="box-title">External OAuth,  Authorize</text>
     <text x="240" y="500" text-anchor="middle" class="small">GET /auth/oauth/{provider}/authorize</text>
     <text x="240" y="516" text-anchor="middle" class="small">· signed state JWT (Redis-stored nonce)</text>
     <text x="240" y="530" text-anchor="middle" class="small">· PKCE: code_challenge=S256(code_verifier)</text>
@@ -117,7 +117,7 @@
   <!-- RIGHT: Internal -->
   <g>
     <rect x="700" y="460" width="320" height="120" rx="8" class="box"/>
-    <text x="860" y="481" text-anchor="middle" class="box-title">Internal Sign-In — Initiate</text>
+    <text x="860" y="481" text-anchor="middle" class="box-title">Internal Sign-In,  Initiate</text>
     <text x="860" y="500" text-anchor="middle" class="small">POST /auth/sign-in/initiate {email, password}</text>
     <text x="860" y="516" text-anchor="middle" class="small">· BCrypt validate</text>
     <text x="860" y="530" text-anchor="middle" class="small">· issue MFA session (OTP via email/SMS)</text>
@@ -127,7 +127,7 @@
 
   <g>
     <rect x="700" y="610" width="320" height="170" rx="8" class="box"/>
-    <text x="860" y="631" text-anchor="middle" class="box-title">Internal Sign-In — Completion</text>
+    <text x="860" y="631" text-anchor="middle" class="box-title">Internal Sign-In,  Completion</text>
     <text x="860" y="650" text-anchor="middle" class="small">POST /auth/sign-in/completion {email, otp, sid}</text>
     <text x="860" y="668" text-anchor="middle" class="small">· verify OTP (TTL bounded, replay-safe)</text>
     <text x="860" y="682" text-anchor="middle" class="small">· max OTP attempts → deny + audit</text>
@@ -153,7 +153,7 @@
     <text x="600" y="903" text-anchor="middle" class="small">Create UserSession (UUID, deviceCtx, lastAuthTime=now, expiresAt by policy)</text>
     <text x="600" y="919" text-anchor="middle" class="small">Mint access token: { sub, sessionId, auth_time, [cnf.jkt if DPoP] }, signed JWT, short TTL</text>
     <text x="600" y="935" text-anchor="middle" class="small">Mint id token (claims for the client)</text>
-    <text x="600" y="951" text-anchor="middle" class="small">Mint refresh token: opaque "{jti}.{secret}" — 80B, hash stored Redis-side</text>
+    <text x="600" y="951" text-anchor="middle" class="small">Mint refresh token: opaque "{jti}.{secret}",  80B, hash stored Redis-side</text>
     <text x="600" y="967" text-anchor="middle" class="small">Persist refresh record in Redis: { userId, jti, familyId, sessionId, tokenHash, status=ACTIVE }</text>
     <text x="600" y="983" text-anchor="middle" class="small">Mint CSRF token, build cookies: refresh = HttpOnly + Secure + SameSite=Strict + path=/auth/token</text>
     <text x="600" y="999" text-anchor="middle" class="small">Return access + id tokens in body; refresh + csrf in cookies</text>
@@ -163,7 +163,7 @@
   <line x1="860" y1="780" x2="750" y2="860" class="flow-edge-success" marker-end="url(#arrow-green)"/>
 
   <!-- ============================== 4. AUTHENTICATED REQUEST ============================== -->
-  <text x="60" y="1080" class="section">4 · Authenticated Request — runs on every protected endpoint</text>
+  <text x="60" y="1080" class="section">4 · Authenticated Request,  runs on every protected endpoint</text>
 
   <g>
     <rect x="80" y="1110" width="700" height="240" rx="8" class="box"/>
@@ -173,9 +173,9 @@
     <text x="430" y="1185" text-anchor="middle" class="small">3. Token type must be ACCESS (no refresh / link / app tokens here)</text>
     <text x="430" y="1201" text-anchor="middle" class="small">4. Look up AppUser; require isActive=true and deprovisionedAt=null</text>
     <text x="430" y="1217" text-anchor="middle" class="small">5. Validate org membership (active org, active role)</text>
-    <text x="430" y="1233" text-anchor="middle" class="small">6. SessionRevocationCache.isRevoked(sessionId)? — O(1) Redis EXISTS check</text>
-    <text x="430" y="1249" text-anchor="middle" class="small">7. userSessionService.isActiveSession(sessionId, userId)? — DB confirms not expired</text>
-    <text x="430" y="1265" text-anchor="middle" class="small">8. userSessionService.touchSession(sessionId) — update lastSeenAt</text>
+    <text x="430" y="1233" text-anchor="middle" class="small">6. SessionRevocationCache.isRevoked(sessionId)?,  O(1) Redis EXISTS check</text>
+    <text x="430" y="1249" text-anchor="middle" class="small">7. userSessionService.isActiveSession(sessionId, userId)?,  DB confirms not expired</text>
+    <text x="430" y="1265" text-anchor="middle" class="small">8. userSessionService.touchSession(sessionId),  update lastSeenAt</text>
     <text x="430" y="1281" text-anchor="middle" class="small">9. If app.auth.dpop.enabled &amp; token has cnf.jkt: verify DPoP proof JWS</text>
     <text x="430" y="1297" text-anchor="middle" class="small">    · htm + htu + iat + jti (replay-protected in Redis)</text>
     <text x="430" y="1311" text-anchor="middle" class="small">    · ES256 signature verified with embedded JWK; thumbprint must equal cnf.jkt</text>
@@ -211,7 +211,7 @@
   <text x="1110" y="1295" class="small" fill="#c62828">fail</text>
 
   <!-- ============================== 5. REFRESH CYCLE ============================== -->
-  <text x="60" y="1410" class="section">5 · Refresh Cycle — proactive, every ~80 % of access TTL or on 401</text>
+  <text x="60" y="1410" class="section">5 · Refresh Cycle,  proactive, every ~80 % of access TTL or on 401</text>
 
   <g>
     <rect x="80" y="1440" width="320" height="190" rx="8" class="box"/>
@@ -221,7 +221,7 @@
     <text x="240" y="1508" text-anchor="middle" class="small">· Origin (and Referer fallback) check</text>
     <text x="240" y="1522" text-anchor="middle" class="small">Frontend AuthContext schedules at 80 % TTL</text>
     <text x="240" y="1538" text-anchor="middle" class="small">DPoP proof attached if enabled</text>
-    <text x="240" y="1560" text-anchor="middle" class="annotation">Proactive — never wait for expiry/401</text>
+    <text x="240" y="1560" text-anchor="middle" class="annotation">Proactive,  never wait for expiry/401</text>
     <text x="240" y="1574" text-anchor="middle" class="small">apiClient interceptor handles 401 fallback</text>
     <text x="240" y="1592" text-anchor="middle" class="small">on refresh fail → auth-session-expired event</text>
     <text x="240" y="1608" text-anchor="middle" class="small">→ navigate /app-session-expired?reason=...</text>
@@ -263,7 +263,7 @@
   <text x="1080" y="1690" class="annotation" fill="#c62828">reuse / risk / deprovision → revoke family + session, audit, 401</text>
 
   <!-- ============================== 6. TERMINATION ============================== -->
-  <text x="60" y="1780" class="section">6 · Termination — user-driven, admin-driven, or SCIM-driven</text>
+  <text x="60" y="1780" class="section">6 · Termination,  user-driven, admin-driven, or SCIM-driven</text>
 
   <g>
     <rect x="60" y="1810" width="320" height="170" rx="8" class="box-deny"/>
@@ -275,7 +275,7 @@
     <text x="220" y="1914" text-anchor="middle" class="small">Delete refresh family from Redis</text>
     <text x="220" y="1930" text-anchor="middle" class="small">Clear refresh + csrf cookies (max-age=0)</text>
     <text x="220" y="1946" text-anchor="middle" class="small">Audit SIGN_OUT (DB + WORM)</text>
-    <text x="220" y="1964" text-anchor="middle" class="annotation">IdP sign-out not equivalent — platform is sole authority</text>
+    <text x="220" y="1964" text-anchor="middle" class="annotation">IdP sign-out not equivalent,  platform is sole authority</text>
   </g>
 
   <g>

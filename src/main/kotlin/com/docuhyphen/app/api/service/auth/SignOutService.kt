@@ -79,7 +79,7 @@ class SignOutService @Inject constructor(
     }
 
     /**
-     * Context-free sign-out used by flows that have no [AuthTokenContext] — e.g. password reset,
+     * Context-free sign-out used by flows that have no [AuthTokenContext],  e.g. password reset,
      * admin-driven revocation. Revokes all sessions for [appUserId] and pushes SESSION_REVOKED
      * to every open socket.
      */

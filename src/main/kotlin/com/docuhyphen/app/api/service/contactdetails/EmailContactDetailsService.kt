@@ -41,14 +41,9 @@ class EmailContactDetailsService @Inject constructor(
         val contactDetails = contactDetailsRepo.findById(UUID.fromString(contactDetailsId))
             ?: throw IllegalArgumentException("Contact details not found for ID: $contactDetailsId")
 
-        if (!contactDetails.email.isNullOrBlank())
+        if (!contactDetails.email.isNullOrBlank() && contactDetails.isEmailVerified == true)
         {
             throw IllegalArgumentException("Contact already has an email. Use update instead of add.")
-        }
-
-        if (contactDetails.email == email)
-        {
-            throw IllegalArgumentException("Email is already associated with the contact details")
         }
 
         val duplicateContactDetails = contactDetailsRepo.findByEmail(email)
@@ -60,7 +55,8 @@ class EmailContactDetailsService @Inject constructor(
 
         val verificationCode = otpService.generateEmailOtp()
 
-        contactDetails.email = email
+        // Track pending email separately so a cancelled initiation does not block a retry.
+        contactDetails.pendingEmail = email
         contactDetails.emailVerificationCode = verificationCode
         contactDetails.isEmailVerified = false
 
@@ -100,7 +96,7 @@ class EmailContactDetailsService @Inject constructor(
         val contactDetails = contactDetailsRepo.findById(UUID.fromString(contactDetailsId))
             ?: throw IllegalArgumentException("Contact details not found for ID: $contactDetailsId")
 
-        if (contactDetails.email != email)
+        if (contactDetails.pendingEmail != email)
         {
             throw IllegalArgumentException("Email does not match the contact details")
         }
@@ -110,6 +106,8 @@ class EmailContactDetailsService @Inject constructor(
             throw IllegalArgumentException("Invalid verification code")
         }
 
+        contactDetails.email = email
+        contactDetails.pendingEmail = null
         contactDetails.emailVerificationCode = null
         contactDetails.isEmailVerified = true
         contactDetailsRepo.update(contactDetails)

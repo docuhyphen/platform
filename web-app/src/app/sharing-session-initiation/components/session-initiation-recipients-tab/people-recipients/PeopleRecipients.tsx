@@ -1,0 +1,285 @@
+import React, {useEffect, useRef, useState} from 'react';
+import {
+    Badge,
+    Button,
+    Combobox,
+    ComboboxProps,
+    Field,
+    InfoLabel,
+    Option,
+    OptionOnSelectData,
+    Spinner,
+    Text
+} from "@fluentui/react-components";
+import {AppUserDetailedDto} from "../../../../models/models.tsx";
+import {fetchRecentContacts, searchContacts, UserContactDto} from "../../../../../services/personalContactsApi";
+import {SharingSessionNewMainRecipient} from "../new-recipient/NewRecipient";
+import NewRecipient from "../new-recipient/NewRecipient";
+
+interface PeopleRecipientsProps
+{
+    isRequestingDocuments: boolean | null | undefined;
+    recipientOrgUser: AppUserDetailedDto | undefined;
+    setRecipientOrgUser: (user: AppUserDetailedDto | undefined) => void;
+    newRecipient: SharingSessionNewMainRecipient | undefined;
+    setNewRecipient: (recipient: SharingSessionNewMainRecipient) => void;
+    internalParticipants: AppUserDetailedDto[] | undefined;
+    setInternalParticipants?: (users: AppUserDetailedDto[]) => void;
+}
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SEARCH_DEBOUNCE_MS = 250;
+const MIN_QUERY_LENGTH = 2;
+
+const formatDisplayName = (c: UserContactDto): string =>
+{
+    const name = [c.firstName, c.lastName].filter(Boolean).join(' ').trim();
+    return name.length > 0 ? `${name} (${c.email})` : c.email;
+};
+
+/**
+ * Personal-contacts-based recipient picker. Surfaces:
+ *   - Recent contacts as quick-pick chips (top).
+ *   - Debounced typeahead against /me/contacts (middle).
+ *   - "Send to {email} as a new recipient" fallback (bottom), renders the existing
+ *     NewRecipient form so the initiator can supply first/last name for the no-auth
+ *     email flow.
+ *
+ * Selection semantics:
+ *   - Picking a contact with contactAppUserId != null sets recipientOrgUser, which the
+ *     parent maps to recipientType=APP_USER on submit.
+ *   - Picking a contact with contactAppUserId == null (the other party hasn't signed up
+ *     yet, but a prior session was accepted) OR a fresh email pre-fills newRecipient and
+ *     leaves recipientOrgUser undefined, so the parent maps to recipientType=EMAIL.
+ */
+const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
+    {
+        isRequestingDocuments,
+        recipientOrgUser,
+        setRecipientOrgUser,
+        newRecipient,
+        setNewRecipient,
+        internalParticipants,
+        setInternalParticipants,
+    }) =>
+{
+    const [query, setQuery] = useState<string>('');
+    const [recents, setRecents] = useState<UserContactDto[]>([]);
+    const [results, setResults] = useState<UserContactDto[]>([]);
+    const [isSearching, setIsSearching] = useState<boolean>(false);
+    const [isLoadingRecents, setIsLoadingRecents] = useState<boolean>(false);
+    const [showEmailFallback, setShowEmailFallback] = useState<boolean>(false);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() =>
+    {
+        let cancelled = false;
+        (async () =>
+        {
+            setIsLoadingRecents(true);
+            try
+            {
+                const data = await fetchRecentContacts(6);
+                if (!cancelled) setRecents(data ?? []);
+            }
+            catch (err)
+            {
+                console.error("Failed to load recent contacts:", err);
+            }
+            finally
+            {
+                if (!cancelled) setIsLoadingRecents(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, []);
+
+    useEffect(() =>
+    {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        const trimmed = query.trim();
+        if (trimmed.length < MIN_QUERY_LENGTH)
+        {
+            setResults([]);
+            setIsSearching(false);
+            return;
+        }
+        setIsSearching(true);
+        debounceRef.current = setTimeout(async () =>
+        {
+            try
+            {
+                const data = await searchContacts(trimmed, 10);
+                setResults(data ?? []);
+            }
+            catch (err)
+            {
+                console.error("Failed to search contacts:", err);
+                setResults([]);
+            }
+            finally
+            {
+                setIsSearching(false);
+            }
+        }, SEARCH_DEBOUNCE_MS);
+
+        return () =>
+        {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
+    }, [query]);
+
+    const selectContact = (contact: UserContactDto) =>
+    {
+        setShowEmailFallback(false);
+        if (contact.contactAppUserId)
+        {
+            // Existing real user, set recipientOrgUser (recipientType=APP_USER on submit).
+            const fauxAppUser = {
+                id: contact.contactAppUserId,
+                email: contact.email,
+                person: {
+                    firstName: contact.firstName ?? '',
+                    lastName: contact.lastName ?? '',
+                },
+            } as unknown as AppUserDetailedDto;
+            setRecipientOrgUser(fauxAppUser);
+            setNewRecipient({email: '', firstName: '', lastName: ''});
+            setQuery(formatDisplayName(contact));
+        }
+        else
+        {
+            // Contact has no real account yet, use email path. Pre-fill names from the
+            // contact entry so the initiator doesn't have to retype.
+            setRecipientOrgUser(undefined);
+            setNewRecipient({
+                email: contact.email,
+                firstName: contact.firstName ?? '',
+                lastName: contact.lastName ?? '',
+            });
+            setQuery(formatDisplayName(contact));
+        }
+    };
+
+    const startEmailFallback = (typedEmail: string) =>
+    {
+        setRecipientOrgUser(undefined);
+        setNewRecipient({email: typedEmail, firstName: '', lastName: ''});
+        setShowEmailFallback(true);
+    };
+
+    const onComboboxChange = (ev: React.ChangeEvent<HTMLInputElement>) =>
+    {
+        const value = ev.target.value;
+        setQuery(value);
+        if (value.length === 0)
+        {
+            setRecipientOrgUser(undefined);
+            setShowEmailFallback(false);
+        }
+    };
+
+    const onComboboxSelect: ComboboxProps["onOptionSelect"] = (_, data: OptionOnSelectData) =>
+    {
+        if (!data.optionValue) return;
+        if (data.optionValue === '__send_as_new__')
+        {
+            startEmailFallback(query.trim().toLowerCase());
+            return;
+        }
+        const match = results.find(r => r.email === data.optionValue) ??
+            recents.find(r => r.email === data.optionValue);
+        if (match)
+        {
+            selectContact(match);
+        }
+    };
+
+    const trimmedQuery = query.trim();
+    const hasExactEmailMatch = results.some(r => r.email.toLowerCase() === trimmedQuery.toLowerCase());
+    const queryLooksLikeEmail = EMAIL_PATTERN.test(trimmedQuery);
+
+    const renderRecents = () =>
+    {
+        if (isLoadingRecents)
+        {
+            return <Spinner size="tiny" label="Loading recent contacts..."/>;
+        }
+        if (recents.length === 0)
+        {
+            return (
+                <Text size={200} italic>
+                    No recent contacts yet. People will appear here once you've accepted shares with them.
+                </Text>
+            );
+        }
+        return (
+            <div style={{display: 'flex', flexWrap: 'wrap', gap: '8px'}}>
+                {recents.map(c => (
+                    <Button key={c.email}
+                            size="small"
+                            shape="circular"
+                            appearance={recipientOrgUser?.email === c.email || newRecipient?.email === c.email ? 'primary' : 'outline'}
+                            onClick={() => selectContact(c)}>
+                        {[c.firstName, c.lastName].filter(Boolean).join(' ') || c.email}
+                    </Button>
+                ))}
+            </div>
+        );
+    };
+
+    return (
+        <>
+            <Field label={<InfoLabel info="People you've previously shared with and who have accepted.">Recent</InfoLabel>}>
+                {renderRecents()}
+            </Field>
+
+            <Field label="Find a person or type an email">
+                <Combobox
+                    placeholder="Type a name or email"
+                    value={query}
+                    onChange={onComboboxChange}
+                    onOptionSelect={onComboboxSelect}
+                    freeform>
+                    {isSearching && (
+                        <Option key="__loading__" text="" value="__loading__" disabled>
+                            Searching...
+                        </Option>
+                    )}
+                    {!isSearching && results.map(r => (
+                        <Option key={r.email}
+                                text={formatDisplayName(r)}
+                                value={r.email}>
+                            <span>
+                                {formatDisplayName(r)}
+                                {r.shareCount > 1 &&
+                                    <Badge size="small" appearance="tint" style={{marginLeft: 8}}>
+                                        {r.shareCount} shares
+                                    </Badge>}
+                            </span>
+                        </Option>
+                    ))}
+                    {!isSearching && queryLooksLikeEmail && !hasExactEmailMatch && (
+                        <Option key="__send_as_new__"
+                                text={`Send to ${trimmedQuery} as a new recipient`}
+                                value="__send_as_new__">
+                            Send to <strong>{trimmedQuery}</strong> as a new recipient
+                        </Option>
+                    )}
+                </Combobox>
+            </Field>
+
+            {showEmailFallback && (
+                <NewRecipient
+                    isRequestingDocuments={isRequestingDocuments}
+                    setNewRecipient={setNewRecipient}
+                    newRecipient={newRecipient}
+                    internalParticipants={internalParticipants}
+                    setInternalParticipants={setInternalParticipants}
+                />
+            )}
+        </>
+    );
+};
+
+export default PeopleRecipients;

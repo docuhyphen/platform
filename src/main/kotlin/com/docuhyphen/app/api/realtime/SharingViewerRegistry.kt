@@ -7,7 +7,7 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Active viewers of a sharing session — distinct from subscribers in [RealtimeSessionRegistry]
+ * Active viewers of a sharing session,  distinct from subscribers in [RealtimeSessionRegistry]
  * because one user with two tabs counts as one viewer for UI display, but as two subscribers
  * for fan-out.
  */

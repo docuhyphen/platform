@@ -99,5 +99,14 @@ class SharingSession
     @Column(name = "is_deleted", nullable = false)
     var isDeleted: Boolean = false
 
+    // OTP issued to a no-auth recipient when they accept/reject the session.
+    // Stored hashed (bcrypt) with an expiry; never returned to the client.
+    @Column(name = "recipient_otp_hash", nullable = true)
+    var recipientOtpHash: String? = null
+
+    @Column(name = "recipient_otp_expiry", nullable = true)
+    @Serializable(with = TimestampSerializer::class)
+    var recipientOtpExpiry: Timestamp? = null
+
     constructor()
 }

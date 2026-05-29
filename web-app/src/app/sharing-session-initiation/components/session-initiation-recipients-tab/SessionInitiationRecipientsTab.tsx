@@ -5,11 +5,13 @@ import {AppUserDetailedDto, OrganizationBasicDto} from "../../../models/models.t
 import {OrganizationGroupBasicDto} from "../../../../services/organizationApi";
 import MyOrganizationRecipients from "./my-organization-recipients/MyOrganizationRecipients";
 import ExternalOrganizationRecipients from "./external-organization-recipients/ExternalOrganizationRecipients";
-import NewRecipient, {SharingSessionNewMainRecipient} from "./new-recipient/NewRecipient";
+import {SharingSessionNewMainRecipient} from "./new-recipient/NewRecipient";
+import PeopleRecipients from "./people-recipients/PeopleRecipients";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 
 export enum SharingSessionInitiationRecipientMode
 {
+    PEOPLE = "PEOPLE",
     MY_ORG = "MY_ORG",
     EXTERNAL_ORG = "EXTERNAL_ORG",
     EMAIL = "EMAIL"
@@ -64,8 +66,8 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
             console.log("appUserPersonOrganization is undefined");
             if (props.recipientMode)
             {
-                console.log("Setting recipient mode to USE_EMAIL due to undefined appUserPersonOrganization");
-                props.setRecipientMode(SharingSessionInitiationRecipientMode.EMAIL);
+                console.log("Setting recipient mode to PEOPLE due to undefined appUserPersonOrganization");
+                props.setRecipientMode(SharingSessionInitiationRecipientMode.PEOPLE);
             }
         }
 
@@ -79,10 +81,11 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
                         layout={"horizontal"}
                         value={props.recipientMode}
                         onChange={onRecipientModeChange}>
+                        <Radio value={SharingSessionInitiationRecipientMode.PEOPLE}
+                               label="People"/>
+                        <Radio value={SharingSessionInitiationRecipientMode.MY_ORG} label="My Organization"/>
                         <Radio value={SharingSessionInitiationRecipientMode.EXTERNAL_ORG}
                                label="External Organization"/>
-                        <Radio value={SharingSessionInitiationRecipientMode.MY_ORG} label="My Organization"/>
-                        <Radio value={SharingSessionInitiationRecipientMode.EMAIL} label="Use Email"/>
                     </RadioGroup>
                 </Field>
             </>
@@ -111,11 +114,13 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
                 />
             )}
 
-            {props.recipientMode === SharingSessionInitiationRecipientMode.EMAIL && (
-                <NewRecipient
+            {props.recipientMode === SharingSessionInitiationRecipientMode.PEOPLE && (
+                <PeopleRecipients
                     isRequestingDocuments={props.isRequestingDocuments}
-                    setNewRecipient={props.setNewRecipient}
+                    recipientOrgUser={props.recipientOrgUser}
+                    setRecipientOrgUser={props.setRecipientOrgUser}
                     newRecipient={props.newRecipient}
+                    setNewRecipient={props.setNewRecipient}
                     internalParticipants={props.internalParticipants}
                     setInternalParticipants={props.setInternalParticipants}
                 />

@@ -89,6 +89,55 @@ class NoAuthSharingSessionResource @Inject constructor(
         }
     }
 
+    @POST
+    @Path("/{sessionId}/otp")
+    fun issueNoAuthSharingSessionOtp(
+        @PathParam("sessionId") sessionId: String
+    ): Response
+    {
+        ResourceEndpointDelayHelper.delayEndpoint(1500, 2500)
+
+        return try
+        {
+            sharingSessionUpdateService.issueRecipientOtp(sessionId)
+            Response.status(Response.Status.NO_CONTENT).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is ForbiddenException ->
+                {
+                    logger.warn("OTP request denied", exception)
+                    Response.status(Response.Status.FORBIDDEN)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+                is SharingSessionNotFoundException ->
+                {
+                    logger.warn("OTP request for missing session", exception)
+                    Response.status(NOT_FOUND)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+                is IllegalArgumentException ->
+                {
+                    logger.warn("OTP request rejected", exception)
+                    Response.status(Response.Status.BAD_REQUEST)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+                else ->
+                {
+                    logger.error("Error issuing sharing session OTP", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while issuing the verification code"))
+                        .build()
+                }
+            }
+        }
+    }
+
     @PUT
     @Path("/{sessionId}")
     fun updateNoAuthSharingSession(

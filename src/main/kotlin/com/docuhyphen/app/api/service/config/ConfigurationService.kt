@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.service.config
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.eclipse.microprofile.config.inject.ConfigProperty
+import java.util.Optional
 
 /**
  * Central configuration facade.
@@ -37,7 +38,7 @@ class ConfigurationService @Inject constructor(
     val awsRegion: String,
 
     @ConfigProperty(name = "app.security.jwt.aws-secret-id")
-    val jwtAwsSecretId: String?,
+    val jwtAwsSecretId: Optional<String>,
 
     @ConfigProperty(name = "app.secrets.org-idp.region", defaultValue = "af-south-1")
     private val orgIdpSecretsRegionConfig: String,
@@ -112,7 +113,7 @@ class ConfigurationService @Inject constructor(
 
         val resolvedSecret = if (jwtSecretProvider.equals("aws", ignoreCase = true))
         {
-            val secretId = jwtAwsSecretId?.trim().orEmpty()
+            val secretId = jwtAwsSecretId.get().trim().orEmpty()
 
             if (secretId.isBlank())
             {
@@ -136,7 +137,7 @@ class ConfigurationService @Inject constructor(
     }
 
     // -------------------------------------------------------------------------
-    // Auth token / session — delegated to AuthConfigService
+    // Auth token / session,  delegated to AuthConfigService
     // -------------------------------------------------------------------------
 
     fun getAccessTokenExpiryMinutes(): Long = authConfig.getAccessTokenExpiryMinutes()
@@ -173,7 +174,7 @@ class ConfigurationService @Inject constructor(
     fun getAuthRateLimitDirectoryPerMinute(): Long = authConfig.getAuthRateLimitDirectoryPerMinute()
 
     // -------------------------------------------------------------------------
-    // OAuth providers / OIDC / application tokens / audit / SCIM — delegated to OAuthConfigService
+    // OAuth providers / OIDC / application tokens / audit / SCIM,  delegated to OAuthConfigService
     // -------------------------------------------------------------------------
 
     val microsoftOAuthClientId: String get() = oauthConfig.getMicrosoftOAuthClientId()

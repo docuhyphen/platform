@@ -15,7 +15,7 @@
 </table>
 
 <#if isNewUser>
-<p style="margin:0 0 14px 0;">An account was created for you. Use the <a href="${appBaseUrl}/sign-up" style="color:#1f73b7;">sign-up page</a> to set a password and verify your email, then sign in to access the organization.</p>
+<p style="margin:0 0 14px 0;">An account was created for you. We've also sent a separate email with a one-time verification code. Open <a href="${appBaseUrl}/account-recovery" style="color:#1f73b7;">${appBaseUrl}/account-recovery</a>, enter your email and that code, and set your password to sign in.</p>
 <#else>
 <p style="margin:0 0 14px 0;">Sign in at <a href="${appBaseUrl}/sign-in" style="color:#1f73b7;">${appBaseUrl}/sign-in</a> to access the organization.</p>
 </#if>

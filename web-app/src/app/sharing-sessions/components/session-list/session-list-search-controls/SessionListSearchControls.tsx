@@ -1,8 +1,6 @@
 import React from 'react';
 import {
     Button,
-    Divider,
-    Field,
     Menu,
     MenuGroup,
     MenuGroupHeader,
@@ -11,6 +9,7 @@ import {
     MenuPopover,
     MenuTrigger,
     SearchBox,
+    Field,
     Tooltip
 } from "@fluentui/react-components";
 import {FilterIcon, SortDownIcon, SortUpIcon} from "../../../../components/IconBundles.tsx";
@@ -21,10 +20,8 @@ interface SessionListSearchControlsProps
 {
     searchQuery: string;
     onSearchQueryChange: (query: string) => void;
-    onFilterChange: (status: string | null) => void;
     onInitiatorFilterChange: (initiatedBy: boolean | null) => void;
     onSortChange: (field: string, direction: string) => void;
-    selectedStatus: string | null;
     selectedInitiator: boolean | null;
     sortBy: string;
     sortDirection: string;
@@ -36,10 +33,8 @@ const SessionListSearchControls: React.FC<SessionListSearchControlsProps> = (
     {
         searchQuery,
         onSearchQueryChange,
-        onFilterChange,
         onInitiatorFilterChange,
         onSortChange,
-        selectedStatus,
         selectedInitiator,
         sortBy,
         sortDirection,
@@ -67,33 +62,34 @@ const SessionListSearchControls: React.FC<SessionListSearchControlsProps> = (
     const onCreatedDateSortChange = () =>
     {
         onSortChange("createdDate", sortBy === "createdDate" && sortDirection === "DESC" ? "ASC" : "DESC");
-    }
+    };
 
     const onSessionNameSortChange = () =>
     {
         onSortChange("sessionName", sortBy === "sessionName" && sortDirection === "DESC" ? "ASC" : "DESC");
-    }
+    };
 
     const onLastActivitySortChange = () =>
     {
         onSortChange("lastActivity", sortBy === "lastActivity" && sortDirection === "DESC" ? "ASC" : "DESC");
-    }
+    };
 
     const getSortIcon = (field: string) =>
     {
         return sortBy === field ? (sortDirection === "DESC" ? <ArrowSortDownRegular/> : <ArrowSortUpRegular/>) : null;
-    }
+    };
 
     const getSortDirectionIcon = (direction: string) =>
     {
-        return (direction === "DESC" ? <SortDownIcon/> : <SortUpIcon/>)
-    }
+        return (direction === "DESC" ? <SortDownIcon/> : <SortUpIcon/>);
+    };
 
     return (
         <section className={styles.container}>
             <Field className={styles.searchField}>
                 <SearchBox
-                    placeholder="Search Document Sharing Sessions"
+                    id="session-list-search-input"
+                    placeholder="Search sessions"
                     maxLength={50}
                     value={searchQuery}
                     onChange={(_, data) => onSearchQueryChange(data.value)}
@@ -101,50 +97,34 @@ const SessionListSearchControls: React.FC<SessionListSearchControlsProps> = (
             </Field>
             <Menu>
                 <MenuTrigger>
-                    <Tooltip content="Filter sharing sessions"
+                    <Tooltip content="Filter sessions"
                              relationship="description">
                         <Button icon={<FilterIcon/>}
-                                appearance={selectedStatus || selectedInitiator !== null ? "primary" : "subtle"}/>
+                                id="session-list-filter-menu-trigger"
+                                appearance={selectedInitiator !== null ? "primary" : "subtle"}/>
                     </Tooltip>
                 </MenuTrigger>
                 <MenuPopover>
-                    <MenuList>
-                        <MenuGroup>
-                            <MenuGroupHeader>Status</MenuGroupHeader>
-                            <MenuItem
-                                onClick={() => onFilterChange("INITIATED")}
-                                icon={selectedStatus === "INITIATED" && <CheckmarkRegular/> || null}>
-                                Initiated
-                            </MenuItem>
-                            <MenuItem
-                                onClick={() => onFilterChange("ACCEPTED_STARTED")}
-                                icon={selectedStatus === "ACCEPTED_STARTED" && <CheckmarkRegular/> || null}>
-                                Started
-                            </MenuItem>
-                            <MenuItem
-                                onClick={() => onFilterChange("REJECTED")}
-                                icon={selectedStatus === "REJECTED" && <CheckmarkRegular/> || null}>
-                                Rejected
-                            </MenuItem>
-                            <MenuItem
-                                onClick={() => onFilterChange("ENDED")}
-                                icon={selectedStatus === "ENDED" && <CheckmarkRegular/> || null}>
-                                Ended
-                            </MenuItem>
-                        </MenuGroup>
-                        <Divider title="Participation"/>
+                    <MenuList id="session-list-filter-menu-list">
                         <MenuGroup>
                             <MenuGroupHeader>Participation</MenuGroupHeader>
                             <MenuItem
+                                id="session-list-filter-initiated-by-me"
                                 onClick={() => onInitiatorFilterChange(true)}
                                 icon={selectedInitiator === true && <CheckmarkRegular/> || null}>
                                 Initiated by me
                             </MenuItem>
                             <MenuItem
+                                id="session-list-filter-initiated-by-others"
                                 onClick={() => onInitiatorFilterChange(false)}
                                 icon={selectedInitiator === false && <CheckmarkRegular/> || null}>
                                 Initiated by others
                             </MenuItem>
+                            {selectedInitiator !== null && (
+                                <MenuItem id="session-list-filter-clear" onClick={() => onInitiatorFilterChange(null)}>
+                                    Clear
+                                </MenuItem>
+                            )}
                         </MenuGroup>
                     </MenuList>
                 </MenuPopover>
@@ -154,22 +134,26 @@ const SessionListSearchControls: React.FC<SessionListSearchControlsProps> = (
                     <Tooltip content={getSortDescription(sortBy, sortDirection)}
                              relationship="description">
                         <Button icon={getSortDirectionIcon(sortDirection)}
+                                id="session-list-sort-menu-trigger"
                                 appearance="subtle"/>
                     </Tooltip>
                 </MenuTrigger>
                 <MenuPopover>
-                    <MenuList>
+                    <MenuList id="session-list-sort-menu-list">
                         <MenuItem
+                            id="session-list-sort-created-date"
                             onClick={onCreatedDateSortChange}
                             icon={getSortIcon("createdDate")}>
                             Date created
                         </MenuItem>
                         <MenuItem
+                            id="session-list-sort-session-name"
                             onClick={onSessionNameSortChange}
                             icon={getSortIcon("sessionName")}>
                             Session name
                         </MenuItem>
                         <MenuItem
+                            id="session-list-sort-last-activity"
                             onClick={onLastActivitySortChange}
                             icon={getSortIcon("lastActivity")}>
                             Last activity

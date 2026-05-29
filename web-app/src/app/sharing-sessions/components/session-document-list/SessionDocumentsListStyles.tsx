@@ -18,40 +18,49 @@ export const useSessionDocumentsListStyles = makeStyles({
 
     cardListSection: {
         display: "flex",
-        overflowX: "hidden",
+        overflowX: "auto",
         whiteSpace: "nowrap",
         ...shorthands.padding("2px"),
         gap: "16px",
-        scrollbarWidth: "none", // Firefox
-
-        "&::-webkit-scrollbar": {
-            display: "none", // Chrome, Safari, Edge
-        },
+        scrollbarWidth: "none",
 
         "&:hover": {
-            overflowX: "auto",
-            scrollbarWidth: "thin", // Firefox
+            scrollbarWidth: "thin",
+            scrollbarColor: "rgba(0, 0, 0, 0.36) transparent",
+        },
+
+        "&::-webkit-scrollbar": {
+            display: "none",
+            height: "7px",
         },
 
         "&:hover::-webkit-scrollbar": {
             display: "block",
-            height: "8px",
+        },
+
+        "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "rgba(0, 0, 0, 0)",
+            borderRadius: "4px",
+            transition: "background-color 180ms ease",
         },
 
         "&:hover::-webkit-scrollbar-thumb": {
-            backgroundColor: tokens.colorNeutralStroke1Hover,
-            borderRadius: "4px",
+            backgroundColor: "rgba(0, 0, 0, 0.36)",
         },
 
-        "&:hover::-webkit-scrollbar-track": {
-            backgroundColor: tokens.colorNeutralBackground1,
+        "&::-webkit-scrollbar-thumb:hover": {
+            backgroundColor: "rgba(0, 0, 0, 0.48)",
+        },
+
+        "&::-webkit-scrollbar-track": {
+            backgroundColor: "transparent",
         },
     },
 
     documentsCard: {
         minWidth: "300px",
         maxWidth: "300px",
-        flex: "0 0 auto"
+        flex: "0 0 auto",
     },
 
     documentsCardSelected: {

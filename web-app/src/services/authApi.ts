@@ -138,7 +138,7 @@ export const completeSignUp = async (request: SignUpCompletionRequest) =>
 };
 
 /**
- * GET /auth/sign-up/email-confirm/{token} — peek at the email a confirmation
+ * GET /auth/sign-up/email-confirm/{token},  peek at the email a confirmation
  * token belongs to without consuming the token. Used to validate the link
  * and show context on the email-confirm page before the user submits.
  */
@@ -156,7 +156,7 @@ export const checkSignUpEmailConfirmToken = async (token: string): Promise<SignU
 };
 
 /**
- * POST /auth/sign-up/email-confirm — complete sign-up via the opaque-token flow.
+ * POST /auth/sign-up/email-confirm,  complete sign-up via the opaque-token flow.
  * The token is consumed atomically server-side on success.
  */
 export const confirmSignUpEmail = async (request: SignUpEmailConfirmRequest): Promise<SignUpEmailConfirmResponse> =>

@@ -136,11 +136,11 @@ class SignUpResource @Inject constructor(
      *
      * The frontend hits this on /sign-up/email-confirm page load so it can
      * display "Verifying you@example.com" before the user submits a password
-     * — and so an invalid/expired link surfaces immediately instead of after
+     *,  and so an invalid/expired link surfaces immediately instead of after
      * a wasted password entry.
      *
      * Returns 404 for any reason the token can't be resolved (missing, expired,
-     * malformed) — never leaks the distinction.
+     * malformed),  never leaks the distinction.
      */
     @GET
     @Path("/email-confirm/{token}")
@@ -172,7 +172,7 @@ class SignUpResource @Inject constructor(
 
     /**
      * Complete sign-up via the opaque-token flow (user clicked the email link).
-     * No OTP, email, or other PII is required from the client — the token alone
+     * No OTP, email, or other PII is required from the client,  the token alone
      * resolves to the verified email address, and the user just supplies their
      * desired password.
      *

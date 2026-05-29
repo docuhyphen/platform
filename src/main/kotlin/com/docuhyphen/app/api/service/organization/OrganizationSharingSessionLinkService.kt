@@ -3,10 +3,14 @@ package com.docuhyphen.app.api.service.organization
 import com.docuhyphen.app.api.exception.OrganizationLinkNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.dto.NotificationDto
+import com.docuhyphen.app.api.model.dto.NotificationType
+import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AppUserRole
 import com.docuhyphen.app.api.model.entity.LinkStatus
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationSharingSessionLink
+import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.repository.OrganizationSharingSessionLinkRepository
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
@@ -32,6 +36,7 @@ class OrganizationSharingSessionLinkService @Inject constructor(
     private val appUserService: OrganizationService,
     private val adminActionGuardService: AdminActionGuardService,
     private val authAuditService: AuthAuditService,
+    private val realtimeEventService: RealtimeEventService,
 )
 {
     fun getOrganizationsForLinking(): List<Organization>
@@ -127,6 +132,7 @@ class OrganizationSharingSessionLinkService @Inject constructor(
 
         //ToDo: Send email to the organization admin
 
+        val appBaseUrl = configurationService.baseUrl
         requestedOrganization.appUsers.forEach { orgAppUser ->
 
             if (orgAppUser.role == AppUserRole.ORG_ADMIN)
@@ -135,12 +141,16 @@ class OrganizationSharingSessionLinkService @Inject constructor(
                     orgAppUser.email,
                     "${configurationService.emailSubjectTitle} | Paring Request",
                     """
-                        You have a new paring request from ${appUser.person?.firstName} ${appUser.person?.lastName} 
-                        (${requestingOrganization.name}).
-                        """.trimEnd()
+                        <p>You have a new pairing request from ${appUser.person?.firstName} ${appUser.person?.lastName}
+                        (${requestingOrganization.name}).</p>
+                        <p>Open <a href="$appBaseUrl/settings">$appBaseUrl/settings</a> to review and respond.</p>
+                    """.trimIndent(),
+                    useHtml = true,
                 )
             }
         }
+
+        broadcastOrgPairUpdate(requestedOrganization, "New pairing request from ${requestingOrganization.name}")
 
         return createdLink
     }
@@ -210,20 +220,44 @@ class OrganizationSharingSessionLinkService @Inject constructor(
             afterSnapshot = linkSnapshot(acceptedLink),
         )
 
-        link.requestingOrganization?.appUsers?.forEach { orgAppUser ->
+        if (linkStatus == LinkStatus.ACCEPTED)
+        {
+            link.requestingOrganization?.appUsers?.forEach { orgAppUser ->
 
-            if (orgAppUser.role == AppUserRole.ORG_ADMIN)
-            {
-                emailService.sendEmail(
-                    orgAppUser.email,
-                    "${configurationService.emailSubjectTitle} | Paring Request Accepted",
-                    """
-                        Your paring request from ${appUser.person?.firstName} ${appUser.person?.lastName} 
-                        (${link.requestingOrganization?.name}) has been accepted. You may now start Sharing Documents.
-                        """.trimEnd()
-                )
+                if (orgAppUser.role == AppUserRole.ORG_ADMIN)
+                {
+                    emailService.sendEmail(
+                        orgAppUser.email,
+                        "${configurationService.emailSubjectTitle} | Paring Request Accepted",
+                        """
+                            Your paring request to ${link.requestedOrganization?.name} has been accepted. You may now start sharing documents.
+                            """.trimIndent()
+                    )
+                }
             }
         }
+        else if (linkStatus == LinkStatus.REJECTED)
+        {
+            link.requestingOrganization?.appUsers?.forEach { orgAppUser ->
+
+                if (orgAppUser.role == AppUserRole.ORG_ADMIN)
+                {
+                    emailService.sendEmail(
+                        orgAppUser.email,
+                        "${configurationService.emailSubjectTitle} | Paring Request Declined",
+                        """
+                            Your paring request to ${link.requestedOrganization?.name} was declined${if (!rejectionReason.isNullOrBlank()) " with the reason: $rejectionReason" else ""}.
+                            """.trimIndent()
+                    )
+                }
+            }
+        }
+
+        val statusLabel = if (linkStatus == LinkStatus.ACCEPTED) "accepted" else "declined"
+        broadcastOrgPairUpdate(
+            link.requestingOrganization,
+            "Your pairing request to ${link.requestedOrganization?.name} was $statusLabel",
+        )
 
         return acceptedLink;
     }
@@ -278,7 +312,37 @@ class OrganizationSharingSessionLinkService @Inject constructor(
 
         //ToDO: validate of appUser is part of the requesting or requested organization
 
-        //ToDo: decide whether to send a notification email
+        // Notify the *other* organization's admins about the un-pair / cancelled request.
+        val otherOrg = if (link.requestingOrganization?.appUsers?.any { it.id == appUser.id } == true)
+        {
+            link.requestedOrganization
+        }
+        else
+        {
+            link.requestingOrganization
+        }
+
+        otherOrg?.appUsers?.forEach { orgAppUser ->
+            if (orgAppUser.role == AppUserRole.ORG_ADMIN)
+            {
+                try
+                {
+                    val subject = if (link.status == LinkStatus.ACCEPTED)
+                        "${configurationService.emailSubjectTitle} | Organization pairing ended"
+                    else
+                        "${configurationService.emailSubjectTitle} | Pairing request cancelled"
+                    val body = if (link.status == LinkStatus.ACCEPTED)
+                        "Your pairing with ${otherOrg.let { _ -> if (otherOrg.id == link.requestingOrganization?.id) link.requestedOrganization?.name else link.requestingOrganization?.name }} has been ended by the other organization."
+                    else
+                        "A pairing request from ${if (otherOrg.id == link.requestingOrganization?.id) link.requestedOrganization?.name else link.requestingOrganization?.name} was cancelled."
+                    emailService.sendEmail(orgAppUser.email, subject, body)
+                }
+                catch (e: Exception)
+                {
+                    // best effort,  don't fail the deLink if notification fails
+                }
+            }
+        }
 
         organizationSharingSessionLinkRepository.deleteById(link.id)
 
@@ -292,6 +356,12 @@ class OrganizationSharingSessionLinkService @Inject constructor(
             beforeSnapshot = beforeSnapshot,
             afterSnapshot = "deleted",
         )
+
+        val deletionMessage = if (link.status == LinkStatus.ACCEPTED)
+            "Pairing with ${if (otherOrg?.id == link.requestingOrganization?.id) link.requestedOrganization?.name else link.requestingOrganization?.name} has ended."
+        else
+            "Pairing request with ${if (otherOrg?.id == link.requestingOrganization?.id) link.requestedOrganization?.name else link.requestingOrganization?.name} was cancelled."
+        broadcastOrgPairUpdate(otherOrg, deletionMessage)
     }
 
     fun getLinksByCurrentAppUser(): List<OrganizationSharingSessionLink>?
@@ -306,6 +376,32 @@ class OrganizationSharingSessionLinkService @Inject constructor(
         val appUserOrg = organizationRepository.findByAppUserIdAndPersonId(appUser.id, appUser.person?.id!!)
 
         return getLinksByOrganization(appUserOrg?.id.toString())
+    }
+
+    private fun broadcastOrgPairUpdate(org: Organization?, message: String)
+    {
+        org?.appUsers?.forEach { orgAppUser ->
+            if (orgAppUser.role == AppUserRole.ORG_ADMIN)
+            {
+                try
+                {
+                    realtimeEventService.broadcastNotificationToUser(
+                        orgAppUser.id,
+                        NotificationDto(
+                            id = java.util.UUID.randomUUID().toString(),
+                            type = NotificationType.NEW_SESSION,
+                            message = message,
+                            timestamp = Timestamp.from(Instant.now()),
+                            data = mapOf("source" to "org-pair"),
+                        ),
+                    )
+                }
+                catch (e: Exception)
+                {
+                    // best effort
+                }
+            }
+        }
     }
 
     private fun linkSnapshot(link: OrganizationSharingSessionLink): String

@@ -27,6 +27,12 @@ class OrganizationGroup {
     @Column(name = "name", nullable = false)
     lateinit var name: String
 
+    // When true, this group is visible to paired (trusted) organizations when they
+    // pick recipients for a new sharing session. Individual users in the org are
+    // never enumerated to outside orgs, they can only be reached via a published group.
+    @Column(name = "externally_published", nullable = false)
+    var externallyPublished: Boolean = false
+
 //    @Column(name = "is_deleted", nullable = false)
 //    var isDeleted: Boolean = true
 

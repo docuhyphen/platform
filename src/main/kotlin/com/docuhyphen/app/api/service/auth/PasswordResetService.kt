@@ -49,7 +49,7 @@ class PasswordResetService @Inject constructor(
 
         if (!appUser.isActive || appUser.deprovisionedAt != null)
         {
-            // Don't reveal account state on the public initiate endpoint — surface the
+            // Don't reveal account state on the public initiate endpoint,  surface the
             // same neutral outcome the resource layer maps EmailNotFoundException to.
             throw EmailNotFoundException().also {
                 logger.warn("Password reset blocked: inactive/deprovisioned account for email: $email")

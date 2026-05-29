@@ -21,6 +21,7 @@ import {fetchOrganizationLinks} from "../../../services/organizationSharingSessi
 import {useAuth} from "../../../context/AuthContext.tsx";
 import {LinkStatus, OrganizationSharingSessionLinkBasicDto, ResponseError} from "../../models/models.tsx";
 import ParingRequestDialog from "./paring-request-dialog/ParingRequestDialog.tsx";
+import {useNotifications} from "../../../context/NotificationContext.tsx";
 
 const OrganizationPairingTab = () =>
 {
@@ -82,6 +83,17 @@ const OrganizationPairingTab = () =>
     {
         fetchOrgPairs()
     }, [token]);
+
+    // Refresh on realtime org-pair notifications so the other side sees changes without reload.
+    const {notifications} = useNotifications();
+    useEffect(() =>
+    {
+        const orgPairNotif = notifications.find(n => n.data?.source === "org-pair");
+        if (orgPairNotif)
+        {
+            fetchOrgPairs();
+        }
+    }, [notifications.length]);
 
     const renderTabError = () => (
         tabErrorMessage && (

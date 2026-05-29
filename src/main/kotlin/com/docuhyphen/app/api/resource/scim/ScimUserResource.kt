@@ -19,7 +19,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * SCIM 2.0 (RFC 7644) User endpoint — provisioning subset.
+ * SCIM 2.0 (RFC 7644) User endpoint,  provisioning subset.
  *
  * Auth: a static bearer token configured in [ConfigurationService.getScimBearerToken].
  * The token is a long-lived shared secret given to the upstream IdP (Okta, Azure AD, etc.).

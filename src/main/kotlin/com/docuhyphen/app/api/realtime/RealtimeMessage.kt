@@ -16,7 +16,7 @@ data class UserSessionInfo(
     val createdDate: String,
     val lastSeenAt: String,
     val expiresAt: String? = null,
-    /** Always false when broadcast to other devices — the new session is not their session. */
+    /** Always false when broadcast to other devices,  the new session is not their session. */
     val isCurrent: Boolean = false,
 )
 
@@ -40,6 +40,10 @@ data class UserSessionInfo(
  *     - NOTIFICATION                    { notification }
  *     - PRESENCE_UPDATE                 { userId, online }
  *     - SHARING_VIEWERS                 { sharingSessionId, viewerUserIds }
+ *     - SHARING_SESSION_DOCUMENT_ADDED   { sharingSessionId, documentId }
+ *     - SHARING_SESSION_DOCUMENT_REMOVED { sharingSessionId, documentId }
+ *     - SHARING_SESSION_DOCUMENT_UPDATED { sharingSessionId, documentId }
+ *     - SHARING_SESSION_STATUS_CHANGED   { sharingSessionId, status }
  *     - ERROR                           { code, message }
  *     - WELCOME                         { userSessionId, serverTime }
  */
@@ -57,6 +61,8 @@ data class RealtimeMessage(
     val message: String? = null,
     val serverTime: Long? = null,
     val session: UserSessionInfo? = null,
+    val documentId: String? = null,
+    val status: String? = null,
 )
 
 object RealtimeMessageType
@@ -76,6 +82,10 @@ object RealtimeMessageType
     const val NOTIFICATION = "NOTIFICATION"
     const val PRESENCE_UPDATE = "PRESENCE_UPDATE"
     const val SHARING_VIEWERS = "SHARING_VIEWERS"
+    const val SHARING_SESSION_DOCUMENT_ADDED = "SHARING_SESSION_DOCUMENT_ADDED"
+    const val SHARING_SESSION_DOCUMENT_REMOVED = "SHARING_SESSION_DOCUMENT_REMOVED"
+    const val SHARING_SESSION_DOCUMENT_UPDATED = "SHARING_SESSION_DOCUMENT_UPDATED"
+    const val SHARING_SESSION_STATUS_CHANGED = "SHARING_SESSION_STATUS_CHANGED"
     const val ERROR = "ERROR"
     const val WELCOME = "WELCOME"
 }

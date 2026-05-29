@@ -1,44 +1,57 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useSessionDDetailedViewDialogStyles = makeStyles({
+    dialogSurface: {
+        width: "min(760px, 92vw)",
+        maxHeight: "85vh",
+    },
+
     dialogContent: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px"
+        gap: "12px",
+        maxHeight: "68vh",
+        overflowY: "auto",
+        paddingRight: "4px",
     },
 
-    sessionStatuses: {
+    sectionCard: {
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderRadius: "8px",
+        padding: "12px",
         display: "flex",
-        gap: "8px"
-    },
-    sessionStatus: {
-        flex: "1",
-        border: "2px dotted #E1E1E1",
-        textAlign: "center",
-        opacity: 0.5,
-        borderRadius: "4px",
-        padding: "4px 0px"
-    },
-    sessionCurrentStatus: {
-        opacity: "1"
-    },
-    sessionStatusINITIATED: {
-        borderLeft: "5px solid",
-        borderLeftColor: tokens.colorPaletteGreenForeground1
+        flexDirection: "column",
+        gap: "8px",
     },
 
-    sessionStatusACCEPTED_STARTED: {
-        borderLeft: "5px solid",
-        borderLeftColor: tokens.colorPaletteBlueForeground2
+    titleRow: {
+        display: "grid",
+        gridTemplateColumns: "1fr auto",
+        alignItems: "start",
+        gap: "8px",
+        minWidth: 0,
     },
 
-    sessionStatusENDED: {
-        borderLeft: "5px solid",
-        borderLeftColor: tokens.colorNeutralForeground4
+    sessionTitleText: {
+        minWidth: 0,
+        whiteSpace: "normal",
+        overflowWrap: "anywhere",
+        wordBreak: "break-word",
     },
 
-    sessionStatusREJECTED: {
-        borderLeft: "5px solid",
-        borderLeftColor: tokens.colorPaletteRedForeground1
+    statusChip: {
+        whiteSpace: "nowrap",
+        alignSelf: "start",
+    },
+
+    keyValueGrid: {
+        display: "grid",
+        gridTemplateColumns: "minmax(180px, 240px) 1fr",
+        columnGap: "12px",
+        rowGap: "6px",
+    },
+
+    keyLabel: {
+        color: tokens.colorNeutralForeground3,
     },
 });

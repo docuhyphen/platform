@@ -190,7 +190,8 @@ class DetailedEntityToDtoTransformer
                         createdDate,
                         isActive,
                         name,
-                        members.map { toDto(it) }
+                        members.map { toDto(it) },
+                        externallyPublished,
                     )
                 }
             }

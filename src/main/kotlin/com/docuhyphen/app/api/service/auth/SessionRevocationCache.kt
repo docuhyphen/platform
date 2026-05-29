@@ -13,7 +13,7 @@ import java.util.UUID
  * EndpointAuthorizationFilter looks up the current request's session_id against this set on
  * every authenticated request, denying immediately if present.
  *
- * Entries TTL out after [DEFAULT_TTL_DAYS] — sessions older than that are guaranteed to have
+ * Entries TTL out after [DEFAULT_TTL_DAYS],  sessions older than that are guaranteed to have
  * expired naturally via the access-token / refresh-token expiry chain.
  */
 @ApplicationScoped

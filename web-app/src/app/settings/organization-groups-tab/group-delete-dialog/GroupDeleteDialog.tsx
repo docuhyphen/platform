@@ -37,7 +37,16 @@ const GroupDeleteDialog: React.FC<GroupDeleteDialog> = (
     const globalStyles = useGlobalStyles()
     const [deleteStarted, setDeleteStarted] = React.useState(false);
     const [countdown, setCountdown] = React.useState(10);
+    const [error, setError] = React.useState<string | null>(null);
     const timerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+    const extractErrorMessage = (e: any): string =>
+    {
+        if (typeof e === "string") return e;
+        const msg = e?.errorMessage || e?.message || e?.response?.data?.errorMessage || e?.response?.data?.message;
+        if (msg) return msg;
+        return "Something went wrong while deleting the group. Please try again in a moment.";
+    }
 
     const onDelete = () =>
     {
@@ -71,8 +80,15 @@ const GroupDeleteDialog: React.FC<GroupDeleteDialog> = (
 
     const completeDeletion = async () =>
     {
+        if (!organizationId || !group?.id)
+        {
+            setError("Cannot delete: missing organization or group information. Please reload the page.");
+            setDeleteStarted(false);
+            return;
+        }
 
         setDeletingSession(true)
+        setError(null);
 
         try
         {
@@ -80,10 +96,10 @@ const GroupDeleteDialog: React.FC<GroupDeleteDialog> = (
             onDeleted(group.id);
             onDismiss();
         }
-        catch (error)
+        catch (e)
         {
-            alert("Error deleting document");
-            console.error("Error deleting document:", error);
+            setError(extractErrorMessage(e));
+            console.error("Error deleting group:", e);
         }
         finally
         {
@@ -98,6 +114,7 @@ const GroupDeleteDialog: React.FC<GroupDeleteDialog> = (
                 <DialogBody>
                     <DialogTitle>Deleting {group && group.name}</DialogTitle>
                     <DialogContent>
+                        <div style={{minHeight: "20px", color: "red", fontSize: "12px", lineHeight: "20px"}}>{error || " "}</div>
                         {deleteStarted ? (
                             <div>
                                 Deleting in {countdown} seconds...
