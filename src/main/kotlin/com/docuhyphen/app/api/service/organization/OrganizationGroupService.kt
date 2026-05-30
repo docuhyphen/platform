@@ -86,7 +86,7 @@ class OrganizationGroupService @Inject constructor(
             action = "ORG_GROUP_ADD",
             actorId = authTokenContext.authToken.appUser?.id,
             context = adminApprovalContext,
-            requireStepUp = false,
+            requireStepUp = true,
             requireDualApproval = false,
         )
 

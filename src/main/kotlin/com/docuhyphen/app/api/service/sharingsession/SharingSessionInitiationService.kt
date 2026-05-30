@@ -102,10 +102,6 @@ class SharingSessionInitiationService @Inject constructor(
         }
 
         val participants = sessionInitiationDto.participants
-            .filterNot { p ->
-                p.participantType != SharingSessionParticipantType.GROUP &&
-                    runCatching { UUID.fromString(p.id) }.getOrNull() == initiator.id
-            }
             .map { p ->
 
             var participantAppUser: AppUser? = null
@@ -256,10 +252,19 @@ class SharingSessionInitiationService @Inject constructor(
             throw IllegalArgumentException("Session documents cannot be empty")
         }
 
-        sessionInitiationDto.participants.map {
+        sessionInitiationDto.participants.forEach {
+            if (it.participantType == SharingSessionParticipantType.GROUP)
+            {
+                return@forEach
+            }
 
-//            appUserService.getById(UUID.fromString(it.id))
-//                ?: throw AppUserNotFoundException("One of the participants not found")
+            val participantId = runCatching { UUID.fromString(it.id) }.getOrNull()
+                ?: throw IllegalArgumentException("Participant id is invalid")
+
+            if (participantId == initiator.id)
+            {
+                throw IllegalArgumentException("Initiator cannot be added as a participant")
+            }
         }
     }
 

@@ -15,6 +15,9 @@ import {AppUserDetailedDto} from "../../../../models/models.tsx";
 import {fetchRecentContacts, searchContacts, UserContactDto} from "../../../../../services/personalContactsApi";
 import {SharingSessionNewMainRecipient} from "../new-recipient/NewRecipient";
 import NewRecipient from "../new-recipient/NewRecipient";
+import {fetchMyOrganizationUsers} from "../../../../../services/organizationApi";
+import MyOrgRecipients from "../MyOrgRecipients.tsx";
+import {useAuth} from "../../../../../context/AuthContext.tsx";
 
 interface PeopleRecipientsProps
 {
@@ -36,6 +39,8 @@ const formatDisplayName = (c: UserContactDto): string =>
     const name = [c.firstName, c.lastName].filter(Boolean).join(' ').trim();
     return name.length > 0 ? `${name} (${c.email})` : c.email;
 };
+
+const normalizeEmail = (value?: string | null): string => (value ?? '').trim().toLowerCase();
 
 /**
  * Personal-contacts-based recipient picker. Surfaces:
@@ -63,13 +68,31 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
         setInternalParticipants,
     }) =>
 {
+    const {appUser, appUserPersonOrganization} = useAuth();
     const [query, setQuery] = useState<string>('');
     const [recents, setRecents] = useState<UserContactDto[]>([]);
     const [results, setResults] = useState<UserContactDto[]>([]);
     const [isSearching, setIsSearching] = useState<boolean>(false);
     const [isLoadingRecents, setIsLoadingRecents] = useState<boolean>(false);
     const [showEmailFallback, setShowEmailFallback] = useState<boolean>(false);
+    const [orgUsers, setOrgUsers] = useState<AppUserDetailedDto[]>([]);
+    const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
+    const [usersLoaded, setUsersLoaded] = useState<boolean>(false);
+    const [selectedInternalRecipients, setSelectedInternalParticipants] = useState<AppUserDetailedDto[]>([]);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const selfEmail = normalizeEmail(appUser?.email);
+    const isOwnEmail = (email?: string | null) =>
+    {
+        const normalized = normalizeEmail(email);
+        return normalized.length > 0 && normalized === selfEmail;
+    };
+
+    const isSelfContact = (contact: UserContactDto) =>
+        isOwnEmail(contact.email) || (!!appUser?.id && contact.contactAppUserId === appUser.id);
+
+    const visibleRecents = recents.filter(c => !isSelfContact(c));
+    const visibleResults = results.filter(c => !isSelfContact(c));
 
     useEffect(() =>
     {
@@ -93,6 +116,59 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
         })();
         return () => { cancelled = true; };
     }, []);
+
+    useEffect(() =>
+    {
+        if (!internalParticipants)
+        {
+            setSelectedInternalParticipants([]);
+            return;
+        }
+
+        const filtered = internalParticipants
+            .filter(user => user.id !== appUser?.id)
+            .filter(user => user.id !== recipientOrgUser?.id);
+        setSelectedInternalParticipants(filtered);
+    }, [internalParticipants, appUser?.id, recipientOrgUser?.id]);
+
+    useEffect(() =>
+    {
+        if (!recipientOrgUser || !appUserPersonOrganization || usersLoaded)
+        {
+            return;
+        }
+
+        let cancelled = false;
+        (async () =>
+        {
+            setIsLoadingUsers(true);
+            try
+            {
+                const users = await fetchMyOrganizationUsers();
+                if (!cancelled)
+                {
+                    setOrgUsers(users ?? []);
+                    setUsersLoaded(true);
+                }
+            }
+            catch (error)
+            {
+                console.error("Error loading my organization users:", error);
+            }
+            finally
+            {
+                if (!cancelled)
+                {
+                    setIsLoadingUsers(false);
+                }
+            }
+        })();
+
+        return () =>
+        {
+            cancelled = true;
+        };
+    }, [recipientOrgUser, appUserPersonOrganization, usersLoaded]);
 
     useEffect(() =>
     {
@@ -131,6 +207,11 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
 
     const selectContact = (contact: UserContactDto) =>
     {
+        if (isSelfContact(contact))
+        {
+            return;
+        }
+
         setShowEmailFallback(false);
         if (contact.contactAppUserId)
         {
@@ -163,6 +244,10 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
 
     const startEmailFallback = (typedEmail: string) =>
     {
+        if (isOwnEmail(typedEmail))
+        {
+            return;
+        }
         setRecipientOrgUser(undefined);
         setNewRecipient({email: typedEmail, firstName: '', lastName: ''});
         setShowEmailFallback(true);
@@ -187,8 +272,8 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
             startEmailFallback(query.trim().toLowerCase());
             return;
         }
-        const match = results.find(r => r.email === data.optionValue) ??
-            recents.find(r => r.email === data.optionValue);
+        const match = visibleResults.find(r => r.email === data.optionValue) ??
+            visibleRecents.find(r => r.email === data.optionValue);
         if (match)
         {
             selectContact(match);
@@ -196,8 +281,10 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
     };
 
     const trimmedQuery = query.trim();
-    const hasExactEmailMatch = results.some(r => r.email.toLowerCase() === trimmedQuery.toLowerCase());
+    const normalizedQuery = normalizeEmail(trimmedQuery);
+    const hasExactEmailMatch = visibleResults.some(r => normalizeEmail(r.email) === normalizedQuery);
     const queryLooksLikeEmail = EMAIL_PATTERN.test(trimmedQuery);
+    const isOwnEmailQuery = isOwnEmail(trimmedQuery);
 
     const renderRecents = () =>
     {
@@ -205,7 +292,7 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
         {
             return <Spinner size="tiny" label="Loading recent contacts..."/>;
         }
-        if (recents.length === 0)
+        if (visibleRecents.length === 0)
         {
             return (
                 <Text size={200} italic>
@@ -215,7 +302,7 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
         }
         return (
             <div style={{display: 'flex', flexWrap: 'wrap', gap: '8px'}}>
-                {recents.map(c => (
+                {visibleRecents.map(c => (
                     <Button key={c.email}
                             size="small"
                             shape="circular"
@@ -246,7 +333,7 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
                             Searching...
                         </Option>
                     )}
-                    {!isSearching && results.map(r => (
+                    {!isSearching && visibleResults.map(r => (
                         <Option key={r.email}
                                 text={formatDisplayName(r)}
                                 value={r.email}>
@@ -259,7 +346,7 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
                             </span>
                         </Option>
                     ))}
-                    {!isSearching && queryLooksLikeEmail && !hasExactEmailMatch && (
+                    {!isSearching && queryLooksLikeEmail && !hasExactEmailMatch && !isOwnEmailQuery && (
                         <Option key="__send_as_new__"
                                 text={`Send to ${trimmedQuery} as a new recipient`}
                                 value="__send_as_new__">
@@ -267,6 +354,9 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
                         </Option>
                     )}
                 </Combobox>
+                {isOwnEmailQuery && (
+                    <Text size={200}>You cannot share with your own email address.</Text>
+                )}
             </Field>
 
             {showEmailFallback && (
@@ -275,6 +365,16 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
                     setNewRecipient={setNewRecipient}
                     newRecipient={newRecipient}
                     internalParticipants={internalParticipants}
+                    setInternalParticipants={setInternalParticipants}
+                />
+            )}
+
+            {recipientOrgUser && appUserPersonOrganization && (
+                <MyOrgRecipients
+                    orgUsers={orgUsers.filter(u => u.id !== appUser?.id && u.id !== recipientOrgUser.id)}
+                    isLoadingUsers={isLoadingUsers}
+                    selectedInternalRecipients={selectedInternalRecipients}
+                    setSelectedInternalParticipants={setSelectedInternalParticipants}
                     setInternalParticipants={setInternalParticipants}
                 />
             )}

@@ -33,7 +33,8 @@ const MyOrgRecipients: React.FC<{
 
         const newSelectedRecipients = [...data.selectedOptions].map(
             optionValue => orgUsers.find(user => user.id === optionValue)
-        ).filter(Boolean) as AppUserDetailedDto[];
+        ).filter(Boolean)
+            .filter(user => user.id !== appUser?.id) as AppUserDetailedDto[];
 
         console.log(newSelectedRecipients)
 
@@ -87,9 +88,6 @@ const MyOrgRecipients: React.FC<{
             user.person.firstName?.toLowerCase().includes(internalRecipientsInputValue.toLowerCase()) ||
             user.person.lastName?.toLowerCase().includes(internalRecipientsInputValue.toLowerCase()));
 
-    const labelledBy = selectedInternalRecipients.length > 0
-        ? `${comboId} ${selectedListId}`
-        : comboId;
 
     return (
         <>
