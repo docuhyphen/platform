@@ -210,6 +210,22 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
         width: "fit-content",
     },
 
+    pdfPagePlaceholder: {
+        boxSizing: "border-box",
+        backgroundColor: tokens.colorNeutralBackground3,
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderRadius: "2px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: tokens.colorNeutralForeground3,
+        fontSize: "12px",
+    },
+
+    fullscreenPreviewContainer: {
+        background: tokens.colorNeutralBackground1,
+    },
+
     enlargedReaderLayout: {
         display: "flex",
         flexDirection: "row",

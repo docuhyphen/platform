@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {Document, Page, pdfjs} from 'react-pdf';
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
@@ -11,6 +11,8 @@ import {
     CollapseIcon,
     ExpandIcon,
     FirstPageIcon,
+    FullScreenEnterIcon,
+    FullScreenExitIcon,
     LastPageIcon,
     NextPageIcon,
     PreviousPageIcon,
@@ -31,12 +33,25 @@ interface DocumentPreviewerProps
     onUploadDocument?: () => void;
 }
 
-const ENABLE_ENLARGED_THUMBNAIL_SIDEBAR = false;
 const INLINE_ZOOM_STORAGE_KEY = 'sharingSessions.preview.zoom.inline';
 const ENLARGED_ZOOM_STORAGE_KEY = 'sharingSessions.preview.zoom.enlarged';
 const DEFAULT_ZOOM_LEVEL = 1.0;
 const MIN_ZOOM_LEVEL = 0.5;
 const MAX_ZOOM_LEVEL = 2.0;
+
+// Default US-letter page dimensions used as a placeholder size until a page reports
+// its actual size. This keeps the scroll height stable so virtualization works smoothly.
+const DEFAULT_PAGE_WIDTH = 612;
+const DEFAULT_PAGE_HEIGHT = 792;
+
+// Virtualization buffer: number of pages above/below the viewport to keep rendered.
+const VIRTUALIZATION_BUFFER_PAGES = 2;
+
+interface PageDimensions
+{
+    width: number;
+    height: number;
+}
 
 const clampZoom = (value: number): number =>
 {
@@ -74,24 +89,42 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     }) =>
 {
     const styles = useSessionDocumentPreviewerStyles();
+    const sectionRef = useRef<HTMLElement>(null);
     const pdfContainerRef = useRef<HTMLDivElement>(null);
+    const pageElementsRef = useRef<Map<number, HTMLDivElement>>(new Map());
+    const intersectionObserverRef = useRef<IntersectionObserver | null>(null);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
     const [numPages, setNumPages] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [pageInput, setPageInput] = useState<string>('1');
     const [isEnlarged, setIsEnlarged] = useState<boolean>(false);
+    const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
     const [isClosingEnlarged, setIsClosingEnlarged] = useState<boolean>(false);
     const [inlineZoomLevel, setInlineZoomLevel] = useState<number>(() => readZoomPreference(INLINE_ZOOM_STORAGE_KEY));
     const [enlargedZoomLevel, setEnlargedZoomLevel] = useState<number>(() => readZoomPreference(ENLARGED_ZOOM_STORAGE_KEY));
     const [previewError, setPreviewError] = useState<string | null>(null);
     const [downloadingOriginal, setDownloadingOriginal] = useState<boolean>(false);
     const [isEditingPageInput, setIsEditingPageInput] = useState<boolean>(false);
+    const [visiblePages, setVisiblePages] = useState<Set<number>>(() => new Set([1]));
+    // Single representative page size; PDFs in the same document virtually always share dimensions.
+    const [pageDimensions, setPageDimensions] = useState<PageDimensions>({
+        width: DEFAULT_PAGE_WIDTH,
+        height: DEFAULT_PAGE_HEIGHT,
+    });
+
     const closeAnimationTimeoutRef = useRef<number | null>(null);
     const scrollTrackingRafRef = useRef<number | null>(null);
     const programmaticScrollTimeoutRef = useRef<number | null>(null);
     const isProgrammaticScrollRef = useRef(false);
-    const zoomLevel = isEnlarged ? enlargedZoomLevel : inlineZoomLevel;
+    // Tracks which PDF URL we last fired the "reset to page 1" logic for. When the
+    // <Document> remounts (e.g. when toggling enlarged/fullscreen, which changes the
+    // surrounding JSX tree) onDocumentLoadSuccess fires again with the *same* URL —
+    // we must NOT reset the user's current page in that case.
+    const lastLoadedUrlRef = useRef<string | null>(null);
 
+    const scale = isEnlarged ? enlargedZoomLevel : inlineZoomLevel;
+
+    // Cleanup all timers on unmount.
     useEffect(() =>
     {
         return () =>
@@ -100,21 +133,22 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
             {
                 window.clearTimeout(closeAnimationTimeoutRef.current);
             }
-
             if (scrollTrackingRafRef.current)
             {
                 window.cancelAnimationFrame(scrollTrackingRafRef.current);
             }
-
             if (programmaticScrollTimeoutRef.current)
             {
                 window.clearTimeout(programmaticScrollTimeoutRef.current);
             }
+            intersectionObserverRef.current?.disconnect();
         };
     }, []);
 
+    // Fetch / refresh the PDF blob whenever the underlying document changes.
     useEffect(() =>
     {
+        let revokedUrl: string | null = null;
         const fetchDocument = async () =>
         {
             if (sessionDocument?.uploadDate)
@@ -126,6 +160,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                     const response = await downloadPreviewPDFSharingSessionDocument(session.id, sessionDocument.id);
                     const blob = new Blob([response as Blob], {type: 'application/pdf'});
                     const url = URL.createObjectURL(blob);
+                    revokedUrl = url;
                     setPdfUrl(url);
                 }
                 catch (error: unknown)
@@ -146,6 +181,17 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         fetchDocument();
         setCurrentPage(1);
         setPageInput('1');
+        setVisiblePages(new Set([1]));
+        // Reset the "last loaded URL" guard so the new document is treated as fresh
+        // (and resets to page 1) rather than being mistaken for a remount of the previous one.
+        lastLoadedUrlRef.current = null;
+        return () =>
+        {
+            if (revokedUrl)
+            {
+                URL.revokeObjectURL(revokedUrl);
+            }
+        };
     }, [sessionDocument, session.id]);
 
     useEffect(() =>
@@ -159,6 +205,114 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         if (typeof window === 'undefined') return;
         window.localStorage.setItem(ENLARGED_ZOOM_STORAGE_KEY, String(enlargedZoomLevel));
     }, [enlargedZoomLevel]);
+
+    // Track real browser fullscreen state so we keep the UI in sync if the user presses ESC.
+    useEffect(() =>
+    {
+        const handleFullscreenChange = () =>
+        {
+            const active = window.document.fullscreenElement === sectionRef.current;
+            setIsFullscreen(active);
+            if (active)
+            {
+                setIsEnlarged(true);
+            }
+        };
+        window.document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () =>
+        {
+            window.document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        };
+    }, []);
+
+    // -------------------------------------------------------------------------
+    // Virtualization: only render <Page> components for pages near the viewport.
+    // We use a single IntersectionObserver attached to the scroll container,
+    // observing each page placeholder. When a placeholder intersects, we mark
+    // it (and a small buffer) as visible.
+    // -------------------------------------------------------------------------
+    useEffect(() =>
+    {
+        intersectionObserverRef.current?.disconnect();
+
+        const root = pdfContainerRef.current;
+        if (!root || numPages === 0)
+        {
+            return;
+        }
+
+        const observer = new IntersectionObserver(
+            (entries) =>
+            {
+                setVisiblePages((previous) =>
+                {
+                    const next = new Set(previous);
+                    let mutated = false;
+                    for (const entry of entries)
+                    {
+                        const target = entry.target as HTMLElement;
+                        const pageNumber = Number(target.getAttribute('data-page-number'));
+                        if (!pageNumber) continue;
+
+                        if (entry.isIntersecting)
+                        {
+                            for (let p = Math.max(1, pageNumber - VIRTUALIZATION_BUFFER_PAGES);
+                                 p <= Math.min(numPages, pageNumber + VIRTUALIZATION_BUFFER_PAGES);
+                                 p++)
+                            {
+                                if (!next.has(p))
+                                {
+                                    next.add(p);
+                                    mutated = true;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Keep rendered pages within the buffer range of currently-intersecting
+                            // pages; trim ones that are far away to free canvas memory.
+                            if (next.has(pageNumber)
+                                && Math.abs(pageNumber - currentPage) > VIRTUALIZATION_BUFFER_PAGES + 2)
+                            {
+                                next.delete(pageNumber);
+                                mutated = true;
+                            }
+                        }
+                    }
+                    return mutated ? next : previous;
+                });
+            },
+            {
+                root,
+                // Pre-load pages that are within ~1 viewport above/below.
+                rootMargin: '200% 0px 200% 0px',
+                threshold: 0,
+            }
+        );
+
+        intersectionObserverRef.current = observer;
+        pageElementsRef.current.forEach((el) => observer.observe(el));
+
+        return () =>
+        {
+            observer.disconnect();
+        };
+    }, [numPages, pdfUrl, currentPage]);
+
+    const registerPageRef = useCallback((pageNumber: number, element: HTMLDivElement | null) =>
+    {
+        const existing = pageElementsRef.current.get(pageNumber);
+        if (existing && existing !== element)
+        {
+            intersectionObserverRef.current?.unobserve(existing);
+            pageElementsRef.current.delete(pageNumber);
+        }
+        if (element)
+        {
+            pageElementsRef.current.set(pageNumber, element);
+            intersectionObserverRef.current?.observe(element);
+        }
+    }, []);
 
     const handleDownloadOriginal = async () =>
     {
@@ -189,15 +343,85 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     const onDocumentLoadSuccess = ({numPages}: { numPages: number }) =>
     {
         setNumPages(numPages);
-        setCurrentPage(1);
-        setPageInput('1');
+
+        // Only reset to page 1 when the underlying PDF actually changed. If onLoadSuccess
+        // fires for the *same* URL (the <Document> was just unmounted/remounted because the
+        // JSX tree changed when entering/leaving enlarged/fullscreen mode), preserve the
+        // user's current page and re-anchor scroll to it.
+        if (lastLoadedUrlRef.current !== pdfUrl)
+        {
+            lastLoadedUrlRef.current = pdfUrl;
+            setCurrentPage(1);
+            setPageInput('1');
+            setVisiblePages(new Set([1]));
+            return;
+        }
+
+        const restorePage = Math.min(Math.max(currentPage, 1), numPages);
+        setVisiblePages((previous) =>
+        {
+            const next = new Set(previous);
+            for (let p = Math.max(1, restorePage - VIRTUALIZATION_BUFFER_PAGES);
+                 p <= Math.min(numPages, restorePage + VIRTUALIZATION_BUFFER_PAGES);
+                 p++)
+            {
+                next.add(p);
+            }
+            return next;
+        });
+
+        // Wait two frames so the freshly-mounted page divs are in the DOM and have laid out
+        // before we scroll. Suppress the scroll listener's "snap to nearest" while we move.
+        isProgrammaticScrollRef.current = true;
+        if (programmaticScrollTimeoutRef.current)
+        {
+            window.clearTimeout(programmaticScrollTimeoutRef.current);
+        }
+        programmaticScrollTimeoutRef.current = window.setTimeout(() =>
+        {
+            isProgrammaticScrollRef.current = false;
+        }, 450);
+        window.requestAnimationFrame(() =>
+        {
+            window.requestAnimationFrame(() =>
+            {
+                pageElementsRef.current.get(restorePage)?.scrollIntoView({block: 'start'});
+            });
+        });
     };
 
-    const goToPage = (pageNumber: number) =>
+    const handlePageLoadSuccess = useCallback((pdfPage: { width: number; height: number }) =>
+    {
+        // Capture native (scale = 1.0) page dimensions once so all placeholders are correctly sized.
+        setPageDimensions((prev) =>
+        {
+            const isDefault = prev.width === DEFAULT_PAGE_WIDTH && prev.height === DEFAULT_PAGE_HEIGHT;
+            if (isDefault || Math.abs(prev.width - pdfPage.width) > 1 || Math.abs(prev.height - pdfPage.height) > 1)
+            {
+                return {width: pdfPage.width, height: pdfPage.height};
+            }
+            return prev;
+        });
+    }, []);
+
+    const goToPage = useCallback((pageNumber: number) =>
     {
         if (pageNumber >= 1 && pageNumber <= numPages)
         {
-            const pageElement = pdfContainerRef.current?.querySelector(`[data-page-number="${pageNumber}"]`);
+            // Eagerly mark the target page as visible so it renders by the time we scroll there.
+            setVisiblePages((previous) =>
+            {
+                const next = new Set(previous);
+                for (let p = Math.max(1, pageNumber - VIRTUALIZATION_BUFFER_PAGES);
+                     p <= Math.min(numPages, pageNumber + VIRTUALIZATION_BUFFER_PAGES);
+                     p++)
+                {
+                    next.add(p);
+                }
+                return next;
+            });
+
+            const pageElement = pageElementsRef.current.get(pageNumber);
 
             if (pageElement)
             {
@@ -210,13 +434,13 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                 {
                     isProgrammaticScrollRef.current = false;
                 }, 450);
-                pageElement.scrollIntoView({behavior: 'smooth'});
+                pageElement.scrollIntoView({behavior: 'smooth', block: 'start'});
             }
 
             setCurrentPage(pageNumber);
             setPageInput(String(pageNumber));
         }
-    };
+    }, [numPages]);
 
     const handlePageInputChange = (event: React.ChangeEvent<HTMLInputElement>) =>
     {
@@ -252,24 +476,20 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
             const container = pdfContainerRef.current;
             if (!container) return;
 
-            const pageElements = Array.from(container.querySelectorAll('[data-page-number]')) as HTMLElement[];
-            if (pageElements.length === 0) return;
-
             const containerRect = container.getBoundingClientRect();
             let nearestPage = currentPage;
             let nearestDistance = Number.POSITIVE_INFINITY;
 
-            for (const element of pageElements)
+            pageElementsRef.current.forEach((element, pageNumber) =>
             {
                 const rect = element.getBoundingClientRect();
                 const distance = Math.abs(rect.top - containerRect.top);
                 if (distance < nearestDistance)
                 {
                     nearestDistance = distance;
-                    const pageNumber = Number(element.getAttribute('data-page-number') || '1');
                     nearestPage = pageNumber;
                 }
-            }
+            });
 
             if (nearestPage !== currentPage)
             {
@@ -282,31 +502,70 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         });
     };
 
-    const handleNextPage = () =>
-    {
-        goToPage(currentPage + 1);
-    };
-
-    const handlePreviousPage = () =>
-    {
-        goToPage(currentPage - 1);
-    };
+    const handleNextPage = () => goToPage(currentPage + 1);
+    const handlePreviousPage = () => goToPage(currentPage - 1);
 
     const toggleEnlarge = () =>
     {
         if (isEnlarged)
         {
             if (isClosingEnlarged) return;
+            // Exit browser fullscreen first if it was active.
+            if (window.document.fullscreenElement)
+            {
+                window.document.exitFullscreen().catch(() => { /* noop */ });
+            }
             setIsClosingEnlarged(true);
             closeAnimationTimeoutRef.current = window.setTimeout(() =>
             {
                 setIsEnlarged(false);
                 setIsClosingEnlarged(false);
+                // Re-anchor scroll to the current page in the new layout on the next frame.
+                window.requestAnimationFrame(() =>
+                {
+                    const el = pageElementsRef.current.get(currentPage);
+                    el?.scrollIntoView({block: 'start'});
+                });
             }, 220);
             return;
         }
 
         setIsEnlarged(true);
+        // Re-anchor scroll to the current page after the enlarged layout mounts.
+        window.requestAnimationFrame(() =>
+        {
+            window.requestAnimationFrame(() =>
+            {
+                const el = pageElementsRef.current.get(currentPage);
+                el?.scrollIntoView({block: 'start'});
+            });
+        });
+    };
+
+    const toggleFullscreen = async () =>
+    {
+        const root = sectionRef.current;
+        if (!root) return;
+
+        try
+        {
+            if (window.document.fullscreenElement)
+            {
+                await window.document.exitFullscreen();
+            }
+            else
+            {
+                if (!isEnlarged)
+                {
+                    setIsEnlarged(true);
+                }
+                await root.requestFullscreen();
+            }
+        }
+        catch (err)
+        {
+            console.warn('Fullscreen request failed:', err);
+        }
     };
 
     const setActiveZoomLevel = (nextZoomLevel: number) =>
@@ -317,117 +576,185 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
             setEnlargedZoomLevel(clamped);
             return;
         }
-
         setInlineZoomLevel(clamped);
     };
 
-    const handleZoomIn = () =>
-    {
-        setActiveZoomLevel(zoomLevel + 0.1);
-    };
+    const handleZoomIn = () => setActiveZoomLevel(scale + 0.1);
+    const handleZoomOut = () => setActiveZoomLevel(scale - 0.1);
+    const handleResetZoom = () => setActiveZoomLevel(DEFAULT_ZOOM_LEVEL);
 
-    const handleZoomOut = () =>
-    {
-        setActiveZoomLevel(zoomLevel - 0.1);
-    };
+    // Memoized scaled placeholder dimensions, so resizing doesn't re-create style objects per-page.
+    const placeholderStyle = useMemo<React.CSSProperties>(() => ({
+        width: `${pageDimensions.width * scale}px`,
+        height: `${pageDimensions.height * scale}px`,
+    }), [pageDimensions, scale]);
 
-    const handleResetZoom = () =>
+    const renderPdfBody = () =>
     {
-        setActiveZoomLevel(DEFAULT_ZOOM_LEVEL);
-    };
+        if (previewError)
+        {
+            return (
+                <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '12px',
+                    padding: '32px',
+                    textAlign: 'center'
+                }}>
+                    <Text size={500} weight={"semibold"}>Preview unavailable</Text>
+                    <Text size={300}>{previewError}</Text>
+                    <Button appearance="primary"
+                            id="session-document-preview-download-original"
+                            shape="circular"
+                            disabled={downloadingOriginal}
+                            onClick={handleDownloadOriginal}>
+                        {downloadingOriginal ? 'Preparing download...' : 'Download original'}
+                    </Button>
+                </div>
+            );
+        }
 
-    const renderMainDocumentContent = () =>
-    {
-        return (
-            <>
-                {pdfUrl && !previewError && (
-                    <Document
-                        className={isEnlarged ? styles.enlargedPdfDocument : styles.pdfDocument}
-                        file={pdfUrl}
-                        loading={
-                            <div className={styles.pdfLoadingContainer}>
-                                <Spinner size="small"/>
-                                <Text size={300} className={styles.pdfLoadingText}>Loading PDF...</Text>
-                            </div>
-                        }
-                        onLoadSuccess={onDocumentLoadSuccess}
-                        onLoadError={(error) =>
-                        {
-                            console.error("Failed to load PDF:", error);
-                            setPreviewError("The preview could not be rendered. You can still download the original file.");
-                        }}
-                    >
-                        {numPages > 0 && (
-                            <div className={styles.pdfPagesStack}>
-                                {Array.from({length: numPages}, (_, index) =>
-                                {
-                                    const pageNumber = index + 1;
-                                    return (
-                                        <div key={`page-${pageNumber}`} data-page-number={pageNumber} className={styles.pdfPageItem}>
-                                            <Page
-                                                className={styles.pdfPageAnimated}
-                                                pageNumber={pageNumber}
-                                                scale={isEnlarged ? zoomLevel * 1.1 : zoomLevel}
-                                            />
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </Document>
-                )}
-                {previewError && (
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '12px',
-                        padding: '32px',
-                        textAlign: 'center'
-                    }}>
-                        <Text size={500} weight={"semibold"}>Preview unavailable</Text>
-                        <Text size={300}>{previewError}</Text>
-                        <Button appearance="primary"
-                                id="session-document-preview-download-original"
-                                shape="circular"
-                                disabled={downloadingOriginal}
-                                onClick={handleDownloadOriginal}>
-                            {downloadingOriginal ? 'Preparing download...' : 'Download original'}
+        if (!pdfUrl && !sessionDocument?.uploadDate)
+        {
+            return (
+                <div className={styles.previewEmptyState}>
+                    <Text size={500} weight={"semibold"}>No file uploaded yet</Text>
+                    <Text size={300} className={styles.previewEmptySubText}>
+                        Upload a file for <b>{sessionDocument.title}</b> to start previewing.
+                    </Text>
+                    {canUploadDocument && (
+                        <Button id="session-document-preview-upload-empty-cta" appearance="primary" shape="circular"
+                                onClick={onUploadDocument}>
+                            Upload document
                         </Button>
-                    </div>
-                )}
-
-                {!previewError && !pdfUrl && !sessionDocument?.uploadDate && (
-                    <div className={styles.previewEmptyState}>
-                        <Text size={500} weight={"semibold"}>No file uploaded yet</Text>
-                        <Text size={300} className={styles.previewEmptySubText}>
-                            Upload a file for <b>{sessionDocument.title}</b> to start previewing.
+                    )}
+                    {!canUploadDocument && (
+                        <Text size={200} className={styles.previewEmptySubText}>
+                            You do not have permission to upload this document.
                         </Text>
-                        {canUploadDocument && (
-                            <Button id="session-document-preview-upload-empty-cta" appearance="primary" shape="circular" onClick={onUploadDocument}>
-                                Upload document
-                            </Button>
-                        )}
-                        {!canUploadDocument && (
-                            <Text size={200} className={styles.previewEmptySubText}>
-                                You do not have permission to upload this document.
-                            </Text>
-                        )}
+                    )}
+                </div>
+            );
+        }
+
+        if (!pdfUrl)
+        {
+            return (
+                <div className={styles.pdfLoadingContainer}>
+                    <Spinner size="small"/>
+                    <Text size={300} className={styles.pdfLoadingText}>Loading PDF...</Text>
+                </div>
+            );
+        }
+
+        return (
+            <Document
+                className={styles.pdfDocument}
+                file={pdfUrl}
+                loading={
+                    <div className={styles.pdfLoadingContainer}>
+                        <Spinner size="small"/>
+                        <Text size={300} className={styles.pdfLoadingText}>Loading PDF...</Text>
+                    </div>
+                }
+                onLoadSuccess={onDocumentLoadSuccess}
+                onLoadError={(error) =>
+                {
+                    console.error("Failed to load PDF:", error);
+                    setPreviewError("The preview could not be rendered. You can still download the original file.");
+                }}
+            >
+                {numPages > 0 && (
+                    <div className={styles.pdfPagesStack}>
+                        {Array.from({length: numPages}, (_, index) =>
+                        {
+                            const pageNumber = index + 1;
+                            const isVisible = visiblePages.has(pageNumber);
+                            return (
+                                <div key={`page-${pageNumber}`}
+                                     data-page-number={pageNumber}
+                                     ref={(el) => registerPageRef(pageNumber, el)}
+                                     className={styles.pdfPageItem}>
+                                    {isVisible ? (
+                                        <Page
+                                            className={styles.pdfPageAnimated}
+                                            pageNumber={pageNumber}
+                                            scale={scale}
+                                            onLoadSuccess={handlePageLoadSuccess}
+                                            loading={
+                                                <div className={styles.pdfPagePlaceholder} style={placeholderStyle}>
+                                                    Loading page {pageNumber}…
+                                                </div>
+                                            }
+                                        />
+                                    ) : (
+                                        // Off-screen page: still render as a <Page> so it stays
+                                        // registered with react-pdf's LinkService (otherwise internal
+                                        // PDF links / TOC clicks to this page would silently no-op).
+                                        // `renderMode="none"` skips the expensive canvas paint, and we
+                                        // disable text + annotation layers — the page becomes essentially
+                                        // free while still being a proper navigation target.
+                                        <Page
+                                            pageNumber={pageNumber}
+                                            scale={scale}
+                                            renderMode="none"
+                                            renderTextLayer={false}
+                                            renderAnnotationLayer={false}
+                                            onLoadSuccess={handlePageLoadSuccess}
+                                            loading={
+                                                <div className={styles.pdfPagePlaceholder} style={placeholderStyle}>
+                                                    Page {pageNumber}
+                                                </div>
+                                            }
+                                        />
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
-            </>
+            </Document>
         );
     };
 
+    // Stable JSX structure: same DOM tree regardless of `isEnlarged`, only class names swap.
+    // This keeps the <Document> and rendered <Page> canvases mounted across the transition
+    // so we never see a blank flash when entering/leaving the enlarged/fullscreen view.
+    const sectionClassName = mergeClasses(
+        isEnlarged ? styles.enlargedPreviewContainer : styles.previewContainer,
+        isEnlarged && isClosingEnlarged && styles.enlargedPreviewContainerClosing,
+        isFullscreen && styles.fullscreenPreviewContainer,
+    );
+
+    const headerClassName = mergeClasses(
+        isEnlarged ? styles.enlargedPreviewHeader : styles.previewHeader,
+        isEnlarged && isClosingEnlarged && styles.enlargedPreviewHeaderClosing,
+    );
+
+    const documentShellClassName = isEnlarged
+        ? mergeClasses(styles.enlargedPdfDocumentContainer, isClosingEnlarged && styles.enlargedPdfDocumentContainerClosing)
+        : undefined;
+
+    const scrollPaneClassName = isEnlarged ? styles.mainDocumentPane : styles.pdfDocumentContainer;
+
+    // The actual scroll pane. Kept in a local variable so both render paths render
+    // *the same* element (same ref, same children), maximising the chance React
+    // will reconcile rather than remount when only the surrounding wrappers change.
+    const scrollPane = (
+        <div
+            id="session-document-preview-main-panel"
+            ref={pdfContainerRef}
+            onScroll={handlePdfScroll}
+            className={scrollPaneClassName}>
+            {renderPdfBody()}
+        </div>
+    );
+
     return (
-        <section className={isEnlarged
-            ? mergeClasses(styles.enlargedPreviewContainer, isClosingEnlarged && styles.enlargedPreviewContainerClosing)
-            : styles.previewContainer}
-                 id={"enlargedPreviewContainer"}>
-            <div className={isEnlarged
-                ? mergeClasses(styles.enlargedPreviewHeader, isClosingEnlarged && styles.enlargedPreviewHeaderClosing)
-                : styles.previewHeader}>
+        <section ref={sectionRef} className={sectionClassName} id={"enlargedPreviewContainer"}>
+            <div className={headerClassName}>
                 {isEnlarged && (
                     <div className={styles.documentName}>
                         <Text size={200}>{session.sessionName}</Text>
@@ -437,10 +764,19 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                 <div className={isEnlarged ? styles.enlargedPreviewHeaderActions : styles.previewHeaderActions}>
                     {!isEnlarged && (
                         <>
-                            <Button onClick={toggleEnlarge}
-                                    id="session-document-preview-expand"
-                                    appearance="transparent"
-                                    icon={isEnlarged ? <CollapseIcon/> : <ExpandIcon/>}/>
+                            <Tooltip content="Enlarge" relationship="description">
+                                <Button onClick={toggleEnlarge}
+                                        id="session-document-preview-expand"
+                                        appearance="transparent"
+                                        icon={<ExpandIcon/>}/>
+                            </Tooltip>
+
+                            <Tooltip content="Fullscreen" relationship="description">
+                                <Button onClick={toggleFullscreen}
+                                        id="session-document-preview-fullscreen-inline"
+                                        appearance="transparent"
+                                        icon={<FullScreenEnterIcon/>}/>
+                            </Tooltip>
 
                             <Divider vertical style={{height: "100%"}}/>
 
@@ -455,7 +791,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                                         icon={<ResetZoomIcon/>}
                                         shape={"circular"}
                                         appearance="outline">
-                                    {Math.round(zoomLevel * 100)}%
+                                    {Math.round(scale * 100)}%
                                 </Button>
                             </Tooltip>
 
@@ -533,7 +869,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                                         icon={<ResetZoomIcon/>}
                                         shape={"circular"}
                                         appearance="outline">
-                                    {Math.round(zoomLevel * 100)}%
+                                    {Math.round(scale * 100)}%
                                 </Button>
                             </Tooltip>
 
@@ -544,78 +880,41 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
 
                             <Divider vertical style={{height: "100%"}}/>
 
+                            <Tooltip content={isFullscreen ? "Exit fullscreen" : "Fullscreen"} relationship="description">
+                                <Button onClick={toggleFullscreen}
+                                        id="session-document-preview-fullscreen-enlarged"
+                                        appearance="transparent"
+                                        icon={isFullscreen ? <FullScreenExitIcon/> : <FullScreenEnterIcon/>}/>
+                            </Tooltip>
+
                             <Tooltip content="Exit" relationship="description">
                                 <Button onClick={toggleEnlarge}
                                         id="session-document-preview-exit-enlarged"
                                         appearance="transparent"
-                                        icon={isEnlarged ? <CollapseIcon/> : <ExpandIcon/>}/>
+                                        icon={<CollapseIcon/>}/>
                             </Tooltip>
                         </>
                     )}
                 </div>
             </div>
 
+            {/*
+              * Two render paths so that inline mode mirrors the original (proven) DOM
+              * layout exactly — a single scroll pane as a direct flex child of <section>.
+              * The enlarged mode adds the reader-layout wrappers (which previously had a
+              * thumbnail sidebar slot, now disabled). Toggling modes does briefly remount
+              * the <Document>, but with virtualization only the visible page(s) re-render,
+              * which is fast and barely noticeable.
+              */}
             {isEnlarged ? (
-                <div
-                    className={mergeClasses(styles.enlargedPdfDocumentContainer, isClosingEnlarged && styles.enlargedPdfDocumentContainerClosing)}
-                    id="pdfDocumentContainer">
-                    <div className={styles.enlargedReaderLayout} id="session-document-preview-reader-layout">
-                        {ENABLE_ENLARGED_THUMBNAIL_SIDEBAR && (
-                            <aside className={styles.thumbnailSidebar} id="session-document-preview-thumbnail-sidebar">
-                                {pdfUrl && !previewError && numPages > 0 && (
-                                    <Document file={pdfUrl}>
-                                        {Array.from({length: numPages}, (_, index) =>
-                                        {
-                                            const pageNumber = index + 1;
-                                            return (
-                                                <button
-                                                    id={`session-document-preview-thumbnail-${pageNumber}`}
-                                                    key={`thumb-${pageNumber}`}
-                                                    type="button"
-                                                    className={mergeClasses(
-                                                        styles.thumbnailPageButton,
-                                                        currentPage === pageNumber && styles.thumbnailPageButtonActive,
-                                                    )}
-                                                    onClick={() => goToPage(pageNumber)}>
-                                                    <div className={styles.thumbnailPagePreview}>
-                                                        <Page
-                                                            pageNumber={pageNumber}
-                                                            width={130}
-                                                            renderTextLayer={false}
-                                                            renderAnnotationLayer={false}
-                                                        />
-                                                    </div>
-                                                    <Text size={200} className={styles.thumbnailPageNumber}>Page {pageNumber}</Text>
-                                                </button>
-                                            );
-                                        })}
-                                    </Document>
-                                )}
-                                {!previewError && pdfUrl && numPages === 0 && (
-                                    <Text size={200} className={styles.thumbnailSidebarEmpty}>Preparing page previews...</Text>
-                                )}
-                                {!previewError && !pdfUrl && (
-                                    <Text size={200} className={styles.thumbnailSidebarEmpty}>No page previews yet.</Text>
-                                )}
-                            </aside>
-                        )}
-                        <div
-                            id="session-document-preview-main-panel"
-                            ref={pdfContainerRef}
-                            onScroll={handlePdfScroll}
-                            className={styles.mainDocumentPane}>
-                            {renderMainDocumentContent()}
-                        </div>
+                <div className={documentShellClassName} id="pdfDocumentContainer">
+                    <div className={styles.enlargedReaderLayout}
+                         id="session-document-preview-reader-layout">
+                        {scrollPane}
                     </div>
                 </div>
             ) : (
-                <div
-                    className={styles.pdfDocumentContainer}
-                    id="pdfDocumentContainer"
-                    ref={pdfContainerRef}
-                    onScroll={handlePdfScroll}>
-                    {renderMainDocumentContent()}
-                </div>
+                scrollPane
             )}
         </section>
     );

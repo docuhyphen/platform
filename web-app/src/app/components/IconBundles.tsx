@@ -74,6 +74,10 @@ import {
     DocumentSearchRegular,
     FilterFilled,
     FilterRegular,
+    FullScreenMaximizeFilled,
+    FullScreenMaximizeRegular,
+    FullScreenMinimizeFilled,
+    FullScreenMinimizeRegular,
     FolderZipFilled,
     FolderZipRegular,
     InfoFilled,
@@ -168,3 +172,5 @@ export const DocumentsIcon = bundleIcon(DocumentBulletListMultipleFilled, Docume
 export const OptionsIcon = bundleIcon(OptionsFilled, OptionsRegular)
 export const CollapseSessionListSidebarIcon = bundleIcon(ChevronDoubleLeftFilled, ChevronDoubleLeftRegular)
 export const ExpandSessionListSidebarIcon = bundleIcon(ChevronDoubleRightFilled, ChevronDoubleRightRegular)
+export const FullScreenEnterIcon = bundleIcon(FullScreenMaximizeFilled, FullScreenMaximizeRegular)
+export const FullScreenExitIcon = bundleIcon(FullScreenMinimizeFilled, FullScreenMinimizeRegular)
