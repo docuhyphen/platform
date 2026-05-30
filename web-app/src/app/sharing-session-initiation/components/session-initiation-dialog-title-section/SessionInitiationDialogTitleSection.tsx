@@ -1,8 +1,9 @@
 import React from 'react';
-import {Button, Tab, TabList, TabValue, Text} from "@fluentui/react-components";
+import {Button, Tab, TabList, TabValue, Text, Tooltip} from "@fluentui/react-components";
 import {DismissRegular} from "@fluentui/react-icons";
 import {useSharingSessionInitiationStyles} from "../../SharingSessionInitiationStyles.tsx";
 import {DetailsIcon, DocumentsIcon, OptionsIcon, RecipientsIcon} from "../../../components/IconBundles.tsx";
+import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
 
 interface DialogTitleSectionProps
 {
@@ -13,6 +14,21 @@ interface DialogTitleSectionProps
     selectedTab: TabValue;
     onTabSelect: (event: any, data: any) => void;
 }
+
+/**
+ * Labels for each tab. Used in two places:
+ * - As the visible tab label on tablet/desktop.
+ * - As an h-level title rendered ABOVE the tab content on mobile, where
+ *   the tabs themselves collapse to icon-only buttons to fit narrow
+ *   viewports (long labels like "Recipients & Participants" would
+ *   otherwise overflow horizontally with no scroll affordance).
+ */
+const TAB_LABELS: Record<string, string> = {
+    "recipients-tab": "Recipients & Participants",
+    "details-tab": "Details",
+    "documents-tab": "Documents",
+    "options-tab": "Options",
+};
 
 const SessionInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = (
     {
@@ -25,6 +41,27 @@ const SessionInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = (
     }) =>
 {
     const styles = useSharingSessionInitiationStyles();
+    const isMobile = useIsMobile();
+
+    const selectedTabLabel = TAB_LABELS[String(selectedTab)] ?? '';
+
+    const renderTab = (id: string, value: string, icon: React.ReactNode) =>
+    {
+        const label = TAB_LABELS[value];
+        // Mobile: render only the icon (with a tooltip so the label is
+        // still discoverable). Desktop/tablet: render icon + label.
+        if (isMobile)
+        {
+            return (
+                <Tooltip content={label} relationship="label">
+                    <Tab id={id} icon={icon} value={value} aria-label={label}/>
+                </Tooltip>
+            );
+        }
+        return (
+            <Tab id={id} icon={icon} value={value}>{label}</Tab>
+        );
+    };
 
     return (
         <>
@@ -34,17 +71,6 @@ const SessionInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = (
                         {(requestingDocuments) ? "Request" : "Send "} Documents
                     </Text>
                 }
-                {/*<Button size={"small"}>*/}
-                {/*    Generate with AI*/}
-                {/*</Button>*/}
-                {/*{(!choosingTemplate && !sessionInitiatedSuccessfully) &&*/}
-                {/*    <Button appearance={"outline"}*/}
-                {/*            shape={"circular"}*/}
-                {/*            size={"small"}*/}
-                {/*            onClick={() => setChoosingTemplate(true)}>*/}
-                {/*        Choose Template*/}
-                {/*    </Button>*/}
-                {/*}*/}
                 {choosingTemplate &&
                     <Button appearance={"primary"}
                             shape={"circular"}
@@ -56,20 +82,19 @@ const SessionInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = (
             </div>
             {choosingTemplate && <div>Choosing Template</div>}
             {(!choosingTemplate && !sessionInitiatedSuccessfully) &&
-                <TabList selectedValue={selectedTab} onTabSelect={onTabSelect}>
-                    <Tab id="recipients" icon={<RecipientsIcon/>} value="recipients-tab">
-                        Recipients & Participants
-                    </Tab>
-                    <Tab id="details" icon={<DetailsIcon/>} value="details-tab">
-                        Details
-                    </Tab>
-                    <Tab id="documents" icon={<DocumentsIcon/>} value="documents-tab">
-                        Documents
-                    </Tab>
-                    <Tab id="options" icon={<OptionsIcon/>} value="options-tab">
-                        Options
-                    </Tab>
-                </TabList>
+                <>
+                    <TabList selectedValue={selectedTab} onTabSelect={onTabSelect}>
+                        {renderTab("recipients", "recipients-tab", <RecipientsIcon/>)}
+                        {renderTab("details", "details-tab", <DetailsIcon/>)}
+                        {renderTab("documents", "documents-tab", <DocumentsIcon/>)}
+                        {renderTab("options", "options-tab", <OptionsIcon/>)}
+                    </TabList>
+                    {isMobile && selectedTabLabel && (
+                        <Text size={400} weight={"semibold"} className={styles.mobileSelectedTabTitle}>
+                            {selectedTabLabel}
+                        </Text>
+                    )}
+                </>
             }
         </>
     );

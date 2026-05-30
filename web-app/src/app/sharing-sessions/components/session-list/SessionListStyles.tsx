@@ -83,7 +83,20 @@ const useSharingSessionStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
+        // Include the 1px border in the width calc so `width: 100%` on
+        // mobile doesn't render 2px wider than the parent (which was
+        // causing horizontal overflow / a sliver of scrollable space).
+        boxSizing: "border-box",
         transition: "width 220ms ease, min-width 220ms ease, max-width 220ms ease",
+        // Phones: fill the available width. The desktop collapse/hover
+        // mechanic isn't useful here because we swap panes entirely
+        // (see SharingSessionsStyles containerMobileShowing* classes).
+        "@media (max-width: 768px)": {
+            width: "100%",
+            minWidth: 0,
+            maxWidth: "100%",
+            flex: 1,
+        },
     },
 
     sharingSessionsListContainerCollapsed: {
@@ -98,7 +111,16 @@ const useSharingSessionStyles = makeStyles({
         background: tokens.colorNeutralBackground1,
         display: "flex",
         flexDirection: "column",
+        boxSizing: "border-box",
         transition: "width 220ms ease, min-width 220ms ease, max-width 220ms ease",
+        // Collapsed sidebar is a desktop affordance: don't try to render
+        // a 45px-wide column on a phone, expand back to full width.
+        "@media (max-width: 768px)": {
+            width: "100%",
+            minWidth: 0,
+            maxWidth: "100%",
+            flex: 1,
+        },
     },
 
     sharingSessionsListHeader: {
@@ -120,7 +142,12 @@ const useSharingSessionStyles = makeStyles({
         width: "100%",
         padding: "8px",
         borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-        boxSizing: "border-box"
+        boxSizing: "border-box",
+        // Allow flex children inside this card to shrink (the text rows
+        // would otherwise force the card wider than the sidebar on
+        // narrow viewports, producing the overflow scroll bar).
+        minWidth: 0,
+        overflow: "hidden",
     },
 
     listCardLastChild: {
@@ -160,7 +187,12 @@ const useSharingSessionStyles = makeStyles({
         scrollbarWidth: "thin",
         scrollbarColor: `${tokens.colorNeutralForeground3} ${tokens.colorNeutralBackground2}`,
         flex: 1,
-        minWidth: "380px"
+        minWidth: "380px",
+        // Drop the 380px minWidth on phones, otherwise the list scrolls
+        // horizontally inside a narrow viewport.
+        "@media (max-width: 768px)": {
+            minWidth: 0,
+        },
     },
 
     sharingSessionsListBodyWebkitScrollbar: {
@@ -186,7 +218,11 @@ const useSharingSessionStyles = makeStyles({
         flexDirection: "row",
         gap: "12px",
         boxSizing: "border-box",
-        maxWidth: "100%"
+        maxWidth: "100%",
+        // Without min-width: 0, the inner text rows (with whiteSpace:
+        // nowrap) would expand the row past the sidebar's width on
+        // narrow viewports instead of truncating with ellipsis.
+        minWidth: 0,
     },
 
     listCardItemDetails: {
@@ -194,7 +230,11 @@ const useSharingSessionStyles = makeStyles({
         flexDirection: "column",
         gap: "4px",
         flex: 1,
-        width: "calc(100% - 86px)"
+        // calc(100% - 86px) was the original intent (avatar + gap budget),
+        // but combined with a flex item that can't shrink it overflowed
+        // narrow containers. Use flex: 1 + min-width: 0 so the column
+        // takes whatever room the avatar leaves and lets text truncate.
+        minWidth: 0,
     },
 
     listCardItemRow: {

@@ -15,6 +15,7 @@ import SessionListSidebarToggle from "./session-list-sidebar-toggle/SessionListS
 import SessionListSearchControls from "./session-list-search-controls/SessionListSearchControls.tsx";
 import SessionListPagination from "./session-list-pagination/SessionListPagination.tsx";
 import SessionListTabs, {SessionListTab} from "./session-list-tabs/SessionListTabs.tsx";
+import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sharingSessions.sidebar.isCollapsed';
 
@@ -91,6 +92,7 @@ const SessionList: React.FC<SharingSessionListProps> = (
     }) =>
 {
     const styles = useSharingSessionStyles();
+    const isMobile = useIsMobile();
     const [sharingSessions, setSharingSessions] = useState<SharingSessionBasicDto[]>([]);
     const [loadingSharingSessions, setLoadingSharingSessions] = useState(true);
     const [showLoadingState, setShowLoadingState] = useState(false);
@@ -226,7 +228,15 @@ const SessionList: React.FC<SharingSessionListProps> = (
                     setArchiveCount(response.totalElements);
                 }
 
-                if (response.content.length > 0 && selectedItems.length === 0)
+                // Desktop convenience: pre-select the first session so the
+                // details pane isn't blank when a tab loads. On mobile we use
+                // a master/detail navigation (the list is hidden as soon as a
+                // session is selected), so auto-selecting the first item
+                // would hide the just-loaded list before the user can even
+                // see it — they'd be unable to pick a different session
+                // without first hitting "back". Skip the auto-selection
+                // entirely on phones and let the user tap to choose.
+                if (response.content.length > 0 && selectedItems.length === 0 && !isMobile)
                 {
                     setSelectedItems([response.content[0].id]);
                     onSelectionChange(response.content[0].id);
@@ -590,7 +600,13 @@ const SessionList: React.FC<SharingSessionListProps> = (
     const hasActiveFilters = !!searchQuery || selectedInitiator !== null;
     const isInboxMode = activeTab === 'inbox';
     const requestsCount = incomingCount + outgoingCount;
-    const isSidebarVisuallyCollapsed = isSidebarCollapsed && !isSidebarHoverExpanded;
+    // The collapse/expand sidebar affordance only makes sense on tablet
+    // and larger viewports where the list shares horizontal space with
+    // the details pane. On phones we use a master-detail navigation, so
+    // collapsing the list to a 2.8rem rail has no value and would just
+    // confuse users. Force the sidebar fully expanded on mobile and hide
+    // its toggle button further down.
+    const isSidebarVisuallyCollapsed = !isMobile && isSidebarCollapsed && !isSidebarHoverExpanded;
 
     return (
         <section
@@ -680,9 +696,11 @@ const SessionList: React.FC<SharingSessionListProps> = (
             )}
 
             <div className={styles.sharingSessionsListFooter}>
-                <SessionListSidebarToggle
-                    isSidebarCollapsed={isSidebarCollapsed}
-                    toggleSidebar={toggleSidebar}/>
+                {!isMobile && (
+                    <SessionListSidebarToggle
+                        isSidebarCollapsed={isSidebarCollapsed}
+                        toggleSidebar={toggleSidebar}/>
+                )}
                 {!isSidebarVisuallyCollapsed && (
                     <>
                         <SessionListPagination

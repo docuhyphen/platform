@@ -8,7 +8,6 @@ import {
     DialogSurface,
     DialogTitle,
     Menu,
-    MenuButton,
     MenuItem,
     MenuList,
     MenuPopover,
@@ -98,12 +97,23 @@ const MainMenu: React.FC = () =>
             {/*</Button>*/}
             <Menu>
                 <MenuTrigger disableButtonEnhancement>
-                    <MenuButton appearance="transparent"
-                                title={appUser?.email}>
+                    {/*
+                      Use a plain Button (not MenuButton) so no dropdown
+                      chevron is rendered. The Persona inside shows the
+                      avatar + name/email on desktop; on phones our
+                      `mainHeaderPersona` style hides the text so the
+                      button collapses to a square avatar that matches
+                      the surrounding icon buttons.
+                    */}
+                    <Button appearance="subtle"
+                            shape="circular"
+                            className={styles.mainHeaderPersona}
+                            aria-label={appUser?.email ? `Account menu for ${appUser.email}` : "Account menu"}
+                            title={appUser?.email}>
                         <Persona
                             name={`${appUser?.person?.firstName} ${appUser?.person?.lastName}`}
                             secondaryText={formatEmailForDisplay(appUser?.email)}/>
-                    </MenuButton>
+                    </Button>
                 </MenuTrigger>
 
                 <MenuPopover>

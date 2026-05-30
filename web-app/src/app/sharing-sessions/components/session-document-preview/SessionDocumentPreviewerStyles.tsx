@@ -4,6 +4,14 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
     documentName: {
         display: "flex",
         flexDirection: "column",
+        minWidth: 0,
+        // Phones (enlarged reader): center the title block to match
+        // the stacked column layout of the enlarged header.
+        "@media (max-width: 768px)": {
+            alignItems: "center",
+            textAlign: "center",
+            width: "100%",
+        },
     },
 
     previewContainer: {
@@ -15,6 +23,12 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
         maxWidth: "100%",
         margin: "0 auto",
         minHeight: 0,
+        // Without min-width: 0 the previewer (which is a flex item itself
+        // inside documentsSection) would grow to its intrinsic content
+        // width on narrow viewports, pushing the whole page horizontally.
+        minWidth: 0,
+        width: "100%",
+        boxSizing: "border-box",
     },
 
     previewHeader: {
@@ -24,6 +38,13 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
         marginBottom: "8px",
         justifyContent: "center",
         alignItems: "center",
+        width: "100%",
+        minWidth: 0,
+        boxSizing: "border-box",
+        "@media (max-width: 768px)": {
+            padding: "4px",
+            marginBottom: "4px",
+        },
     },
 
     previewHeaderActions: {
@@ -31,19 +52,51 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
         flexDirection: "row-reverse",
         justifyContent: "space-between",
         flex: 1,
+        // Wrap the toolbar onto multiple rows when there isn't enough
+        // horizontal room. This is what makes the preview controls
+        // usable on phones / split panes.
+        flexWrap: "wrap",
+        gap: "4px",
+        alignItems: "center",
+        maxWidth: "100%",
+        minWidth: 0,
+        "@media (max-width: 768px)": {
+            justifyContent: "center",
+            // row-reverse plus wrap on a narrow viewport reads oddly
+            // (groups appear in reverse order on the new line); use a
+            // normal row direction on phones so wrapped controls flow
+            // top-to-bottom, left-to-right.
+            flexDirection: "row",
+            rowGap: "4px",
+        },
     },
 
     pdfDocumentContainer: {
         flex: "1",
         background: tokens.colorNeutralBackground1,
         border: `1px solid ${tokens.colorNeutralStroke2}`,
+        // overflow: auto so a wider-than-viewport PDF page can scroll
+        // horizontally inside the container rather than pushing the
+        // sidebar/page out of view.
         overflow: "auto",
         maxWidth: "100%",
         margin: "0 auto",
         minWidth: "480px",
         minHeight: 0,
         padding: "16px",
-        boxSizing: "border-box"
+        boxSizing: "border-box",
+        width: "100%",
+        // Drop the 480px floor on phones (smallest viewports are ~360px);
+        // otherwise the previewer forces horizontal page scrolling.
+        "@media (max-width: 768px)": {
+            minWidth: 0,
+            padding: "8px",
+            // `pan-x pan-y pinch-zoom` keeps single-finger panning AND
+            // pinch-zoom working inside the scroll container. (Plain
+            // `pinch-zoom` disables panning, which made the PDF
+            // un-scrollable on phones.)
+            touchAction: "pan-x pan-y pinch-zoom",
+        },
     },
 
     pdfDocument: {},
@@ -79,6 +132,13 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
         },
         animationDuration: "220ms",
         animationTimingFunction: "cubic-bezier(0.2, 0, 0, 1)",
+        // Phones: drop all outer padding so the document area uses the
+        // full viewport width edge-to-edge. The header and scroll pane
+        // bring their own modest internal padding.
+        "@media (max-width: 768px)": {
+            padding: 0,
+            gap: 0,
+        },
     },
 
     enlargedPreviewContainerClosing: {
@@ -118,6 +178,16 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
         },
         animationDuration: "220ms",
         animationTimingFunction: "cubic-bezier(0.2, 0, 0, 1)",
+        // Phones: stack the title above the action toolbar and center
+        // both so the enlarged reader header reads cleanly on a narrow
+        // viewport (instead of squeezing the title and Exit button to
+        // opposite edges of a cramped row).
+        "@media (max-width: 768px)": {
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "8px",
+            padding: "10px 12px",
+        },
     },
 
     enlargedPreviewHeaderClosing: {
@@ -138,13 +208,20 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
     enlargedPreviewHeaderActions: {
         display: "flex",
         alignItems: "center",
-        gap: "4px"
+        gap: "4px",
+        flexWrap: "wrap",
+        justifyContent: "center",
+        maxWidth: "100%",
+        minWidth: 0,
     },
 
     pagesInputContainer: {
         display: "flex",
         alignItems: "center",
         gap: "2px",
+        // Keep the page-navigation cluster together; on tight viewports
+        // the surrounding toolbar wraps before this group is broken up.
+        flexShrink: 0,
     },
 
     enlargedPdfDocumentContainer: {
@@ -191,6 +268,14 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
         "& input": {
             width: "50px",
             textAlign: "right",
+        },
+        // Shrink the page-number field on phones; nobody types a 5-digit
+        // page number on mobile and the saved pixels help the cluster
+        // fit alongside the prev/next buttons without wrapping.
+        "@media (max-width: 768px)": {
+            "& input": {
+                width: "36px",
+            },
         },
     },
 
@@ -252,6 +337,12 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
         gap: "10px",
         zIndex: 1,
         boxShadow: `inset -1px 0 0 ${tokens.colorNeutralStroke2}`,
+        // Hide the thumbnail rail on phones - it would consume half the
+        // viewport and isn't usable at that width. Page navigation falls
+        // back to the page-number input in the toolbar.
+        "@media (max-width: 768px)": {
+            display: "none",
+        },
     },
 
     thumbnailSidebarEmpty: {
@@ -297,6 +388,14 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
         overflow: "auto",
         padding: "16px",
         boxSizing: "border-box",
+        // Phones (enlarged reader): zero out the padding so the page
+        // renders at the FULL viewport width, and allow native
+        // single-finger pan + pinch-zoom (parity with the inline
+        // mobile container).
+        "@media (max-width: 768px)": {
+            padding: 0,
+            touchAction: "pan-x pan-y pinch-zoom",
+        },
     },
 
     pdfPageAnimated: {

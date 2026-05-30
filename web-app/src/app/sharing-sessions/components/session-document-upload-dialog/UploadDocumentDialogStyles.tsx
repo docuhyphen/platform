@@ -6,6 +6,13 @@ export const useDocumentDialogStyles = makeStyles({
         flexDirection: "column",
         gap: "12px",
         minWidth: "420px",
+        boxSizing: "border-box",
+        // Phones: drop the 420px floor (smallest phones are ~320-360px),
+        // and let the dialog surface shrink to fit the viewport.
+        "@media (max-width: 768px)": {
+            minWidth: 0,
+            width: "100%",
+        },
     },
 
     uploadContainer: {
@@ -14,6 +21,7 @@ export const useDocumentDialogStyles = makeStyles({
         justifyContent: "space-between",
         gap: "8px",
         padding: "8px 0",
+        flexWrap: "wrap",
     },
 
     hiddenInput: {
@@ -28,12 +36,21 @@ export const useDocumentDialogStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: "6px",
+        minWidth: 0,
+        wordBreak: "break-word",
     },
 
     keyValueRow: {
         display: "grid",
         gridTemplateColumns: "120px 1fr",
         columnGap: "10px",
+        minWidth: 0,
+        // Phones: stack the label above the value so long file names
+        // don't squeeze the value column into one character per line.
+        "@media (max-width: 768px)": {
+            gridTemplateColumns: "1fr",
+            rowGap: "2px",
+        },
     },
 
     keyLabel: {

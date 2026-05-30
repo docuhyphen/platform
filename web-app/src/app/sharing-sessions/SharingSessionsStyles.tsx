@@ -8,7 +8,46 @@ export const useSharingSessionsStyles = makeStyles({
         height: "100%",
         width: "100%",
         padding: "76px 16px 16px 16px",
-        boxSizing: "border-box"
+        boxSizing: "border-box",
+        // Phones: stack the list and the details pane, and use the
+        // `*PaneHidden` modifiers below to swap between them so users
+        // see one focused surface at a time. The 60px header is fixed,
+        // so we only need a small inline gap on top.
+        "@media (max-width: 768px)": {
+            flexDirection: "column",
+            gap: "8px",
+            padding: "68px 8px 8px 8px",
+        },
+    },
+
+    /**
+     * Wraps SessionList so we can hide the list pane on mobile when the
+     * details pane is showing. On desktop the wrapper is `display: contents`
+     * (it disappears for layout purposes) so SessionList behaves as a
+     * direct flex child exactly like before; on mobile it becomes a real
+     * flex item that fills the viewport and can be hidden via the
+     * `listPaneHidden` modifier below.
+     */
+    listPaneWrapper: {
+        display: "contents",
+        "@media (max-width: 768px)": {
+            display: "flex",
+            flex: 1,
+            minHeight: 0,
+            width: "100%",
+        },
+    },
+
+    listPaneHidden: {
+        "@media (max-width: 768px)": {
+            display: "none",
+        },
+    },
+
+    detailsPaneHidden: {
+        "@media (max-width: 768px)": {
+            display: "none",
+        },
     },
     containerNoSessions: {
         display: "flex",
@@ -56,6 +95,12 @@ export const useSharingSessionsStyles = makeStyles({
         gap: "16px",
         width: "480px",
         minHeight: 0,
+        // Take the entire viewport width on phones; the fixed 480px above
+        // is only relevant for desktop multi-column flex layouts.
+        "@media (max-width: 768px)": {
+            width: "100%",
+            gap: "8px",
+        },
     },
 
     detailsContent: {
@@ -124,6 +169,11 @@ export const useSharingSessionsStyles = makeStyles({
         minWidth: "200px",
         minHeight: 0,
         overflow: "hidden",
+        // On phones drop the 200px min-width: it forces horizontal scroll
+        // for narrow viewports otherwise.
+        "@media (max-width: 768px)": {
+            minWidth: 0,
+        },
     },
     noSessionImg: {
         width: "300px"

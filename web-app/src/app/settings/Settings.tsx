@@ -56,7 +56,8 @@ const Settings = () =>
             <div className={styles.container}>
                 <TabList selectedValue={selectedValue}
                          onTabSelect={onTabSelect}
-                         size="medium">
+                         size="medium"
+                         className={styles.tabList}>
                     <Tab id="ProfileTab"
                          icon={<SettingsProfileTabIcon/>}
                          value={tabIds.profile}>

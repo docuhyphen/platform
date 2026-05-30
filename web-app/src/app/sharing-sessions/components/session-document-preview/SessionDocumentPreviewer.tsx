@@ -22,6 +22,7 @@ import {
 } from "../../../components/IconBundles.tsx";
 import {DocumentDetailedDto, SharingSessionDetailedDto, SharingSessionStatus} from "../../../models/models";
 import {useSessionDocumentPreviewerStyles} from "./SessionDocumentPreviewerStyles";
+import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
@@ -89,6 +90,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     }) =>
 {
     const styles = useSessionDocumentPreviewerStyles();
+    const isMobile = useIsMobile();
     const sectionRef = useRef<HTMLElement>(null);
     const pdfContainerRef = useRef<HTMLDivElement>(null);
     const pageElementsRef = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -106,6 +108,11 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     const [downloadingOriginal, setDownloadingOriginal] = useState<boolean>(false);
     const [isEditingPageInput, setIsEditingPageInput] = useState<boolean>(false);
     const [visiblePages, setVisiblePages] = useState<Set<number>>(() => new Set([1]));
+    // Width of the scroll container's content box, used to auto-fit the
+    // PDF page to the available width on mobile. Updated by a
+    // ResizeObserver (so it stays correct across orientation changes,
+    // collapsing the side panel, etc).
+    const [containerWidth, setContainerWidth] = useState<number>(0);
     // Single representative page size; PDFs in the same document virtually always share dimensions.
     const [pageDimensions, setPageDimensions] = useState<PageDimensions>({
         width: DEFAULT_PAGE_WIDTH,
@@ -123,6 +130,33 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     const lastLoadedUrlRef = useRef<string | null>(null);
 
     const scale = isEnlarged ? enlargedZoomLevel : inlineZoomLevel;
+
+    // Track the scroll container's inner width so we can compute a
+    // "fit to width" page size for mobile (where we hide the zoom
+    // controls and the PDF must render at the viewport width to be
+    // readable without horizontal scrolling).
+    useEffect(() =>
+    {
+        const node = pdfContainerRef.current;
+        if (!node || typeof ResizeObserver === 'undefined')
+        {
+            return;
+        }
+
+        const measure = () =>
+        {
+            const style = window.getComputedStyle(node);
+            const paddingLeft = parseFloat(style.paddingLeft) || 0;
+            const paddingRight = parseFloat(style.paddingRight) || 0;
+            const innerWidth = node.clientWidth - paddingLeft - paddingRight;
+            setContainerWidth(Math.max(0, Math.floor(innerWidth)));
+        };
+
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, [pdfUrl, isEnlarged, isFullscreen]);
 
     // Cleanup all timers on unmount.
     useEffect(() =>
@@ -583,11 +617,35 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     const handleZoomOut = () => setActiveZoomLevel(scale - 0.1);
     const handleResetZoom = () => setActiveZoomLevel(DEFAULT_ZOOM_LEVEL);
 
+    // On mobile we render Pages with an explicit pixel width matching
+    // the scroll container so the PDF fits without horizontal scrolling.
+    // The user can still pinch-zoom (touch-action allows it) and we hide
+    // the toolbar zoom controls in that mode.
+    const fitToWidth = isMobile && containerWidth > 0;
+    const fitWidthPx = fitToWidth ? containerWidth : undefined;
+
     // Memoized scaled placeholder dimensions, so resizing doesn't re-create style objects per-page.
-    const placeholderStyle = useMemo<React.CSSProperties>(() => ({
-        width: `${pageDimensions.width * scale}px`,
-        height: `${pageDimensions.height * scale}px`,
-    }), [pageDimensions, scale]);
+    const placeholderStyle = useMemo<React.CSSProperties>(() =>
+    {
+        if (fitToWidth && pageDimensions.width > 0)
+        {
+            const ratio = pageDimensions.height / pageDimensions.width;
+            return {
+                width: `${fitWidthPx}px`,
+                height: `${Math.round((fitWidthPx ?? 0) * ratio)}px`,
+            };
+        }
+        return {
+            width: `${pageDimensions.width * scale}px`,
+            height: `${pageDimensions.height * scale}px`,
+        };
+    }, [pageDimensions, scale, fitToWidth, fitWidthPx]);
+
+    // Props passed to react-pdf's <Page>. When `width` is set the
+    // library auto-computes scale, so we omit `scale` in that mode.
+    const pagePresentationProps = fitToWidth
+        ? {width: fitWidthPx}
+        : {scale};
 
     const renderPdfBody = () =>
     {
@@ -696,7 +754,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                                         <Page
                                             className={styles.pdfPageAnimated}
                                             pageNumber={pageNumber}
-                                            scale={scale}
+                                            {...pagePresentationProps}
                                             onLoadSuccess={handlePageLoadSuccess}
                                             loading={
                                                 <div className={styles.pdfPagePlaceholder} style={placeholderStyle}>
@@ -713,7 +771,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                                         // free while still being a proper navigation target.
                                         <Page
                                             pageNumber={pageNumber}
-                                            scale={scale}
+                                            {...pagePresentationProps}
                                             renderMode="none"
                                             renderTextLayer={false}
                                             renderAnnotationLayer={false}
@@ -779,6 +837,21 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                 <div className={isEnlarged ? styles.enlargedPreviewHeaderActions : styles.previewHeaderActions}>
                     {!isEnlarged && (
                         <>
+                            {/*
+                              Mobile (phones):
+                              - Hide Fullscreen (most mobile browsers
+                                require an explicit UA prompt to enter
+                                fullscreen, and we already promote to
+                                enlarged on tap).
+                              - Show Enlarge instead - it gives a clean
+                                in-app reader mode that uses the entire
+                                viewport.
+                              - Hide Zoom in / out / reset entirely; the
+                                user can pinch-zoom the PDF directly via
+                                the `touch-action` rule on the scroll
+                                container.
+                              Desktop/tablet keeps all controls.
+                            */}
                             <Tooltip content="Enlarge" relationship="description">
                                 <Button onClick={toggleEnlarge}
                                         id="session-document-preview-expand"
@@ -786,36 +859,42 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                                         icon={<ExpandIcon/>}/>
                             </Tooltip>
 
-                            <Tooltip content="Fullscreen" relationship="description">
-                                <Button onClick={toggleFullscreen}
-                                        id="session-document-preview-fullscreen-inline"
-                                        appearance="transparent"
-                                        icon={<FullScreenEnterIcon/>}/>
-                            </Tooltip>
+                            {!isMobile && (
+                                <Tooltip content="Fullscreen" relationship="description">
+                                    <Button onClick={toggleFullscreen}
+                                            id="session-document-preview-fullscreen-inline"
+                                            appearance="transparent"
+                                            icon={<FullScreenEnterIcon/>}/>
+                                </Tooltip>
+                            )}
 
-                            <Divider vertical style={{height: "100%"}}/>
+                            {!isMobile && (
+                                <>
+                                    <Divider vertical style={{height: "100%"}}/>
 
-                            <Button onClick={handleZoomIn}
-                                    id="session-document-preview-zoom-in-inline"
-                                    appearance="transparent"
-                                    icon={<ZoomInIcon/>}/>
+                                    <Button onClick={handleZoomIn}
+                                            id="session-document-preview-zoom-in-inline"
+                                            appearance="transparent"
+                                            icon={<ZoomInIcon/>}/>
 
-                            <Tooltip content="Click to reset" relationship="description">
-                                <Button onClick={handleResetZoom}
-                                        id="session-document-preview-zoom-reset-inline"
-                                        icon={<ResetZoomIcon/>}
-                                        shape={"circular"}
-                                        appearance="outline">
-                                    {Math.round(scale * 100)}%
-                                </Button>
-                            </Tooltip>
+                                    <Tooltip content="Click to reset" relationship="description">
+                                        <Button onClick={handleResetZoom}
+                                                id="session-document-preview-zoom-reset-inline"
+                                                icon={<ResetZoomIcon/>}
+                                                shape={"circular"}
+                                                appearance="outline">
+                                            {Math.round(scale * 100)}%
+                                        </Button>
+                                    </Tooltip>
 
-                            <Button onClick={handleZoomOut}
-                                    id="session-document-preview-zoom-out-inline"
-                                    appearance="transparent"
-                                    icon={<ZoomOutIcon/>}/>
+                                    <Button onClick={handleZoomOut}
+                                            id="session-document-preview-zoom-out-inline"
+                                            appearance="transparent"
+                                            icon={<ZoomOutIcon/>}/>
 
-                            <Divider vertical style={{height: "100%"}}/>
+                                    <Divider vertical style={{height: "100%"}}/>
+                                </>
+                            )}
                         </>
                     )}
 
@@ -870,37 +949,50 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
 
                     {isEnlarged && (
                         <>
-                            <Divider vertical style={{height: "100%"}}/>
+                            {/*
+                              Mobile enlarged view: match the inline
+                              mobile toolbar - hide Zoom in/out/reset
+                              (pinch to zoom) and Fullscreen (we never
+                              entered it from mobile inline mode either,
+                              so a toggle here would be confusing). Keep
+                              only the Exit button so the user can
+                              return to the document list view.
+                            */}
+                            {!isMobile && (
+                                <>
+                                    <Divider vertical style={{height: "100%"}}/>
 
-                            <Button onClick={handleZoomOut}
-                                    id="session-document-preview-zoom-out-enlarged"
-                                    appearance="transparent"
-                                    icon={<ZoomOutIcon/>}/>
+                                    <Button onClick={handleZoomOut}
+                                            id="session-document-preview-zoom-out-enlarged"
+                                            appearance="transparent"
+                                            icon={<ZoomOutIcon/>}/>
 
-                            <Tooltip content="Click to reset"
-                                     relationship="description">
-                                <Button onClick={handleResetZoom}
-                                        id="session-document-preview-zoom-reset-enlarged"
-                                        icon={<ResetZoomIcon/>}
-                                        shape={"circular"}
-                                        appearance="outline">
-                                    {Math.round(scale * 100)}%
-                                </Button>
-                            </Tooltip>
+                                    <Tooltip content="Click to reset"
+                                             relationship="description">
+                                        <Button onClick={handleResetZoom}
+                                                id="session-document-preview-zoom-reset-enlarged"
+                                                icon={<ResetZoomIcon/>}
+                                                shape={"circular"}
+                                                appearance="outline">
+                                            {Math.round(scale * 100)}%
+                                        </Button>
+                                    </Tooltip>
 
-                            <Button onClick={handleZoomIn}
-                                    id="session-document-preview-zoom-in-enlarged"
-                                    appearance="transparent"
-                                    icon={<ZoomInIcon/>}/>
+                                    <Button onClick={handleZoomIn}
+                                            id="session-document-preview-zoom-in-enlarged"
+                                            appearance="transparent"
+                                            icon={<ZoomInIcon/>}/>
 
-                            <Divider vertical style={{height: "100%"}}/>
+                                    <Divider vertical style={{height: "100%"}}/>
 
-                            <Tooltip content={isFullscreen ? "Exit fullscreen" : "Fullscreen"} relationship="description">
-                                <Button onClick={toggleFullscreen}
-                                        id="session-document-preview-fullscreen-enlarged"
-                                        appearance="transparent"
-                                        icon={isFullscreen ? <FullScreenExitIcon/> : <FullScreenEnterIcon/>}/>
-                            </Tooltip>
+                                    <Tooltip content={isFullscreen ? "Exit fullscreen" : "Fullscreen"} relationship="description">
+                                        <Button onClick={toggleFullscreen}
+                                                id="session-document-preview-fullscreen-enlarged"
+                                                appearance="transparent"
+                                                icon={isFullscreen ? <FullScreenExitIcon/> : <FullScreenEnterIcon/>}/>
+                                    </Tooltip>
+                                </>
+                            )}
 
                             <Tooltip content="Exit" relationship="description">
                                 <Button onClick={toggleEnlarge}

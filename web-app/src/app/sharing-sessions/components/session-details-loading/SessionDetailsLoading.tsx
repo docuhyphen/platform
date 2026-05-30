@@ -7,15 +7,18 @@ const SessionDetailsLoading: React.FC = () =>
     const styles = useSessionDetailsLoadingStyles();
 
     return <section className={styles.container}>
+        {/*
+          Mirror the real SessionDetailsHeader's *default* (collapsed)
+          layout: only the title row is visible. The dates row and the
+          description line live inside the expandable section in the real
+          component, so we don't render placeholders for them here — that
+          previously made the skeleton noticeably "taller" than what loads
+          in, producing a visible layout shift on first paint.
+
+          The collapse toggle and More menu are part of the actions
+          cluster in the real header, so the placeholder moves there too.
+        */}
         <div className={styles.heading}>
-            <div className={styles.headerLine1}>
-                <div className={styles.headerLineDates}>
-                    <SkeletonItem size={24} className={styles.createdDate}/>
-                    <SkeletonItem size={24} className={styles.datesPipe}/>
-                    <SkeletonItem size={24} className={styles.endDate}/>
-                </div>
-                <SkeletonItem size={16} className={styles.collapseIcon}/>
-            </div>
             <div className={styles.headerLine2}>
                 <SkeletonItem size={28} className={styles.sessionName}/>
                 <div className={styles.sessionActions}>
@@ -23,9 +26,9 @@ const SessionDetailsLoading: React.FC = () =>
                     <SkeletonItem shape="square" size={32}/>
                     <SkeletonItem shape="square" size={32}/>
                     <SkeletonItem shape="square" size={32} className={styles.sessionActionsMore}/>
+                    <SkeletonItem shape="square" size={32} className={styles.collapseIcon}/>
                 </div>
             </div>
-            <SkeletonItem size={24} className={styles.sessionDescription}/>
         </div>
         <div className={styles.documentSearch}>
             <SkeletonItem shape="square" size={28}/>

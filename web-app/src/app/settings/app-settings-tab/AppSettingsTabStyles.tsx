@@ -1,15 +1,18 @@
-import {makeStyles, tokens} from "@fluentui/react-components";
+import {makeStyles} from "@fluentui/react-components";
 
 export const useAppSettingsTabStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px"
+        gap: "16px",
+        width: "100%",
+        minWidth: 0,
     },
 
     dataContainer: {
         display: "flex",
         flexDirection: "row",
+        flexWrap: "wrap",
         gap: "16px"
     },
 
@@ -18,6 +21,10 @@ export const useAppSettingsTabStyles = makeStyles({
     },
 
     mainDivider: {
-        width: "300px"
+        width: "300px",
+        maxWidth: "100%",
+        "@media (max-width: 768px)": {
+            width: "100%",
+        },
     }
 });

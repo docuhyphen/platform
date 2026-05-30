@@ -6,6 +6,7 @@ import {
     DrawerHeader,
     DrawerHeaderTitle,
     InlineDrawer,
+    OverlayDrawer,
     SelectTabData,
     SelectTabEvent,
     Tab,
@@ -27,6 +28,7 @@ import SessionDocumentAudit from "./session-document-audit/SessionDocumentAudit.
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import SessionDocumentVersions from "./session-document-versions/SessionDocumentVersions.tsx";
 import {formatDateTimeWithOrdinal} from "../../../helpers.ts";
+import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
 
 type DocumentWithOptionalSize = DocumentDetailedDto & {
     fileSize?: number;
@@ -56,6 +58,7 @@ const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
     const [isMetadataClosing, setIsMetadataClosing] = React.useState(false);
     const {appUser} = useAuth()
     const styles = useSessionDocumentSidebarStyles();
+    const isMobile = useIsMobile();
     const metadataCloseTimeoutRef = React.useRef<number | null>(null);
 
     React.useEffect(() =>
@@ -179,13 +182,30 @@ const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
     const isMetadataExpanded = showMetadata && !isMetadataClosing;
     const shouldRenderMetadataPanel = showMetadata || isMetadataClosing;
 
+    // On phones we don't have room for an inline 400px-wide aside next to
+    // the document previewer, so we promote the sidebar to a modal-style
+    // OverlayDrawer that slides in over the viewport. Desktop keeps the
+    // existing inline behavior so the previewer + sidebar are visible
+    // side-by-side.
+    const DrawerComponent = isMobile ? OverlayDrawer : InlineDrawer;
+    const drawerProps = isMobile
+        ? {
+            size: "full" as const,
+            onOpenChange: (_: unknown, data: {open: boolean}) =>
+            {
+                if (!data.open) onOpen(false);
+            },
+        }
+        : {};
+
     return (
-        <InlineDrawer
+        <DrawerComponent
             as="aside"
             id={"SessionDocumentSidebar"}
             open={isOpen}
-            className={styles.sidebarContainer}
+            className={mergeClasses(styles.sidebarContainer, isMobile && styles.sidebarContainerMobile)}
             position="end"
+            {...drawerProps}
         >
             <DrawerHeader className={styles.drawerHeader}>
                 <DrawerHeaderTitle
@@ -264,7 +284,7 @@ const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
                     />
                 )}
             </DrawerBody>
-        </InlineDrawer>
+        </DrawerComponent>
     );
 };
 

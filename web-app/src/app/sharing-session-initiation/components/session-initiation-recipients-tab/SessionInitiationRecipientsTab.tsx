@@ -8,6 +8,7 @@ import ExternalOrganizationRecipients from "./external-organization-recipients/E
 import {SharingSessionNewMainRecipient} from "./new-recipient/NewRecipient";
 import PeopleRecipients from "./people-recipients/PeopleRecipients";
 import {useAuth} from "../../../../context/AuthContext.tsx";
+import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
 
 export enum SharingSessionInitiationRecipientMode
 {
@@ -38,6 +39,7 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
 {
     const styles = useSessionInitiationRecipientsTabStyles();
     const {appUserPersonOrganization} = useAuth()
+    const isMobile = useIsMobile();
 
     type RecipientModeSnapshot = {
         recipientOrg?: OrganizationBasicDto;
@@ -125,7 +127,7 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
             {appUserPersonOrganization && <>
                 <Field>
                     <RadioGroup
-                        layout={"horizontal"}
+                        layout={isMobile ? "vertical" : "horizontal"}
                         value={props.recipientMode}
                         onChange={onRecipientModeChange}>
                         <Radio value={SharingSessionInitiationRecipientMode.PEOPLE}

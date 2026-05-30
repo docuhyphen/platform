@@ -9,6 +9,15 @@ export const useSessionDocumentSidebarStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
     },
+    /**
+     * Mobile-only modifier: the sidebar promotes to a full-screen
+     * OverlayDrawer, so it can't have a 400px min-width (small phones
+     * are ~360px wide).
+     */
+    sidebarContainerMobile: {
+        minWidth: 0,
+        width: "100%",
+    },
     drawerHeader: {
         paddingTop: "0",
     },

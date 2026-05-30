@@ -46,6 +46,7 @@ import useSharingSessionInitiatingState from "../sharing-session-initiation/hook
 import EmptyStateIllustration from "./components/empty-state-illustration/EmptyStateIllustration.tsx";
 import {SessionListTab} from "./components/session-list/session-list-tabs/SessionListTabs.tsx";
 import {InboxRole, SessionTabCounts} from "./components/session-list/SessionList.tsx";
+import {useIsMobile} from "../../utils/useMediaQuery.ts";
 
 const ACTIVE_TAB_STORAGE_KEY = 'sharingSessions.mainTab.active';
 const LAST_ROUTE_QUERY_STORAGE_KEY = 'sharingSessions.lastRoute.query';
@@ -69,6 +70,7 @@ const isSessionUnavailableError = (error: unknown): boolean =>
 const SharingSessions: React.FC = () =>
 {
     const styles = useSharingSessionsStyles();
+    const isMobile = useIsMobile();
     const toasterId = useId("sharing-sessions-toaster");
     const {dispatchToast} = useToastController(toasterId);
     const [sharingSessionList, setSharingSessionList] = useState<SharingSessionBasicDto[]>([]);
@@ -770,23 +772,47 @@ const SharingSessions: React.FC = () =>
 
         const isSingleSession = sharingSessionList.length === 1;
 
+        // On phones we only show ONE of [list, details] at a time. We
+        // toggle visibility via classes rather than unmounting so the
+        // SessionList preserves its fetched data / scroll / filters.
+        const hasMobileSelection = !!selectedSessionId;
+        const listPaneClassName = [
+            styles.listPaneWrapper,
+            isMobile && hasMobileSelection && styles.listPaneHidden,
+        ].filter(Boolean).join(" ");
+        const detailsPaneClassName = [
+            styles.detailsContainer,
+            isMobile && !hasMobileSelection && styles.detailsPaneHidden,
+        ].filter(Boolean).join(" ");
+
+        // The empty-state fallbacks below (inbox empty, "select a session"
+        // hint, etc.) belong to the desktop details column. On mobile,
+        // when nothing is selected, the SessionList already occupies the
+        // entire viewport - rendering these fallbacks as sibling flex
+        // children would compete for height (their `height: 100%` rule
+        // would collapse the list pane to zero). They're only meaningful
+        // here on desktop where they live in a separate column.
+        const showDetailsColumnFallbacks = !isMobile;
+
         return (
             <section className={styles.container}>
 
-                <SessionList
-                    onSelectionChange={setSelectedSessionId}
-                    onSessionListChange={setSharingSessionList}
-                    onTabChange={setActiveListTab}
-                    onInboxRoleChange={setInboxRole}
-                    onTabCountsChange={setTabCounts}
-                    controlledSelectedId={selectedSessionId}
-                    controlledActiveTab={activeListTab}
-                />
+                <div className={listPaneClassName}>
+                    <SessionList
+                        onSelectionChange={setSelectedSessionId}
+                        onSessionListChange={setSharingSessionList}
+                        onTabChange={setActiveListTab}
+                        onInboxRoleChange={setInboxRole}
+                        onTabCountsChange={setTabCounts}
+                        controlledSelectedId={selectedSessionId}
+                        controlledActiveTab={activeListTab}
+                    />
+                </div>
 
                 {fetchingDetails && !!selectedSessionId && !sessionDetails && <SessionDetailsLoading/>}
 
                 {(selectedSessionId && sessionDetails) &&
-                    <div className={styles.detailsContainer}>
+                    <div className={detailsPaneClassName}>
 
                         <div className={`${styles.detailsContent} ${fetchingDetails ? styles.detailsContentLoading : ''}`}>
 
@@ -818,6 +844,7 @@ const SharingSessions: React.FC = () =>
                             setIsSessionAccessManagementDialogOpen={setIsSessionAccessManagementDialogOpen}
                             sessionPermissions={permissions}
                             onRecreateRejectedSession={onRecreateRejectedSession}
+                            onBackToList={isMobile ? () => setSelectedSessionId(null) : undefined}
                         />
                         <div className={styles.documentsSectionContainer} id={"documentsSectionContainer"}>
                             <div className={styles.documentsSection} id={"documentsSection"}>
@@ -898,7 +925,7 @@ const SharingSessions: React.FC = () =>
                         )}
                     </div>
                 }
-                {shouldShowIncomingInboxEmptyDetails &&
+                {showDetailsColumnFallbacks && shouldShowIncomingInboxEmptyDetails &&
                     <div className={styles.noSessionSelectedSection}>
                         <div className={styles.inboxEmptyDetailsContent}>
                             <EmptyStateIllustration className={styles.inboxEmptyIllustration}/>
@@ -929,7 +956,7 @@ const SharingSessions: React.FC = () =>
                     </div>
                 }
 
-                {shouldShowOutgoingInboxEmptyDetails &&
+                {showDetailsColumnFallbacks && shouldShowOutgoingInboxEmptyDetails &&
                     <div className={styles.noSessionSelectedSection}>
                         <div className={styles.inboxEmptyDetailsContent}>
                             <EmptyStateIllustration className={styles.inboxEmptyIllustration}/>
@@ -960,7 +987,7 @@ const SharingSessions: React.FC = () =>
                     </div>
                 }
 
-                {shouldShowActiveEmptyDetails &&
+                {showDetailsColumnFallbacks && shouldShowActiveEmptyDetails &&
                     <div className={styles.noSessionSelectedSection}>
                         <div className={styles.inboxEmptyDetailsContent}>
                             <EmptyStateIllustration className={styles.inboxEmptyIllustration}/>
@@ -987,7 +1014,7 @@ const SharingSessions: React.FC = () =>
                     </div>
                 }
 
-                {shouldShowArchiveEmptyDetails &&
+                {showDetailsColumnFallbacks && shouldShowArchiveEmptyDetails &&
                     <div className={styles.noSessionSelectedSection}>
                         <div className={styles.inboxEmptyDetailsContent}>
                             <EmptyStateIllustration className={styles.inboxEmptyIllustration}/>
@@ -1014,7 +1041,7 @@ const SharingSessions: React.FC = () =>
                     </div>
                 }
 
-                {shouldShowSelectionHint &&
+                {showDetailsColumnFallbacks && shouldShowSelectionHint &&
                     <div className={styles.noSessionSelectedSection}>
                         <Text size={500}> Select a Sharing Session in the list to view details</Text>
                     </div>
