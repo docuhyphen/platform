@@ -88,9 +88,9 @@ const useSharingSessionStyles = makeStyles({
 
     sharingSessionsListContainerCollapsed: {
 
-        width: "60px",
-        minWidth: "60px",
-        maxWidth: "60px",
+        width: "2.8rem",
+        minWidth: "2.8rem",
+        maxWidth: "2.8rem",
         overflow: "hidden",
         border: "1px solid rgba(0, 0, 0, .1)",
         position: "relative",
@@ -99,15 +99,6 @@ const useSharingSessionStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         transition: "width 220ms ease, min-width 220ms ease, max-width 220ms ease",
-        "::after": {
-            content: "''",
-            position: "absolute",
-            right: "0",
-            top: "0",
-            width: "100%",
-            height: "calc(100% - 48px)",
-            background: "linear-gradient(to right, rgba(255, 255, 255, 0), white)",
-        }
     },
 
     sharingSessionsListHeader: {
