@@ -20,7 +20,7 @@ import {
     ZoomInIcon,
     ZoomOutIcon
 } from "../../../components/IconBundles.tsx";
-import {DocumentDetailedDto, SharingSessionDetailedDto} from "../../../models/models";
+import {DocumentDetailedDto, SharingSessionDetailedDto, SharingSessionStatus} from "../../../models/models";
 import {useSessionDocumentPreviewerStyles} from "./SessionDocumentPreviewerStyles";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
@@ -618,6 +618,21 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
 
         if (!pdfUrl && !sessionDocument?.uploadDate)
         {
+            const isArchivedSession = session?.status === SharingSessionStatus.ENDED
+                || session?.status === SharingSessionStatus.REJECTED;
+
+            if (isArchivedSession)
+            {
+                return (
+                    <div className={styles.previewEmptyState}>
+                        <Text size={500} weight={"semibold"}>No file was uploaded</Text>
+                        <Text size={300} className={styles.previewEmptySubText}>
+                            <b>{sessionDocument.title}</b> has no uploaded file, and this session is archived so no further uploads can be made.
+                        </Text>
+                    </div>
+                );
+            }
+
             return (
                 <div className={styles.previewEmptyState}>
                     <Text size={500} weight={"semibold"}>No file uploaded yet</Text>
