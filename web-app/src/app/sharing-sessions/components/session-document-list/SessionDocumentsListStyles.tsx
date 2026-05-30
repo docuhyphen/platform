@@ -26,7 +26,7 @@ export const useSessionDocumentsListStyles = makeStyles({
 
         "&:hover": {
             scrollbarWidth: "thin",
-            scrollbarColor: "rgba(0, 0, 0, 0.36) transparent",
+            scrollbarColor: `${tokens.colorNeutralForeground3} transparent`,
         },
 
         "&::-webkit-scrollbar": {
@@ -39,17 +39,17 @@ export const useSessionDocumentsListStyles = makeStyles({
         },
 
         "&::-webkit-scrollbar-thumb": {
-            backgroundColor: "rgba(0, 0, 0, 0)",
+            backgroundColor: "transparent",
             borderRadius: "4px",
             transition: "background-color 180ms ease",
         },
 
         "&:hover::-webkit-scrollbar-thumb": {
-            backgroundColor: "rgba(0, 0, 0, 0.36)",
+            backgroundColor: tokens.colorNeutralForeground3,
         },
 
         "&::-webkit-scrollbar-thumb:hover": {
-            backgroundColor: "rgba(0, 0, 0, 0.48)",
+            backgroundColor: tokens.colorNeutralForeground2,
         },
 
         "&::-webkit-scrollbar-track": {

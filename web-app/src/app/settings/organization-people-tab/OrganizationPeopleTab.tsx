@@ -9,7 +9,8 @@ import {
     TableCellLayout,
     TableHeader,
     TableHeaderCell,
-    TableRow, Text
+    TableRow, Text,
+    tokens
 } from "@fluentui/react-components";
 import * as React from "react";
 import {useEffect, useState} from "react";
@@ -108,7 +109,7 @@ const OrganizationPeopleTab = () =>
             {error && <div className={styles.error}>{error}</div>}
 
             {capacity && (
-                <div style={{padding: '12px 16px', borderRadius: '8px', border: '1px solid #e0e0e0', display: 'flex', flexDirection: 'column', gap: '6px'}}>
+                <div style={{padding: '12px 16px', borderRadius: '8px', border: `1px solid ${tokens.colorNeutralStroke2}`, display: 'flex', flexDirection: 'column', gap: '6px'}}>
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                         <Caption1>
                             <strong>Member capacity</strong> &nbsp;·&nbsp; Tier: {capacity.tierCode}

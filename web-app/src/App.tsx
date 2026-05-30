@@ -21,6 +21,7 @@ import OAuthCallback from "./app/authorization/oauth/OAuthCallback.tsx";
 import OAuthLinkConfirm from "./app/authorization/oauth/OAuthLinkConfirm.tsx";
 import StepUpCompletion from "./app/authorization/step-up/StepUpCompletion.tsx";
 import StepUpModal from "./app/components/step-up/StepUpModal.tsx";
+import ThemeSync from "./app/components/ThemeSync.tsx";
 
 const App: React.FC = () =>
 {
@@ -28,6 +29,7 @@ const App: React.FC = () =>
         <BrowserRouter>
             <AuthProvider>
                 <NotificationProvider>
+                    <ThemeSync/>
                     <Routes>
                         <Route path="/"
                                element={

@@ -1,4 +1,4 @@
-import {makeStyles, shorthands} from "@fluentui/react-components";
+import {makeStyles, shorthands, tokens} from "@fluentui/react-components";
 
 export const useSessionDocumentAuditStyles = makeStyles({
     auditContainer: {
@@ -21,7 +21,7 @@ export const useSessionDocumentAuditStyles = makeStyles({
     },
     noLogs: {
         textAlign: "center",
-        color: "#666",
+        color: tokens.colorNeutralForeground3,
         ...shorthands.padding("16px")
     }
 });

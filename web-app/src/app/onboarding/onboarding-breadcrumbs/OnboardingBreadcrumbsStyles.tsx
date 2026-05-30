@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useOnboardingBreadcrumbsStyles = makeStyles({
 
@@ -22,7 +22,8 @@ export const useOnboardingBreadcrumbsStyles = makeStyles({
             display: "block",
             width: "2px",
             height: "100%",
-            background: "rgba(255, 255, 255, 0.3)",
+            background: tokens.colorNeutralForegroundOnBrand,
+            opacity: 0.3,
             position: "absolute",
             left: "8px",
             top: "27px",
@@ -40,7 +41,7 @@ export const useOnboardingBreadcrumbsStyles = makeStyles({
 
     onBoardingBreadcrumbItemText: {
         flex: 1,
-        background: "rgba(0, 0, 0, .1)",
+        background: tokens.colorNeutralBackgroundAlpha,
         padding: "8px 16px",
         borderRadius: "4px",
         cursor: "default",
@@ -51,7 +52,7 @@ export const useOnboardingBreadcrumbsStyles = makeStyles({
     },
 
     onBoardingBreadcrumbItemCurrent: {
-        border: "1px solid rgba(255, 255, 255, 0.5)",
-        boxShadow: "2px 6px 8px 1px rgba(0, 0, 0, 0.4);",
+        border: `1px solid ${tokens.colorNeutralForegroundOnBrand}`,
+        boxShadow: tokens.shadow8,
     }
 });

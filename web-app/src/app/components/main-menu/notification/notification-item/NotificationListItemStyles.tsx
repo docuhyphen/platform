@@ -6,7 +6,7 @@ export const useNotificationListItemStyles = makeStyles({
         padding: '8px 12px',
         cursor: 'pointer',
         '&:hover': {
-            backgroundColor: '#f5f5f5',
+            backgroundColor: tokens.colorNeutralBackground1Hover,
         },
         boxSizing: "border-box",
         maxWidth: "100%"

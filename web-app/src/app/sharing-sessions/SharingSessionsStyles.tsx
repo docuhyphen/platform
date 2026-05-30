@@ -40,12 +40,12 @@ export const useSharingSessionsStyles = makeStyles({
 
     sharingSessionDocumentsDetails: {
         width: "100%",
-        border: "1px solid red"
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
     },
 
     sharingSessionDocumentsDetailsList: {
         width: "100%",
-        border: "2px solid green"
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
     },
 
     detailsContainer: {

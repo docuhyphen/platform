@@ -263,7 +263,8 @@ class DetailedEntityToDtoTransformer
                         notifyDocComment = notifyDocComment,
                         notifyDocDelete = notifyDocDelete,
                         notifyDocAdd = notifyDocAdd,
-                        notifyDocUpload = notifyDocUpload
+                        notifyDocUpload = notifyDocUpload,
+                        theme = theme,
                     )
                 }
             } ?: SettingsService.getDefaultAppUserSettings()

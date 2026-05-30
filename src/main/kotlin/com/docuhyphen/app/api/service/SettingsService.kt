@@ -98,6 +98,14 @@ class SettingsService @Inject constructor(
             settings.notifyDocUpload = settingsDto.notifyDocUpload
         }
 
+        // Theme is a personal preference and requires no admin validation.
+        val requestedTheme = settingsDto.theme.lowercase()
+        if (requestedTheme !in setOf("light", "dark", "system"))
+        {
+            throw DataIntegrityException("Invalid theme value: ${settingsDto.theme}")
+        }
+        settings.theme = requestedTheme
+
         targetUser.settings = settings
         appUserService.update(targetUser)
 
@@ -186,7 +194,8 @@ class SettingsService @Inject constructor(
                 notifyDocComment = true,
                 notifyDocDelete = true,
                 notifyDocAdd = true,
-                notifyDocUpload = true
+                notifyDocUpload = true,
+                theme = "light",
             )
         }
 

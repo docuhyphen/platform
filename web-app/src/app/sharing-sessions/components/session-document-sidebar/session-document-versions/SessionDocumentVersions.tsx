@@ -8,7 +8,8 @@ import {
     TableHeader,
     TableHeaderCell,
     TableRow,
-    Text
+    Text,
+    tokens
 } from "@fluentui/react-components";
 import {ArrowDownloadRegular, ArrowUploadRegular} from "@fluentui/react-icons";
 import {DocumentDetailedDto, DocumentVersion} from "../../../../models/models";
@@ -220,7 +221,7 @@ const SessionDocumentVersions: React.FC<SessionDocumentVersionsProps> = (
                     </div>
                 </div>
 
-                {error && <Text color="red">{error}</Text>}
+                {error && <Text style={{color: tokens.colorStatusDangerForeground1}}>{error}</Text>}
             </div>
         </div>
     );

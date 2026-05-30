@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useOnboardingStyles = makeStyles({
     container: {
@@ -7,7 +7,7 @@ export const useOnboardingStyles = makeStyles({
         justifyContent: "center",
         width: "100%",
         height: "100%",
-        background: "#f3f3f3",
+        background: tokens.colorNeutralBackground2,
     },
 
     onboardingSection: {
@@ -21,8 +21,8 @@ export const useOnboardingStyles = makeStyles({
         margin: "80px",
         maxHeight: "650px",
         borderRadius: "16px",
-        boxShadow: "15px 15px 15px rgba(0, 0, 0, .1)",
-        background: "rgb(255, 255, 255)",
+        boxShadow: tokens.shadow16,
+        background: tokens.colorNeutralBackground1,
     },
     onboardingSection1: {
         borderRadius: "16px 0 0 16px",
@@ -37,8 +37,8 @@ export const useOnboardingStyles = makeStyles({
     },
     onboardingSection2: {
         borderRadius: "0 16px 16px 0",
-        background: "#4b6496",
-        color: "rgba(255, 255, 255, .9)",
+        background: tokens.colorBrandBackground,
+        color: tokens.colorNeutralForegroundOnBrand,
         height: "100%",
         boxSizing: "border-box",
         flex: 1,

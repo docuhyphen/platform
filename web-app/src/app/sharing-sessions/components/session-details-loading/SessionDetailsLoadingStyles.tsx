@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useSessionDetailsLoadingStyles = makeStyles({
 
@@ -13,7 +13,7 @@ export const useSessionDetailsLoadingStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: "8px",
-        border: "1px solid rgba(0, 0, 0, .2)",
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
         width: "100%",
         padding: "16px",
         boxSizing: "border-box",
@@ -119,7 +119,7 @@ export const useSessionDetailsLoadingStyles = makeStyles({
     },
 
     pdfPreviewSection: {
-        border: "1px solid rgba(0, 0, 0, .2)",
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
         borderRadius: "4px",
         margin: "auto",
         width: "100%",

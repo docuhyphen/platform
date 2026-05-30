@@ -7,13 +7,13 @@ export const useSessionDetailsHeaderStyles = makeStyles({
         justifyContent: "space-between",
         alignItems: "center",
         gap: "8px",
-        background: "white",
+        background: tokens.colorNeutralBackground1,
         padding: "8px 16px",
         borderRadius: "4px",
-        borderTop: "1px solid rgba(0, 0, 0, .2)",
-        borderRight: "1px solid rgba(0, 0, 0, .2)",
-        borderBottom: "1px solid rgba(0, 0, 0, .2)",
-        boxShadow: "rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px",
+        borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+        boxShadow: tokens.shadow4,
     },
 
     header: {

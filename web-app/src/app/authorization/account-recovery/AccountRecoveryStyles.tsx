@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useAccountRecoveryStyles = makeStyles({
     signUpCompletionForm: {
@@ -33,7 +33,7 @@ export const useAccountRecoveryStyles = makeStyles({
         minHeight: "100vh",
         padding: "32px",
         boxSizing: "border-box",
-        background: "#f3f3f3",
+        background: tokens.colorNeutralBackground2,
     },
     passwordResetSuccessfulCard: {
         display: "flex",
@@ -46,7 +46,7 @@ export const useAccountRecoveryStyles = makeStyles({
         width: "100%",
         padding: "40px",
         borderRadius: "16px",
-        background: "rgb(255, 255, 255)",
-        boxShadow: "15px 15px 15px rgba(0, 0, 0, .1)",
+        background: tokens.colorNeutralBackground1,
+        boxShadow: tokens.shadow16,
     },
 });

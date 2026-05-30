@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useCarouselStyles = makeStyles({
     carousel: {
@@ -29,11 +29,12 @@ export const useCarouselStyles = makeStyles({
     dot: {
         width: "10px",
         height: "10px",
-        backgroundColor: "#ccc",
+        backgroundColor: "rgba(255, 255, 255, 0.35)",
         borderRadius: "50%",
         cursor: "pointer",
+        transition: "background-color 0.15s ease",
     },
     dotActive: {
-        backgroundColor: "#333",
+        backgroundColor: tokens.colorNeutralForegroundOnBrand,
     },
 });

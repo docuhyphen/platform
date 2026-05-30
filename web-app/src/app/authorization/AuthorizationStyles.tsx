@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useAuthorizationStyles = makeStyles({
     auth: {
@@ -9,7 +9,7 @@ export const useAuthorizationStyles = makeStyles({
         minHeight: "100vh",
         padding: "24px",
         boxSizing: "border-box",
-        background: "#f3f3f3",
+        background: tokens.colorNeutralBackground2,
 
         "@media (max-width: 768px)": {
             padding: "12px",
@@ -25,8 +25,8 @@ export const useAuthorizationStyles = makeStyles({
         width: "800px",
         minHeight: "650px",
         borderRadius: "16px",
-        boxShadow: "15px 15px 15px rgba(0, 0, 0, .1)",
-        background: "rgb(255, 255, 255)",
+        boxShadow: tokens.shadow16,
+        background: tokens.colorNeutralBackground1,
 
         "@media (max-width: 768px)": {
             minHeight: "unset",
@@ -48,8 +48,8 @@ export const useAuthorizationStyles = makeStyles({
     },
     authSection2: {
         borderRadius: "0 16px 16px 0",
-        background: "#4b6496",
-        color: "rgba(255, 255, 255, .9)",
+        background: tokens.colorBrandBackground,
+        color: tokens.colorNeutralForegroundOnBrand,
         height: "auto",
         boxSizing: "border-box",
         flex: 1,

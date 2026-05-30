@@ -201,7 +201,8 @@ data class AppUserSettingsDto(
     val notifyDocComment: Boolean = true,
     val notifyDocDelete: Boolean = true,
     val notifyDocAdd: Boolean = true,
-    val notifyDocUpload: Boolean = true
+    val notifyDocUpload: Boolean = true,
+    val theme: String = "light"
 )
 
 @Serializable

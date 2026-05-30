@@ -16,7 +16,8 @@ import {
     TableCell,
     TableHeader,
     TableHeaderCell,
-    TableRow
+    TableRow,
+    tokens
 } from "@fluentui/react-components";
 import React, {useEffect, useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
@@ -194,7 +195,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Create New Group</DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
-                        {error && <div style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
+                        {error && <div style={{color: tokens.colorStatusDangerForeground1, marginBottom: '10px'}}>{error}</div>}
 
                         <Field label="Group Name" required>
                             <Input

@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useGlobalStyles = makeStyles({
     root: {
@@ -18,10 +18,10 @@ export const useGlobalStyles = makeStyles({
         alignItems: "center",
         padding: "0 16px",
         boxSizing: "border-box",
-        boxShadow: "rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px",
+        boxShadow: tokens.shadow4,
         position: "fixed",
         zIndex: 2,
-        background: "white",
+        background: tokens.colorNeutralBackground1,
         height: "60px",
         top: 0,
         gap: "8px"
@@ -36,7 +36,7 @@ export const useGlobalStyles = makeStyles({
         height: "100%",
         paddingTop: "60px",
         boxSizing: "border-box",
-        background: "#f5f5f5",
+        background: tokens.colorNeutralBackground2,
     },
     mainAppSectionFullHeight: {
         width: "100%",

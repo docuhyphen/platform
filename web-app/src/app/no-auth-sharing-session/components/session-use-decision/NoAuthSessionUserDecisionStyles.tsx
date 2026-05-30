@@ -11,9 +11,9 @@ export const useNoAuthSessionDocumentListStyles = makeStyles({
         maxWidth: "680px",
         width: "100%",
         margin: "0 auto",
-        boxShadow: "rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px",
+        boxShadow: tokens.shadow4,
         borderRadius: "3px",
-        background: "white",
+        background: tokens.colorNeutralBackground1,
     },
 
     decisionActions: {

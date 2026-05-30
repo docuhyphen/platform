@@ -10,7 +10,7 @@ export const useSessionAcceptanceDialogStyles = makeStyles({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(255, 255, 255, 0.88)",
+        backgroundColor: tokens.colorBackgroundOverlay,
         backdropFilter: "blur(4px)",
         borderRadius: "8px",
     },

@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useSessionsTabStyles = makeStyles({
     container: {
@@ -18,7 +18,7 @@ export const useSessionsTabStyles = makeStyles({
         alignItems: "flex-start",
         padding: "12px 16px",
         borderRadius: "8px",
-        border: "1px solid #e0e0e0",
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
         gap: "16px",
     },
     sessionCardContainer: {

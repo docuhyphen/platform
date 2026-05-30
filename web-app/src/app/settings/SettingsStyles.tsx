@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useSettingsStyles = makeStyles({
     container: {
@@ -13,7 +13,8 @@ export const useSettingsStyles = makeStyles({
         margin: "auto",
         marginTop: "80px",
         minHeight: "480px",
-        boxShadow: "rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px",
+        boxShadow: tokens.shadow4,
+        background: tokens.colorNeutralBackground1,
         height: "calc(100% - 140px)"
     },
     tabs: {

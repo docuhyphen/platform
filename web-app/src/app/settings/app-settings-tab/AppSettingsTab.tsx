@@ -1,14 +1,17 @@
-import {Divider, Switch} from "@fluentui/react-components";
+import {Divider, Radio, RadioGroup, Switch} from "@fluentui/react-components";
 import {useAppSettingsTabStyles} from "./AppSettingsTabStyles.tsx";
 import {useEffect, useState} from "react";
 import {fetchAppUser, updateAppUserSettings} from "../../../services/appUserApi";
 import {AppUserSettingsDto} from "../../models/models.tsx";
 import {useAuth} from "../../../context/AuthContext.tsx";
+import {useTheme} from "../../../context/themeContextBase";
+import type {ThemeMode} from "../../../context/theme";
 
 const AppSettingsTab = () =>
 {
     const styles = useAppSettingsTabStyles();
-    const {token} = useAuth();
+    const {token, appUser, setAppUser} = useAuth();
+    const {mode: themeMode, setMode: setThemeMode} = useTheme();
 
     const [settings, setSettings] = useState<AppUserSettingsDto>();
     const [isLoading, setIsLoading] = useState(true);
@@ -24,6 +27,10 @@ const AppSettingsTab = () =>
                 if (userData.settings)
                 {
                     setSettings(userData.settings);
+                    if (userData.settings.theme)
+                    {
+                        setThemeMode(userData.settings.theme as ThemeMode);
+                    }
                 }
             }
             catch (error)
@@ -37,26 +44,69 @@ const AppSettingsTab = () =>
         };
 
         loadSettings();
-    }, [token]);
+    }, [token, setThemeMode]);
 
-    const handleSettingChange = async (setting: keyof AppUserSettingsDto, value: boolean) =>
+    const handleSettingChange = async (setting: keyof AppUserSettingsDto, value: AppUserSettingsDto[keyof AppUserSettingsDto]) =>
     {
+        if (!settings)
+        {
+            return;
+        }
+        const previousSettings = settings;
+        const updatedSettings = {...settings, [setting]: value} as AppUserSettingsDto;
         try
         {
-            const updatedSettings = {...settings, [setting]: value};
             setSettings(updatedSettings);
             await updateAppUserSettings(updatedSettings, token);
+            // Keep the cached appUser in sync so ThemeSync (and others) see the update.
+            if (appUser)
+            {
+                setAppUser({...appUser, settings: updatedSettings});
+            }
         }
         catch (error)
         {
-            console.error(`Failed to update ${setting}:`, error);
+            console.error(`Failed to update ${String(setting)}:`, error);
             // Revert the setting on error
-            setSettings(settings);
+            setSettings(previousSettings);
+        }
+    };
+
+    const handleThemeChange = async (next: ThemeMode) =>
+    {
+        // Apply immediately for snappy UX; revert in handleSettingChange on failure.
+        const previousMode = themeMode;
+        setThemeMode(next);
+        try
+        {
+            await handleSettingChange("theme", next);
+        }
+        catch
+        {
+            setThemeMode(previousMode);
         }
     };
 
     return (
         <div className={styles.container}>
+
+            <Divider appearance="brand"
+                     alignContent="start"
+                     className={styles.mainDivider}>
+                Appearance
+            </Divider>
+
+            <RadioGroup
+                value={themeMode}
+                onChange={(_, data) => handleThemeChange(data.value as ThemeMode)}
+                layout="horizontal"
+                aria-label="Theme"
+                disabled={isLoading}
+            >
+                <Radio value="light" label="Light"/>
+                <Radio value="dark" label="Dark"/>
+                <Radio value="system" label="System default"/>
+            </RadioGroup>
 
             {settings && <>
                 <Switch
@@ -134,3 +184,5 @@ const AppSettingsTab = () =>
 };
 
 export default AppSettingsTab;
+
+

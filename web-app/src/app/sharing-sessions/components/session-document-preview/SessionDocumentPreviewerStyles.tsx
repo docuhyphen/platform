@@ -10,7 +10,7 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         flex: "1",
-        background: "white",
+        background: tokens.colorNeutralBackground1,
         overflow: "hidden",
         maxWidth: "100%",
         margin: "0 auto",
@@ -35,8 +35,8 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
 
     pdfDocumentContainer: {
         flex: "1",
-        background: "white",
-        border: "1px solid rgba(0, 0, 0, .1)",
+        background: tokens.colorNeutralBackground1,
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
         overflow: "auto",
         maxWidth: "100%",
         margin: "0 auto",
@@ -57,7 +57,7 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
         width: "100%",
         height: "100%",
         boxSizing: "border-box",
-        background: "rgba(0, 0, 0, 0.8)",
+        background: tokens.colorBackgroundOverlay,
         zIndex: 9999,
         padding: "16px",
         backgroundPosition: "relative",
@@ -100,7 +100,7 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
         zIndex: 9999,
         margin: "0 auto",
         boxSizing: "border-box",
-        background: "white",
+        background: tokens.colorNeutralBackground1,
         width: "100%",
         display: "flex",
         justifyContent: "space-between",
@@ -149,7 +149,7 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
 
     enlargedPdfDocumentContainer: {
         boxSizing: "border-box",
-        background: "white",
+        background: tokens.colorNeutralBackground1,
         margin: "0 auto",
         flex: 1,
         overflow: "hidden",

@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useOrganizationGroupTabStyles = makeStyles({
     container: {
@@ -15,7 +15,7 @@ export const useOrganizationGroupTabStyles = makeStyles({
         flex: 1
     },
     error: {
-        color: "red",
+        color: tokens.colorStatusDangerForeground1,
         marginBottom: "16px",
     },
     loading: {

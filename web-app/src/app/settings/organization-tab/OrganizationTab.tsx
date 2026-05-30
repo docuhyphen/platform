@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {Button, Divider, Spinner, Switch, Text} from "@fluentui/react-components";
+import {Button, Divider, Spinner, Switch, Text, tokens} from "@fluentui/react-components";
 import {useAuth} from "../../../context/AuthContext";
 import {fetchAppUserPersonOrganization} from "../../../services/appUserApi";
 import {updateOrganizationSettings} from "../../../services/organizationApi";
@@ -147,7 +147,7 @@ const OrganizationTab = () =>
         }
 
         {error && (
-            <div style={{color: 'red', padding: '10px', marginBottom: '10px'}}>
+            <div style={{color: tokens.colorStatusDangerForeground1, padding: '10px', marginBottom: '10px'}}>
                 {error}
             </div>
         )}

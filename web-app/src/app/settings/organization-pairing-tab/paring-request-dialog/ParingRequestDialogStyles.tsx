@@ -23,7 +23,7 @@ export const useParingRequestDialogStyles = makeStyles({
     },
     errorContainer: {
         minHeight: "20px",
-        color: "red",
+        color: tokens.colorStatusDangerForeground1,
         fontSize: "12px",
         lineHeight: "20px"
     },

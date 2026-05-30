@@ -689,6 +689,7 @@ export interface AppUserSettingsDto
     notifyDocDelete: boolean;
     notifyDocAdd: boolean;
     notifyDocUpload: boolean;
+    theme: "light" | "dark" | "system";
 }
 
 export interface OrganizationSettingsDto

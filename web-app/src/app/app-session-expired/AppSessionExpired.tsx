@@ -2,7 +2,7 @@ import React, {useEffect, useState} from "react";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {isTokenExpired} from "../../utils/helpers.ts";
 import {useNavigate, useSearchParams} from "react-router-dom";
-import {Button, MessageBar, MessageBarBody, Text, Title2} from "@fluentui/react-components";
+import {Button, MessageBar, MessageBarBody, Text, Title2, tokens} from "@fluentui/react-components";
 
 const REASON_MESSAGES: Record<string, string> = {
     SECURITY_SIGN_OUT: "Your session was ended for security reasons. Please sign in again.",
@@ -49,7 +49,7 @@ const AppSessionExpired: React.FC = () =>
             <MessageBar intent="warning" style={{width: '100%'}}>
                 <MessageBarBody>{message}</MessageBarBody>
             </MessageBar>
-            <Text size={300} style={{color: '#666', textAlign: 'center'}}>
+            <Text size={300} style={{color: tokens.colorNeutralForeground3, textAlign: 'center'}}>
                 For your security, sign in again to continue.
             </Text>
             <Button appearance="primary" shape="circular" onClick={handleSignIn}>

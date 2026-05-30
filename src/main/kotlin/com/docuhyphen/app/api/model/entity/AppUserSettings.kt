@@ -56,10 +56,12 @@ class AppUserSettings
     @Column(name = "notify_doc_upload", nullable = false)
     var notifyDocUpload: Boolean = true
 
+    @Column(name = "theme", nullable = false, length = 16)
+    var theme: String = "light"
+
     @OneToOne(mappedBy = "settings")
     @JsonIgnore
     var appUser: AppUser? = null
 
     constructor()
 }
-

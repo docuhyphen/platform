@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useNoAuthSharingSessionStyles = makeStyles({
 
@@ -7,7 +7,7 @@ export const useNoAuthSharingSessionStyles = makeStyles({
         flexDirection: "column",
         width: "100%",
         height: "100%",
-        background: "#f9f9f9",
+        background: tokens.colorNeutralBackground2,
     },
 
     sessionLoadingContainer: {
@@ -44,9 +44,9 @@ export const useNoAuthSharingSessionStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: "4px",
-        background: "white",
+        background: tokens.colorNeutralBackground1,
         padding: "16px",
-        boxShadow: "rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px",
+        boxShadow: tokens.shadow4,
         marginTop: "48px",
         borderRadius: "4px",
     }

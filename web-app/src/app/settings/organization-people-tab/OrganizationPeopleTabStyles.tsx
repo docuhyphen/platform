@@ -1,4 +1,4 @@
-import {makeStyles, shorthands} from "@fluentui/react-components";
+import {makeStyles, shorthands, tokens} from "@fluentui/react-components";
 
 export const useOrganizationPeopleTabStyles = makeStyles({
     container: {
@@ -23,9 +23,9 @@ export const useOrganizationPeopleTabStyles = makeStyles({
         justifyContent: 'center',
     },
     error: {
-        color: 'red',
+        color: tokens.colorStatusDangerForeground1,
         ...shorthands.padding('10px'),
-        backgroundColor: '#ffeeee',
+        backgroundColor: tokens.colorStatusDangerBackground1,
         ...shorthands.borderRadius('4px')
     },
     actions: {

@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const usePhoneManagementDialogStyles = makeStyles({
     dialogContentContainer: {
@@ -9,7 +9,7 @@ export const usePhoneManagementDialogStyles = makeStyles({
     },
     errorContainer: {
         minHeight: "20px",
-        color: "red",
+        color: tokens.colorStatusDangerForeground1,
         fontSize: "12px",
         lineHeight: "20px"
     }

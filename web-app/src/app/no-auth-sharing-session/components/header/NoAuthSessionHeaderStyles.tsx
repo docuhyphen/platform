@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useNoAuthSessionHeaderStyles = makeStyles({
 
@@ -7,8 +7,8 @@ export const useNoAuthSessionHeaderStyles = makeStyles({
         flexDirection: "row",
         justifyContent: "space-between",
         padding: "8px 16px",
-        boxShadow: "rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px",
-        background: "white",
+        boxShadow: tokens.shadow4,
+        background: tokens.colorNeutralBackground1,
         position: "fixed",
         width: "100%",
         boxSizing: "border-box",

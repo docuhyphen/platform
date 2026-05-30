@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useNoAuthSessionDocumentListStyles = makeStyles({
 
@@ -10,20 +10,20 @@ export const useNoAuthSessionDocumentListStyles = makeStyles({
     },
 
     documentContainer: {
-        background: "white",
+        background: tokens.colorNeutralBackground1,
     },
 
     verificationPanel: {
         display: "flex",
         flexDirection: "column",
         gap: "8px",
-        background: "white",
+        background: tokens.colorNeutralBackground1,
         padding: "12px",
         borderRadius: "6px",
     },
 
     accessWindowHint: {
-        color: "#616161",
+        color: tokens.colorNeutralForeground3,
     },
 
     verificationControls: {
@@ -98,7 +98,7 @@ export const useNoAuthSessionDocumentListStyles = makeStyles({
     },
 
     uploadedDate: {
-        color: "#616161",
+        color: tokens.colorNeutralForeground3,
         lineHeight: "1.3",
         overflowWrap: "anywhere",
         '@media (max-width: 390px)': {

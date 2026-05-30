@@ -10,7 +10,8 @@ import {
     DialogSurface,
     DialogTitle,
     DialogTrigger,
-    Spinner
+    Spinner,
+    tokens
 } from "@fluentui/react-components";
 import {deleteOrganizationGroup, OrganizationGroupBasicDto} from "../../../../services/organizationApi.ts";
 
@@ -114,7 +115,7 @@ const GroupDeleteDialog: React.FC<GroupDeleteDialog> = (
                 <DialogBody>
                     <DialogTitle>Deleting {group && group.name}</DialogTitle>
                     <DialogContent>
-                        <div style={{minHeight: "20px", color: "red", fontSize: "12px", lineHeight: "20px"}}>{error || " "}</div>
+                        <div style={{minHeight: "20px", color: tokens.colorStatusDangerForeground1, fontSize: "12px", lineHeight: "20px"}}>{error || " "}</div>
                         {deleteStarted ? (
                             <div>
                                 Deleting in {countdown} seconds...

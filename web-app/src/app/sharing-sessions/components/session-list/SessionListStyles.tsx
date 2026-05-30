@@ -76,10 +76,10 @@ const useSharingSessionStyles = makeStyles({
         width: "400px",
         minWidth: "400px",
         maxWidth: "400px",
-        border: "1px solid rgba(0, 0, 0, .1)",
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
         position: "relative",
         borderRadius: "4px",
-        background: "white",
+        background: tokens.colorNeutralBackground1,
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
@@ -92,18 +92,18 @@ const useSharingSessionStyles = makeStyles({
         minWidth: "2.8rem",
         maxWidth: "2.8rem",
         overflow: "hidden",
-        border: "1px solid rgba(0, 0, 0, .1)",
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
         position: "relative",
         borderRadius: "4px",
-        background: "white",
+        background: tokens.colorNeutralBackground1,
         display: "flex",
         flexDirection: "column",
         transition: "width 220ms ease, min-width 220ms ease, max-width 220ms ease",
     },
 
     sharingSessionsListHeader: {
-        background: "white",
-        boxShadow: "rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px",
+        background: tokens.colorNeutralBackground1,
+        boxShadow: tokens.shadow4,
         width: "100%",
         height: "48px",
         padding: "8px",
@@ -119,7 +119,7 @@ const useSharingSessionStyles = makeStyles({
     listCard: {
         width: "100%",
         padding: "8px",
-        borderBottom: "1px solid rgba(0, 0, 0, .1)",
+        borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
         boxSizing: "border-box"
     },
 
@@ -129,12 +129,13 @@ const useSharingSessionStyles = makeStyles({
 
     listCardHover: {
         transition: "all 0.1s ease",
-        background: "white",
-        borderLeft: "3px solid #4b6496",
+        background: tokens.colorNeutralBackground1,
+        borderLeft: "3px solid",
+        borderLeftColor: tokens.colorBrandBackground,
     },
 
     sharingSessionsListFooter: {
-        background: "white",
+        background: tokens.colorNeutralBackground1,
         padding: "8px",
         fontSize: "12px",
         width: "100%",
@@ -142,7 +143,7 @@ const useSharingSessionStyles = makeStyles({
         display: "flex",
         justifyContent: "space-between",
         marginTop: "auto",
-        boxShadow: "rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px -2px 4px",
+        boxShadow: tokens.shadow4,
     },
     footerControls: {
         display: "flex"
@@ -157,7 +158,7 @@ const useSharingSessionStyles = makeStyles({
         paddingTop: "2px",
         boxSizing: "border-box",
         scrollbarWidth: "thin",
-        scrollbarColor: "#888 #f1f1f1",
+        scrollbarColor: `${tokens.colorNeutralForeground3} ${tokens.colorNeutralBackground2}`,
         flex: 1,
         minWidth: "380px"
     },
@@ -167,13 +168,13 @@ const useSharingSessionStyles = makeStyles({
     },
 
     sharingSessionsListBodyWebkitScrollbarTrack: {
-        background: "#f1f1f1",
+        background: tokens.colorNeutralBackground2,
     },
 
     sharingSessionsListBodyWebkitScrollbarThumb: {
         backgroundColor: `${tokens.colorBrandForeground1}`,
         borderRadius: "10px",
-        border: "3px solid #f1f1f1",
+        border: `3px solid ${tokens.colorNeutralBackground2}`,
     },
 
     sharingSessionsListBodyWebkitScrollbarThumbHover: {
@@ -244,7 +245,7 @@ const useSharingSessionStyles = makeStyles({
 
     sharingSessionsListItem: {
         "&:hover": {
-            background: "white",
+            background: tokens.colorNeutralBackground1Hover,
             borderLeft: "3px solid",
             borderLeftColor: tokens.colorBrandForeground1,
             transition: "all 0.1s ease",
