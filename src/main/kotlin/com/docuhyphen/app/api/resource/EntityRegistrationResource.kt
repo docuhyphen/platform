@@ -34,8 +34,6 @@ class EntityRegistrationResource @Inject constructor(
     @Produces(APPLICATION_JSON)
     fun registerPerson(personRegistrationRequest: PersonRegistrationRequest?): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(3500, 6000)
-
         return try
         {
             personRegistrationRequest?.let {
@@ -77,7 +75,6 @@ class EntityRegistrationResource @Inject constructor(
     @Produces(APPLICATION_JSON)
     fun registerOrganization(organizationRegistrationRequest: OrganizationRegistrationRequest?): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(3500, 6000)
 
         return try
         {

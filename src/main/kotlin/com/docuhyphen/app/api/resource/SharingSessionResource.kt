@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource
 
+import com.docuhyphen.app.api.exception.NoAuthOtpException
 import com.docuhyphen.app.api.exception.InvalidEmailException
 import com.docuhyphen.app.api.exception.SharingSessionNotFoundException
 import com.docuhyphen.app.api.exception.AppUserNotFoundException
@@ -15,10 +16,12 @@ import com.docuhyphen.app.api.resource.model.SharingSessionInitiationDto
 import com.docuhyphen.app.api.resource.model.UpdateSharingSessionRequest
 import com.docuhyphen.app.api.service.sharingsession.*
 import com.docuhyphen.app.api.service.storage.FileStorageService
+import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
+import jakarta.ws.rs.core.Response.Status.TOO_MANY_REQUESTS
 import org.slf4j.LoggerFactory
 
 @Path("/sharing-sessions")
@@ -255,6 +258,80 @@ class SharingSessionResource @Inject constructor(
                     Response
                         .status(Response.Status.INTERNAL_SERVER_ERROR)
                         .entity(responseError)
+                        .build()
+                }
+            }
+        }
+    }
+
+    @POST
+    @Path("/{sessionId}/recipient-otp")
+    fun issueSessionRecipientOtp(@PathParam("sessionId") sessionId: String): Response
+    {
+        return try
+        {
+            sharingSessionUpdateService.issueRecipientOtp(sessionId)
+            Response.status(Response.Status.NO_CONTENT).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is NoAuthOtpException ->
+                {
+                    val response = Response
+                        .status(
+                            if (exception.reasonCode == "OTP_RATE_LIMITED" || exception.reasonCode == "OTP_LOCKED")
+                                TOO_MANY_REQUESTS
+                            else
+                                Response.Status.BAD_REQUEST,
+                        )
+                        .entity(
+                            ResponseError(
+                                errorMessage = exception.message,
+                                reasonCode = exception.reasonCode,
+                                retryAfterSeconds = exception.retryAfterSeconds,
+                            )
+                        )
+
+                    if (exception.retryAfterSeconds != null)
+                    {
+                        response.header("Retry-After", exception.retryAfterSeconds)
+                    }
+
+                    response.build()
+                }
+
+                is SharingSessionNotFoundException ->
+                {
+                    Response
+                        .status(Response.Status.NOT_FOUND)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
+                is IllegalArgumentException ->
+                {
+                    Response
+                        .status(Response.Status.BAD_REQUEST)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
+                is ForbiddenException ->
+                {
+                    Response
+                        .status(Response.Status.BAD_REQUEST)
+                        .entity(ResponseError("Disable \"Require recipient sign in\" and save changes before sending an access code."))
+                        .build()
+                }
+
+                else ->
+                {
+                    logger.error("Error issuing recipient OTP for sharing session", exception)
+                    Response
+                        .status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while sending access code"))
                         .build()
                 }
             }

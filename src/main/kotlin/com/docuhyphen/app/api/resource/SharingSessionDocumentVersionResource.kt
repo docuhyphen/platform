@@ -33,8 +33,6 @@ class SharingSessionDocumentVersionResource @Inject constructor(
         @PathParam("documentId") documentId: String
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
-
         return try
         {
             val versions = sharingSessionDocumentVersionService.getDocumentVersions(sessionId, documentId)
@@ -81,8 +79,6 @@ class SharingSessionDocumentVersionResource @Inject constructor(
         @RestForm("userEmail") userEmail: String?
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
-
         return try
         {
             val version = sharingSessionDocumentVersionService.createVersion(
@@ -175,7 +171,6 @@ class SharingSessionDocumentVersionResource @Inject constructor(
         @PathParam("documentId") documentId: String
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
 
         return try
         {

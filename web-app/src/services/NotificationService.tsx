@@ -101,8 +101,9 @@ class RealtimeService
      * derived from the token's `session_id` claim,  callers don't need to pass anything,
      * but for backwards compat we still accept an unused appUserId argument.
      */
-    connect(_appUserId?: string): void
+    connect(appUserId?: string): void
     {
+        void appUserId;
         console.info('[Realtime] connect() called');
         const token = sessionStorage.getItem('accessToken');
         if (!token)
@@ -112,6 +113,12 @@ class RealtimeService
         }
 
         const claims = decodeToken(token);
+        if (isTokenExpired(claims))
+        {
+            console.warn('[Realtime] access token expired; skipping connect until refresh');
+            return;
+        }
+
         const sessionId = claims?.session_id;
         if (!sessionId)
         {
@@ -308,7 +315,14 @@ class RealtimeService
         {
             this.reconnectTimer = null;
             const token = sessionStorage.getItem('accessToken');
-            const sessionId = this.userSessionId ?? decodeToken(token ?? '')?.session_id ?? null;
+            const claims = decodeToken(token ?? '');
+            if (isTokenExpired(claims))
+            {
+                this.userSessionId = null;
+                return;
+            }
+
+            const sessionId = this.userSessionId ?? claims?.session_id ?? null;
             if (!token || !sessionId)
             {
                 // Token disappeared (logout). Stop trying.
@@ -358,6 +372,17 @@ function decodeToken(token: string): AccessTokenClaims | null
 {
     try { return jwtDecode<AccessTokenClaims>(token); }
     catch { return null; }
+}
+
+function isTokenExpired(claims: AccessTokenClaims | null): boolean
+{
+    if (!claims?.exp)
+    {
+        return true;
+    }
+
+    const nowInSeconds = Date.now() / 1000;
+    return claims.exp <= nowInSeconds;
 }
 
 export const realtimeService = new RealtimeService();

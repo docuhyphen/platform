@@ -167,6 +167,12 @@ export const downloadPreviewPDFSharingSessionDocument = (sessionId: string, docu
 export const requestNoAuthSharingSessionOtp = (sessionId: string) =>
     executeRequest(() => apiClient.post(`no-auth/sharing-sessions/${sessionId}/otp`));
 
+export const verifyNoAuthSharingSessionAccessCode = (sessionId: string, otp: string) =>
+    executeRequest(() => apiClient.post(`no-auth/sharing-sessions/${sessionId}/verify-access-code`, {otp}));
+
+export const requestSessionRecipientOtp = (sessionId: string) =>
+    executeRequest(() => apiClient.post(`/sharing-sessions/${sessionId}/recipient-otp`));
+
 export const searchSharingSessions = (
     query?: string,
     status?: string,

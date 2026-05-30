@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
     Badge,
     Button,
@@ -91,8 +91,20 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
     const isSelfContact = (contact: UserContactDto) =>
         isOwnEmail(contact.email) || (!!appUser?.id && contact.contactAppUserId === appUser.id);
 
-    const visibleRecents = recents.filter(c => !isSelfContact(c));
-    const visibleResults = results.filter(c => !isSelfContact(c));
+    const myOrgUserIds = useMemo(() => new Set(orgUsers.map(u => u.id)), [orgUsers]);
+    const myOrgUserEmails = useMemo(() => new Set(orgUsers.map(u => normalizeEmail(u.email))), [orgUsers]);
+    const isMyOrganizationContact = (contact: UserContactDto) =>
+    {
+        if (contact.contactAppUserId && myOrgUserIds.has(contact.contactAppUserId))
+        {
+            return true;
+        }
+        return myOrgUserEmails.has(normalizeEmail(contact.email));
+    };
+
+    // Keep People->Recent focused on outside contacts only.
+    const visibleRecents = recents.filter(c => !isSelfContact(c) && !isMyOrganizationContact(c));
+    const visibleResults = results.filter(c => !isSelfContact(c) && !isMyOrganizationContact(c));
 
     useEffect(() =>
     {
@@ -119,6 +131,27 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
 
     useEffect(() =>
     {
+        if (recipientOrgUser)
+        {
+            const firstName = recipientOrgUser.person?.firstName ?? '';
+            const lastName = recipientOrgUser.person?.lastName ?? '';
+            const display = `${firstName} ${lastName}`.trim();
+            setQuery(display ? `${display} (${recipientOrgUser.email})` : recipientOrgUser.email);
+            setShowEmailFallback(false);
+            return;
+        }
+
+        const hasEmailRecipient = !!newRecipient?.email;
+        if (hasEmailRecipient)
+        {
+            const display = `${newRecipient?.firstName ?? ''} ${newRecipient?.lastName ?? ''}`.trim();
+            setQuery(display ? `${display} (${newRecipient?.email})` : (newRecipient?.email || ''));
+            setShowEmailFallback(true);
+        }
+    }, [recipientOrgUser, newRecipient?.email, newRecipient?.firstName, newRecipient?.lastName]);
+
+    useEffect(() =>
+    {
         if (!internalParticipants)
         {
             setSelectedInternalParticipants([]);
@@ -133,7 +166,7 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
 
     useEffect(() =>
     {
-        if (!recipientOrgUser || !appUserPersonOrganization || usersLoaded)
+        if (!appUserPersonOrganization || usersLoaded)
         {
             return;
         }
@@ -168,7 +201,7 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
         {
             cancelled = true;
         };
-    }, [recipientOrgUser, appUserPersonOrganization, usersLoaded]);
+    }, [appUserPersonOrganization, usersLoaded]);
 
     useEffect(() =>
     {
@@ -207,7 +240,7 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
 
     const selectContact = (contact: UserContactDto) =>
     {
-        if (isSelfContact(contact))
+        if (isSelfContact(contact) || isMyOrganizationContact(contact))
         {
             return;
         }
@@ -296,7 +329,8 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
         {
             return (
                 <Text size={200} italic>
-                    No recent contacts yet. People will appear here once you've accepted shares with them.
+                    No recent external contacts yet. People will appear here once you've accepted shares with them.
+                    Users in your organization are shown under My Organization.
                 </Text>
             );
         }

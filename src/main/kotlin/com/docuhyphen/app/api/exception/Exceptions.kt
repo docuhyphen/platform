@@ -24,6 +24,8 @@ class ConfirmationPasswordRequiredException() : RuntimeException("Confirmation p
 class PasswordRequirementsNotMetException() : RuntimeException("Password requirements not met")
 class InvalidSignInCredentialsException(message: String? = "Email or password incorrect") : RuntimeException(message)
 class InactiveAccountException(message: String = "This account is inactive. Please contact your administrator.") : RuntimeException(message)
+class TemporaryPasswordExpiredException(message: String = "Your temporary password has expired. Please recover your password to continue.") : RuntimeException(message)
+class PasswordChangeRequiredException(message: String = "You must change your temporary password before signing in. Please use account recovery.") : RuntimeException(message)
 class DataIntegrityException(message: String) : RuntimeException(message)
 class MaximumSignInAttemptsExceeded() : RuntimeException("Maximum sign in attempts exceeded. Your account will be locked")
 class AuthTokenNotProvidedException() : RuntimeException("Token not provided")

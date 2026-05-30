@@ -1,112 +1,45 @@
 package com.docuhyphen.app.api.service.communication
 
-import com.docuhyphen.app.api.configuration.FreeMarkerConfig
 import com.docuhyphen.app.api.model.entity.SharingSessionStatus
-import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.communication.templates.AuthEmailTemplateService
+import com.docuhyphen.app.api.service.communication.templates.EmailTemplateRenderer
+import com.docuhyphen.app.api.service.communication.templates.OrganizationEmailTemplateService
+import com.docuhyphen.app.api.service.communication.templates.RenderedEmailTemplate
+import com.docuhyphen.app.api.service.communication.templates.SharingSessionEmailTemplateService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.io.StringWriter
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 
 @ApplicationScoped
 class EmailTemplateService @Inject constructor(
-    private val freeMarkerConfig: FreeMarkerConfig,
-    private val configurationService: ConfigurationService
+    private val renderer: EmailTemplateRenderer,
+    private val authTemplates: AuthEmailTemplateService,
+    private val organizationTemplates: OrganizationEmailTemplateService,
+    private val sharingSessionTemplates: SharingSessionEmailTemplateService,
 )
 {
-    data class RenderedEmailTemplate(
-        val subject: String,
-        val body: String,
-    )
-
     enum class SharingSessionStatusEmailAudience
     {
         INITIATOR,
         RECIPIENT,
     }
 
-    fun renderTemplate(templateName: String, model: Map<String, Any>): String
-    {
-        val template = freeMarkerConfig.configuration.getTemplate(templateName)
-        val writer = StringWriter()
-        template.process(model, writer)
-        return writer.toString()
-    }
+    fun renderTemplate(templateName: String, model: Map<String, Any>): String =
+        renderer.render(templateName, model)
 
-    fun renderSignUpInitiationEmail(email: String, otp: String, confirmationToken: String, expiryMinutes: Long): String
-    {
-        // The confirmation link uses an opaque single-use token (no email/OTP in URL)
-        // so it stays safe in browser history, Referer headers, and proxy logs.
-        val encodedToken = URLEncoder.encode(confirmationToken, StandardCharsets.UTF_8)
-        val emailConfirmationLink =
-            "${configurationService.baseUrl}/sign-up/email-confirm?token=$encodedToken"
+    fun renderSignUpInitiationEmail(email: String, otp: String, confirmationToken: String, expiryMinutes: Long): String =
+        authTemplates.renderSignUpInitiationEmail(email, otp, confirmationToken, expiryMinutes)
 
-        val model = mapOf(
-            "email" to email,
-            "verificationCode" to otp,
-            "expiryMinutes" to expiryMinutes,
-            "confirmationLink" to emailConfirmationLink,
-            "appName" to configurationService.emailSubjectTitle
-        )
+    fun renderSignUpCompletionEmail(email: String): String =
+        authTemplates.renderSignUpCompletionEmail(email)
 
-        return renderTemplate("sign-up-initiation.ftl", model)
-    }
+    fun renderSignUpOtpRegenerationEmail(otp: String, confirmationToken: String, expiryMinutes: Long): String =
+        authTemplates.renderSignUpOtpRegenerationEmail(otp, confirmationToken, expiryMinutes)
 
-    fun renderSignUpCompletionEmail(email: String): String
-    {
-        val appBaseUrl = configurationService.baseUrl
+    fun renderSignInMfaEmail(otp: String, expiryMinutes: Long): String =
+        authTemplates.renderSignInMfaEmail(otp, expiryMinutes)
 
-        val model = mapOf(
-            "email" to email,
-            "appName" to configurationService.emailSubjectTitle,
-            "appBaseUrl" to appBaseUrl
-        )
-
-        return renderTemplate("sign-up-completion.ftl", model)
-    }
-
-    /**
-     * Renders OTP regeneration email
-     * Sent when user requests a new verification code
-     */
-    fun renderSignUpOtpRegenerationEmail(otp: String, confirmationToken: String, expiryMinutes: Long): String
-    {
-        val encodedToken = URLEncoder.encode(confirmationToken, StandardCharsets.UTF_8)
-        val emailConfirmationLink =
-            "${configurationService.baseUrl}/sign-up/email-confirm?token=$encodedToken"
-
-        val model = mapOf(
-            "verificationCode" to otp,
-            "expiryMinutes" to expiryMinutes,
-            "confirmationLink" to emailConfirmationLink,
-            "appName" to configurationService.emailSubjectTitle
-        )
-
-        return renderTemplate("sign-up-otp-regeneration.ftl", model)
-    }
-
-    fun renderSignInMfaEmail(otp: String, expiryMinutes: Long): String
-    {
-        val model = mapOf(
-            "verificationCode" to otp,
-            "expiryMinutes" to expiryMinutes,
-            "appName" to configurationService.emailSubjectTitle
-        )
-
-        return renderTemplate("sign-in-email-MFA.ftl", model)
-    }
-
-    fun renderSignInMfaResendEmail(otp: String, expiryMinutes: Long): String
-    {
-        val model = mapOf(
-            "verificationCode" to otp,
-            "expiryMinutes" to expiryMinutes,
-            "appName" to configurationService.emailSubjectTitle
-        )
-
-        return renderTemplate("sign-in-email-reMFA.ftl", model)
-    }
+    fun renderSignInMfaResendEmail(otp: String, expiryMinutes: Long): String =
+        authTemplates.renderSignInMfaResendEmail(otp, expiryMinutes)
 
     fun renderOrganizationRegistrationEmail(
         firstName: String,
@@ -115,89 +48,36 @@ class EmailTemplateService @Inject constructor(
         registrationNumber: String,
         organizationEmail: String?,
         organizationPhone: String?,
-    ): String
-    {
-        val model = mutableMapOf<String, Any>(
-            "firstName" to firstName,
-            "lastName" to lastName,
-            "organizationName" to organizationName,
-            "registrationNumber" to registrationNumber,
-            "appName" to configurationService.emailSubjectTitle,
-            "appBaseUrl" to configurationService.baseUrl,
-        )
-
-        if (!organizationEmail.isNullOrBlank())
-        {
-            model["organizationEmail"] = organizationEmail
-        }
-        if (!organizationPhone.isNullOrBlank())
-        {
-            model["organizationPhone"] = organizationPhone
-        }
-
-        return renderTemplate("organization-registration.ftl", model)
-    }
+    ): String = organizationTemplates.renderOrganizationRegistrationEmail(
+        firstName,
+        lastName,
+        organizationName,
+        registrationNumber,
+        organizationEmail,
+        organizationPhone,
+    )
 
     fun renderOrganizationUpdateEmail(
         organizationName: String,
         updatedFields: List<String>,
         updatedBy: String,
-    ): String
-    {
-        val model = mapOf(
-            "organizationName" to organizationName,
-            "updatedFields" to updatedFields,
-            "updatedBy" to updatedBy,
-            "appName" to configurationService.emailSubjectTitle,
-        )
+    ): String = organizationTemplates.renderOrganizationUpdateEmail(
+        organizationName,
+        updatedFields,
+        updatedBy,
+    )
 
-        return renderTemplate("organization-update.ftl", model)
-    }
+    fun renderEmailUpdateOldVerificationEmail(newEmail: String, verificationCode: String, expiryMinutes: Long): String =
+        authTemplates.renderEmailUpdateOldVerificationEmail(newEmail, verificationCode, expiryMinutes)
 
-    fun renderEmailUpdateOldVerificationEmail(newEmail: String, verificationCode: String, expiryMinutes: Long): String
-    {
-        val model = mapOf(
-            "newEmail" to newEmail,
-            "verificationCode" to verificationCode,
-            "expiryMinutes" to expiryMinutes,
-            "appName" to configurationService.emailSubjectTitle,
-        )
+    fun renderEmailUpdateNewVerificationEmail(newEmail: String, verificationCode: String, expiryMinutes: Long): String =
+        authTemplates.renderEmailUpdateNewVerificationEmail(newEmail, verificationCode, expiryMinutes)
 
-        return renderTemplate("email-update-old-verification.ftl", model)
-    }
+    fun renderEmailUpdateCompletionEmail(oldEmail: String, newEmail: String): String =
+        authTemplates.renderEmailUpdateCompletionEmail(oldEmail, newEmail)
 
-    fun renderEmailUpdateNewVerificationEmail(newEmail: String, verificationCode: String, expiryMinutes: Long): String
-    {
-        val model = mapOf(
-            "newEmail" to newEmail,
-            "verificationCode" to verificationCode,
-            "expiryMinutes" to expiryMinutes,
-            "appName" to configurationService.emailSubjectTitle,
-        )
-
-        return renderTemplate("email-update-new-verification.ftl", model)
-    }
-
-    fun renderEmailUpdateCompletionEmail(oldEmail: String, newEmail: String): String
-    {
-        val model = mapOf(
-            "oldEmail" to oldEmail,
-            "newEmail" to newEmail,
-            "appName" to configurationService.emailSubjectTitle,
-        )
-
-        return renderTemplate("email-update-completion.ftl", model)
-    }
-
-    fun renderProfileUpdatedEmail(updatedFields: List<String>): String
-    {
-        val model = mapOf(
-            "updatedFields" to updatedFields,
-            "appName" to configurationService.emailSubjectTitle,
-        )
-
-        return renderTemplate("profile-updated.ftl", model)
-    }
+    fun renderProfileUpdatedEmail(updatedFields: List<String>): String =
+        authTemplates.renderProfileUpdatedEmail(updatedFields)
 
     fun renderOrganizationMemberAddedEmail(
         firstName: String,
@@ -205,73 +85,71 @@ class EmailTemplateService @Inject constructor(
         role: String,
         addedBy: String,
         isNewUser: Boolean,
-    ): String
-    {
-        val model = mapOf(
-            "firstName" to firstName,
-            "organizationName" to organizationName,
-            "role" to role,
-            "addedBy" to addedBy,
-            "isNewUser" to isNewUser,
-            "appName" to configurationService.emailSubjectTitle,
-            "appBaseUrl" to configurationService.baseUrl,
-        )
-
-        return renderTemplate("organization-member-added.ftl", model)
-    }
+        temporaryPassword: String? = null,
+        temporaryPasswordExpiresAt: String? = null,
+    ): String = organizationTemplates.renderOrganizationMemberAddedEmail(
+        firstName,
+        organizationName,
+        role,
+        addedBy,
+        isNewUser,
+        temporaryPassword,
+        temporaryPasswordExpiresAt,
+    )
 
     fun renderOrganizationMemberRemovedEmail(
         firstName: String,
         organizationName: String,
         removedBy: String,
-    ): String
-    {
-        val model = mapOf(
-            "firstName" to firstName,
-            "organizationName" to organizationName,
-            "removedBy" to removedBy,
-            "appName" to configurationService.emailSubjectTitle,
-        )
+    ): String = organizationTemplates.renderOrganizationMemberRemovedEmail(
+        firstName,
+        organizationName,
+        removedBy,
+    )
 
-        return renderTemplate("organization-member-removed.ftl", model)
-    }
+    fun renderOrganizationMemberDeactivatedEmail(
+        firstName: String,
+        organizationName: String,
+        deactivatedBy: String,
+    ): String = organizationTemplates.renderOrganizationMemberDeactivatedEmail(
+        firstName,
+        organizationName,
+        deactivatedBy,
+    )
+
+    fun renderOrganizationMemberReactivatedEmail(
+        firstName: String,
+        organizationName: String,
+        reactivatedBy: String,
+    ): String = organizationTemplates.renderOrganizationMemberReactivatedEmail(
+        firstName,
+        organizationName,
+        reactivatedBy,
+    )
 
     fun renderGroupMemberAddedEmail(
         firstName: String,
         groupName: String,
         organizationName: String,
         addedBy: String,
-    ): String
-    {
-        val model = mapOf(
-            "firstName" to firstName,
-            "groupName" to groupName,
-            "organizationName" to organizationName,
-            "addedBy" to addedBy,
-            "appName" to configurationService.emailSubjectTitle,
-            "appBaseUrl" to configurationService.baseUrl,
-        )
-
-        return renderTemplate("group-member-added.ftl", model)
-    }
+    ): String = organizationTemplates.renderGroupMemberAddedEmail(
+        firstName,
+        groupName,
+        organizationName,
+        addedBy,
+    )
 
     fun renderGroupMemberRemovedEmail(
         firstName: String,
         groupName: String,
         organizationName: String,
         removedBy: String,
-    ): String
-    {
-        val model = mapOf(
-            "firstName" to firstName,
-            "groupName" to groupName,
-            "organizationName" to organizationName,
-            "removedBy" to removedBy,
-            "appName" to configurationService.emailSubjectTitle,
-        )
-
-        return renderTemplate("group-member-removed.ftl", model)
-    }
+    ): String = organizationTemplates.renderGroupMemberRemovedEmail(
+        firstName,
+        groupName,
+        organizationName,
+        removedBy,
+    )
 
     fun renderGroupUpdatedEmail(
         firstName: String,
@@ -279,19 +157,13 @@ class EmailTemplateService @Inject constructor(
         organizationName: String,
         updatedBy: String,
         updatedFields: List<String>,
-    ): String
-    {
-        val model = mapOf(
-            "firstName" to firstName,
-            "groupName" to groupName,
-            "organizationName" to organizationName,
-            "updatedBy" to updatedBy,
-            "updatedFields" to updatedFields,
-            "appName" to configurationService.emailSubjectTitle,
-        )
-
-        return renderTemplate("group-updated.ftl", model)
-    }
+    ): String = organizationTemplates.renderGroupUpdatedEmail(
+        firstName,
+        groupName,
+        organizationName,
+        updatedBy,
+        updatedFields,
+    )
 
     fun renderRoleChangedEmail(
         firstName: String,
@@ -299,19 +171,13 @@ class EmailTemplateService @Inject constructor(
         oldRole: String,
         newRole: String,
         changedBy: String,
-    ): String
-    {
-        val model = mapOf(
-            "firstName" to firstName,
-            "organizationName" to organizationName,
-            "oldRole" to oldRole,
-            "newRole" to newRole,
-            "changedBy" to changedBy,
-            "appName" to configurationService.emailSubjectTitle,
-        )
-
-        return renderTemplate("role-changed.ftl", model)
-    }
+    ): String = organizationTemplates.renderRoleChangedEmail(
+        firstName,
+        organizationName,
+        oldRole,
+        newRole,
+        changedBy,
+    )
 
     fun renderSharingSessionCreatedRecipientEmail(
         sessionId: String,
@@ -320,40 +186,26 @@ class EmailTemplateService @Inject constructor(
         initiatorOrganization: String?,
         sessionMessage: String?,
         documents: List<String>,
-    ): String
-    {
-        val sessionLink = "${configurationService.baseUrl}/sharing-sessions?s=$sessionId"
-        val model = mutableMapOf<String, Any>(
-            "sessionName" to sessionName,
-            "initiatorName" to initiatorName,
-            "documents" to documents,
-            "sessionLink" to sessionLink,
-            "appName" to configurationService.emailSubjectTitle,
-        )
-        if (!initiatorOrganization.isNullOrBlank()) model["initiatorOrganization"] = initiatorOrganization
-        if (!sessionMessage.isNullOrBlank()) model["sessionMessage"] = sessionMessage
-
-        return renderTemplate("sharing-session-created-recipient.ftl", model)
-    }
+    ): String = sharingSessionTemplates.renderSharingSessionCreatedRecipientEmail(
+        sessionId,
+        sessionName,
+        initiatorName,
+        initiatorOrganization,
+        sessionMessage,
+        documents,
+    )
 
     fun renderSharingSessionCreatedInitiatorEmail(
         sessionId: String,
         sessionName: String,
         recipientLabel: String,
         documents: List<String>,
-    ): String
-    {
-        val sessionLink = "${configurationService.baseUrl}/sharing-sessions?s=$sessionId"
-        val model = mapOf(
-            "sessionName" to sessionName,
-            "recipientLabel" to recipientLabel,
-            "documents" to documents,
-            "sessionLink" to sessionLink,
-            "appName" to configurationService.emailSubjectTitle,
-        )
-
-        return renderTemplate("sharing-session-created-initiator.ftl", model)
-    }
+    ): String = sharingSessionTemplates.renderSharingSessionCreatedInitiatorEmail(
+        sessionId,
+        sessionName,
+        recipientLabel,
+        documents,
+    )
 
     fun renderSharingSessionStatusEmail(
         status: SharingSessionStatus,
@@ -367,83 +219,33 @@ class EmailTemplateService @Inject constructor(
         lastActivity: String,
         rejectionReason: String? = null,
         endedAt: String? = null,
-    ): RenderedEmailTemplate?
-    {
-        if (status == SharingSessionStatus.INITIATED && audience == SharingSessionStatusEmailAudience.INITIATOR)
-        {
-            return null
-        }
+    ): RenderedEmailTemplate? = sharingSessionTemplates.renderSharingSessionStatusEmail(
+        status,
+        audience,
+        sessionId,
+        sessionName,
+        statusText,
+        initiatorEmail,
+        recipientEmail,
+        documents,
+        lastActivity,
+        rejectionReason,
+        endedAt,
+    )
 
-        val model = mutableMapOf<String, Any>(
-            "appName" to configurationService.emailSubjectTitle,
-            "sessionLink" to "${configurationService.baseUrl}/sharing-sessions?s=$sessionId",
-            "sessionId" to sessionId,
-            "sessionName" to sessionName,
-            "statusText" to statusText,
-            "audience" to audience.name,
-            "initiatorEmail" to initiatorEmail,
-            "recipientEmail" to recipientEmail,
-            "documents" to documents,
-            "lastActivity" to lastActivity,
-        )
-
-        if (!rejectionReason.isNullOrBlank())
-        {
-            model["rejectionReason"] = rejectionReason
-        }
-        if (!endedAt.isNullOrBlank())
-        {
-            model["endedAt"] = endedAt
-        }
-
-        val templateName = when (status)
-        {
-            SharingSessionStatus.INITIATED -> "sharing-session-status-initiated.ftl"
-            SharingSessionStatus.ACCEPTED_STARTED -> "sharing-session-status-accepted.ftl"
-            SharingSessionStatus.REJECTED -> "sharing-session-status-rejected.ftl"
-            SharingSessionStatus.ENDED -> "sharing-session-status-ended.ftl"
-        }
-
-        return RenderedEmailTemplate(
-            subject = sharingSessionStatusSubject(status, audience, sessionName, initiatorEmail),
-            body = renderTemplate(templateName, model),
-        )
-    }
-
-    private fun sharingSessionStatusSubject(
-        status: SharingSessionStatus,
-        audience: SharingSessionStatusEmailAudience,
+    fun renderNoAuthSharingSessionOtpEmail(
+        sessionId: String,
         sessionName: String,
-        initiatorEmail: String,
-    ): String
-    {
-        return when (status)
-        {
-            SharingSessionStatus.INITIATED -> when (audience)
-            {
-                SharingSessionStatusEmailAudience.RECIPIENT -> "Action required: New sharing request from $initiatorEmail"
-                SharingSessionStatusEmailAudience.INITIATOR -> "Sharing request updated: $sessionName"
-            }
-
-            SharingSessionStatus.ACCEPTED_STARTED -> when (audience)
-            {
-                SharingSessionStatusEmailAudience.INITIATOR -> "Accepted: Sharing session is now active - $sessionName"
-                SharingSessionStatusEmailAudience.RECIPIENT -> "Confirmed: You accepted the sharing request - $sessionName"
-            }
-
-            SharingSessionStatus.REJECTED -> when (audience)
-            {
-                SharingSessionStatusEmailAudience.INITIATOR -> "Rejected: Sharing request response - $sessionName"
-                SharingSessionStatusEmailAudience.RECIPIENT -> "Confirmed: You rejected the sharing request - $sessionName"
-            }
-
-            SharingSessionStatus.ENDED -> when (audience)
-            {
-                SharingSessionStatusEmailAudience.INITIATOR -> "Ended: Sharing session closed - $sessionName"
-                SharingSessionStatusEmailAudience.RECIPIENT -> "Notice: Sharing session ended - $sessionName"
-            }
-        }
-    }
+        otp: String,
+        expiryMinutes: Long,
+        initiatorName: String? = null,
+    ): RenderedEmailTemplate = sharingSessionTemplates.renderNoAuthSharingSessionOtpEmail(
+        sessionId,
+        sessionName,
+        otp,
+        expiryMinutes,
+        initiatorName,
+    )
 
     fun renderNewSignInAlertEmail(
         firstName: String?,
@@ -451,59 +253,21 @@ class EmailTemplateService @Inject constructor(
         device: String,
         ipAddress: String,
         locationHint: String? = null,
-    ): RenderedEmailTemplate
-    {
-        val model = mutableMapOf<String, Any>(
-            "appName" to configurationService.emailSubjectTitle,
-            "firstName" to (firstName?.takeIf { it.isNotBlank() } ?: "there"),
-            "signInAtIso" to signInAtIso,
-            "device" to device,
-            "ipAddress" to ipAddress,
-            "securityUrl" to "${configurationService.baseUrl}/settings",
-        )
+    ): RenderedEmailTemplate = authTemplates.renderNewSignInAlertEmail(
+        firstName,
+        signInAtIso,
+        device,
+        ipAddress,
+        locationHint,
+    )
 
-        if (!locationHint.isNullOrBlank())
-        {
-            model["locationHint"] = locationHint
-        }
+    fun renderPasswordResetRequestEmail(verificationCode: String, expiryMinutes: Long): String =
+        authTemplates.renderPasswordResetRequestEmail(verificationCode, expiryMinutes)
 
-        return RenderedEmailTemplate(
-            subject = "${configurationService.emailSubjectTitle} | New sign-in to your account",
-            body = renderTemplate("new-sign-in-alert.ftl", model),
-        )
-    }
+    fun renderPasswordChangedEmail(email: String, changedAt: String): String =
+        authTemplates.renderPasswordChangedEmail(email, changedAt)
 
-    fun renderPasswordResetRequestEmail(verificationCode: String, expiryMinutes: Long): String
-    {
-        val model = mapOf(
-            "verificationCode" to verificationCode,
-            "expiryMinutes" to expiryMinutes,
-            "appName" to configurationService.emailSubjectTitle,
-        )
-
-        return renderTemplate("password-reset-request.ftl", model)
-    }
-
-    fun renderPasswordChangedEmail(email: String, changedAt: String): String
-    {
-        val model = mapOf(
-            "email" to email,
-            "changedAt" to changedAt,
-            "appName" to configurationService.emailSubjectTitle,
-        )
-
-        return renderTemplate("password-changed.ftl", model)
-    }
-
-    fun renderAccountDeletedEmail(email: String, deletedAt: String): String
-    {
-        val model = mapOf(
-            "email" to email,
-            "deletedAt" to deletedAt,
-            "appName" to configurationService.emailSubjectTitle,
-        )
-
-        return renderTemplate("account-deleted.ftl", model)
-    }
+    fun renderAccountDeletedEmail(email: String, deletedAt: String): String =
+        authTemplates.renderAccountDeletedEmail(email, deletedAt)
 }
 

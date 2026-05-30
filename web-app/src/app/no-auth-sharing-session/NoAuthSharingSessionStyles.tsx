@@ -31,6 +31,15 @@ export const useNoAuthSharingSessionStyles = makeStyles({
         boxSizing: "border-box",
     },
 
+    sessionDecisionContainer: {
+        flex: 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "16px",
+        boxSizing: "border-box",
+    },
+
     sessionName: {
         display: "flex",
         flexDirection: "column",

@@ -13,6 +13,7 @@ import {
     Text,
 } from "@fluentui/react-components";
 import {StepUpPrompt, subscribeStepUp} from "../../../services/stepUpBroker";
+import {getOtpFriendlyMessage, normalizeApiError} from "../../../utils/apiErrorUtils";
 
 const friendlyActionLabel = (action?: string | null): string =>
 {
@@ -66,10 +67,9 @@ const StepUpModal: React.FC = () =>
                 setError("Verification failed. Please try again.");
             }
         }
-        catch (e: any)
+        catch (e: unknown)
         {
-            const msg = e?.errorMessage || e?.message || "Verification failed.";
-            setError(msg);
+            setError(getOtpFriendlyMessage(normalizeApiError(e, "Verification failed.")));
         }
         finally
         {
@@ -87,10 +87,9 @@ const StepUpModal: React.FC = () =>
             const message = await prompt.resendOtp();
             setInfo(message);
         }
-        catch (e: any)
+        catch (e: unknown)
         {
-            const msg = e?.errorMessage || e?.message || "Could not resend code.";
-            setError(msg);
+            setError(getOtpFriendlyMessage(normalizeApiError(e, "Could not resend code.")));
         }
         finally
         {
@@ -107,10 +106,9 @@ const StepUpModal: React.FC = () =>
         {
             await prompt.continueExternal();
         }
-        catch (e: any)
+        catch (e: unknown)
         {
-            const msg = e?.errorMessage || e?.message || "Could not start external re-login.";
-            setError(msg);
+            setError(getOtpFriendlyMessage(normalizeApiError(e, "Could not start external re-login.")));
             setSubmitting(false);
         }
     };

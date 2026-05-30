@@ -46,6 +46,7 @@ class BasicEntityToDtoTransformer
                         recipient?.email,
                         initiator?.person?.firstName,
                         initiator?.person?.lastName,
+                        noAuthAccessValidityDays,
                         documents.map { toDto(it) }
                     )
                 }

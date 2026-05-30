@@ -122,6 +122,8 @@ class PasswordResetService @Inject constructor(
         appUser.apply {
             this.password = hashedPassword
             this.passwordSalt = Base64.getEncoder().encodeToString(passwordSalt.toByteArray())
+            this.isPasswordTemporary = false
+            this.temporaryPasswordExpiresAt = null
         }
 
         appUserRepository.update(appUser)

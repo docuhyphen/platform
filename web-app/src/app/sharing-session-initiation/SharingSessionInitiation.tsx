@@ -43,11 +43,22 @@ import {
 } from "../models/models.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {recreateRejectedSessionObservable} from "../observable/sharingSessionObservables.ts";
+import {useNavigate} from "react-router-dom";
+
+type CreatedSessionSummary = {
+    id?: string;
+    sessionName: string;
+    recipient: string;
+    documents: number;
+    requiresSignIn: boolean;
+    shareLink?: string;
+};
 
 const SharingSessionInitiation: React.FC = () =>
 {
     const styles = useSharingSessionInitiationStyles();
     const {appUser} = useAuth();
+    const navigate = useNavigate();
     const {
         choosingTemplate, setChoosingTemplate,
         sessionName, setSessionName,
@@ -75,6 +86,8 @@ const SharingSessionInitiation: React.FC = () =>
 
     const toasterId = useId("sharing-session-initiation-toaster");
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+    const [createdSessionSummary, setCreatedSessionSummary] = React.useState<CreatedSessionSummary | null>(null);
+    const [copyLinkStatus, setCopyLinkStatus] = React.useState<'idle' | 'copied' | 'failed'>('idle');
 
     const {dispatchToast} = useToastController(toasterId);
 
@@ -96,6 +109,84 @@ const SharingSessionInitiation: React.FC = () =>
     const handleRequestingDocumentsChange = (isRequesting: boolean) =>
     {
         setRequestingDocuments(isRequesting);
+    };
+
+    const buildRecipientLabel = (): string =>
+    {
+        if (recipientOrgGroup?.name)
+        {
+            return `Group: ${recipientOrgGroup.name}`;
+        }
+        if (recipientOrgUser?.person?.firstName || recipientOrgUser?.person?.lastName)
+        {
+            return `${recipientOrgUser.person?.firstName ?? ''} ${recipientOrgUser.person?.lastName ?? ''}`.trim();
+        }
+        if (recipientOrgUser?.email)
+        {
+            return recipientOrgUser.email;
+        }
+        if (newRecipient?.firstName || newRecipient?.lastName)
+        {
+            return `${newRecipient.firstName ?? ''} ${newRecipient.lastName ?? ''}`.trim();
+        }
+        return newRecipient?.email || 'Recipient';
+    };
+
+    const copyTextWithFallback = async (text: string): Promise<boolean> =>
+    {
+        try
+        {
+            if (navigator.clipboard?.writeText)
+            {
+                await navigator.clipboard.writeText(text);
+                return true;
+            }
+        }
+        catch (_)
+        {
+            // Fallback below for environments where clipboard APIs are blocked.
+        }
+
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const success = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        return success;
+    };
+
+    const onCopySessionLink = async () =>
+    {
+        const link = createdSessionSummary?.shareLink;
+        if (!link)
+        {
+            setCopyLinkStatus('failed');
+            return;
+        }
+
+        const copied = await copyTextWithFallback(link);
+        setCopyLinkStatus(copied ? 'copied' : 'failed');
+    };
+
+    const onViewSession = () =>
+    {
+        if (!createdSessionSummary?.id)
+        {
+            return;
+        }
+        setIsDialogOpen(false);
+        navigate(`/sharing-sessions?s=${encodeURIComponent(createdSessionSummary.id)}`);
+    };
+
+    const buildSessionShareLink = (sessionId: string, requiresSignIn: boolean): string =>
+    {
+        const encodedSessionId = encodeURIComponent(sessionId);
+        const route = requiresSignIn ? '/sharing-sessions' : '/nas';
+        return `${window.location.origin}${route}?s=${encodedSessionId}`;
     };
 
     const isRecipientValid = (): boolean =>
@@ -274,6 +365,18 @@ const SharingSessionInitiation: React.FC = () =>
             } as SharingSessionInitiationRequest;
 
             const createdSharingSession = await initiateSharingSession(sharingSession);
+            const createdSessionId = (createdSharingSession as { id?: string })?.id;
+            const shareLink = createdSessionId ? buildSessionShareLink(createdSessionId, requireSignIn) : undefined;
+
+            setCreatedSessionSummary({
+                id: createdSessionId,
+                sessionName: sessionName.trim(),
+                recipient: buildRecipientLabel(),
+                documents: documents.length,
+                requiresSignIn: requireSignIn,
+                shareLink,
+            });
+            setCopyLinkStatus('idle');
 
             publishNewSharingSessionAddition(createdSharingSession);
 
@@ -309,27 +412,49 @@ const SharingSessionInitiation: React.FC = () =>
 
     const resetInitiationForm = () =>
     {
+        setChoosingTemplate(false);
+        setMessageGroupMessages([]);
+        setInitiatingSession(false);
         setSessionInitiatedSuccessfully(false);
         setRecipientOrg(null)
         setRecipientOrgUser(null)
         setRecipientOrgGroup(null)
+        setRecipientMode(SharingSessionInitiationRecipientMode.PEOPLE);
+        setInternalParticipants(undefined);
+        setNewRecipient({
+            email: '',
+            firstName: '',
+            lastName: '',
+        });
         setSessionName('');
         setDescription('');
         setInitialShareMessage('');
-        setRequireSignIn(false);
+        setRequireSignIn(true);
         setAllowDocumentAdditions(false);
         setAllowDocumentDeletions(false);
         setAllowDocumentDownload(false);
         setAllowDocumentUpdate(false);
         setAllowDocumentUpload(false);
+        setRequestingDocuments(true);
         setDocuments([]);
         setSelectedTab('recipients-tab');
+        setCreatedSessionSummary(null);
+        setCopyLinkStatus('idle');
     };
 
     const onCancelInitiation = () =>
     {
         resetInitiationForm();
         setIsDialogOpen(false);
+    };
+
+    const onDialogOpenChange = (_: unknown, data: { open: boolean }) =>
+    {
+        if (!data.open)
+        {
+            resetInitiationForm();
+        }
+        setIsDialogOpen(data.open);
     };
 
     React.useEffect(() =>
@@ -520,8 +645,35 @@ const SharingSessionInitiation: React.FC = () =>
             {sessionInitiatedSuccessfully ? (
                 <div className={styles.sharingSessionInitiationSuccess}>
                     <Text size={500}> Sharing Session started successfully </Text>
-                    <Text size={300} italic={true}> {sessionName} </Text>
-                    <Button appearance={"transparent"}>Copy Link</Button>
+                    <Text size={300} italic={true}> {createdSessionSummary?.sessionName || sessionName} </Text>
+                    <div className={styles.sharingSessionSuccessDetails}>
+                        <Text size={200}>Recipient</Text>
+                        <Text size={200}>{createdSessionSummary?.recipient || '-'}</Text>
+                        <Text size={200}>Documents</Text>
+                        <Text size={200}>{createdSessionSummary?.documents ?? documents.length}</Text>
+                        <Text size={200}>Recipient sign-in</Text>
+                        <Text size={200}>{(createdSessionSummary?.requiresSignIn ?? requireSignIn) ? 'Required' : 'Not required'}</Text>
+                    </div>
+                    <div className={styles.sharingSessionSuccessActions}>
+                        <Button
+                            appearance={"subtle"}
+                            shape={"circular"}
+                            onClick={onCopySessionLink}
+                            disabled={!createdSessionSummary?.shareLink}
+                        >
+                            Copy Link
+                        </Button>
+                        <Button
+                            shape={"circular"}
+                            appearance={"subtle"}
+                            onClick={onViewSession}
+                            disabled={!createdSessionSummary?.id}
+                        >
+                            View Session
+                        </Button>
+                    </div>
+                    {copyLinkStatus === 'copied' && <Text size={200}>Link copied</Text>}
+                    {copyLinkStatus === 'failed' && <Text size={200}>Could not copy link</Text>}
                 </div>
             ) : (
                 <div className={styles.dialogContentContainer}>
@@ -534,7 +686,7 @@ const SharingSessionInitiation: React.FC = () =>
     }
 
     return (
-        <Dialog modalType="alert" open={isDialogOpen} onOpenChange={(_, data) => setIsDialogOpen(data.open)}>
+        <Dialog modalType="alert" open={isDialogOpen} onOpenChange={onDialogOpenChange}>
             <DialogTrigger disableButtonEnhancement>
                 <SessionInitiationDialogTrigger onRequestingDocumentsChange={handleRequestingDocumentsChange}/>
             </DialogTrigger>

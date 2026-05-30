@@ -13,7 +13,7 @@ import {
     Option,
     Spinner
 } from "@fluentui/react-components";
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import {addOrganizationUser} from "../../../../services/organizationApi.ts";
 import {useAddAppUserDialogStyles} from "./AddAppUserDialogStyles.tsx";
@@ -47,6 +47,10 @@ const mapServerErrorMessage = (raw: string | undefined | null): string =>
     }
     if (lower.includes("capacity") || lower.includes("limit"))
     {
+        if (lower.includes("organization user limit reached") || lower.includes("limit is"))
+        {
+            return raw;
+        }
         return "Your organization has reached its member limit. Upgrade your plan to add more users.";
     }
     return raw;
@@ -69,6 +73,23 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
     const [role, setRole] = useState("ORG_MEMBER");
     const [savingData, setSavingData] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const resetForm = () =>
+    {
+        setEmail("");
+        setFirstName("");
+        setLastName("");
+        setRole("ORG_MEMBER");
+        setError(null);
+    };
+
+    useEffect(() =>
+    {
+        if (!isOpen)
+        {
+            resetForm();
+        }
+    }, [isOpen]);
 
     const extractErrorMessage = (e: any): string =>
     {
@@ -111,6 +132,7 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
                 token || undefined
             );
 
+            resetForm();
             onComplete();
         }
         catch (err: any)
@@ -126,11 +148,7 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
 
     const onClose = () =>
     {
-        setEmail("");
-        setFirstName("");
-        setLastName("");
-        setRole("ORG_MEMBER");
-        setError(null);
+        resetForm();
         onDismiss();
     };
 

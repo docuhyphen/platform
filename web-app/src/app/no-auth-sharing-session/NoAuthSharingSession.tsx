@@ -108,7 +108,7 @@ const NoAuthSharingSession: React.FC = () =>
                             <div className={styles.sessionName}>
                                 {(session.initiatorLastName && session.initiatorFirstName) &&
                                     <Text>
-                                        From {session.initiatorFirstName} {session.initiatorLastName}
+                                        Requested by {session.initiatorFirstName} {session.initiatorLastName}
                                     </Text>
                                 }
                                 <Text size={600}>{session.sessionName}</Text>
@@ -117,11 +117,13 @@ const NoAuthSharingSession: React.FC = () =>
                                 session={session}/>
                         </section>
                     ) : (
-                        <NoAuthSessionUserDecision
-                            session={session}
-                            onAccepted={onSessionAccepted}
-                            onDeclined={() => navigate("/sign-in/")}
-                        />
+                        <section className={styles.sessionDecisionContainer}>
+                            <NoAuthSessionUserDecision
+                                session={session}
+                                onAccepted={onSessionAccepted}
+                                onDeclined={() => navigate("/sign-in/")}
+                            />
+                        </section>
                     )}
                 </>
             )}

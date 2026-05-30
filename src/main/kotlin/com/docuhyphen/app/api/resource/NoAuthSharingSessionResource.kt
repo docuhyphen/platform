@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource
 
+import com.docuhyphen.app.api.exception.NoAuthOtpException
 import com.docuhyphen.app.api.exception.SharingSessionDocumentNotFoundException
 import com.docuhyphen.app.api.exception.SharingSessionNotFoundException
 import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer
@@ -20,6 +21,7 @@ import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
 import jakarta.ws.rs.core.Response.Status.NOT_FOUND
+import jakarta.ws.rs.core.Response.Status.TOO_MANY_REQUESTS
 import org.jboss.resteasy.reactive.RestForm
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -43,8 +45,6 @@ class NoAuthSharingSessionResource @Inject constructor(
     @Path("/{sessionId}")
     fun getNoAuthSharingSession(@PathParam("sessionId") sessionId: String): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(2000, 4000)
-
         return try
         {
             val sharingSession = sharingSessionRetrievalService.getNoAuthSharingSession(sessionId)
@@ -99,9 +99,7 @@ class NoAuthSharingSessionResource @Inject constructor(
         @PathParam("sessionId") sessionId: String
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(1500, 2500)
-
-        return try
+        return ResourceEndpointDelayHelper.withFixedFloor(1000) { try
         {
             sharingSessionUpdateService.issueRecipientOtp(sessionId)
             Response.status(Response.Status.NO_CONTENT).build()
@@ -124,6 +122,28 @@ class NoAuthSharingSessionResource @Inject constructor(
                         .entity(ResponseError(exception.message))
                         .build()
                 }
+                is NoAuthOtpException ->
+                {
+                    logger.warn("OTP request rejected: reasonCode={} retryAfter={}", exception.reasonCode, exception.retryAfterSeconds)
+                    val response = Response.status(
+                        if (exception.reasonCode == "OTP_RATE_LIMITED" || exception.reasonCode == "OTP_LOCKED")
+                            TOO_MANY_REQUESTS
+                        else
+                            Response.Status.BAD_REQUEST,
+                    )
+                        .entity(
+                            ResponseError(
+                                errorMessage = exception.message,
+                                reasonCode = exception.reasonCode,
+                                retryAfterSeconds = exception.retryAfterSeconds,
+                            )
+                        )
+                    if (exception.retryAfterSeconds != null)
+                    {
+                        response.header("Retry-After", exception.retryAfterSeconds)
+                    }
+                    response.build()
+                }
                 is IllegalArgumentException ->
                 {
                     logger.warn("OTP request rejected", exception)
@@ -140,6 +160,80 @@ class NoAuthSharingSessionResource @Inject constructor(
                 }
             }
         }
+        }
+    }
+
+    @POST
+    @Path("/{sessionId}/verify-access-code")
+    fun verifyNoAuthAccessCode(
+        @PathParam("sessionId") sessionId: String,
+        request: UpdateNoAuthSharingSession,
+    ): Response
+    {
+        return try
+        {
+            val updatedSession = sharingSessionUpdateService.verifyNoAuthAccessCode(sessionId, request.otp)
+            Response.ok(BasicEntityToDtoTransformer.toNoAuthDto(updatedSession)).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is NoAuthOtpException ->
+                {
+                    val response = Response
+                        .status(
+                            if (exception.reasonCode == "OTP_RATE_LIMITED" || exception.reasonCode == "OTP_LOCKED")
+                                TOO_MANY_REQUESTS
+                            else
+                                Response.Status.BAD_REQUEST,
+                        )
+                        .entity(
+                            ResponseError(
+                                errorMessage = exception.message,
+                                reasonCode = exception.reasonCode,
+                                retryAfterSeconds = exception.retryAfterSeconds,
+                            )
+                        )
+
+                    if (exception.retryAfterSeconds != null)
+                    {
+                        response.header("Retry-After", exception.retryAfterSeconds)
+                    }
+
+                    response.build()
+                }
+
+                is ForbiddenException ->
+                {
+                    Response.status(Response.Status.FORBIDDEN)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
+                is SharingSessionNotFoundException ->
+                {
+                    Response.status(NOT_FOUND)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
+                is IllegalArgumentException ->
+                {
+                    Response.status(Response.Status.BAD_REQUEST)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
+                else ->
+                {
+                    logger.error("Error verifying no-auth access code", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while verifying access code"))
+                        .build()
+                }
+            }
+        }
     }
 
     @PUT
@@ -152,7 +246,12 @@ class NoAuthSharingSessionResource @Inject constructor(
         return try
         {
             val updatedSession = with(request) {
-                sharingSessionUpdateService.updateNoAuthSharingSession(sessionId, status, otp, rejectReason)
+                sharingSessionUpdateService.updateNoAuthSharingSession(
+                    sessionId,
+                    status,
+                    otp,
+                    rejectReason ?: rejectionReason,
+                )
             }
 
             Response.ok(BasicEntityToDtoTransformer.toNoAuthDto(updatedSession)).build()
@@ -161,6 +260,33 @@ class NoAuthSharingSessionResource @Inject constructor(
         {
             when (exception)
             {
+                is NoAuthOtpException ->
+                {
+                    logger.error("Error updating sharing session: reasonCode={} retryAfter={}", exception.reasonCode, exception.retryAfterSeconds)
+
+                    val response = Response
+                        .status(
+                            if (exception.reasonCode == "OTP_RATE_LIMITED" || exception.reasonCode == "OTP_LOCKED")
+                                TOO_MANY_REQUESTS
+                            else
+                                Response.Status.BAD_REQUEST,
+                        )
+                        .entity(
+                            ResponseError(
+                                errorMessage = exception.message,
+                                reasonCode = exception.reasonCode,
+                                retryAfterSeconds = exception.retryAfterSeconds,
+                            )
+                        )
+
+                    if (exception.retryAfterSeconds != null)
+                    {
+                        response.header("Retry-After", exception.retryAfterSeconds)
+                    }
+
+                    response.build()
+                }
+
                 is ForbiddenException ->
                 {
                     logger.error("Error updating sharing session", exception)
@@ -229,7 +355,7 @@ class NoAuthSharingSessionResource @Inject constructor(
                 extension,
                 sessionId,
                 documentId,
-                encryptionMode
+                encryptionMode,
             )
 
             val dto = DetailedEntityToDtoTransformer.toDto(document)

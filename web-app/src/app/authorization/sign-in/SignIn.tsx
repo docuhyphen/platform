@@ -29,6 +29,7 @@ import {useSignInStyles} from "./SignInStyles.tsx";
 import {useAuthorizationStyles} from "../AuthorizationStyles.tsx";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 import validator from 'validator';
+import {getOtpFriendlyMessage, normalizeApiError} from "../../../utils/apiErrorUtils.ts";
 
 const SIGN_IN_SESSION_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 const RESEND_COOLDOWN_SECONDS = 30;
@@ -104,7 +105,7 @@ const SignIn: React.FC = () =>
         }
         catch (error)
         {
-            setResponseErrorMessage((error as ResponseError)?.errorMessage ?? "An error occurred.");
+            setResponseErrorMessage(getOtpFriendlyMessage(normalizeApiError(error, "An error occurred.")));
         }
         finally
         {
@@ -139,7 +140,14 @@ const SignIn: React.FC = () =>
         }
         catch (error)
         {
-            setResponseErrorMessage((error as ResponseError)?.errorMessage ?? "An unknown error occurred signing in.");
+            const signInError = (error as ResponseError);
+            if (signInError?.reasonCode === 'PASSWORD_CHANGE_REQUIRED' || signInError?.reasonCode === 'TEMP_PASSWORD_EXPIRED')
+            {
+                const prefillEmail = encodeURIComponent(email || '');
+                navigate(`/account-recovery?email=${prefillEmail}&reason=${signInError.reasonCode}`);
+                return;
+            }
+            setResponseErrorMessage(getOtpFriendlyMessage(normalizeApiError(signInError, "An unknown error occurred signing in.")));
         }
         finally
         {
@@ -181,7 +189,7 @@ const SignIn: React.FC = () =>
             }
             catch (error)
             {
-                setResponseErrorMessage((error as ResponseError)?.errorMessage);
+                setResponseErrorMessage(getOtpFriendlyMessage(normalizeApiError(error, "Could not load your account. Please try again.")));
                 setToken(null);
                 setApiClientAuthToken(null);
                 return;
@@ -210,8 +218,7 @@ const SignIn: React.FC = () =>
         }
         catch (error)
         {
-            const errMsg = (error as ResponseError)?.errorMessage;
-            setResponseErrorMessage(errMsg || "An unknown error occurred signing in.");
+            setResponseErrorMessage(getOtpFriendlyMessage(normalizeApiError(error, "An unknown error occurred signing in.")));
         }
         finally
         {
@@ -236,7 +243,7 @@ const SignIn: React.FC = () =>
         }
         catch (error)
         {
-            setResponseErrorMessage((error as ResponseError)?.errorMessage);
+            setResponseErrorMessage(getOtpFriendlyMessage(normalizeApiError(error, "Could not resend the verification code. Please try again.")));
         }
         finally
         {
@@ -306,7 +313,7 @@ const SignIn: React.FC = () =>
         }
         catch (error)
         {
-            setResponseErrorMessage((error as ResponseError)?.errorMessage ?? "An error occurred.");
+            setResponseErrorMessage(getOtpFriendlyMessage(normalizeApiError(error, "An error occurred.")));
         }
         finally
         {

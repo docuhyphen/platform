@@ -203,6 +203,28 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
         query.executeUpdate()
     }
 
+    @Transactional
+    fun updateNoAuthAccessValidityDays(sessionId: UUID, noAuthAccessValidityDays: Int)
+    {
+        val query = entityManager.createQuery(
+            "UPDATE SharingSession s SET s.noAuthAccessValidityDays = :noAuthAccessValidityDays WHERE s.id = :sessionId"
+        )
+        query.setParameter("noAuthAccessValidityDays", noAuthAccessValidityDays)
+        query.setParameter("sessionId", sessionId)
+        query.executeUpdate()
+    }
+
+    @Transactional
+    fun updateNoAuthAccessVerifiedAt(sessionId: UUID, verifiedAt: Timestamp?)
+    {
+        val query = entityManager.createQuery(
+            "UPDATE SharingSession s SET s.noAuthAccessVerifiedAt = :verifiedAt WHERE s.id = :sessionId"
+        )
+        query.setParameter("verifiedAt", verifiedAt)
+        query.setParameter("sessionId", sessionId)
+        query.executeUpdate()
+    }
+
     fun searchSessions(
         appUserId: UUID,
         query: String?,

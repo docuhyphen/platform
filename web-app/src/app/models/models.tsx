@@ -23,6 +23,8 @@ export enum SharingSessionParticipantType
 export interface ResponseError
 {
     errorMessage?: string;
+    reasonCode?: string;
+    retryAfterSeconds?: number;
 }
 
 export interface SignInRequest
@@ -238,6 +240,7 @@ export interface UpdateSharingSessionRequest
     allowDocumentDownload?: boolean;
     allowDocumentUpdate?: boolean;
     allowDocumentUpload?: boolean;
+    noAuthAccessValidityDays?: number;
     status?: SharingSessionStatus;
     rejectionReason?: string;
 }
@@ -246,6 +249,7 @@ export interface UpdateNoAuthSharingSessionRequest
 {
     otp?: string;
     status?: SharingSessionStatus;
+    rejectReason?: string;
     rejectionReason?: string;
 }
 
@@ -328,6 +332,7 @@ export interface NoAuthSharingSessionBasicDto
     recipientOrganizationName?: string;
     initiatorFirstName?: string;
     initiatorLastName?: string;
+    noAuthAccessValidityDays?: number;
 }
 
 export interface ContactDetailsBasicDto
@@ -412,6 +417,21 @@ export interface SharingSessionDetailedDto
     allowDocumentDownload?: boolean
     allowDocumentUpdate?: boolean
     allowDocumentUpload?: boolean
+    noAuthAccessValidityDays?: number;
+    participants?: SharingSessionParticipantDetailedDto[];
+}
+
+export interface SharingSessionParticipantDetailedDto
+{
+    id: string;
+    participantType: 'GROUP' | 'APP_USER' | string;
+    addedDate: string;
+    appUserId?: string;
+    appUserEmail?: string;
+    appUserFirstName?: string;
+    appUserLastName?: string;
+    organizationGroupId?: string;
+    organizationGroupName?: string;
 }
 
 export interface ContactDetailsDetailedDto

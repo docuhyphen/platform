@@ -44,8 +44,6 @@ class OrganizationGroupResource @Inject constructor(
         addOrganizationGroupRequest: AddOrganizationGroupRequest
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
-
         return try
         {
 
@@ -130,8 +128,6 @@ class OrganizationGroupResource @Inject constructor(
         updateOrganizationGroupRequest: UpdateOrganizationGroupRequest
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
-
         return try
         {
             val groupMembers = updateOrganizationGroupRequest.members?.map { member ->
@@ -201,8 +197,6 @@ class OrganizationGroupResource @Inject constructor(
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
-
         return try
         {
             val limitedResponse = directoryLookupGuardService.enforce(
@@ -266,8 +260,6 @@ class OrganizationGroupResource @Inject constructor(
         @PathParam("pairedOrganizationId") pairedOrganizationId: String,
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
-
         return try
         {
             val groups = organizationGroupService
@@ -310,7 +302,6 @@ class OrganizationGroupResource @Inject constructor(
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
 
         return try
         {

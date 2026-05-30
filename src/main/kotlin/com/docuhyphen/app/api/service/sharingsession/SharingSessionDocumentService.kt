@@ -13,7 +13,6 @@ import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.storage.FileStorageService
-import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -213,8 +212,8 @@ class SharingSessionDocumentService @Inject constructor(
 
         if (sharingSession.requireRecipientSignIn)
         {
-            logger.error("Attempted to access a sharing session that requires recipient sign-in")
-            throw ForbiddenException("Sharing session not found")
+            logger.warn("Attempted no-auth upload for session {} after sign-in requirement was enabled", sharingSession.id)
+            throw IllegalArgumentException("This request now requires sign in. Please sign in to continue.")
         }
 
         if (sharingSession.status != SharingSessionStatus.ACCEPTED_STARTED && sharingSession.status != SharingSessionStatus.INITIATED)
@@ -239,6 +238,8 @@ class SharingSessionDocumentService @Inject constructor(
             throw IllegalArgumentException("Permission to upload document not granted")
         }
 
+        ensureNoAuthAccessWindowActive(sharingSession)
+
         validateFileAndExtension(file, extension, document.restrictedType)
 
 
@@ -254,6 +255,19 @@ class SharingSessionDocumentService @Inject constructor(
         broadcastDocumentEvent(sharingSession.id, RealtimeMessageType.SHARING_SESSION_DOCUMENT_UPDATED, document.id)
 
         return document
+    }
+
+    private fun ensureNoAuthAccessWindowActive(sharingSession: SharingSession)
+    {
+        val verifiedAt = sharingSession.noAuthAccessVerifiedAt
+            ?: throw IllegalArgumentException("Your access verification has expired. Ask the person who requested documents to resend an access code in Manage Access.")
+        val validityDays = sharingSession.noAuthAccessValidityDays
+            .coerceAtLeast(1)
+        val validUntil = verifiedAt.toInstant().plusSeconds(validityDays.toLong() * 24 * 60 * 60)
+        if (validUntil.isBefore(Instant.now()))
+        {
+            throw IllegalArgumentException("Your access verification has expired. Ask the person who requested documents to resend an access code in Manage Access.")
+        }
     }
 
     @Transactional
@@ -277,8 +291,8 @@ class SharingSessionDocumentService @Inject constructor(
 
         if (sharingSession.requireRecipientSignIn)
         {
-            logger.error("Attempted to access a sharing session that requires recipient sign-in")
-            throw ForbiddenException("Sharing session not found")
+            logger.warn("Attempted no-auth download for session {} after sign-in requirement was enabled", sharingSession.id)
+            throw IllegalArgumentException("This request now requires sign in. Please sign in to continue.")
         }
 
         if (sharingSession.status != SharingSessionStatus.ACCEPTED_STARTED && sharingSession.status != SharingSessionStatus.INITIATED)
@@ -292,6 +306,8 @@ class SharingSessionDocumentService @Inject constructor(
             logger.error("Attempted to update a sharing session that has ended or rejected: ${sharingSession.status}")
             throw IllegalArgumentException("Sharing session not found")
         }
+
+        ensureNoAuthAccessWindowActive(sharingSession)
 
         if (document.isDeleted)
         {

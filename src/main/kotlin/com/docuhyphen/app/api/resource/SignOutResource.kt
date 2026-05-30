@@ -72,7 +72,6 @@ class SignOutResource @Inject constructor(
                     .build()
             }
 
-            ResourceEndpointDelayHelper.delayEndpoint(3000, 6000)
             signOutService.signOut(outOfAllDevices, requestId)
             val clearCookie = tokenIssuanceService.buildClearRefreshTokenCookie()
             val clearCsrfCookie = tokenIssuanceService.buildClearCsrfTokenCookie()

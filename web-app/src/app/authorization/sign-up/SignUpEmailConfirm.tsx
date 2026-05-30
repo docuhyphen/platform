@@ -22,7 +22,7 @@ import SignUpCarousel from "../carousel/SignUpCarousel.tsx";
 import {useSignUpStyles} from "./SignUpStyles.tsx";
 import {useAuthorizationStyles} from "../AuthorizationStyles.tsx";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
-import {ResponseError} from "../../models/models.tsx";
+import {getOtpFriendlyMessage, normalizeApiError} from "../../../utils/apiErrorUtils.ts";
 
 /**
  * Landing page for the verification link sent in the sign-up email.
@@ -93,10 +93,7 @@ const SignUpEmailConfirm: React.FC = () =>
             catch (error)
             {
                 if (cancelled) return;
-                setTokenError(
-                    (error as ResponseError)?.errorMessage
-                    || "This verification link is invalid or has expired."
-                );
+                setTokenError(getOtpFriendlyMessage(normalizeApiError(error, "This verification link is invalid or has expired.")));
             }
             finally
             {
@@ -159,8 +156,7 @@ const SignUpEmailConfirm: React.FC = () =>
         }
         catch (error)
         {
-            const message = (error as ResponseError)?.errorMessage
-                || "We couldn't complete sign up. The verification link may have expired.";
+            const message = getOtpFriendlyMessage(normalizeApiError(error, "We couldn't complete sign up. The verification link may have expired."));
             setErrorMessage(message);
 
             // The token has been consumed (success or fail) by the server side. If
@@ -196,10 +192,7 @@ const SignUpEmailConfirm: React.FC = () =>
         }
         catch (error)
         {
-            setOtpRegenerationFailedMsg(
-                (error as ResponseError)?.errorMessage
-                || "Failed to send a new verification email."
-            );
+            setOtpRegenerationFailedMsg(getOtpFriendlyMessage(normalizeApiError(error, "Failed to send a new verification email.")));
         }
         finally
         {

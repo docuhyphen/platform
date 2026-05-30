@@ -109,5 +109,12 @@ class SharingSession
     @Serializable(with = TimestampSerializer::class)
     var recipientOtpExpiry: Timestamp? = null
 
+    @Column(name = "no_auth_access_verified_at", nullable = true)
+    @Serializable(with = TimestampSerializer::class)
+    var noAuthAccessVerifiedAt: Timestamp? = null
+
+    @Column(name = "no_auth_access_validity_days", nullable = false)
+    var noAuthAccessValidityDays: Int = 7
+
     constructor()
 }

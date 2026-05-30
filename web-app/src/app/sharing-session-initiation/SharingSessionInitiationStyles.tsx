@@ -62,6 +62,22 @@ export const useSharingSessionInitiationStyles = makeStyles({
         flexDirection: "column",
         gap: "16px",
     },
+    sharingSessionSuccessDetails: {
+        display: "grid",
+        gridTemplateColumns: "auto 1fr",
+        columnGap: "12px",
+        rowGap: "8px",
+        width: "100%",
+        maxWidth: "440px",
+        padding: "12px",
+        borderRadius: tokens.borderRadiusMedium,
+        backgroundColor: tokens.colorNeutralBackground2,
+    },
+    sharingSessionSuccessActions: {
+        display: "flex",
+        gap: "8px",
+        alignItems: "center",
+    },
     errorMessagesGroup: {
         display: "flex",
         flexDirection: "column",

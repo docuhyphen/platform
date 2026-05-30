@@ -41,8 +41,6 @@ class SharingSessionDocumentsResource @Inject constructor(
         @PathParam("sessionId") sessionId: String
     ): Response
     {
-
-        ResourceEndpointDelayHelper.delayEndpoint(4000, 6000)
         return try
         {
             val document = with(request) {
@@ -106,8 +104,6 @@ class SharingSessionDocumentsResource @Inject constructor(
         @PathParam("documentId") documentId: String
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(4000, 6000)
-
         return try
         {
             sharingSessionDocumentService.deleteDocument(sessionId, documentId)
@@ -165,7 +161,6 @@ class SharingSessionDocumentsResource @Inject constructor(
         @PathParam("documentId") documentId: String
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(2000, 3500)
 
         return try
         {

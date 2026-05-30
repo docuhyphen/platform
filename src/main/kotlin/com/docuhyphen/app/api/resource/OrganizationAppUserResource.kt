@@ -43,8 +43,6 @@ class OrganizationAppUserResource @Inject constructor(
         addOrganizationAppUserRequest: AddOrganizationAppUserRequest
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
-
         return try
         {
             val appUser = with(addOrganizationAppUserRequest) {
@@ -111,8 +109,6 @@ class OrganizationAppUserResource @Inject constructor(
     @Path("/{organizationId}/app-users")
     fun getAppUsers(@PathParam("organizationId") organizationId: String?): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
-
         return try
         {
             val appUsers = organizationAppUserService.getAppUsers(organizationId)
@@ -173,8 +169,6 @@ class OrganizationAppUserResource @Inject constructor(
         updateOrganizationAppUserRequest: UpdateOrganizationAppUserRequest
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
-
         return try
         {
             with(updateOrganizationAppUserRequest)
@@ -245,8 +239,6 @@ class OrganizationAppUserResource @Inject constructor(
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
-
         return try
         {
             val adminApprovalContext = AdminApprovalContext(
@@ -307,7 +299,6 @@ class OrganizationAppUserResource @Inject constructor(
         @PathParam("appUserId") appUserId: String?
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
 
         return try
         {

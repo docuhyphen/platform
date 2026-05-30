@@ -274,7 +274,7 @@ class SignInResource @Inject constructor(
         payload: SignInRequest
     ): Response
     {
-        return try
+        return ResourceEndpointDelayHelper.withFixedFloor(2000) { try
         {
             val clientIp = getClientIpAddress(request)
             if (authRateLimitService.isLimited(
@@ -296,8 +296,6 @@ class SignInResource @Inject constructor(
                 )
                 return Response.status(429).entity(ResponseError("Too many requests. Please try again later.")).build()
             }
-
-            ResourceEndpointDelayHelper.delayEndpoint(4000, 6000)
 
             val mfaSession = with(payload) {
 
@@ -354,6 +352,28 @@ class SignInResource @Inject constructor(
                     Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
                 }
 
+                is PasswordChangeRequiredException,
+                is TemporaryPasswordExpiredException ->
+                {
+                    val reasonCode = when (exception)
+                    {
+                        is PasswordChangeRequiredException -> "PASSWORD_CHANGE_REQUIRED"
+                        else -> "TEMP_PASSWORD_EXPIRED"
+                    }
+                    val responseError = ResponseError(
+                        errorMessage = exception.message,
+                        reasonCode = reasonCode,
+                    )
+                    authAuditService.emit(
+                        action = "SIGN_IN_INITIATE",
+                        outcome = "DENY",
+                        reasonCode = RevocationReasonCode.SECURITY_POLICY,
+                        requestId = requestId,
+                        reason = "Temporary password requires reset",
+                    )
+                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
+                }
+
                 else ->
                 {
                     logger.error("Error initiating sign in", exception)
@@ -368,6 +388,7 @@ class SignInResource @Inject constructor(
                 }
             }
         }
+        }
     }
 
     @POST
@@ -378,7 +399,7 @@ class SignInResource @Inject constructor(
         payload: SignInCompletionRequest
     ): Response
     {
-        return try
+        return ResourceEndpointDelayHelper.withFixedFloor(1200) { try
         {
             val clientIp = getClientIpAddress(request)
             if (authRateLimitService.isLimited(
@@ -400,8 +421,6 @@ class SignInResource @Inject constructor(
                 )
                 return Response.status(429).entity(ResponseError("Too many requests. Please try again later.")).build()
             }
-
-            ResourceEndpointDelayHelper.delayEndpoint(1000, 3000)
 
             val tokenTriple = with(payload) {
                 signInService.completeSignIn(email, otp, mfaSessionId,
@@ -470,6 +489,7 @@ class SignInResource @Inject constructor(
                 }
             }
         }
+        }
     }
 
     @POST
@@ -479,10 +499,8 @@ class SignInResource @Inject constructor(
     ): Response
     {
         // ...existing otp-regeneration code unchanged...
-        return try
+        return ResourceEndpointDelayHelper.withFixedFloor(1200) { try
         {
-            ResourceEndpointDelayHelper.delayEndpoint(3000, 6000)
-
             val mfaSession = with(payload) {
                 signInService.redoMfa(email, mfaSessionId)
             }
@@ -514,6 +532,7 @@ class SignInResource @Inject constructor(
                     Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
             }
+        }
         }
     }
 

@@ -57,12 +57,23 @@ const ParingRequestDialog: React.FC<SessionDeleteDialogProps> = (
     const selectedListRef = useRef<HTMLUListElement>(null);
     const comboboxInputRef = useRef<HTMLInputElement>(null);
 
+    const resetState = () =>
+    {
+        setSelectedOrganizationIds([])
+        setMessage("")
+        setError(null)
+        setSendingParingRequests(false)
+    }
+
     useEffect(() =>
     {
         if (isOpen)
         {
             loadOrganizations();
+            return;
         }
+
+        resetState();
     }, [isOpen]);
 
     const loadOrganizations = async () =>
@@ -111,12 +122,6 @@ const ParingRequestDialog: React.FC<SessionDeleteDialogProps> = (
         setSendingParingRequests(false);
     };
 
-    const resetState = () =>
-    {
-        setSelectedOrganizationIds([])
-        setMessage("")
-        setError(null)
-    }
 
     const onTagClick = (orgId: string, index: number) =>
     {

@@ -70,9 +70,30 @@ class DetailedEntityToDtoTransformer
                         allowDocumentDownload,
                         allowDocumentUpdate,
                         allowDocumentUpload,
+                        noAuthAccessValidityDays,
+                        participants
+                            .sortedByDescending { it.addedDate }
+                            .mapNotNull { toDto(it) },
                         documents.map { toDto(it) }
                     )
                 }
+            }
+        }
+
+        fun toDto(participant: SharingSessionParticipant?): SharingSessionParticipantDetailedDto?
+        {
+            return participant?.let {
+                SharingSessionParticipantDetailedDto(
+                    id = participant.id,
+                    participantType = participant.participantType.name,
+                    addedDate = participant.addedDate,
+                    appUserId = participant.appUser?.id,
+                    appUserEmail = participant.appUser?.email,
+                    appUserFirstName = participant.appUser?.person?.firstName,
+                    appUserLastName = participant.appUser?.person?.lastName,
+                    organizationGroupId = participant.organizationGroup?.id,
+                    organizationGroupName = participant.organizationGroup?.name,
+                )
             }
         }
 

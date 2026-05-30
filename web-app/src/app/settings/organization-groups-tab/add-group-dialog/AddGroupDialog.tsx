@@ -61,12 +61,22 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
     const [loadingUsers, setLoadingUsers] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const resetForm = () =>
+    {
+        setName("");
+        setSelectedUsers(new Map());
+        setError(null);
+    }
+
     useEffect(() =>
     {
         if (isOpen)
         {
             loadUsers();
+            return;
         }
+
+        resetForm();
     }, [isOpen]);
 
     const loadUsers = async () =>
@@ -116,6 +126,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
                 token || undefined
             );
 
+            resetForm();
             onComplete();
         }
         catch (err: any)
@@ -173,9 +184,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
 
     const onClose = () =>
     {
-        setName("");
-        setSelectedUsers(new Map());
-        setError(null);
+        resetForm();
         onDismiss();
     };
 

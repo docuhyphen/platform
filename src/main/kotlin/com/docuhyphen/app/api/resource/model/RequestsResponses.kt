@@ -5,7 +5,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ResponseError(
-    var errorMessage: String? = ""
+    var errorMessage: String? = "",
+    var reasonCode: String? = null,
+    var retryAfterSeconds: Long? = null,
 )
 
 @Serializable
@@ -287,6 +289,7 @@ data class UpdateSharingSessionRequest(
     var allowDocumentDownload: Boolean? = null,
     var allowDocumentUpload: Boolean? = null,
     var allowDocumentUpdate: Boolean? = null,
+    var noAuthAccessValidityDays: Int? = null,
     var status: SharingSessionStatus? = null,
     var rejectionReason: String? = null
 )
@@ -295,7 +298,8 @@ data class UpdateSharingSessionRequest(
 data class UpdateNoAuthSharingSession(
     var status: SharingSessionStatus? = null,
     var otp: String? = null,
-    var rejectReason: String? = null
+    var rejectReason: String? = null,
+    var rejectionReason: String? = null,
 )
 
 @Serializable

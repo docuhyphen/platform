@@ -15,7 +15,6 @@ import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.auth.PlatformOrganizationSubscriptionPolicyService
-import com.docuhyphen.app.api.service.auth.PasswordResetService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
@@ -23,6 +22,10 @@ import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
+import java.sql.Timestamp
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 @RequestScoped
@@ -38,12 +41,15 @@ class OrganizationAppUserService @Inject constructor(
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
     private val configurationService: ConfigurationService,
-    private val passwordResetService: PasswordResetService,
 )
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(OrganizationAppUserService::class.java)
+        private const val TEMP_PASSWORD_LENGTH = 12
+        private const val TEMP_PASSWORD_EXPIRY_DAYS = 7L
+        private val TEMP_PASSWORD_EXPIRY_FORMATTER: DateTimeFormatter =
+            DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss 'UTC'").withZone(ZoneOffset.UTC)
     }
 
     @Transactional
@@ -110,6 +116,10 @@ class OrganizationAppUserService @Inject constructor(
             person = appUserPerson
         }
 
+        val temporaryPassword = generateTemporaryPassword()
+        val temporaryPasswordExpiry = Timestamp.from(Instant.now().plusSeconds(TEMP_PASSWORD_EXPIRY_DAYS * 24 * 60 * 60))
+        applyTemporaryPassword(appUser, temporaryPassword, temporaryPasswordExpiry)
+
         organization.appUsers.add(appUser)
 
         organizationRepository.update(organization)
@@ -124,17 +134,14 @@ class OrganizationAppUserService @Inject constructor(
             afterSnapshot = appUserSnapshot(appUser),
         )
 
-        sendOrganizationMemberAddedEmail(appUser, organization.name, role, isNewUser = true)
-
-        // Send the new user an OTP they can use via account recovery to set their password and sign in.
-        try
-        {
-            passwordResetService.initiatePasswordReset(appUser.email)
-        }
-        catch (e: Exception)
-        {
-            logger.warn("Failed to send invite (password setup) email to {}", appUser.email, e)
-        }
+        sendOrganizationMemberAddedEmail(
+            appUser = appUser,
+            organizationName = organization.name,
+            role = role,
+            isNewUser = true,
+            temporaryPassword = temporaryPassword,
+            temporaryPasswordExpiry = temporaryPasswordExpiry,
+        )
 
         return appUser
     }
@@ -193,6 +200,7 @@ class OrganizationAppUserService @Inject constructor(
 
         val beforeSnapshot = appUserSnapshot(appUser)
         val previousRole = appUser.role
+        val wasActive = appUser.isActive
 
         isActive?.let {
 
@@ -269,6 +277,15 @@ class OrganizationAppUserService @Inject constructor(
         if (previousRole != appUser.role)
         {
             sendRoleChangedEmail(appUser, organization.name, previousRole, appUser.role)
+        }
+
+        if (wasActive && !appUser.isActive)
+        {
+            sendOrganizationMemberDeactivatedEmail(appUser, organization.name)
+        }
+        else if (!wasActive && appUser.isActive)
+        {
+            sendOrganizationMemberReactivatedEmail(appUser, organization.name)
         }
     }
 
@@ -385,7 +402,7 @@ class OrganizationAppUserService @Inject constructor(
         val activeUsers = organization.appUsers.count { it.isActive && it.deprovisionedAt == null }.toLong()
         if (activeUsers >= maxUsers)
         {
-            throw IllegalArgumentException("Organization user limit reached")
+            throw IllegalArgumentException("Organization user limit reached for $tierCode tier. Limit is $maxUsers, current active users are $activeUsers.")
         }
     }
 
@@ -400,6 +417,8 @@ class OrganizationAppUserService @Inject constructor(
         organizationName: String,
         role: AppUserRole,
         isNewUser: Boolean,
+        temporaryPassword: String? = null,
+        temporaryPasswordExpiry: Timestamp? = null,
     )
     {
         try
@@ -410,6 +429,8 @@ class OrganizationAppUserService @Inject constructor(
                 role = role.name,
                 addedBy = actorLabel(),
                 isNewUser = isNewUser,
+                temporaryPassword = temporaryPassword,
+                temporaryPasswordExpiresAt = temporaryPasswordExpiry?.toInstant()?.let(TEMP_PASSWORD_EXPIRY_FORMATTER::format),
             )
             emailService.sendEmail(
                 to = appUser.email,
@@ -422,6 +443,47 @@ class OrganizationAppUserService @Inject constructor(
         {
             logger.error("Failed to send org-member-added email to {}", appUser.email, e)
         }
+    }
+
+    private fun applyTemporaryPassword(appUser: AppUser, temporaryPassword: String, expiresAt: Timestamp)
+    {
+        val passwordSalt = authenticationService.generatePasswordSalt()
+        appUser.password = authenticationService.hashPassword(temporaryPassword, passwordSalt)
+        appUser.passwordSalt = Base64.getEncoder().encodeToString(passwordSalt.toByteArray())
+        appUser.isPasswordTemporary = true
+        appUser.temporaryPasswordExpiresAt = expiresAt
+    }
+
+    private fun generateTemporaryPassword(length: Int = TEMP_PASSWORD_LENGTH): String
+    {
+        val upper = "ABCDEFGHJKLMNPQRSTUVWXYZ"
+        val lower = "abcdefghijkmnopqrstuvwxyz"
+        val digits = "23456789"
+        val symbols = "!@#$%*_-"
+        val all = upper + lower + digits + symbols
+        val random = java.security.SecureRandom()
+
+        val required = mutableListOf(
+            upper[random.nextInt(upper.length)],
+            lower[random.nextInt(lower.length)],
+            digits[random.nextInt(digits.length)],
+            symbols[random.nextInt(symbols.length)],
+        )
+
+        while (required.size < length)
+        {
+            required.add(all[random.nextInt(all.length)])
+        }
+
+        for (i in required.size - 1 downTo 1)
+        {
+            val j = random.nextInt(i + 1)
+            val tmp = required[i]
+            required[i] = required[j]
+            required[j] = tmp
+        }
+
+        return required.joinToString("")
     }
 
     private fun sendOrganizationMemberRemovedEmail(appUser: AppUser, organizationName: String)
@@ -443,6 +505,50 @@ class OrganizationAppUserService @Inject constructor(
         catch (e: Exception)
         {
             logger.error("Failed to send org-member-removed email to {}", appUser.email, e)
+        }
+    }
+
+    private fun sendOrganizationMemberDeactivatedEmail(appUser: AppUser, organizationName: String)
+    {
+        try
+        {
+            val body = emailTemplateService.renderOrganizationMemberDeactivatedEmail(
+                firstName = appUser.person?.firstName ?: "there",
+                organizationName = organizationName,
+                deactivatedBy = actorLabel(),
+            )
+            emailService.sendEmail(
+                to = appUser.email,
+                subject = "${configurationService.emailSubjectTitle} | Access deactivated for $organizationName",
+                body = body,
+                useHtml = true,
+            )
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to send org-member-deactivated email to {}", appUser.email, e)
+        }
+    }
+
+    private fun sendOrganizationMemberReactivatedEmail(appUser: AppUser, organizationName: String)
+    {
+        try
+        {
+            val body = emailTemplateService.renderOrganizationMemberReactivatedEmail(
+                firstName = appUser.person?.firstName ?: "there",
+                organizationName = organizationName,
+                reactivatedBy = actorLabel(),
+            )
+            emailService.sendEmail(
+                to = appUser.email,
+                subject = "${configurationService.emailSubjectTitle} | Access reactivated for $organizationName",
+                body = body,
+                useHtml = true,
+            )
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to send org-member-reactivated email to {}", appUser.email, e)
         }
     }
 

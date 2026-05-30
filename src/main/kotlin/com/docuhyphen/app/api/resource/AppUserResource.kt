@@ -64,8 +64,6 @@ class AppUserResource @Inject constructor(
         @PathParam("personId") personId: String
     ): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
-
         return try
         {
             val organization =
@@ -143,8 +141,6 @@ class AppUserResource @Inject constructor(
     @Transactional
     fun updatePerson(personDto: PersonBasicDto): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(1500, 2500)
-
         return try
         {
             appUserService.updatePerson(authTokenContext.authToken.appUser!!, personDto)
@@ -185,8 +181,6 @@ class AppUserResource @Inject constructor(
     @Transactional
     fun initiateEmailUpdate(addOrUpdateEmailRequest: InitiateAddOrUpdateEmailRequest): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(1500, 2500)
-
         return try
         {
             appUserService.initiateEmailUpdate(addOrUpdateEmailRequest.email)
@@ -226,8 +220,6 @@ class AppUserResource @Inject constructor(
     @Transactional
     fun confirmOldEmailForUpdate(request: ConfirmOldEmailForUpdateRequest): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(1500, 2500)
-
         return try
         {
             appUserService.confirmOldEmailForUpdate(request.verificationCode)
@@ -267,7 +259,6 @@ class AppUserResource @Inject constructor(
     @Transactional
     fun completeEmailUpdate(request: CompleteAddOrUpdateEmailRequest): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(1500, 2500)
 
         return try
         {

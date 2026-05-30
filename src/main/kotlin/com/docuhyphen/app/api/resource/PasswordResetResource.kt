@@ -32,9 +32,7 @@ class PasswordResetResource @Inject constructor(
     @Path("/initiation")
     fun initiatePasswordReset(payload: PasswordResetInitiationRequest): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(3000, 6000)
-
-        return try
+        return ResourceEndpointDelayHelper.withFixedFloor(1500) { try
         {
             with(payload) {
                 passwordResetService.initiatePasswordReset(email)
@@ -65,15 +63,14 @@ class PasswordResetResource @Inject constructor(
                 }
             }
         }
+        }
     }
 
     @POST
     @Path("/completion")
     fun completePasswordReset(payload: PasswordResetCompletionRequest): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(3000, 6000)
-
-        return try
+        return ResourceEndpointDelayHelper.withFixedFloor(1500) { try
         {
             with(payload) {
                 passwordResetService.completePasswordReset(email, otp, password, confirmationPassword)
@@ -105,6 +102,7 @@ class PasswordResetResource @Inject constructor(
                         .build()
                 }
             }
+        }
         }
     }
 }

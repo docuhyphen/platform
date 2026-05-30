@@ -117,8 +117,27 @@ data class SharingSessionDetailedDto(
     var allowDocumentDownload: Boolean = true,
     var allowDocumentUpdate: Boolean = false,
     var allowDocumentUpload: Boolean = false,
+    var noAuthAccessValidityDays: Int = 7,
+    val participants: List<SharingSessionParticipantDetailedDto> = emptyList(),
     val documents: List<DocumentDetailedDto?>,
     //    val participantIds: List<UUID>
+)
+
+@Serializable
+data class SharingSessionParticipantDetailedDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID,
+    val participantType: String,
+    @Serializable(with = TimestampSerializer::class)
+    val addedDate: Timestamp,
+    @Serializable(with = UUIDSerializer::class)
+    val appUserId: UUID? = null,
+    val appUserEmail: String? = null,
+    val appUserFirstName: String? = null,
+    val appUserLastName: String? = null,
+    @Serializable(with = UUIDSerializer::class)
+    val organizationGroupId: UUID? = null,
+    val organizationGroupName: String? = null,
 )
 
 @Serializable

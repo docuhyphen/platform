@@ -53,6 +53,14 @@ const AddDocumentDialog: React.FC<AddDocumentDialogProps> = (
         setRestrictedType(undefined);
     }
 
+    React.useEffect(() =>
+    {
+        if (!isOpen)
+        {
+            resetState();
+        }
+    }, [isOpen]);
+
     const onDismissDialog = () =>
     {
         resetState()

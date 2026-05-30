@@ -44,6 +44,7 @@ data class NoAuthSharingSessionBasicDto(
     var recipientEmail: String? = null,
     var initiatorFirstName: String? = null,
     var initiatorLastName: String? = null,
+    var noAuthAccessValidityDays: Int = 7,
     val documents: List<DocumentBasicDto?>,
 )
 

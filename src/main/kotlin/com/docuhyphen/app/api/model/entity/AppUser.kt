@@ -78,6 +78,13 @@ class AppUser
     @Column(name = "is_temporary", nullable = false)
     var isTemporary: Boolean = false
 
+    @Column(name = "is_password_temporary", nullable = false)
+    var isPasswordTemporary: Boolean = false
+
+    @Column(name = "temporary_password_expires_at", nullable = true)
+    @Serializable(with = TimestampSerializer::class)
+    var temporaryPasswordExpiresAt: Timestamp? = null
+
     @Column(name = "session_version", nullable = false)
     var sessionVersion: Long = 0
 

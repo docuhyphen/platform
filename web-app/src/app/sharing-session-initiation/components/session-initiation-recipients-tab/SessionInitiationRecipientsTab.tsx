@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useRef} from 'react';
 import {Field, Radio, RadioGroup} from "@fluentui/react-components";
 import {useSessionInitiationRecipientsTabStyles} from "./SessionInitiationRecipientsTabStyles.tsx";
 import {AppUserDetailedDto, OrganizationBasicDto} from "../../../models/models.tsx";
@@ -37,26 +37,73 @@ interface SessionRecipientsTabProps
 const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (props) =>
 {
     const styles = useSessionInitiationRecipientsTabStyles();
-    const {appUser, appUserPersonOrganization} = useAuth()
+    const {appUserPersonOrganization} = useAuth()
+
+    type RecipientModeSnapshot = {
+        recipientOrg?: OrganizationBasicDto;
+        recipientOrgUser?: AppUserDetailedDto;
+        recipientOrgGroup?: OrganizationGroupBasicDto;
+        internalParticipants?: AppUserDetailedDto[];
+        newRecipient?: SharingSessionNewMainRecipient;
+    };
+
+    const modeSnapshotRef = useRef<Record<SharingSessionInitiationRecipientMode, RecipientModeSnapshot>>({
+        [SharingSessionInitiationRecipientMode.PEOPLE]: {},
+        [SharingSessionInitiationRecipientMode.MY_ORG]: {},
+        [SharingSessionInitiationRecipientMode.EXTERNAL_ORG]: {},
+        [SharingSessionInitiationRecipientMode.EMAIL]: {},
+    });
+
+    const saveCurrentModeSnapshot = (mode: SharingSessionInitiationRecipientMode) =>
+    {
+        modeSnapshotRef.current[mode] = {
+            recipientOrg: props.recipientOrg,
+            recipientOrgUser: props.recipientOrgUser,
+            recipientOrgGroup: props.recipientOrgGroup,
+            internalParticipants: props.internalParticipants,
+            newRecipient: props.newRecipient,
+        };
+    };
+
+    const restoreModeSnapshot = (mode: SharingSessionInitiationRecipientMode) =>
+    {
+        const snapshot = modeSnapshotRef.current[mode];
+        props.setRecipientOrg(snapshot.recipientOrg);
+        props.setRecipientOrgUser(snapshot.recipientOrgUser);
+        props.setRecipientOrgGroup(snapshot.recipientOrgGroup);
+        props.setInternalParticipants(snapshot.internalParticipants);
+        if (snapshot.newRecipient)
+        {
+            props.setNewRecipient(snapshot.newRecipient);
+        }
+    };
 
     const onRecipientModeChange = (
         _: React.FormEvent<HTMLDivElement>,
         data: { value: SharingSessionInitiationRecipientMode }) =>
     {
-        props.setRecipientMode(data.value as SharingSessionInitiationRecipientMode);
-        props.setRecipientOrg(undefined);
-        props.setRecipientOrgUser(undefined);
-        props.setRecipientOrgGroup(undefined);
-
-        if (data.value !== SharingSessionInitiationRecipientMode.EMAIL)
+        const nextMode = data.value as SharingSessionInitiationRecipientMode;
+        if (nextMode === props.recipientMode)
         {
-            props.setNewRecipient({
-                email: '',
-                firstName: '',
-                lastName: ''
-            });
+            return;
         }
+
+        saveCurrentModeSnapshot(props.recipientMode);
+        props.setRecipientMode(nextMode);
+        restoreModeSnapshot(nextMode);
     }
+
+    useEffect(() =>
+    {
+        saveCurrentModeSnapshot(props.recipientMode);
+    }, [
+        props.recipientMode,
+        props.recipientOrg,
+        props.recipientOrgUser,
+        props.recipientOrgGroup,
+        props.internalParticipants,
+        props.newRecipient,
+    ]);
 
     useEffect(() =>
     {

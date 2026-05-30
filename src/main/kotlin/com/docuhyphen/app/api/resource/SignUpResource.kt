@@ -33,11 +33,9 @@ class SignUpResource @Inject constructor(
     @Path("/initiation")
     fun initiateSignUp(payload: SignUpInitiateRequest): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(3000, 6000)
-
         val genericInitiationMessage = "If the email is eligible, we've sent a verification code."
 
-        return try
+        return ResourceEndpointDelayHelper.withFixedFloor(1500) { try
         {
             signUpService.initiateSignUp(payload.email)
 
@@ -75,15 +73,14 @@ class SignUpResource @Inject constructor(
             }
 
         }
+        }
     }
 
     @POST
     @Path("/completion")
     fun completeSignUp(signUpRequest: SignUpCompletionRequest): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(1600, 3000)
-
-        return try
+        return ResourceEndpointDelayHelper.withFixedFloor(1200) { try
         {
             with(signUpRequest) {
                 signUpService.completeSignUp(email, otp, password, confirmationPassword)
@@ -129,6 +126,7 @@ class SignUpResource @Inject constructor(
                 }
             }
         }
+        }
     }
 
     /**
@@ -146,9 +144,7 @@ class SignUpResource @Inject constructor(
     @Path("/email-confirm/{token}")
     fun checkEmailConfirmToken(@PathParam("token") token: String?): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(300, 600)
-
-        return try
+        return ResourceEndpointDelayHelper.withFixedFloor(300) { try
         {
             val email = signUpService.peekEmailFromConfirmationToken(token)
 
@@ -168,6 +164,7 @@ class SignUpResource @Inject constructor(
             val responseError = ResponseError("A server error occurred while validating the verification link.")
             Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
         }
+        }
     }
 
     /**
@@ -183,9 +180,7 @@ class SignUpResource @Inject constructor(
     @Path("/email-confirm")
     fun confirmEmailWithToken(request: SignUpEmailConfirmRequest): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(1500, 3000)
-
-        return try
+        return ResourceEndpointDelayHelper.withFixedFloor(1200) { try
         {
             with(request) {
                 signUpService.completeSignUpViaToken(token, password, confirmationPassword)
@@ -226,17 +221,16 @@ class SignUpResource @Inject constructor(
                 }
             }
         }
+        }
     }
 
     @POST
     @Path("/otp-regeneration")
     fun regenerateOtp(request: SignUpRegenerationRequest): Response
     {
-        ResourceEndpointDelayHelper.delayEndpoint(1500, 3000)
-
         val genericRegenerationMessage = "If verification is pending for this email, a new code has been sent."
 
-        return try
+        return ResourceEndpointDelayHelper.withFixedFloor(1200) { try
         {
             signUpService.regenerateOtp(request.email)
             val otpRegenerationResponse =
@@ -273,6 +267,7 @@ class SignUpResource @Inject constructor(
                         .build()
                 }
             }
+        }
         }
     }
 }

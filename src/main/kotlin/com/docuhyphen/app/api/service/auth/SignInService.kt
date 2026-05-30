@@ -2,9 +2,11 @@ package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.exception.InactiveAccountException
 import com.docuhyphen.app.api.exception.InvalidOtpException
+import com.docuhyphen.app.api.exception.PasswordChangeRequiredException
 import com.docuhyphen.app.api.exception.InvalidSignInCredentialsException
 import com.docuhyphen.app.api.exception.MaxAttemptsOTPExceededException
 import com.docuhyphen.app.api.exception.OTPExpiredException
+import com.docuhyphen.app.api.exception.TemporaryPasswordExpiredException
 import com.docuhyphen.app.api.exception.TooManyRequestsException
 import com.docuhyphen.app.api.extension.maskEmailForLogs
 import com.docuhyphen.app.api.extension.normalizeEmailOrNull
@@ -83,6 +85,19 @@ class SignInService @Inject constructor(
         {
             logger.warn("Sign in failed: Invalid password for {}", sanitizedEmail.maskEmailForLogs())
             throw InvalidSignInCredentialsException()
+        }
+
+        if (appUser.isPasswordTemporary)
+        {
+            val tempExpiry = appUser.temporaryPasswordExpiresAt
+            if (tempExpiry == null || tempExpiry.before(Timestamp.from(Instant.now())))
+            {
+                logger.warn("Sign in blocked: temporary password expired for {}", sanitizedEmail.maskEmailForLogs())
+                throw TemporaryPasswordExpiredException()
+            }
+
+            logger.info("Sign in requires password change for {}", sanitizedEmail.maskEmailForLogs())
+            throw PasswordChangeRequiredException()
         }
 
         val mfaSession = mfaService.createMfaSession(

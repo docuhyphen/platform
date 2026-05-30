@@ -1,6 +1,6 @@
 import React, {ChangeEvent, useState} from 'react';
 import {completePasswordReset, initiatePasswordReset, regeneratePasswordResetOtp} from "../../../services/authApi.ts";
-import {useNavigate} from "react-router-dom";
+import {useNavigate, useSearchParams} from "react-router-dom";
 import {
     Button,
     Caption1,
@@ -22,8 +22,8 @@ import AccountRecoveryCarousel from "../carousel/AccountRecoveryCarousel.tsx";
 import {useAccountRecoveryStyles} from "./AccountRecoveryStyles.tsx";
 import {useAuthorizationStyles} from "../AuthorizationStyles.tsx";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
-import {ResponseError} from "../../models/models.tsx";
 import validator from 'validator';
+import {getOtpFriendlyMessage, normalizeApiError} from "../../../utils/apiErrorUtils.ts";
 
 const AccountRecovery: React.FC = () =>
 {
@@ -31,6 +31,7 @@ const AccountRecovery: React.FC = () =>
     const authorizationStyles = useAuthorizationStyles();
     const globalStyles = useGlobalStyles();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [formData, setFormData] = useState({
         email: '',
         otp: '',
@@ -46,6 +47,29 @@ const AccountRecovery: React.FC = () =>
     const [initiatingPwdReset, setInitiatingPwdReset] = useState(false);
     const [regeneratingOtp, setRegeneratingOtp] = useState(false);
     const [completingPwdReset, setCompletingPwdReset] = useState(false);
+
+    React.useEffect(() =>
+    {
+        const prefillEmail = searchParams.get('email')?.trim();
+        const reason = searchParams.get('reason');
+
+        if (prefillEmail)
+        {
+            setFormData((prev) => ({
+                ...prev,
+                email: prefillEmail,
+            }));
+        }
+
+        if (reason === 'PASSWORD_CHANGE_REQUIRED')
+        {
+            setResponseError('You must change your temporary password before signing in. Start account recovery below.');
+        }
+        else if (reason === 'TEMP_PASSWORD_EXPIRED')
+        {
+            setResponseError('Your temporary password has expired. Start account recovery below to set a new password.');
+        }
+    }, [searchParams]);
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
     {
@@ -79,7 +103,7 @@ const AccountRecovery: React.FC = () =>
         catch (error)
         {
             setPwdResetInitiationSuccessful(false);
-            setResponseError((error as ResponseError)?.errorMessage);
+            setResponseError(getOtpFriendlyMessage(normalizeApiError(error, 'Could not start account recovery. Please try again.')));
         }
         finally
         {
@@ -120,7 +144,7 @@ const AccountRecovery: React.FC = () =>
         }
         catch (error)
         {
-            setResponseError((error as ResponseError)?.errorMessage);
+            setResponseError(getOtpFriendlyMessage(normalizeApiError(error, 'Could not reset your password. Please try again.')));
         }
         finally
         {
@@ -144,7 +168,7 @@ const AccountRecovery: React.FC = () =>
         }
         catch (error)
         {
-            setOtpRegenerationFailedMsg((error as ResponseError)?.errorMessage);
+            setOtpRegenerationFailedMsg(getOtpFriendlyMessage(normalizeApiError(error, 'Could not resend the verification code. Please try again.')));
         }
         finally
         {
