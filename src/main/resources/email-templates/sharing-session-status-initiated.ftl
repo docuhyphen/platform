@@ -8,7 +8,6 @@
         <td style="padding:12px 20px;">
             <p style="margin:0 0 6px 0;"><strong>Session:</strong> ${sessionName}</p>
             <p style="margin:0 0 6px 0;"><strong>Status:</strong> ${statusText}</p>
-            <p style="margin:0 0 6px 0;"><strong>Session ID:</strong> ${sessionId}</p>
             <p style="margin:0 0 6px 0;"><strong>Initiator:</strong> ${initiatorEmail}</p>
             <p style="margin:0 0 6px 0;"><strong>Recipient:</strong> ${recipientEmail}</p>
             <#if documents?has_content>

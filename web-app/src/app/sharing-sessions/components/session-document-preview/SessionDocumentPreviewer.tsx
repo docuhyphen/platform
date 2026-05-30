@@ -32,6 +32,38 @@ interface DocumentPreviewerProps
 }
 
 const ENABLE_ENLARGED_THUMBNAIL_SIDEBAR = false;
+const INLINE_ZOOM_STORAGE_KEY = 'sharingSessions.preview.zoom.inline';
+const ENLARGED_ZOOM_STORAGE_KEY = 'sharingSessions.preview.zoom.enlarged';
+const DEFAULT_ZOOM_LEVEL = 1.0;
+const MIN_ZOOM_LEVEL = 0.5;
+const MAX_ZOOM_LEVEL = 2.0;
+
+const clampZoom = (value: number): number =>
+{
+    return Math.min(Math.max(value, MIN_ZOOM_LEVEL), MAX_ZOOM_LEVEL);
+};
+
+const readZoomPreference = (storageKey: string, fallback: number = DEFAULT_ZOOM_LEVEL): number =>
+{
+    if (typeof window === 'undefined')
+    {
+        return fallback;
+    }
+
+    const saved = window.localStorage.getItem(storageKey);
+    if (!saved)
+    {
+        return fallback;
+    }
+
+    const parsed = Number(saved);
+    if (!Number.isFinite(parsed))
+    {
+        return fallback;
+    }
+
+    return clampZoom(parsed);
+};
 
 const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     {
@@ -49,7 +81,8 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     const [pageInput, setPageInput] = useState<string>('1');
     const [isEnlarged, setIsEnlarged] = useState<boolean>(false);
     const [isClosingEnlarged, setIsClosingEnlarged] = useState<boolean>(false);
-    const [zoomLevel, setZoomLevel] = useState<number>(1.0);
+    const [inlineZoomLevel, setInlineZoomLevel] = useState<number>(() => readZoomPreference(INLINE_ZOOM_STORAGE_KEY));
+    const [enlargedZoomLevel, setEnlargedZoomLevel] = useState<number>(() => readZoomPreference(ENLARGED_ZOOM_STORAGE_KEY));
     const [previewError, setPreviewError] = useState<string | null>(null);
     const [downloadingOriginal, setDownloadingOriginal] = useState<boolean>(false);
     const [isEditingPageInput, setIsEditingPageInput] = useState<boolean>(false);
@@ -57,6 +90,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     const scrollTrackingRafRef = useRef<number | null>(null);
     const programmaticScrollTimeoutRef = useRef<number | null>(null);
     const isProgrammaticScrollRef = useRef(false);
+    const zoomLevel = isEnlarged ? enlargedZoomLevel : inlineZoomLevel;
 
     useEffect(() =>
     {
@@ -113,6 +147,18 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         setCurrentPage(1);
         setPageInput('1');
     }, [sessionDocument, session.id]);
+
+    useEffect(() =>
+    {
+        if (typeof window === 'undefined') return;
+        window.localStorage.setItem(INLINE_ZOOM_STORAGE_KEY, String(inlineZoomLevel));
+    }, [inlineZoomLevel]);
+
+    useEffect(() =>
+    {
+        if (typeof window === 'undefined') return;
+        window.localStorage.setItem(ENLARGED_ZOOM_STORAGE_KEY, String(enlargedZoomLevel));
+    }, [enlargedZoomLevel]);
 
     const handleDownloadOriginal = async () =>
     {
@@ -256,7 +302,6 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
             {
                 setIsEnlarged(false);
                 setIsClosingEnlarged(false);
-                setZoomLevel(1.0);
             }, 220);
             return;
         }
@@ -264,19 +309,31 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         setIsEnlarged(true);
     };
 
+    const setActiveZoomLevel = (nextZoomLevel: number) =>
+    {
+        const clamped = clampZoom(nextZoomLevel);
+        if (isEnlarged)
+        {
+            setEnlargedZoomLevel(clamped);
+            return;
+        }
+
+        setInlineZoomLevel(clamped);
+    };
+
     const handleZoomIn = () =>
     {
-        setZoomLevel(prevZoom => Math.min(prevZoom + 0.1, 2.0));
+        setActiveZoomLevel(zoomLevel + 0.1);
     };
 
     const handleZoomOut = () =>
     {
-        setZoomLevel(prevZoom => Math.max(prevZoom - 0.1, 0.5));
+        setActiveZoomLevel(zoomLevel - 0.1);
     };
 
     const handleResetZoom = () =>
     {
-        setZoomLevel(1.0);
+        setActiveZoomLevel(DEFAULT_ZOOM_LEVEL);
     };
 
     const renderMainDocumentContent = () =>

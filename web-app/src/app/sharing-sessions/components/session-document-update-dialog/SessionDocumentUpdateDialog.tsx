@@ -60,9 +60,14 @@ const SessionDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
         {
             setDocumentTitle(sessionDocument.title);
 
-            if (sessionDocument.restrictedType && sessionDocument.restrictedType !== "null")
+            const normalizedRestriction = sessionDocument.restrictedType
+                ? String(sessionDocument.restrictedType).trim()
+                : "";
+            const hasRestriction = !!normalizedRestriction && normalizedRestriction.toLowerCase() !== "null";
+
+            if (hasRestriction)
             {
-                setSelectedRestrictionType(sessionDocument.restrictedType);
+                setSelectedRestrictionType(normalizedRestriction);
                 setIsRestrictionEnabled(true);
             }
             else

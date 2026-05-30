@@ -77,6 +77,18 @@ class LocalFileStorageService : FileStorageService
         return tempZipFile
     }
 
+    override fun getDocumentSizeBytes(key: String): Long
+    {
+        val targetFile = File("document-uploads", key)
+
+        if (!targetFile.exists())
+        {
+            throw IllegalArgumentException("File not found")
+        }
+
+        return targetFile.length()
+    }
+
     private fun generateUniqueKey(key: String, existingKeys: Set<String>): String
     {
         var newKey = key

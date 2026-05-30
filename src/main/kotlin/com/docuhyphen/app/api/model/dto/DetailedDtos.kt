@@ -77,7 +77,8 @@ data class DocumentDetailedDto(
     val restrictedType: String?,
     val restrictType: Boolean?,
     val hash: String?,
-    val comments: List<DocumentCommentDetailedDto>?
+    val comments: List<DocumentCommentDetailedDto>?,
+    val fileSize: Long? = null,
 )
 
 @Serializable
@@ -117,9 +118,7 @@ data class SharingSessionDetailedDto(
     var allowDocumentUpdate: Boolean = false,
     var allowDocumentUpload: Boolean = false,
     val documents: List<DocumentDetailedDto?>,
-
-
-//    val participantIds: List<UUID>
+    //    val participantIds: List<UUID>
 )
 
 @Serializable

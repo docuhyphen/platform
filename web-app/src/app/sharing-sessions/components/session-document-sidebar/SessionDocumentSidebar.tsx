@@ -117,8 +117,15 @@ const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
 
     const formatRestrictedType = (value?: string) =>
     {
-        if (!value || value === "null") return "Any supported type";
-        return value;
+        if (!value) return "Any supported type";
+
+        const normalized = String(value).trim();
+        if (!normalized || normalized.toLowerCase() === "null")
+        {
+            return "Any supported type";
+        }
+
+        return normalized;
     };
 
     const formatDateValue = (value?: string) =>
@@ -162,8 +169,8 @@ const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
     };
 
     const metadataRows = [
-        {label: "Created", value: formatDateValue(sessionDocument?.createdDate)},
-        {label: "Last Uploaded", value: formatDateValue(sessionDocument?.uploadDate)},
+        {label: "Date Added", value: formatDateValue(sessionDocument?.createdDate)},
+        {label: "Latest Uploaded Date", value: formatDateValue(sessionDocument?.uploadDate)},
         {label: "Type", value: formatDocumentType(sessionDocument?.type)},
         {label: "Restricted type", value: formatRestrictedType(sessionDocument?.restrictedType)},
         {label: "File size", value: getFileSizeLabel()},

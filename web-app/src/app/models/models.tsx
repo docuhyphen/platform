@@ -390,6 +390,7 @@ export interface DocumentDetailedDto
     hash?: string;
     restrictType?: boolean;
     comments?: DocumentCommentDetailedDto[];
+    fileSize?: number;
 }
 
 export interface SharingSessionDetailedDto

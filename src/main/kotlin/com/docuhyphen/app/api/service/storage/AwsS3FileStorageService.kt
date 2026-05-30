@@ -7,6 +7,7 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import java.io.File
 import java.nio.file.Files
@@ -18,7 +19,6 @@ import javax.crypto.KeyGenerator
 import javax.crypto.spec.SecretKeySpec
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import software.amazon.awssdk.core.sync.ResponseTransformer
-import java.nio.file.Path
 
 @ApplicationScoped
 @Aws
@@ -172,5 +172,15 @@ class AwsS3FileStorageService : FileStorageService
         }
 
         return zipFile
+    }
+
+    override fun getDocumentSizeBytes(key: String): Long
+    {
+        val headObjectRequest = HeadObjectRequest.builder()
+            .bucket(BUCKET_NAME)
+            .key(key)
+            .build()
+
+        return s3Client.headObject(headObjectRequest).contentLength()
     }
 }

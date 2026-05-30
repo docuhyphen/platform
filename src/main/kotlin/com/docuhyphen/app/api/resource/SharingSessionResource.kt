@@ -5,12 +5,16 @@ import com.docuhyphen.app.api.exception.SharingSessionNotFoundException
 import com.docuhyphen.app.api.exception.AppUserNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer.Companion.toDto
-import com.docuhyphen.app.api.model.dto.SharingSessionBasicDto
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
+import com.docuhyphen.app.api.model.dto.DocumentDetailedDto
+import com.docuhyphen.app.api.model.dto.SharingSessionBasicDto
+import com.docuhyphen.app.api.model.dto.SharingSessionDetailedDto
+import com.docuhyphen.app.api.model.entity.DocumentType
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.SharingSessionInitiationDto
 import com.docuhyphen.app.api.resource.model.UpdateSharingSessionRequest
 import com.docuhyphen.app.api.service.sharingsession.*
+import com.docuhyphen.app.api.service.storage.FileStorageService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
@@ -27,6 +31,7 @@ class SharingSessionResource @Inject constructor(
     private val sharingSessionUpdateService: SharingSessionUpdateService,
     private val sharingSessionParticipantService: SharingSessionParticipantService,
     private val authTokenContext: AuthTokenContext,
+    private val fileStorageService: FileStorageService,
 
     )
 {
@@ -155,8 +160,9 @@ class SharingSessionResource @Inject constructor(
         return try
         {
             val sharingSession = sharingSessionRetrievalService.getSharingSession(sessionId)
+            val sharingSessionDto = DetailedEntityToDtoTransformer.toDto(sharingSession)
 
-            Response.ok(DetailedEntityToDtoTransformer.toDto(sharingSession)).build()
+            Response.ok(enrichSessionWithFileSizes(sharingSessionDto)).build()
         }
         catch (exception: Exception)
         {
@@ -347,5 +353,30 @@ class SharingSessionResource @Inject constructor(
                 }
             }
         }
+    }
+
+    private fun enrichSessionWithFileSizes(sessionDto: SharingSessionDetailedDto?): SharingSessionDetailedDto?
+    {
+        if (sessionDto == null) return null
+
+        return sessionDto.copy(
+            documents = sessionDto.documents.map { document -> enrichDocumentWithFileSize(document) }
+        )
+    }
+
+    private fun enrichDocumentWithFileSize(document: DocumentDetailedDto?): DocumentDetailedDto?
+    {
+        if (document == null || document.uploadDate == null) return document
+
+        val documentId = document.id ?: return document
+        val documentType = document.type
+            ?.takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) }
+            ?.let { runCatching { DocumentType.valueOf(it) }.getOrNull() }
+            ?: return document
+
+        val storageKey = "$documentId${DocumentType.toFileExtension(documentType)}"
+        val fileSize = runCatching { fileStorageService.getDocumentSizeBytes(storageKey) }.getOrNull()
+
+        return document.copy(fileSize = fileSize)
     }
 }

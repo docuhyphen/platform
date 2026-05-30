@@ -4,13 +4,16 @@ import com.docuhyphen.app.api.exception.SharingSessionDocumentNotFoundException
 import com.docuhyphen.app.api.exception.SharingSessionNotFoundException
 import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer.Companion.toDto
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
+import com.docuhyphen.app.api.model.dto.DocumentDetailedDto
 import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
+import com.docuhyphen.app.api.model.entity.DocumentType
 import com.docuhyphen.app.api.resource.model.AddSharingSessionDocumentRequest
 import com.docuhyphen.app.api.resource.model.DownloadDocumentsZipRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpdateShareSessionDocumentRequest
 import com.docuhyphen.app.api.service.sharingsession.DocumentPreviewConversionException
 import com.docuhyphen.app.api.service.sharingsession.SharingSessionDocumentService
+import com.docuhyphen.app.api.service.storage.FileStorageService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
@@ -23,7 +26,8 @@ import java.io.File
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 class SharingSessionDocumentsResource @Inject constructor(
-    private val sharingSessionDocumentService: SharingSessionDocumentService
+    private val sharingSessionDocumentService: SharingSessionDocumentService,
+    private val fileStorageService: FileStorageService,
 )
 {
     companion object
@@ -175,7 +179,8 @@ class SharingSessionDocumentsResource @Inject constructor(
                 )
             }
 
-            Response.ok(DetailedEntityToDtoTransformer.toDto(document)).build()
+            val dto = DetailedEntityToDtoTransformer.toDto(document)
+            Response.ok(enrichDocumentWithFileSize(dto)).build()
         }
         catch (exception: Exception)
         {
@@ -243,7 +248,8 @@ class SharingSessionDocumentsResource @Inject constructor(
                 encryptionMode
             )
 
-            Response.ok(DetailedEntityToDtoTransformer.toDto(document)).build()
+            val dto = DetailedEntityToDtoTransformer.toDto(document)
+            Response.ok(enrichDocumentWithFileSize(dto)).build()
         }
         catch (exception: Exception)
         {
@@ -426,5 +432,21 @@ class SharingSessionDocumentsResource @Inject constructor(
                 }
             }
         }
+    }
+
+    private fun enrichDocumentWithFileSize(document: DocumentDetailedDto?): DocumentDetailedDto?
+    {
+        if (document == null || document.uploadDate == null) return document
+
+        val documentId = document.id ?: return document
+        val documentType = document.type
+            ?.takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) }
+            ?.let { runCatching { DocumentType.valueOf(it) }.getOrNull() }
+            ?: return document
+
+        val storageKey = "$documentId${DocumentType.toFileExtension(documentType)}"
+        val fileSize = runCatching { fileStorageService.getDocumentSizeBytes(storageKey) }.getOrNull()
+
+        return document.copy(fileSize = fileSize)
     }
 }

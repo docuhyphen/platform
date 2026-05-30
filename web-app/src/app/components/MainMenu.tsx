@@ -25,6 +25,7 @@ import {SettingsIcon, SharingSessionIcon, SignOutButtonIcon} from "./IconBundles
 import NotificationList from './main-menu/notification/NotificationList';
 
 const MAX_DISPLAY_EMAIL_LENGTH = 36;
+const LAST_SHARING_SESSIONS_QUERY_STORAGE_KEY = 'sharingSessions.lastRoute.query';
 
 function formatEmailForDisplay(email?: string, maxLength: number = MAX_DISPLAY_EMAIL_LENGTH): string | undefined
 {
@@ -82,7 +83,8 @@ const MainMenu: React.FC = () =>
                     {
                         if (window.location.pathname !== '/sharing-sessions')
                         {
-                            navigate('/sharing-sessions');
+                            const savedQuery = window.localStorage.getItem(LAST_SHARING_SESSIONS_QUERY_STORAGE_KEY) || '';
+                            navigate(`/sharing-sessions${savedQuery}`);
                         }
                     }}
                     appearance={"subtle"}>

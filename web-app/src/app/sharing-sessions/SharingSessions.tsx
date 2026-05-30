@@ -1,13 +1,19 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
+    Button, InputOnChangeData, Link, SearchBoxChangeEvent, Spinner, Text, Toast, Toaster,
+    ToastBody,
+    ToastTitle,
+    ToastTrigger,
+    useId,
+    useToastController
+} from "@fluentui/react-components";
+import {
     checkSignedInAppUserHasSharingSessions,
     fetchSignedInUserAppUserSharingSession
 } from "../../services/sharingSessionApi.ts";
 import useToken from "../../context/useToken.tsx";
 import SessionPreLoader from "./components/session-pre-loader/SessionPreLoader.tsx";
-import {Button, InputOnChangeData, SearchBoxChangeEvent, Spinner, Text} from "@fluentui/react-components";
-import {
-    DocumentDetailedDto,
+import {DocumentDetailedDto,
     SharingSessionBasicDto,
     SharingSessionDetailedDto,
     SharingSessionStatus
@@ -41,11 +47,32 @@ import EmptyStateIllustration from "./components/empty-state-illustration/EmptyS
 import {SessionListTab} from "./components/session-list/session-list-tabs/SessionListTabs.tsx";
 import {InboxRole, SessionTabCounts} from "./components/session-list/SessionList.tsx";
 
+const ACTIVE_TAB_STORAGE_KEY = 'sharingSessions.mainTab.active';
+const LAST_ROUTE_QUERY_STORAGE_KEY = 'sharingSessions.lastRoute.query';
+
+const parseSessionListTab = (value: string | null | undefined): SessionListTab | null =>
+{
+    if (value === 'inbox' || value === 'active' || value === 'archive')
+    {
+        return value;
+    }
+    return null;
+};
+
+const isSessionUnavailableError = (error: unknown): boolean =>
+{
+    const status = (error as { response?: { status?: number }, status?: number })?.response?.status
+        ?? (error as { status?: number })?.status;
+    return status === 403 || status === 404;
+};
+
 const SharingSessions: React.FC = () =>
 {
     const styles = useSharingSessionsStyles();
+    const toasterId = useId("sharing-sessions-toaster");
+    const {dispatchToast} = useToastController(toasterId);
     const [sharingSessionList, setSharingSessionList] = useState<SharingSessionBasicDto[]>([]);
-    const [activeListTab, setActiveListTab] = useState<SessionListTab>('inbox');
+    const [activeListTab, setActiveListTab] = useState<SessionListTab>('active');
     const [inboxRole, setInboxRole] = useState<InboxRole>('incoming');
     const [tabCounts, setTabCounts] = useState<SessionTabCounts>({inbox: 0, active: 0, archive: 0});
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
@@ -72,6 +99,73 @@ const SharingSessions: React.FC = () =>
     const [permissions, setPermissions] = useState<SharingSessionPermissions>();
     const sharingInitiationTriggerRef = useRef<HTMLButtonElement>(null);
     const deepLinkedSessionIdRef = useRef<string | null>(null);
+    const deepLinkedDocumentIdRef = useRef<string | null>(null);
+    const deepLinkedDocumentSessionIdRef = useRef<string | null>(null);
+    const lastUnavailableSessionIdRef = useRef<string | null>(null);
+
+    const notifySessionUnavailable = (sessionId?: string | null) =>
+    {
+        const normalizedSessionId = sessionId ?? '__unknown__';
+        if (lastUnavailableSessionIdRef.current === normalizedSessionId)
+        {
+            return;
+        }
+
+        lastUnavailableSessionIdRef.current = normalizedSessionId;
+        dispatchToast(
+            <Toast>
+                <ToastTitle action={
+                    <ToastTrigger>
+                        <Link>Dismiss</Link>
+                    </ToastTrigger>
+                }>
+                    This session is no longer available.
+                </ToastTitle>
+                <ToastBody>
+                    <Link onClick={() => setActiveListTab('active')}>Go to Active tab</Link>
+                </ToastBody>
+            </Toast>,
+            {intent: 'warning', timeout: 7000}
+        );
+    };
+
+    const clearUnavailableSessionContext = (sessionId?: string | null) =>
+    {
+        notifySessionUnavailable(sessionId);
+        deepLinkedSessionIdRef.current = null;
+        deepLinkedDocumentIdRef.current = null;
+        deepLinkedDocumentSessionIdRef.current = null;
+        setSelectedSessionDocument(undefined);
+        setSelectedSessionId(null);
+        setSessionDetails(null);
+        setFilteredDocuments([]);
+    };
+
+    const resolvePreviewDocumentSelection = (
+        documents: DocumentDetailedDto[] = [],
+        currentSelectionId?: string
+    ): DocumentDetailedDto | undefined =>
+    {
+        if (documents.length === 0)
+        {
+            return undefined;
+        }
+
+        if (currentSelectionId)
+        {
+            const currentSelection = documents.find(document => document.id === currentSelectionId);
+            if (currentSelection)
+            {
+                return currentSelection;
+            }
+        }
+
+        const mostRecentUploaded = documents
+            .filter(document => !!document.uploadDate)
+            .sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime())[0];
+
+        return mostRecentUploaded || documents[0];
+    };
 
     const checkAppUserSessions = async () =>
     {
@@ -96,17 +190,86 @@ const SharingSessions: React.FC = () =>
         }
     }
 
-    // Pre-select a session passed via the email link (?s=<sessionId>).
+    // Restore tab/session/document from URL, or from the last saved sharing-sessions query.
     useEffect(() =>
     {
-        const params = new URLSearchParams(window.location.search);
+        if (typeof window === 'undefined') return;
+
+        let params = new URLSearchParams(window.location.search);
+        if ([...params.keys()].length === 0)
+        {
+            const storedQuery = window.localStorage.getItem(LAST_ROUTE_QUERY_STORAGE_KEY);
+            if (storedQuery)
+            {
+                const storedParams = new URLSearchParams(storedQuery.startsWith('?') ? storedQuery.slice(1) : storedQuery);
+                if ([...storedParams.keys()].length > 0)
+                {
+                    params = storedParams;
+                    window.history.replaceState(null, '', `${window.location.pathname}?${storedParams.toString()}`);
+                }
+            }
+        }
+
+        const urlTab = parseSessionListTab(params.get('tab'));
+        const savedTab = parseSessionListTab(window.localStorage.getItem(ACTIVE_TAB_STORAGE_KEY));
+        setActiveListTab(urlTab ?? savedTab ?? 'active');
+
         const deepLinkedId = params.get('s');
+        const deepLinkedDocumentId = params.get('d');
         if (deepLinkedId)
         {
             deepLinkedSessionIdRef.current = deepLinkedId;
+            deepLinkedDocumentSessionIdRef.current = deepLinkedId;
             setSelectedSessionId(deepLinkedId);
         }
+        if (deepLinkedDocumentId)
+        {
+            deepLinkedDocumentIdRef.current = deepLinkedDocumentId;
+        }
     }, []);
+
+    useEffect(() =>
+    {
+        if (typeof window === 'undefined') return;
+        window.localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeListTab);
+    }, [activeListTab]);
+
+    useEffect(() =>
+    {
+        if (typeof window === 'undefined') return;
+
+        const params = new URLSearchParams(window.location.search);
+        params.set('tab', activeListTab);
+
+        if (selectedSessionId)
+        {
+            params.set('s', selectedSessionId);
+        }
+        else
+        {
+            params.delete('s');
+            params.delete('d');
+        }
+
+        if (selectedSessionId && selectedSessionDocument?.id)
+        {
+            params.set('d', selectedSessionDocument.id);
+        }
+        else
+        {
+            params.delete('d');
+        }
+
+        const nextQuery = params.toString();
+        const nextSearch = nextQuery ? `?${nextQuery}` : '';
+        if (window.location.search !== nextSearch)
+        {
+            const nextUrl = `${window.location.pathname}${nextSearch}`;
+            window.history.replaceState(null, '', nextUrl);
+        }
+
+        window.localStorage.setItem(LAST_ROUTE_QUERY_STORAGE_KEY, nextSearch);
+    }, [activeListTab, selectedSessionId, selectedSessionDocument?.id]);
 
     useEffect(() =>
     {
@@ -159,32 +322,27 @@ const SharingSessions: React.FC = () =>
                     setSessionDetails(details);
                     setFilteredDocuments(details.documents || []);
 
-                    const uploadedDocuments = (details.documents || [])
-                        .filter(document => !!document.uploadDate)
-                        .sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime());
+                    const shouldApplyDeepLinkedDocument =
+                        deepLinkedDocumentSessionIdRef.current === details.id && !!deepLinkedDocumentIdRef.current;
+                    const deepLinkedDocument = shouldApplyDeepLinkedDocument
+                        ? (details.documents || []).find(document => document.id === deepLinkedDocumentIdRef.current)
+                        : undefined;
 
-                    const matchingSelectedDocument = (details.documents || []).find(document => document.id === selectedSessionDocument?.id);
-                    if (matchingSelectedDocument)
-                    {
-                        setSelectedSessionDocument(matchingSelectedDocument);
-                    }
-                    else
-                    {
-                        // Keep a document selected after loading so the list has a clear preview target.
-                        setSelectedSessionDocument(uploadedDocuments[0]);
-                    }
+                    const nextPreviewDocument = resolvePreviewDocumentSelection(
+                        details.documents || [],
+                        deepLinkedDocument?.id || selectedSessionDocument?.id
+                    );
+                    setSelectedSessionDocument(nextPreviewDocument);
 
-                    if (details?.documents?.length > 0 && appUser?.settings?.autoPreviewDocuments)
+                    if (deepLinkedDocument)
                     {
-                        for (let i = 0; i < uploadedDocuments.length; i++)
-                        {
-                            const document = uploadedDocuments[i];
-                            if (document.uploadDate)
-                            {
-                                setSelectedSessionDocument(document);
-                                break;
-                            }
-                        }
+                        deepLinkedDocumentIdRef.current = null;
+                        deepLinkedDocumentSessionIdRef.current = null;
+                    }
+                    else if (shouldApplyDeepLinkedDocument)
+                    {
+                        deepLinkedDocumentIdRef.current = null;
+                        deepLinkedDocumentSessionIdRef.current = null;
                     }
 
                     const newPermissions = getPermissions(details, appUser);
@@ -192,6 +350,12 @@ const SharingSessions: React.FC = () =>
                 }
                 catch (error)
                 {
+                    if (isSessionUnavailableError(error))
+                    {
+                        // Session was removed or is no longer accessible: clear stale deep-link/selection context.
+                        clearUnavailableSessionContext(selectedSessionId);
+                        return;
+                    }
                     console.error(error);
                 }
                 finally
@@ -280,9 +444,17 @@ const SharingSessions: React.FC = () =>
                 const details = (await fetchSignedInUserAppUserSharingSession(selectedSessionId)) as SharingSessionDetailedDto;
                 setSessionDetails(details);
                 setFilteredDocuments(details.documents || []);
+                setSelectedSessionDocument((currentSelection) =>
+                    resolvePreviewDocumentSelection(details.documents || [], currentSelection?.id)
+                );
             }
             catch (error)
             {
+                if (isSessionUnavailableError(error))
+                {
+                    clearUnavailableSessionContext(selectedSessionId);
+                    return;
+                }
                 console.error("Failed to refresh sharing session after realtime event:", error);
             }
         };
@@ -331,6 +503,11 @@ const SharingSessions: React.FC = () =>
             }
             catch (error)
             {
+                if (msg.sharingSessionId === selectedSessionId && isSessionUnavailableError(error))
+                {
+                    clearUnavailableSessionContext(selectedSessionId);
+                    return;
+                }
                 console.error("Failed to process realtime status change:", error);
             }
         });
@@ -368,6 +545,9 @@ const SharingSessions: React.FC = () =>
             const updatedDocuments = sessionDetails.documents?.filter(document => document.id !== documentId);
             setSessionDetails({...sessionDetails, documents: updatedDocuments});
             setFilteredDocuments(updatedDocuments || []);
+            setSelectedSessionDocument((currentSelection) =>
+                resolvePreviewDocumentSelection(updatedDocuments || [], currentSelection?.id)
+            );
         }
     };
 
@@ -379,6 +559,9 @@ const SharingSessions: React.FC = () =>
             const updatedDocuments = [...currentDocuments, newSessionDocument];
             setSessionDetails({...sessionDetails, documents: updatedDocuments});
             setFilteredDocuments(updatedDocuments);
+            setSelectedSessionDocument((currentSelection) =>
+                resolvePreviewDocumentSelection(updatedDocuments, currentSelection?.id)
+            );
         }
     };
 
@@ -405,10 +588,15 @@ const SharingSessions: React.FC = () =>
             setSessionDetails({...sessionDetails, documents: updatedDocuments});
             setFilteredDocuments(updatedDocuments || []);
 
-            if (selectedSessionDocument?.id === updatedDocument.id)
+            setSelectedSessionDocument((currentSelection) =>
             {
-                setSelectedSessionDocument(prev => prev ? ({...prev, ...updatedDocument}) : updatedDocument);
-            }
+                if (updatedDocument.uploadDate)
+                {
+                    return resolvePreviewDocumentSelection(updatedDocuments || [], updatedDocument.id);
+                }
+
+                return resolvePreviewDocumentSelection(updatedDocuments || [], currentSelection?.id);
+            });
         }
     };
 
@@ -844,6 +1032,7 @@ const SharingSessions: React.FC = () =>
     return (
         <>
             <MainMenu/>
+            <Toaster toasterId={toasterId} position="bottom-end"/>
             {preparingSharingSessions && <SessionPreLoader/>}
             {!preparingSharingSessions && (appUserHasSessions) && renderSessionsSection()}
             {!preparingSharingSessions && (!appUserHasSessions) &&

@@ -102,7 +102,7 @@ const SessionList: React.FC<SharingSessionListProps> = (
     const [isSidebarHoverExpanded, setIsSidebarHoverExpanded] = useState(false);
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
-    const [activeTab, setActiveTab] = useState<SessionListTab>('inbox');
+    const [activeTab, setActiveTab] = useState<SessionListTab>(controlledActiveTab ?? 'active');
     const [inboxRole, setInboxRole] = useState<InboxRole>('incoming');
     const [incomingCount, setIncomingCount] = useState(0);
     const [outgoingCount, setOutgoingCount] = useState(0);
@@ -520,13 +520,6 @@ const SessionList: React.FC<SharingSessionListProps> = (
     {
         setSelectedItems(data.selectedItems);
         onSelectionChange(data.selectedItems[0] ?? null);
-
-        const urlParams = new URLSearchParams(window.location.search);
-        if (data.selectedItems[0])
-        {
-            urlParams.set('s', data.selectedItems[0]);
-            window.history.replaceState(null, '', `?${urlParams.toString()}`);
-        }
     };
 
     const handlePageChange = (page: number) =>

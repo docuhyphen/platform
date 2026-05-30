@@ -11,6 +11,7 @@ import com.docuhyphen.app.api.repository.SharingSessionRepository
 import com.docuhyphen.app.api.service.communication.AppNotificationService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
+import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
@@ -20,6 +21,8 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.sql.Timestamp
 import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 @ApplicationScoped
@@ -29,6 +32,7 @@ class SharingSessionDocumentService @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
+    private val configurationService: ConfigurationService,
     private val fileStorageService: FileStorageService,
     private val appNotificationService: AppNotificationService,
     private val realtimeEventService: RealtimeEventService,
@@ -45,6 +49,9 @@ class SharingSessionDocumentService @Inject constructor(
     companion object
     {
         private val logger = LoggerFactory.getLogger(SharingSessionDocumentService::class.java)
+        private val emailDateFormatter: DateTimeFormatter =
+            DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss 'UTC'")
+                .withZone(ZoneOffset.UTC)
     }
 
     @Transactional
@@ -340,11 +347,11 @@ class SharingSessionDocumentService @Inject constructor(
             throw IllegalArgumentException("File type must be ${DocumentType.toFileExtension(restrictedType)}")
         }
 
-        // Check file size (10MB limit)
-        val maxSizeBytes = 10_485_760L // 10MB
+        // Check file size (50MB limit)
+        val maxSizeBytes = 52_428_800L // 50MB
         if (file.length() > maxSizeBytes)
         {
-            throw IllegalArgumentException("File is too large. Maximum size allowed is 10MB")
+            throw IllegalArgumentException("File is too large. Maximum size allowed is 50MB")
         }
 
         // Check if file is not empty
@@ -467,13 +474,16 @@ class SharingSessionDocumentService @Inject constructor(
             sharingSession.initiator?.email
         } ?: return
 
+        val uploadedAtInstant = document.uploadDate?.toInstant() ?: Instant.now()
         val model = mapOf(
             "sessionName" to (sharingSession.sessionName ?: "Sharing session"),
             "documentTitle" to (document.title ?: "Document"),
             "uploaderEmail" to appUser.email,
-            "uploadedAt" to (document.uploadDate?.toInstant()?.toString() ?: Instant.now().toString()),
+            "uploadedAt" to emailDateFormatter.format(uploadedAtInstant),
             "sessionId" to sharingSession.id.toString(),
             "documentId" to document.id.toString(),
+            "sessionLink" to "${configurationService.baseUrl}/sharing-sessions?s=${sharingSession.id}&d=${document.id}",
+            "appName" to configurationService.emailSubjectTitle,
         )
 
         val subject = "Document uploaded: ${document.title ?: "Document"}"

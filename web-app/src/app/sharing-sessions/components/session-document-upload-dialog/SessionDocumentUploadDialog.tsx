@@ -44,6 +44,7 @@ const SessionDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
     const [file, setFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState<boolean>(false);
     const [progress, setProgress] = useState<number>(0);
+    const [isServerProcessing, setIsServerProcessing] = useState<boolean>(false);
     const [fileError, setFileError] = useState<string | null>(null);
     const globalStyles = useGlobalStyles();
     const styles = useDocumentDialogStyles();
@@ -72,7 +73,23 @@ const SessionDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
 
     const allowedExtensions = allowedTypes.map(type => extensionMap[type]);
     const fileAccept = allowedExtensions.join(',');
-    const maxSizeBytes = 10_485_760;
+    const restrictionLabel = useMemo(() =>
+    {
+        const rawRestriction = sessionDocument?.restrictedType;
+        if (!rawRestriction)
+        {
+            return 'Any supported type';
+        }
+
+        const normalizedRestriction = String(rawRestriction).trim();
+        if (!normalizedRestriction || normalizedRestriction.toLowerCase() === 'null')
+        {
+            return 'Any supported type';
+        }
+
+        return normalizedRestriction;
+    }, [sessionDocument?.restrictedType]);
+    const maxSizeBytes = 52_428_800;
     const minSizeBytes = 100;
 
     const formatFileSize = (size: number): string =>
@@ -109,6 +126,8 @@ const SessionDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
         }
 
         setUploading(true);
+        setProgress(0);
+        setIsServerProcessing(false);
 
         const fileName = file.name;
         const fileExtension = getFileExtension(fileName);
@@ -122,13 +141,26 @@ const SessionDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
         {
             const uploadData = await uploadSharingSessionDocument(sessionId, sessionDocument.id, formData, token, (event) =>
             {
+                if (!event.total || event.total <= 0)
+                {
+                    setProgress((current) => Math.max(current, 10));
+                    return;
+                }
+
                 const percentCompleted = Math.round((event.loaded * 100) / event.total);
-                setProgress(percentCompleted);
+                const cappedProgress = Math.min(percentCompleted, 95);
+                setProgress((current) => Math.max(current, cappedProgress));
+
+                if (percentCompleted >= 100)
+                {
+                    setIsServerProcessing(true);
+                }
             });
 
+            // Mark complete only after the API request has fully finished server-side.
+            setIsServerProcessing(false);
+            setProgress(100);
             onDocumentUploaded(uploadData);
-            resetState();
-            onDismiss();
         }
         catch (error)
         {
@@ -138,6 +170,7 @@ const SessionDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
         finally
         {
             setUploading(false);
+            setIsServerProcessing(false);
         }
     };
 
@@ -161,7 +194,7 @@ const SessionDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
         if (pickedFile.size > maxSizeBytes)
         {
             setFile(null);
-            setFileError("File is too large. Maximum size allowed is 10 MB.");
+            setFileError("File is too large. Maximum size allowed is 50 MB.");
             return;
         }
 
@@ -227,12 +260,21 @@ const SessionDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
                                 </div>
                                 <div className={styles.keyValueRow}>
                                     <Text className={styles.keyLabel}>Restriction</Text>
-                                    <Text>{sessionDocument?.restrictedType || 'Any supported type'}</Text>
+                                    <Text>{restrictionLabel}</Text>
                                 </div>
                             </div>
                         )}
 
-                        {uploading && <ProgressBar value={progress}/>}
+                        {uploading && (
+                            <>
+                                <ProgressBar value={progress / 100}/>
+                                <Text size={200}>
+                                    {isServerProcessing
+                                        ? "Upload complete, finalizing on server..."
+                                        : `Uploading... ${progress}%`}
+                                </Text>
+                            </>
+                        )}
                     </DialogContent>
                     <DialogActions>
                         <Button

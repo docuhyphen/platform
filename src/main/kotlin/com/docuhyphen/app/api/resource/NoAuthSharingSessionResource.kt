@@ -4,12 +4,15 @@ import com.docuhyphen.app.api.exception.SharingSessionDocumentNotFoundException
 import com.docuhyphen.app.api.exception.SharingSessionNotFoundException
 import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
+import com.docuhyphen.app.api.model.dto.DocumentDetailedDto
 import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
+import com.docuhyphen.app.api.model.entity.DocumentType
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpdateNoAuthSharingSession
 import com.docuhyphen.app.api.service.sharingsession.SharingSessionDocumentService
 import com.docuhyphen.app.api.service.sharingsession.SharingSessionRetrievalService
 import com.docuhyphen.app.api.service.sharingsession.SharingSessionUpdateService
+import com.docuhyphen.app.api.service.storage.FileStorageService
 import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
@@ -27,7 +30,8 @@ import java.io.File
 class NoAuthSharingSessionResource @Inject constructor(
     private val sharingSessionRetrievalService: SharingSessionRetrievalService,
     private val sharingSessionUpdateService: SharingSessionUpdateService,
-    private val sharingSessionDocumentService: SharingSessionDocumentService
+    private val sharingSessionDocumentService: SharingSessionDocumentService,
+    private val fileStorageService: FileStorageService,
 )
 {
     companion object
@@ -228,7 +232,8 @@ class NoAuthSharingSessionResource @Inject constructor(
                 encryptionMode
             )
 
-            Response.ok(DetailedEntityToDtoTransformer.toDto(document)).build()
+            val dto = DetailedEntityToDtoTransformer.toDto(document)
+            Response.ok(enrichDocumentWithFileSize(dto)).build()
         }
         catch (exception: Exception)
         {
@@ -304,5 +309,21 @@ class NoAuthSharingSessionResource @Inject constructor(
                 }
             }
         }
+    }
+
+    private fun enrichDocumentWithFileSize(document: DocumentDetailedDto?): DocumentDetailedDto?
+    {
+        if (document == null || document.uploadDate == null) return document
+
+        val documentId = document.id ?: return document
+        val documentType = document.type
+            ?.takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) }
+            ?.let { runCatching { DocumentType.valueOf(it) }.getOrNull() }
+            ?: return document
+
+        val storageKey = "$documentId${DocumentType.toFileExtension(documentType)}"
+        val fileSize = runCatching { fileStorageService.getDocumentSizeBytes(storageKey) }.getOrNull()
+
+        return document.copy(fileSize = fileSize)
     }
 }

@@ -104,18 +104,12 @@ const SessionAcceptanceDialog: React.FC<SessionAcceptanceDialogProps> = (
             <Text size={400} weight="semibold" align="center">New Document Request</Text>
 
             <Text size={300} align="center">
-                <strong>{initiatorName}</strong> has requested to share documents with you.
+                <strong>{initiatorName} ({recipientEmail})</strong> has requested to share documents with you.
             </Text>
 
             <div className={styles.sessionNameContainer}>
                 <Text size={200} weight="bold" align="center">SESSION</Text>
                 <Text size={300} align="center">{session.sessionName}</Text>
-            </div>
-
-            <div className={styles.participantInfoContainer}>
-                <Text size={200} weight="bold" align="center">PARTICIPANTS</Text>
-                <Text size={200} align="center">Initiator: {initiatorEmail}</Text>
-                <Text size={200} align="center">Recipient: {recipientEmail}</Text>
             </div>
 
             {session.initialShareMessage && (
