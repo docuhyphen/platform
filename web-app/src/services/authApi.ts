@@ -320,4 +320,57 @@ export const getOrgMemberCapacity = async (orgId: string): Promise<OrgMemberCapa
     {
         throw error.response?.data || error.message;
     }
+};// -- Step-up Re-Auth --
+
+export interface StepUpInitiateResponse
+{
+    method: 'INTERNAL_EMAIL_OTP' | 'EXTERNAL_RELOGIN';
+    message: string;
+    mfaSessionId?: string;
+    provider?: string;
+    authorizeUrl?: string;
+}
+
+export interface StepUpResult { fresh: boolean; message: string; }
+
+export const initiateStepUp = async (returnTo: string): Promise<StepUpInitiateResponse> =>
+{
+    try
+    {
+        const response = await apiClient.post(`/auth/step-up/initiate`, {returnTo});
+        return response.data;
+    }
+    catch (error)
+    {
+        const e = error as { response?: { data?: unknown }; message?: string };
+        throw e.response?.data || e.message;
+    }
+};
+
+export const completeStepUpWithOtp = async (mfaSessionId: string, otp: string): Promise<StepUpResult> =>
+{
+    try
+    {
+        const response = await apiClient.post(`/auth/step-up/complete`, {mfaSessionId, otp});
+        return response.data;
+    }
+    catch (error)
+    {
+        const e = error as { response?: { data?: unknown }; message?: string };
+        throw e.response?.data || e.message;
+    }
+};
+
+export const regenerateStepUpOtp = async (mfaSessionId: string): Promise<StepUpResult> =>
+{
+    try
+    {
+        const response = await apiClient.post(`/auth/step-up/otp-regeneration`, {mfaSessionId});
+        return response.data;
+    }
+    catch (error)
+    {
+        const e = error as { response?: { data?: unknown }; message?: string };
+        throw e.response?.data || e.message;
+    }
 };

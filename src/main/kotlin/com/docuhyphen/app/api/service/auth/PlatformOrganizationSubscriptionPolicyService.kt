@@ -156,13 +156,11 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         validateRequest(request, normalizedTierCode)
 
         val existing = organizationSubscriptionPolicyRepository.findByOrganizationId(organization.id)
-        val requireDualApproval = existing != null && isMoreRestrictiveCap(existing.maxUsers, request.maxUsers)
 
         adminActionGuardService.enforce(
             action = "PLATFORM_ORG_SUBSCRIPTION_POLICY_UPSERT",
             actorId = actor.id,
             context = adminApprovalContext,
-            requireDualApproval = requireDualApproval,
         )
 
         val beforeSnapshot = existing?.let { snapshot(it, organization) }
@@ -224,7 +222,6 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
             action = "PLATFORM_ORG_SUBSCRIPTION_POLICY_DELETE",
             actorId = actor.id,
             context = adminApprovalContext,
-            requireDualApproval = true,
         )
 
         val beforeSnapshot = snapshot(existing, organization)
@@ -309,15 +306,6 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         return organization.appUsers.count { it.isActive && it.deprovisionedAt == null }.toLong()
     }
 
-    private fun isMoreRestrictiveCap(previousCap: Long?, nextCap: Long?): Boolean
-    {
-        return when
-        {
-            previousCap == null && nextCap != null -> true
-            previousCap != null && nextCap != null && nextCap < previousCap -> true
-            else -> false
-        }
-    }
 
     private fun validatePaging(limit: Int, offset: Int)
     {

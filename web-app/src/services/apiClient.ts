@@ -1,5 +1,6 @@
 import axios from 'axios';
 import {attachDpopToAxiosConfig} from './dpop';
+import {requestStepUp} from './stepUpBroker';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -90,6 +91,29 @@ apiClient.interceptors.response.use(
                 // Refresh failed,  redirect to session expired
                 window.dispatchEvent(new CustomEvent('auth-session-expired'));
                 return Promise.reject(refreshError);
+            }
+        }
+
+        // 401 with STEP_UP_REQUIRED → drive the global step-up modal, then retry the original request.
+        if (
+            error.response?.status === 401 &&
+            error.response?.data?.reasonCode === 'STEP_UP_REQUIRED' &&
+            !originalRequest._stepUpRetry &&
+            !originalRequest.url?.includes('/auth/step-up')
+        )
+        {
+            originalRequest._stepUpRetry = true;
+            try
+            {
+                await requestStepUp({
+                    action: error.response?.data?.action,
+                    message: error.response?.data?.errorMessage,
+                });
+                return apiClient(originalRequest);
+            }
+            catch (cancelErr)
+            {
+                return Promise.reject(error);
             }
         }
 

@@ -389,4 +389,54 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
         query.setParameter("appUserId", appUserId)
         return query.resultList ?: emptyList()
     }
+
+    fun findByIdWithDocumentsOrderedByTitle(sessionId: UUID): SharingSession?
+    {
+        val session = entityManager.createQuery(
+            """
+                SELECT s
+                FROM SharingSession s
+                WHERE s.id = :sessionId
+            """.trimIndent(),
+            SharingSession::class.java,
+        )
+            .setParameter("sessionId", sessionId)
+            .resultList
+            .firstOrNull()
+            ?: return null
+
+        val orderedDocuments = entityManager.createQuery(
+            """
+                SELECT d
+                FROM SharingSession s
+                JOIN s.documents d
+                WHERE s.id = :sessionId
+                ORDER BY LOWER(d.title) ASC, d.title ASC
+            """.trimIndent(),
+            Document::class.java,
+        )
+            .setParameter("sessionId", sessionId)
+            .resultList
+
+        session.documents = orderedDocuments.toMutableList()
+        return session
+    }
+
+    fun findDocumentBySessionIdAndDocumentId(sessionId: UUID, documentId: UUID): Document?
+    {
+        return entityManager.createQuery(
+            """
+                SELECT d
+                FROM SharingSession s
+                JOIN s.documents d
+                WHERE s.id = :sessionId
+                  AND d.id = :documentId
+            """.trimIndent(),
+            Document::class.java,
+        )
+            .setParameter("sessionId", sessionId)
+            .setParameter("documentId", documentId)
+            .resultList
+            .firstOrNull()
+    }
 }

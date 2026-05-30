@@ -44,7 +44,7 @@ class SharingSessionRetrievalService @Inject constructor(
 
     fun getSharingSession(sessionId: String): SharingSession
     {
-        val session = sharingSessionRepository.findById(UUID.fromString(sessionId))
+        val session = sharingSessionRepository.findByIdWithDocumentsOrderedByTitle(UUID.fromString(sessionId))
             ?: throw SharingSessionNotFoundException("Sharing session not found")
 
         session.documents = session.documents.filter { it.isDeleted == false } as MutableList<Document>
@@ -84,7 +84,7 @@ class SharingSessionRetrievalService @Inject constructor(
 
     fun getNoAuthSharingSession(sessionId: String): SharingSession
     {
-        val session = sharingSessionRepository.findById(UUID.fromString(sessionId))
+        val session = sharingSessionRepository.findByIdWithDocumentsOrderedByTitle(UUID.fromString(sessionId))
             ?: throw SharingSessionNotFoundException("Sharing session not found")
 
         session.documents = session.documents.filter { it.isDeleted == false } as MutableList<Document>

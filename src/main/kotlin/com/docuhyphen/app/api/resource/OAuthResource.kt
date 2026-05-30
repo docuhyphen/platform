@@ -44,6 +44,7 @@ class OAuthResource @Inject constructor(
     private val securityIncidentService: SecurityIncidentService,
     private val organizationIdentityPolicyService: OrganizationIdentityPolicyService,
     private val organizationIdpRuntimeCredentialService: OrganizationIdpRuntimeCredentialService,
+    private val stepUpAuthService: com.docuhyphen.app.api.service.auth.StepUpAuthService,
 )
 {
     companion object
@@ -223,6 +224,38 @@ class OAuthResource @Inject constructor(
                 codeVerifier = verifiedState.codeVerifier,
             )
             val userInfo = provider.validateIdToken(oauthResponse.idToken!!, verifiedState.nonce, runtimeCredentials)
+
+            if (verifiedState.flow.equals("stepup", ignoreCase = true))
+            {
+                val sessionId = verifiedState.stepUpSessionId
+                    ?: return redirectToFrontendError("Step-up session context is missing")
+                val actorId = verifiedState.stepUpAppUserId
+                    ?: return redirectToFrontendError("Step-up user context is missing")
+                val expectedSubject = verifiedState.stepUpExpectedSubjectId
+                    ?: return redirectToFrontendError("Step-up subject context is missing")
+
+                if (userInfo.subjectId != expectedSubject)
+                {
+                    authAuditService.emit(
+                        action = "STEP_UP_OAUTH_CALLBACK",
+                        outcome = "DENY",
+                        reasonCode = RevocationReasonCode.STEP_UP_REQUIRED,
+                        actorId = actorId,
+                        requestId = requestId,
+                        reason = "Step-up external subject mismatch",
+                    )
+                    return redirectToFrontendError("Re-authentication did not match your account")
+                }
+
+                stepUpAuthService.markFresh(sessionId)
+                authAuditService.emit(
+                    action = "STEP_UP_OAUTH_CALLBACK",
+                    outcome = "SUCCESS",
+                    actorId = actorId,
+                    requestId = requestId,
+                )
+                return redirectToStepUpReturn(verifiedState.stepUpReturnTo)
+            }
 
             // Enforce per-organization provider allowlist policy when org-specific config exists.
             organizationIdentityPolicyService.assertProviderAllowedForEmail(userInfo.email, providerType)
@@ -407,6 +440,14 @@ class OAuthResource @Inject constructor(
         ).build()
     }
 
+    private fun redirectToStepUpReturn(returnTo: String?): Response
+    {
+        val safePath = returnTo?.takeIf { it.startsWith("/") && !it.startsWith("//") } ?: "/sharing-sessions"
+        val separator = if (safePath.contains("?")) "&" else "?"
+        val destination = "${configurationService.baseUrl.trimEnd('/')}$safePath${separator}stepUp=success"
+        return Response.temporaryRedirect(URI.create(destination)).build()
+    }
+
     private fun getClientIpAddress(request: io.vertx.core.http.HttpServerRequest): String
     {
         var ipAddress = request.getHeader("X-Forwarded-For")
@@ -434,6 +475,3 @@ class OAuthResource @Inject constructor(
         return ipAddress
     }
 }
-
-
-

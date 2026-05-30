@@ -122,7 +122,6 @@ class SettingsService @Inject constructor(
             action = "ORG_SETTINGS_UPDATE",
             actorId = currentUser.id,
             context = adminApprovalContext,
-            requireDualApproval = true,
         )
 
         // Get the organization

@@ -33,6 +33,7 @@ class GoogleIdentityProvider @Inject constructor(
         redirectUri: String,
         runtimeCredentials: RuntimeIdpCredentials?,
         codeChallenge: String?,
+        prompt: String?,
     ): String
     {
         val clientId = runtimeCredentials?.clientId?.takeIf { it.isNotBlank() } ?: configurationService.googleOAuthClientId
@@ -43,6 +44,7 @@ class GoogleIdentityProvider @Inject constructor(
         val pkcePart = codeChallenge?.takeIf { it.isNotBlank() }
             ?.let { "&code_challenge=${URLEncoder.encode(it, StandardCharsets.UTF_8)}&code_challenge_method=S256" }
             .orEmpty()
+        val effectivePrompt = prompt?.takeIf { it.isNotBlank() } ?: "consent"
 
         return "https://accounts.google.com/o/oauth2/v2/auth" +
                 "?client_id=$clientId" +
@@ -52,7 +54,7 @@ class GoogleIdentityProvider @Inject constructor(
                 "&state=$encodedState" +
                 "&nonce=$encodedNonce" +
                 "&access_type=offline" +
-                "&prompt=consent" +
+                "&prompt=${URLEncoder.encode(effectivePrompt, StandardCharsets.UTF_8)}" +
                 pkcePart
     }
 

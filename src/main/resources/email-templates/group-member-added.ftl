@@ -2,7 +2,7 @@
 <#include "email-header.ftl">
 
 <p style="margin:0 0 14px 0;"><strong>Hi ${firstName},</strong></p>
-<p style="margin:0 0 14px 0;">You have been added to the group <strong>${groupName}</strong> in <strong>${organizationName}</strong>.</p>
+<p style="margin:0 0 14px 0;">You have been added to a group at <strong>${organizationName}</strong>.</p>
 
 <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin:0 0 14px 0; border:1px solid #dddddd; background-color:#f0f2f5;">
     <tr>

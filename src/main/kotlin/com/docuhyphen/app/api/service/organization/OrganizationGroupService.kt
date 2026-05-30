@@ -87,7 +87,6 @@ class OrganizationGroupService @Inject constructor(
             actorId = authTokenContext.authToken.appUser?.id,
             context = adminApprovalContext,
             requireStepUp = true,
-            requireDualApproval = false,
         )
 
         val organization = organizationRepository.findById(UUID.fromString(organizationId))
@@ -232,7 +231,6 @@ class OrganizationGroupService @Inject constructor(
             action = "ORG_GROUP_DELETE",
             actorId = authTokenContext.authToken.appUser?.id,
             context = adminApprovalContext,
-            requireDualApproval = true,
         )
 
         if (organizationId.isNullOrBlank() || groupId.isNullOrBlank())
@@ -304,7 +302,6 @@ class OrganizationGroupService @Inject constructor(
             action = "ORG_GROUP_UPDATE",
             actorId = authTokenContext.authToken.appUser?.id,
             context = adminApprovalContext,
-            requireDualApproval = !isActive,
         )
 
         if (organizationId.isNullOrBlank() || groupId.isNullOrBlank())

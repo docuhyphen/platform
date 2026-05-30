@@ -66,6 +66,7 @@ class SharingSession
     var status: SharingSessionStatus = SharingSessionStatus.INITIATED
 
     @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.EAGER)
+    @OrderBy("title ASC")
     var documents: MutableList<Document> = mutableListOf()
 
     @Column(name = "require_recipient_sign_in", nullable = false)

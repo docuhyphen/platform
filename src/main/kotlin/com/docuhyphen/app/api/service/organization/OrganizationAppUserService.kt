@@ -65,7 +65,6 @@ class OrganizationAppUserService @Inject constructor(
             action = "ORG_APP_USER_ADD",
             actorId = authTokenContext.authToken.appUser?.id,
             context = adminApprovalContext,
-            requireDualApproval = false,
         )
 
         val organization = organizationGroupService.getOrganizationById(UUID.fromString(organizationId))
@@ -174,7 +173,6 @@ class OrganizationAppUserService @Inject constructor(
             action = "ORG_APP_USER_UPDATE",
             actorId = authTokenContext.authToken.appUser?.id,
             context = adminApprovalContext,
-            requireDualApproval = isActive == false,
         )
 
         if (organizationId.isNullOrBlank())
@@ -286,7 +284,6 @@ class OrganizationAppUserService @Inject constructor(
             action = "ORG_APP_USER_DELETE",
             actorId = authTokenContext.authToken.appUser?.id,
             context = adminApprovalContext,
-            requireDualApproval = true,
         )
 
         if (organizationId.isNullOrBlank())

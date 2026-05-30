@@ -39,8 +39,6 @@ class OrganizationAppUserResource @Inject constructor(
     @Transactional
     fun addAppUser(
         @PathParam("organizationId") organizationId: String,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
         addOrganizationAppUserRequest: AddOrganizationAppUserRequest
     ): Response
@@ -51,8 +49,6 @@ class OrganizationAppUserResource @Inject constructor(
         {
             val appUser = with(addOrganizationAppUserRequest) {
                 val adminApprovalContext = AdminApprovalContext(
-                    stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
-                    dualApprovalId = dualApprovalId,
                     requestId = requestId,
                 )
 
@@ -73,6 +69,7 @@ class OrganizationAppUserResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
             logger.error("Error adding organization app user", exception)
 
             when (exception)
@@ -128,6 +125,7 @@ class OrganizationAppUserResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
             logger.error("Error getting organization app users", exception)
 
             when (exception)
@@ -171,8 +169,6 @@ class OrganizationAppUserResource @Inject constructor(
     fun updateAppUser(
         @PathParam("organizationId") organizationId: String?,
         @PathParam("appUserId") appUserId: String?,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
         updateOrganizationAppUserRequest: UpdateOrganizationAppUserRequest
     ): Response
@@ -184,8 +180,6 @@ class OrganizationAppUserResource @Inject constructor(
             with(updateOrganizationAppUserRequest)
             {
                 val adminApprovalContext = AdminApprovalContext(
-                    stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
-                    dualApprovalId = dualApprovalId,
                     requestId = requestId,
                 )
                 organizationAppUserService.updateAppUser(
@@ -204,6 +198,7 @@ class OrganizationAppUserResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
             logger.error("Error updating organization app user", exception)
 
             when (exception)
@@ -247,8 +242,6 @@ class OrganizationAppUserResource @Inject constructor(
     fun deleteAppUser(
         @PathParam("organizationId") organizationId: String?,
         @PathParam("appUserId") appUserId: String?,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
@@ -257,8 +250,6 @@ class OrganizationAppUserResource @Inject constructor(
         return try
         {
             val adminApprovalContext = AdminApprovalContext(
-                stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
-                dualApprovalId = dualApprovalId,
                 requestId = requestId,
             )
             organizationAppUserService.deleteAppUser(organizationId, appUserId, adminApprovalContext)
@@ -269,6 +260,7 @@ class OrganizationAppUserResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
             logger.error("Error deactivating organization app user", exception)
 
             when (exception)
@@ -343,6 +335,7 @@ class OrganizationAppUserResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
             logger.error("Error checking organization app user", exception)
             val responseError = ResponseError("An error occurred while checking organization app user.")
             Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()

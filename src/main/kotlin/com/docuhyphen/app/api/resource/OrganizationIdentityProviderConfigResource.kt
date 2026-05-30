@@ -46,6 +46,7 @@ class OrganizationIdentityProviderConfigResource @Inject constructor(
         }
         catch (e: Exception)
         {
+            if (e is jakarta.ws.rs.WebApplicationException) throw e
             handleException("Error listing org IdP configs", e)
         }
     }
@@ -53,8 +54,6 @@ class OrganizationIdentityProviderConfigResource @Inject constructor(
     @POST
     fun create(
         @PathParam("organizationId") organizationId: String,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
         payload: OrganizationIdpConfigRequest,
     ): Response
@@ -64,12 +63,13 @@ class OrganizationIdentityProviderConfigResource @Inject constructor(
             val created = organizationIdentityProviderConfigService.create(
                 organizationId = organizationId,
                 request = payload,
-                adminApprovalContext = buildAdminApprovalContext(stepUpAuth, dualApprovalId, requestId),
+                adminApprovalContext = AdminApprovalContext(requestId = requestId),
             )
             Response.ok(created.toResponse()).build()
         }
         catch (e: Exception)
         {
+            if (e is jakarta.ws.rs.WebApplicationException) throw e
             handleException("Error creating org IdP config", e)
         }
     }
@@ -79,8 +79,6 @@ class OrganizationIdentityProviderConfigResource @Inject constructor(
     fun update(
         @PathParam("organizationId") organizationId: String,
         @PathParam("configId") configId: String,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
         payload: OrganizationIdpConfigRequest,
     ): Response
@@ -91,12 +89,13 @@ class OrganizationIdentityProviderConfigResource @Inject constructor(
                 organizationId = organizationId,
                 configId = configId,
                 request = payload,
-                adminApprovalContext = buildAdminApprovalContext(stepUpAuth, dualApprovalId, requestId),
+                adminApprovalContext = AdminApprovalContext(requestId = requestId),
             )
             Response.ok(updated.toResponse()).build()
         }
         catch (e: Exception)
         {
+            if (e is jakarta.ws.rs.WebApplicationException) throw e
             handleException("Error updating org IdP config", e)
         }
     }
@@ -106,8 +105,6 @@ class OrganizationIdentityProviderConfigResource @Inject constructor(
     fun delete(
         @PathParam("organizationId") organizationId: String,
         @PathParam("configId") configId: String,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
@@ -116,24 +113,17 @@ class OrganizationIdentityProviderConfigResource @Inject constructor(
             organizationIdentityProviderConfigService.delete(
                 organizationId = organizationId,
                 configId = configId,
-                adminApprovalContext = buildAdminApprovalContext(stepUpAuth, dualApprovalId, requestId),
+                adminApprovalContext = AdminApprovalContext(requestId = requestId),
             )
             Response.ok().build()
         }
         catch (e: Exception)
         {
+            if (e is jakarta.ws.rs.WebApplicationException) throw e
             handleException("Error deleting org IdP config", e)
         }
     }
 
-    private fun buildAdminApprovalContext(stepUpAuth: String?, dualApprovalId: String?, requestId: String?): AdminApprovalContext
-    {
-        return AdminApprovalContext(
-            stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
-            dualApprovalId = dualApprovalId,
-            requestId = requestId,
-        )
-    }
 
     private fun handleException(message: String, exception: Exception): Response
     {

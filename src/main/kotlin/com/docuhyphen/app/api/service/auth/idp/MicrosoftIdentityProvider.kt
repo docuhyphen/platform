@@ -34,6 +34,7 @@ class MicrosoftIdentityProvider @Inject constructor(
         redirectUri: String,
         runtimeCredentials: RuntimeIdpCredentials?,
         codeChallenge: String?,
+        prompt: String?,
     ): String
     {
         val tenantId = runtimeCredentials?.tenantId?.takeIf { it.isNotBlank() } ?: configurationService.microsoftOAuthTenantId
@@ -45,6 +46,9 @@ class MicrosoftIdentityProvider @Inject constructor(
         val pkcePart = codeChallenge?.takeIf { it.isNotBlank() }
             ?.let { "&code_challenge=${URLEncoder.encode(it, StandardCharsets.UTF_8)}&code_challenge_method=S256" }
             .orEmpty()
+        val promptPart = prompt?.takeIf { it.isNotBlank() }
+            ?.let { "&prompt=${URLEncoder.encode(it, StandardCharsets.UTF_8)}" }
+            .orEmpty()
 
         return "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/authorize" +
                 "?client_id=$clientId" +
@@ -54,7 +58,8 @@ class MicrosoftIdentityProvider @Inject constructor(
                 "&scope=${URLEncoder.encode(scopes, StandardCharsets.UTF_8)}" +
                 "&state=$encodedState" +
                 "&nonce=$encodedNonce" +
-                pkcePart
+                pkcePart +
+                promptPart
     }
 
     override fun exchangeCodeForTokens(

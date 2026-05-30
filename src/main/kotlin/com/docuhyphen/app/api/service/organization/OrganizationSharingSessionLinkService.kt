@@ -104,7 +104,6 @@ class OrganizationSharingSessionLinkService @Inject constructor(
             action = "ORG_LINK_CREATE",
             actorId = appUser.id,
             context = adminApprovalContext,
-            requireDualApproval = false,
         )
 
         requestingOrganization.appUsers.firstOrNull { it -> it.id == appUser.id }
@@ -189,7 +188,6 @@ class OrganizationSharingSessionLinkService @Inject constructor(
             action = "ORG_LINK_DECIDE",
             actorId = appUser.id,
             context = adminApprovalContext,
-            requireDualApproval = linkStatus == LinkStatus.REJECTED,
         )
 
 //        link.requestedOrganization?.appUsers?.firstOrNull { it -> it.id == appUser.id }
@@ -307,7 +305,6 @@ class OrganizationSharingSessionLinkService @Inject constructor(
             action = "ORG_LINK_DELETE",
             actorId = appUser.id,
             context = adminApprovalContext,
-            requireDualApproval = true,
         )
 
         //ToDO: validate of appUser is part of the requesting or requested organization

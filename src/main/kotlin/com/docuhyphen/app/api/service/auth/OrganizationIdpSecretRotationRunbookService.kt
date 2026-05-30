@@ -28,11 +28,8 @@ class OrganizationIdpSecretRotationRunbookService @Inject constructor(
                     action = "ORG_IDP_SECRET_ROTATION_PREVIEW",
                     actorId = actor.id,
                     context = AdminApprovalContext(
-                        stepUpAuthenticated = true,
-                        dualApprovalId = null,
                         requestId = null,
                     ),
-                    requireDualApproval = false,
                 )
             }
     }
@@ -51,7 +48,6 @@ class OrganizationIdpSecretRotationRunbookService @Inject constructor(
             action = "ORG_IDP_SECRET_ROTATION_RUNBOOK",
             actorId = actor.id,
             context = adminApprovalContext,
-            requireDualApproval = true,
         )
 
         return rotationSchedulerService.runManualRotationForOrganization(

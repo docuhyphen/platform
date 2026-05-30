@@ -54,7 +54,6 @@ class OrganizationService @Inject constructor(
             action = "ORG_UPDATE",
             actorId = authTokenContext.authToken.appUser?.id,
             context = adminApprovalContext,
-            requireDualApproval = !registrationNumber.isNullOrBlank(),
         )
 
         if (organizationId.isNullOrBlank())
@@ -115,7 +114,6 @@ class OrganizationService @Inject constructor(
             action = "ORG_SETTINGS_UPDATE",
             actorId = authTokenContext.authToken.appUser?.id,
             context = adminApprovalContext,
-            requireDualApproval = true,
         )
     }
 

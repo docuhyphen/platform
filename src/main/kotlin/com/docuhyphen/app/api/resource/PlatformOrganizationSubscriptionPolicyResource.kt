@@ -94,8 +94,6 @@ class PlatformOrganizationSubscriptionPolicyResource @Inject constructor(
     @DELETE
     fun deletePolicy(
         @PathParam("organizationId") organizationId: String,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
@@ -103,7 +101,7 @@ class PlatformOrganizationSubscriptionPolicyResource @Inject constructor(
         {
             val policy = platformOrganizationSubscriptionPolicyService.deletePolicy(
                 organizationId = organizationId,
-                adminApprovalContext = buildAdminApprovalContext(stepUpAuth, dualApprovalId, requestId),
+                adminApprovalContext = AdminApprovalContext(requestId = requestId),
             )
             Response.ok(policy.toResponse()).build()
         }
@@ -116,8 +114,6 @@ class PlatformOrganizationSubscriptionPolicyResource @Inject constructor(
     @PUT
     fun upsertPolicy(
         @PathParam("organizationId") organizationId: String,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
         payload: PlatformOrganizationSubscriptionPolicyRequest,
     ): Response
@@ -127,7 +123,7 @@ class PlatformOrganizationSubscriptionPolicyResource @Inject constructor(
             val policy = platformOrganizationSubscriptionPolicyService.upsertPolicy(
                 organizationId = organizationId,
                 request = payload,
-                adminApprovalContext = buildAdminApprovalContext(stepUpAuth, dualApprovalId, requestId),
+                adminApprovalContext = AdminApprovalContext(requestId = requestId),
             )
             Response.ok(policy.toResponse()).build()
         }
@@ -137,14 +133,6 @@ class PlatformOrganizationSubscriptionPolicyResource @Inject constructor(
         }
     }
 
-    private fun buildAdminApprovalContext(stepUpAuth: String?, dualApprovalId: String?, requestId: String?): AdminApprovalContext
-    {
-        return AdminApprovalContext(
-            stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
-            dualApprovalId = dualApprovalId,
-            requestId = requestId,
-        )
-    }
 
     private fun PolicyResult.toResponse(): PlatformOrganizationSubscriptionPolicyResponse
     {

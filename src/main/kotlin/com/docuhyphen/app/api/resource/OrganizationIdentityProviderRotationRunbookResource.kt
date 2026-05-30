@@ -74,6 +74,7 @@ class OrganizationIdentityProviderRotationRunbookResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
             logger.error("Error fetching emergency organization IdP secret rotation status", exception)
             when (exception)
             {
@@ -113,6 +114,7 @@ class OrganizationIdentityProviderRotationRunbookResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
             logger.error("Error previewing emergency organization IdP secret rotation", exception)
             when (exception)
             {
@@ -127,8 +129,6 @@ class OrganizationIdentityProviderRotationRunbookResource @Inject constructor(
     @Path("/run")
     fun runEmergencyRotation(
         @PathParam("organizationId") organizationId: String,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
@@ -137,8 +137,6 @@ class OrganizationIdentityProviderRotationRunbookResource @Inject constructor(
             val result = rotationRunbookService.runEmergencyRotation(
                 organizationId = organizationId,
                 adminApprovalContext = AdminApprovalContext(
-                    stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
-                    dualApprovalId = dualApprovalId,
                     requestId = requestId,
                 ),
             )
@@ -154,6 +152,7 @@ class OrganizationIdentityProviderRotationRunbookResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
             logger.error("Error running emergency organization IdP secret rotation", exception)
             when (exception)
             {

@@ -43,8 +43,6 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
     fun rotateSecret(
         @PathParam("organizationId") organizationId: String,
         @PathParam("configId") configId: String,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
         payload: OrganizationIdpSecretRotateRequest,
     ): Response
@@ -55,7 +53,7 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
                 organizationId = organizationId,
                 configId = configId,
                 newSecret = payload.newClientSecret,
-                adminApprovalContext = buildAdminApprovalContext(stepUpAuth, dualApprovalId, requestId),
+                adminApprovalContext = AdminApprovalContext(requestId = requestId),
             )
 
             Response.ok(
@@ -69,6 +67,7 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
         }
         catch (e: Exception)
         {
+            if (e is jakarta.ws.rs.WebApplicationException) throw e
             handleException("Error rotating org IdP secret", e)
         }
     }
@@ -78,8 +77,6 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
     fun activateVersion(
         @PathParam("organizationId") organizationId: String,
         @PathParam("configId") configId: String,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
         payload: OrganizationIdpSecretActivateRequest,
     ): Response
@@ -90,12 +87,13 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
                 organizationId = organizationId,
                 configId = configId,
                 versionId = payload.versionId,
-                adminApprovalContext = buildAdminApprovalContext(stepUpAuth, dualApprovalId, requestId),
+                adminApprovalContext = AdminApprovalContext(requestId = requestId),
             )
             Response.ok().build()
         }
         catch (e: Exception)
         {
+            if (e is jakarta.ws.rs.WebApplicationException) throw e
             handleException("Error activating org IdP secret version", e)
         }
     }
@@ -105,8 +103,6 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
     fun rollbackToPreviousVersion(
         @PathParam("organizationId") organizationId: String,
         @PathParam("configId") configId: String,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
@@ -115,7 +111,7 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
             val outcome = organizationIdpSecretLifecycleService.rollbackClientSecretToPreviousVersion(
                 organizationId = organizationId,
                 configId = configId,
-                adminApprovalContext = buildAdminApprovalContext(stepUpAuth, dualApprovalId, requestId),
+                adminApprovalContext = AdminApprovalContext(requestId = requestId),
             )
 
             Response.ok(
@@ -128,6 +124,7 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
         }
         catch (e: Exception)
         {
+            if (e is jakarta.ws.rs.WebApplicationException) throw e
             handleException("Error rolling back org IdP secret", e)
         }
     }
@@ -161,6 +158,7 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
         }
         catch (e: Exception)
         {
+            if (e is jakarta.ws.rs.WebApplicationException) throw e
             handleException("Error fetching org IdP secret status", e)
         }
     }
@@ -170,8 +168,6 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
     fun disableSecret(
         @PathParam("organizationId") organizationId: String,
         @PathParam("configId") configId: String,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
@@ -180,12 +176,13 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
             organizationIdpSecretLifecycleService.disableClientSecret(
                 organizationId = organizationId,
                 configId = configId,
-                adminApprovalContext = buildAdminApprovalContext(stepUpAuth, dualApprovalId, requestId),
+                adminApprovalContext = AdminApprovalContext(requestId = requestId),
             )
             Response.ok().build()
         }
         catch (e: Exception)
         {
+            if (e is jakarta.ws.rs.WebApplicationException) throw e
             handleException("Error disabling org IdP secret", e)
         }
     }
@@ -195,8 +192,6 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
     fun enableSecret(
         @PathParam("organizationId") organizationId: String,
         @PathParam("configId") configId: String,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
@@ -205,12 +200,13 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
             organizationIdpSecretLifecycleService.enableClientSecret(
                 organizationId = organizationId,
                 configId = configId,
-                adminApprovalContext = buildAdminApprovalContext(stepUpAuth, dualApprovalId, requestId),
+                adminApprovalContext = AdminApprovalContext(requestId = requestId),
             )
             Response.ok().build()
         }
         catch (e: Exception)
         {
+            if (e is jakarta.ws.rs.WebApplicationException) throw e
             handleException("Error enabling org IdP secret", e)
         }
     }
@@ -219,8 +215,6 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
     fun retireSecret(
         @PathParam("organizationId") organizationId: String,
         @PathParam("configId") configId: String,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
         payload: OrganizationIdpSecretRetireRequest,
     ): Response
@@ -231,24 +225,17 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
                 organizationId = organizationId,
                 configId = configId,
                 recoveryWindowDays = payload.recoveryWindowDays,
-                adminApprovalContext = buildAdminApprovalContext(stepUpAuth, dualApprovalId, requestId),
+                adminApprovalContext = AdminApprovalContext(requestId = requestId),
             )
             Response.ok().build()
         }
         catch (e: Exception)
         {
+            if (e is jakarta.ws.rs.WebApplicationException) throw e
             handleException("Error retiring org IdP secret", e)
         }
     }
 
-    private fun buildAdminApprovalContext(stepUpAuth: String?, dualApprovalId: String?, requestId: String?): AdminApprovalContext
-    {
-        return AdminApprovalContext(
-            stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
-            dualApprovalId = dualApprovalId,
-            requestId = requestId,
-        )
-    }
 
     private fun handleException(message: String, exception: Exception): Response
     {

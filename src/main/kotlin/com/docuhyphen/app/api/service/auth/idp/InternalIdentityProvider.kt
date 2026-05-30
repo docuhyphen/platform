@@ -14,6 +14,7 @@ class InternalIdentityProvider : IdentityProviderStrategy
         redirectUri: String,
         runtimeCredentials: RuntimeIdpCredentials?,
         codeChallenge: String?,
+        prompt: String?,
     ): String
     {
         throw UnsupportedOperationException("Internal IDP does not support OAuth authorization URLs")

@@ -22,6 +22,10 @@ data class VerifiedOAuthState(
     val nonce: String,
     val orgIdpConfigId: UUID? = null,
     val codeVerifier: String? = null,
+    val stepUpSessionId: UUID? = null,
+    val stepUpAppUserId: UUID? = null,
+    val stepUpExpectedSubjectId: String? = null,
+    val stepUpReturnTo: String? = null,
 )
 
 data class SignedOAuthState(
@@ -45,7 +49,15 @@ class OAuthStateService @Inject constructor(
 
     private val stateSigningKey: SecretKey = Keys.hmacShaKeyFor(configurationService.getJwtSecret().toByteArray())
 
-    fun createSignedState(flow: String, provider: IdentityProviderType, orgIdpConfigId: UUID? = null): SignedOAuthState
+    fun createSignedState(
+        flow: String,
+        provider: IdentityProviderType,
+        orgIdpConfigId: UUID? = null,
+        stepUpSessionId: UUID? = null,
+        stepUpAppUserId: UUID? = null,
+        stepUpExpectedSubjectId: String? = null,
+        stepUpReturnTo: String? = null,
+    ): SignedOAuthState
     {
         val normalizedFlow = flow.ifBlank { "signin" }
         val nonce = UUID.randomUUID().toString()
@@ -77,6 +89,10 @@ class OAuthStateService @Inject constructor(
             .claim("provider", provider.name)
             .claim("nonce", nonce)
             .claim("orgIdpConfigId", orgIdpConfigId?.toString())
+            .claim("stepUpSessionId", stepUpSessionId?.toString())
+            .claim("stepUpAppUserId", stepUpAppUserId?.toString())
+            .claim("stepUpExpectedSubjectId", stepUpExpectedSubjectId)
+            .claim("stepUpReturnTo", stepUpReturnTo)
             .issuedAt(Date())
             .expiration(expiration)
             .signWith(stateSigningKey)
@@ -121,12 +137,27 @@ class OAuthStateService @Inject constructor(
         ).await().indefinitely()
         val codeVerifier = verifierResponse?.toString()?.ifBlank { null }
 
+        val stepUpSessionId = (claims["stepUpSessionId"] as? String)
+            ?.takeIf { it.isNotBlank() }
+            ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+        val stepUpAppUserId = (claims["stepUpAppUserId"] as? String)
+            ?.takeIf { it.isNotBlank() }
+            ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+        val stepUpExpectedSubjectId = (claims["stepUpExpectedSubjectId"] as? String)
+            ?.takeIf { it.isNotBlank() }
+        val stepUpReturnTo = (claims["stepUpReturnTo"] as? String)
+            ?.takeIf { it.isNotBlank() }
+
         return VerifiedOAuthState(
             flow = flow,
             provider = provider,
             nonce = nonce,
             orgIdpConfigId = orgIdpConfigId,
             codeVerifier = codeVerifier,
+            stepUpSessionId = stepUpSessionId,
+            stepUpAppUserId = stepUpAppUserId,
+            stepUpExpectedSubjectId = stepUpExpectedSubjectId,
+            stepUpReturnTo = stepUpReturnTo,
         )
     }
 

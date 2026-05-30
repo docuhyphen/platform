@@ -320,7 +320,8 @@ class SharingSessionDocumentService @Inject constructor(
 
     private fun getDocument(sharingSession: SharingSession, documentId: String): Document
     {
-        return sharingSession.documents.find { it.id == UUID.fromString(documentId) }
+        val parsedDocumentId = UUID.fromString(documentId)
+        return sessionRepo.findDocumentBySessionIdAndDocumentId(sharingSession.id, parsedDocumentId)
             ?: throw SharingSessionDocumentNotFoundException("Document not found")
     }
 

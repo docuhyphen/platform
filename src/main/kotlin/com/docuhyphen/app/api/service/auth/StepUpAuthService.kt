@@ -34,14 +34,31 @@ class StepUpAuthService @Inject constructor(
     fun isFresh(maxAgeSeconds: Long = DEFAULT_MAX_AGE_SECONDS): Boolean
     {
         val claims = authenticationService.parseTokenClaims((authTokenContext.authToken.token ?: return false)) ?: return false
-        val authTime = (claims["auth_time"] as? Number)?.toLong() ?: return false
         val nowSeconds = System.currentTimeMillis() / 1000
+
+        // Primary source: token auth_time (works for normal sign-in / refresh-token rotations).
+        val tokenAuthTime = (claims["auth_time"] as? Number)?.toLong()
+
+        // Server-authoritative source: session.lastAuthTime updated by step-up completion.
+        val sessionAuthTime = ((claims["session_id"] as? String)
+            ?.let { raw -> runCatching { java.util.UUID.fromString(raw) }.getOrNull() }
+            ?.let { sessionId -> userSessionService.findSession(sessionId)?.lastAuthTime?.toInstant()?.epochSecond })
+
+        val authTime = listOfNotNull(tokenAuthTime, sessionAuthTime).maxOrNull() ?: return false
         return (nowSeconds - authTime) <= maxAgeSeconds
     }
 
     /**
+     * Marks the provided session id as fresh-authenticated.
+     */
+    fun markFresh(sessionId: java.util.UUID)
+    {
+        userSessionService.markFreshAuth(sessionId)
+        logger.info("Marked fresh auth for session={}", sessionId)
+    }
+
+    /**
      * Marks the current session as having just passed a fresh-auth challenge.
-     * Callers should invoke this after re-verifying a password / MFA factor.
      */
     fun markFresh()
     {
@@ -49,7 +66,6 @@ class StepUpAuthService @Inject constructor(
         val sessionIdRaw = authenticationService.parseTokenClaims(token)
             ?.get("session_id") as? String ?: return
         val sessionId = runCatching { java.util.UUID.fromString(sessionIdRaw) }.getOrNull() ?: return
-        userSessionService.markFreshAuth(sessionId)
-        logger.info("Marked fresh auth for session={}", sessionId)
+        markFresh(sessionId)
     }
 }

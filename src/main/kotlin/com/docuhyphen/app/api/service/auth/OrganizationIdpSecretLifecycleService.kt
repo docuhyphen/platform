@@ -71,7 +71,6 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
             action = "ORG_IDP_SECRET_ROTATE",
             actorId = actor.id,
             context = adminApprovalContext,
-            requireDualApproval = true,
         )
 
         val secretRef = config.clientSecretRef
@@ -148,7 +147,6 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
             action = "ORG_IDP_SECRET_ROLLBACK",
             actorId = actor.id,
             context = adminApprovalContext,
-            requireDualApproval = true,
         )
 
         val status: SecretLifecycleStatus = awsSecretsManagerService.getSecretLifecycleStatus(
@@ -221,7 +219,6 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
             action = "ORG_IDP_SECRET_ACTIVATE",
             actorId = actor.id,
             context = adminApprovalContext,
-            requireDualApproval = true,
         )
 
         awsSecretsManagerService.activateSecretVersion(
@@ -256,7 +253,6 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
             action = "ORG_IDP_SECRET_DISABLE",
             actorId = actor.id,
             context = adminApprovalContext,
-            requireDualApproval = true,
         )
 
         awsSecretsManagerService.disableSecret(config.clientSecretRef, configurationService.getOrgIdpSecretsRegion())
@@ -286,7 +282,6 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
             action = "ORG_IDP_SECRET_ENABLE",
             actorId = actor.id,
             context = adminApprovalContext,
-            requireDualApproval = false,
         )
 
         awsSecretsManagerService.enableSecret(config.clientSecretRef, configurationService.getOrgIdpSecretsRegion())
@@ -322,7 +317,6 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
             action = "ORG_IDP_SECRET_RETIRE",
             actorId = actor.id,
             context = adminApprovalContext,
-            requireDualApproval = true,
         )
 
         awsSecretsManagerService.setRotationPhase(config.clientSecretRef, configurationService.getOrgIdpSecretsRegion(), "RETIRE")

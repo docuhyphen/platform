@@ -55,7 +55,6 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
             action = "ORG_IDP_CONFIG_CREATE",
             actorId = actor.id,
             context = adminApprovalContext,
-            requireDualApproval = false,
         )
 
         validateRequest(request)
@@ -101,7 +100,6 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
             action = "ORG_IDP_CONFIG_UPDATE",
             actorId = actor.id,
             context = adminApprovalContext,
-            requireDualApproval = !request.isActive,
         )
 
         validateRequest(request)
@@ -145,7 +143,6 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
             action = "ORG_IDP_CONFIG_DELETE",
             actorId = actor.id,
             context = adminApprovalContext,
-            requireDualApproval = true,
         )
 
         val config = requireConfigBelongsToOrg(orgId, configId)

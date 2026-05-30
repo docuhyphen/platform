@@ -19,6 +19,8 @@ import {NotificationProvider} from "./context/NotificationContext.tsx";
 import Home from "./app/home/Home.tsx";
 import OAuthCallback from "./app/authorization/oauth/OAuthCallback.tsx";
 import OAuthLinkConfirm from "./app/authorization/oauth/OAuthLinkConfirm.tsx";
+import StepUpCompletion from "./app/authorization/step-up/StepUpCompletion.tsx";
+import StepUpModal from "./app/components/step-up/StepUpModal.tsx";
 
 const App: React.FC = () =>
 {
@@ -97,11 +99,15 @@ const App: React.FC = () =>
                         <Route path="/oauth/link-confirm"
                                element={<OAuthLinkConfirm/>}/>
 
+                        <Route path="/step-up-complete"
+                               element={<StepUpCompletion/>}/>
+
                         <Route path="*"
                                element={
                                    <NotFound/>
                                }/>
                     </Routes>
+                    <StepUpModal/>
                 </NotificationProvider>
             </AuthProvider>
         </BrowserRouter>

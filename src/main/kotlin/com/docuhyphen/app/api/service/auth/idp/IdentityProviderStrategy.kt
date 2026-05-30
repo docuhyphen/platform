@@ -38,6 +38,7 @@ interface IdentityProviderStrategy
         redirectUri: String,
         runtimeCredentials: RuntimeIdpCredentials? = null,
         codeChallenge: String? = null,
+        prompt: String? = null,
     ): String
 
     fun exchangeCodeForTokens(

@@ -160,11 +160,8 @@ const SharingSessions: React.FC = () =>
             }
         }
 
-        const mostRecentUploaded = documents
-            .filter(document => !!document.uploadDate)
-            .sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime())[0];
-
-        return mostRecentUploaded || documents[0];
+        // Default to the first item in the already-sorted list.
+        return documents[0];
     };
 
     const checkAppUserSessions = async () =>

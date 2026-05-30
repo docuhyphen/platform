@@ -40,8 +40,6 @@ class OrganizationResource @Inject constructor(
     @Transactional
     fun updateOrganization(
         @PathParam("organizationId") organizationId: String?,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
         updateOrganizationRequest: UpdateOrganizationRequest
     ): Response
@@ -49,8 +47,6 @@ class OrganizationResource @Inject constructor(
         return try
         {
             val adminApprovalContext = AdminApprovalContext(
-                stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
-                dualApprovalId = dualApprovalId,
                 requestId = requestId,
             )
 
@@ -68,6 +64,7 @@ class OrganizationResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
             logger.error("Error updating organization group", exception)
 
             when (exception)
@@ -108,8 +105,6 @@ class OrganizationResource @Inject constructor(
     @Transactional
     fun updateOrganizationSettings(
         @PathParam("organizationId") organizationId: String,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
         settingsDto: OrganizationSettingsDto
     ): Response
@@ -117,8 +112,6 @@ class OrganizationResource @Inject constructor(
         return try
         {
             val adminApprovalContext = AdminApprovalContext(
-                stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
-                dualApprovalId = dualApprovalId,
                 requestId = requestId,
             )
 
@@ -127,6 +120,7 @@ class OrganizationResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
             logger.error("Error updating organization settings", exception)
 
             when (exception)
@@ -172,6 +166,7 @@ class OrganizationResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
             when (exception)
             {
                 is OrganizationNotFoundException ->
@@ -213,6 +208,7 @@ class OrganizationResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
             when (exception)
             {
                 is OrganizationNotFoundException ->
@@ -254,6 +250,7 @@ class OrganizationResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
             when (exception)
             {
                 is OrganizationNotFoundException ->

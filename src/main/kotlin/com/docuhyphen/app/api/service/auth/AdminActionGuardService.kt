@@ -1,64 +1,53 @@
 package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.exception.StepUpRequiredException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import java.util.UUID
 
+/**
+ * Correlation data for an admin action. The only thing the API layer needs to pass
+ * through is an optional request id used to correlate audit events with the original
+ * HTTP request. Step-up state is derived from the verified server-side session and
+ * MUST NOT be supplied by callers.
+ */
 data class AdminApprovalContext(
-    val stepUpAuthenticated: Boolean,
-    val dualApprovalId: String? = null,
     val requestId: String? = null,
 )
 
 @RequestScoped
 class AdminActionGuardService @Inject constructor(
     private val authAuditService: AuthAuditService,
-    private val adminApprovalWorkflowService: AdminApprovalWorkflowService,
+    private val stepUpAuthService: StepUpAuthService,
 )
 {
+    /**
+     * Enforce step-up authentication for a sensitive admin action.
+     *
+     * Step-up freshness is derived from the current session's [StepUpAuthService.isFresh]
+     * check (which reads the verified `auth_time` claim). There is no client-controlled
+     * input that can satisfy this guard.
+     *
+     * If [requireStepUp] is `false`, the guard only emits a success audit event.
+     */
     fun enforce(
         action: String,
         actorId: UUID?,
         context: AdminApprovalContext,
         requireStepUp: Boolean = true,
-        requireDualApproval: Boolean = false,
     )
     {
-        if (requireStepUp && !context.stepUpAuthenticated)
+        if (requireStepUp && !stepUpAuthService.isFresh())
         {
             authAuditService.emit(
                 action = action,
                 outcome = "DENY",
-                reasonCode = RevocationReasonCode.SECURITY_POLICY,
+                reasonCode = RevocationReasonCode.STEP_UP_REQUIRED,
                 actorId = actorId,
                 requestId = context.requestId,
+                reason = "Session lacks fresh authentication for sensitive action",
             )
-            throw IllegalArgumentException("Step-up authentication is required for this action")
-        }
-
-        if (requireDualApproval && context.dualApprovalId.isNullOrBlank())
-        {
-            authAuditService.emit(
-                action = action,
-                outcome = "DENY",
-                reasonCode = RevocationReasonCode.SECURITY_POLICY,
-                actorId = actorId,
-                requestId = context.requestId,
-            )
-            throw IllegalArgumentException("Dual approval is required for this action")
-        }
-
-        if (requireDualApproval)
-        {
-            val actor = actorId ?: throw IllegalArgumentException("Actor is required for dual approval validation")
-            val approvalId = runCatching { java.util.UUID.fromString(context.dualApprovalId) }.getOrNull()
-                ?: throw IllegalArgumentException("Dual approval ID is invalid")
-
-            adminApprovalWorkflowService.validateApprovedRequest(
-                action = action,
-                approvalId = approvalId,
-                actorId = actor,
-            )
+            throw StepUpRequiredException(action = action)
         }
 
         authAuditService.emit(
@@ -69,5 +58,3 @@ class AdminActionGuardService @Inject constructor(
         )
     }
 }
-
-

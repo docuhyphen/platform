@@ -65,6 +65,7 @@ class OrganizationSharingSessionLinkResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
             logger.error("Error fetching organizations for linking", exception)
 
             when (exception)
@@ -89,14 +90,12 @@ class OrganizationSharingSessionLinkResource @Inject constructor(
         @QueryParam("requestingOrganizationId") requestingOrganizationId: String?,
         @QueryParam("requestedOrganizationId") requestedOrganizationId: String?,
         @QueryParam("message") message: String? = null,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
         return try
         {
-            val adminApprovalContext = buildAdminApprovalContext(stepUpAuth, dualApprovalId, requestId)
+            val adminApprovalContext = AdminApprovalContext(requestId = requestId)
             val link = linkService.createLink(
                 requestingOrganizationId, requestedOrganizationId, message, adminApprovalContext
             )
@@ -105,6 +104,7 @@ class OrganizationSharingSessionLinkResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
             logger.error("Error creating organization link", exception)
 
             when (exception)
@@ -151,6 +151,7 @@ class OrganizationSharingSessionLinkResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
             logger.error("Error fetching organization links", exception)
 
             when (exception)
@@ -180,19 +181,18 @@ class OrganizationSharingSessionLinkResource @Inject constructor(
         @PathParam("linkId") linkId: String?,
         @QueryParam("status") status: LinkStatus?,
         @QueryParam("rejectionReason") rejectionReason: String?,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
         return try
         {
-            val adminApprovalContext = buildAdminApprovalContext(stepUpAuth, dualApprovalId, requestId)
+            val adminApprovalContext = AdminApprovalContext(requestId = requestId)
             linkService.acceptLink(linkId, status, rejectionReason, adminApprovalContext)
             Response.ok().build()
         }
         catch (exception: Exception)
         {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
             logger.error("Error updating organization link status", exception)
 
             when (exception)
@@ -219,19 +219,18 @@ class OrganizationSharingSessionLinkResource @Inject constructor(
     @DELETE
     fun deLink(
         @PathParam("linkId") linkId: String?,
-        @HeaderParam("X-Step-Up-Auth") stepUpAuth: String?,
-        @HeaderParam("X-Dual-Approval-Id") dualApprovalId: String?,
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
         return try
         {
-            val adminApprovalContext = buildAdminApprovalContext(stepUpAuth, dualApprovalId, requestId)
+            val adminApprovalContext = AdminApprovalContext(requestId = requestId)
             linkService.deLink(linkId, adminApprovalContext)
             Response.ok().build()
         }
         catch (exception: Exception)
         {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
             logger.error("Error removing organization link", exception)
 
             when (exception)
@@ -254,18 +253,6 @@ class OrganizationSharingSessionLinkResource @Inject constructor(
         }
     }
 
-    private fun buildAdminApprovalContext(
-        stepUpAuth: String?,
-        dualApprovalId: String?,
-        requestId: String?,
-    ): AdminApprovalContext
-    {
-        return AdminApprovalContext(
-            stepUpAuthenticated = stepUpAuth.equals("true", ignoreCase = true),
-            dualApprovalId = dualApprovalId,
-            requestId = requestId,
-        )
-    }
 
     private fun errorResponse(status: Response.Status, message: String?): Response
     {
