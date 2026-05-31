@@ -153,7 +153,7 @@ class AuthenticationService @Inject constructor(
         appUser: AppUser,
         familyId: String = UUID.randomUUID().toString(),
         sessionId: UUID? = null,
-        expiryDaysOverride: Long? = null,
+        expiryMinutesOverride: Long? = null,
     ): Triple<String, String, String>
     {
         val jti = UUID.randomUUID().toString()
@@ -229,11 +229,11 @@ class AuthenticationService @Inject constructor(
         jti: String,
         familyId: String,
         sessionId: UUID? = null,
-        expiryDaysOverride: Long? = null,
+        expiryMinutesOverride: Long? = null,
     )
     {
-        val expiryDays = expiryDaysOverride ?: configurationService.getRefreshTokenExpiryDays()
-        val expirySeconds = TimeUnit.DAYS.toSeconds(expiryDays)
+        val expiryMinutes = expiryMinutesOverride ?: configurationService.getRefreshTokenExpiryMinutes()
+        val expirySeconds = TimeUnit.MINUTES.toSeconds(expiryMinutes)
         val tokenHash = hashToken(refreshToken)
         refreshTokenStore.save(
             userId = appUser.id,
@@ -293,17 +293,17 @@ class AuthenticationService @Inject constructor(
         currentRefreshToken: String,
         familyId: String,
         sessionId: UUID,
-        refreshExpiryDaysOverride: Long? = null,
+        refreshExpiryMinutesOverride: Long? = null,
     ): RefreshRotationResult
     {
         val (newToken, newJti, resolvedFamilyId) = generateRefreshToken(
             appUser,
             familyId,
             sessionId,
-            refreshExpiryDaysOverride,
+            refreshExpiryMinutesOverride,
         )
-        val expiryDays = refreshExpiryDaysOverride ?: configurationService.getRefreshTokenExpiryDays()
-        val expirySeconds = TimeUnit.DAYS.toSeconds(expiryDays)
+        val expiryMinutes = refreshExpiryMinutesOverride ?: configurationService.getRefreshTokenExpiryMinutes()
+        val expirySeconds = TimeUnit.MINUTES.toSeconds(expiryMinutes)
         val newTokenHash = hashToken(newToken)
 
         val result = refreshTokenStore.rotate(

@@ -4,6 +4,7 @@ import {useAuth} from "../../../context/AuthContext";
 import {fetchAppUserPersonOrganization} from "../../../services/appUserApi";
 import {updateOrganizationSettings} from "../../../services/organizationApi";
 import {ContactDetailsDetailedDto, OrganizationDetailedDto, OrganizationSettingsDto} from "../../models/models.tsx";
+import {AppUserRole} from "../../models/models.tsx";
 import {ProfileEditBasicDetailsIcon} from "../../components/IconBundles.tsx";
 import PhoneManagementDialog, {PhoneManagementMode} from "../../components/phone-management/PhoneManagementDialog.tsx";
 import EmailManagementDialog, {EmailManagementMode} from "../../components/email-management/EmailManagementDialog.tsx";
@@ -11,6 +12,7 @@ import {useOrganizationTabStyles} from "./OrganizationTabStyles.tsx";
 import OrganizationDetailsEditDialog from "./details-edit-dialog/OrganizationDetailsEditDialog.tsx";
 import {AxiosError} from "axios";
 import OrganizationOnboardingDialog from "./organization-onboarding-dialog/OrganizationOnboardingDialog.tsx";
+import {AuthSessionPolicySection} from "./AuthSessionPolicySection.tsx";
 
 const OrganizationTab = () =>
 {
@@ -202,6 +204,10 @@ const OrganizationTab = () =>
                         disabled={savingSettings}
                     />
                 </>}
+
+                {organization?.id && appUser?.role === AppUserRole.ORG_ADMIN && (
+                    <AuthSessionPolicySection organizationId={organization.id}/>
+                )}
 
                 <Divider alignContent="start"
                          appearance="brand"

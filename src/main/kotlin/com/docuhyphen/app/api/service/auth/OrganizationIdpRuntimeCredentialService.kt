@@ -42,7 +42,17 @@ class OrganizationIdpRuntimeCredentialService @Inject constructor(
             return null
         }
 
-        val clientSecret = resolveClientSecret(config.clientSecretRef)
+        // INTERNAL auth does not use external OAuth client credentials.
+        if (provider == IdentityProviderType.INTERNAL)
+        {
+            return null
+        }
+
+        val clientId = config.clientId?.trim()?.takeIf { it.isNotBlank() }
+            ?: throw IllegalArgumentException("Organization IdP client ID is required")
+        val clientSecretRef = config.clientSecretRef?.trim()?.takeIf { it.isNotBlank() }
+            ?: throw IllegalArgumentException("Organization IdP client secret reference is required")
+        val clientSecret = resolveClientSecret(clientSecretRef)
         val scopes = config.scopes?.takeIf { it.isNotBlank() }
         val allowedAudiences = config.allowedAudiences
             ?.split(',')
@@ -64,7 +74,7 @@ class OrganizationIdpRuntimeCredentialService @Inject constructor(
             ?: emptySet()
 
         return RuntimeIdpCredentials(
-            clientId = config.clientId,
+            clientId = clientId,
             clientSecret = clientSecret,
             tenantId = config.tenantId,
             scopes = scopes,

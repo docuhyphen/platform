@@ -24,11 +24,11 @@ class OrganizationIdentityProviderConfig
     @Column(name = "provider", nullable = false)
     var provider: String = ""
 
-    @Column(name = "client_id", nullable = false)
-    var clientId: String = ""
+    @Column(name = "client_id")
+    var clientId: String? = null
 
-    @Column(name = "client_secret_ref", nullable = false)
-    var clientSecretRef: String = ""
+    @Column(name = "client_secret_ref")
+    var clientSecretRef: String? = null
 
     @Column(name = "tenant_id")
     var tenantId: String? = null
@@ -42,11 +42,14 @@ class OrganizationIdentityProviderConfig
     @Column(name = "access_token_expiry_minutes")
     var accessTokenExpiryMinutes: Long? = null
 
-    @Column(name = "refresh_token_expiry_days")
-    var refreshTokenExpiryDays: Long? = null
+    @Column(name = "refresh_token_expiry_minutes")
+    var refreshTokenExpiryMinutes: Long? = null
 
     @Column(name = "max_session_duration_hours")
     var maxSessionDurationHours: Long? = null
+
+    @Column(name = "idle_timeout_minutes")
+    var idleTimeoutMinutes: Long? = null
 
     @Column(name = "oidc_issuer")
     var oidcIssuer: String? = null

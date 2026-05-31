@@ -32,11 +32,14 @@ class AuthConfigService @Inject constructor(
     @ConfigProperty(name = "app.auth.access-token-default-minutes", defaultValue = "15")
     private val accessTokenDefaultMinutesConfig: Long,
 
-    @ConfigProperty(name = "app.auth.refresh-token-default-days", defaultValue = "7")
-    private val refreshTokenDefaultDaysConfig: Long,
+    @ConfigProperty(name = "app.auth.refresh-token-default-minutes", defaultValue = "30")
+    private val refreshTokenDefaultMinutesConfig: Long,
 
     @ConfigProperty(name = "app.auth.session-max-default-hours", defaultValue = "168")
     private val sessionMaxDefaultHoursConfig: Long,
+
+    @ConfigProperty(name = "app.auth.idle-timeout-default-minutes", defaultValue = "30")
+    private val idleTimeoutDefaultMinutesConfig: Long,
 
     @ConfigProperty(name = "app.auth.access-token-min-minutes", defaultValue = "5")
     private val accessTokenMinMinutesConfig: Long,
@@ -44,17 +47,23 @@ class AuthConfigService @Inject constructor(
     @ConfigProperty(name = "app.auth.access-token-max-minutes", defaultValue = "60")
     private val accessTokenMaxMinutesConfig: Long,
 
-    @ConfigProperty(name = "app.auth.refresh-token-min-days")
-    private val refreshTokenMinDaysConfig: Long,
+    @ConfigProperty(name = "app.auth.refresh-token-min-minutes", defaultValue = "5")
+    private val refreshTokenMinMinutesConfig: Long,
 
-    @ConfigProperty(name = "app.auth.refresh-token-max-days", defaultValue = "30")
-    private val refreshTokenMaxDaysConfig: Long,
+    @ConfigProperty(name = "app.auth.refresh-token-max-minutes", defaultValue = "43200")
+    private val refreshTokenMaxMinutesConfig: Long,
 
     @ConfigProperty(name = "app.auth.session-max-min-hours")
     private val sessionMaxMinHoursConfig: Long,
 
     @ConfigProperty(name = "app.auth.session-max-max-hours", defaultValue = "720")
     private val sessionMaxMaxHoursConfig: Long,
+
+    @ConfigProperty(name = "app.auth.idle-timeout-min-minutes", defaultValue = "1")
+    private val idleTimeoutMinMinutesConfig: Long,
+
+    @ConfigProperty(name = "app.auth.idle-timeout-max-minutes", defaultValue = "1440")
+    private val idleTimeoutMaxMinutesConfig: Long,
 
     @ConfigProperty(name = "app.auth.csrf.enabled", defaultValue = "false")
     val csrfEnabled: Boolean,
@@ -105,14 +114,17 @@ class AuthConfigService @Inject constructor(
     fun isAuthRefreshReuseDetectionEnabled(): Boolean = authRefreshReuseDetectionEnabledConfig
     fun isAuthRefreshStrictReuseDetectionEnabled(): Boolean = authRefreshStrictReuseDetectionConfig
     fun getAccessTokenExpiryMinutes(): Long = accessTokenDefaultMinutesConfig
-    fun getRefreshTokenExpiryDays(): Long = refreshTokenDefaultDaysConfig
+    fun getRefreshTokenExpiryMinutes(): Long = refreshTokenDefaultMinutesConfig
     fun getDefaultSessionMaxDurationHours(): Long = sessionMaxDefaultHoursConfig
+    fun getIdleTimeoutMinutes(): Long = idleTimeoutDefaultMinutesConfig
     fun getMinAccessTokenExpiryMinutes(): Long = accessTokenMinMinutesConfig
     fun getMaxAccessTokenExpiryMinutes(): Long = accessTokenMaxMinutesConfig
-    fun getMinRefreshTokenExpiryDays(): Long = refreshTokenMinDaysConfig
-    fun getMaxRefreshTokenExpiryDays(): Long = refreshTokenMaxDaysConfig
+    fun getMinRefreshTokenExpiryMinutes(): Long = refreshTokenMinMinutesConfig
+    fun getMaxRefreshTokenExpiryMinutes(): Long = refreshTokenMaxMinutesConfig
     fun getMinSessionMaxDurationHours(): Long = sessionMaxMinHoursConfig
     fun getMaxSessionMaxDurationHours(): Long = sessionMaxMaxHoursConfig
+    fun getMinIdleTimeoutMinutes(): Long = idleTimeoutMinMinutesConfig
+    fun getMaxIdleTimeoutMinutes(): Long = idleTimeoutMaxMinutesConfig
     fun isCsrfEnabled(): Boolean = csrfEnabled
     fun isCsrfRequireOriginCheckEnabled(): Boolean = csrfRequireOriginCheck
     fun getOauthStateTtlSeconds(): Long = oauthStateTtlSecondsConfig

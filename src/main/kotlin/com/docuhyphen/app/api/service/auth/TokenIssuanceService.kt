@@ -46,7 +46,7 @@ class TokenIssuanceService @Inject constructor(
         val (refreshToken, jti, familyId) = authenticationService.generateRefreshToken(
             appUser,
             sessionId = userSession.sessionId,
-            expiryDaysOverride = policy.refreshTokenExpiryDays,
+            expiryMinutesOverride = policy.refreshTokenExpiryMinutes,
         )
 
         authenticationService.saveRefreshToken(
@@ -55,14 +55,14 @@ class TokenIssuanceService @Inject constructor(
             jti,
             familyId,
             userSession.sessionId,
-            policy.refreshTokenExpiryDays,
+            policy.refreshTokenExpiryMinutes,
         )
 
         logger.info("Issued token triple for user {}", appUser.id)
         return TokenTriple(accessToken, idToken, refreshToken, jti)
     }
 
-    fun buildRefreshTokenCookie(refreshToken: String, secure: Boolean = false, maxAgeSeconds: Int = (7 * 24 * 60 * 60)): NewCookie
+    fun buildRefreshTokenCookie(refreshToken: String, secure: Boolean = false, maxAgeSeconds: Int = (30 * 60)): NewCookie
     {
         return NewCookie.Builder("refresh_token")
             .value(refreshToken)
@@ -77,7 +77,7 @@ class TokenIssuanceService @Inject constructor(
     fun buildRefreshTokenCookieWithPolicy(refreshToken: String, appUser: AppUser, secure: Boolean = false): NewCookie
     {
         val policy = authSessionPolicyService.resolveForAppUser(appUser)
-        val maxAgeSeconds = TimeUnit.DAYS.toSeconds(policy.refreshTokenExpiryDays).toInt().coerceAtLeast(1)
+        val maxAgeSeconds = TimeUnit.MINUTES.toSeconds(policy.refreshTokenExpiryMinutes).toInt().coerceAtLeast(1)
         return buildRefreshTokenCookie(refreshToken, secure, maxAgeSeconds)
     }
 

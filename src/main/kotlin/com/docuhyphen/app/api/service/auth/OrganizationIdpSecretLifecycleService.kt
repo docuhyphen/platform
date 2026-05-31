@@ -73,7 +73,7 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
             context = adminApprovalContext,
         )
 
-        val secretRef = config.clientSecretRef
+        val secretRef = requireClientSecretRef(config)
         awsSecretsManagerService.setRotationPhase(secretRef, configurationService.getOrgIdpSecretsRegion(), "PREPARE")
         val overlapHours = configurationService.getSecretsRotationOverlapHours().coerceAtLeast(0)
         val rotation: SecretRotationResult = awsSecretsManagerService.rotateSecret(
@@ -111,14 +111,15 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
     {
         requireOrgAdminForOrganization(organizationId)
         val config = requireConfig(organizationId, configId)
+        val secretRef = requireClientSecretRef(config)
         val status = awsSecretsManagerService.getSecretLifecycleStatus(
-            secretId = config.clientSecretRef,
+            secretId = secretRef,
             region = configurationService.getOrgIdpSecretsRegion(),
         )
 
         val overlapActive = status.overlapUntilEpochMillis?.let { it > Instant.now().toEpochMilli() } ?: false
         return OrganizationIdpSecretStatusOutcome(
-            secretRef = config.clientSecretRef,
+            secretRef = secretRef,
             disabled = status.disabled,
             currentVersionId = status.currentVersionId,
             previousVersionId = status.previousVersionId,
@@ -142,6 +143,7 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
 
         val actor = requireOrgAdminForOrganization(organizationId)
         val config = requireConfig(organizationId, configId)
+        val secretRef = requireClientSecretRef(config)
 
         adminActionGuardService.enforce(
             action = "ORG_IDP_SECRET_ROLLBACK",
@@ -150,7 +152,7 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
         )
 
         val status: SecretLifecycleStatus = awsSecretsManagerService.getSecretLifecycleStatus(
-            secretId = config.clientSecretRef,
+            secretId = secretRef,
             region = configurationService.getOrgIdpSecretsRegion(),
         )
 
@@ -173,14 +175,14 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
         val rollbackVersion = status.previousVersionId
             ?: throw IllegalArgumentException("No previous secret version is available for rollback")
 
-        awsSecretsManagerService.setRotationPhase(config.clientSecretRef, configurationService.getOrgIdpSecretsRegion(), "ROLLBACK")
+        awsSecretsManagerService.setRotationPhase(secretRef, configurationService.getOrgIdpSecretsRegion(), "ROLLBACK")
 
         awsSecretsManagerService.activateSecretVersion(
-            secretId = config.clientSecretRef,
+            secretId = secretRef,
             versionId = rollbackVersion,
             region = configurationService.getOrgIdpSecretsRegion(),
         )
-        awsSecretsManagerService.setRotationPhase(config.clientSecretRef, configurationService.getOrgIdpSecretsRegion(), "MONITOR")
+        awsSecretsManagerService.setRotationPhase(secretRef, configurationService.getOrgIdpSecretsRegion(), "MONITOR")
 
         authAuditService.emit(
             action = "ORG_IDP_SECRET_ROLLBACK",
@@ -189,12 +191,12 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
             organizationId = UUID.fromString(organizationId),
             requestId = adminApprovalContext.requestId,
             reason = "Organization admin rolled back IdP client secret",
-            beforeSnapshot = "configId=${config.id};secretRef=${config.clientSecretRef};activeVersion=${status.currentVersionId};overlapUntilEpochMillis=${status.overlapUntilEpochMillis}",
-            afterSnapshot = "configId=${config.id};secretRef=${config.clientSecretRef};activeVersion=${rollbackVersion};rotationPhase=MONITOR",
+            beforeSnapshot = "configId=${config.id};secretRef=$secretRef;activeVersion=${status.currentVersionId};overlapUntilEpochMillis=${status.overlapUntilEpochMillis}",
+            afterSnapshot = "configId=${config.id};secretRef=$secretRef;activeVersion=${rollbackVersion};rotationPhase=MONITOR",
         )
 
         return OrganizationIdpSecretRollbackOutcome(
-            secretRef = config.clientSecretRef,
+            secretRef = secretRef,
             rolledBackToVersionId = rollbackVersion,
             previousCurrentVersionId = status.currentVersionId,
         )
@@ -209,6 +211,7 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
     {
         val actor = requireOrgAdminForOrganization(organizationId)
         val config = requireConfig(organizationId, configId)
+        val secretRef = requireClientSecretRef(config)
 
         if (versionId.isBlank())
         {
@@ -222,11 +225,11 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
         )
 
         awsSecretsManagerService.activateSecretVersion(
-            secretId = config.clientSecretRef,
+            secretId = secretRef,
             versionId = versionId,
             region = configurationService.getOrgIdpSecretsRegion(),
         )
-        awsSecretsManagerService.setRotationPhase(config.clientSecretRef, configurationService.getOrgIdpSecretsRegion(), "ACTIVATE")
+        awsSecretsManagerService.setRotationPhase(secretRef, configurationService.getOrgIdpSecretsRegion(), "ACTIVATE")
 
         authAuditService.emit(
             action = "ORG_IDP_SECRET_ACTIVATE",
@@ -235,8 +238,8 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
             organizationId = UUID.fromString(organizationId),
             requestId = adminApprovalContext.requestId,
             reason = "Organization admin promoted staged IdP secret version",
-            beforeSnapshot = "configId=${config.id};secretRef=${config.clientSecretRef}",
-            afterSnapshot = "configId=${config.id};secretRef=${config.clientSecretRef};activeVersion=${versionId};rotationPhase=ACTIVATE",
+            beforeSnapshot = "configId=${config.id};secretRef=$secretRef",
+            afterSnapshot = "configId=${config.id};secretRef=$secretRef;activeVersion=${versionId};rotationPhase=ACTIVATE",
         )
     }
 
@@ -248,6 +251,7 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
     {
         val actor = requireOrgAdminForOrganization(organizationId)
         val config = requireConfig(organizationId, configId)
+        val secretRef = requireClientSecretRef(config)
 
         adminActionGuardService.enforce(
             action = "ORG_IDP_SECRET_DISABLE",
@@ -255,7 +259,7 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
             context = adminApprovalContext,
         )
 
-        awsSecretsManagerService.disableSecret(config.clientSecretRef, configurationService.getOrgIdpSecretsRegion())
+        awsSecretsManagerService.disableSecret(secretRef, configurationService.getOrgIdpSecretsRegion())
 
         authAuditService.emit(
             action = "ORG_IDP_SECRET_DISABLE",
@@ -264,8 +268,8 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
             organizationId = UUID.fromString(organizationId),
             requestId = adminApprovalContext.requestId,
             reason = "Organization admin disabled IdP client secret",
-            beforeSnapshot = "configId=${config.id};secretRef=${config.clientSecretRef};status=ACTIVE",
-            afterSnapshot = "configId=${config.id};secretRef=${config.clientSecretRef};status=DISABLED",
+            beforeSnapshot = "configId=${config.id};secretRef=$secretRef;status=ACTIVE",
+            afterSnapshot = "configId=${config.id};secretRef=$secretRef;status=DISABLED",
         )
     }
 
@@ -277,6 +281,7 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
     {
         val actor = requireOrgAdminForOrganization(organizationId)
         val config = requireConfig(organizationId, configId)
+        val secretRef = requireClientSecretRef(config)
 
         adminActionGuardService.enforce(
             action = "ORG_IDP_SECRET_ENABLE",
@@ -284,7 +289,7 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
             context = adminApprovalContext,
         )
 
-        awsSecretsManagerService.enableSecret(config.clientSecretRef, configurationService.getOrgIdpSecretsRegion())
+        awsSecretsManagerService.enableSecret(secretRef, configurationService.getOrgIdpSecretsRegion())
 
         authAuditService.emit(
             action = "ORG_IDP_SECRET_ENABLE",
@@ -293,8 +298,8 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
             organizationId = UUID.fromString(organizationId),
             requestId = adminApprovalContext.requestId,
             reason = "Organization admin enabled IdP client secret",
-            beforeSnapshot = "configId=${config.id};secretRef=${config.clientSecretRef};status=DISABLED",
-            afterSnapshot = "configId=${config.id};secretRef=${config.clientSecretRef};status=ACTIVE",
+            beforeSnapshot = "configId=${config.id};secretRef=$secretRef;status=DISABLED",
+            afterSnapshot = "configId=${config.id};secretRef=$secretRef;status=ACTIVE",
         )
     }
 
@@ -307,6 +312,7 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
     {
         val actor = requireOrgAdminForOrganization(organizationId)
         val config = requireConfig(organizationId, configId)
+        val secretRef = requireClientSecretRef(config)
 
         if (recoveryWindowDays !in 7..30)
         {
@@ -319,8 +325,8 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
             context = adminApprovalContext,
         )
 
-        awsSecretsManagerService.setRotationPhase(config.clientSecretRef, configurationService.getOrgIdpSecretsRegion(), "RETIRE")
-        awsSecretsManagerService.retireSecret(config.clientSecretRef, configurationService.getOrgIdpSecretsRegion(), recoveryWindowDays)
+        awsSecretsManagerService.setRotationPhase(secretRef, configurationService.getOrgIdpSecretsRegion(), "RETIRE")
+        awsSecretsManagerService.retireSecret(secretRef, configurationService.getOrgIdpSecretsRegion(), recoveryWindowDays)
 
         authAuditService.emit(
             action = "ORG_IDP_SECRET_RETIRE",
@@ -329,9 +335,15 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
             organizationId = UUID.fromString(organizationId),
             requestId = adminApprovalContext.requestId,
             reason = "Organization admin scheduled IdP client secret retirement",
-            beforeSnapshot = "configId=${config.id};secretRef=${config.clientSecretRef};status=ACTIVE",
-            afterSnapshot = "configId=${config.id};secretRef=${config.clientSecretRef};status=RETIRING;recoveryWindowDays=${recoveryWindowDays};rotationPhase=RETIRE",
+            beforeSnapshot = "configId=${config.id};secretRef=$secretRef;status=ACTIVE",
+            afterSnapshot = "configId=${config.id};secretRef=$secretRef;status=RETIRING;recoveryWindowDays=${recoveryWindowDays};rotationPhase=RETIRE",
         )
+    }
+
+    private fun requireClientSecretRef(config: com.docuhyphen.app.api.model.entity.OrganizationIdentityProviderConfig): String
+    {
+        return config.clientSecretRef?.trim()?.takeIf { it.isNotBlank() }
+            ?: throw IllegalArgumentException("Organization IdP config has no client secret reference")
     }
 
     private fun requireOrgAdminForOrganization(organizationId: String): com.docuhyphen.app.api.model.entity.AppUser

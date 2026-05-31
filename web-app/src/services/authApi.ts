@@ -374,3 +374,87 @@ export const regenerateStepUpOtp = async (mfaSessionId: string): Promise<StepUpR
         throw e.response?.data || e.message;
     }
 };
+
+// ── Org Auth Session Policy (per-IdP source of truth) ──
+
+export interface OrgAuthSessionPolicyEffective
+{
+    accessTokenExpiryMinutes: number;
+    refreshTokenExpiryMinutes: number;
+    maxSessionDurationHours: number;
+    idleTimeoutMinutes: number;
+}
+
+export interface OrgAuthSessionPolicyGuardrails
+{
+    minAccessTokenExpiryMinutes: number;
+    maxAccessTokenExpiryMinutes: number;
+    minRefreshTokenExpiryMinutes: number;
+    maxRefreshTokenExpiryMinutes: number;
+    minSessionMaxDurationHours: number;
+    maxSessionMaxDurationHours: number;
+    minIdleTimeoutMinutes: number;
+    maxIdleTimeoutMinutes: number;
+}
+
+export interface OrgAuthSessionPolicyIdp
+{
+    configId: string;
+    provider: string;
+    isActive: boolean;
+    accessTokenExpiryMinutes?: number | null;
+    refreshTokenExpiryMinutes?: number | null;
+    maxSessionDurationHours?: number | null;
+    idleTimeoutMinutes?: number | null;
+}
+
+export interface OrgAuthSessionPolicySettings
+{
+    organizationId: string;
+    effective: OrgAuthSessionPolicyEffective;
+    guardrails: OrgAuthSessionPolicyGuardrails;
+    idpConfigs: OrgAuthSessionPolicyIdp[];
+    hasActiveIdpConfig: boolean;
+}
+
+export interface OrgAuthSessionPolicyUpdateRequest
+{
+    accessTokenExpiryMinutes?: number | null;
+    refreshTokenExpiryMinutes?: number | null;
+    maxSessionDurationHours?: number | null;
+    idleTimeoutMinutes?: number | null;
+}
+
+export const getOrgAuthSessionPolicy = async (orgId: string): Promise<OrgAuthSessionPolicySettings> =>
+{
+    try
+    {
+        const response = await apiClient.get(`/organizations/${orgId}/auth/session-policy`);
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+export const updateOrgIdpAuthSessionPolicy = async (
+    orgId: string,
+    configId: string,
+    request: OrgAuthSessionPolicyUpdateRequest,
+): Promise<OrgAuthSessionPolicyIdp> =>
+{
+    try
+    {
+        const response = await apiClient.put(
+            `/organizations/${orgId}/auth/session-policy/${configId}`,
+            request,
+        );
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+

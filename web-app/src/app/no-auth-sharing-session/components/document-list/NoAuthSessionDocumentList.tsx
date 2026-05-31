@@ -2,6 +2,7 @@ import React, {useState} from "react";
 import {useNoAuthSessionDocumentListStyles} from "./NoAuthSessionDocumentListStyles";
 import {DocumentBasicDto, NoAuthSharingSessionBasicDto} from "../../../models/models";
 import {Button, Card, CardHeader, Field, Input, MessageBar, MessageBarBody, ProgressBar, Spinner, Text} from "@fluentui/react-components";
+import {mergeClasses} from "@fluentui/react-components";
 import {DocumentAddIcon, DownloadIcon, UploadIcon} from "../../../components/IconBundles";
 import {formatDateTimeWithOrdinal} from "../../../helpers";
 import {
@@ -244,7 +245,7 @@ const NoAuthSessionDocumentList: React.FC<NoAuthSessionDocumentListProps> = ({se
                                 icon={<DocumentAddIcon/>}
                                 shape="circular"
                                 disabled={uploading[doc.id] || isUploadBlockedBySignInRequirement}
-                                className={`${styles.uploadButton1} ${styles.actionButton}`}
+                                className={mergeClasses(styles.uploadButton1, styles.actionButton)}
                             >
                                 {fileName ? "Choose another file" : "Choose file"}
                                 <input
@@ -272,7 +273,7 @@ const NoAuthSessionDocumentList: React.FC<NoAuthSessionDocumentListProps> = ({se
                                 shape="circular"
                                 icon={<DownloadIcon/>}
                                 onClick={() => handleDownload(doc)}
-                                className={`${styles.actionButton} ${styles.downloadAction}`}
+                                className={mergeClasses(styles.actionButton, styles.downloadAction)}
                             >
                                 Download
                             </Button>

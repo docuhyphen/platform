@@ -137,7 +137,7 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
 
     const accessModeLabel = requireRecipientSignIn
         ? 'Recipient must sign in with account'
-        : 'Recipient can use one-time email access code (NAS)';
+        : 'Recipient can use one-time email access code';
 
     const onSendAccessCode = async () =>
     {
@@ -170,7 +170,7 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
         try
         {
             await requestSessionRecipientOtp(session.id);
-            setAccessCodeStatus('Access code sent to recipient email using the NAS OTP template.');
+            setAccessCodeStatus('Access code sent to recipient email using.');
             setResendCooldownRemaining(resendCooldownSeconds);
         }
         catch (error: unknown)

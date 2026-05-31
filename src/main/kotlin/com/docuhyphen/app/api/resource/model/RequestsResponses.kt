@@ -443,14 +443,15 @@ data class OrganizationIdpSecretRollbackResponse(
 @Serializable
 data class OrganizationIdpConfigRequest(
     val provider: String,
-    val clientId: String,
-    val clientSecretRef: String,
+    val clientId: String? = null,
+    val clientSecretRef: String? = null,
     val tenantId: String? = null,
     val scopes: List<String> = emptyList(),
     val isActive: Boolean = true,
     val accessTokenExpiryMinutes: Long? = null,
-    val refreshTokenExpiryDays: Long? = null,
+    val refreshTokenExpiryMinutes: Long? = null,
     val maxSessionDurationHours: Long? = null,
+    val idleTimeoutMinutes: Long? = null,
     val oidcIssuer: String? = null,
     val allowedAudiences: List<String> = emptyList(),
     val allowedAlgs: List<String> = emptyList(),
@@ -462,14 +463,15 @@ data class OrganizationIdpConfigResponse(
     val id: String,
     val organizationId: String,
     val provider: String,
-    val clientId: String,
-    val clientSecretRef: String,
+    val clientId: String? = null,
+    val clientSecretRef: String? = null,
     val tenantId: String? = null,
     val scopes: List<String> = emptyList(),
     val isActive: Boolean,
     val accessTokenExpiryMinutes: Long? = null,
-    val refreshTokenExpiryDays: Long? = null,
+    val refreshTokenExpiryMinutes: Long? = null,
     val maxSessionDurationHours: Long? = null,
+    val idleTimeoutMinutes: Long? = null,
     val oidcIssuer: String? = null,
     val allowedAudiences: List<String> = emptyList(),
     val allowedAlgs: List<String> = emptyList(),
@@ -592,8 +594,57 @@ data class OrganizationAuthSessionPolicyResponse(
     val organizationId: String,
     val appUserId: String? = null,
     val accessTokenExpiryMinutes: Long,
-    val refreshTokenExpiryDays: Long,
+    val refreshTokenExpiryMinutes: Long,
     val maxSessionDurationHours: Long,
+    val idleTimeoutMinutes: Long,
+)
+
+@Serializable
+data class OrganizationAuthSessionPolicyEffectiveDto(
+    val accessTokenExpiryMinutes: Long,
+    val refreshTokenExpiryMinutes: Long,
+    val maxSessionDurationHours: Long,
+    val idleTimeoutMinutes: Long,
+)
+
+@Serializable
+data class OrganizationAuthSessionPolicyGuardrailsDto(
+    val minAccessTokenExpiryMinutes: Long,
+    val maxAccessTokenExpiryMinutes: Long,
+    val minRefreshTokenExpiryMinutes: Long,
+    val maxRefreshTokenExpiryMinutes: Long,
+    val minSessionMaxDurationHours: Long,
+    val maxSessionMaxDurationHours: Long,
+    val minIdleTimeoutMinutes: Long,
+    val maxIdleTimeoutMinutes: Long,
+)
+
+@Serializable
+data class OrganizationAuthSessionPolicyIdpDto(
+    val configId: String,
+    val provider: String,
+    val isActive: Boolean,
+    val accessTokenExpiryMinutes: Long? = null,
+    val refreshTokenExpiryMinutes: Long? = null,
+    val maxSessionDurationHours: Long? = null,
+    val idleTimeoutMinutes: Long? = null,
+)
+
+@Serializable
+data class OrganizationAuthSessionPolicySettingsResponse(
+    val organizationId: String,
+    val effective: OrganizationAuthSessionPolicyEffectiveDto,
+    val guardrails: OrganizationAuthSessionPolicyGuardrailsDto,
+    val idpConfigs: List<OrganizationAuthSessionPolicyIdpDto>,
+    val hasActiveIdpConfig: Boolean,
+)
+
+@Serializable
+data class OrganizationAuthSessionPolicyUpdateRequest(
+    val accessTokenExpiryMinutes: Long? = null,
+    val refreshTokenExpiryMinutes: Long? = null,
+    val maxSessionDurationHours: Long? = null,
+    val idleTimeoutMinutes: Long? = null,
 )
 
 @Serializable

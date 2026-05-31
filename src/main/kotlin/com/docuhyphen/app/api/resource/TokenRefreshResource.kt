@@ -236,6 +236,34 @@ class TokenRefreshResource @Inject constructor(
 
             val policy = authSessionPolicyService.resolveForAppUser(appUser)
 
+            // Sliding inactivity (idle) timeout enforcement. If the session has been quiet
+            // longer than the per-org idle policy permits, terminate it. Critical for the
+            // lost-device scenario where the legitimate user simply stopped working.
+            val sessionForIdle = userSessionService.findSession(sessionId)
+            val lastSeenInstant = sessionForIdle?.lastSeenAt?.toInstant()
+            if (lastSeenInstant != null)
+            {
+                val idleSeconds = java.time.Duration.between(lastSeenInstant, java.time.Instant.now()).seconds
+                val idleLimitSeconds = policy.idleTimeoutMinutes * 60
+                if (idleSeconds > idleLimitSeconds)
+                {
+                    authenticationService.deleteAllRefreshTokensForUser(appUser.id, RevocationReasonCode.SECURITY_POLICY)
+                    userSessionService.revokeSession(sessionId, RevocationReasonCode.SECURITY_POLICY)
+                    authAuditService.emit(
+                        action = "TOKEN_REFRESH",
+                        outcome = "DENY",
+                        reasonCode = RevocationReasonCode.SECURITY_POLICY,
+                        actorId = appUser.id,
+                        sessionId = sessionId.toString(),
+                        requestId = requestId,
+                        reason = "Idle timeout exceeded (idleSeconds=$idleSeconds, limit=$idleLimitSeconds)",
+                    )
+                    return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity(ResponseError("Session timed out due to inactivity"))
+                        .build()
+                }
+            }
+
             val rotationEnabled = configurationService.isAuthRefreshRotationEnabled()
             val reuseDetectionEnabled = configurationService.isAuthRefreshReuseDetectionEnabled()
 
@@ -247,7 +275,7 @@ class TokenRefreshResource @Inject constructor(
                     currentRefreshToken = refreshTokenValue,
                     familyId = familyId,
                     sessionId = sessionId,
-                    refreshExpiryDaysOverride = policy.refreshTokenExpiryDays,
+                    refreshExpiryMinutesOverride = policy.refreshTokenExpiryMinutes,
                 )
             }
             else

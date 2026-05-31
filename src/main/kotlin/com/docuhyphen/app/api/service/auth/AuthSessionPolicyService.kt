@@ -9,8 +9,9 @@ import jakarta.inject.Inject
 
 data class AuthSessionPolicy(
     val accessTokenExpiryMinutes: Long,
-    val refreshTokenExpiryDays: Long,
+    val refreshTokenExpiryMinutes: Long,
     val maxSessionDurationHours: Long,
+    val idleTimeoutMinutes: Long,
 )
 
 @RequestScoped
@@ -24,8 +25,9 @@ class AuthSessionPolicyService @Inject constructor(
     {
         val defaults = AuthSessionPolicy(
             accessTokenExpiryMinutes = configurationService.getAccessTokenExpiryMinutes(),
-            refreshTokenExpiryDays = configurationService.getRefreshTokenExpiryDays(),
+            refreshTokenExpiryMinutes = configurationService.getRefreshTokenExpiryMinutes(),
             maxSessionDurationHours = configurationService.getDefaultSessionMaxDurationHours(),
+            idleTimeoutMinutes = configurationService.getIdleTimeoutMinutes(),
         )
 
         val activeConfigs = organizationIdentityProviderConfigRepository.findActiveByOrganizationId(organizationId)
@@ -37,10 +39,12 @@ class AuthSessionPolicyService @Inject constructor(
         val policy = AuthSessionPolicy(
             accessTokenExpiryMinutes = activeConfigs.mapNotNull { it.accessTokenExpiryMinutes }.minOrNull()
                 ?: defaults.accessTokenExpiryMinutes,
-            refreshTokenExpiryDays = activeConfigs.mapNotNull { it.refreshTokenExpiryDays }.minOrNull()
-                ?: defaults.refreshTokenExpiryDays,
+            refreshTokenExpiryMinutes = activeConfigs.mapNotNull { it.refreshTokenExpiryMinutes }.minOrNull()
+                ?: defaults.refreshTokenExpiryMinutes,
             maxSessionDurationHours = activeConfigs.mapNotNull { it.maxSessionDurationHours }.minOrNull()
                 ?: defaults.maxSessionDurationHours,
+            idleTimeoutMinutes = activeConfigs.mapNotNull { it.idleTimeoutMinutes }.minOrNull()
+                ?: defaults.idleTimeoutMinutes,
         )
 
         return applyGuardrails(policy)
@@ -58,8 +62,9 @@ class AuthSessionPolicyService @Inject constructor(
         return applyGuardrails(
             AuthSessionPolicy(
                 accessTokenExpiryMinutes = configurationService.getAccessTokenExpiryMinutes(),
-                refreshTokenExpiryDays = configurationService.getRefreshTokenExpiryDays(),
+                refreshTokenExpiryMinutes = configurationService.getRefreshTokenExpiryMinutes(),
                 maxSessionDurationHours = configurationService.getDefaultSessionMaxDurationHours(),
+                idleTimeoutMinutes = configurationService.getIdleTimeoutMinutes(),
             )
         )
     }
@@ -72,15 +77,20 @@ class AuthSessionPolicyService @Inject constructor(
                     configurationService.getMinAccessTokenExpiryMinutes(),
                     configurationService.getMaxAccessTokenExpiryMinutes(),
                 ),
-            refreshTokenExpiryDays = policy.refreshTokenExpiryDays
+            refreshTokenExpiryMinutes = policy.refreshTokenExpiryMinutes
                 .coerceIn(
-                    configurationService.getMinRefreshTokenExpiryDays(),
-                    configurationService.getMaxRefreshTokenExpiryDays(),
+                    configurationService.getMinRefreshTokenExpiryMinutes(),
+                    configurationService.getMaxRefreshTokenExpiryMinutes(),
                 ),
             maxSessionDurationHours = policy.maxSessionDurationHours
                 .coerceIn(
                     configurationService.getMinSessionMaxDurationHours(),
                     configurationService.getMaxSessionMaxDurationHours(),
+                ),
+            idleTimeoutMinutes = policy.idleTimeoutMinutes
+                .coerceIn(
+                    configurationService.getMinIdleTimeoutMinutes(),
+                    configurationService.getMaxIdleTimeoutMinutes(),
                 ),
         )
     }

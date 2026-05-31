@@ -142,7 +142,8 @@ class ConfigurationService @Inject constructor(
 
     fun getAccessTokenExpiryMinutes(): Long = authConfig.getAccessTokenExpiryMinutes()
     fun getIdTokenExpiryMinutes(): Long = 15
-    fun getRefreshTokenExpiryDays(): Long = authConfig.getRefreshTokenExpiryDays()
+    fun getRefreshTokenExpiryMinutes(): Long = authConfig.getRefreshTokenExpiryMinutes()
+    fun getIdleTimeoutMinutes(): Long = authConfig.getIdleTimeoutMinutes()
     fun getLinkTokenExpiryMinutes(): Long = 5
     fun getRefreshRotationGraceSeconds(): Long = authConfig.getRefreshRotationGraceSeconds()
     fun isAuthSessionVersionEnabled(): Boolean = authConfig.isAuthSessionVersionEnabled()
@@ -152,10 +153,12 @@ class ConfigurationService @Inject constructor(
     fun getDefaultSessionMaxDurationHours(): Long = authConfig.getDefaultSessionMaxDurationHours()
     fun getMinAccessTokenExpiryMinutes(): Long = authConfig.getMinAccessTokenExpiryMinutes()
     fun getMaxAccessTokenExpiryMinutes(): Long = authConfig.getMaxAccessTokenExpiryMinutes()
-    fun getMinRefreshTokenExpiryDays(): Long = authConfig.getMinRefreshTokenExpiryDays()
-    fun getMaxRefreshTokenExpiryDays(): Long = authConfig.getMaxRefreshTokenExpiryDays()
+    fun getMinRefreshTokenExpiryMinutes(): Long = authConfig.getMinRefreshTokenExpiryMinutes()
+    fun getMaxRefreshTokenExpiryMinutes(): Long = authConfig.getMaxRefreshTokenExpiryMinutes()
     fun getMinSessionMaxDurationHours(): Long = authConfig.getMinSessionMaxDurationHours()
     fun getMaxSessionMaxDurationHours(): Long = authConfig.getMaxSessionMaxDurationHours()
+    fun getMinIdleTimeoutMinutes(): Long = authConfig.getMinIdleTimeoutMinutes()
+    fun getMaxIdleTimeoutMinutes(): Long = authConfig.getMaxIdleTimeoutMinutes()
     fun isCsrfEnabled(): Boolean = authConfig.isCsrfEnabled()
     fun isCsrfRequireOriginCheckEnabled(): Boolean = authConfig.isCsrfRequireOriginCheckEnabled()
     val csrfEnabled: Boolean get() = authConfig.csrfEnabled

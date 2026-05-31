@@ -119,7 +119,7 @@ class OrganizationIdpSecretRotationSchedulerService @Inject constructor(
         val dueThreshold = Instant.now().minus(intervalDays, ChronoUnit.DAYS)
         val configs = organizationIdentityProviderConfigRepository.findAll()
             .filter { it.isActive }
-            .filter { !it.clientSecretRef.isBlank() }
+            .filter { !it.clientSecretRef.isNullOrBlank() }
             .filter { it.updatedDate.toInstant().isBefore(dueThreshold) }
 
         rotateConfigs(
@@ -135,7 +135,7 @@ class OrganizationIdpSecretRotationSchedulerService @Inject constructor(
     {
         val configs = organizationIdentityProviderConfigRepository.findByOrganizationId(organizationId)
             .filter { it.isActive }
-            .filter { !it.clientSecretRef.isBlank() }
+            .filter { !it.clientSecretRef.isNullOrBlank() }
 
         return rotateConfigs(
             configs = configs,
@@ -154,8 +154,8 @@ class OrganizationIdpSecretRotationSchedulerService @Inject constructor(
 
         val candidates = organizationIdentityProviderConfigRepository.findByOrganizationId(organizationId)
             .filter { it.isActive }
-            .filter { !it.clientSecretRef.isBlank() }
-            .map { config ->
+            .mapNotNull { config ->
+                val secretRef = config.clientSecretRef?.trim()?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
                 val updated = config.updatedDate.toInstant()
                 val due = updated.isBefore(dueThreshold)
                 val ageDays = ChronoUnit.DAYS.between(updated, now).coerceAtLeast(0)
@@ -164,7 +164,7 @@ class OrganizationIdpSecretRotationSchedulerService @Inject constructor(
                 OrganizationIdpRotationPreviewCandidate(
                     configId = config.id,
                     provider = config.provider,
-                    secretRef = config.clientSecretRef,
+                    secretRef = secretRef,
                     updatedDate = updated,
                     due = due,
                     overdueByDays = overdueByDays,
@@ -187,15 +187,15 @@ class OrganizationIdpSecretRotationSchedulerService @Inject constructor(
 
         val items = organizationIdentityProviderConfigRepository.findByOrganizationId(organizationId)
             .filter { it.isActive }
-            .filter { !it.clientSecretRef.isBlank() }
-            .map { config ->
+            .mapNotNull { config ->
+                val secretRef = config.clientSecretRef?.trim()?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
                 val updated = config.updatedDate.toInstant()
                 val due = updated.isBefore(dueThreshold)
                 val ageDays = ChronoUnit.DAYS.between(updated, now).coerceAtLeast(0)
                 val overdueByDays = (ageDays - intervalDays).coerceAtLeast(0)
 
                 val lifecycle = awsSecretsManagerService.getSecretLifecycleStatus(
-                    secretId = config.clientSecretRef,
+                    secretId = secretRef,
                     region = configurationService.getOrgIdpSecretsRegion(),
                 )
                 val overlapActive = lifecycle.overlapUntilEpochMillis?.let { it > now.toEpochMilli() } ?: false
@@ -203,7 +203,7 @@ class OrganizationIdpSecretRotationSchedulerService @Inject constructor(
                 OrganizationIdpRotationStatusItem(
                     configId = config.id,
                     provider = config.provider,
-                    secretRef = config.clientSecretRef,
+                    secretRef = secretRef,
                     disabled = lifecycle.disabled,
                     rotationPhase = lifecycle.rotationPhase,
                     currentVersionId = lifecycle.currentVersionId,
@@ -240,9 +240,16 @@ class OrganizationIdpSecretRotationSchedulerService @Inject constructor(
         var skipped = 0
 
         configs.forEach { config ->
+            val secretRef = config.clientSecretRef?.trim()?.takeIf { it.isNotBlank() }
+            if (secretRef == null)
+            {
+                skipped += 1
+                return@forEach
+            }
+
             val lifecycle = runCatching {
                 awsSecretsManagerService.getSecretLifecycleStatus(
-                    secretId = config.clientSecretRef,
+                    secretId = secretRef,
                     region = configurationService.getOrgIdpSecretsRegion(),
                 )
             }.getOrNull()
@@ -267,7 +274,7 @@ class OrganizationIdpSecretRotationSchedulerService @Inject constructor(
                     requestId = requestId,
                     reasonCode = skipReasonCode,
                     reason = "$reason skipped",
-                    beforeSnapshot = "configId=${config.id};secretRef=${config.clientSecretRef};rotationPhase=${lifecycle?.rotationPhase};disabled=${lifecycle?.disabled}",
+                    beforeSnapshot = "configId=${config.id};secretRef=$secretRef;rotationPhase=${lifecycle?.rotationPhase};disabled=${lifecycle?.disabled}",
                     afterSnapshot = "skipReason=$skipReason",
                 )
                 skipped += 1
@@ -277,7 +284,7 @@ class OrganizationIdpSecretRotationSchedulerService @Inject constructor(
             runCatching {
                 val generatedSecret = generateSecretMaterial()
                 val rotation = awsSecretsManagerService.rotateSecret(
-                    secretId = config.clientSecretRef,
+                    secretId = secretRef,
                     newSecret = generatedSecret,
                     region = configurationService.getOrgIdpSecretsRegion(),
                     overlapHours = configurationService.getSecretsRotationOverlapHours().coerceAtLeast(0),
@@ -294,8 +301,8 @@ class OrganizationIdpSecretRotationSchedulerService @Inject constructor(
                     requestId = requestId,
                     reasonCode = RevocationReasonCode.SYSTEM_MAINTENANCE,
                     reason = reason,
-                    beforeSnapshot = "configId=${config.id};secretRef=${config.clientSecretRef};previousVersion=${rotation.previousVersionId}",
-                    afterSnapshot = "configId=${config.id};secretRef=${config.clientSecretRef};activeVersion=${rotation.activeVersionId};overlapUntilEpochMillis=${rotation.overlapUntilEpochMillis}",
+                    beforeSnapshot = "configId=${config.id};secretRef=$secretRef;previousVersion=${rotation.previousVersionId}",
+                    afterSnapshot = "configId=${config.id};secretRef=$secretRef;activeVersion=${rotation.activeVersionId};overlapUntilEpochMillis=${rotation.overlapUntilEpochMillis}",
                 )
                 rotated += 1
             }.onFailure { error ->
@@ -316,7 +323,7 @@ class OrganizationIdpSecretRotationSchedulerService @Inject constructor(
                     requestId = requestId,
                     reasonCode = RevocationReasonCode.SYSTEM_MAINTENANCE,
                     reason = "$reason failed",
-                    beforeSnapshot = "configId=${config.id};secretRef=${config.clientSecretRef}",
+                    beforeSnapshot = "configId=${config.id};secretRef=$secretRef",
                     afterSnapshot = "error=${error.message}",
                 )
                 failed += 1

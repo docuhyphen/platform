@@ -59,6 +59,8 @@ class EndpointVerificationFilter @Inject constructor(
     private val dpopValidationService: com.docuhyphen.app.api.service.auth.DpopValidationService,
     private val organizationMembershipValidationService: OrganizationMembershipValidationService,
     private val configurationService: ConfigurationService,
+    private val authSessionPolicyService: com.docuhyphen.app.api.service.auth.AuthSessionPolicyService,
+    private val authAuditService: com.docuhyphen.app.api.service.auth.AuthAuditService,
 ) : ContainerRequestFilter
 {
     private val logger = LoggerFactory.getLogger(EndpointVerificationFilter::class.java.name)
@@ -228,6 +230,40 @@ class EndpointVerificationFilter @Inject constructor(
             logger.warn("Inactive or missing user session sessionId={} user={}", sessionId, userId)
             abortRequest(requestContext, "Unauthorized request")
             return
+        }
+
+        // Sliding inactivity (idle) timeout enforcement at request time.
+        // Distinct from the absolute refresh-token / session expiry: an authenticated
+        // request after a long pause must be rejected even if the access token is still
+        // valid, so a forgotten/lost device cannot be reused later.
+        val sessionRecord = userSessionService.findSession(sessionId)
+        val lastSeen = sessionRecord?.lastSeenAt?.toInstant()
+        if (lastSeen != null)
+        {
+            val idlePolicy = runCatching { authSessionPolicyService.resolveForAppUser(appUser) }.getOrNull()
+            val idleLimitMinutes = idlePolicy?.idleTimeoutMinutes ?: configurationService.getIdleTimeoutMinutes()
+            val idleSeconds = java.time.Duration.between(lastSeen, java.time.Instant.now()).seconds
+            if (idleSeconds > idleLimitMinutes * 60)
+            {
+                logger.warn(
+                    "Idle timeout exceeded sessionId={} user={} idleSeconds={} limitSeconds={}",
+                    sessionId, userId, idleSeconds, idleLimitMinutes * 60,
+                )
+                userSessionService.revokeSession(
+                    sessionId,
+                    com.docuhyphen.app.api.service.auth.RevocationReasonCode.SECURITY_POLICY,
+                )
+                authAuditService.emit(
+                    action = "REQUEST_AUTH",
+                    outcome = "DENY",
+                    reasonCode = com.docuhyphen.app.api.service.auth.RevocationReasonCode.SECURITY_POLICY,
+                    actorId = userId,
+                    sessionId = sessionId.toString(),
+                    reason = "Idle timeout exceeded (idleSeconds=$idleSeconds, limit=${idleLimitMinutes * 60})",
+                )
+                abortRequest(requestContext, "Session timed out due to inactivity")
+                return
+            }
         }
 
         userSessionService.touchSession(sessionId)

@@ -6,7 +6,9 @@ import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationIdentityProviderConfig
 import com.docuhyphen.app.api.repository.OrganizationIdentityProviderConfigRepository
 import com.docuhyphen.app.api.repository.OrganizationRepository
+import com.docuhyphen.app.api.resource.model.OrganizationAuthSessionPolicyUpdateRequest
 import com.docuhyphen.app.api.resource.model.OrganizationIdpConfigRequest
+import com.docuhyphen.app.api.service.config.ConfigurationService
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -22,8 +24,15 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val adminActionGuardService: AdminActionGuardService,
     private val authAuditService: AuthAuditService,
+    private val configurationService: ConfigurationService,
 )
 {
+    companion object
+    {
+        /** Sentinel provider value reserved for the org's built-in/internal IdP. */
+        const val INTERNAL_PROVIDER = "INTERNAL"
+    }
+
     fun list(organizationId: String): List<OrganizationIdentityProviderConfig>
     {
         val actor = requireOrgAdminForOrganization(organizationId)
@@ -162,17 +171,120 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
         )
     }
 
+    /**
+     * Read-only fetch of all IdP configs for an organization (no audit emission).
+     * Used by the auth session policy "settings" endpoint to render per-IdP rows
+     * alongside the effective policy. Authorization is enforced via [requireOrgAdminForOrganization].
+     */
+    fun listForPolicyView(organizationId: String): List<OrganizationIdentityProviderConfig>
+    {
+        requireOrgAdminForOrganization(organizationId)
+        val orgId = requireUuid(organizationId, "organization ID")
+        return organizationIdentityProviderConfigRepository.findByOrganizationId(orgId)
+    }
+
+    /**
+     * Update only the session-policy fields on an existing IdP config. Leaves
+     * provider/secret/issuer/claim configuration untouched. Enforces platform
+     * guardrails server-side before persistence and emits an immutable audit
+     * event with before/after snapshots. Step-up is intentionally deferred per
+     * the current hardening roadmap.
+     */
+    @Transactional
+    fun updateSessionPolicyFields(
+        organizationId: String,
+        configId: String,
+        request: OrganizationAuthSessionPolicyUpdateRequest,
+        adminApprovalContext: AdminApprovalContext,
+    ): OrganizationIdentityProviderConfig
+    {
+        val actor = requireOrgAdminForOrganization(organizationId)
+        val orgId = requireUuid(organizationId, "organization ID")
+
+        adminActionGuardService.enforce(
+            action = "ORG_AUTH_SESSION_POLICY_UPDATE",
+            actorId = actor.id,
+            context = adminApprovalContext,
+            requireStepUp = false,
+        )
+
+        validateSessionPolicyRequest(request)
+
+        val config = requireConfigBelongsToOrg(orgId, configId)
+        val beforeSnapshot = snapshot(config)
+
+        config.accessTokenExpiryMinutes = request.accessTokenExpiryMinutes
+            ?.coerceIn(
+                configurationService.getMinAccessTokenExpiryMinutes(),
+                configurationService.getMaxAccessTokenExpiryMinutes(),
+            )
+        config.refreshTokenExpiryMinutes = request.refreshTokenExpiryMinutes
+            ?.coerceIn(
+                configurationService.getMinRefreshTokenExpiryMinutes(),
+                configurationService.getMaxRefreshTokenExpiryMinutes(),
+            )
+        config.maxSessionDurationHours = request.maxSessionDurationHours
+            ?.coerceIn(
+                configurationService.getMinSessionMaxDurationHours(),
+                configurationService.getMaxSessionMaxDurationHours(),
+            )
+        config.idleTimeoutMinutes = request.idleTimeoutMinutes
+            ?.coerceIn(
+                configurationService.getMinIdleTimeoutMinutes(),
+                configurationService.getMaxIdleTimeoutMinutes(),
+            )
+        config.updatedDate = Timestamp.from(Instant.now())
+        config.updatedBy = actor.id
+
+        organizationIdentityProviderConfigRepository.update(config)
+
+        authAuditService.emit(
+            action = "ORG_AUTH_SESSION_POLICY_UPDATE",
+            outcome = "SUCCESS",
+            actorId = actor.id,
+            organizationId = orgId,
+            requestId = adminApprovalContext.requestId,
+            reason = "Organization admin updated IdP auth session policy fields",
+            beforeSnapshot = beforeSnapshot,
+            afterSnapshot = snapshot(config),
+        )
+
+        return config
+    }
+
+    private fun validateSessionPolicyRequest(request: OrganizationAuthSessionPolicyUpdateRequest)
+    {
+        if (request.accessTokenExpiryMinutes != null && request.accessTokenExpiryMinutes <= 0)
+        {
+            throw IllegalArgumentException("Access token expiry must be greater than 0")
+        }
+        if (request.refreshTokenExpiryMinutes != null && request.refreshTokenExpiryMinutes <= 0)
+        {
+            throw IllegalArgumentException("Refresh token expiry must be greater than 0")
+        }
+        if (request.maxSessionDurationHours != null && request.maxSessionDurationHours <= 0)
+        {
+            throw IllegalArgumentException("Max session duration must be greater than 0")
+        }
+        if (request.idleTimeoutMinutes != null && request.idleTimeoutMinutes <= 0)
+        {
+            throw IllegalArgumentException("Idle timeout must be greater than 0")
+        }
+    }
+
     private fun applyRequest(entity: OrganizationIdentityProviderConfig, request: OrganizationIdpConfigRequest)
     {
-        entity.provider = request.provider.trim().uppercase()
-        entity.clientId = request.clientId.trim()
-        entity.clientSecretRef = request.clientSecretRef.trim()
+        val normalizedProvider = request.provider.trim().uppercase()
+        entity.provider = normalizedProvider
+        entity.clientId = request.clientId?.trim()?.takeIf { it.isNotBlank() }
+        entity.clientSecretRef = request.clientSecretRef?.trim()?.takeIf { it.isNotBlank() }
         entity.tenantId = request.tenantId?.trim()?.takeIf { it.isNotBlank() }
         entity.scopes = normalizeList(request.scopes)
         entity.isActive = request.isActive
         entity.accessTokenExpiryMinutes = request.accessTokenExpiryMinutes
-        entity.refreshTokenExpiryDays = request.refreshTokenExpiryDays
+        entity.refreshTokenExpiryMinutes = request.refreshTokenExpiryMinutes
         entity.maxSessionDurationHours = request.maxSessionDurationHours
+        entity.idleTimeoutMinutes = request.idleTimeoutMinutes
         entity.oidcIssuer = request.oidcIssuer?.trim()?.takeIf { it.isNotBlank() }
         entity.allowedAudiences = normalizeList(request.allowedAudiences)
         entity.allowedAlgs = normalizeList(request.allowedAlgs)
@@ -199,14 +311,21 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
             throw IllegalArgumentException("Provider is required")
         }
 
-        if (request.clientId.isBlank())
-        {
-            throw IllegalArgumentException("Client ID is required")
-        }
+        // INTERNAL provider rows represent the org's built-in IdP and only carry
+        // session-policy settings; they do not need external OAuth client credentials.
+        val isInternal = request.provider.trim().equals(INTERNAL_PROVIDER, ignoreCase = true)
 
-        if (request.clientSecretRef.isBlank())
+        if (!isInternal)
         {
-            throw IllegalArgumentException("Client secret reference is required")
+            if (request.clientId.isNullOrBlank())
+            {
+                throw IllegalArgumentException("Client ID is required")
+            }
+
+            if (request.clientSecretRef.isNullOrBlank())
+            {
+                throw IllegalArgumentException("Client secret reference is required")
+            }
         }
 
         if (request.accessTokenExpiryMinutes != null && request.accessTokenExpiryMinutes <= 0)
@@ -214,7 +333,7 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
             throw IllegalArgumentException("Access token expiry must be greater than 0")
         }
 
-        if (request.refreshTokenExpiryDays != null && request.refreshTokenExpiryDays <= 0)
+        if (request.refreshTokenExpiryMinutes != null && request.refreshTokenExpiryMinutes <= 0)
         {
             throw IllegalArgumentException("Refresh token expiry must be greater than 0")
         }
@@ -223,6 +342,45 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
         {
             throw IllegalArgumentException("Max session duration must be greater than 0")
         }
+
+        if (request.idleTimeoutMinutes != null && request.idleTimeoutMinutes <= 0)
+        {
+            throw IllegalArgumentException("Idle timeout must be greater than 0")
+        }
+    }
+
+    /**
+     * Returns the INTERNAL IdP config for an organization, creating it on first
+     * access so the policy-settings UI always has a configId to update. This is a
+     * private/internal helper used by the auth session policy endpoint only.
+     */
+    @Transactional
+    fun ensureInternalConfig(organizationId: UUID): OrganizationIdentityProviderConfig
+    {
+        val existing = organizationIdentityProviderConfigRepository
+            .findActiveByOrganizationIdAndProvider(organizationId, INTERNAL_PROVIDER)
+        if (existing != null) return existing
+
+        // Also catch an inactive prior INTERNAL row to avoid duplicates.
+        val priorInactive = organizationIdentityProviderConfigRepository
+            .findByOrganizationId(organizationId)
+            .firstOrNull { it.provider.trim().equals(INTERNAL_PROVIDER, ignoreCase = true) }
+        if (priorInactive != null) return priorInactive
+
+        val organization = organizationRepository.findById(organizationId)
+            ?: throw IllegalArgumentException("Organization not found")
+
+        val entity = OrganizationIdentityProviderConfig().apply {
+            this.organization = organization
+            this.provider = INTERNAL_PROVIDER
+            this.clientId = null
+            this.clientSecretRef = null
+            this.isActive = true
+            this.createdDate = Timestamp.from(Instant.now())
+            this.updatedDate = this.createdDate
+        }
+        organizationIdentityProviderConfigRepository.save(entity)
+        return entity
     }
 
     private fun requireOrgAdminForOrganization(organizationId: String): com.docuhyphen.app.api.model.entity.AppUser
@@ -282,7 +440,7 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
 
     private fun snapshot(config: OrganizationIdentityProviderConfig): String
     {
-        return "id=${config.id};provider=${config.provider};clientId=${config.clientId};clientSecretRef=${config.clientSecretRef};tenantId=${config.tenantId};isActive=${config.isActive};scopes=${config.scopes};accessTokenExpiryMinutes=${config.accessTokenExpiryMinutes};refreshTokenExpiryDays=${config.refreshTokenExpiryDays};maxSessionDurationHours=${config.maxSessionDurationHours};oidcIssuer=${config.oidcIssuer};allowedAudiences=${config.allowedAudiences};allowedAlgs=${config.allowedAlgs};requiredClaims=${config.requiredClaims}"
+        return "id=${config.id};provider=${config.provider};clientId=${config.clientId};clientSecretRef=${config.clientSecretRef};tenantId=${config.tenantId};isActive=${config.isActive};scopes=${config.scopes};accessTokenExpiryMinutes=${config.accessTokenExpiryMinutes};refreshTokenExpiryMinutes=${config.refreshTokenExpiryMinutes};maxSessionDurationHours=${config.maxSessionDurationHours};idleTimeoutMinutes=${config.idleTimeoutMinutes};oidcIssuer=${config.oidcIssuer};allowedAudiences=${config.allowedAudiences};allowedAlgs=${config.allowedAlgs};requiredClaims=${config.requiredClaims}"
     }
 }
 
