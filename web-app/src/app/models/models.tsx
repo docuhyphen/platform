@@ -660,6 +660,11 @@ export enum NotificationType
     DOCUMENT_UPDATED = 'DOCUMENT_UPDATED',
     SESSION_ENDED = 'SESSION_ENDED',
     SESSION_INITIATED = 'SESSION_INITIATED',
+    // New types from Plans 01–05
+    WORKFLOW_STEP_ASSIGNED = 'workflow.step_assigned',
+    WORKFLOW_ESCALATED = 'workflow.escalated',
+    SESSION_ACTIVATED = 'session.activated',
+    SESSION_REJECTED = 'session.rejected',
 }
 
 export interface NotificationDto
@@ -696,6 +701,7 @@ export interface OrganizationSettingsDto
 {
     id?: string;
     allowShareWithoutPairing: boolean;
+    allowExternalCustomerSharing: boolean;
     allowProfileUpdate: boolean;
     allowEmailUpdate: boolean;
 }

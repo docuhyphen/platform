@@ -6,11 +6,11 @@ import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.dto.AppUserSettingsDto
 import com.docuhyphen.app.api.model.dto.OrganizationSettingsDto
 import com.docuhyphen.app.api.model.entity.AppUserSettings
-import com.docuhyphen.app.api.model.entity.AppUserRole.ORG_ADMIN
 import com.docuhyphen.app.api.model.entity.OrganizationSettings
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.ServiceActionAuthorizationService
+import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.ApplicationScoped
@@ -27,6 +27,7 @@ class SettingsService @Inject constructor(
     var appUserService: AppUserService,
     var organizationService: OrganizationService,
     var adminActionGuardService: AdminActionGuardService,
+    var userRoleService: UserRoleService,
 )
 {
     @Transactional
@@ -121,7 +122,7 @@ class SettingsService @Inject constructor(
     {
         val currentUser = authTokenContext.authToken.appUser!!
 
-        if (currentUser.role != ORG_ADMIN)
+        if (!userRoleService.isOrgAdmin(currentUser.id))
         {
             throw UnauthorizedException("User does not have permission to update organization settings")
         }

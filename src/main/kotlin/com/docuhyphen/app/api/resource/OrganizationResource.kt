@@ -242,9 +242,8 @@ class OrganizationResource @Inject constructor(
                 return limitedResponse
             }
 
-            val groups = organizationService.getLinkedOrganizationsGroups(organizationId).map {
-                BasicEntityToDtoTransformer.toLinkedOrgGroup(it)
-            }.take(configurationService.getDirectoryLookupMaxResults()).toTypedArray()
+            val groups = organizationService.getLinkedOrganizationsGroups(organizationId)
+                .take(configurationService.getDirectoryLookupMaxResults()).toTypedArray()
 
             Response.ok(groups).build()
         }

@@ -81,4 +81,37 @@ class UserContactRepository : BaseRepository<UserContact>(UserContact::class.jav
             .executeUpdate()
         return updated
     }
+
+    /**
+     * Returns true when both sides of the contact relationship exist:
+     * [ownerAppUserId] lists [contactAppUserId] **and** vice-versa.
+     */
+    fun isMutualContact(ownerAppUserId: UUID, contactAppUserId: UUID): Boolean
+    {
+        val count = entityManager.createQuery(
+            """
+                SELECT COUNT(c) FROM UserContact c
+                WHERE c.ownerAppUserId = :a AND c.contactAppUserId = :b
+            """.trimIndent(),
+            java.lang.Long::class.java,
+        )
+            .setParameter("a", ownerAppUserId)
+            .setParameter("b", contactAppUserId)
+            .singleResult
+            .toLong()
+        if (count == 0L) return false
+
+        val reverseCount = entityManager.createQuery(
+            """
+                SELECT COUNT(c) FROM UserContact c
+                WHERE c.ownerAppUserId = :a AND c.contactAppUserId = :b
+            """.trimIndent(),
+            java.lang.Long::class.java,
+        )
+            .setParameter("a", contactAppUserId)
+            .setParameter("b", ownerAppUserId)
+            .singleResult
+            .toLong()
+        return reverseCount > 0
+    }
 }

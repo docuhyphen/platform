@@ -200,16 +200,8 @@ data class OrganizationRegistrationRequest(
 @Serializable
 data class AddOrganizationGroupMemberRequest(
     var appUserId: String? = null,
-    var allowSessionAccept: Boolean = false,
-    var allowSessionReject: Boolean = false,
-    var allowSessionEdit: Boolean = false,
-    var allowSessionDelete: Boolean = false,
-    var allowSessionEnd: Boolean = false,
-    var allowDocumentAddition: Boolean = false,
-    var allowDocumentDeletion: Boolean = false,
-    var allowDocumentDownload: Boolean = false,
-    var allowDocumentUpdate: Boolean = false,
-    var allowDocumentUpload: Boolean = false
+    /** New role-based model: OWNER | MANAGER | MEMBER | OBSERVER. */
+    var groupRole: String = "MEMBER",
 )
 
 @Serializable
@@ -233,6 +225,22 @@ data class UpdateOrganizationRequest(
     var registrationNumber: String? = null
 )
 
+/** POST /admin/roles/app-admins — promote a user to App Admin. */
+@Serializable
+data class GrantAppAdminRequest(
+    var appUserId: String? = null,
+)
+
+/** A single App Admin in the GET /admin/roles/app-admins listing. */
+@Serializable
+data class AppAdminDto(
+    val assignmentId: String,
+    val appUserId: String?,
+    val email: String? = null,
+    val grantedByAppUserId: String? = null,
+    val grantedAt: String? = null,
+)
+
 @Serializable
 data class AddOrganizationAppUserPersonRequest(
     var firstName: String? = null,
@@ -241,7 +249,7 @@ data class AddOrganizationAppUserPersonRequest(
 
 @Serializable
 data class AddOrganizationAppUserRequest(
-    var role: AppUserRole? = null,
+    var role: RoleName? = null,
     var email: String? = null,
     var person: AddOrganizationAppUserPersonRequest?,
 )
@@ -690,5 +698,22 @@ data class OrgMemberCapacityResponse(
     val activeUsers: Long,
     val atCap: Boolean,
     val nearCap: Boolean,
+)
+
+/** Grant access on a sharing session to a principal (manage-access write API). */
+@Serializable
+data class GrantSessionShareRequest(
+    val principalKind: String,
+    val principalId: String,
+    val roleName: String,
+    val constraintsJson: String? = null,
+    val expiresAtEpochMillis: Long? = null,
+)
+
+/** Change the role on an existing session share. */
+@Serializable
+data class UpdateSessionShareRoleRequest(
+    val roleName: String,
+    val constraintsJson: String? = null,
 )
 

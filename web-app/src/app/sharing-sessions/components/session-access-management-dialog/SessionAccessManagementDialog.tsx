@@ -4,6 +4,10 @@ import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {
     Badge,
     Button,
+    Accordion,
+    AccordionHeader,
+    AccordionItem,
+    AccordionPanel,
     Dialog,
     DialogActions,
     DialogBody,
@@ -25,6 +29,7 @@ import {
     Text,
     Tooltip,
 } from "@fluentui/react-components";
+import {ArrowLeftRegular} from "@fluentui/react-icons";
 import {
     fetchSignedInUserAppUserSharingSession,
     requestSessionRecipientOtp,
@@ -32,8 +37,10 @@ import {
 } from "../../../../services/sharingSessionApi.ts";
 import {handleCheckboxChange} from "../../../sharing-session-initiation/formHandlers.tsx";
 import {useAccessManagementDialogStyles} from "./SessionAccessManagementDialogStyles.tsx";
-import {RegenerateOTPIcon} from "../../../components/IconBundles.tsx";
+import {InfoIcon, RegenerateOTPIcon} from "../../../components/IconBundles.tsx";
 import {getOtpFriendlyMessage, normalizeApiError} from "../../../../utils/apiErrorUtils.ts";
+import SessionAccessPanel from "./SessionAccessPanel.tsx";
+import ManageAccessHelpGuide from "./ManageAccessHelpGuide.tsx";
 
 interface SessionAccessManagementDialogProps
 {
@@ -55,7 +62,7 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
     const tabIds = {
         people: "people",
         access: "access",
-        documents: "documents",
+        settings: "settings",
     } as const;
     type SessionParticipantView = {
         id: string;
@@ -81,6 +88,7 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
     const [allowDocumentUpload, setAllowDocumentUpload] = useState<boolean>(false);
     const [noAuthAccessValidityDays, setNoAuthAccessValidityDays] = useState<string>('7');
     const [selectedTab, setSelectedTab] = useState<TabValue>(tabIds.people);
+    const [showHelpGuide, setShowHelpGuide] = useState(false);
 
     const styles = useAccessManagementDialogStyles();
 
@@ -99,6 +107,7 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
             setAccessCodeStatus('');
             setResendCooldownRemaining(0);
             setSelectedTab(tabIds.people);
+            setShowHelpGuide(false);
         }
     }, [session]);
 
@@ -218,12 +227,11 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
             await updateSharingSession(session.id, request);
             const updatedSession = await fetchSignedInUserAppUserSharingSession(session.id);
             onSessionAccessManagementUpdated(updatedSession as SharingSessionDetailedDto);
-            onDismiss();
         }
         catch (error)
         {
-            alert("Error deleting document");
-            console.error("Error deleting document:", error);
+            alert("Error updating access settings");
+            console.error("Error updating access settings:", error);
         }
         finally
         {
@@ -256,24 +264,34 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
 
     const sessionParticipants: SessionParticipantView[] = ((session?.participants ?? []) as SessionParticipantView[]);
     const peopleCount = 2 + sessionParticipants.length;
-    const enabledDocumentPermissionCount = [
-        allowDocumentAddition,
-        allowDocumentDeletion,
-        allowDocumentDownload,
-        allowDocumentUpdate,
-        allowDocumentUpload,
-    ].filter(Boolean).length;
 
     return <>
         {<Dialog modalType="alert" open={isOpen}>
             <DialogSurface>
                 <DialogBody>
-                    <DialogTitle>Manage access</DialogTitle>
+                    <DialogTitle>
+                        {showHelpGuide ? (
+                            <span style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                <Button
+                                    icon={<ArrowLeftRegular/>}
+                                    appearance="subtle"
+                                    size="small"
+                                    onClick={() => setShowHelpGuide(false)}
+                                    aria-label="Back to manage access"
+                                />
+                                How access works
+                            </span>
+                        ) : 'Manage access'}
+                    </DialogTitle>
                     <DialogContent>
+                        {showHelpGuide ? (
+                            <ManageAccessHelpGuide/>
+                        ) : (
+                            <>
                         <TabList selectedValue={selectedTab} onTabSelect={onTabSelect} className={styles.tabList}>
-                            <Tab value={tabIds.people}>People ({peopleCount})</Tab>
-                            <Tab value={tabIds.access}>Session access</Tab>
-                            <Tab value={tabIds.documents}>Document permissions ({enabledDocumentPermissionCount}/5)</Tab>
+                            <Tab value={tabIds.people}>Summary</Tab>
+                            <Tab value={tabIds.access}>Access &amp; permissions</Tab>
+                            <Tab value={tabIds.settings}>Session settings</Tab>
                         </TabList>
 
                         <div className={styles.tabPanel}>
@@ -315,20 +333,65 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
                                     {!sessionParticipants.length && (
                                         <Text size={200}>No additional participants added.</Text>
                                     )}
-
-                                    <Divider alignContent="start">Session summary</Divider>
-                                    <div className={styles.metaGrid}>
-                                        <Text size={200}>Status</Text>
-                                        <Text weight="semibold">{session.status || SharingSessionStatus.INITIATED}</Text>
-                                        <Text size={200}>Documents</Text>
-                                        <Text weight="semibold">{session.documents?.length || 0}</Text>
-                                        <Text size={200}>Last activity</Text>
-                                        <Text weight="semibold">{session.lastActivity ? new Date(session.lastActivity).toLocaleString() : 'Unknown'}</Text>
-                                    </div>
                                 </section>
                             )}
 
                             {selectedTab === tabIds.access && (
+                                <section>
+                                    <Accordion collapsible defaultOpenItems={["access-management"]}>
+                                        <AccordionItem value="access-management">
+                                            <AccordionHeader>Access Management</AccordionHeader>
+                                            <AccordionPanel>
+                                                <SessionAccessPanel sessionId={session.id}/>
+                                            </AccordionPanel>
+                                        </AccordionItem>
+                                        <AccordionItem value="document-permissions">
+                                            <AccordionHeader>Document permissions</AccordionHeader>
+                                            <AccordionPanel>
+                                                <div className={styles.switchGroup}>
+                                                    <Field>
+                                                        <Switch
+                                                            label="Allow document additions"
+                                                            checked={allowDocumentAddition}
+                                                            onChange={handleCheckboxChange(setAllowDocumentAddition)}
+                                                        />
+                                                    </Field>
+                                                    <Field>
+                                                        <Switch
+                                                            label="Allow document deletions"
+                                                            checked={allowDocumentDeletion}
+                                                            onChange={handleCheckboxChange(setAllowDocumentDeletion)}
+                                                        />
+                                                    </Field>
+                                                    <Field>
+                                                        <Switch
+                                                            label="Allow document zip download"
+                                                            checked={allowDocumentDownload}
+                                                            onChange={handleCheckboxChange(setAllowDocumentDownload)}
+                                                        />
+                                                    </Field>
+                                                    <Field>
+                                                        <Switch
+                                                            label="Allow document update"
+                                                            checked={allowDocumentUpdate}
+                                                            onChange={handleCheckboxChange(setAllowDocumentUpdate)}
+                                                        />
+                                                    </Field>
+                                                    <Field>
+                                                        <Switch
+                                                            label="Allow document upload"
+                                                            checked={allowDocumentUpload}
+                                                            onChange={handleCheckboxChange(setAllowDocumentUpload)}
+                                                        />
+                                                    </Field>
+                                                </div>
+                                            </AccordionPanel>
+                                        </AccordionItem>
+                                    </Accordion>
+                                </section>
+                            )}
+
+                            {selectedTab === tabIds.settings && (
                                 <section className={styles.switchGroup}>
                                     <Divider alignContent="start">Session options</Divider>
                                     <div className={styles.requireSignInField}>
@@ -378,50 +441,32 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
                                     }
                                 </section>
                             )}
-
-                            {selectedTab === tabIds.documents && (
-                                <section className={styles.switchGroup}>
-                                    <Divider alignContent="start">Document options</Divider>
-                                    <Field>
-                                        <Switch
-                                            label="Allow document additions"
-                                            checked={allowDocumentAddition}
-                                            onChange={handleCheckboxChange(setAllowDocumentAddition)}
-                                        />
-                                    </Field>
-                                    <Field>
-                                        <Switch
-                                            label="Allow document deletions"
-                                            checked={allowDocumentDeletion}
-                                            onChange={handleCheckboxChange(setAllowDocumentDeletion)}
-                                        />
-                                    </Field>
-                                    <Field>
-                                        <Switch
-                                            label="Allow document download"
-                                            checked={allowDocumentDownload}
-                                            onChange={handleCheckboxChange(setAllowDocumentDownload)}
-                                        />
-                                    </Field>
-                                    <Field>
-                                        <Switch
-                                            label="Allow document update"
-                                            checked={allowDocumentUpdate}
-                                            onChange={handleCheckboxChange(setAllowDocumentUpdate)}
-                                        />
-                                    </Field>
-                                    <Field>
-                                        <Switch
-                                            label="Allow document upload"
-                                            checked={allowDocumentUpload}
-                                            onChange={handleCheckboxChange(setAllowDocumentUpload)}
-                                        />
-                                    </Field>
-                                </section>
-                            )}
                         </div>
+                            </>
+                        )}
                     </DialogContent>
+                    <DialogActions position="start">
+                        {!showHelpGuide && (
+                            <Tooltip content="Learn how access works" relationship="label">
+                                <Button
+                                    icon={<InfoIcon/>}
+                                    appearance="subtle"
+                                    shape="circular"
+                                    size="medium"
+                                    onClick={() => setShowHelpGuide(true)}
+                                    aria-label="How access works"
+                                />
+                            </Tooltip>
+                        )}
+                    </DialogActions>
                     <DialogActions>
+                        {showHelpGuide ? (
+                            <Button appearance="secondary"
+                                    shape="circular"
+                                    onClick={() => setShowHelpGuide(false)}>
+                                Back
+                            </Button>
+                        ) : (
                         <>
                             <Button appearance="primary"
                                     className={globalStyles.buttonWithLoading}
@@ -437,6 +482,7 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
                                 Cancel
                             </Button>
                         </>
+                        )}
                     </DialogActions>
                 </DialogBody>
             </DialogSurface>

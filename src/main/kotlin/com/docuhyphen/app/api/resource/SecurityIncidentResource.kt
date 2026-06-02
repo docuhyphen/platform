@@ -1,10 +1,10 @@
 package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.AppUserRole
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.SecurityIncidentResponse
 import com.docuhyphen.app.api.service.auth.SecurityIncidentService
+import com.docuhyphen.app.api.service.auth.UserRoleService
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.DefaultValue
@@ -21,6 +21,7 @@ import jakarta.ws.rs.core.Response
 class SecurityIncidentResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val securityIncidentService: SecurityIncidentService,
+    private val userRoleService: UserRoleService,
 )
 {
     @GET
@@ -32,7 +33,7 @@ class SecurityIncidentResource @Inject constructor(
         val actor = authTokenContext.authToken.appUser
             ?: return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
-        if (actor.role != AppUserRole.ORG_ADMIN)
+        if (!userRoleService.isOrgAdmin(actor.id))
         {
             return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges")).build()
         }

@@ -17,6 +17,11 @@ import {NotificationsIcon} from '../../IconBundles';
 import {useNotificationListStyles} from "./NotificationListStyles.tsx";
 import NotificationListItem from "./notification-item/NotificationListItem.tsx";
 
+const WORKFLOW_NOTIFICATION_TYPES = [
+    'workflow.step_assigned', 'WORKFLOW_STEP_ASSIGNED',
+    'workflow.escalated', 'WORKFLOW_ESCALATED',
+];
+
 const NotificationList: React.FC = () =>
 {
     const {notifications, unreadCount, markAsRead, markAllAsRead} = useNotifications();
@@ -26,6 +31,17 @@ const NotificationList: React.FC = () =>
     const handleNotificationClick = (notification: NotificationDto) =>
     {
         markAsRead(notification.id);
+
+        // Workflow step assigned → navigate to session if available
+        if (WORKFLOW_NOTIFICATION_TYPES.includes(notification.type as string))
+        {
+            const sid = notification.sessionId || notification.data?.sessionId;
+            if (sid)
+            {
+                navigate(`/sharing-sessions?s=${sid}`);
+            }
+            return;
+        }
 
         if (notification.sessionId)
         {

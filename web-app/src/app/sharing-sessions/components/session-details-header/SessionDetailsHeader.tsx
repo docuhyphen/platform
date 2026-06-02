@@ -66,6 +66,14 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
     }) =>
 {
     const styles = useSessionDetailsHeaderStyles();
+
+    // TEMP DEBUG — remove once permissions issue resolved
+    // eslint-disable-next-line no-console
+    console.log('[SessionDetailsHeader]', {
+        sessionId: sessionDetails?.id,
+        status: sessionDetails?.status,
+        sessionPermissions,
+    });
     // Collapse the header's standalone action icons into the More menu
     // on any compact viewport - not just phones. Tablet portrait
     // (768-1024px) still has the SessionList sidebar competing for
@@ -174,7 +182,7 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                                         <Button
                                             id="session-details-header-edit-session"
                                             icon={<EditSessionIcon/>}
-                                            disabled={sessionDetails.status === SharingSessionStatus.ENDED || !sessionPermissions.canEditSessionDocument}
+                                            disabled={sessionDetails.status === SharingSessionStatus.ENDED || !sessionPermissions.canEditSharingOptions}
                                             appearance={"subtle"}
                                             onClick={() => setIsSessionEditDialogOpen(true)}
                                         />
@@ -215,7 +223,7 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
                                                 <MenuItem
                                                     id="session-details-header-menu-edit-session"
                                                     icon={<EditSessionIcon/>}
-                                                    disabled={sessionDetails.status === SharingSessionStatus.ENDED || !sessionPermissions.canEditSessionDocument}
+                                                    disabled={sessionDetails.status === SharingSessionStatus.ENDED || !sessionPermissions.canEditSharingOptions}
                                                     onClick={() => setIsSessionEditDialogOpen(true)}>
                                                     Edit session
                                                 </MenuItem>

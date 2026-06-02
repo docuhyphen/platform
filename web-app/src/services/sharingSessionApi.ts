@@ -10,6 +10,11 @@ import {
     UpdateSharingSessionRequest
 } from "../app/models/models.tsx";
 import {AxiosRequestConfig} from "axios";
+import {
+    GrantSessionShareRequest,
+    SessionAccessEntryDto,
+    UpdateSessionShareRoleRequest,
+} from './types/dtos';
 
 const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
 {
@@ -242,4 +247,32 @@ export const downloadDocumentVersion = (sessionId: string, documentId: string, v
 export const getLatestDocumentVersion = (sessionId: string, documentId: string) =>
     executeRequest(() =>
         apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/versions/latest`)
+    );
+
+// ── Session Access Management (Plan 01/02) ──
+
+export const listSessionAccess = (sessionId: string): Promise<SessionAccessEntryDto[]> =>
+    executeRequest(() => apiClient.get(`/sharing-sessions/${sessionId}/access`));
+
+export const grantSessionAccess = (
+    sessionId: string,
+    request: GrantSessionShareRequest,
+): Promise<SessionAccessEntryDto[]> =>
+    executeRequest(() => apiClient.post(`/sharing-sessions/${sessionId}/access`, request));
+
+export const changeSessionAccessRole = (
+    sessionId: string,
+    shareId: string,
+    request: UpdateSessionShareRoleRequest,
+): Promise<SessionAccessEntryDto[]> =>
+    executeRequest(() =>
+        apiClient.patch(`/sharing-sessions/${sessionId}/access/${shareId}`, request),
+    );
+
+export const revokeSessionAccess = (
+    sessionId: string,
+    shareId: string,
+): Promise<SessionAccessEntryDto[]> =>
+    executeRequest(() =>
+        apiClient.delete(`/sharing-sessions/${sessionId}/access/${shareId}`),
     );

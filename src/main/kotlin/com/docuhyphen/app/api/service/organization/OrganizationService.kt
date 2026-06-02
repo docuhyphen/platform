@@ -3,11 +3,10 @@ package com.docuhyphen.app.api.service.organization
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AppUserRole.ORG_ADMIN
 import com.docuhyphen.app.api.model.entity.Organization
-import com.docuhyphen.app.api.model.entity.OrganizationGroup
 import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
+import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.communication.EmailService
@@ -30,6 +29,8 @@ class OrganizationService @Inject constructor(
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
     private val configurationService: ConfigurationService,
+    private val userRoleService: UserRoleService,
+    private val organizationMembershipService: OrganizationMembershipService,
 )
 {
     companion object
@@ -45,7 +46,7 @@ class OrganizationService @Inject constructor(
         adminApprovalContext: AdminApprovalContext,
     )
     {
-        if (authTokenContext.authToken.appUser?.role != ORG_ADMIN)
+        if (authTokenContext.authToken.appUser?.id?.let { userRoleService.isOrgAdmin(it) } != true)
         {
             throw UnauthorizedException("User does not have permission to update organizations")
         }
@@ -100,7 +101,7 @@ class OrganizationService @Inject constructor(
 
     fun enforceAdminSafeguardForSettingsUpdate(organizationId: String?, adminApprovalContext: AdminApprovalContext)
     {
-        if (authTokenContext.authToken.appUser?.role != ORG_ADMIN)
+        if (authTokenContext.authToken.appUser?.id?.let { userRoleService.isOrgAdmin(it) } != true)
         {
             throw UnauthorizedException("User does not have permission to update organization settings")
         }
@@ -133,7 +134,7 @@ class OrganizationService @Inject constructor(
         val organization = organizationGroupService.getOrganizationById(UUID.fromString(organizationId))
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
 
-        return organization.appUsers
+        return organizationMembershipService.membersOf(organization.id)
     }
 
     fun update(organization: Organization)
@@ -161,7 +162,7 @@ class OrganizationService @Inject constructor(
         return getAppUsers(organizationId)
     }
 
-    fun getLinkedOrganizationsGroups(organizationId: String?): List<OrganizationGroup>
+    fun getLinkedOrganizationsGroups(organizationId: String?): List<com.docuhyphen.app.api.model.dto.PrincipalGroupDto>
     {
         if (organizationId.isNullOrBlank())
         {
@@ -177,7 +178,7 @@ class OrganizationService @Inject constructor(
         // v1 trusted-org visibility: never enumerate users; expose only the paired org's
         // explicitly published groups. Pairing must be ACCEPTED. See OrganizationGroupService
         // for the link check.
-        return organizationGroupService.getPublishedGroupsForPairedOrganization(
+        return organizationGroupService.getPublishedGroupViewsForPairedOrganization(
             currentOrg.id.toString(),
             organizationId,
         )
@@ -194,7 +195,7 @@ class OrganizationService @Inject constructor(
             updatedBy = updatedBy,
         )
 
-        organization.appUsers.forEach { appUser ->
+        organizationMembershipService.membersOf(organization.id).forEach { appUser ->
             try
             {
                 emailService.sendEmail(
@@ -213,7 +214,7 @@ class OrganizationService @Inject constructor(
 
     private fun organizationSnapshot(organization: Organization): String
     {
-        return "id=${organization.id};name=${organization.name};registrationNumber=${organization.registrationNumber};isActive=${organization.isActive};verificationComplete=${organization.verificationComplete};appUsers=${organization.appUsers.size};groups=${organization.groups.size}"
+        return "id=${organization.id};name=${organization.name};registrationNumber=${organization.registrationNumber};isActive=${organization.isActive};verificationComplete=${organization.verificationComplete};appUsers=${organizationMembershipService.activeMemberCount(organization.id)}"
     }
 }
 

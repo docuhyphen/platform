@@ -37,13 +37,12 @@ class Organization
     @JoinColumn(name = "contact_details_id")
     var contactDetails: ContactDetails? = null
 
-    @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id")
-    var appUsers: MutableList<AppUser> = mutableListOf()
+    // Membership moved to the unified organization_membership model. The retired
+    // Organization.appUsers (@JoinColumn organization_id) relationship and the
+    // app_user.organization_id column are dropped in V14; reads go through
+    // OrganizationMembershipService.membersOf / AppUserRepository.findByOrganizationId.
 
-    @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id")
-    var groups: MutableList<OrganizationGroup> = mutableListOf()
+    // Groups moved to the unified principal_group model (owner_organization_id).
 
     @OneToOne(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     @JoinColumn(name = "settings_id")

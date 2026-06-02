@@ -1,7 +1,6 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.AppUserRole
 import com.docuhyphen.app.api.repository.OrganizationRepository
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
@@ -14,6 +13,7 @@ class OrganizationIdpSecretRotationRunbookService @Inject constructor(
     private val organizationRepository: OrganizationRepository,
     private val adminActionGuardService: AdminActionGuardService,
     private val rotationSchedulerService: OrganizationIdpSecretRotationSchedulerService,
+    private val userRoleService: UserRoleService,
 )
 {
     fun previewEmergencyRotationCandidates(organizationId: String): OrganizationIdpRotationPreviewResult
@@ -72,7 +72,7 @@ class OrganizationIdpSecretRotationRunbookService @Inject constructor(
         val actor = authTokenContext.authToken.appUser
             ?: throw UnauthorizedException("User is not authenticated")
 
-        if (actor.role != AppUserRole.ORG_ADMIN)
+        if (!userRoleService.isOrgAdmin(actor.id))
         {
             throw UnauthorizedException("User does not have permission to run emergency secret rotation")
         }

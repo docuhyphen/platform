@@ -5,9 +5,8 @@ import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AppUserRole
 import com.docuhyphen.app.api.model.entity.Person
-import com.docuhyphen.app.api.repository.OrganizationRepository
+import com.docuhyphen.app.api.model.entity.RoleName
 import com.docuhyphen.app.api.repository.OrganizationSubscriptionPolicyRepository
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
@@ -34,13 +33,14 @@ class OrganizationAppUserService @Inject constructor(
     private val authenticationService: AuthenticationService,
     private val appUserService: AppUserService,
     private val authTokenContext: AuthTokenContext,
-    private val organizationRepository: OrganizationRepository,
     private val organizationSubscriptionPolicyRepository: OrganizationSubscriptionPolicyRepository,
     private val adminActionGuardService: AdminActionGuardService,
     private val authAuditService: AuthAuditService,
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
     private val configurationService: ConfigurationService,
+    private val userRoleService: com.docuhyphen.app.api.service.auth.UserRoleService,
+    private val organizationMembershipService: OrganizationMembershipService,
 )
 {
     companion object
@@ -55,14 +55,14 @@ class OrganizationAppUserService @Inject constructor(
     @Transactional
     fun addAppUser(
         organizationId: String,
-        role: AppUserRole?,
+        role: RoleName?,
         email: String?,
         firstName: String?,
         lastName: String?,
         adminApprovalContext: AdminApprovalContext,
     ): AppUser
     {
-        if (authTokenContext.authToken.appUser?.role != AppUserRole.ORG_ADMIN)
+        if (authTokenContext.authToken.appUser?.id?.let { userRoleService.isOrgAdmin(it) } != true)
         {
             throw IllegalArgumentException("User does not have permission to create groups")
         }
@@ -98,7 +98,8 @@ class OrganizationAppUserService @Inject constructor(
             throw IllegalArgumentException("Last name cannot be blank")
         }
 
-        if (organization.appUsers.any { it.email.normalizeEmailOrNull() == normalizedEmail })
+        if (organizationMembershipService.membersOf(organization.id)
+                .any { it.email.normalizeEmailOrNull() == normalizedEmail })
         {
             throw IllegalArgumentException("App user with that email already exists")
         }
@@ -112,7 +113,6 @@ class OrganizationAppUserService @Inject constructor(
 
         val appUser = AppUser().apply {
             this.email = normalizedEmail
-            this.role = role
             person = appUserPerson
         }
 
@@ -120,9 +120,16 @@ class OrganizationAppUserService @Inject constructor(
         val temporaryPasswordExpiry = Timestamp.from(Instant.now().plusSeconds(TEMP_PASSWORD_EXPIRY_DAYS * 24 * 60 * 60))
         applyTemporaryPassword(appUser, temporaryPassword, temporaryPasswordExpiry)
 
-        organization.appUsers.add(appUser)
+        // Persist the new user directly (the org→users join column is retired; org binding is
+        // recorded by the membership row below).
+        appUserService.create(appUser)
 
-        organizationRepository.update(organization)
+        organizationMembershipService.assignOrgRole(
+            appUserId = appUser.id,
+            organizationId = organization.id,
+            role = role,
+            invitedByAppUserId = authTokenContext.authToken.appUser?.id,
+        )
 
         authAuditService.emit(
             action = "ORG_APP_USER_ADD",
@@ -156,7 +163,7 @@ class OrganizationAppUserService @Inject constructor(
         val organization = organizationGroupService.getOrganizationById(UUID.fromString(organizationId))
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
 
-        return organization.appUsers
+        return organizationMembershipService.membersOf(organization.id)
     }
 
     @Transactional
@@ -171,7 +178,7 @@ class OrganizationAppUserService @Inject constructor(
         adminApprovalContext: AdminApprovalContext,
     )
     {
-        if (authTokenContext.authToken.appUser?.role != AppUserRole.ORG_ADMIN)
+        if (authTokenContext.authToken.appUser?.id?.let { userRoleService.isOrgAdmin(it) } != true)
         {
             throw IllegalArgumentException("User does not have permission to update app users")
         }
@@ -199,7 +206,7 @@ class OrganizationAppUserService @Inject constructor(
             ?: throw AppUserNotFoundException("App user not found for id: $appUserId")
 
         val beforeSnapshot = appUserSnapshot(appUser)
-        val previousRole = appUser.role
+        val previousRole = userRoleService.orgRoleIn(appUser.id, organization.id)
         val wasActive = appUser.isActive
 
         isActive?.let {
@@ -209,18 +216,30 @@ class OrganizationAppUserService @Inject constructor(
             throw IllegalArgumentException("isActive cannot be null")
         }
 
+        var newRole: RoleName? = null
         role?.let {
-
-            val parsedRole = try
+            newRole = try
             {
-                AppUserRole.valueOf(role)
+                RoleName.valueOf(role)
             }
             catch (e: IllegalArgumentException)
             {
                 throw IllegalArgumentException("Invalid role: $role")
             }
+        }
 
-            appUser.role = parsedRole
+        // Min-admins invariant: an org must always retain at least one usable administrator.
+        // Block this update if the target is the org's last enabled admin and the change would
+        // demote them (to a non-admin role) or deactivate their account.
+        val previousIsAdmin = previousRole == RoleName.ORG_ADMIN || previousRole == RoleName.ORG_OWNER
+        if (previousIsAdmin && organizationMembershipService.isLastActiveAdmin(appUser.id, organization.id))
+        {
+            val demoting = newRole != null && newRole != RoleName.ORG_ADMIN && newRole != RoleName.ORG_OWNER
+            val deactivating = isActive == false
+            if (demoting || deactivating)
+            {
+                throw IllegalArgumentException("Cannot demote or deactivate the last administrator of the organization")
+            }
         }
 
         email?.let {
@@ -264,6 +283,8 @@ class OrganizationAppUserService @Inject constructor(
 
         appUserService.update(appUser)
 
+        newRole?.let { organizationMembershipService.assignOrgRole(appUser.id, organization.id, it) }
+
         authAuditService.emit(
             action = "ORG_APP_USER_UPDATE",
             outcome = "SUCCESS",
@@ -274,9 +295,11 @@ class OrganizationAppUserService @Inject constructor(
             afterSnapshot = appUserSnapshot(appUser),
         )
 
-        if (previousRole != appUser.role)
-        {
-            sendRoleChangedEmail(appUser, organization.name, previousRole, appUser.role)
+        newRole?.let {
+            if (previousRole != it)
+            {
+                sendRoleChangedEmail(appUser, organization.name, previousRole, it)
+            }
         }
 
         if (wasActive && !appUser.isActive)
@@ -292,7 +315,7 @@ class OrganizationAppUserService @Inject constructor(
     @Transactional
     fun deleteAppUser(organizationId: String?, appUserId: String?, adminApprovalContext: AdminApprovalContext)
     {
-        if (authTokenContext.authToken.appUser?.role != AppUserRole.ORG_ADMIN)
+        if (authTokenContext.authToken.appUser?.id?.let { userRoleService.isOrgAdmin(it) } != true)
         {
             throw IllegalArgumentException("User does not have permission to create groups")
         }
@@ -328,19 +351,12 @@ class OrganizationAppUserService @Inject constructor(
 
         val appUserUuid = UUID.fromString(appUserId)
 
-        // First remove the app user from all organization groups
-        for (group in organization.groups) {
-            val membersToRemove = group.members.filter { it.appUser?.id == appUserUuid }
-            if (membersToRemove.isNotEmpty()) {
-                group.members.removeAll(membersToRemove)
-            }
-        }
+        // First remove the app user from all organization groups (new principal_group model).
+        organizationGroupService.removeUserFromOrganizationGroups(organization.id, appUserUuid)
 
-        // Then remove the app user from the organization
-        organization.appUsers.remove(appUser)
-
-        // Update the entire organization which will cascade to groups
-        organizationRepository.update(organization)
+        // Then remove the app user's membership of the organization (replaces the retired
+        // org→users join). The membership row must go before the user is hard-deleted below.
+        organizationMembershipService.removeMember(appUserUuid, organization.id)
 
         sendOrganizationMemberRemovedEmail(appUser, organization.name)
 
@@ -376,14 +392,15 @@ class OrganizationAppUserService @Inject constructor(
         val appUser = appUserService.getById(UUID.fromString(appUserId))
             ?: throw AppUserNotFoundException("App user not found for id: $appUserId")
 
-        return organization.appUsers.contains(appUser)
-//                && appUser.role != AppUserRole.ORG_ADMIN
+        return organizationMembershipService.isMember(appUser.id, organization.id)
+                // Cannot delete the org's last enabled administrator (min-admins invariant).
+                && !organizationMembershipService.isLastActiveAdmin(appUser.id, organization.id)
                 && appUserService.hasLinkedSharingSessions(appUser.id) == false
     }
 
     private fun appUserSnapshot(appUser: AppUser): String
     {
-        return "id=${appUser.id};email=${appUser.email};role=${appUser.role};isActive=${appUser.isActive};firstName=${appUser.person?.firstName};lastName=${appUser.person?.lastName}"
+        return "id=${appUser.id};email=${appUser.email};isActive=${appUser.isActive};firstName=${appUser.person?.firstName};lastName=${appUser.person?.lastName}"
     }
 
     private fun enforceOrganizationUserCap(organization: com.docuhyphen.app.api.model.entity.Organization)
@@ -399,7 +416,8 @@ class OrganizationAppUserService @Inject constructor(
             return
         }
 
-        val activeUsers = organization.appUsers.count { it.isActive && it.deprovisionedAt == null }.toLong()
+        val activeUsers = organizationMembershipService.membersOf(organization.id)
+            .count { it.isActive && it.deprovisionedAt == null }.toLong()
         if (activeUsers >= maxUsers)
         {
             throw IllegalArgumentException("Organization user limit reached for $tierCode tier. Limit is $maxUsers, current active users are $activeUsers.")
@@ -415,7 +433,7 @@ class OrganizationAppUserService @Inject constructor(
     private fun sendOrganizationMemberAddedEmail(
         appUser: AppUser,
         organizationName: String,
-        role: AppUserRole,
+        role: RoleName,
         isNewUser: Boolean,
         temporaryPassword: String? = null,
         temporaryPasswordExpiry: Timestamp? = null,
@@ -555,8 +573,8 @@ class OrganizationAppUserService @Inject constructor(
     private fun sendRoleChangedEmail(
         appUser: AppUser,
         organizationName: String,
-        oldRole: AppUserRole,
-        newRole: AppUserRole,
+        oldRole: RoleName?,
+        newRole: RoleName,
     )
     {
         try
@@ -564,7 +582,7 @@ class OrganizationAppUserService @Inject constructor(
             val body = emailTemplateService.renderRoleChangedEmail(
                 firstName = appUser.person?.firstName ?: "there",
                 organizationName = organizationName,
-                oldRole = oldRole.name,
+                oldRole = oldRole?.name ?: "NONE",
                 newRole = newRole.name,
                 changedBy = actorLabel(),
             )

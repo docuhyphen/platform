@@ -24,6 +24,7 @@ class AuthenticationService @Inject constructor(
     private val configurationService: ConfigurationService,
     private val refreshTokenStore: RefreshTokenStore,
     private val refreshTokenRecordService: RefreshTokenRecordService,
+    private val userRoleService: UserRoleService,
 )
 {
     val jwtSecretKey: SecretKey = Keys.hmacShaKeyFor(configurationService.getJwtSecret().toByteArray())
@@ -77,10 +78,13 @@ class AuthenticationService @Inject constructor(
         val expiration = Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(expiryMinutes))
         val authTime = authTimeEpochSeconds ?: (System.currentTimeMillis() / 1000)
 
+        val roleClaim = if (userRoleService.isAppAdmin(appUser.id)) "APP_ADMIN"
+            else userRoleService.primaryOrgRole(appUser.id)?.name ?: "END_USER"
+
         val builder = Jwts.builder()
             .subject(appUser.id.toString())
             .claim("email", appUser.email)
-            .claim("role", appUser.role.name)
+            .claim("role", roleClaim)
             .claim("session_version", appUser.sessionVersion)
             .claim("token_type", ACCESS.name)
             .claim("auth_time", authTime)

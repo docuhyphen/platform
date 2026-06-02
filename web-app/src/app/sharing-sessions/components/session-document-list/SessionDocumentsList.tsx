@@ -61,7 +61,17 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
     const isArchivedSession =
         sessionDetails?.status === SharingSessionStatus.ENDED ||
         sessionDetails?.status === SharingSessionStatus.REJECTED;
-    const canUploadInCurrentSession = !isArchivedSession && !!permissions?.canAddSessionDocument;
+    const canUploadInCurrentSession = !isArchivedSession && !!permissions?.canUploadDocument;
+
+    // TEMP DEBUG — remove once permissions issue resolved
+    // eslint-disable-next-line no-console
+    console.log('[SessionDocumentsList]', {
+        sessionId: sessionDetails?.id,
+        status: sessionDetails?.status,
+        isArchivedSession,
+        canUploadInCurrentSession,
+        permissions,
+    });
 
     const onCardClick = (sessionDocument: DocumentDetailedDto) =>
     {
@@ -73,6 +83,7 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
         return (
             <SessionDocumentActionsMenu
                 session={sessionDetails}
+                permissions={permissions}
                 onOpenDetailsSidebar={() =>
                 {
                     setSelectedSessionDocument(sessionDocument);

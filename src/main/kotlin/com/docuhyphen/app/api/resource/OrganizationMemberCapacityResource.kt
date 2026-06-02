@@ -1,11 +1,11 @@
 package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.AppUserRole
 import com.docuhyphen.app.api.repository.OrganizationSubscriptionPolicyRepository
 import com.docuhyphen.app.api.resource.model.OrgMemberCapacityResponse
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.PlatformOrganizationSubscriptionPolicyService
+import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
@@ -21,6 +21,8 @@ class OrganizationMemberCapacityResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val organizationService: OrganizationService,
     private val organizationSubscriptionPolicyRepository: OrganizationSubscriptionPolicyRepository,
+    private val userRoleService: UserRoleService,
+    private val organizationMembershipService: com.docuhyphen.app.api.service.organization.OrganizationMembershipService,
 )
 {
     companion object
@@ -41,8 +43,8 @@ class OrganizationMemberCapacityResource @Inject constructor(
                     .build()
             }
 
-            val isPlatformAdmin = appUser.role == AppUserRole.PLATFORM_ADMIN
-            val isOrgAdmin = appUser.role == AppUserRole.ORG_ADMIN
+            val isPlatformAdmin = userRoleService.isAppAdmin(appUser.id)
+            val isOrgAdmin = userRoleService.isOrgAdminIn(appUser.id, orgUuid)
 
             if (!isPlatformAdmin && !isOrgAdmin)
             {
@@ -74,7 +76,7 @@ class OrganizationMemberCapacityResource @Inject constructor(
                 ?: if (tierCode.equals(PlatformOrganizationSubscriptionPolicyService.FREE_TIER_CODE, ignoreCase = true))
                     PlatformOrganizationSubscriptionPolicyService.FREE_TIER_MAX_USERS
                 else null
-            val activeUsers = org.appUsers.count { it.isActive }.toLong()
+            val activeUsers = organizationMembershipService.membersOf(orgUuid).count { it.isActive }.toLong()
             val atCap = maxUsers != null && activeUsers >= maxUsers
             val nearCap = maxUsers != null && activeUsers >= (maxUsers * 0.8).toLong()
 

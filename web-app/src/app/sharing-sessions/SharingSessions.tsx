@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
     Button, InputOnChangeData, Link, SearchBoxChangeEvent, Spinner, Text, Toast, Toaster,
     ToastBody,
@@ -98,7 +98,27 @@ const SharingSessions: React.FC = () =>
     const [isSessionEnded, setIsSessionEnded] = React.useState(false);
     const [filteredDocuments, setFilteredDocuments] = useState<DocumentDetailedDto[]>([]);
     const [appUserHasSessions, setAppUserHasSessions] = useState<boolean>(false);
-    const [permissions, setPermissions] = useState<SharingSessionPermissions>();
+    const permissions = useMemo<SharingSessionPermissions>(
+        () => getPermissions(sessionDetails, appUser),
+        [sessionDetails, appUser?.id],
+    );
+
+    // TEMP DEBUG — remove once permissions issue resolved
+    useEffect(() => {
+        // eslint-disable-next-line no-console
+        console.log('[SharingSessions] permissions', {
+            sessionId: sessionDetails?.id,
+            status: sessionDetails?.status,
+            initiatorId: sessionDetails?.initiator?.id,
+            appUserId: appUser?.id,
+            permissions,
+            allowDocumentUpload: sessionDetails?.allowDocumentUpload,
+            allowDocumentUpdate: sessionDetails?.allowDocumentUpdate,
+            allowDocumentDeletion: sessionDetails?.allowDocumentDeletion,
+            allowDocumentDownload: sessionDetails?.allowDocumentDownload,
+            allowDocumentAddition: sessionDetails?.allowDocumentAddition,
+        });
+    }, [permissions, sessionDetails?.id, appUser?.id]);
     const sharingInitiationTriggerRef = useRef<HTMLButtonElement>(null);
     const deepLinkedSessionIdRef = useRef<string | null>(null);
     const deepLinkedDocumentIdRef = useRef<string | null>(null);
@@ -343,9 +363,6 @@ const SharingSessions: React.FC = () =>
                         deepLinkedDocumentIdRef.current = null;
                         deepLinkedDocumentSessionIdRef.current = null;
                     }
-
-                    const newPermissions = getPermissions(details, appUser);
-                    setPermissions(newPermissions);
                 }
                 catch (error)
                 {
@@ -389,17 +406,6 @@ const SharingSessions: React.FC = () =>
             setIsSessionEnded(sessionDetails.status == SharingSessionStatus.ENDED);
         }
     }, [sessionDetails]);
-
-    useEffect(() =>
-    {
-        if (!sessionDetails)
-        {
-            setPermissions(undefined);
-            return;
-        }
-
-        setPermissions(getPermissions(sessionDetails, appUser));
-    }, [sessionDetails, appUser?.id]);
 
     useEffect(() =>
     {
@@ -876,14 +882,14 @@ const SharingSessions: React.FC = () =>
                                 {(selectedSessionDocument && sessionDetails.documents?.length === 0) &&
                                     <SessionDocumentPreviewer document={selectedSessionDocument}
                                                               session={sessionDetails}
-                                                              canUploadDocument={!!permissions?.canAddSessionDocument}
+                                                              canUploadDocument={!!permissions?.canUploadDocument}
                                                               onUploadDocument={() => setIsUploadDocumentDialogOpen(true)}/>
                                 }
 
                                 {selectedSessionDocument &&
                                     <SessionDocumentPreviewer document={selectedSessionDocument}
                                                               session={sessionDetails}
-                                                              canUploadDocument={!!permissions?.canAddSessionDocument}
+                                                              canUploadDocument={!!permissions?.canUploadDocument}
                                                               onUploadDocument={() => setIsUploadDocumentDialogOpen(true)}/>
                                 }
 

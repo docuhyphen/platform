@@ -1,6 +1,5 @@
 package com.docuhyphen.app.api.model.dto
 
-import com.docuhyphen.app.api.model.entity.AppUserRole
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
@@ -20,37 +19,6 @@ data class OrganizationDetailedDto(
     val settings: OrganizationSettingsDto
 )
 
-@Serializable
-data class OrganizationGroupMemberPermissionDto(
-    val allowSessionAccept: Boolean = false,
-    val allowSessionReject: Boolean = false,
-    val allowSessionEdit: Boolean = false,
-    val allowSessionDelete: Boolean = false,
-    val allowSessionEnd: Boolean = false,
-    val allowDocumentAddition: Boolean = false,
-    val allowDocumentDeletion: Boolean = false,
-    val allowDocumentDownload: Boolean = false,
-    val allowDocumentUpdate: Boolean = false,
-    val allowDocumentUpload: Boolean = false
-)
-
-@Serializable
-data class OrganizationGroupMemberDetailedDto(
-    val user: AppUserDetailedDto?,
-    val permissions: OrganizationGroupMemberPermissionDto?
-)
-
-@Serializable
-data class OrganizationGroupDetailedDto(
-    @Serializable(with = UUIDSerializer::class)
-    val id: UUID?,
-    @Serializable(with = TimestampSerializer::class)
-    val createdDate: Timestamp?,
-    val isActive: Boolean?,
-    val name: String?,
-    val members: List<OrganizationGroupMemberDetailedDto?>,
-    val externallyPublished: Boolean = false,
-)
 
 @Serializable
 data class DocumentCommentDetailedDto(
@@ -112,32 +80,15 @@ data class SharingSessionDetailedDto(
     val recipient: AppUserDetailedDto? = null,
     val status: String?,
     var requestRecipientSignIn: Boolean = false,
+    var noAuthAccessValidityDays: Int = 7,
+    val documents: List<DocumentDetailedDto?>,
+    // Document permissions are stored on the recipient's Share constraints_json.
+    // They are populated at the resource layer from the primary recipient's share.
     var allowDocumentAddition: Boolean = false,
     var allowDocumentDeletion: Boolean = false,
-    var allowDocumentDownload: Boolean = true,
+    var allowDocumentDownload: Boolean = false,
     var allowDocumentUpdate: Boolean = false,
     var allowDocumentUpload: Boolean = false,
-    var noAuthAccessValidityDays: Int = 7,
-    val participants: List<SharingSessionParticipantDetailedDto> = emptyList(),
-    val documents: List<DocumentDetailedDto?>,
-    //    val participantIds: List<UUID>
-)
-
-@Serializable
-data class SharingSessionParticipantDetailedDto(
-    @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
-    val participantType: String,
-    @Serializable(with = TimestampSerializer::class)
-    val addedDate: Timestamp,
-    @Serializable(with = UUIDSerializer::class)
-    val appUserId: UUID? = null,
-    val appUserEmail: String? = null,
-    val appUserFirstName: String? = null,
-    val appUserLastName: String? = null,
-    @Serializable(with = UUIDSerializer::class)
-    val organizationGroupId: UUID? = null,
-    val organizationGroupName: String? = null,
 )
 
 @Serializable
@@ -172,7 +123,8 @@ data class AppUserDetailedDto(
     val createdDate: Timestamp?,
     val isActive: Boolean,
     val email: String,
-    val role: AppUserRole,
+    /** Effective org role label, resolved from organization_membership; null if not an org member. */
+    val role: String? = null,
     val person: PersonDetailedDto?,
     val settings: AppUserSettingsDto
 )

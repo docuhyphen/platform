@@ -11,10 +11,13 @@ import com.docuhyphen.app.api.model.dto.DocumentDetailedDto
 import com.docuhyphen.app.api.model.dto.SharingSessionBasicDto
 import com.docuhyphen.app.api.model.dto.SharingSessionDetailedDto
 import com.docuhyphen.app.api.model.entity.DocumentType
+import com.docuhyphen.app.api.resource.model.GrantSessionShareRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.SharingSessionInitiationDto
+import com.docuhyphen.app.api.resource.model.UpdateSessionShareRoleRequest
 import com.docuhyphen.app.api.resource.model.UpdateSharingSessionRequest
 import com.docuhyphen.app.api.service.sharingsession.*
+import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
@@ -33,8 +36,12 @@ class SharingSessionResource @Inject constructor(
     private val sharingSessionRetrievalService: SharingSessionRetrievalService,
     private val sharingSessionUpdateService: SharingSessionUpdateService,
     private val sharingSessionParticipantService: SharingSessionParticipantService,
+    private val shareQueryService: ShareQueryService,
+    private val shareService: ShareService,
+    private val sessionAccessManagementService: SessionAccessManagementService,
     private val authTokenContext: AuthTokenContext,
     private val fileStorageService: FileStorageService,
+    private val appUserService: AppUserService,
 
     )
 {
@@ -164,8 +171,22 @@ class SharingSessionResource @Inject constructor(
         {
             val sharingSession = sharingSessionRetrievalService.getSharingSession(sessionId)
             val sharingSessionDto = DetailedEntityToDtoTransformer.toDto(sharingSession)
+            val enriched = enrichSessionWithRecipient(enrichSessionWithPermissions(enrichSessionWithFileSizes(sharingSessionDto)))
 
-            Response.ok(enrichSessionWithFileSizes(sharingSessionDto)).build()
+            // TEMP DEBUG — remove once permissions issue resolved
+            val rawConstraints = shareService.recipientConstraintsJson(java.util.UUID.fromString(sessionId))
+            logger.info(
+                "DEBUG getSharingSession sessionId={} rawConstraints={} dto.allowDocumentUpload={} dto.allowDocumentUpdate={} dto.allowDocumentDeletion={} dto.allowDocumentDownload={} dto.allowDocumentAddition={}",
+                sessionId,
+                rawConstraints,
+                enriched?.allowDocumentUpload,
+                enriched?.allowDocumentUpdate,
+                enriched?.allowDocumentDeletion,
+                enriched?.allowDocumentDownload,
+                enriched?.allowDocumentAddition,
+            )
+
+            Response.ok(enriched).build()
         }
         catch (exception: Exception)
         {
@@ -208,6 +229,129 @@ class SharingSessionResource @Inject constructor(
             }
         }
     }
+
+    @GET
+    @Path("/{sessionId}/access")
+    fun getSharingSessionAccess(@PathParam("sessionId") sessionId: String): Response
+    {
+        return try
+        {
+            val view = shareQueryService.getSessionAccessView(java.util.UUID.fromString(sessionId))
+            Response.ok(view.toTypedArray()).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is IllegalArgumentException ->
+                {
+                    val responseError = ResponseError("Invalid session id")
+                    Response.status(Response.Status.BAD_REQUEST).entity(responseError).build()
+                }
+
+                else ->
+                {
+                    logger.error("Error getting sharing session access view", exception)
+                    val responseError = ResponseError("An error occurred while getting sharing session access")
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
+        }
+    }
+
+    @POST
+    @Path("/{sessionId}/access")
+    fun grantSharingSessionAccess(
+        @PathParam("sessionId") sessionId: String,
+        request: GrantSessionShareRequest,
+    ): Response
+    {
+        return try
+        {
+            val sessionUuid = java.util.UUID.fromString(sessionId)
+            sessionAccessManagementService.grantAccess(
+                sessionId = sessionUuid,
+                principalKind = request.principalKind,
+                principalId = request.principalId,
+                roleName = request.roleName,
+                constraintsJson = request.constraintsJson,
+                expiresAtEpochMillis = request.expiresAtEpochMillis,
+            )
+            Response.ok(shareQueryService.getSessionAccessView(sessionUuid).toTypedArray()).build()
+        }
+        catch (exception: Exception)
+        {
+            mapAccessMutationError(exception, "granting sharing session access")
+        }
+    }
+
+    @PATCH
+    @Path("/{sessionId}/access/{shareId}")
+    fun updateSharingSessionAccessRole(
+        @PathParam("sessionId") sessionId: String,
+        @PathParam("shareId") shareId: String,
+        request: UpdateSessionShareRoleRequest,
+    ): Response
+    {
+        return try
+        {
+            val sessionUuid = java.util.UUID.fromString(sessionId)
+            sessionAccessManagementService.changeRole(
+                sessionId = sessionUuid,
+                shareId = java.util.UUID.fromString(shareId),
+                roleName = request.roleName,
+                constraintsJson = request.constraintsJson,
+            )
+            Response.ok(shareQueryService.getSessionAccessView(sessionUuid).toTypedArray()).build()
+        }
+        catch (exception: Exception)
+        {
+            mapAccessMutationError(exception, "updating sharing session access role")
+        }
+    }
+
+    @DELETE
+    @Path("/{sessionId}/access/{shareId}")
+    fun revokeSharingSessionAccess(
+        @PathParam("sessionId") sessionId: String,
+        @PathParam("shareId") shareId: String,
+    ): Response
+    {
+        return try
+        {
+            val sessionUuid = java.util.UUID.fromString(sessionId)
+            sessionAccessManagementService.revokeAccess(
+                sessionId = sessionUuid,
+                shareId = java.util.UUID.fromString(shareId),
+            )
+            Response.ok(shareQueryService.getSessionAccessView(sessionUuid).toTypedArray()).build()
+        }
+        catch (exception: Exception)
+        {
+            mapAccessMutationError(exception, "revoking sharing session access")
+        }
+    }
+
+    private fun mapAccessMutationError(exception: Exception, context: String): Response =
+        when (exception)
+        {
+            is ForbiddenException ->
+                Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+            is SharingSessionNotFoundException ->
+                Response.status(Response.Status.NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+            is IllegalArgumentException ->
+                Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+            else ->
+            {
+                logger.error("Error $context", exception)
+                Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(ResponseError("An error occurred while $context"))
+                    .build()
+            }
+        }
 
     @PUT
     @Path("/{sessionId}")
@@ -438,6 +582,36 @@ class SharingSessionResource @Inject constructor(
 
         return sessionDto.copy(
             documents = sessionDto.documents.map { document -> enrichDocumentWithFileSize(document) }
+        )
+    }
+
+    /**
+     * Populate the session DTO's primary recipient from its recipient Share. Recipients now
+     * live on Share rows, not on the SharingSession entity itself.
+     */
+    private fun enrichSessionWithRecipient(sessionDto: SharingSessionDetailedDto?): SharingSessionDetailedDto?
+    {
+        if (sessionDto == null) return null
+        if (sessionDto.recipient != null) return sessionDto
+        val recipientUserId = shareService.primaryRecipientUserId(sessionDto.id) ?: return sessionDto
+        val recipient = appUserService.getById(recipientUserId) ?: return sessionDto
+        return sessionDto.copy(recipient = com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer.toDto(recipient))
+    }
+
+    /**
+     * Populate the session DTO's document permission flags from the primary recipient share's
+     * constraints JSON. The permissions live on the Share row, not on the SharingSession entity.
+     */
+    private fun enrichSessionWithPermissions(sessionDto: SharingSessionDetailedDto?): SharingSessionDetailedDto?
+    {
+        if (sessionDto == null) return null
+        val constraintsJson = shareService.recipientConstraintsJson(sessionDto.id) ?: return sessionDto
+        return sessionDto.copy(
+            allowDocumentAddition = constraintsJson.contains("\"allow_document_addition\":true"),
+            allowDocumentDeletion = constraintsJson.contains("\"allow_document_deletion\":true"),
+            allowDocumentDownload = constraintsJson.contains("\"allow_document_download\":true") || constraintsJson.contains("\"can_download\":true"),
+            allowDocumentUpdate = constraintsJson.contains("\"allow_document_update\":true"),
+            allowDocumentUpload = constraintsJson.contains("\"allow_document_upload\":true"),
         )
     }
 

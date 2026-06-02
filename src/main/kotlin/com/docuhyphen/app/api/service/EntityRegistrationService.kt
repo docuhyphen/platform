@@ -12,6 +12,7 @@ import com.docuhyphen.app.api.repository.PersonRepositoryRepository
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
@@ -27,7 +28,8 @@ class EntityRegistrationService @Inject constructor(
     private var configurationService: ConfigurationService,
     private var emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
-    private val organizationVerificationProducer: OrganizationVerificationProducer
+    private val organizationVerificationProducer: OrganizationVerificationProducer,
+    private val organizationMembershipService: OrganizationMembershipService,
 )
 {
     @PersistenceContext
@@ -143,9 +145,6 @@ class EntityRegistrationService @Inject constructor(
         entityManager.detach(appUser)
         val managedAppUser = entityManager.merge(appUser)
 
-        managedAppUser.role = AppUserRole.ORG_ADMIN
-        entityManager.merge(managedAppUser)
-
         val organization = Organization().apply {
             this.name = organizationName
             this.registrationNumber = registrationNumber
@@ -155,10 +154,21 @@ class EntityRegistrationService @Inject constructor(
                 this.email = email
                 this.phoneNumber = phoneNumber
             }
-            this.appUsers = mutableListOf(managedAppUser)
+            // Org→user binding is recorded via organization_membership below, not the retired
+            // Organization.appUsers join. managedAppUser is already persisted (merged above).
         }
 
         organizationRepository.save(organization)
+
+        // The registering user is the organization's first admin (replaces the legacy
+        // AppUser.role = ORG_ADMIN assignment).
+        organizationMembershipService.assignOrgRole(
+            appUserId = managedAppUser.id,
+            organizationId = organization.id,
+            role = RoleName.ORG_ADMIN,
+            isPrimary = true,
+        )
+
         logger.info("Organization registration successful for registration number $registrationNumber.")
 
         val emailBody = emailTemplateService.renderOrganizationRegistrationEmail(

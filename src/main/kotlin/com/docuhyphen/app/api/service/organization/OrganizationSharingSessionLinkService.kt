@@ -6,7 +6,6 @@ import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.dto.NotificationDto
 import com.docuhyphen.app.api.model.dto.NotificationType
 import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AppUserRole
 import com.docuhyphen.app.api.model.entity.LinkStatus
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationSharingSessionLink
@@ -37,6 +36,8 @@ class OrganizationSharingSessionLinkService @Inject constructor(
     private val adminActionGuardService: AdminActionGuardService,
     private val authAuditService: AuthAuditService,
     private val realtimeEventService: RealtimeEventService,
+    private val userRoleService: com.docuhyphen.app.api.service.auth.UserRoleService,
+    private val organizationMembershipService: OrganizationMembershipService,
 )
 {
     fun getOrganizationsForLinking(): List<Organization>
@@ -44,7 +45,7 @@ class OrganizationSharingSessionLinkService @Inject constructor(
         val appUser = authContext.authToken.appUser
             ?: throw UnauthorizedException("User must be authenticated")
 
-        if (appUser.role != AppUserRole.ORG_ADMIN)
+        if (!userRoleService.isOrgAdmin(appUser.id))
         {
             throw UnauthorizedException("Only organization administrators can view organizations for linking")
         }
@@ -95,7 +96,7 @@ class OrganizationSharingSessionLinkService @Inject constructor(
 
         val appUser = authContext.authToken.appUser
 
-        if (appUser?.role != AppUserRole.ORG_ADMIN)
+        if (appUser == null || !userRoleService.isOrgAdmin(appUser.id))
         {
             throw IllegalArgumentException("Only organization administrators can create sharing session links")
         }
@@ -106,8 +107,10 @@ class OrganizationSharingSessionLinkService @Inject constructor(
             context = adminApprovalContext,
         )
 
-        requestingOrganization.appUsers.firstOrNull { it -> it.id == appUser.id }
-            ?: throw IllegalArgumentException("App user is not part of the requesting organization")
+        if (!organizationMembershipService.isMember(appUser.id, requestingOrganization.id))
+        {
+            throw IllegalArgumentException("App user is not part of the requesting organization")
+        }
 
         val link = OrganizationSharingSessionLink().apply {
             this.requestingOrganization = requestingOrganization
@@ -132,9 +135,9 @@ class OrganizationSharingSessionLinkService @Inject constructor(
         //ToDo: Send email to the organization admin
 
         val appBaseUrl = configurationService.baseUrl
-        requestedOrganization.appUsers.forEach { orgAppUser ->
+        organizationMembershipService.membersOf(requestedOrganization.id).forEach { orgAppUser ->
 
-            if (orgAppUser.role == AppUserRole.ORG_ADMIN)
+            if (userRoleService.isOrgAdminIn(orgAppUser.id, requestedOrganization.id))
             {
                 emailService.sendEmail(
                     orgAppUser.email,
@@ -179,7 +182,7 @@ class OrganizationSharingSessionLinkService @Inject constructor(
 
         val appUser = authContext.authToken.appUser
 
-        if (appUser?.role != AppUserRole.ORG_ADMIN)
+        if (appUser == null || !userRoleService.isOrgAdmin(appUser.id))
         {
             throw IllegalArgumentException("Only organization administrators can accept or delcine sharing session links")
         }
@@ -220,9 +223,10 @@ class OrganizationSharingSessionLinkService @Inject constructor(
 
         if (linkStatus == LinkStatus.ACCEPTED)
         {
-            link.requestingOrganization?.appUsers?.forEach { orgAppUser ->
+            link.requestingOrganization?.id?.let { orgId ->
+                organizationMembershipService.membersOf(orgId).forEach { orgAppUser ->
 
-                if (orgAppUser.role == AppUserRole.ORG_ADMIN)
+                if (userRoleService.isOrgAdminIn(orgAppUser.id, orgId))
                 {
                     emailService.sendEmail(
                         orgAppUser.email,
@@ -232,13 +236,14 @@ class OrganizationSharingSessionLinkService @Inject constructor(
                             """.trimIndent()
                     )
                 }
-            }
+            } }
         }
         else if (linkStatus == LinkStatus.REJECTED)
         {
-            link.requestingOrganization?.appUsers?.forEach { orgAppUser ->
+            link.requestingOrganization?.id?.let { orgId ->
+                organizationMembershipService.membersOf(orgId).forEach { orgAppUser ->
 
-                if (orgAppUser.role == AppUserRole.ORG_ADMIN)
+                if (userRoleService.isOrgAdminIn(orgAppUser.id, orgId))
                 {
                     emailService.sendEmail(
                         orgAppUser.email,
@@ -248,7 +253,7 @@ class OrganizationSharingSessionLinkService @Inject constructor(
                             """.trimIndent()
                     )
                 }
-            }
+            } }
         }
 
         val statusLabel = if (linkStatus == LinkStatus.ACCEPTED) "accepted" else "declined"
@@ -272,13 +277,15 @@ class OrganizationSharingSessionLinkService @Inject constructor(
 
         val appUser = authContext.authToken.appUser
 
-        if (appUser?.role != AppUserRole.ORG_ADMIN)
+        if (appUser == null || !userRoleService.isOrgAdmin(appUser.id))
         {
             throw IllegalArgumentException("Only organization administrators can view sharing session links")
         }
 
-        organization.appUsers.firstOrNull { it -> it.id == appUser.id }
-            ?: throw IllegalArgumentException("App user is not part of the organization")
+        if (!organizationMembershipService.isMember(appUser.id, organization.id))
+        {
+            throw IllegalArgumentException("App user is not part of the organization")
+        }
 
         return with(organizationSharingSessionLinkRepository) {
 
@@ -296,7 +303,7 @@ class OrganizationSharingSessionLinkService @Inject constructor(
 
         val appUser = authContext.authToken.appUser
 
-        if (appUser?.role != AppUserRole.ORG_ADMIN)
+        if (appUser == null || !userRoleService.isOrgAdmin(appUser.id))
         {
             throw IllegalArgumentException("Only organization administrators can view sharing session links")
         }
@@ -310,7 +317,8 @@ class OrganizationSharingSessionLinkService @Inject constructor(
         //ToDO: validate of appUser is part of the requesting or requested organization
 
         // Notify the *other* organization's admins about the un-pair / cancelled request.
-        val otherOrg = if (link.requestingOrganization?.appUsers?.any { it.id == appUser.id } == true)
+        val otherOrg = if (link.requestingOrganization?.id
+                ?.let { organizationMembershipService.isMember(appUser.id, it) } == true)
         {
             link.requestedOrganization
         }
@@ -319,8 +327,9 @@ class OrganizationSharingSessionLinkService @Inject constructor(
             link.requestingOrganization
         }
 
-        otherOrg?.appUsers?.forEach { orgAppUser ->
-            if (orgAppUser.role == AppUserRole.ORG_ADMIN)
+        otherOrg?.id?.let { otherOrgId ->
+        organizationMembershipService.membersOf(otherOrgId).forEach { orgAppUser ->
+            if (userRoleService.isOrgAdminIn(orgAppUser.id, otherOrgId))
             {
                 try
                 {
@@ -339,7 +348,7 @@ class OrganizationSharingSessionLinkService @Inject constructor(
                     // best effort,  don't fail the deLink if notification fails
                 }
             }
-        }
+        } }
 
         organizationSharingSessionLinkRepository.deleteById(link.id)
 
@@ -365,7 +374,7 @@ class OrganizationSharingSessionLinkService @Inject constructor(
     {
         val appUser = authContext.authToken.appUser
 
-        if (appUser?.role != AppUserRole.ORG_ADMIN)
+        if (appUser == null || !userRoleService.isOrgAdmin(appUser.id))
         {
             throw UnauthorizedException("Only organization group admins can see/manage organizations pairs")
         }
@@ -377,8 +386,9 @@ class OrganizationSharingSessionLinkService @Inject constructor(
 
     private fun broadcastOrgPairUpdate(org: Organization?, message: String)
     {
-        org?.appUsers?.forEach { orgAppUser ->
-            if (orgAppUser.role == AppUserRole.ORG_ADMIN)
+        val orgId = org?.id ?: return
+        organizationMembershipService.membersOf(orgId).forEach { orgAppUser ->
+            if (userRoleService.isOrgAdminIn(orgAppUser.id, orgId))
             {
                 try
                 {

@@ -66,6 +66,9 @@ class ConfigurationService @Inject constructor(
 
     @ConfigProperty(name = "app.secrets.rotation.runtime.allowed-phases", defaultValue = "MONITOR,ACTIVATE")
     private val secretsRotationRuntimeAllowedPhasesConfig: String,
+
+    @ConfigProperty(name = "app.security.app-admin.bootstrap-email")
+    private val bootstrapAppAdminEmailConfig: Optional<String>,
 )
 {
     @Volatile
@@ -74,6 +77,13 @@ class ConfigurationService @Inject constructor(
     // -------------------------------------------------------------------------
     // Core / general
     // -------------------------------------------------------------------------
+
+    /**
+     * Email of the user to auto-promote to APP_ADMIN at startup when no active App Admin exists
+     * (dev/first-run bootstrap). Blank/absent disables bootstrapping. See [RoleAssignmentService].
+     */
+    fun getBootstrapAppAdminEmail(): String? =
+        bootstrapAppAdminEmailConfig.orElse(null)?.trim()?.takeIf { it.isNotBlank() }
 
     fun getMaxSignUpCompletionOtpAttempts(): Long = 3
     fun getSignUpOtpExpiryMins(): Long = 5

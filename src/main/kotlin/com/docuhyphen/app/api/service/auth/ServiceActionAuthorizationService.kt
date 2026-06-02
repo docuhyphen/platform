@@ -1,150 +1,86 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AppUserRole.*
 import com.docuhyphen.app.api.model.entity.Organization
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.ApplicationScoped
+import jakarta.inject.Inject
 
+/**
+ * Action-level authorization checks for user/org settings flows. Roles are resolved through
+ * [UserRoleService] (organization_membership / role_assignment) — the legacy `AppUser.role`
+ * enum is gone.
+ */
 @ApplicationScoped
-class ServiceActionAuthorizationService
+class ServiceActionAuthorizationService @Inject constructor(
+    private val userRoleService: UserRoleService,
+)
 {
     fun validateAppUserPhoneNumberModification(appUser: AppUser)
     {
-        with(appUser) {
-
-            when (role)
-            {
-                ORG_ADMIN, ORG_MEMBER, APP_USER -> return
-                else ->
-                    throw UnauthorizedException("User with role $role cannot add a phone number addition")
-            }
+        // Normal users may manage their phone number; application admins operate as users and
+        // are not the target of this self-service flow.
+        if (userRoleService.isAppAdmin(appUser.id))
+        {
+            throw UnauthorizedException("Application administrators cannot add a phone number here")
         }
     }
 
     fun validateAppUserEmailModification(appUser: AppUser)
     {
-        with(appUser) {
-
-            if (role == ORG_ADMIN || role == ORG_MEMBER) return
-
-            throw UnauthorizedException("User with role $role cannot add a phone number addition")
-        }
+        if (userRoleService.isOrgMember(appUser.id)) return
+        throw UnauthorizedException("User cannot modify email")
     }
 
     fun validateUpdateNotifyLoginSettings(appUser: AppUser, targetUser: AppUser)
     {
-        // Users can update their own login notification settings
-        if (appUser.id == targetUser.id && (appUser.role == ORG_ADMIN || appUser.role == ORG_MEMBER))
-        {
-            return
-        }
-
-        // Admins can update settings for other users
-        if (appUser.role == ORG_ADMIN)
-        {
-            return
-        }
-
-        throw UnauthorizedException("User with role ${appUser.role} cannot update login notification settings")
+        if (appUser.id == targetUser.id && userRoleService.isOrgMember(appUser.id)) return
+        if (userRoleService.isOrgAdmin(appUser.id)) return
+        throw UnauthorizedException("User cannot update login notification settings")
     }
 
     fun validateUpdateAppUserSettings(appUser: AppUser, targetUser: AppUser)
     {
-//        // Only admins can update settings for other users
-//        if (appUser.id != targetUser.id)
-//        {
-//            if (appUser.role != ORG_ADMIN)
-//            {
-//                throw UnauthorizedException("Only organization admins can update settings for other users")
-//            }
-//        }
-//        else
-//        {
-//            // Even if the user is updating their own settings, we need to check their role
-//            if (appUser.role != ORG_ADMIN && appUser.role != ORG_MEMBER)
-//            {
-//                throw UnauthorizedException("User with role ${appUser.role} cannot update app user settings")
-//            }
-//        }
+        // (Intentionally permissive — retained from the legacy implementation.)
     }
 
     fun validateUpdateNotificationSettings(appUser: AppUser, targetUser: AppUser)
     {
-        // All org members and admins can update their notification preferences
-        if (appUser.id == targetUser.id && (appUser.role == ORG_ADMIN || appUser.role == ORG_MEMBER))
-        {
-            return
-        }
-
-        // Admins can update settings for other users in the organization
-        if (appUser.role == ORG_ADMIN)
-        {
-            return
-        }
-
-        throw UnauthorizedException("User with role ${appUser.role} cannot update notification settings")
+        if (appUser.id == targetUser.id && userRoleService.isOrgMember(appUser.id)) return
+        if (userRoleService.isOrgAdmin(appUser.id)) return
+        throw UnauthorizedException("User cannot update notification settings")
     }
 
     fun validateUpdateAutoPreviewSetting(appUser: AppUser, targetUser: AppUser)
     {
-        // This follows the same pattern as notification settings
-        if (appUser.id == targetUser.id && (appUser.role == ORG_ADMIN || appUser.role == ORG_MEMBER))
-        {
-            return
-        }
-
-        if (appUser.role == ORG_ADMIN)
-        {
-            return
-        }
-
-        throw UnauthorizedException("User with role ${appUser.role} cannot update document preview settings")
+        if (appUser.id == targetUser.id && userRoleService.isOrgMember(appUser.id)) return
+        if (userRoleService.isOrgAdmin(appUser.id)) return
+        throw UnauthorizedException("User cannot update document preview settings")
     }
 
     // Organization Settings validation methods
 
     fun validateUpdateOrganizationSettings(appUser: AppUser)
     {
-        // Only organization admins can modify org settings
-        if (appUser.role == ORG_ADMIN)
-        {
-            return
-        }
-
+        if (userRoleService.isOrgAdmin(appUser.id)) return
         throw UnauthorizedException("Only organization admins can update organization settings")
     }
 
     fun validateUpdateShareWithoutPairingSetting(appUser: AppUser)
     {
-        // This is a security-sensitive setting, only admins can change
-        if (appUser.role == ORG_ADMIN)
-        {
-            return
-        }
-
+        if (userRoleService.isOrgAdmin(appUser.id)) return
         throw UnauthorizedException("Only organization admins can update sharing session settings")
     }
 
     fun validateUpdateProfileUpdatePermission(appUser: AppUser)
     {
-        // Only admins can decide if members can update their profiles
-        if (appUser.role == ORG_ADMIN)
-        {
-            return
-        }
-
+        if (userRoleService.isOrgAdmin(appUser.id)) return
         throw UnauthorizedException("Only organization admins can update profile update permissions")
     }
 
     fun validateUpdateEmailUpdatePermission(appUser: AppUser)
     {
-        // Only admins can decide if members can update their email
-        if (appUser.role == ORG_ADMIN)
-        {
-            return
-        }
-
+        if (userRoleService.isOrgAdmin(appUser.id)) return
         throw UnauthorizedException("Only organization admins can update email update permissions")
     }
 
@@ -152,35 +88,23 @@ class ServiceActionAuthorizationService
 
     fun validateUserProfileUpdate(appUser: AppUser, organization: Organization)
     {
-        // Admins can always update their profile
-        if (appUser.role == ORG_ADMIN)
+        if (userRoleService.isOrgAdminIn(appUser.id, organization.id)) return
+        if (userRoleService.orgRoleIn(appUser.id, organization.id) != null &&
+            organization.settings?.allowProfileUpdate == true)
         {
             return
         }
-
-        // Members can update their profile only if organization settings allow it
-        if (appUser.role == ORG_MEMBER && organization.settings?.allowProfileUpdate == true)
-        {
-            return
-        }
-
-        throw UnauthorizedException("Profile updates are not allowed for users with role ${appUser.role}")
+        throw UnauthorizedException("Profile updates are not allowed for this user")
     }
 
     fun validateUserEmailUpdate(appUser: AppUser, organization: Organization)
     {
-        // Admins can always update their email
-        if (appUser.role == ORG_ADMIN)
+        if (userRoleService.isOrgAdminIn(appUser.id, organization.id)) return
+        if (userRoleService.orgRoleIn(appUser.id, organization.id) != null &&
+            organization.settings?.allowEmailUpdate == true)
         {
             return
         }
-
-        // Members can update their email only if organization settings allow it
-        if (appUser.role == ORG_MEMBER && organization.settings?.allowEmailUpdate == true)
-        {
-            return
-        }
-
-        throw UnauthorizedException("Email updates are not allowed for users with role ${appUser.role}")
+        throw UnauthorizedException("Email updates are not allowed for this user")
     }
 }

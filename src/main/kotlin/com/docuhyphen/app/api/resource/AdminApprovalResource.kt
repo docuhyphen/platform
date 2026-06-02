@@ -1,7 +1,6 @@
 package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.AppUserRole
 import com.docuhyphen.app.api.resource.model.AdminApprovalApproveResponse
 import com.docuhyphen.app.api.resource.model.AdminApprovalInitiateRequest
 import com.docuhyphen.app.api.resource.model.AdminApprovalInitiateResponse
@@ -24,6 +23,7 @@ import java.util.UUID
 class AdminApprovalResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val adminApprovalWorkflowService: AdminApprovalWorkflowService,
+    private val userRoleService: com.docuhyphen.app.api.service.auth.UserRoleService,
 )
 {
     @POST
@@ -38,7 +38,7 @@ class AdminApprovalResource @Inject constructor(
             val actor = authTokenContext.authToken.appUser
                 ?: return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
-            if (actor.role != AppUserRole.ORG_ADMIN)
+            if (!userRoleService.isOrgAdmin(actor.id))
             {
                 return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges")).build()
             }
@@ -81,7 +81,7 @@ class AdminApprovalResource @Inject constructor(
             val actor = authTokenContext.authToken.appUser
                 ?: return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
-            if (actor.role != AppUserRole.ORG_ADMIN)
+            if (!userRoleService.isOrgAdmin(actor.id))
             {
                 return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges")).build()
             }

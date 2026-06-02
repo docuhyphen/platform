@@ -21,7 +21,6 @@ import com.docuhyphen.app.api.service.communication.AppNotificationService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
-import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
@@ -45,7 +44,11 @@ class SharingSessionInitiationService @Inject constructor(
     private val configurationService: ConfigurationService,
     private val authAuditService: AuthAuditService,
     private val appNotificationService: AppNotificationService,
-    private val orgGroupService: OrganizationGroupService
+    private val shareService: ShareService,
+    private val principalGroupRepository: com.docuhyphen.app.api.repository.PrincipalGroupRepository,
+    private val principalGroupMemberRepository: com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository,
+    private val organizationSharingPolicyService: com.docuhyphen.app.api.service.organization.OrganizationSharingPolicyService,
+    private val workflowEngineService: com.docuhyphen.app.api.service.workflow.WorkflowEngineService,
 )
 {
     @PersistenceContext
@@ -81,63 +84,56 @@ class SharingSessionInitiationService @Inject constructor(
 
         validateSharingSessionFields(initiator, sessionInitiationDto)
 
-        val recipient = when (sessionInitiationDto.recipientType)
+        val recipientGroupId: UUID? =
+            if (sessionInitiationDto.recipientType == GROUP)
+                UUID.fromString(sessionInitiationDto.recipientOrgGroupId!!)
+            else null
+
+        val resolvedRecipient: AppUser? = when (sessionInitiationDto.recipientType)
         {
             EMAIL ->
                 appUserService.getAppUserByEmail(sessionInitiationDto.recipientEmail!!)
                     ?: AppUser().apply {
-                        isTemporary = true;
-                        email = sessionInitiationDto.recipientEmail!!;
+                        isTemporary = true
+                        email = sessionInitiationDto.recipientEmail!!
                         isActive = false
                     }
 
             APP_USER ->
                 appUserService.getById(UUID.fromString(sessionInitiationDto.recipientAppUserId))!!
 
-            GROUP ->
-                orgGroupService.getById(sessionInitiationDto.recipientOrgGroupId!!)
+            GROUP -> null
 
             else ->
                 throw IllegalArgumentException("Unsupported recipient type")
         }
 
-        val participants = sessionInitiationDto.participants
-            .map { p ->
+        // Org sharing policy: a closed org (allowShareWithoutPairing = false) may only share with
+        // its own members or members of a paired org. GROUP recipients are org-internal groups and
+        // are governed by group membership, so the gate applies to direct USER/EMAIL recipients.
+        if (sessionInitiationDto.recipientType == EMAIL || sessionInitiationDto.recipientType == APP_USER)
+        {
+            organizationSharingPolicyService.assertCanShareWithUser(
+                initiatorAppUserId = initiator.id,
+                recipientAppUserId = resolvedRecipient?.takeIf { it.isTemporary != true }?.id,
+            )
+        }
 
-            var participantAppUser: AppUser? = null
-            var participantGroup: OrganizationGroup? = null
-            var participantType = SharingSessionParticipantType.APP_USER
-
+        // Participants as (principal kind, id) pairs — group participants fan out to members.
+        val participantPrincipals: List<Pair<PrincipalKind, UUID>> = sessionInitiationDto.participants.map { p ->
             if (p.participantType == SharingSessionParticipantType.GROUP)
-            {
-                participantType = SharingSessionParticipantType.APP_USER
-                participantGroup = orgGroupService.getById(p.id)
-            }
+                PrincipalKind.PRINCIPAL_GROUP to UUID.fromString(p.id)
             else
-            {
-                participantAppUser = appUserService.getById(UUID.fromString(p.id))
-            }
-
-            SharingSessionParticipant().apply {
-                this.appUser = participantAppUser
-                this.organizationGroup = participantGroup
-                this.addedDate = Timestamp.from(Instant.now())
-                this.participantType = participantType
-            }
-        }.toMutableList()
+                PrincipalKind.USER to UUID.fromString(p.id)
+        }
 
         entityManager.detach(initiator)
-        entityManager.detach(recipient)
+        resolvedRecipient?.let { entityManager.detach(it) }
 
-        val appUserRecipient =
-            if (sessionInitiationDto.recipientType != GROUP) entityManager.merge(recipient as AppUser) else null
-        val orgGroupRecipient =
-            if (sessionInitiationDto.recipientType == GROUP) entityManager.merge(recipient as OrganizationGroup) else null
+        val appUserRecipient = resolvedRecipient?.let { entityManager.merge(it) }
 
         val sharingSession = SharingSession().apply {
             this.initiator = entityManager.merge(initiator)
-            this.recipient = appUserRecipient
-            this.recipientGroup = orgGroupRecipient
             this.sessionName = sessionInitiationDto.sessionName!!.trim()
             this.initialShareMessage = sessionInitiationDto.initialShareMessage?.trim()
             this.description = sessionInitiationDto.description?.trim()
@@ -145,12 +141,6 @@ class SharingSessionInitiationService @Inject constructor(
             this.createdDate = Timestamp.from(Instant.now())
             this.lastActivity = Timestamp.from(Instant.now())
             this.requireRecipientSignIn = sessionInitiationDto.requestRecipientSignIn == true
-            this.allowDocumentAddition = sessionInitiationDto.allowDocumentAddition == true
-            this.allowDocumentDeletion = sessionInitiationDto.allowDocumentDeletion == true
-            this.allowDocumentDownload = sessionInitiationDto.allowDocumentDownload == true
-            this.allowDocumentUpdate = sessionInitiationDto.allowDocumentUpdate == true
-            this.allowDocumentUpload = sessionInitiationDto.allowDocumentUpload == true
-            this.participants = participants
         }
 
         sessionInitiationDto.sessionDocuments?.forEach { doc ->
@@ -166,25 +156,182 @@ class SharingSessionInitiationService @Inject constructor(
             sharingSession.documents.add(document)
         }
 
-
-        participants.forEach {
-            it.sharingSession = sharingSession
-            entityManager.detach(it)
-        }
-
         val savedSharingSession = sharingSessionRepository.save(sharingSession)
+
+        // Group-recipient sessions may require approval before the recipient share goes live.
+        // Trigger the `session.approval_requested` workflow; if a matching active definition
+        // exists (org-scoped, else the app-wide seed), the recipient share is created
+        // PENDING_APPROVAL and only flipped to ACTIVE once the workflow emits `session.activated`
+        // (see SessionApprovalEventHandler). Otherwise the share is ACTIVE immediately.
+        val recipientNeedsApproval = recipientGroupId?.let {
+            maybeTriggerGroupApproval(savedSharingSession, it, initiator)
+        } ?: false
+
+        // Recipients/participants/permissions live in the unified Share model — the initiator
+        // gets an OWNER share, the recipient a role derived from the requested document
+        // permissions, and each participant a PARTICIPANT share (groups fan out to members).
+        grantInitiatorOwnerShare(savedSharingSession, initiator)
+        grantRecipientShare(
+            session = savedSharingSession,
+            recipientType = sessionInitiationDto.recipientType!!,
+            recipientAppUser = appUserRecipient,
+            recipientGroupId = recipientGroupId,
+            initiator = initiator,
+            dto = sessionInitiationDto,
+            pendingApproval = recipientNeedsApproval,
+        )
+        grantParticipantShares(savedSharingSession, participantPrincipals, initiator)
 
         sendNotifications(
             recipientType = sessionInitiationDto.recipientType!!,
             initiator = initiator,
             recipientAppUser = appUserRecipient,
-            recipientOrgGroup = orgGroupRecipient,
+            recipientGroupId = recipientGroupId,
             sharingSession = savedSharingSession,
         )
 
         logger.info("Sharing session initiated ID: ${sharingSession.id}")
         return savedSharingSession
     }
+
+    /**
+     * Dual-write: mirror the session's legacy recipient into a unified [Share] row so the new
+     * authorization model stays in sync. The legacy recipient columns remain authoritative for
+     * reads until cutover. No-op when dual-write is disabled.
+     *
+     * A GROUP recipient becomes a `PRINCIPAL_GROUP` share, which [ShareService] fans out into
+     * `INHERITED_FROM_GROUP` rows per member. USER / EMAIL recipients (the latter already
+     * materialised as a temporary [AppUser] by the legacy flow) become `USER` shares.
+     *
+     * Participants are not mirrored here yet — that is a separate follow-up slice.
+     */
+    private fun grantRecipientShare(
+        session: SharingSession,
+        recipientType: SharingSessionRecipientType,
+        recipientAppUser: AppUser?,
+        recipientGroupId: UUID?,
+        initiator: AppUser,
+        dto: SharingSessionInitiationDto,
+        pendingApproval: Boolean = false,
+    )
+    {
+        val (principalKind, principalId) = when (recipientType)
+        {
+            GROUP -> recipientGroupId?.let { PrincipalKind.PRINCIPAL_GROUP to it } ?: return
+            else -> recipientAppUser?.let { PrincipalKind.USER to it.id } ?: return
+        }
+
+        shareService.grant(
+            resourceType = ResourceType.SHARING_SESSION,
+            resourceId = session.id,
+            principalKind = principalKind,
+            principalId = principalId,
+            roleName = recipientRoleFor(dto),
+            grantedByAppUserId = initiator.id,
+            source = ShareSource.DIRECT,
+            constraintsJson = sessionConstraintsJson(dto),
+            status = if (pendingApproval) ShareStatus.PENDING_APPROVAL else ShareStatus.ACTIVE,
+        )
+    }
+
+    /**
+     * Fire the `session.approval_requested` workflow for a group-recipient session. Returns true
+     * when an approval workflow was actually started (the recipient share must then be created
+     * PENDING_APPROVAL), false when no active definition matched (proceed un-gated).
+     *
+     * The subject snapshot carries everything the seeded `session-approval-in-group` workflow
+     * references: `recipientGroupId` (whose MANAGERs approve), `orgId` (the group's owning org —
+     * SLA escalation targets its ORG_ADMINs), and `initiatorId` (for outcome-event routing).
+     */
+    private fun maybeTriggerGroupApproval(
+        session: SharingSession,
+        recipientGroupId: UUID,
+        initiator: AppUser,
+    ): Boolean
+    {
+        val group = principalGroupRepository.findById(recipientGroupId)
+        val orgId = group?.ownerOrganizationId
+        val result = workflowEngineService.trigger(
+            com.docuhyphen.app.api.service.workflow.TriggerRequest(
+                triggerEvent = "session.approval_requested",
+                subjectResourceType = ResourceType.SHARING_SESSION.name,
+                subjectResourceId = session.id,
+                organizationId = orgId,
+                subjectData = buildMap {
+                    put("recipientGroupId", recipientGroupId.toString())
+                    put("initiatorId", initiator.id.toString())
+                    orgId?.let { put("orgId", it.toString()) }
+                },
+                initiatedByAppUserId = initiator.id,
+            )
+        )
+        if (result != null)
+        {
+            logger.info(
+                "Session {} requires group approval (workflow instance {}); recipient share held PENDING_APPROVAL",
+                session.id, result.instanceId,
+            )
+        }
+        return result != null
+    }
+
+    /** Grant the initiator an OWNER [Share] (OWNER carries SESSION_OWNER / SESSION_SHARE). */
+    private fun grantInitiatorOwnerShare(session: SharingSession, initiator: AppUser)
+    {
+        shareService.grant(
+            resourceType = ResourceType.SHARING_SESSION,
+            resourceId = session.id,
+            principalKind = PrincipalKind.USER,
+            principalId = initiator.id,
+            roleName = RoleName.OWNER,
+            grantedByAppUserId = initiator.id,
+            source = ShareSource.DIRECT,
+        )
+    }
+
+    /**
+     * Grant each participant a `PARTICIPANT`-role [Share]. A group participant becomes a
+     * `PRINCIPAL_GROUP` share (fanned out to members by [ShareService]); an individual a `USER` share.
+     */
+    private fun grantParticipantShares(
+        session: SharingSession,
+        participants: List<Pair<PrincipalKind, UUID>>,
+        initiator: AppUser,
+    )
+    {
+        for ((principalKind, principalId) in participants)
+        {
+            shareService.grant(
+                resourceType = ResourceType.SHARING_SESSION,
+                resourceId = session.id,
+                principalKind = principalKind,
+                principalId = principalId,
+                roleName = RoleName.PARTICIPANT,
+                grantedByAppUserId = initiator.id,
+                source = ShareSource.DIRECT,
+            )
+        }
+    }
+
+    /**
+     * Maps the requested document permissions to a resource role: any write-style permission
+     * (add/delete/update/upload) implies EDITOR, otherwise VIEWER. The full flag set is
+     * preserved verbatim in the share's constraints JSON (see [sessionConstraintsJson]).
+     */
+    private fun recipientRoleFor(dto: SharingSessionInitiationDto): RoleName
+    {
+        val canWrite = dto.allowDocumentAddition == true || dto.allowDocumentDeletion == true ||
+            dto.allowDocumentUpdate == true || dto.allowDocumentUpload == true
+        return if (canWrite) RoleName.EDITOR else RoleName.VIEWER
+    }
+
+    private fun sessionConstraintsJson(dto: SharingSessionInitiationDto): String =
+        """{"can_download":${dto.allowDocumentDownload == true},""" +
+            """"allow_document_addition":${dto.allowDocumentAddition == true},""" +
+            """"allow_document_deletion":${dto.allowDocumentDeletion == true},""" +
+            """"allow_document_update":${dto.allowDocumentUpdate == true},""" +
+            """"allow_document_upload":${dto.allowDocumentUpload == true},""" +
+            """"require_recipient_sign_in":${dto.requestRecipientSignIn == true}}"""
 
     fun validateSharingSessionFields(
         initiator: AppUser,
@@ -236,10 +383,8 @@ class SharingSessionInitiationService @Inject constructor(
             GROUP ->
             {
                 sessionInitiationDto.recipientOrgGroupId?.let {
-
-                    orgGroupService.getById(it)
+                    principalGroupRepository.findById(UUID.fromString(it))
                         ?: throw OrganizationGroupNotFoundException("Recipient group not found")
-
                 } ?: throw OrganizationGroupNotFoundException("Recipient group not found")
             }
 
@@ -272,7 +417,7 @@ class SharingSessionInitiationService @Inject constructor(
         recipientType: SharingSessionRecipientType,
         initiator: AppUser,
         recipientAppUser: AppUser?,
-        recipientOrgGroup: OrganizationGroup?,
+        recipientGroupId: UUID?,
         sharingSession: SharingSession,
     )
     {
@@ -283,8 +428,12 @@ class SharingSessionInitiationService @Inject constructor(
 
         val recipientEmails: List<Pair<String, String>> = when (recipientType)
         {
-            GROUP -> recipientOrgGroup?.members
-                ?.mapNotNull { it.appUser }
+            GROUP -> recipientGroupId
+                ?.let { groupId ->
+                    principalGroupMemberRepository.findActiveMembers(groupId)
+                        .filter { it.principalKind == PrincipalKind.USER }
+                        .mapNotNull { appUserService.getById(it.principalId) }
+                }
                 ?.filter { it.id != initiator.id }
                 ?.filter { it.settings?.notifyShareStart != false }
                 ?.map { it.email to (it.person?.firstName ?: "there") }
@@ -297,7 +446,7 @@ class SharingSessionInitiationService @Inject constructor(
 
         val recipientLabel = when (recipientType)
         {
-            GROUP -> recipientOrgGroup?.name?.let { "Group: $it" } ?: "Group"
+            GROUP -> recipientGroupId?.let { principalGroupRepository.findById(it)?.name }?.let { "Group: $it" } ?: "Group"
             else -> recipientAppUser?.email ?: "Recipient"
         }
 

@@ -53,51 +53,33 @@ class DetailedEntityToDtoTransformer
                 with(sharingSession)
                 {
                     SharingSessionDetailedDto(
-                        id,
-                        createdDate,
-                        endDate,
-                        endNote,
-                        lastActivity,
-                        sessionName,
-                        initialShareMessage,
-                        description,
-                        toDto(initiator),
-                        toDto(recipient),
-                        status.toString(),
-                        requireRecipientSignIn,
-                        allowDocumentAddition,
-                        allowDocumentDeletion,
-                        allowDocumentDownload,
-                        allowDocumentUpdate,
-                        allowDocumentUpload,
-                        noAuthAccessValidityDays,
-                        participants
-                            .sortedByDescending { it.addedDate }
-                            .mapNotNull { toDto(it) },
-                        documents.map { toDto(it) }
+                        id = id,
+                        createdDate = createdDate,
+                        endDate = endDate,
+                        endNote = endNote,
+                        lastActivity = lastActivity,
+                        sessionName = sessionName,
+                        initialShareMessage = initialShareMessage,
+                        description = description,
+                        initiator = toDto(initiator),
+                        status = status.toString(),
+                        requestRecipientSignIn = requireRecipientSignIn,
+                        noAuthAccessValidityDays = noAuthAccessValidityDays,
+                        documents = documents.map { toDto(it) }
                     )
                 }
             }
         }
 
-        fun toDto(participant: SharingSessionParticipant?): SharingSessionParticipantDetailedDto?
-        {
-            return participant?.let {
-                SharingSessionParticipantDetailedDto(
-                    id = participant.id,
-                    participantType = participant.participantType.name,
-                    addedDate = participant.addedDate,
-                    appUserId = participant.appUser?.id,
-                    appUserEmail = participant.appUser?.email,
-                    appUserFirstName = participant.appUser?.person?.firstName,
-                    appUserLastName = participant.appUser?.person?.lastName,
-                    organizationGroupId = participant.organizationGroup?.id,
-                    organizationGroupName = participant.organizationGroup?.name,
-                )
-            }
-        }
+        fun toDto(appUser: AppUser?): AppUserDetailedDto? = toDto(appUser, null)
 
-        fun toDto(appUser: AppUser?): AppUserDetailedDto?
+        /**
+         * [role] is the user's effective role within the organization in whose context this
+         * DTO is being produced (per-org now, via organization_membership) — callers that have
+         * an org context (e.g. the org-members listing) resolve and pass it; context-free
+         * callers pass null.
+         */
+        fun toDto(appUser: AppUser?, role: String?): AppUserDetailedDto?
         {
             return appUser?.let {
 
@@ -201,52 +183,6 @@ class DetailedEntityToDtoTransformer
             }
         }
 
-        fun toDto(organizationGroup: OrganizationGroup?): OrganizationGroupDetailedDto?
-        {
-            return organizationGroup?.let {
-                with(organizationGroup)
-                {
-                    OrganizationGroupDetailedDto(
-                        id,
-                        createdDate,
-                        isActive,
-                        name,
-                        members.map { toDto(it) },
-                        externallyPublished,
-                    )
-                }
-            }
-        }
-
-        fun toDto(member: OrganizationGroupMember?): OrganizationGroupMemberDetailedDto?
-        {
-            return member?.let {
-                OrganizationGroupMemberDetailedDto(
-                    toDto(member.appUser),
-                    toDto(member.permissions)
-                )
-            }
-        }
-
-        fun toDto(permission: OrganizationGroupMemberPermission?): OrganizationGroupMemberPermissionDto?
-        {
-            return permission?.let {
-                with(permission) {
-                    OrganizationGroupMemberPermissionDto(
-                        allowSessionAccept,
-                        allowSessionReject,
-                        allowSessionEdit,
-                        allowSessionDelete,
-                        allowSessionEnd,
-                        allowDocumentAddition,
-                        allowDocumentDeletion,
-                        allowDocumentDownload,
-                        allowDocumentUpdate,
-                        allowDocumentUpload
-                    )
-                }
-            }
-        }
 
         fun toDto(appUserSettings: AppUserSettings?): AppUserSettingsDto
         {

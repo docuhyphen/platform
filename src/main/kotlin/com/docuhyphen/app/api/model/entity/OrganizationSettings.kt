@@ -29,6 +29,15 @@ class OrganizationSettings
     @Column(name = "allow_share_without_pairing", nullable = false)
     var allowShareWithoutPairing: Boolean = false
 
+    /**
+     * Whether this org may share with external **individual** customers — recipients who belong to
+     * no organization (the headline B2C topology). Defaults to `true`: sharing to a person is not
+     * federating into a managed tenant, so it is allowed out of the box. The B2B-unpaired case
+     * (recipient belongs to another, non-paired org) stays gated by [allowShareWithoutPairing].
+     */
+    @Column(name = "allow_external_customer_sharing", nullable = false)
+    var allowExternalCustomerSharing: Boolean = true
+
     @Column(name = "allow_profile_update", nullable = false)
     var allowProfileUpdate: Boolean = false
 

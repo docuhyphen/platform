@@ -1,7 +1,6 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AppUserRole
 import com.docuhyphen.app.api.repository.OrganizationRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -30,6 +29,7 @@ data class OrganizationMembershipValidationResult(
 @RequestScoped
 class OrganizationMembershipValidationService @Inject constructor(
     private val organizationRepository: OrganizationRepository,
+    private val userRoleService: UserRoleService,
 )
 {
     /**
@@ -53,9 +53,7 @@ class OrganizationMembershipValidationService @Inject constructor(
      */
     fun validateForSessionAccess(appUser: AppUser): OrganizationMembershipValidationResult
     {
-        val isOrgRole = appUser.role == AppUserRole.ORG_ADMIN ||
-                appUser.role == AppUserRole.ORG_GROUP_ADMIN ||
-                appUser.role == AppUserRole.ORG_MEMBER
+        val isOrgRole = userRoleService.isOrgMember(appUser.id)
 
         if (!isOrgRole)
         {

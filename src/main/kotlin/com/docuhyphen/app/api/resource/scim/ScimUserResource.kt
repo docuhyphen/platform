@@ -1,11 +1,13 @@
 package com.docuhyphen.app.api.resource.scim
 
 import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AppUserRole
 import com.docuhyphen.app.api.model.entity.Person
+import com.docuhyphen.app.api.model.entity.RoleName
 import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.AuthAuditService
+import com.docuhyphen.app.api.service.auth.OrganizationIdentityPolicyService
+import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.auth.UserSessionService
 import com.docuhyphen.app.api.service.config.ConfigurationService
@@ -38,6 +40,9 @@ class ScimUserResource @Inject constructor(
     private val appUserRepository: AppUserRepository,
     private val userSessionService: UserSessionService,
     private val authAuditService: AuthAuditService,
+    private val userRoleService: com.docuhyphen.app.api.service.auth.UserRoleService,
+    private val organizationIdentityPolicyService: OrganizationIdentityPolicyService,
+    private val organizationMembershipService: OrganizationMembershipService,
 )
 {
     companion object
@@ -58,7 +63,7 @@ class ScimUserResource @Inject constructor(
         val pageSize = (count ?: 100).coerceIn(1, 200)
         val offset = (startIndex ?: 1).coerceAtLeast(1) - 1
 
-        val all = appUserRepository.findAll().filter { it.role != AppUserRole.APPLICATION }
+        val all = appUserRepository.findAll().filter { !userRoleService.isAppAdmin(it.id) }
         val filtered = applyFilter(all, filter)
         val page = filtered.drop(offset).take(pageSize)
 
@@ -109,11 +114,23 @@ class ScimUserResource @Inject constructor(
         val newUser = AppUser().apply {
             this.email = email
             this.isActive = payload.active
-            this.role = AppUserRole.ORG_MEMBER
             this.emailVerificationComplete = true
             this.person = person
         }
         val saved = appUserService.create(newUser)
+
+        // Best-effort org membership: the SCIM endpoint uses a global token (no org context),
+        // so the provisioning org is resolved from the email domain and recorded in
+        // organization_membership.
+        organizationIdentityPolicyService.resolveOrganizationForEmail(email)?.let { organization ->
+            organizationMembershipService.assignOrgRole(
+                appUserId = saved.id,
+                organizationId = organization.id,
+                role = RoleName.ORG_MEMBER,
+                isPrimary = true,
+            )
+        }
+
         authAuditService.emit(
             action = "SCIM_USER_CREATE",
             outcome = "SUCCESS",
@@ -245,20 +262,26 @@ class ScimUserResource @Inject constructor(
         return Response.noContent().build()
     }
 
+    /**
+     * Validates the static SCIM bearer token. Returns `null` when the caller is authorized,
+     * or a ready-to-return error [Response] otherwise:
+     *   * 503 if no SCIM token is configured (endpoint effectively disabled),
+     *   * 401 if the Authorization header is missing/malformed or the token doesn't match.
+     * Comparison is constant-time to avoid leaking the secret via timing.
+     */
     private fun authorize(authorization: String?): Response?
     {
-        throw UnsupportedOperationException("Method not yet implemented completed")
-//        val expected = configurationService.getScimBearerToken()
-//        if (expected.isBlank())
-//        {
-//            return error(Response.Status.SERVICE_UNAVAILABLE, "SCIM endpoint not configured")
-//        }
-//        val token = authorization?.removePrefix("Bearer ")?.trim()
-//        if (token.isNullOrBlank() || !constantTimeEquals(token, expected))
-//        {
-//            return error(Response.Status.UNAUTHORIZED, "Invalid SCIM credentials")
-//        }
-//        return null
+        val expected = configurationService.getScimBearerToken()
+        if (expected.isBlank())
+        {
+            return error(Response.Status.SERVICE_UNAVAILABLE, "SCIM endpoint not configured")
+        }
+        val token = authorization?.removePrefix("Bearer ")?.trim()
+        if (token.isNullOrBlank() || !constantTimeEquals(token, expected))
+        {
+            return error(Response.Status.UNAUTHORIZED, "Invalid SCIM credentials")
+        }
+        return null
     }
 
     private fun constantTimeEquals(a: String, b: String): Boolean

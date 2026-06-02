@@ -2,13 +2,18 @@ package com.docuhyphen.app.api.service.sharingsession
 
 import com.docuhyphen.app.api.exception.NoAuthOtpException
 import com.docuhyphen.app.api.exception.SharingSessionNotFoundException
+import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.RoleName
 import com.docuhyphen.app.api.model.entity.SharingSession
 import com.docuhyphen.app.api.model.entity.SharingSessionStatus
 import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.realtime.RealtimeMessage
 import com.docuhyphen.app.api.realtime.RealtimeMessageType
+import com.docuhyphen.app.api.repository.ShareRepository
 import com.docuhyphen.app.api.repository.SharingSessionRepository
 import com.docuhyphen.app.api.resource.model.UpdateSharingSessionRequest
+import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.UserContactService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
@@ -35,6 +40,9 @@ class SharingSessionUpdateService @Inject constructor(
     private val realtimeEventService: RealtimeEventService,
     private val otpService: OtpService,
     private val userContactService: UserContactService,
+    private val shareService: ShareService,
+    private val shareRepository: ShareRepository,
+    private val appUserService: AppUserService,
 )
 {
     @PersistenceContext
@@ -87,6 +95,13 @@ class SharingSessionUpdateService @Inject constructor(
             {
                 sharingSessionRepository.updateEndDate(sessionUUID, Timestamp.from(Instant.now()))
             }
+
+            // Dual-write: a terminal session status revokes the mirrored shares so the new
+            // model reflects that access has ended.
+            if (it == SharingSessionStatus.ENDED || it == SharingSessionStatus.REJECTED)
+            {
+                shareService.revokeAllForResource(ResourceType.SHARING_SESSION, sessionUUID)
+            }
         }
 
         request?.rejectionReason?.let {
@@ -97,24 +112,39 @@ class SharingSessionUpdateService @Inject constructor(
             sharingSessionRepository.updateRequireRecipientSignIn(sessionUUID, it)
         }
 
-        request?.allowDocumentAddition?.let {
-            sharingSessionRepository.updateAllowDocumentAddition(sessionUUID, it)
-        }
+        // Per-document permissions are stored as constraints on the recipient's Share row.
+        // When the initiator updates them, rebuild the constraints JSON and propagate to all
+        // recipient shares (and their inherited children).
+        if (request?.allowDocumentAddition != null ||
+            request?.allowDocumentDeletion != null ||
+            request?.allowDocumentDownload != null ||
+            request?.allowDocumentUpdate != null ||
+            request?.allowDocumentUpload != null)
+        {
+            // Read the current constraints to preserve flags that aren't being changed.
+            val currentJson = shareService.recipientConstraintsJson(sessionUUID) ?: "{}"
+            val addition = request?.allowDocumentAddition
+                ?: currentJson.contains("\"allow_document_addition\":true")
+            val deletion = request?.allowDocumentDeletion
+                ?: currentJson.contains("\"allow_document_deletion\":true")
+            val download = request?.allowDocumentDownload
+                ?: currentJson.contains("\"can_download\":true")
+            val update = request?.allowDocumentUpdate
+                ?: currentJson.contains("\"allow_document_update\":true")
+            val upload = request?.allowDocumentUpload
+                ?: currentJson.contains("\"allow_document_upload\":true")
+            val requireSignIn = request?.requireRecipientSignIn
+                ?: currentJson.contains("\"require_recipient_sign_in\":true")
 
-        request?.allowDocumentDeletion?.let {
-            sharingSessionRepository.updateAllowDocumentDeletion(sessionUUID, it)
-        }
+            val constraintsJson =
+                """{"can_download":$download,""" +
+                """"allow_document_addition":$addition,""" +
+                """"allow_document_deletion":$deletion,""" +
+                """"allow_document_update":$update,""" +
+                """"allow_document_upload":$upload,""" +
+                """"require_recipient_sign_in":$requireSignIn}"""
 
-        request?.allowDocumentDownload?.let {
-            sharingSessionRepository.updateAllowDocumentDownload(sessionUUID, it)
-        }
-
-        request?.allowDocumentUpdate?.let {
-            sharingSessionRepository.updateAllowDocumentUpdate(sessionUUID, it)
-        }
-
-        request?.allowDocumentUpload?.let {
-            sharingSessionRepository.updateAllowDocumentUpload(sessionUUID, it)
+            shareService.updateRecipientConstraints(sessionUUID, constraintsJson)
         }
 
         request?.noAuthAccessValidityDays?.let {
@@ -146,10 +176,24 @@ class SharingSessionUpdateService @Inject constructor(
         if (request?.status == SharingSessionStatus.ACCEPTED_STARTED)
         {
             val initiator = updatedSession.initiator
-            val recipient = updatedSession.recipient
-            if (initiator != null && recipient != null)
+            if (initiator != null)
             {
-                userContactService.recordMutualOnAccept(initiator, recipient, sessionUUID)
+                // Recipients are the session's direct USER shares (excluding the owner and
+                // pure participants). Record a mutual contact between initiator and each.
+                shareRepository.findActiveByResource(ResourceType.SHARING_SESSION, sessionUUID)
+                    .filter {
+                        it.principalKind == PrincipalKind.USER &&
+                            it.principalId != initiator.id &&
+                            it.roleName != RoleName.OWNER.name &&
+                            it.roleName != RoleName.PARTICIPANT.name
+                    }
+                    .map { it.principalId }
+                    .distinct()
+                    .forEach { recipientId ->
+                        appUserService.getById(recipientId)?.let { recipient ->
+                            userContactService.recordMutualOnAccept(initiator, recipient, sessionUUID)
+                        }
+                    }
             }
         }
 
@@ -173,6 +217,8 @@ class SharingSessionUpdateService @Inject constructor(
         } ?: throw SharingSessionNotFoundException("Sharing session not found")
 
         sharingSessionRepository.update(session)
+
+        shareService.revokeAllForResource(ResourceType.SHARING_SESSION, sessionUUID)
 
         logger.info("Sharing session ${session.sessionName} deleted")
     }
@@ -276,10 +322,13 @@ class SharingSessionUpdateService @Inject constructor(
         if (sessionStatus == SharingSessionStatus.ACCEPTED_STARTED)
         {
             val initiator = refreshedSession.initiator
-            val recipient = refreshedSession.recipient
-            if (initiator != null && recipient != null)
+            if (initiator != null)
             {
-                userContactService.recordMutualOnAccept(initiator, recipient, sessionUUID)
+                shareService.recipientUserIds(sessionUUID).forEach { recipientId ->
+                    appUserService.getById(recipientId)?.let { recipient ->
+                        userContactService.recordMutualOnAccept(initiator, recipient, sessionUUID)
+                    }
+                }
             }
         }
 
@@ -343,7 +392,7 @@ class SharingSessionUpdateService @Inject constructor(
         {
             throw IllegalArgumentException("Sharing session has already ended")
         }
-        val recipientEmail = session.recipient?.email
+        val recipientEmail = resolveRecipientEmail(session.id)
             ?: throw IllegalArgumentException("Sharing session has no recipient email")
 
         val otp = otpService.generateEmailOtp()
@@ -482,11 +531,15 @@ class SharingSessionUpdateService @Inject constructor(
             // 2) Also fan out to all devices of both participants so list/count UIs update
             // even when they are not currently subscribed to this session channel.
             session.initiator?.id?.let { realtimeEventService.broadcastToUser(it, message) }
-            session.recipient?.id?.let { realtimeEventService.broadcastToUser(it, message) }
+            shareService.recipientUserIds(session.id).forEach { realtimeEventService.broadcastToUser(it, message) }
         }.onFailure { e ->
             logger.warn("Failed to broadcast status change for session={} status={}", session.id, newStatus, e)
         }
     }
+
+    /** Email of the session's primary recipient, resolved from its recipient Share. */
+    private fun resolveRecipientEmail(sessionId: UUID): String? =
+        shareService.primaryRecipientUserId(sessionId)?.let { appUserService.getById(it)?.email }
 
     private enum class EmailAudience
     {
@@ -554,7 +607,7 @@ class SharingSessionUpdateService @Inject constructor(
         val destination = when (audience)
         {
             EmailAudience.INITIATOR -> session.initiator?.email
-            EmailAudience.RECIPIENT -> session.recipient?.email
+            EmailAudience.RECIPIENT -> resolveRecipientEmail(session.id)
         } ?: return
 
         val template = emailTemplateService.renderSharingSessionStatusEmail(
@@ -568,7 +621,7 @@ class SharingSessionUpdateService @Inject constructor(
             sessionName = session.sessionName?.ifBlank { "Untitled session" } ?: "Untitled session",
             statusText = statusText(status),
             initiatorEmail = session.initiator?.email ?: "Unknown",
-            recipientEmail = session.recipient?.email ?: "Unknown",
+            recipientEmail = resolveRecipientEmail(session.id) ?: "Unknown",
             documents = session.documents.map { it.title.trim() }.filter { it.isNotBlank() },
             lastActivity = formatTimestamp(session.lastActivity),
             rejectionReason = rejectionReasonOverride ?: session.rejectionReason,

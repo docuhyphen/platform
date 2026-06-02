@@ -2,7 +2,6 @@ package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AppUserRole
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.repository.OrganizationRepository
@@ -41,6 +40,8 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
     private val organizationSubscriptionPolicyRepository: OrganizationSubscriptionPolicyRepository,
     private val adminActionGuardService: AdminActionGuardService,
     private val authAuditService: AuthAuditService,
+    private val userRoleService: UserRoleService,
+    private val organizationMembershipService: com.docuhyphen.app.api.service.organization.OrganizationMembershipService,
 )
 {
     companion object
@@ -257,7 +258,7 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         val currentUser = authTokenContext.authToken.appUser
             ?: throw UnauthorizedException("User is not authenticated")
 
-        if (currentUser.role != AppUserRole.PLATFORM_ADMIN)
+        if (!userRoleService.isAppAdmin(currentUser.id))
         {
             throw UnauthorizedException("User does not have permission to manage organization subscription policies")
         }
@@ -303,7 +304,8 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
 
     private fun activeUserCount(organization: Organization): Long
     {
-        return organization.appUsers.count { it.isActive && it.deprovisionedAt == null }.toLong()
+        return organizationMembershipService.membersOf(organization.id)
+            .count { it.isActive && it.deprovisionedAt == null }.toLong()
     }
 
 

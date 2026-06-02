@@ -8,7 +8,9 @@ import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpdateOrganizationAppUserRequest
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.organization.OrganizationAppUserService
+import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import jakarta.inject.Inject
+import java.util.UUID
 import jakarta.transaction.Transactional
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
@@ -26,7 +28,8 @@ enum class APP_USER_CHECK
 @Produces(APPLICATION_JSON)
 @Consumes(APPLICATION_JSON)
 class OrganizationAppUserResource @Inject constructor(
-    private val organizationAppUserService: OrganizationAppUserService
+    private val organizationAppUserService: OrganizationAppUserService,
+    private val organizationMembershipService: OrganizationMembershipService,
 )
 {
     companion object
@@ -111,8 +114,11 @@ class OrganizationAppUserResource @Inject constructor(
     {
         return try
         {
-            val appUsers = organizationAppUserService.getAppUsers(organizationId)
-                .map { DetailedEntityToDtoTransformer.toDto(it) }
+            val members = organizationAppUserService.getAppUsers(organizationId)
+            // organizationId is a valid org UUID here (getAppUsers validates/resolves it first).
+            val roles = organizationMembershipService.rolesOf(UUID.fromString(organizationId))
+            val appUsers = members
+                .map { DetailedEntityToDtoTransformer.toDto(it, roles[it.id]) }
                 .toTypedArray()
 
             Response

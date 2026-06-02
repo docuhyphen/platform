@@ -1,19 +1,12 @@
 package com.docuhyphen.app.api.model.resourceservice
 
-data class MemberPermissionsModel(
-    val allowSessionAccept: Boolean = false,
-    val allowSessionReject: Boolean = false,
-    val allowSessionEdit: Boolean = false,
-    val allowSessionDelete: Boolean = false,
-    val allowSessionEnd: Boolean = false,
-    val allowDocumentAddition: Boolean = false,
-    val allowDocumentDeletion: Boolean = false,
-    val allowDocumentDownload: Boolean = false,
-    val allowDocumentUpdate: Boolean = false,
-    val allowDocumentUpload: Boolean = false
-)
+import com.docuhyphen.app.api.model.entity.GroupRole
 
+/**
+ * A desired group member in a create/update request, in the new role-based model.
+ * Replaces the legacy per-member permission bag — capabilities derive from the [GroupRole].
+ */
 data class OrganizationGroupMemberModel(
     val appUserId: String,
-    val permissions: MemberPermissionsModel
+    val groupRole: GroupRole,
 )

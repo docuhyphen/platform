@@ -32,6 +32,7 @@ class SharingSessionDocumentCommentsService @Inject constructor(
     private val sharingSessionDocumentAuditService: SharingSessionDocumentAuditService,
     private val authTokenContext: AuthTokenContext,
     private val documentCommentRepository: DocumentCommentRepository,
+    private val shareService: ShareService,
 )
 {
     companion object
@@ -79,11 +80,10 @@ class SharingSessionDocumentCommentsService @Inject constructor(
         )
 
         val session = sharingSessionRepository.findById(UUID.fromString(sessionId))
-        val targetUserId = if (user.id == session!!.recipient!!.id) {
-            session.initiator!!.id
-        } else {
-            session.recipient!!.id
-        }
+        val initiatorId = session!!.initiator!!.id
+        val recipientId = shareService.primaryRecipientUserId(UUID.fromString(sessionId))
+        // Notify the "other party": if the commenter is the recipient, notify the initiator; else the recipient.
+        val targetUserId = if (user.id == recipientId) initiatorId else (recipientId ?: initiatorId)
         realtimeEventService.broadcastNotificationToUser(targetUserId, notification)
         // Anyone viewing this sharing session sees the new comment live regardless of
         // whether they're the comment target.

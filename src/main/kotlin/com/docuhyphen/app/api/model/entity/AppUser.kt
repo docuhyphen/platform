@@ -71,9 +71,8 @@ class AppUser
     @JoinColumn(name = "application_id")
     var application: Application? = null
 
-    @Enumerated(STRING)
-    @Column(name = "role", nullable = false)
-    var role: AppUserRole = AppUserRole.APP_USER
+    // Roles now live in organization_membership.role_name (org scope) and role_assignment
+    // (app scope) — resolved via UserRoleService. The legacy role columns are dropped at cutover.
 
     @Column(name = "is_temporary", nullable = false)
     var isTemporary: Boolean = false
@@ -92,12 +91,6 @@ class AppUser
     @Serializable(with = TimestampSerializer::class)
     var deprovisionedAt: Timestamp? = null
 
-    @Column(name = "role_source", nullable = true)
-    var roleSource: String? = null
-
-    @Column(name = "role_assigned_at", nullable = true)
-    @Serializable(with = TimestampSerializer::class)
-    var roleAssignedAt: Timestamp? = null
 
     @OneToOne(cascade = [ALL], fetch = LAZY)
     @JoinColumn(name = "settings_id")

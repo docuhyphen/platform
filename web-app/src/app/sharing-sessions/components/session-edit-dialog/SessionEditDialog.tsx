@@ -1,6 +1,5 @@
 import {SharingSessionDetailedDto, UpdateSharingSessionRequest} from "../../../models/models.tsx";
-import React, {ChangeEvent, useEffect} from "react";
-import useToken from "../../../../context/useToken.tsx";
+import React, {useEffect} from "react";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {
     Button,
@@ -38,7 +37,6 @@ const SessionEditDialog: React.FC<SessionDeleteDialogProps> = (
     }) =>
 {
     const styles = useSessionEditDialogStyles()
-    const token = useToken();
     const [editingSession, setEditingSession] = React.useState(false);
     const [sessionName, setSessionName] = React.useState('')
     const [description, setDescription] = React.useState('')
@@ -65,8 +63,8 @@ const SessionEditDialog: React.FC<SessionDeleteDialogProps> = (
                 description
             } as UpdateSharingSessionRequest
 
-            await updateSharingSession(session.id, request, token);
-            const updatedSession = await fetchSignedInUserAppUserSharingSession(session.id, token);
+            await updateSharingSession(session.id, request);
+            const updatedSession = await fetchSignedInUserAppUserSharingSession(session.id);
             onSessionEdited(updatedSession as SharingSessionDetailedDto);
             publishSharingSessionUpdate(updatedSession as SharingSessionDetailedDto)
             onDismiss();
@@ -89,12 +87,12 @@ const SessionEditDialog: React.FC<SessionDeleteDialogProps> = (
         onDismiss()
     }
 
-    const onSessionNameChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
+    const onSessionNameChange = (_e: React.ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
     {
         setSessionName(newValue.value || '');
     }
 
-    const onDescriptionChange = (_e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
+    const onDescriptionChange = (_e: React.ChangeEvent<HTMLTextAreaElement>, newValue: { value: string }) =>
     {
         setDescription(newValue.value || '');
     }

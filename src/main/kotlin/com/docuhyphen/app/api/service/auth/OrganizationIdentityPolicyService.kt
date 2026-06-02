@@ -15,6 +15,7 @@ class OrganizationIdentityPolicyService @Inject constructor(
     private val organizationRepository: OrganizationRepository,
     private val organizationSubscriptionPolicyRepository: OrganizationSubscriptionPolicyRepository,
     private val organizationIdentityProviderConfigRepository: OrganizationIdentityProviderConfigRepository,
+    private val organizationMembershipService: com.docuhyphen.app.api.service.organization.OrganizationMembershipService,
 )
 {
     fun resolveOrganizationForEmail(email: String): Organization?
@@ -53,7 +54,7 @@ class OrganizationIdentityPolicyService @Inject constructor(
             return
         }
 
-        val activeUsers = organization.appUsers.count { it.isActive }.toLong()
+        val activeUsers = organizationMembershipService.membersOf(organization.id).count { it.isActive }.toLong()
         if (activeUsers >= maxUsers)
         {
             throw IllegalArgumentException("Organization user limit reached")

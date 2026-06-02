@@ -2,6 +2,8 @@ import {ReactNode, useCallback, useEffect, useMemo, useState} from "react";
 import {darkTheme, lightTheme, ThemeMode} from "./theme";
 import {ThemeContext, ThemeContextValue} from "./themeContextBase";
 
+const THEME_STORAGE_KEY = "docuhyphen:theme:mode";
+
 const getSystemPrefersDark = (): boolean =>
 {
     if (typeof window === "undefined" || !window.matchMedia)
@@ -14,6 +16,16 @@ const getSystemPrefersDark = (): boolean =>
 const isValidMode = (value: unknown): value is ThemeMode =>
     value === "light" || value === "dark" || value === "system";
 
+const getStoredMode = (): ThemeMode | null =>
+{
+    if (typeof window === "undefined")
+    {
+        return null;
+    }
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return isValidMode(stored) ? stored : null;
+};
+
 interface ThemeProviderProps
 {
     children: ReactNode;
@@ -21,9 +33,8 @@ interface ThemeProviderProps
 
 export const ThemeProvider = ({children}: ThemeProviderProps) =>
 {
-    // Default to light for everyone until the user's stored preference
-    // is loaded from the server (see ThemeSync / AppSettingsTab).
-    const [mode, setModeState] = useState<ThemeMode>("light");
+    // Bootstrap from local storage to keep the theme stable across refresh/sign-in boundaries.
+    const [mode, setModeState] = useState<ThemeMode>(() => getStoredMode() ?? "system");
     const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(() => getSystemPrefersDark());
 
     useEffect(() =>
@@ -51,6 +62,10 @@ export const ThemeProvider = ({children}: ThemeProviderProps) =>
             return;
         }
         setModeState(next);
+        if (typeof window !== "undefined")
+        {
+            window.localStorage.setItem(THEME_STORAGE_KEY, next);
+        }
     }, []);
 
     const resolvedMode: "light" | "dark" = mode === "system"

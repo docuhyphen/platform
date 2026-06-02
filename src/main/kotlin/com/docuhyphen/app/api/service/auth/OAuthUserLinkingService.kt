@@ -1,12 +1,13 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AppUserRole
 import com.docuhyphen.app.api.model.entity.IdentityProviderLink
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
+import com.docuhyphen.app.api.model.entity.RoleName
 import com.docuhyphen.app.api.repository.IdentityProviderLinkRepository
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.idp.OAuthUserInfo
+import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -28,6 +29,7 @@ class OAuthUserLinkingService @Inject constructor(
     private val identityProviderLinkRepository: IdentityProviderLinkRepository,
     private val authenticationService: AuthenticationService,
     private val organizationIdentityPolicyService: OrganizationIdentityPolicyService,
+    private val organizationMembershipService: OrganizationMembershipService,
 )
 {
     companion object
@@ -95,9 +97,9 @@ class OAuthUserLinkingService @Inject constructor(
             this.password = null
             this.passwordSalt = null
             this.emailVerificationComplete = true
-            this.role = AppUserRole.ORG_MEMBER
-            this.roleSource = "JIT_IDP"
-            this.roleAssignedAt = Timestamp.from(Instant.now())
+            // Org membership for JIT/IDP-provisioned users is recorded against the IDP's
+            // organization in the identity-provider linking flow (organization_membership),
+            // not as a standalone role on the user row.
         }
 
         if (userInfo.firstName != null || userInfo.lastName != null)
@@ -110,6 +112,17 @@ class OAuthUserLinkingService @Inject constructor(
         }
 
         val savedUser = appUserService.create(newUser)
+
+        // JIT users become members of the organization that owns their email domain — recorded
+        // in the organization_membership model so role resolution (UserRoleService) sees them.
+        organizationIdentityPolicyService.resolveOrganizationForEmail(userInfo.email)?.let { organization ->
+            organizationMembershipService.assignOrgRole(
+                appUserId = savedUser.id,
+                organizationId = organization.id,
+                role = RoleName.ORG_MEMBER,
+                isPrimary = true,
+            )
+        }
 
         val link = IdentityProviderLink().apply {
             this.appUser = savedUser

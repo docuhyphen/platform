@@ -1,7 +1,6 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.AppUserRole
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationIdentityProviderConfig
 import com.docuhyphen.app.api.repository.OrganizationIdentityProviderConfigRepository
@@ -25,6 +24,7 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
     private val adminActionGuardService: AdminActionGuardService,
     private val authAuditService: AuthAuditService,
     private val configurationService: ConfigurationService,
+    private val userRoleService: UserRoleService,
 )
 {
     companion object
@@ -388,7 +388,7 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
         val currentUser = authTokenContext.authToken.appUser
             ?: throw UnauthorizedException("User is not authenticated")
 
-        if (currentUser.role != AppUserRole.ORG_ADMIN)
+        if (!userRoleService.isOrgAdmin(currentUser.id))
         {
             throw UnauthorizedException("User does not have permission to manage organization IdP configuration")
         }

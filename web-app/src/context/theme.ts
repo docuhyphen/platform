@@ -55,9 +55,9 @@ function lighten(hex: string, ratio: number): string {
 const baseDarkTheme = createDarkTheme(mainBrand);
 
 // Tokens that drive the perceived darkness of surfaces, borders, and dividers.
-// Lifting these by ~20% makes the dark theme noticeably less dark while
+// Lifting these slightly makes the dark theme a touch softer while
 // preserving the overall palette and contrast relationships.
-const LIGHTEN_RATIO = 0.18;
+const LIGHTEN_RATIO = 0.08;
 const tokensToLighten: (keyof Theme)[] = [
     "colorNeutralBackground1",
     "colorNeutralBackground1Hover",

@@ -22,6 +22,7 @@ import AppLogo from "./app-logo/AppLogo.tsx";
 import {useGlobalStyles} from "../../GlobalStyles.tsx";
 import {SettingsIcon, SharingSessionIcon, SignOutButtonIcon} from "./IconBundles.tsx";
 import NotificationList from './main-menu/notification/NotificationList';
+import PendingApprovals from './main-menu/pending-approvals/PendingApprovals';
 
 const MAX_DISPLAY_EMAIL_LENGTH = 36;
 const LAST_SHARING_SESSIONS_QUERY_STORAGE_KEY = 'sharingSessions.lastRoute.query';
@@ -58,7 +59,7 @@ function formatEmailForDisplay(email?: string, maxLength: number = MAX_DISPLAY_E
 
 const MainMenu: React.FC = () =>
 {
-    const {appUser} = useAuth();
+    const {appUser, appUserPersonOrganization} = useAuth();
     const navigate = useNavigate();
     const [isSignOutDialogOpen, setIsSignOutDialogOpen] = useState(false);
 
@@ -90,6 +91,7 @@ const MainMenu: React.FC = () =>
             </Button>
 
             <NotificationList/>
+            {appUserPersonOrganization && <PendingApprovals/>}
 
             {/*<Button icon={<InfoIcon/>}*/}
             {/*        onClick={() => navigate('/')}*/}

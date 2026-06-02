@@ -8,6 +8,13 @@ import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.realtime.RealtimeMessage
 import com.docuhyphen.app.api.realtime.RealtimeMessageType
 import com.docuhyphen.app.api.repository.SharingSessionRepository
+import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.Decision
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.communication.AppNotificationService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
@@ -35,6 +42,10 @@ class SharingSessionDocumentService @Inject constructor(
     private val fileStorageService: FileStorageService,
     private val appNotificationService: AppNotificationService,
     private val realtimeEventService: RealtimeEventService,
+    private val shareService: ShareService,
+    private val appUserService: AppUserService,
+    private val authorizationService: AuthorizationService,
+    private val authorizationContextFactory: AuthorizationContextFactory,
 )
 {
     private enum class DocumentAction
@@ -233,7 +244,7 @@ class SharingSessionDocumentService @Inject constructor(
             throw SharingSessionDocumentNotFoundException("Document not found")
         }
 
-        if (!sharingSession.allowDocumentUpload)
+        if (!shareService.recipientConstraintAllows(sharingSession.id, "allow_document_upload"))
         {
             throw IllegalArgumentException("Permission to upload document not granted")
         }
@@ -249,7 +260,7 @@ class SharingSessionDocumentService @Inject constructor(
         sessionRepo.update(sharingSession)
 
         fileStorageService.uploadDocument(file!!, "${document.id}$extension")
-        sharingSession.recipient?.email?.let { auditService.logAction(document, DocumentAuditLogAction.UPLOAD, it) }
+        resolveRecipientEmail(sharingSession.id)?.let { auditService.logAction(document, DocumentAuditLogAction.UPLOAD, it) }
 //        sendUploadNotification(sharingSession, appUser, document.title)
 
         broadcastDocumentEvent(sharingSession.id, RealtimeMessageType.SHARING_SESSION_DOCUMENT_UPDATED, document.id)
@@ -274,6 +285,7 @@ class SharingSessionDocumentService @Inject constructor(
     fun downloadDocument(sessionId: String, documentId: String): File
     {
         val sharingSession = getSharingSession(sessionId)
+        validateDownloadPermission(sharingSession)
         val document = getDocument(sharingSession, documentId)
 
         val fileKey = "${document.id}${DocumentType.toFileExtension(document.type!!)}"
@@ -322,6 +334,7 @@ class SharingSessionDocumentService @Inject constructor(
     fun downloadDocumentsAsZip(sessionId: String, documentIds: List<String>): File
     {
         val sharingSession = getSharingSession(sessionId)
+        validateDownloadPermission(sharingSession)
         val documents = documentIds.map { getDocument(sharingSession, it) }
 
         val fileKeys = documents.map { "${it.id}${DocumentType.toFileExtension(it.type!!)}" }
@@ -441,30 +454,53 @@ class SharingSessionDocumentService @Inject constructor(
         }
     }
 
+    /** Email of the session's primary recipient, resolved from its recipient Share. */
+    private fun resolveRecipientEmail(sessionId: UUID): String? =
+        shareService.primaryRecipientUserId(sessionId)?.let { appUserService.getById(it)?.email }
+
     private fun validateUserPermissions(sharingSession: SharingSession, appUser: AppUser, action: DocumentAction)
     {
-        if (sharingSession.initiator?.id != appUser.id && sharingSession.recipient?.id != appUser.id)
+        val required = when (action)
+        {
+            DocumentAction.ADD, DocumentAction.UPLOAD -> Action.DOCUMENT_UPLOAD
+            DocumentAction.UPDATE -> Action.DOCUMENT_UPDATE
+            DocumentAction.DELETE -> Action.DOCUMENT_DELETE
+        }
+
+        val decision = authorizationService.authorize(
+            principal = PrincipalRef.user(appUser.id),
+            action = required,
+            resource = ResourceRef.session(sharingSession.id),
+            context = authorizationContextFactory.currentContext(),
+        )
+
+        if (decision is Decision.Deny)
         {
             throw IllegalArgumentException("Permission to perform document action not granted")
         }
+    }
 
-        // Initiator can always perform document actions.
-        if (sharingSession.initiator?.id == appUser.id)
-        {
-            return
-        }
+    /**
+     * Authenticated download gate. DOCUMENT_DOWNLOAD is conditional: VIEWER/PARTICIPANT
+     * recipients only hold it when their share's `can_download` constraint opts in, and an
+     * explicit `can_download=false` strips it from richer roles (see [ShareConstraints]).
+     * The no-auth download path is governed separately by recipient constraints.
+     */
+    private fun validateDownloadPermission(sharingSession: SharingSession)
+    {
+        val appUser = authTokenContext.authToken.appUser
+            ?: throw IllegalArgumentException("Permission to download document not granted")
 
-        val recipientAllowed = when (action)
-        {
-            DocumentAction.ADD -> sharingSession.allowDocumentAddition
-            DocumentAction.UPDATE -> sharingSession.allowDocumentUpdate
-            DocumentAction.DELETE -> sharingSession.allowDocumentDeletion
-            DocumentAction.UPLOAD -> sharingSession.allowDocumentUpload
-        }
+        val decision = authorizationService.authorize(
+            principal = PrincipalRef.user(appUser.id),
+            action = Action.DOCUMENT_DOWNLOAD,
+            resource = ResourceRef.session(sharingSession.id),
+            context = authorizationContextFactory.currentContext(),
+        )
 
-        if (!recipientAllowed)
+        if (decision is Decision.Deny)
         {
-            throw IllegalArgumentException("Permission to perform document action not granted")
+            throw IllegalArgumentException("Permission to download document not granted")
         }
     }
 
@@ -484,7 +520,7 @@ class SharingSessionDocumentService @Inject constructor(
     {
         val recipientEmail = if (sharingSession.initiator?.id == appUser.id)
         {
-            sharingSession.recipient?.email
+            resolveRecipientEmail(sharingSession.id)
         }
         else
         {

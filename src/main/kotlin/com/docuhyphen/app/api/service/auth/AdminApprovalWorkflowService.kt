@@ -1,8 +1,15 @@
 package com.docuhyphen.app.api.service.auth
 
-import com.docuhyphen.app.api.model.entity.AdminApprovalRequest
-import com.docuhyphen.app.api.model.entity.AdminApprovalStatus
-import com.docuhyphen.app.api.repository.AdminApprovalRequestRepository
+import com.docuhyphen.app.api.model.entity.WorkflowDefinition
+import com.docuhyphen.app.api.model.entity.WorkflowInstance
+import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
+import com.docuhyphen.app.api.model.entity.WorkflowScope
+import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
+import com.docuhyphen.app.api.model.entity.WorkflowStepStatus
+import com.docuhyphen.app.api.model.entity.WorkflowStepType
+import com.docuhyphen.app.api.repository.WorkflowDefinitionRepository
+import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
+import com.docuhyphen.app.api.repository.WorkflowStepInstanceRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -10,24 +17,57 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 
+/**
+ * Second-admin approval for sensitive admin actions, backed by the generic workflow engine
+ * (replaces the bespoke `AdminApprovalRequest`). An approval is a single-step `APPROVAL`
+ * [WorkflowInstance]: `initiate` opens it (RUNNING / step PENDING), `approve` closes it
+ * (COMPLETED / step APPROVED) under a different admin, and `validateApprovedRequest` gates the
+ * actual privileged operation. The "approvalId" exposed to the API is the [WorkflowInstance] id.
+ */
 @RequestScoped
 class AdminApprovalWorkflowService @Inject constructor(
-    private val adminApprovalRequestRepository: AdminApprovalRequestRepository,
+    private val workflowDefinitionRepository: WorkflowDefinitionRepository,
+    private val workflowInstanceRepository: WorkflowInstanceRepository,
+    private val workflowStepInstanceRepository: WorkflowStepInstanceRepository,
     private val authAuditService: AuthAuditService,
 )
 {
+    companion object
+    {
+        private const val DEFINITION_NAME = "admin-action-approval"
+        private const val DEFINITION_VERSION = 1
+        private const val SUBJECT_TYPE = "ADMIN_ACTION"
+        private val ACTION_REGEX = Regex(""""action"\s*:\s*"([^"]*)"""")
+    }
+
     @Transactional
-    fun initiate(action: String, requesterId: UUID, reason: String?, expiresMinutes: Long?, requestId: String?): AdminApprovalRequest
+    fun initiate(action: String, requesterId: UUID, reason: String?, expiresMinutes: Long?, requestId: String?): WorkflowInstance
     {
         val expirationMinutes = expiresMinutes?.coerceIn(5, 240) ?: 60
-        val approval = adminApprovalRequestRepository.save(
-            AdminApprovalRequest().apply {
-                this.action = action
-                this.requesterId = requesterId
-                this.reason = reason?.trim()?.take(1024)
-                this.createdDate = Timestamp.from(Instant.now())
-                this.expiresAt = Timestamp.from(Instant.now().plusSeconds(expirationMinutes * 60))
-                this.status = AdminApprovalStatus.PENDING
+        val now = Instant.now()
+        val definition = ensureDefinition()
+
+        val instance = workflowInstanceRepository.save(
+            WorkflowInstance().apply {
+                this.definitionId = definition.id
+                this.definitionVersion = definition.version
+                this.subjectResourceType = SUBJECT_TYPE
+                this.status = WorkflowInstanceStatus.RUNNING
+                this.currentStepIndex = 0
+                this.initiatedByAppUserId = requesterId
+                this.subjectDataJson = buildSubjectJson(action, reason)
+                this.createdAt = Timestamp.from(now)
+            }
+        )
+
+        workflowStepInstanceRepository.save(
+            WorkflowStepInstance().apply {
+                this.instanceId = instance.id
+                this.stepIndex = 0
+                this.stepType = WorkflowStepType.APPROVAL
+                this.status = WorkflowStepStatus.PENDING
+                this.specSnapshotJson = """{"type":"APPROVAL","quorum":{"kind":"ANY"}}"""
+                this.dueAt = Timestamp.from(now.plusSeconds(expirationMinutes * 60))
             }
         )
 
@@ -38,30 +78,41 @@ class AdminApprovalWorkflowService @Inject constructor(
             requestId = requestId,
         )
 
-        return approval
+        return instance
     }
 
     @Transactional
-    fun approve(approvalId: UUID, approverId: UUID, requestId: String?): AdminApprovalRequest
+    fun approve(approvalId: UUID, approverId: UUID, requestId: String?): WorkflowInstance
     {
-        adminApprovalRequestRepository.expirePendingApprovals(Instant.now())
-        val approval = adminApprovalRequestRepository.findByApprovalId(approvalId)
+        val instance = workflowInstanceRepository.findById(approvalId)
             ?: throw IllegalArgumentException("Approval request not found")
 
-        if (approval.status != AdminApprovalStatus.PENDING)
+        if (instance.status != WorkflowInstanceStatus.RUNNING)
         {
             throw IllegalArgumentException("Approval request is not pending")
         }
-
-        if (approval.requesterId == approverId)
+        if (instance.initiatedByAppUserId == approverId)
         {
             throw IllegalArgumentException("Requester cannot approve their own request")
         }
 
-        approval.status = AdminApprovalStatus.APPROVED
-        approval.approverId = approverId
-        approval.approvedDate = Timestamp.from(Instant.now())
-        val updated = adminApprovalRequestRepository.update(approval)
+        val step = workflowStepInstanceRepository.findCurrent(instance.id, instance.currentStepIndex)
+            ?: throw IllegalArgumentException("Approval step not found")
+
+        val now = Timestamp.from(Instant.now())
+        if (step.dueAt?.before(now) == true)
+        {
+            throw IllegalArgumentException("Approval request expired")
+        }
+
+        step.status = WorkflowStepStatus.APPROVED
+        step.completedAt = now
+        step.decisionsJson = appendDecision(step.decisionsJson, approverId, now)
+        workflowStepInstanceRepository.update(step)
+
+        instance.status = WorkflowInstanceStatus.COMPLETED
+        instance.completedAt = now
+        val updated = workflowInstanceRepository.update(instance)
 
         authAuditService.emit(
             action = "ADMIN_APPROVAL_APPROVE",
@@ -75,28 +126,59 @@ class AdminApprovalWorkflowService @Inject constructor(
 
     fun validateApprovedRequest(action: String, approvalId: UUID, actorId: UUID)
     {
-        val approval = adminApprovalRequestRepository.findByApprovalId(approvalId)
+        val instance = workflowInstanceRepository.findById(approvalId)
             ?: throw IllegalArgumentException("Approval request not found")
 
-        if (approval.status != AdminApprovalStatus.APPROVED)
+        if (instance.status != WorkflowInstanceStatus.COMPLETED)
         {
             throw IllegalArgumentException("Approval request is not approved")
         }
-
-        if (approval.action != action)
+        if (parseAction(instance.subjectDataJson) != action)
         {
             throw IllegalArgumentException("Approval request action mismatch")
         }
-
-        if (approval.requesterId != actorId)
+        if (instance.initiatedByAppUserId != actorId)
         {
             throw IllegalArgumentException("Approval request actor mismatch")
         }
 
-        if (approval.expiresAt.before(Timestamp.from(Instant.now())))
+        val step = workflowStepInstanceRepository.findCurrent(instance.id, 0)
+        if (step?.dueAt?.before(Timestamp.from(Instant.now())) == true)
         {
             throw IllegalArgumentException("Approval request expired")
         }
     }
-}
 
+    private fun ensureDefinition(): WorkflowDefinition =
+        workflowDefinitionRepository.findByNameAndVersion(DEFINITION_NAME, DEFINITION_VERSION)
+            ?: workflowDefinitionRepository.save(
+                WorkflowDefinition().apply {
+                    this.name = DEFINITION_NAME
+                    this.version = DEFINITION_VERSION
+                    this.scope = WorkflowScope.APP
+                    this.triggerEvent = "admin.action.approval_requested"
+                    this.stepsJson = """{"steps":[{"type":"APPROVAL","quorum":{"kind":"ANY"}}]}"""
+                    this.description = "Second-admin approval for sensitive admin actions"
+                }
+            )
+
+    private fun buildSubjectJson(action: String, reason: String?): String
+    {
+        val reasonPart = reason?.trim()?.take(1024)?.let { ""","reason":"${jsonEscape(it)}"""" } ?: ""
+        return """{"action":"${jsonEscape(action)}"$reasonPart}"""
+    }
+
+    private fun appendDecision(decisionsJson: String, approverId: UUID, at: Timestamp): String
+    {
+        val entry = """{"principalKind":"USER","principalId":"$approverId","decision":"APPROVED","at":"${at.toInstant()}"}"""
+        val trimmed = decisionsJson.trim()
+        return if (trimmed == "[]" || trimmed.isEmpty()) "[$entry]"
+        else trimmed.removeSuffix("]") + ",$entry]"
+    }
+
+    private fun parseAction(subjectDataJson: String?): String? =
+        subjectDataJson?.let { ACTION_REGEX.find(it)?.groupValues?.get(1) }
+
+    private fun jsonEscape(value: String): String =
+        value.replace("\\", "\\\\").replace("\"", "\\\"")
+}

@@ -49,17 +49,9 @@ class SharingSession
     @JoinColumn(name = "initiator_id", unique = false)
     var initiator: AppUser? = null
 
-    @Column(name = "recipient_type", nullable = false)
-    @Enumerated(EnumType.STRING)
-    var recipientType:  SharingSessionRecipientType =  SharingSessionRecipientType.EMAIL
-
-    @ManyToOne(cascade = [CascadeType.PERSIST], fetch = FetchType.EAGER)
-    @JoinColumn(name = "recipient_id", unique = false)
-    var recipient: AppUser? = null
-
-    @ManyToOne(cascade = [CascadeType.PERSIST], fetch = FetchType.EAGER)
-    @JoinColumn(name = "group_id", unique = false)
-    var recipientGroup: OrganizationGroup? = null
+    // Recipients, participants and per-document permissions now live in the unified Share model
+    // (recipient_id / recipient_type / group_id / allow_document_* columns dropped by the cutover
+    // migration). Resolve them via ShareService / the access view.
 
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
@@ -71,24 +63,6 @@ class SharingSession
 
     @Column(name = "require_recipient_sign_in", nullable = false)
     var requireRecipientSignIn: Boolean = false
-
-    @Column(name = "allow_document_addition", nullable = false)
-    var allowDocumentAddition: Boolean = false
-
-    @Column(name = "allow_document_deletion", nullable = false)
-    var allowDocumentDeletion: Boolean = false
-
-    @Column(name = "allow_document_download", nullable = false)
-    var allowDocumentDownload: Boolean = true
-
-    @Column(name = "allow_document_update", nullable = false)
-    var allowDocumentUpdate: Boolean = false
-
-    @Column(name = "allow_document_upload", nullable = false)
-    var allowDocumentUpload: Boolean = false
-
-    @OneToMany(mappedBy = "sharingSession", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
-    var participants: MutableList<SharingSessionParticipant> = mutableListOf()
 
     @Column(name = "expire_date", nullable = true)
     @Serializable(with = TimestampSerializer::class)

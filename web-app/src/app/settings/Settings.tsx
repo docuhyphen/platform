@@ -21,6 +21,8 @@ import {AppUserRole} from "../models/models.tsx";
 import OrganizationPairingTab from "./organization-pairing-tab/OrganizationPairingTab.tsx";
 import LinkedAccountsTab from "./linked-accounts-tab/LinkedAccountsTab.tsx";
 import SessionsTab from "./sessions-tab/SessionsTab.tsx";
+import MyGroupsTab from "./my-groups-tab/MyGroupsTab.tsx";
+import AppAdminsTab from "./app-admins-tab/AppAdminsTab.tsx";
 
 const Settings = () =>
 {
@@ -33,7 +35,9 @@ const Settings = () =>
         people: "PeopleTab",
         groups: "GroupsTab",
         organizationPairing: "OrganizationPairingTab",
-        templates: "TemplatesTab"
+        templates: "TemplatesTab",
+        myGroups: "MyGroupsTab",
+        appAdmins: "AppAdminsTab"
     }
 
     const {appUser, appUserPersonOrganization} = useAuth();
@@ -98,12 +102,22 @@ const Settings = () =>
                          value={tabIds.appSettings}>
                         App Settings
                     </Tab>
+                    <Tab id="MyGroupsTab"
+                         value={tabIds.myGroups}>
+                        My Groups
+                    </Tab>
                     {appUser?.role == AppUserRole.ORG_ADMIN && appUserPersonOrganization &&
 
                         <Tab id="OrganiationPairingTab"
                              icon={<PairOrgTabIcon/>}
                              value={tabIds.organizationPairing}>
                             Organization Pairing
+                        </Tab>
+                    }
+                    {appUser?.role == AppUserRole.ORG_ADMIN &&
+                        <Tab id="AppAdminsTab"
+                             value={tabIds.appAdmins}>
+                            App Admins
                         </Tab>
                     }
                     {/*{appUserPersonOrganization &&*/}
@@ -120,10 +134,12 @@ const Settings = () =>
                     {selectedValue === tabIds.sessions && <SessionsTab/>}
                     {selectedValue === tabIds.organization && <OrganizationTab/>}
                     {selectedValue === tabIds.appSettings && <AppSettingsTab/>}
+                    {selectedValue === tabIds.myGroups && <MyGroupsTab/>}
                     {selectedValue === tabIds.people && <OrganizationPeopleTab/>}
                     {selectedValue === tabIds.groups &&
                         <OrganizationGroupsTab appUserPersonOrganization={appUserPersonOrganization}/>}
                     {selectedValue === tabIds.organizationPairing && <OrganizationPairingTab/>}
+                    {selectedValue === tabIds.appAdmins && <AppAdminsTab/>}
                     {selectedValue === tabIds.templates && <TemplatesTab/>}
                 </div>
             </div>

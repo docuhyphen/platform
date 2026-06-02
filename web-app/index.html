@@ -7,6 +7,23 @@
     <title>DocuHyphen</title>
   </head>
   <body>
+    <!--
+      Blocking script: apply the localStorage theme to <html> before React loads
+      so the login page (and every other page) never flashes the wrong theme.
+    -->
+    <script>
+      (function() {
+        var key = 'docuhyphen:theme:mode';
+        var stored = localStorage.getItem(key);
+        var mode = (stored === 'light' || stored === 'dark' || stored === 'system') ? stored : 'system';
+        var resolved = mode;
+        if (mode === 'system') {
+          resolved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        document.documentElement.dataset.theme = resolved;
+        document.documentElement.style.colorScheme = resolved;
+      })();
+    </script>
     <div id="docu-hyphen-app"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

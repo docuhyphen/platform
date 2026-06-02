@@ -1,7 +1,6 @@
 package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.AppUserRole
 import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.resource.model.OrganizationAuthSessionPolicyEffectiveDto
 import com.docuhyphen.app.api.resource.model.OrganizationAuthSessionPolicyGuardrailsDto
@@ -47,6 +46,8 @@ class OrganizationAuthSessionPolicyResource @Inject constructor(
     private val authAuditService: AuthAuditService,
     private val organizationIdentityProviderConfigService: OrganizationIdentityProviderConfigService,
     private val configurationService: ConfigurationService,
+    private val userRoleService: com.docuhyphen.app.api.service.auth.UserRoleService,
+    private val organizationMembershipService: com.docuhyphen.app.api.service.organization.OrganizationMembershipService,
 )
 {
     companion object
@@ -71,7 +72,7 @@ class OrganizationAuthSessionPolicyResource @Inject constructor(
                 ?: throw UnauthorizedException("User is not authenticated")
             actorId = currentUser.id
 
-            if (currentUser.role != AppUserRole.ORG_ADMIN)
+            if (!userRoleService.isOrgAdmin(currentUser.id))
             {
                 throw UnauthorizedException("User does not have permission to view auth session policy")
             }
@@ -95,7 +96,7 @@ class OrganizationAuthSessionPolicyResource @Inject constructor(
                 val targetUser = appUserService.getById(targetUserId)
                     ?: throw IllegalArgumentException("App user not found")
 
-                if (actorOrg.appUsers.none { it.id == targetUser.id })
+                if (!organizationMembershipService.isMember(targetUser.id, actorOrg.id))
                 {
                     throw UnauthorizedException("App user does not belong to the organization")
                 }
@@ -169,7 +170,7 @@ class OrganizationAuthSessionPolicyResource @Inject constructor(
                 ?: throw UnauthorizedException("User is not authenticated")
             actorId = currentUser.id
 
-            if (currentUser.role != AppUserRole.ORG_ADMIN)
+            if (!userRoleService.isOrgAdmin(currentUser.id))
             {
                 throw UnauthorizedException("User does not have permission to view auth session policy")
             }

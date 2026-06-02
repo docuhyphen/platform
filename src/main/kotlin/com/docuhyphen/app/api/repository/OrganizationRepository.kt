@@ -29,8 +29,18 @@ class OrganizationRepository : BaseRepository<Organization>(Organization::class.
 
     fun findByAppUserIdAndPersonId(appUserId: UUID, personId: UUID): Organization?
     {
+        // Resolve the caller's organization through `organization_membership` (the replacement
+        // for the retired `app_user.organization_id` join). Primary membership wins, then any
+        // other ACTIVE membership. The personId guard preserves the legacy contract that the
+        // user row actually carries that person.
         val query = entityManager.createQuery(
-            "SELECT c FROM Organization c JOIN c.appUsers u WHERE u.id = :appUserId AND u.person.id = :personId",
+            """SELECT o FROM Organization o, OrganizationMembership m, AppUser u
+               WHERE m.organizationId = o.id
+                 AND m.appUserId = u.id
+                 AND u.id = :appUserId
+                 AND u.person.id = :personId
+                 AND m.status = com.docuhyphen.app.api.model.entity.OrganizationMembershipStatus.ACTIVE
+               ORDER BY m.isPrimary DESC""",
             Organization::class.java
         )
         query.setParameter("appUserId", appUserId)

@@ -20,12 +20,7 @@ class BasicEntityToDtoTransformer
                         initialShareMessage,
                         description,
                         initiator?.id,
-                        recipient?.id,
                         status.toString(),
-                        recipient?.email,
-                        recipient?.person?.firstName,
-                        recipient?.person?.lastName,
-                        "Organization Name",
                     )
                 }
             }
@@ -43,7 +38,9 @@ class BasicEntityToDtoTransformer
                         sessionName,
                         initialShareMessage,
                         status.toString(),
-                        recipient?.email,
+                        // Recipient email lives on the recipient's Share now; the no-auth viewer
+                        // is the recipient themselves, so it is not echoed back here.
+                        null,
                         initiator?.person?.firstName,
                         initiator?.person?.lastName,
                         noAuthAccessValidityDays,
@@ -149,36 +146,11 @@ class BasicEntityToDtoTransformer
             }
         }
 
-        fun toLinkedOrgGroup(orgGroup: OrganizationGroup): LinkedOrgGroupDto
-        {
-            return with(orgGroup) {
-
-                LinkedOrgGroupDto(
-                    orgGroup.id,
-                    orgGroup.name,
-                    orgGroup.members.map { toLinkedOrgAppUser(it.appUser) }
-                )
-            }
-        }
-
         fun toLinkedOrgAppUser(appUser: AppUser?): LinkedOrgAppUserDto?
         {
             return appUser?.let {
 
                 with(appUser) {
-                    LinkedOrgAppUserDto(
-                        id,
-                        email,
-                        toLinkedOrgAppUserPerson(person)
-                    )
-                }
-            }
-        }
-
-        fun toLinkOrgAppUser(orgGroupMember: OrganizationGroupMember): LinkedOrgAppUserDto?
-        {
-            return orgGroupMember.appUser?.let {
-                with(it) {
                     LinkedOrgAppUserDto(
                         id,
                         email,

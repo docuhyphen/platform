@@ -20,14 +20,9 @@ data class SharingSessionBasicDto(
     val description: String? = null,
     @Serializable(with = UUIDSerializer::class)
     val initiator: UUID?,
-    @Serializable(with = UUIDSerializer::class)
-    val recipientId: UUID?,
     val status: String?,
-    var recipientEmail: String? = null,
-    var recipientFirstName: String? = null,
-    var recipientLastName: String? = null,
-    var recipientOrganizationName: String? = null,
-//    val participantIds: List<UUID>
+    // Recipients/participants are exposed via the unified access view
+    // (GET /sharing-sessions/{id}/access), not embedded recipient columns.
 )
 
 @Serializable
@@ -128,14 +123,6 @@ data class DocumentBasicDto(
     val type: String?,
     val restrictedType: String?,
     val hash: String?,
-)
-
-@Serializable
-data class LinkedOrgGroupDto(
-    @Serializable(with = UUIDSerializer::class)
-    val id: UUID?,
-    val name: String?,
-    val members: List<LinkedOrgAppUserDto?>
 )
 
 @Serializable

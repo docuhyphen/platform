@@ -186,9 +186,15 @@ const OrganizationTab = () =>
 
                 {organizationSettings && <>
                     <Switch
+                        checked={organizationSettings.allowExternalCustomerSharing !== false}
+                        onChange={(_, data) => handleSettingChange('allowExternalCustomerSharing', data.checked)}
+                        label="Allow sharing with external customers (individuals)"
+                        disabled={savingSettings}
+                    />
+                    <Switch
                         checked={organizationSettings.allowShareWithoutPairing}
                         onChange={(_, data) => handleSettingChange('allowShareWithoutPairing', data.checked)}
-                        label="Allow sharing without pairing"
+                        label="Allow sharing with unpaired organizations"
                         disabled={savingSettings}
                     />
                     <Switch

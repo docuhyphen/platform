@@ -10,8 +10,8 @@ export interface ThemeContextValue
     resolvedMode: ResolvedTheme;
     theme: Theme;
     /**
-     * Update the active theme in memory only. Persistence to the user's
-     * account is the caller's responsibility (e.g. via updateAppUserSettings).
+     * Update the active theme mode. ThemeProvider persists this locally,
+     * while callers can also persist it to the user's account settings.
      */
     setMode: (mode: ThemeMode) => void;
 }

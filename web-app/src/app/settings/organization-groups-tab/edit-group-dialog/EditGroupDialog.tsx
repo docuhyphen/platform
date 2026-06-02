@@ -9,8 +9,10 @@ import {
     DialogTitle,
     DialogTrigger,
     Divider,
+    Dropdown,
     Field,
     Input, MessageBar, MessageBarActions, MessageBarBody, MessageBarTitle,
+    Option,
     Spinner,
     Switch,
     Table,
@@ -27,6 +29,7 @@ import {fetchMyOrganizationUsers, updateOrganizationGroup} from "../../../../ser
 import {AppUserDetailedDto, OrganizationDetailedDto, OrganizationGroupDetailedDto} from "../../../models/models.tsx";
 import {useEditGroupDialogStyles} from "./EditGroupDialogStyles.tsx";
 import {ArrowLeftRegular, ArrowRightRegular, DismissRegular} from "@fluentui/react-icons";
+import {GroupRole, GroupRoleDisplayNames} from "../../../../services/types/roles";
 
 interface EditGroupDialogProps
 {
@@ -69,6 +72,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
     const [savingData, setSavingData] = useState(false);
     const [loadingUsers, setLoadingUsers] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [memberRoles, setMemberRoles] = useState<Map<string, GroupRole>>(new Map());
 
     useEffect(() =>
     {
@@ -106,6 +110,19 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                 });
 
                 setSelectedUsers(userMap);
+
+                // Initialize role map from group member data (Plan 03)
+                const rolesMap = new Map<string, GroupRole>();
+                group.members?.forEach((member: any) =>
+                {
+                    const uid = member.user?.id;
+                    if (uid)
+                    {
+                        const role = member.groupRole || member.permissions?.groupRole || GroupRole.MEMBER;
+                        rolesMap.set(uid, role as GroupRole);
+                    }
+                });
+                setMemberRoles(rolesMap);
             })
         }
     }, [isOpen]);
@@ -239,6 +256,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                         <TableHeaderCell>Select</TableHeaderCell>
                         <TableHeaderCell>Name</TableHeaderCell>
                         <TableHeaderCell>Email</TableHeaderCell>
+                        <TableHeaderCell>Role</TableHeaderCell>
                         <TableHeaderCell>Permissions</TableHeaderCell>
                     </TableRow>
                 </TableHeader>
@@ -379,6 +397,29 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                             <div style={{maxWidth: "220px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>
                                 {user.email}
                             </div>
+                        </TableCell>
+                        <TableCell>
+                            {selectedUsers.has(user.id?.toString() || "") && (
+                                <Dropdown
+                                    size="small"
+                                    value={GroupRoleDisplayNames[memberRoles.get(user.id?.toString() || "") || GroupRole.MEMBER]}
+                                    selectedOptions={[memberRoles.get(user.id?.toString() || "") || GroupRole.MEMBER]}
+                                    onOptionSelect={(_e, d) =>
+                                    {
+                                        const uid = user.id?.toString() || "";
+                                        setMemberRoles(prev =>
+                                        {
+                                            const next = new Map(prev);
+                                            next.set(uid, (d.optionValue || GroupRole.MEMBER) as GroupRole);
+                                            return next;
+                                        });
+                                    }}
+                                >
+                                    {Object.entries(GroupRoleDisplayNames).map(([k, v]) => (
+                                        <Option key={k} value={k}>{v}</Option>
+                                    ))}
+                                </Dropdown>
+                            )}
                         </TableCell>
                         <TableCell>
                             {selectedUsers.has(user.id?.toString() || "") && (

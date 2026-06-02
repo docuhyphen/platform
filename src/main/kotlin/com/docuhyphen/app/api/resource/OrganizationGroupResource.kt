@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.exception.OrganizationGroupNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationLinkNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
-import com.docuhyphen.app.api.model.resourceservice.MemberPermissionsModel
+import com.docuhyphen.app.api.model.entity.GroupRole
 import com.docuhyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
 import com.docuhyphen.app.api.resource.model.AddOrganizationGroupRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
@@ -33,6 +33,10 @@ class OrganizationGroupResource @Inject constructor(
     companion object
     {
         private val logger = LoggerFactory.getLogger(OrganizationGroupResource::class.java)
+
+        private fun parseGroupRole(value: String): GroupRole =
+            runCatching { GroupRole.valueOf(value.trim().uppercase()) }
+                .getOrElse { throw IllegalArgumentException("Invalid group role: $value") }
     }
 
     @Path("/{organizationId}/groups")
@@ -50,18 +54,7 @@ class OrganizationGroupResource @Inject constructor(
             val members = addOrganizationGroupRequest.members?.map { member ->
                 OrganizationGroupMemberModel(
                     appUserId = member.appUserId ?: throw IllegalArgumentException("Member ID cannot be null"),
-                    permissions = MemberPermissionsModel(
-                        allowSessionAccept = member.allowSessionAccept,
-                        allowSessionReject = member.allowSessionReject,
-                        allowSessionEdit = member.allowSessionEdit,
-                        allowSessionDelete = member.allowSessionDelete,
-                        allowSessionEnd = member.allowSessionEnd,
-                        allowDocumentAddition = member.allowDocumentAddition,
-                        allowDocumentDeletion = member.allowDocumentDeletion,
-                        allowDocumentDownload = member.allowDocumentDownload,
-                        allowDocumentUpdate = member.allowDocumentUpdate,
-                        allowDocumentUpload = member.allowDocumentUpload
-                    )
+                    groupRole = parseGroupRole(member.groupRole),
                 )
             } ?: emptyList()
 
@@ -133,18 +126,7 @@ class OrganizationGroupResource @Inject constructor(
             val groupMembers = updateOrganizationGroupRequest.members?.map { member ->
                 OrganizationGroupMemberModel(
                     appUserId = member.appUserId ?: throw IllegalArgumentException("Member ID cannot be null"),
-                    permissions = MemberPermissionsModel(
-                        allowSessionAccept = member.allowSessionAccept,
-                        allowSessionReject = member.allowSessionReject,
-                        allowSessionEdit = member.allowSessionEdit,
-                        allowSessionDelete = member.allowSessionDelete,
-                        allowSessionEnd = member.allowSessionEnd,
-                        allowDocumentAddition = member.allowDocumentAddition,
-                        allowDocumentDeletion = member.allowDocumentDeletion,
-                        allowDocumentDownload = member.allowDocumentDownload,
-                        allowDocumentUpdate = member.allowDocumentUpdate,
-                        allowDocumentUpload = member.allowDocumentUpload
-                    )
+                    groupRole = parseGroupRole(member.groupRole),
                 )
             } ?: emptyList()
 
@@ -210,8 +192,7 @@ class OrganizationGroupResource @Inject constructor(
             }
 
             val groups = organizationGroupService
-                .getOrganizationGroups(organizationId)
-                .map { DetailedEntityToDtoTransformer.toDto(it) }
+                .getOrganizationGroupViews(organizationId)
                 .take(configurationService.getDirectoryLookupMaxResults())
                 .toTypedArray()
 
@@ -263,8 +244,7 @@ class OrganizationGroupResource @Inject constructor(
         return try
         {
             val groups = organizationGroupService
-                .getPublishedGroupsForPairedOrganization(organizationId, pairedOrganizationId)
-                .map { DetailedEntityToDtoTransformer.toDto(it) }
+                .getPublishedGroupViewsForPairedOrganization(organizationId, pairedOrganizationId)
                 .toTypedArray()
 
             Response.ok(groups).build()

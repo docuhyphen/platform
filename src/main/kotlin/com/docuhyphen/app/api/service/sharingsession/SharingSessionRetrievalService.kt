@@ -55,8 +55,9 @@ class SharingSessionRetrievalService @Inject constructor(
     fun getAllSessionsForSignedInAppUser(): List<SharingSession>
     {
         val appUserId = authTokenContext.authToken.appUser?.id ?: return emptyList()
-        val initiatedSessions = sharingSessionRepository.findByInitiatorId(appUserId)
-        val receivedSessions = sharingSessionRepository.findByRecipientId(appUserId)
+        // findByParticipatingAppUser now resolves access through Share rows (initiator + any
+        // active USER share — direct, group-inherited, or participant), so it is the single
+        // source of "sessions this user can see".
         val participatingSessions = sharingSessionRepository.findByParticipatingAppUser(appUserId)
 
         return (participatingSessions)
@@ -133,14 +134,7 @@ class SharingSessionRetrievalService @Inject constructor(
             size,
             sortBy,
             sortDirection
-        ).filter { session ->
-
-            //If a session is initiated then check if the current user is a participent then don't return this session
-            // This is to prevent participants from accepting sharing sessions if they haven't been accepted yet
-            val currentAppUserIsAParticipant = session.participants.any { it.appUser?.id == appUserId }
-
-            !(session.status == INITIATED && currentAppUserIsAParticipant)
-        }
+        )
 
         val totalElements = sharingSessionRepository.countSearchResults(
             appUserId,
