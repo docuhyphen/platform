@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
     Badge,
     Button,
@@ -23,9 +23,18 @@ import {
     TableHeader,
     TableHeaderCell,
     TableRow,
+    Tag,
     Text,
     Textarea,
 } from '@fluentui/react-components';
+import {
+    TagPicker,
+    TagPickerControl,
+    TagPickerGroup,
+    TagPickerInput,
+    TagPickerList,
+    TagPickerOption,
+} from '@fluentui/react-tag-picker';
 import {
     AddRegular,
     DeleteRegular,
@@ -43,7 +52,7 @@ import {
     removePersonalGroupMember,
     updatePersonalGroup,
 } from '../../../services/meGroupsApi';
-import {searchContacts} from '../../../services/personalContactsApi';
+import {searchContacts, UserContactDto} from '../../../services/personalContactsApi';
 import {PrincipalGroupDto} from '../../../services/types/dtos';
 import {GroupRoleDisplayNames} from '../../../services/types/roles';
 
@@ -70,11 +79,19 @@ const MyGroupsTab: React.FC = () =>
     const [editDesc, setEditDesc] = useState('');
     const [saving, setSaving] = useState(false);
 
-    // Add member
-    const [addMemberGroupId, setAddMemberGroupId] = useState<string | null>(null);
-    const [memberQuery, setMemberQuery] = useState('');
-    const [memberSearchResults, setMemberSearchResults] = useState<any[]>([]);
+    // Add member dialog (replaces inline add)
+    const [addMemberDialogGroupId, setAddMemberDialogGroupId] = useState<string | null>(null);
+    const [memberTagQuery, setMemberTagQuery] = useState('');
+    const [memberSearchResults, setMemberSearchResults] = useState<UserContactDto[]>([]);
+    const [selectedContacts, setSelectedContacts] = useState<UserContactDto[]>([]);
     const [addingMember, setAddingMember] = useState(false);
+    const memberDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Remove member confirmation
+    const [confirmRemove, setConfirmRemove] = useState<{groupId: string; userId: string; displayName: string} | null>(null);
+
+    // Delete group confirmation
+    const [confirmDeleteGroupId, setConfirmDeleteGroupId] = useState<string | null>(null);
 
     const loadGroups = useCallback(async () =>
     {
@@ -102,14 +119,24 @@ const MyGroupsTab: React.FC = () =>
 
     const handleCreate = async () =>
     {
-        if (!newName.trim()) return;
+        if (!newName.trim() || selectedContacts.length === 0) return;
         setCreating(true);
         try
         {
-            await createPersonalGroup({name: newName.trim(), description: newDesc.trim() || undefined});
+            const newGroup = await createPersonalGroup({name: newName.trim(), description: newDesc.trim() || undefined});
+            await addPersonalGroupMembers(newGroup.id, {
+                members: selectedContacts.map(c => ({
+                    principalId: c.contactAppUserId!,
+                    principalKind: 'USER',
+                    groupRole: 'MEMBER',
+                })),
+            });
             setCreateOpen(false);
             setNewName('');
             setNewDesc('');
+            setSelectedContacts([]);
+            setMemberTagQuery('');
+            setMemberSearchResults([]);
             await loadGroups();
         }
         catch (err: any)
@@ -150,6 +177,7 @@ const MyGroupsTab: React.FC = () =>
         try
         {
             await deletePersonalGroup(groupId);
+            setConfirmDeleteGroupId(null);
             await loadGroups();
         }
         catch (err: any)
@@ -158,37 +186,52 @@ const MyGroupsTab: React.FC = () =>
         }
     };
 
-    const handleSearchMembers = async (query: string) =>
+    const onMemberTagQueryChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     {
-        setMemberQuery(query);
-        if (query.length < 2) { setMemberSearchResults([]); return; }
-        try
-        {
-            const results = await searchContacts(query, 10);
-            setMemberSearchResults(results);
-        }
-        catch
+        const q = e.target.value;
+        setMemberTagQuery(q);
+        if (memberDebounceRef.current) clearTimeout(memberDebounceRef.current);
+        if (q.length < 2)
         {
             setMemberSearchResults([]);
+            return;
         }
+        memberDebounceRef.current = setTimeout(async () =>
+        {
+            try
+            {
+                const results = await searchContacts(q, 10);
+                setMemberSearchResults(results.filter(c => !!c.contactAppUserId));
+            }
+            catch
+            {
+                setMemberSearchResults([]);
+            }
+        }, 250);
     };
 
-    const handleAddMember = async (contactAppUserId: string) =>
+    const onAddMembersConfirm = async () =>
     {
-        if (!addMemberGroupId || !contactAppUserId) return;
+        if (!addMemberDialogGroupId || selectedContacts.length === 0) return;
         setAddingMember(true);
         try
         {
-            await addPersonalGroupMembers(addMemberGroupId, {
-                members: [{principalId: contactAppUserId, principalKind: 'USER', groupRole: 'MEMBER'}],
+            await addPersonalGroupMembers(addMemberDialogGroupId, {
+                members: selectedContacts.map(c => ({
+                    principalId: c.contactAppUserId!,
+                    principalKind: 'USER',
+                    groupRole: 'MEMBER',
+                })),
             });
             await loadGroups();
-            setMemberQuery('');
+            setAddMemberDialogGroupId(null);
+            setSelectedContacts([]);
+            setMemberTagQuery('');
             setMemberSearchResults([]);
         }
         catch (err: any)
         {
-            setError(err?.errorMessage || err?.message || 'Failed to add member');
+            setError(err?.errorMessage || err?.message || 'Failed to add member(s)');
         }
         finally
         {
@@ -196,11 +239,20 @@ const MyGroupsTab: React.FC = () =>
         }
     };
 
+    const closeAddMemberDialog = () =>
+    {
+        setAddMemberDialogGroupId(null);
+        setSelectedContacts([]);
+        setMemberTagQuery('');
+        setMemberSearchResults([]);
+    };
+
     const handleRemoveMember = async (groupId: string, principalId: string) =>
     {
         try
         {
             await removePersonalGroupMember(groupId, principalId);
+            setConfirmRemove(null);
             await loadGroups();
         }
         catch (err: any)
@@ -260,7 +312,9 @@ const MyGroupsTab: React.FC = () =>
                                     </TableCell>
                                     <TableCell>
                                         <div className={styles.memberList}>
-                                            {group.members.map((m, i) => (
+                                            {group.members
+                                                .filter(m => m.groupRole !== 'OWNER')
+                                                .map((m, i) => (
                                                 <div key={i} style={{display: 'flex', alignItems: 'center', gap: 4}}>
                                                     <Text size={200}>
                                                         {m.user?.email || m.user?.person?.firstName || 'Unknown'}
@@ -272,47 +326,28 @@ const MyGroupsTab: React.FC = () =>
                                                         size="small"
                                                         appearance="subtle"
                                                         icon={<PersonDeleteRegular/>}
-                                                        onClick={() => m.user?.id && handleRemoveMember(group.id, m.user.id)}
+                                                        title="Remove member"
+                                                        onClick={() =>
+                                                        {
+                                                            if (m.user?.id)
+                                                            {
+                                                                const name = m.user?.email || m.user?.person?.firstName || 'this member';
+                                                                setConfirmRemove({
+                                                                    groupId: group.id,
+                                                                    userId: m.user.id,
+                                                                    displayName: name,
+                                                                });
+                                                            }
+                                                        }}
                                                     />
                                                 </div>
                                             ))}
-                                            {/* Inline add member */}
-                                            {addMemberGroupId === group.id ? (
-                                                <div style={{display: 'flex', gap: 4, alignItems: 'center'}}>
-                                                    <Input
-                                                        size="small"
-                                                        placeholder="Search contacts..."
-                                                        value={memberQuery}
-                                                        onChange={(_e, d) => handleSearchMembers(d.value)}
-                                                    />
-                                                    {addingMember && <Spinner size="tiny"/>}
-                                                    <Button size="small" appearance="subtle"
-                                                            onClick={() => { setAddMemberGroupId(null); setMemberSearchResults([]); setMemberQuery(''); }}>
-                                                        Cancel
-                                                    </Button>
-                                                    {memberSearchResults.length > 0 && (
-                                                        <div style={{position: 'absolute', zIndex: 10, background: 'var(--colorNeutralBackground1)', border: '1px solid var(--colorNeutralStroke1)', borderRadius: 4, marginTop: 24}}>
-                                                            {memberSearchResults.map((c) => (
-                                                                <Button
-                                                                    key={c.contactAppUserId || c.email}
-                                                                    size="small"
-                                                                    appearance="subtle"
-                                                                    style={{display: 'block', width: '100%', textAlign: 'left'}}
-                                                                    disabled={!c.contactAppUserId}
-                                                                    onClick={() => c.contactAppUserId && handleAddMember(c.contactAppUserId)}
-                                                                >
-                                                                    {c.firstName} {c.lastName} ({c.email})
-                                                                </Button>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ) : (
+                                            {group.members.filter(m => m.groupRole !== 'OWNER').length === 0 && (
                                                 <Button
                                                     size="small"
                                                     appearance="subtle"
                                                     icon={<PersonAddRegular/>}
-                                                    onClick={() => setAddMemberGroupId(group.id)}
+                                                    onClick={() => setAddMemberDialogGroupId(group.id)}
                                                 >
                                                     Add member
                                                 </Button>
@@ -331,10 +366,15 @@ const MyGroupsTab: React.FC = () =>
                                             </MenuTrigger>
                                             <MenuPopover>
                                                 <MenuList>
+                                                    <MenuItem icon={<PersonAddRegular/>}
+                                                              onClick={() => setAddMemberDialogGroupId(group.id)}>
+                                                        Add Member
+                                                    </MenuItem>
                                                     <MenuItem icon={<EditRegular/>} onClick={() => openEdit(group)}>
                                                         Rename
                                                     </MenuItem>
-                                                    <MenuItem icon={<DeleteRegular/>} onClick={() => handleDelete(group.id)}>
+                                                    <MenuItem icon={<DeleteRegular/>}
+                                                              onClick={() => setConfirmDeleteGroupId(group.id)}>
                                                         Delete
                                                     </MenuItem>
                                                 </MenuList>
@@ -367,14 +407,71 @@ const MyGroupsTab: React.FC = () =>
                             <Field label="Description">
                                 <Textarea value={newDesc} onChange={(_e, d) => setNewDesc(d.value)}/>
                             </Field>
+                            <Field label="Members" required hint="Search and add at least one member to the group.">
+                                <TagPicker
+                                    selectedOptions={selectedContacts.map(c => c.contactAppUserId!)}
+                                    onOptionSelect={(_e, data) =>
+                                    {
+                                        const allIds = data.selectedOptions;
+                                        const updated = allIds
+                                            .map(id =>
+                                                selectedContacts.find(c => c.contactAppUserId === id) ||
+                                                memberSearchResults.find(c => c.contactAppUserId === id),
+                                            )
+                                            .filter((c): c is UserContactDto => !!c);
+                                        setSelectedContacts(updated);
+                                    }}
+                                >
+                                    <TagPickerControl>
+                                        <TagPickerGroup>
+                                            {selectedContacts.map(c => (
+                                                <Tag key={c.contactAppUserId!} value={c.contactAppUserId!} dismissible>
+                                                    {[c.firstName, c.lastName].filter(Boolean).join(' ') || c.email}
+                                                </Tag>
+                                            ))}
+                                        </TagPickerGroup>
+                                        <TagPickerInput
+                                            value={memberTagQuery}
+                                            onChange={onMemberTagQueryChange}
+                                            placeholder="Type a name or email..."
+                                        />
+                                    </TagPickerControl>
+                                    <TagPickerList>
+                                        {memberSearchResults
+                                            .filter(c => !selectedContacts.some(s => s.contactAppUserId === c.contactAppUserId))
+                                            .map(c => (
+                                                <TagPickerOption key={c.contactAppUserId!} value={c.contactAppUserId!}>
+                                                    {[c.firstName, c.lastName].filter(Boolean).join(' ')} ({c.email})
+                                                </TagPickerOption>
+                                            ))
+                                        }
+                                        {memberSearchResults.length === 0 && memberTagQuery.length >= 2 && (
+                                            <TagPickerOption value="__no_results__" disabled>
+                                                No registered contacts found
+                                            </TagPickerOption>
+                                        )}
+                                    </TagPickerList>
+                                </TagPicker>
+                            </Field>
                         </DialogContent>
                         <DialogActions>
-                            <Button appearance="primary" shape="circular" disabled={creating || !newName.trim()} onClick={handleCreate}>
+                            <Button
+                                appearance="primary"
+                                shape="circular"
+                                disabled={creating || !newName.trim() || selectedContacts.length === 0}
+                                onClick={handleCreate}
+                            >
                                 {creating && <Spinner size="tiny"/>} Create
                             </Button>
-                            <DialogTrigger disableButtonEnhancement>
-                                <Button appearance="secondary" shape="circular" onClick={() => setCreateOpen(false)}>Cancel</Button>
-                            </DialogTrigger>
+                            <Button appearance="secondary" shape="circular" onClick={() =>
+                            {
+                                setCreateOpen(false);
+                                setNewName('');
+                                setNewDesc('');
+                                setSelectedContacts([]);
+                                setMemberTagQuery('');
+                                setMemberSearchResults([]);
+                            }}>Cancel</Button>
                         </DialogActions>
                     </DialogBody>
                 </DialogSurface>
@@ -394,12 +491,139 @@ const MyGroupsTab: React.FC = () =>
                             </Field>
                         </DialogContent>
                         <DialogActions>
-                            <Button appearance="primary" shape="circular" disabled={saving || !editName.trim()} onClick={handleUpdate}>
+                            <Button appearance="primary" shape="circular" disabled={saving || !editName.trim()}
+                                    onClick={handleUpdate}>
                                 {saving && <Spinner size="tiny"/>} Save
                             </Button>
                             <DialogTrigger disableButtonEnhancement>
-                                <Button appearance="secondary" shape="circular" onClick={() => setEditGroup(null)}>Cancel</Button>
+                                <Button appearance="secondary" shape="circular"
+                                        onClick={() => setEditGroup(null)}>Cancel</Button>
                             </DialogTrigger>
+                        </DialogActions>
+                    </DialogBody>
+                </DialogSurface>
+            </Dialog>
+
+            {/* Add Member dialog */}
+            <Dialog modalType="alert" open={!!addMemberDialogGroupId}>
+                <DialogSurface>
+                    <DialogBody>
+                        <DialogTitle>Add Members</DialogTitle>
+                        <DialogContent style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+                            <Field label="Search and select members">
+                                <TagPicker
+                                    selectedOptions={selectedContacts.map(c => c.contactAppUserId!)}
+                                    onOptionSelect={(_e, data) =>
+                                    {
+                                        const allIds = data.selectedOptions;
+                                        const updated = allIds
+                                            .map(id =>
+                                                selectedContacts.find(c => c.contactAppUserId === id) ||
+                                                memberSearchResults.find(c => c.contactAppUserId === id),
+                                            )
+                                            .filter((c): c is UserContactDto => !!c);
+                                        setSelectedContacts(updated);
+                                    }}
+                                >
+                                    <TagPickerControl>
+                                        <TagPickerGroup>
+                                            {selectedContacts.map(c => (
+                                                <Tag
+                                                    key={c.contactAppUserId!}
+                                                    value={c.contactAppUserId!}
+                                                    dismissible
+                                                >
+                                                    {[c.firstName, c.lastName].filter(Boolean).join(' ') || c.email}
+                                                </Tag>
+                                            ))}
+                                        </TagPickerGroup>
+                                        <TagPickerInput
+                                            value={memberTagQuery}
+                                            onChange={onMemberTagQueryChange}
+                                            placeholder="Type a name or email..."
+                                        />
+                                    </TagPickerControl>
+                                    <TagPickerList>
+                                        {memberSearchResults
+                                            .filter(c => !selectedContacts.some(s => s.contactAppUserId === c.contactAppUserId))
+                                            .map(c => (
+                                                <TagPickerOption key={c.contactAppUserId!} value={c.contactAppUserId!}>
+                                                    {[c.firstName, c.lastName].filter(Boolean).join(' ')} ({c.email})
+                                                </TagPickerOption>
+                                            ))
+                                        }
+                                        {memberSearchResults.length === 0 && memberTagQuery.length >= 2 && (
+                                            <TagPickerOption value="__no_results__" disabled>
+                                                No registered contacts found
+                                            </TagPickerOption>
+                                        )}
+                                    </TagPickerList>
+                                </TagPicker>
+                            </Field>
+                            <Text size={200}>Only contacts with a registered account can be added as members.</Text>
+                        </DialogContent>
+                        <DialogActions>
+                            <Button
+                                appearance="primary"
+                                shape="circular"
+                                disabled={addingMember || selectedContacts.length === 0}
+                                onClick={onAddMembersConfirm}
+                            >
+                                {addingMember && <Spinner size="tiny"/>} Add
+                            </Button>
+                            <Button appearance="secondary" shape="circular" onClick={closeAddMemberDialog}>
+                                Cancel
+                            </Button>
+                        </DialogActions>
+                    </DialogBody>
+                </DialogSurface>
+            </Dialog>
+
+            {/* Confirm remove member dialog */}
+            <Dialog modalType="alert" open={!!confirmRemove}>
+                <DialogSurface>
+                    <DialogBody>
+                        <DialogTitle>Remove Member</DialogTitle>
+                        <DialogContent>
+                            Are you sure you want to remove <strong>{confirmRemove?.displayName}</strong> from this
+                            group?
+                        </DialogContent>
+                        <DialogActions>
+                            <Button
+                                appearance="primary"
+                                shape="circular"
+                                onClick={() => confirmRemove && handleRemoveMember(confirmRemove.groupId, confirmRemove.userId)}
+                            >
+                                Remove
+                            </Button>
+                            <Button appearance="secondary" shape="circular" onClick={() => setConfirmRemove(null)}>
+                                Cancel
+                            </Button>
+                        </DialogActions>
+                    </DialogBody>
+                </DialogSurface>
+            </Dialog>
+
+            {/* Confirm delete group dialog */}
+            <Dialog modalType="alert" open={!!confirmDeleteGroupId}>
+                <DialogSurface>
+                    <DialogBody>
+                        <DialogTitle>Delete Group</DialogTitle>
+                        <DialogContent>
+                            Are you sure you want to delete this group? This action cannot be undone.
+                        </DialogContent>
+                        <DialogActions>
+                            <Button
+                                appearance="primary"
+                                shape="circular"
+                                onClick={() => confirmDeleteGroupId && handleDelete(confirmDeleteGroupId)}
+                            >
+                                Delete
+                            </Button>
+                            <Button appearance="secondary" shape="circular"
+                                    onClick={() => setConfirmDeleteGroupId(null)}>
+                                Cancel
+                            </Button>
                         </DialogActions>
                     </DialogBody>
                 </DialogSurface>

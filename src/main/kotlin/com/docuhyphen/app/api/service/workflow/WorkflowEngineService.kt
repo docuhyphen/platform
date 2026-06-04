@@ -53,6 +53,13 @@ interface WorkflowEngineService
 
     /** Cancels a running workflow (e.g. when the subject session is deleted). */
     fun cancel(instanceId: UUID, reason: String?)
+
+    /**
+     * Plan 07 G7: pending APPROVAL step instances where [appUserId] is either a direct
+     * assignee (USER kind) or a member of an assignee group (PRINCIPAL_GROUP kind). Powers
+     * the "Pending approvals" inbox so a page refresh doesn't drop missed realtime pushes.
+     */
+    fun listPendingForUser(appUserId: UUID): List<PendingWorkflowStepDto>
 }
 
 enum class Decision
@@ -92,5 +99,23 @@ data class DecisionResult(
     val stepStatus: com.docuhyphen.app.api.model.entity.WorkflowStepStatus,
     val instanceStatus: com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus,
     val emittedEvents: List<String> = emptyList(),
+)
+
+/**
+ * Plan 07 G7: shape returned by [WorkflowEngineService.listPendingForUser]. Mirrors the
+ * frontend `PendingWorkflowStep` interface so the inbox can render without an extra mapping
+ * layer. Times are epoch millis (ISO-8601 conversion happens client-side).
+ */
+@kotlinx.serialization.Serializable
+data class PendingWorkflowStepDto(
+    val stepInstanceId: String,
+    val workflowInstanceId: String,
+    val stepType: String,
+    val sessionId: String? = null,
+    val sessionName: String? = null,
+    val requestedByEmail: String? = null,
+    val requestedByName: String? = null,
+    val groupName: String? = null,
+    val createdAtEpochMillis: Long,
 )
 

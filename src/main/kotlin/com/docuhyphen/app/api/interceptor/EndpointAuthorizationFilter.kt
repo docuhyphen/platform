@@ -69,6 +69,7 @@ class EndpointVerificationFilter @Inject constructor(
         "/auth/sign-up/initiation",
         "/auth/sign-up/completion",
         "/auth/sign-up/otp-regeneration",
+        "/auth/sign-up/email-confirm",
         "/auth/sign-in/initiate",
         "/auth/sign-in/otp-regeneration",
         "/auth/sign-in/completion",

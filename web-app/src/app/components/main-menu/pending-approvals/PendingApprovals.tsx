@@ -3,6 +3,8 @@ import {
     Badge,
     Button,
     CounterBadge,
+    MessageBar,
+    MessageBarBody,
     Popover,
     PopoverSurface,
     PopoverTrigger,
@@ -16,7 +18,7 @@ import {
     TaskListSquareLtrRegular,
 } from '@fluentui/react-icons';
 import {usePendingApprovalsStyles} from './PendingApprovalsStyles';
-import {recordWorkflowDecision} from '../../../../services/workflowApi';
+import {getMyPendingDecisions, recordWorkflowDecision} from '../../../../services/workflowApi';
 import {PendingWorkflowStep} from '../../../../services/types/dtos';
 import {realtimeService} from '../../../../services/NotificationService';
 
@@ -30,6 +32,29 @@ const PendingApprovals: React.FC = () =>
     const [items, setItems] = useState<PendingWorkflowStep[]>([]);
     const [deciding, setDeciding] = useState<string | null>(null);
     const [comments, setComments] = useState<Record<string, string>>({});
+    const [decisionError, setDecisionError] = useState<string | null>(null);
+
+    // Plan 07 G7: initial fetch so a page refresh doesn't drop missed realtime pushes.
+    // The realtime listener below prepends new items on top of whatever this returned.
+    useEffect(() =>
+    {
+        let cancelled = false;
+        getMyPendingDecisions()
+            .then((data) =>
+            {
+                if (cancelled) return;
+                setItems(data ?? []);
+            })
+            .catch((err) =>
+            {
+                // Silent on 401/403 (user just doesn't have the role yet) — only log others.
+                console.warn('Failed to load pending approvals', err);
+            });
+        return () =>
+        {
+            cancelled = true;
+        };
+    }, []);
 
     // Listen for realtime workflow events
     useEffect(() =>
@@ -83,6 +108,7 @@ const PendingApprovals: React.FC = () =>
         async (step: PendingWorkflowStep, decision: 'APPROVE' | 'REJECT') =>
         {
             setDeciding(step.stepInstanceId);
+            setDecisionError(null);
             try
             {
                 await recordWorkflowDecision(step.stepInstanceId, {
@@ -94,7 +120,7 @@ const PendingApprovals: React.FC = () =>
             catch (err: any)
             {
                 console.error('Decision failed', err);
-                alert(err?.errorMessage || err?.message || 'Failed to record decision');
+                setDecisionError(err?.errorMessage || err?.message || 'Failed to record decision');
             }
             finally
             {
@@ -130,6 +156,11 @@ const PendingApprovals: React.FC = () =>
             </PopoverTrigger>
             <PopoverSurface>
                 <div className={styles.container}>
+                    {decisionError && (
+                        <MessageBar intent="error" onClick={() => setDecisionError(null)}>
+                            <MessageBarBody>{decisionError}</MessageBarBody>
+                        </MessageBar>
+                    )}
                     {items.length === 0 ? (
                         <div className={styles.emptyState}>
                             <Text>No pending approvals</Text>

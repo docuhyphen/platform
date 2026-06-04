@@ -6,6 +6,8 @@ import {
 import {
     SharingSessionNewMainRecipient
 } from "../components/session-initiation-recipients-tab/new-recipient/NewRecipient.tsx";
+import {SessionShareRole} from '../../../services/types/roles.ts';
+import {ShareConstraints} from '../../../services/types/dtos.ts';
 
 const useSharingSessionInitiatingState = () =>
 {
@@ -36,6 +38,10 @@ const useSharingSessionInitiatingState = () =>
         firstName: '',
         lastName: ''
     });
+    // Plan 07 G1 — explicit recipient role + constraints. Undefined = "Auto" (backend
+    // auto-derives EDITOR/VIEWER from the allowDocument* flags + no extra constraints).
+    const [recipientRole, setRecipientRole] = useState<SessionShareRole | undefined>(undefined);
+    const [recipientConstraints, setRecipientConstraints] = useState<ShareConstraints>({});
 
     return {
         choosingTemplate, setChoosingTemplate,
@@ -60,7 +66,9 @@ const useSharingSessionInitiatingState = () =>
         recipientOrgUser, setRecipientOrgUser,
         recipientOrgGroup, setRecipientOrgGroup,
         internalParticipants, setInternalParticipants,
-        newRecipient, setNewRecipient
+        newRecipient, setNewRecipient,
+        recipientRole, setRecipientRole,
+        recipientConstraints, setRecipientConstraints,
     };
 };
 

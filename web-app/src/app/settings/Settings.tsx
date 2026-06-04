@@ -75,15 +75,13 @@ const Settings = () =>
                          value={tabIds.sessions}>
                         Sessions
                     </Tab>
-                    {(!appUserPersonOrganization || appUser?.role == AppUserRole.ORG_ADMIN) &&
-
-                        <Tab id="OrganizationTab"
-                             icon={<SettingsOrganizationTabIcon/>}
-                             value={tabIds.organization}>
-                            Your Organization
-                        </Tab>
-                    }
-                    {appUser?.role == AppUserRole.ORG_ADMIN && appUserPersonOrganization && <>
+                    <Tab id="OrganizationTab"
+                         icon={<SettingsOrganizationTabIcon/>}
+                         value={tabIds.organization}>
+                        Your Organization
+                    </Tab>
+                    {appUser?.role == AppUserRole.ORG_ADMIN && appUserPersonOrganization
+                        && appUserPersonOrganization.isActive && <>
 
                         <Tab id="PeopleTab"
                              icon={<SettingsOrganizationPeopleTabIcon/>}
@@ -106,7 +104,8 @@ const Settings = () =>
                          value={tabIds.myGroups}>
                         My Groups
                     </Tab>
-                    {appUser?.role == AppUserRole.ORG_ADMIN && appUserPersonOrganization &&
+                    {appUser?.role == AppUserRole.ORG_ADMIN && appUserPersonOrganization
+                        && appUserPersonOrganization.isActive &&
 
                         <Tab id="OrganiationPairingTab"
                              icon={<PairOrgTabIcon/>}
@@ -114,12 +113,19 @@ const Settings = () =>
                             Organization Pairing
                         </Tab>
                     }
-                    {appUser?.role == AppUserRole.ORG_ADMIN &&
+                    {/*
+                      App Admins is a *global* role, not org-scoped. We can't pre-check
+                      it from the current user DTO, so the tab is rendered for any
+                      signed-in user with an active organisation and AppAdminsTab itself
+                      renders a clean "no access" state on 403. Don't gate this on AppUserRole.
+                      Hidden while the org is pending/disabled to avoid confusion.
+                    */}
+                    {appUserPersonOrganization?.isActive && (
                         <Tab id="AppAdminsTab"
                              value={tabIds.appAdmins}>
                             App Admins
                         </Tab>
-                    }
+                    )}
                     {/*{appUserPersonOrganization &&*/}
                     {/*    <Tab id="TemplatesTab"*/}
                     {/*         icon={<SettingsTemplatesTabIcon/>}*/}

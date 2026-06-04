@@ -11,7 +11,7 @@ import {
     Spinner
 } from "@fluentui/react-components";
 import {DismissRegular} from "@fluentui/react-icons";
-import {registerOrganization} from "../../../services/appUserApi.ts";
+import {fetchAppUser, registerOrganization} from "../../../services/appUserApi.ts";
 import useToken from "../../../context/useToken.tsx";
 import {OrganizationBasicDto, ResponseError} from "../../models/models.tsx";
 import {useNavigate} from "react-router-dom";
@@ -45,7 +45,7 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
     const [errorMessage, setErrorMessage] = useState<string | undefined>();
     const token = useToken();
     const navigate = useNavigate();
-    const {setAppUserPersonOrganization, appUserPersonOrganization, appUser} = useAuth();
+    const {setAppUserPersonOrganization, appUserPersonOrganization, appUser, setAppUser, token: authToken} = useAuth();
     const styles = useOrganizationOnboardingForm();
     const globalStyles = useGlobalStyles();
 
@@ -99,6 +99,17 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
 
             setAppUserPersonOrganization(registeredOrganization);
             setOrgRegistered(true);
+
+            // Refetch appUser to pick up the updated role (e.g. ORG_ADMIN)
+            try
+            {
+                const updatedUser = await fetchAppUser(authToken);
+                setAppUser(updatedUser);
+            }
+            catch (e)
+            {
+                console.warn("Failed to refresh user after org registration", e);
+            }
 
             if (onOrganizationRegistered)
             {

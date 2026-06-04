@@ -186,6 +186,7 @@ class EmailTemplateService @Inject constructor(
         initiatorOrganization: String?,
         sessionMessage: String?,
         documents: List<String>,
+        requireSignIn: Boolean = false,
     ): String = sharingSessionTemplates.renderSharingSessionCreatedRecipientEmail(
         sessionId,
         sessionName,
@@ -193,6 +194,7 @@ class EmailTemplateService @Inject constructor(
         initiatorOrganization,
         sessionMessage,
         documents,
+        requireSignIn,
     )
 
     fun renderSharingSessionCreatedInitiatorEmail(

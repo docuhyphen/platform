@@ -19,14 +19,18 @@ class SharingSessionEmailTemplateService @Inject constructor(
         initiatorOrganization: String?,
         sessionMessage: String?,
         documents: List<String>,
+        requireSignIn: Boolean = false,
     ): String
     {
         val sessionLink = "${configurationService.baseUrl}/sharing-sessions?s=$sessionId"
+        val signUpLink = "${configurationService.baseUrl}/sign-up"
         val model = mutableMapOf<String, Any>(
             "sessionName" to sessionName,
             "initiatorName" to initiatorName,
             "documents" to documents,
             "sessionLink" to sessionLink,
+            "signUpLink" to signUpLink,
+            "requireSignIn" to requireSignIn,
             "appName" to configurationService.emailSubjectTitle,
         )
         if (!initiatorOrganization.isNullOrBlank()) model["initiatorOrganization"] = initiatorOrganization

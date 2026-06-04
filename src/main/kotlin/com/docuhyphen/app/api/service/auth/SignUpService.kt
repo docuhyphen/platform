@@ -4,10 +4,13 @@ import com.docuhyphen.app.api.exception.*
 import com.docuhyphen.app.api.extension.maskEmailForLogs
 import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.model.entity.AppUser
+import com.docuhyphen.app.api.model.entity.IdentityProviderLink
+import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.model.entity.SignUpEntity
 import com.docuhyphen.app.api.model.entity.SignUpStatus
 import com.docuhyphen.app.api.model.entity.SharingSessionStatus
 import com.docuhyphen.app.api.repository.AppUserRepository
+import com.docuhyphen.app.api.repository.IdentityProviderLinkRepository
 import com.docuhyphen.app.api.repository.SharingSessionRepository
 import com.docuhyphen.app.api.repository.SignUpRepository
 import com.docuhyphen.app.api.service.UserContactService
@@ -26,6 +29,7 @@ import java.time.LocalDateTime
 class SignUpService @Inject constructor(
     private val signUpRepository: SignUpRepository,
     private val appUserRepository: AppUserRepository,
+    private val identityProviderLinkRepository: IdentityProviderLinkRepository,
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
     private val otpService: OtpService,
@@ -512,6 +516,9 @@ class SignUpService @Inject constructor(
         runCatching { seedContactsAfterSignup(savedUser) }
             .onFailure { logger.warn("Failed to seed contacts after sign-up for {}", email.maskEmailForLogs(), it) }
 
+        runCatching { createInternalIdpLink(savedUser) }
+            .onFailure { logger.warn("Failed to create INTERNAL IDP link after sign-up for {}", email.maskEmailForLogs(), it) }
+
         val emailBody = emailTemplateService.renderSignUpCompletionEmail(email)
         emailService.sendEmail(
             to = email,
@@ -551,6 +558,28 @@ class SignUpService @Inject constructor(
                 val initiator = session.initiator ?: return@forEach
                 userContactService.recordOneWayFromSignupMerge(newUser, initiator, session.id)
             }
+    }
+
+    /**
+     * Creates the INTERNAL identity-provider link for a user who registered with email + password.
+     * Idempotent — if the link already exists (e.g. for an upgraded temp user) this is a no-op.
+     * Failures must never block sign-up; callers wrap this in runCatching.
+     */
+    private fun createInternalIdpLink(appUser: AppUser)
+    {
+        val existing = identityProviderLinkRepository.findByProviderAndExternalSubjectId(
+            IdentityProviderType.INTERNAL, appUser.id.toString()
+        )
+        if (existing != null) return
+
+        val link = IdentityProviderLink().apply {
+            this.appUser = appUser
+            this.provider = IdentityProviderType.INTERNAL
+            this.externalSubjectId = appUser.id.toString()
+            this.externalEmail = appUser.email
+        }
+        identityProviderLinkRepository.save(link)
+        logger.info("Created INTERNAL IDP link for user={}", appUser.id)
     }
 
 }

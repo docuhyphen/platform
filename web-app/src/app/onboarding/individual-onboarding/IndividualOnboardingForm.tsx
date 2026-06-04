@@ -1,8 +1,8 @@
 import React, {ChangeEvent, useEffect, useState} from 'react';
 import {useAuth} from '../../../context/AuthContext.tsx';
 import {useNavigate} from 'react-router-dom';
-import {registerIndividual} from '../../../services/appUserApi.ts';
-import {AppUserDetailedDto, PersonDetailedDto, PersonRegistrationRequest, ResponseError} from '../../models/models.tsx';
+import {registerIndividual, updateAppUserSettings} from '../../../services/appUserApi.ts';
+import {AppUserDetailedDto, AppUserSettingsDto, PersonDetailedDto, PersonRegistrationRequest, ResponseError} from '../../models/models.tsx';
 import useToken from "../../../context/useToken.tsx";
 import {
     Button,
@@ -15,13 +15,17 @@ import {
     MessageBarActions,
     MessageBarBody,
     OptionOnSelectData,
+    Radio,
+    RadioGroup,
     SelectionEvents,
     Spinner,
     Text
 } from "@fluentui/react-components";
 import {useIndividualOnboardingFormStyles} from "./IndividualOnboardingFormStyles.tsx";
-import {DismissRegular} from "@fluentui/react-icons";
+import {DismissRegular, WeatherMoonRegular, WeatherSunnyRegular} from "@fluentui/react-icons";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
+import {useTheme} from "../../../context/themeContextBase.ts";
+import type {ThemeMode} from "../../../context/theme.ts";
 
 interface IndividualRegistrationProps
 {
@@ -32,6 +36,7 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
 {
     const styles = useIndividualOnboardingFormStyles();
     const globalStyles = useGlobalStyles();
+    const {mode: currentThemeMode, setMode} = useTheme();
 
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -40,6 +45,7 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
     const [alsoRegisterOrganization, setAlsoRegisterOrganization] = useState(false);
     const [registeringProfile, setRegisteringProfile] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [selectedTheme, setSelectedTheme] = useState<ThemeMode>(currentThemeMode === 'system' ? 'light' : currentThemeMode);
     const {setAppUser, appUser} = useAuth();
     const navigate = useNavigate();
     const token = useToken();
@@ -71,6 +77,12 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
     const onIdTypeSelect = (_e: SelectionEvents, data: OptionOnSelectData) =>
     {
         setIdType(data.optionValue);
+    };
+
+    const onThemeChange = (theme: ThemeMode) =>
+    {
+        setSelectedTheme(theme);
+        setMode(theme);
     };
 
     const onRegisterOrganizationCheck = (_e: React.ChangeEvent<HTMLInputElement>, checked: CheckboxOnChangeData) =>
@@ -132,7 +144,19 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
             const person = {firstName, lastName, idNumber: identificationNumber, idType} as PersonRegistrationRequest;
             const registeredPerson = (await registerIndividual(person, token)) as PersonDetailedDto;
 
-            setAppUser({...(appUser as AppUserDetailedDto), person: registeredPerson});
+            const updatedUser = {...(appUser as AppUserDetailedDto), person: registeredPerson};
+            setAppUser(updatedUser);
+
+            // Persist the chosen theme to the server (best-effort — don't block navigation on failure)
+            try
+            {
+                const baseSettings = appUser?.settings ?? {} as AppUserSettingsDto;
+                await updateAppUserSettings({...baseSettings, theme: selectedTheme}, token);
+            }
+            catch (themeError)
+            {
+                console.warn('Failed to persist theme preference:', themeError);
+            }
 
             if (alsoRegisterOrganization)
             {
@@ -192,6 +216,24 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
                        maxLength={60}
                        value={lastName}
                        onChange={onLastNameChange}/>
+            </Field>
+
+            <Field label={"Choose your theme"}>
+                <RadioGroup
+                    value={selectedTheme}
+                    onChange={(_, data) => onThemeChange(data.value as ThemeMode)}
+                    layout="horizontal"
+                    aria-label="Theme"
+                >
+                    <Radio
+                        value="light"
+                        label={<span style={{display: 'flex', alignItems: 'center', gap: '4px'}}><WeatherSunnyRegular/> Light</span>}
+                    />
+                    <Radio
+                        value="dark"
+                        label={<span style={{display: 'flex', alignItems: 'center', gap: '4px'}}><WeatherMoonRegular/> Dark</span>}
+                    />
+                </RadioGroup>
             </Field>
 
             {/*{alsoRegisterOrganization &&*/}

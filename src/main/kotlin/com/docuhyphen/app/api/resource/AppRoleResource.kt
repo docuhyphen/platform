@@ -5,6 +5,7 @@ import com.docuhyphen.app.api.exception.LastAppAdminException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.RoleName
 import com.docuhyphen.app.api.resource.model.AppAdminDto
+import com.docuhyphen.app.api.resource.model.AppUserSearchResultDto
 import com.docuhyphen.app.api.resource.model.GrantAppAdminRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.AppUserService
@@ -12,6 +13,7 @@ import com.docuhyphen.app.api.service.auth.RoleAssignmentService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
+import jakarta.ws.rs.core.GenericEntity
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
@@ -31,6 +33,7 @@ class AppRoleResource @Inject constructor(
     private val userRoleService: UserRoleService,
     private val roleAssignmentService: RoleAssignmentService,
     private val appUserService: AppUserService,
+    private val appUserRepository: com.docuhyphen.app.api.repository.AppUserRepository,
 )
 {
     companion object
@@ -50,7 +53,7 @@ class AppRoleResource @Inject constructor(
                 grantedAt = ra.grantedAt.toInstant().toString(),
             )
         }
-        Response.ok(admins).build()
+        Response.ok(object : GenericEntity<List<AppAdminDto>>(admins) {}).build()
     }
 
     @POST
@@ -73,6 +76,34 @@ class AppRoleResource @Inject constructor(
             .getOrElse { throw IllegalArgumentException("Invalid assignmentId") }
         roleAssignmentService.revokeAppRole(id, actorId())
         Response.status(NO_CONTENT).build()
+    }
+
+    /**
+     * Plan 07 G3b: global app-user search for the App Admins picker. App-admin is a global
+     * role, so the picker must reach users outside the caller's org. Guarded by the same
+     * `isAppAdmin` check as the rest of this resource — an attacker without app-admin gets a
+     * 403 before any DB hit.
+     */
+    @GET
+    @Path("/app-admin-candidates")
+    fun searchAppAdminCandidates(
+        @QueryParam("q") q: String?,
+        @QueryParam("limit") @DefaultValue("20") limit: Int,
+    ): Response = guarded {
+        val query = q?.trim().orEmpty()
+        if (query.length < 2)
+        {
+            return@guarded Response.ok(object : GenericEntity<List<AppUserSearchResultDto>>(emptyList()) {}).build()
+        }
+        val hits = appUserRepository.searchActiveUsers(query, limit).map { u ->
+            AppUserSearchResultDto(
+                id = u.id.toString(),
+                email = u.email,
+                firstName = u.person?.firstName,
+                lastName = u.person?.lastName,
+            )
+        }
+        Response.ok(object : GenericEntity<List<AppUserSearchResultDto>>(hits) {}).build()
     }
 
     // -------------------------------------------------------------------------

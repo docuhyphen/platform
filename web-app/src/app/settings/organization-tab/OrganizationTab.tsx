@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {Button, Divider, Spinner, Switch, Text, tokens} from "@fluentui/react-components";
+import {Button, Divider, MessageBar, MessageBarBody, Spinner, Switch, Text, tokens} from "@fluentui/react-components";
 import {useAuth} from "../../../context/AuthContext";
 import {fetchAppUserPersonOrganization} from "../../../services/appUserApi";
 import {updateOrganizationSettings} from "../../../services/organizationApi";
@@ -154,7 +154,44 @@ const OrganizationTab = () =>
             </div>
         )}
 
-        {organization && !fetchingOrganization && (
+        {organization && !fetchingOrganization && !organization.isActive && (
+            <section className={styles.orgOnboardingContainer}>
+                <MessageBar intent={"warning"}>
+                    <MessageBarBody>
+                        <Text weight="semibold">Organization Pending Verification</Text>
+                        <br/>
+                        Your organization <Text weight="semibold">{organization.name}</Text> has been registered
+                        and is currently under review. We are verifying your details and you will receive a
+                        confirmation email once the process is complete. You can check back here at any time for
+                        status updates.
+                    </MessageBarBody>
+                </MessageBar>
+                <div style={{marginTop: '8px'}}>
+                    <Text size={300}>
+                        Registration Number: {organization.registrationNumber}
+                    </Text>
+                </div>
+                <div style={{marginTop: '8px'}}>
+                    <Text size={300}>
+                        Contact Email: {organization.contactDetails?.email || 'Not provided'}
+                    </Text>
+                </div>
+                <div>
+                    <Text size={300}>
+                        Contact Phone: {organization.contactDetails?.phoneNumber || 'Not provided'}
+                    </Text>
+                </div>
+                <div style={{marginTop: '8px'}}>
+                    <Text size={300}>
+                        If any of these details are incorrect, please contact sales at{' '}
+                        <a href="mailto:sales@docuhyphen.com">sales@docuhyphen.com</a> so we can update your
+                        registration review.
+                    </Text>
+                </div>
+            </section>
+        )}
+
+        {organization && !fetchingOrganization && organization.isActive && (
             <div className={styles.container}>
                 <Divider alignContent="start"
                          appearance="brand"

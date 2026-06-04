@@ -43,6 +43,11 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     @Inject private lateinit var stepRepository: WorkflowStepInstanceRepository
     @Inject private lateinit var assigneeResolver: WorkflowAssigneeResolver
     @Inject private lateinit var eventPublisher: DomainEventPublisher
+    // Plan 07 G7: extra repos for the pending-approvals enrichment (session name, group name, requester).
+    @Inject private lateinit var principalGroupMemberRepository: com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
+    @Inject private lateinit var principalGroupRepository: com.docuhyphen.app.api.repository.PrincipalGroupRepository
+    @Inject private lateinit var sharingSessionRepository: com.docuhyphen.app.api.repository.SharingSessionRepository
+    @Inject private lateinit var appUserRepository: com.docuhyphen.app.api.repository.AppUserRepository
 
     private val json = WorkflowSpecJson.instance
 
@@ -292,6 +297,75 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     // -------------------------------------------------------------------------
     // helpers
     // -------------------------------------------------------------------------
+
+    /**
+     * Plan 07 G7: scan all PENDING steps and return those the given user can decide on,
+     * either as a direct USER assignee or as an active member of an assignee PRINCIPAL_GROUP.
+     * Steps the user has already voted on are filtered out (idempotent re-decision is allowed
+     * by [recordDecision] but irrelevant for the inbox).
+     */
+    override fun listPendingForUser(appUserId: UUID): List<PendingWorkflowStepDto>
+    {
+        val userIdStr = appUserId.toString()
+        val userGroupIds: Set<String> = principalGroupMemberRepository
+            .findGroupsForPrincipal(PrincipalKind.USER, appUserId)
+            .map { it.principalGroupId.toString() }
+            .toSet()
+
+        return stepRepository.findAllPending().mapNotNull { step ->
+            val assignees = decodePrincipalList(step.assigneesSnapshotJson)
+            val isAssigned = assignees.any { a ->
+                when (a.kind)
+                {
+                    PrincipalKind.USER.name -> a.id == userIdStr
+                    PrincipalKind.PRINCIPAL_GROUP.name -> a.id in userGroupIds
+                    else -> false
+                }
+            }
+            if (!isAssigned) return@mapNotNull null
+
+            // Skip if the user already voted on this step (any decision, APPROVE or REJECT).
+            val alreadyVoted = decodeDecisions(step.decisionsJson)
+                .any { it.principalKind == PrincipalKind.USER.name && it.principalId == userIdStr }
+            if (alreadyVoted) return@mapNotNull null
+
+            val instance = instanceRepository.findById(step.instanceId) ?: return@mapNotNull null
+            val sessionId = instance.subjectResourceId
+            val session = sessionId?.let { sharingSessionRepository.findById(it) }
+            val initiator = instance.initiatedByAppUserId?.let { appUserRepository.findById(it) }
+            val groupName = decodeSubjectData(instance.subjectDataJson)["recipientGroupId"]
+                ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                ?.let { principalGroupRepository.findById(it)?.name }
+
+            PendingWorkflowStepDto(
+                stepInstanceId = step.id.toString(),
+                workflowInstanceId = instance.id.toString(),
+                stepType = step.stepType.name,
+                sessionId = sessionId?.toString(),
+                sessionName = session?.sessionName,
+                requestedByEmail = initiator?.email,
+                requestedByName = initiator?.person?.let { p ->
+                    "${p.firstName.orEmpty()} ${p.lastName.orEmpty()}".trim().takeIf { it.isNotBlank() }
+                },
+                groupName = groupName,
+                createdAtEpochMillis = step.createdAt.time,
+            )
+        }
+    }
+
+    private fun decodeSubjectData(jsonStr: String?): Map<String, String>
+    {
+        if (jsonStr.isNullOrBlank()) return emptyMap()
+        return try
+        {
+            val obj = json.parseToJsonElement(jsonStr) as? kotlinx.serialization.json.JsonObject ?: return emptyMap()
+            obj.entries.mapNotNull { (k, v) ->
+                val prim = v as? kotlinx.serialization.json.JsonPrimitive ?: return@mapNotNull null
+                k to prim.content
+            }.toMap()
+        }
+        catch (_: Exception) { emptyMap() }
+    }
 
     private fun advanceToStep(instance: WorkflowInstance, nextIndex: Int)
     {

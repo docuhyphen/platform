@@ -601,17 +601,32 @@ class SharingSessionResource @Inject constructor(
     /**
      * Populate the session DTO's document permission flags from the primary recipient share's
      * constraints JSON. The permissions live on the Share row, not on the SharingSession entity.
+     *
+     * Plan 07 G6: also parse the viewer-obligation keys (`watermark`, `max_views`, `require_mfa`)
+     * so the viewer can apply a watermark overlay and hide the download button when denied.
      */
     private fun enrichSessionWithPermissions(sessionDto: SharingSessionDetailedDto?): SharingSessionDetailedDto?
     {
         if (sessionDto == null) return null
         val constraintsJson = shareService.recipientConstraintsJson(sessionDto.id) ?: return sessionDto
+        // The download key is `can_download` in the new constraints (Plan 01) but
+        // `allow_document_download` in the legacy initiation flags — accept either.
+        val downloadAllowed = !constraintsJson.contains("\"can_download\":false") &&
+            (constraintsJson.contains("\"allow_document_download\":true") ||
+                constraintsJson.contains("\"can_download\":true"))
+        val watermark = constraintsJson.contains("\"watermark\":true")
+        val requireMfa = constraintsJson.contains("\"require_mfa\":true")
+        val maxViews = Regex("\"max_views\"\\s*:\\s*(-?\\d+)")
+            .find(constraintsJson)?.groupValues?.get(1)?.toIntOrNull()?.takeIf { it > 0 }
         return sessionDto.copy(
             allowDocumentAddition = constraintsJson.contains("\"allow_document_addition\":true"),
             allowDocumentDeletion = constraintsJson.contains("\"allow_document_deletion\":true"),
-            allowDocumentDownload = constraintsJson.contains("\"allow_document_download\":true") || constraintsJson.contains("\"can_download\":true"),
+            allowDocumentDownload = downloadAllowed,
             allowDocumentUpdate = constraintsJson.contains("\"allow_document_update\":true"),
             allowDocumentUpload = constraintsJson.contains("\"allow_document_upload\":true"),
+            watermark = watermark,
+            maxViews = maxViews,
+            requireMfa = requireMfa,
         )
     }
 

@@ -7,6 +7,7 @@ import com.docuhyphen.app.api.service.workflow.Decision
 import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.GET
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.PathParam
@@ -86,6 +87,31 @@ class WorkflowDecisionResource @Inject constructor(
         catch (e: IllegalArgumentException)
         {
             Response.status(Response.Status.NOT_FOUND).entity(ResponseError(e.message)).build()
+        }
+    }
+
+    /**
+     * Plan 07 G7: list PENDING workflow steps assigned to the authenticated user (either
+     * directly as a USER assignee or via a PRINCIPAL_GROUP assignee they're a member of).
+     * Powers the "Pending approvals" inbox on app load so realtime push isn't the only path
+     * to discovering pending tasks.
+     */
+    @GET
+    @Path("/pending")
+    fun listPending(): Response
+    {
+        val actor = authTokenContext.authToken.appUser
+            ?: return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
+        return try
+        {
+            val pending = workflowEngineService.listPendingForUser(actor.id)
+            Response.ok(pending).build()
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to list pending workflow steps for user {}", actor.id, e)
+            Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(ResponseError("Failed to load pending approvals")).build()
         }
     }
 }

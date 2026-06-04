@@ -72,6 +72,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
     const [savingData, setSavingData] = useState(false);
     const [loadingUsers, setLoadingUsers] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [permissionDenied, setPermissionDenied] = useState(false);
     const [memberRoles, setMemberRoles] = useState<Map<string, GroupRole>>(new Map());
 
     useEffect(() =>
@@ -180,7 +181,21 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
         }
         catch (err: any)
         {
-            setError(err.message || "Failed to update group");
+            // Plan 07 G4: capability gating. The backend authorizes group mutations on
+            // GROUP_MANAGE_MEMBERS / GROUP_DELETE — anything else returns 403. We catch
+            // it here and lock the dialog into a "read-only, no permission" state so the
+            // user understands the system is refusing on purpose, not just throwing.
+            const status = (err as { status?: number; response?: { status?: number } } | null | undefined)
+                ?.status ?? (err as { response?: { status?: number } } | null | undefined)?.response?.status;
+            if (status === 403)
+            {
+                setPermissionDenied(true);
+                setError(null);
+            }
+            else
+            {
+                setError(err.message || "Failed to update group");
+            }
             console.error("Failed to update group:", err);
         }
         finally
@@ -385,6 +400,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                             width={80}>
                             <Checkbox
                                 checked={selectedUsers.has(user.id?.toString() || "")}
+                                disabled={permissionDenied}
                                 onChange={() => toggleUserSelection(user.id?.toString() || "")}
                             />
                         </TableCell>
@@ -402,6 +418,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                             {selectedUsers.has(user.id?.toString() || "") && (
                                 <Dropdown
                                     size="small"
+                                    disabled={permissionDenied}
                                     value={GroupRoleDisplayNames[memberRoles.get(user.id?.toString() || "") || GroupRole.MEMBER]}
                                     selectedOptions={[memberRoles.get(user.id?.toString() || "") || GroupRole.MEMBER]}
                                     onOptionSelect={(_e, d) =>
@@ -427,6 +444,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                                         onClick={() => onManageAppUserPermissions(user)}
                                         iconPosition={"after"}
                                         shape={"circular"}
+                                        disabled={permissionDenied}
                                         icon={<ArrowRightRegular/>}
                                         appearance={"outline"}>
                                     Permissions
@@ -454,6 +472,15 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                         </Field>
                     </DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
+                        {permissionDenied &&
+                            <MessageBar intent={"info"}>
+                                <MessageBarBody>
+                                    <MessageBarTitle>No permission</MessageBarTitle>
+                                    You don't have permission to manage this group's members.
+                                    Ask a group OWNER or MANAGER to make changes.
+                                </MessageBarBody>
+                            </MessageBar>
+                        }
                         {error &&
                             <MessageBar intent={"error"}>
                                 <MessageBarBody>
@@ -496,6 +523,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                     <Button
                         appearance="primary"
                         shape="circular"
+                        disabled={permissionDenied || savingData}
                         onClick={handleSave}>
                         {savingData && <Spinner size="tiny"/>}
                         Update Group

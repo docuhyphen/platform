@@ -89,6 +89,13 @@ data class SharingSessionDetailedDto(
     var allowDocumentDownload: Boolean = false,
     var allowDocumentUpdate: Boolean = false,
     var allowDocumentUpload: Boolean = false,
+    // Plan 07 G6 — viewer obligations parsed from the recipient share's constraints_json.
+    // `watermark` flips on a translucent overlay in SessionDocumentPreviewer; `maxViews` is
+    // surfaced for display only (real enforcement requires a share_view counter, deferred);
+    // `requireMfa` is informational on the client (the step-up enforcement lives server-side).
+    var watermark: Boolean = false,
+    var maxViews: Int? = null,
+    var requireMfa: Boolean = false,
 )
 
 @Serializable

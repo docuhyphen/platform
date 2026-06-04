@@ -11,6 +11,7 @@ import com.docuhyphen.app.api.service.auth.idp.IdentityProviderRegistry
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
+import jakarta.ws.rs.core.GenericEntity
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
@@ -38,6 +39,14 @@ class IdentityProviderResource @Inject constructor(
         return try
         {
             val appUser = authTokenContext.authToken.appUser!!
+
+            // Lazily backfill INTERNAL link for existing users who signed up before
+            // the IDP-link system was introduced (they have a password but no link row).
+            if (!appUser.password.isNullOrBlank())
+            {
+                oauthUserLinkingService.ensureInternalLink(appUser)
+            }
+
             val links = oauthUserLinkingService.getLinksForUser(appUser.id)
 
             val dtos = links.map { link ->
@@ -48,7 +57,7 @@ class IdentityProviderResource @Inject constructor(
                 )
             }
 
-            Response.ok(dtos).build()
+            Response.ok(object : GenericEntity<List<IdentityProviderLinkDto>>(dtos) {}).build()
         }
         catch (e: Exception)
         {

@@ -174,6 +174,28 @@ class OAuthUserLinkingService @Inject constructor(
         return identityProviderLinkRepository.findAllByAppUserId(userId)
     }
 
+    /**
+     * Idempotent backfill: creates an INTERNAL link for a user who already has a password
+     * but was signed up before the IDP-link table was introduced.
+     */
+    @Transactional
+    fun ensureInternalLink(appUser: AppUser)
+    {
+        val existing = identityProviderLinkRepository.findByProviderAndExternalSubjectId(
+            IdentityProviderType.INTERNAL, appUser.id.toString()
+        )
+        if (existing != null) return
+
+        val link = IdentityProviderLink().apply {
+            this.appUser = appUser
+            this.provider = IdentityProviderType.INTERNAL
+            this.externalSubjectId = appUser.id.toString()
+            this.externalEmail = appUser.email
+        }
+        identityProviderLinkRepository.save(link)
+        logger.info("Backfilled INTERNAL IDP link for existing user={}", appUser.id)
+    }
+
     @Transactional
     fun unlinkProvider(userId: UUID, provider: IdentityProviderType, appUser: AppUser)
     {

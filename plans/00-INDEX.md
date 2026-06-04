@@ -77,19 +77,20 @@ an empty DB (Hibernate `validate` passes; Flyway `V1__baseline.sql` + `V2__seed.
 | 3 | **Group permission enforcement** — ✅ **BACKEND DONE.** Added the membership→grant bridge (`ORG_MEMBERSHIP` + `GROUP_MEMBERSHIP` SourceKinds in `DefaultAuthorizationService`) so `authorize()` resolves org-role and group-role grants; `OrganizationGroupService` create→`requireOrgAdminIn(orgId)`, update→`GROUP_MANAGE_MEMBERS`, delete→`GROUP_DELETE`. **Deferred:** UI (Plan 06); session-vs-member separability needs new GroupRole (user sign-off). | 🟠→✅bk | [03](03-group-permission-enforcement.md) |
 | 4 | **Multiple App Admins** — ✅ **BACKEND DONE.** `RoleAssignmentService` (grant/revoke/list, idempotent, last-admin invariant via `LastAppAdminException`) + `AppRoleResource` (`/admin/roles/app-admins`, guarded by `isAppAdmin` from the session) + config-gated `@Observes StartupEvent` bootstrap (`app.security.app-admin.bootstrap-email`). App roles are additive. **Boot-validated** as of Plan 05's from-empty boot (the StartupEvent bootstrap observer forced `ConfigurationService` instantiation — ArC 64KB risk cleared). **Deferred:** UI (Plan 06). | 🟠→✅bk | [04](04-app-admin-provisioning.md) |
 | 5 | **B2C external-customer default** — ✅ **BACKEND DONE + boot-validated.** `OrganizationSharingPolicyService.assertCanShareWithUser` now branches by recipient nature: internal=allowed, **B2C (no-org recipient)=allowed by default** (new `OrganizationSettings.allowExternalCustomerSharing`, default `true`, audit-logged), B2B-unpaired=existing pairing gate unchanged. Migration `V3__org_settings_external_customer.sql` (Flyway V1→V3 + Hibernate `validate` confirmed on a throwaway DB). **Deferred:** UI (Plan 06, two-toggle settings + recipient badge). | 🟠→✅bk | [05](05-b2c-external-customer-sharing.md) |
-| 6 | **UI — none of the above (or the already-built backends) has a front door.** Workflow approve/decline UI, live access-management panel, recipient pending-approval handling, role-dropdown enums, notification rendering, API service wiring all missing. | 🔴 | [06](06-frontend-integration.md) |
+| 6 | **UI — Plan 06 first pass landed scaffolds for all 9 workstreams (workflow inbox, access panel, my-groups tab, app-admin tab, constraints component, two-toggle org settings, notification copy, role enums).** Follow-up gaps tracked in Plan 07; all closed 2026-06-03. | ✅ | [06](06-frontend-integration.md) |
+| 7 | **UI gaps from Plan 06 (Plan 07)** — ✅ **COMPLETE (closed 2026-06-03 evening).** All nine gaps landed. G1 (initiation constraints, backend DTO + UI), G2 (personal groups in picker), G3 (App Admins tab gate + global candidate search + 409 copy), G4 (capability gating in EditGroupDialog), G5 (external-recipient badge), G6 (viewer obligations — backend DTO fields + watermark overlay + download gate), G7 (`GET /workflows/steps/pending` + initial fetch), G8 (popover gate removed), G9 (dead DTO + dead realtime union members swept). `npx tsc --noEmit` green in web-app. | ✅ | [07](07-frontend-integration-gaps.md) |
 
-> **Progress (2026-06-01):** Plans **01**, **02**, **03**, **04**, **05** backends complete and compile
-> green (`./mvnw -o -q compile` → BUILD OK). Plan **05** is additionally **boot-validated** from an
-> empty DB on a throwaway DB (Flyway V1→V3, Hibernate `validate` matched, `Listening on:
-> http://localhost:8099`). **That boot also cleared Plan 04's open ArC risk:** dev-mode boot runs
-> ArC augmentation *and* fires `RoleAssignmentService.bootstrapFirstAppAdmin(@Observes
-> StartupEvent)`, which forces `ConfigurationService` (with its new `@ConfigProperty`) to be
-> generated + instantiated at startup — it did so cleanly, so the 64KB-codegen concern did not
-> materialize. The full app started with both Plan 04 and Plan 05 code present. **Migration V3 is
-> now consumed; the next migration is V4.** Plan **02** (personal groups backend) landed without a
-> schema migration (all columns pre-existed). **Next per sequencing: Plan 06** (UI, consumes all
-> of the above).
+> **Progress (2026-06-03 evening):** Plans 01–07 functionally **complete**. The
+> sharing/collaboration redesign is fully wired end-to-end: backend authorization
+> with obligations + workflow engine + multi-org + personal groups + B2C default,
+> plus the React UI consuming all of it (initiation constraints, viewer watermark,
+> download gate, pending-decisions inbox surviving refresh, app-admin global
+> search, external-recipient badge, group-edit permission gating). Backend boots
+> green; `npx tsc --noEmit` green in web-app. **No migrations consumed by Plan 07
+> — next migration remains V4.** Remaining deferred items: `share_view` table for
+> real `max_views` counting (Plan 01 carry-over) and a `GET /groups/{id}/capabilities`
+> probe so EditGroupDialog discovers "no permission" before the user clicks Save
+> (Plan 07 G4 follow-up).
 
 ## 4. Suggested sequencing
 
@@ -105,8 +106,10 @@ Plans are independent enough to parallelize, but the natural order is:
    Per-recipient branch + `V3__…` migration. **Plan 02** (personal groups) ← **next**.
 5. ~~**Plan 02** (personal/self-service groups)~~ — ✅ **DONE (backend).** PERSONAL-scope
    group CRUD + PersonalGroupResource `/me/groups` + reciprocity guard; no schema migration.
-6. **Plan 06** (frontend) — last, consumes everything above. Can start the
-   already-built-backend parts (workflow decisions, access panel) immediately.
+6. ~~**Plan 06** (frontend, first pass)~~ — ✅ **scaffolds landed** for all nine workstreams
+   (workflow inbox, access panel, my-groups, app-admins, constraints component, two-toggle
+   org settings, notification copy, role enums). Functional gaps captured in Plan 07.
+7. **Plan 07** (frontend gaps) — ✅ **DONE (2026-06-03 evening).** All nine gaps closed.
 
 ## 5. Conventions every plan assumes
 

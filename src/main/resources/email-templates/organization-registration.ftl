@@ -60,7 +60,7 @@
     <tr><td style="padding:0 0 6px 0; color:#333333;">3. Once approved, you will receive a confirmation email and your organization will be activated.</td></tr>
 </table>
 
-<p style="margin:0 0 14px 0;">You can check your registration status at any time by signing in: <a href="${appBaseUrl}/sign-in" style="color:#1f73b7;">${appBaseUrl}/sign-in</a></p>
+<p style="margin:0 0 14px 0;">You can check your registration status at any time by signing in and navigating to <strong>Settings &gt; Your Organization</strong>: <a href="${appBaseUrl}/sign-in" style="color:#1f73b7;">${appBaseUrl}/sign-in</a></p>
 
 <p style="margin:0 0 14px 0; font-size:12px; color:#777777;">If you did not submit this registration, please contact support immediately at <a href="mailto:support@docuhyphen.com" style="color:#1f73b7;">support@docuhyphen.com</a>.</p>
 

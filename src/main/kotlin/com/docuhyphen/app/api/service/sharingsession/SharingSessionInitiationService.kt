@@ -317,21 +317,80 @@ class SharingSessionInitiationService @Inject constructor(
      * Maps the requested document permissions to a resource role: any write-style permission
      * (add/delete/update/upload) implies EDITOR, otherwise VIEWER. The full flag set is
      * preserved verbatim in the share's constraints JSON (see [sessionConstraintsJson]).
+     *
+     * Plan 07 G1: when the caller supplies an explicit `recipientRoleName`, honor it (after
+     * validating it's a known [RoleName]). Lets the UI offer PARTICIPANT / VIEWER /
+     * COMMENTER / SIGNER / REVIEWER at initiation, not just EDITOR/VIEWER.
      */
     private fun recipientRoleFor(dto: SharingSessionInitiationDto): RoleName
     {
+        dto.recipientRoleName?.trim()?.takeIf { it.isNotBlank() }?.let { explicit ->
+            runCatching { RoleName.valueOf(explicit.uppercase()) }.getOrNull()?.let { return it }
+            logger.warn("Ignoring unknown recipientRoleName='{}' on session initiation", explicit)
+        }
         val canWrite = dto.allowDocumentAddition == true || dto.allowDocumentDeletion == true ||
             dto.allowDocumentUpdate == true || dto.allowDocumentUpload == true
         return if (canWrite) RoleName.EDITOR else RoleName.VIEWER
     }
 
-    private fun sessionConstraintsJson(dto: SharingSessionInitiationDto): String =
-        """{"can_download":${dto.allowDocumentDownload == true},""" +
-            """"allow_document_addition":${dto.allowDocumentAddition == true},""" +
-            """"allow_document_deletion":${dto.allowDocumentDeletion == true},""" +
-            """"allow_document_update":${dto.allowDocumentUpdate == true},""" +
-            """"allow_document_upload":${dto.allowDocumentUpload == true},""" +
-            """"require_recipient_sign_in":${dto.requestRecipientSignIn == true}}"""
+    /**
+     * Build the constraints JSON for the recipient share. Always emits the legacy
+     * `can_download` + `allow_document_*` keys derived from the per-permission flags; when
+     * the caller supplies an explicit `recipientConstraintsJson` blob (Plan 07 G1), its keys
+     * are merged on top (explicit wins). The result is parsed by
+     * [com.docuhyphen.app.api.service.auth.authz.ShareConstraints] at read time and powers
+     * the access panel + viewer obligations.
+     */
+    private fun sessionConstraintsJson(dto: SharingSessionInitiationDto): String
+    {
+        val legacy: Map<String, Any> = mapOf(
+            "can_download" to (dto.allowDocumentDownload == true),
+            "allow_document_addition" to (dto.allowDocumentAddition == true),
+            "allow_document_deletion" to (dto.allowDocumentDeletion == true),
+            "allow_document_update" to (dto.allowDocumentUpdate == true),
+            "allow_document_upload" to (dto.allowDocumentUpload == true),
+            "require_recipient_sign_in" to (dto.requestRecipientSignIn == true),
+        )
+        val explicit = parseExplicitConstraints(dto.recipientConstraintsJson)
+        val merged = legacy + explicit
+        return merged.entries.joinToString(prefix = "{", postfix = "}", separator = ",") { (k, v) ->
+            "\"$k\":${renderConstraintValue(v)}"
+        }
+    }
+
+    private fun parseExplicitConstraints(jsonStr: String?): Map<String, Any>
+    {
+        val trimmed = jsonStr?.trim()?.takeIf { it.isNotBlank() && it != "{}" } ?: return emptyMap()
+        return try
+        {
+            val element = kotlinx.serialization.json.Json.parseToJsonElement(trimmed)
+            val obj = element as? kotlinx.serialization.json.JsonObject ?: return emptyMap()
+            obj.entries.mapNotNull { (k, v) ->
+                val prim = v as? kotlinx.serialization.json.JsonPrimitive ?: return@mapNotNull null
+                val coerced: Any? = when
+                {
+                    prim.isString -> prim.content
+                    prim.content == "true" -> true
+                    prim.content == "false" -> false
+                    prim.content == "null" -> null
+                    else -> prim.content.toIntOrNull() ?: prim.content.toLongOrNull() ?: prim.content
+                }
+                coerced?.let { k to it }
+            }.toMap()
+        }
+        catch (e: Exception)
+        {
+            logger.warn("Ignoring malformed recipientConstraintsJson on session initiation: {}", e.message)
+            emptyMap()
+        }
+    }
+
+    private fun renderConstraintValue(v: Any): String = when (v)
+    {
+        is Boolean -> v.toString()
+        is Number -> v.toString()
+        else -> "\"${v.toString().replace("\\", "\\\\").replace("\"", "\\\"")}\""
+    }
 
     fun validateSharingSessionFields(
         initiator: AppUser,
@@ -460,6 +519,7 @@ class SharingSessionInitiationService @Inject constructor(
                     initiatorOrganization = null,
                     sessionMessage = sharingSession.initialShareMessage,
                     documents = documentTitles,
+                    requireSignIn = sharingSession.requireRecipientSignIn,
                 )
                 emailService.sendEmail(
                     to = email,

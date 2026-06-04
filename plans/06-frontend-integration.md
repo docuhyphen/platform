@@ -1,7 +1,11 @@
 # Plan 06 — Frontend integration (the UI front door)
 
-**STATUS:**  COMPLETE (2026-06-01). All 9 workstreams implemented.
-This is the **only remaining plan** — now done.
+**STATUS:**  ⚠️ **PARTIAL (audited 2026-06-02). Follow-up gaps tracked in [Plan 07](07-frontend-integration-gaps.md).**
+The first pass landed all nine workstream scaffolds, but a 2026-06-02 audit against the §5
+acceptance criteria found that several pieces are either orphaned (built but never wired),
+incomplete (e.g. viewer obligations never read), or scoped wrong (e.g. app-admin tab gated
+on the wrong role). See Plan 07 for the prioritized punch list. This plan stays as the
+spec of record for what the UI should look like when done.
 
 **Severity:**  (zero UI changes shipped; backends are ahead of the UI)
 **Depends on:** consumes Plans 01–05 — **all backends now complete.**

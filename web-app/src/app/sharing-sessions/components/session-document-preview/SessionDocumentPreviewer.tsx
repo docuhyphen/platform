@@ -23,6 +23,7 @@ import {
 import {DocumentDetailedDto, SharingSessionDetailedDto, SharingSessionStatus} from "../../../models/models";
 import {useSessionDocumentPreviewerStyles} from "./SessionDocumentPreviewerStyles";
 import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
+import {useAuth} from "../../../../context/AuthContext.tsx";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
@@ -91,6 +92,14 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
 {
     const styles = useSessionDocumentPreviewerStyles();
     const isMobile = useIsMobile();
+    const {appUser} = useAuth();
+    // Plan 07 G6 — viewer obligations. `session.watermark` flips on the overlay;
+    // `session.allowDocumentDownload === false` hides the "Download original" button.
+    // Both come from SharingSessionResource.enrichSessionWithPermissions which merges
+    // ShareConstraints for the current viewer.
+    const watermarkEnabled = !!session?.watermark;
+    const downloadAllowed = session?.allowDocumentDownload !== false;
+    const watermarkText = (appUser?.email || 'CONFIDENTIAL').toUpperCase();
     const sectionRef = useRef<HTMLElement>(null);
     const pdfContainerRef = useRef<HTMLDivElement>(null);
     const pageElementsRef = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -663,13 +672,19 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                 }}>
                     <Text size={500} weight={"semibold"}>Preview unavailable</Text>
                     <Text size={300}>{previewError}</Text>
-                    <Button appearance="primary"
-                            id="session-document-preview-download-original"
-                            shape="circular"
-                            disabled={downloadingOriginal}
-                            onClick={handleDownloadOriginal}>
-                        {downloadingOriginal ? 'Preparing download...' : 'Download original'}
-                    </Button>
+                    {downloadAllowed ? (
+                        <Button appearance="primary"
+                                id="session-document-preview-download-original"
+                                shape="circular"
+                                disabled={downloadingOriginal}
+                                onClick={handleDownloadOriginal}>
+                            {downloadingOriginal ? 'Preparing download...' : 'Download original'}
+                        </Button>
+                    ) : (
+                        <Text size={200} italic>
+                            Download is disabled for this session.
+                        </Text>
+                    )}
                 </div>
             );
         }
@@ -723,6 +738,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         }
 
         return (
+            <div style={{position: 'relative'}}>
             <Document
                 className={styles.pdfDocument}
                 file={pdfUrl}
@@ -789,6 +805,37 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                     </div>
                 )}
             </Document>
+            {watermarkEnabled && (
+                <div
+                    aria-hidden
+                    style={{
+                        position: 'absolute',
+                        inset: 0,
+                        pointerEvents: 'none',
+                        overflow: 'hidden',
+                        zIndex: 5,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        userSelect: 'none',
+                    }}
+                >
+                    <div
+                        style={{
+                            transform: 'rotate(-30deg)',
+                            opacity: 0.15,
+                            fontSize: '4rem',
+                            fontWeight: 700,
+                            color: '#000',
+                            whiteSpace: 'nowrap',
+                            letterSpacing: '0.2em',
+                        }}
+                    >
+                        {watermarkText} · CONFIDENTIAL
+                    </div>
+                </div>
+            )}
+            </div>
         );
     };
 

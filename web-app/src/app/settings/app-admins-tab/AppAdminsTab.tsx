@@ -17,10 +17,8 @@ import {
 } from '@fluentui/react-components';
 import {DeleteRegular, PersonAddRegular} from '@fluentui/react-icons';
 import {useAppAdminsTabStyles} from './AppAdminsTabStyles';
-import {fetchAppAdmins, grantAppAdmin, revokeAppAdmin} from '../../../services/appRoleApi';
-import {AppAdminDto} from '../../../services/types/dtos';
-import {fetchMyOrganizationUsers} from '../../../services/organizationApi';
-import {AppUserDetailedDto} from '../../models/models';
+import {fetchAppAdmins, grantAppAdmin, revokeAppAdmin, searchAppAdminCandidates} from '../../../services/appRoleApi';
+import {AppAdminDto, AppUserSearchResult} from '../../../services/types/dtos';
 
 /**
  * App Admins management screen (Plan 04).
@@ -32,17 +30,33 @@ const AppAdminsTab: React.FC = () =>
     const [admins, setAdmins] = useState<AppAdminDto[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [noAccess, setNoAccess] = useState(false);
     const [busy, setBusy] = useState(false);
 
-    // Add form
+    // Add form (Plan 07 G3b — global user search, not org-scoped)
     const [searchQuery, setSearchQuery] = useState('');
-    const [orgUsers, setOrgUsers] = useState<AppUserDetailedDto[]>([]);
+    const [searchResults, setSearchResults] = useState<AppUserSearchResult[]>([]);
+    const [searching, setSearching] = useState(false);
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+    const extractErrorStatus = (err: unknown): number | undefined =>
+    {
+        const e = err as { status?: number; statusCode?: number; response?: { status?: number } } | null | undefined;
+        return e?.status ?? e?.response?.status ?? e?.statusCode;
+    };
+
+    const looksLikeLastAdminError = (err: unknown): boolean =>
+    {
+        const e = err as { errorMessage?: string; message?: string } | null | undefined;
+        const msg = (e?.errorMessage || e?.message || '').toString().toLowerCase();
+        return msg.includes('last') && msg.includes('admin');
+    };
 
     const loadAdmins = useCallback(async () =>
     {
         setLoading(true);
         setError(null);
+        setNoAccess(false);
         try
         {
             const data = await fetchAppAdmins();
@@ -50,7 +64,14 @@ const AppAdminsTab: React.FC = () =>
         }
         catch (err: any)
         {
-            setError(err?.errorMessage || err?.message || 'Failed to load admins');
+            if (extractErrorStatus(err) === 403)
+            {
+                setNoAccess(true);
+            }
+            else
+            {
+                setError(err?.errorMessage || err?.message || 'Failed to load admins');
+            }
         }
         finally
         {
@@ -61,11 +82,49 @@ const AppAdminsTab: React.FC = () =>
     useEffect(() =>
     {
         loadAdmins();
-        // Pre-load org users for the picker
-        fetchMyOrganizationUsers()
-            .then(setOrgUsers)
-            .catch(() => { /* optional, picker just won't work */});
     }, [loadAdmins]);
+
+    // Plan 07 G3b — debounced global user-search against the new
+    // GET /admin/roles/app-admin-candidates endpoint. Triggers when the query
+    // is at least 2 chars long; clears results otherwise.
+    useEffect(() =>
+    {
+        if (selectedUserId) return; // a candidate is already locked in
+        const q = searchQuery.trim();
+        if (q.length < 2)
+        {
+            setSearchResults([]);
+            setSearching(false);
+            return;
+        }
+        let cancelled = false;
+        setSearching(true);
+        const handle = window.setTimeout(() =>
+        {
+            searchAppAdminCandidates(q)
+                .then((rows) =>
+                {
+                    if (cancelled) return;
+                    // Hide users who are already admins so we don't offer a no-op.
+                    setSearchResults(rows.filter((u) => !admins.some((a) => a.appUserId === u.id)));
+                })
+                .catch(() =>
+                {
+                    if (cancelled) return;
+                    setSearchResults([]);
+                })
+                .finally(() =>
+                {
+                    if (cancelled) return;
+                    setSearching(false);
+                });
+        }, 250);
+        return () =>
+        {
+            cancelled = true;
+            window.clearTimeout(handle);
+        };
+    }, [searchQuery, selectedUserId, admins]);
 
     const handleGrant = async () =>
     {
@@ -100,9 +159,17 @@ const AppAdminsTab: React.FC = () =>
         }
         catch (err: any)
         {
-            // 409 = last admin guard
-            const msg = err?.errorMessage || err?.message || 'Failed to revoke admin role';
-            setError(msg);
+            // Backend throws LastAppAdminException → 409 to protect the system from
+            // ending up with zero admins. Surface a tailored copy instead of the raw
+            // message so the user knows the system is doing it on purpose.
+            if (extractErrorStatus(err) === 409 || looksLikeLastAdminError(err))
+            {
+                setError('You can\'t revoke the last app administrator. Grant the role to another user first.');
+            }
+            else
+            {
+                setError(err?.errorMessage || err?.message || 'Failed to revoke admin role');
+            }
         }
         finally
         {
@@ -110,15 +177,11 @@ const AppAdminsTab: React.FC = () =>
         }
     };
 
-    const filteredUsers = orgUsers.filter(
-        (u) =>
-            u.isActive &&
-            !admins.some((a) => a.appUserId === u.id) &&
-            (searchQuery.length < 2 ||
-                u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                u.person?.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                u.person?.lastName?.toLowerCase().includes(searchQuery.toLowerCase())),
-    );
+    const formatCandidate = (u: AppUserSearchResult): string =>
+    {
+        const name = `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim();
+        return name ? `${name} (${u.email})` : u.email;
+    };
 
     return (
         <div className={styles.container}>
@@ -126,20 +189,30 @@ const AppAdminsTab: React.FC = () =>
                 <Text weight="semibold" size={500}>App Administrators</Text>
             </div>
 
-            {error && (
-                <MessageBar intent="error">
+            {noAccess ? (
+                <MessageBar intent="info">
                     <MessageBarBody>
-                        <MessageBarTitle>Error</MessageBarTitle>
-                        {error}
+                        <MessageBarTitle>No access</MessageBarTitle>
+                        You don't have permission to view or manage app administrators.
+                        Ask an existing app admin if you need access.
                     </MessageBarBody>
                 </MessageBar>
-            )}
-
-            {loading ? (
-                <div className={styles.loading}>
-                    <Spinner label="Loading..." size="small"/>
-                </div>
             ) : (
+                <>
+                    {error && (
+                        <MessageBar intent="error">
+                            <MessageBarBody>
+                                <MessageBarTitle>Error</MessageBarTitle>
+                                {error}
+                            </MessageBarBody>
+                        </MessageBar>
+                    )}
+
+                    {loading ? (
+                        <div className={styles.loading}>
+                            <Spinner label="Loading..." size="small"/>
+                        </div>
+                    ) : (
                 <>
                     {/* Add admin */}
                     <div className={styles.addRow}>
@@ -167,9 +240,19 @@ const AppAdminsTab: React.FC = () =>
                         </Button>
                     </div>
 
-                    {searchQuery.length >= 2 && filteredUsers.length > 0 && !selectedUserId && (
+                    {searchQuery.length >= 2 && !selectedUserId && (
                         <div style={{border: '1px solid var(--colorNeutralStroke1)', borderRadius: 4, maxHeight: 160, overflowY: 'auto'}}>
-                            {filteredUsers.slice(0, 10).map((u) => (
+                            {searching && (
+                                <div style={{padding: 8}}>
+                                    <Spinner size="tiny" label="Searching..."/>
+                                </div>
+                            )}
+                            {!searching && searchResults.length === 0 && (
+                                <div style={{padding: 8}}>
+                                    <Text size={200}>No matching users.</Text>
+                                </div>
+                            )}
+                            {!searching && searchResults.slice(0, 10).map((u) => (
                                 <Button
                                     key={u.id}
                                     size="small"
@@ -177,11 +260,12 @@ const AppAdminsTab: React.FC = () =>
                                     style={{display: 'block', width: '100%', textAlign: 'left'}}
                                     onClick={() =>
                                     {
-                                        setSelectedUserId(u.id!);
-                                        setSearchQuery(`${u.person?.firstName || ''} ${u.person?.lastName || ''} (${u.email})`.trim());
+                                        setSelectedUserId(u.id);
+                                        setSearchQuery(formatCandidate(u));
+                                        setSearchResults([]);
                                     }}
                                 >
-                                    {u.person?.firstName} {u.person?.lastName} — {u.email}
+                                    {formatCandidate(u)}
                                 </Button>
                             ))}
                         </div>
@@ -225,6 +309,8 @@ const AppAdminsTab: React.FC = () =>
                             )}
                         </TableBody>
                     </Table>
+                </>
+            )}
                 </>
             )}
         </div>

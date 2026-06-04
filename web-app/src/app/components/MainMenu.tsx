@@ -23,6 +23,7 @@ import {useGlobalStyles} from "../../GlobalStyles.tsx";
 import {SettingsIcon, SharingSessionIcon, SignOutButtonIcon} from "./IconBundles.tsx";
 import NotificationList from './main-menu/notification/NotificationList';
 import PendingApprovals from './main-menu/pending-approvals/PendingApprovals';
+import TourCoach from './tour/TourCoach';
 
 const MAX_DISPLAY_EMAIL_LENGTH = 36;
 const LAST_SHARING_SESSIONS_QUERY_STORAGE_KEY = 'sharingSessions.lastRoute.query';
@@ -76,60 +77,76 @@ const MainMenu: React.FC = () =>
                 <AppLogo/>
             </span>
 
-            <SharingSessionInitiation/>
+            {/* Tour anchor: Start Sharing */}
+            <div id="tour-start-sharing" style={{display: 'inline-flex', alignItems: 'center'}}>
+                <SharingSessionInitiation/>
+            </div>
 
-            <Button icon={<SharingSessionIcon/>}
-                    onClick={() =>
-                    {
-                        if (window.location.pathname !== '/sharing-sessions')
+            {/* Tour anchor: Sharing Sessions */}
+            <div id="tour-sessions-btn" style={{display: 'inline-flex', alignItems: 'center'}}>
+                <Button icon={<SharingSessionIcon/>}
+                        onClick={() =>
                         {
-                            const savedQuery = window.localStorage.getItem(LAST_SHARING_SESSIONS_QUERY_STORAGE_KEY) || '';
-                            navigate(`/sharing-sessions${savedQuery}`);
-                        }
-                    }}
-                    appearance={"subtle"}>
-            </Button>
+                            if (window.location.pathname !== '/sharing-sessions')
+                            {
+                                const savedQuery = window.localStorage.getItem(LAST_SHARING_SESSIONS_QUERY_STORAGE_KEY) || '';
+                                navigate(`/sharing-sessions${savedQuery}`);
+                            }
+                        }}
+                        appearance={"subtle"}>
+                </Button>
+            </div>
 
-            <NotificationList/>
-            {appUserPersonOrganization && <PendingApprovals/>}
+            {/* Tour anchor: Notifications */}
+            <div id="tour-notifications" style={{display: 'inline-flex', alignItems: 'center'}}>
+                <NotificationList/>
+            </div>
+
+            {/* Plan 07 G8 — show PendingApprovals only for users with an active organisation.
+                Workflow steps are org-scoped; a pending/disabled org has no approvals to action. */}
+            {appUserPersonOrganization?.isActive && <PendingApprovals/>}
 
             {/*<Button icon={<InfoIcon/>}*/}
             {/*        onClick={() => navigate('/')}*/}
             {/*        appearance={"subtle"}>*/}
             {/*</Button>*/}
-            <Menu>
-                <MenuTrigger disableButtonEnhancement>
-                    {/*
-                      Use a plain Button (not MenuButton) so no dropdown
-                      chevron is rendered. The Persona inside shows the
-                      avatar + name/email on desktop; on phones our
-                      `mainHeaderPersona` style hides the text so the
-                      button collapses to a square avatar that matches
-                      the surrounding icon buttons.
-                    */}
-                    <Button appearance="subtle"
-                            shape="circular"
-                            className={styles.mainHeaderPersona}
-                            aria-label={appUser?.email ? `Account menu for ${appUser.email}` : "Account menu"}
-                            title={appUser?.email}>
-                        <Persona
-                            name={`${appUser?.person?.firstName} ${appUser?.person?.lastName}`}
-                            secondaryText={formatEmailForDisplay(appUser?.email)}/>
-                    </Button>
-                </MenuTrigger>
 
-                <MenuPopover>
-                    <MenuList>
-                        <MenuItem onClick={() => navigate("/settings")}
-                                  icon={<SettingsIcon/>}>
-                            Settings
-                        </MenuItem>
-                        <MenuItem icon={<SignOutButtonIcon/>}>
-                            <SignOutClickSurface onSignOut={onSignOut}/>
-                        </MenuItem>
-                    </MenuList>
-                </MenuPopover>
-            </Menu>
+            {/* Tour anchor: Account menu */}
+            <div id="tour-account-btn" style={{display: 'inline-flex', alignItems: 'center'}}>
+                <Menu>
+                    <MenuTrigger disableButtonEnhancement>
+                        {/*
+                          Use a plain Button (not MenuButton) so no dropdown
+                          chevron is rendered. The Persona inside shows the
+                          avatar + name/email on desktop; on phones our
+                          `mainHeaderPersona` style hides the text so the
+                          button collapses to a square avatar that matches
+                          the surrounding icon buttons.
+                        */}
+                        <Button appearance="subtle"
+                                shape="circular"
+                                className={styles.mainHeaderPersona}
+                                aria-label={appUser?.email ? `Account menu for ${appUser.email}` : "Account menu"}
+                                title={appUser?.email}>
+                            <Persona
+                                name={`${appUser?.person?.firstName} ${appUser?.person?.lastName}`}
+                                secondaryText={formatEmailForDisplay(appUser?.email)}/>
+                        </Button>
+                    </MenuTrigger>
+
+                    <MenuPopover>
+                        <MenuList>
+                            <MenuItem onClick={() => navigate("/settings")}
+                                      icon={<SettingsIcon/>}>
+                                Settings
+                            </MenuItem>
+                            <MenuItem icon={<SignOutButtonIcon/>}>
+                                <SignOutClickSurface onSignOut={onSignOut}/>
+                            </MenuItem>
+                        </MenuList>
+                    </MenuPopover>
+                </Menu>
+            </div>
 
             <Dialog open={isSignOutDialogOpen}>
                 <DialogSurface>
@@ -142,6 +159,9 @@ const MainMenu: React.FC = () =>
                     </DialogBody>
                 </DialogSurface>
             </Dialog>
+
+            {/* First-time feature tour */}
+            <TourCoach/>
         </section>
     );
 };

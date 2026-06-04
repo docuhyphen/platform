@@ -72,7 +72,13 @@ export interface PendingWorkflowStep
     requestedByEmail?: string;
     requestedByName?: string;
     groupName?: string;
-    createdAt: string;
+    /**
+     * Server returns epoch millis (Plan 07 G7). Older client paths (the realtime push
+     * fallback) populate `createdAt` with an ISO string when the notification payload
+     * carries `timestamp` — kept here for back-compat. Prefer `createdAtEpochMillis`.
+     */
+    createdAt?: string;
+    createdAtEpochMillis?: number;
 }
 
 // ── Personal Groups (Plan 02) ──
@@ -136,13 +142,18 @@ export interface GrantAppAdminRequest
     appUserId: string;
 }
 
-// ── Org Settings (Plan 05) ──
-
-export interface OrganizationSettingsV2Dto
+/**
+ * Plan 07 G3b: a single hit from /admin/roles/app-admin-candidates. Used by the App
+ * Admins picker (app-admin is a global role, not org-scoped).
+ */
+export interface AppUserSearchResult
 {
-    id?: string;
-    allowShareWithoutPairing: boolean;
-    allowExternalCustomerSharing: boolean;
-    allowProfileUpdate: boolean;
-    allowEmailUpdate: boolean;
+    id: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
 }
+
+// ── Org Settings (Plan 05) ──
+// NB: OrganizationSettingsV2Dto removed as part of Plan 07 G9 hygiene — it was never
+// consumed. OrganizationTab uses the legacy `OrganizationSettingsDto` from models.tsx.

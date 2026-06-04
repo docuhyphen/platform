@@ -81,7 +81,9 @@ const SharingSessionInitiation: React.FC = () =>
         recipientOrgUser, setRecipientOrgUser,
         recipientOrgGroup, setRecipientOrgGroup,
         internalParticipants, setInternalParticipants,
-        newRecipient, setNewRecipient
+        newRecipient, setNewRecipient,
+        recipientRole, setRecipientRole,
+        recipientConstraints, setRecipientConstraints,
     } = useSharingSessionInitiatingState();
 
     const toasterId = useId("sharing-session-initiation-toaster");
@@ -250,6 +252,14 @@ const SharingSessionInitiation: React.FC = () =>
                     return false;
                 }
                 break;
+            case SharingSessionInitiationRecipientMode.MY_GROUPS:
+                if (!recipientOrgGroup)
+                {
+                    setMessageGroupMessages(['Please select one of your personal groups as the recipient']);
+                    setSelectedTab('recipients-tab');
+                    return false;
+                }
+                break;
             case SharingSessionInitiationRecipientMode.PEOPLE:
                 // PEOPLE produces either a selected real user (recipientOrgUser) or an
                 // email-based new recipient (newRecipient). Validate whichever was set.
@@ -357,6 +367,14 @@ const SharingSessionInitiation: React.FC = () =>
                 allowDocumentUpdate: allowDocumentUpdate,
                 allowDocumentUpload: allowDocumentUpload,
                 recipientType,
+                // Plan 07 G1 — only send when the user picked a non-Auto role. The
+                // constraints blob is only sent when non-empty and the role supports them;
+                // otherwise the backend keeps its legacy auto-derived constraints.
+                recipientRoleName: recipientRole,
+                recipientConstraintsJson:
+                    Object.keys(recipientConstraints).length > 0
+                        ? JSON.stringify(recipientConstraints)
+                        : undefined,
                 participants: internalParticipants
                     ?.filter(p => !appUser || p.id !== appUser.id)
                     ?.map(p => {
@@ -440,6 +458,8 @@ const SharingSessionInitiation: React.FC = () =>
         setSelectedTab('recipients-tab');
         setCreatedSessionSummary(null);
         setCopyLinkStatus('idle');
+        setRecipientRole(undefined);
+        setRecipientConstraints({});
     };
 
     const onCancelInitiation = () =>
@@ -524,6 +544,10 @@ const SharingSessionInitiation: React.FC = () =>
                 newRecipient={newRecipient}
                 setNewRecipient={setNewRecipient}
                 isRequestingDocuments={requestingDocuments}
+                recipientRole={recipientRole}
+                setRecipientRole={setRecipientRole}
+                recipientConstraints={recipientConstraints}
+                setRecipientConstraints={setRecipientConstraints}
             />
         )
     }

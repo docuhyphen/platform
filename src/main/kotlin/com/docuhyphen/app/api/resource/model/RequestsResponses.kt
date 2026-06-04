@@ -241,6 +241,18 @@ data class AppAdminDto(
     val grantedAt: String? = null,
 )
 
+/**
+ * Plan 07 G3b: an app-user search hit, returned by `GET /admin/users/search?q=…`. Used by the
+ * App Admins picker since app-admin is a global role and isn't constrained to the caller's org.
+ */
+@Serializable
+data class AppUserSearchResultDto(
+    val id: String,
+    val email: String,
+    val firstName: String? = null,
+    val lastName: String? = null,
+)
+
 @Serializable
 data class AddOrganizationAppUserPersonRequest(
     var firstName: String? = null,
@@ -282,7 +294,15 @@ data class SharingSessionInitiationDto(
     var participants: List<SharingSessionParticipantRequest> = listOf(),
     var status: SharingSessionStatus? = null,
     var rejectionReason: String? = null,
-    var recipientType: SharingSessionRecipientType? = null
+    var recipientType: SharingSessionRecipientType? = null,
+    // Plan 07 G1: explicit constraints/role on the recipient share at initiation. When set,
+    // these override the legacy auto-derivation from `allowDocument*` flags. `recipientRoleName`
+    // must be one of EDITOR / REVIEWER / SIGNER / VIEWER / COMMENTER / PARTICIPANT; null falls
+    // back to EDITOR (any write flag) / VIEWER. `recipientConstraintsJson` is a raw JSON object
+    // (e.g. `{"can_download":false,"watermark":true,"max_views":3}`) — when present, it is
+    // merged on top of the legacy-derived constraints (explicit values win).
+    var recipientRoleName: String? = null,
+    var recipientConstraintsJson: String? = null,
     //ToDo: add accepted by, rejected by, ended by
 )
 

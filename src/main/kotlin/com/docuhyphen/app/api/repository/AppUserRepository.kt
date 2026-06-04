@@ -73,6 +73,33 @@ class AppUserRepository : BaseRepository<AppUser>(AppUser::class.java)
         return query.resultList
     }
 
+    /**
+     * Plan 07 G3b: case-insensitive search across email + first/last name for the App
+     * Admins picker (admin-scope, audit-logged at the resource layer). Excludes temporary
+     * placeholder users since they can't be granted app-admin until they sign up. Returns
+     * at most [limit] rows (capped at 50 to keep the response small).
+     */
+    fun searchActiveUsers(query: String, limit: Int = 20): List<AppUser>
+    {
+        val q = query.trim()
+        if (q.isEmpty()) return emptyList()
+        val pattern = "%${q.lowercase()}%"
+        val typed: TypedQuery<AppUser> = entityManager.createQuery(
+            """SELECT a FROM AppUser a
+               LEFT JOIN a.person p
+               WHERE a.isActive = true
+                 AND a.isTemporary = false
+                 AND (LOWER(a.email) LIKE :pattern
+                      OR LOWER(p.firstName) LIKE :pattern
+                      OR LOWER(p.lastName) LIKE :pattern)
+               ORDER BY LOWER(a.email)""",
+            AppUser::class.java,
+        )
+        typed.setParameter("pattern", pattern)
+        typed.maxResults = limit.coerceIn(1, 50)
+        return typed.resultList
+    }
+
     fun detach(user: AppUser)
     {
         entityManager.detach(user)
