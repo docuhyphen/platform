@@ -63,16 +63,6 @@ const SessionDocumentsList: React.FC<SessionDocumentsListProps> = (
         sessionDetails?.status === SharingSessionStatus.REJECTED;
     const canUploadInCurrentSession = !isArchivedSession && !!permissions?.canUploadDocument;
 
-    // TEMP DEBUG — remove once permissions issue resolved
-    // eslint-disable-next-line no-console
-    console.log('[SessionDocumentsList]', {
-        sessionId: sessionDetails?.id,
-        status: sessionDetails?.status,
-        isArchivedSession,
-        canUploadInCurrentSession,
-        permissions,
-    });
-
     const onCardClick = (sessionDocument: DocumentDetailedDto) =>
     {
         setSelectedSessionDocument(sessionDocument);

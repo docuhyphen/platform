@@ -295,13 +295,6 @@ const SharingSessionInitiation: React.FC = () =>
 
         try
         {
-            console.log("initiating session");
-            console.log("recipientOrg", recipientOrg);
-            console.log("recipientOrgGroup", recipientOrgGroup)
-            console.log("recipientOrgUser", recipientOrgUser);
-            console.log("internalParticipants", internalParticipants)
-            console.log("newRecipient", newRecipient);
-
             if (!isRecipientValid())
             {
                 return;

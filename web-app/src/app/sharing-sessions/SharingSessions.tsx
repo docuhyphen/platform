@@ -103,22 +103,6 @@ const SharingSessions: React.FC = () =>
         [sessionDetails, appUser?.id],
     );
 
-    // TEMP DEBUG — remove once permissions issue resolved
-    useEffect(() => {
-        // eslint-disable-next-line no-console
-        console.log('[SharingSessions] permissions', {
-            sessionId: sessionDetails?.id,
-            status: sessionDetails?.status,
-            initiatorId: sessionDetails?.initiator?.id,
-            appUserId: appUser?.id,
-            permissions,
-            allowDocumentUpload: sessionDetails?.allowDocumentUpload,
-            allowDocumentUpdate: sessionDetails?.allowDocumentUpdate,
-            allowDocumentDeletion: sessionDetails?.allowDocumentDeletion,
-            allowDocumentDownload: sessionDetails?.allowDocumentDownload,
-            allowDocumentAddition: sessionDetails?.allowDocumentAddition,
-        });
-    }, [permissions, sessionDetails?.id, appUser?.id]);
     const sharingInitiationTriggerRef = useRef<HTMLButtonElement>(null);
     const deepLinkedSessionIdRef = useRef<string | null>(null);
     const deepLinkedDocumentIdRef = useRef<string | null>(null);

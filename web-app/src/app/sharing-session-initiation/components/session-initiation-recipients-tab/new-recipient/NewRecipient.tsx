@@ -73,7 +73,6 @@ const NewRecipient: React.FC<NewRecipientProps> = (
 
     useEffect(() =>
     {
-        console.log("UseEffect for internalParticipants", internalParticipants);
         if (internalParticipants)
         {
             setSelectedInternalParticipants([...internalParticipants]);

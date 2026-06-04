@@ -52,22 +52,6 @@ const SessionDocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
     const canDelete = isActiveSession && !!permissions?.canDeleteSessionDocument;
     const canDownload = !!permissions?.canDownloadDocumentsZip;
 
-    // TEMP DEBUG — remove once permissions issue resolved
-    // eslint-disable-next-line no-console
-    console.log('[SessionDocumentActionsMenu]', {
-        sessionId: session?.id,
-        documentId: sessionDocument?.id,
-        status: session?.status,
-        isActiveSession,
-        permissions,
-        canUpload, canEdit, canDelete, canDownload,
-        sessionAllowDocumentUpload: session?.allowDocumentUpload,
-        sessionAllowDocumentUpdate: session?.allowDocumentUpdate,
-        sessionAllowDocumentDeletion: session?.allowDocumentDeletion,
-        sessionAllowDocumentDownload: session?.allowDocumentDownload,
-        sessionAllowDocumentAddition: session?.allowDocumentAddition,
-    });
-
     const stopCardClickPropagation = (event: React.MouseEvent<HTMLElement>) =>
     {
         event.stopPropagation();

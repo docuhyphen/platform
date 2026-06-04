@@ -80,8 +80,6 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
 
     useEffect(() =>
     {
-        console.log("Organization groups tab mounted with organization:", appUserPersonOrganization);
-
         if (appUserPersonOrganization)
         {
             setOrganizationId(appUserPersonOrganization.id!)

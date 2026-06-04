@@ -136,7 +136,6 @@ const OrganizationTab = () =>
 
     useEffect(() =>
     {
-        console.log("OrganizationTab mounted")
         getOrganization()
     }, []);
 

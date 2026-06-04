@@ -54,7 +54,6 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
     {
         if (appUser && appUser.person && !alsoRegisterOrganization)
         {
-            console.log("Back")
             navigate('/');
         }
     }, [appUser, navigate, alsoRegisterOrganization]);

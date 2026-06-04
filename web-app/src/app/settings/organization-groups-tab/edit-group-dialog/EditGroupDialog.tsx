@@ -77,7 +77,6 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
 
     useEffect(() =>
     {
-        console.log("EditGroupDialog useEffect triggered", users)
         if (isOpen && group)
         {
             setName(group.name || "");
@@ -130,8 +129,6 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
 
     const loadUsers = async () =>
     {
-        console.log("Loading users for org: organizationId", appUserPersonOrganization.id)
-
         setLoadingUsers(true);
         try
         {

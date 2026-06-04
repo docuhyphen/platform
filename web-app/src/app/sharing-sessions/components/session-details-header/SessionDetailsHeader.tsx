@@ -67,18 +67,6 @@ const SessionDetailsHeader: React.FC<SessionDetailsHeaderProps> = (
 {
     const styles = useSessionDetailsHeaderStyles();
 
-    // TEMP DEBUG — remove once permissions issue resolved
-    // eslint-disable-next-line no-console
-    console.log('[SessionDetailsHeader]', {
-        sessionId: sessionDetails?.id,
-        status: sessionDetails?.status,
-        sessionPermissions,
-    });
-    // Collapse the header's standalone action icons into the More menu
-    // on any compact viewport - not just phones. Tablet portrait
-    // (768-1024px) still has the SessionList sidebar competing for
-    // horizontal room, so the title + 3 icon buttons + menu + toggle
-    // doesn't fit comfortably either.
     const collapseHeaderActionsToMenu = useMediaQuery('(max-width: 1024px)');
     const [isExpanded, setIsExpanded] = React.useState(() =>
     {

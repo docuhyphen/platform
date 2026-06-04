@@ -124,15 +124,12 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
 
     useEffect(() =>
     {
-        console.log("SessionInitiationRecipientsTab useEffect triggered");
         if (!appUserPersonOrganization)
         {
-            console.log("appUserPersonOrganization is undefined");
             // Only reset org-specific modes; PEOPLE and MY_GROUPS are always available
             if (props.recipientMode === SharingSessionInitiationRecipientMode.MY_ORG ||
                 props.recipientMode === SharingSessionInitiationRecipientMode.EXTERNAL_ORG)
             {
-                console.log("Setting recipient mode to PEOPLE due to undefined appUserPersonOrganization");
                 props.setRecipientMode(SharingSessionInitiationRecipientMode.PEOPLE);
             }
         }

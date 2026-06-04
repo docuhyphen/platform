@@ -60,8 +60,6 @@ const ParingRequestDeleteDialog: React.FC<ParingRequestDeleteDialogProps> = (
         catch (error: ResponseError | any)
         {
             const errorMessage = ((error as ResponseError)?.errorMessage) || "An unknown error occurred attempting to delete";
-
-            console.log(errorMessage)
             setDialogErrorMessage(errorMessage)
         }
         finally

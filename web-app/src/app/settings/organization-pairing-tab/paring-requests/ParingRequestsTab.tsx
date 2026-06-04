@@ -64,8 +64,6 @@ const ParingRequestsTab: React.FC<ParingOrganizationsTabProps> = (
 
     useEffect(() =>
     {
-        console.log("Organization pairing requests tab useEffect");
-
         setIncomingOrgParingRequests(
             orgPairs.filter(p => p.requestedOrganizationId === appUserPersonOrganization?.id))
 

@@ -29,14 +29,10 @@ const MyOrgRecipients: React.FC<{
 
     const onInternalRecipientSelect: ComboboxProps["onOptionSelect"] = (_, data) =>
     {
-        console.log("onInternalRecipientSelect", data)
-
         const newSelectedRecipients = [...data.selectedOptions].map(
             optionValue => orgUsers.find(user => user.id === optionValue)
         ).filter(Boolean)
             .filter(user => user.id !== appUser?.id) as AppUserDetailedDto[];
-
-        console.log(newSelectedRecipients)
 
         setSelectedInternalParticipants(newSelectedRecipients);
         setInternalRecipientsInputValue("");
