@@ -55,7 +55,7 @@ interface WorkflowEngineService
     fun cancel(instanceId: UUID, reason: String?)
 
     /**
-     * Plan 07 G7: pending APPROVAL step instances where [appUserId] is either a direct
+     * Pending APPROVAL step instances where [appUserId] is either a direct
      * assignee (USER kind) or a member of an assignee group (PRINCIPAL_GROUP kind). Powers
      * the "Pending approvals" inbox so a page refresh doesn't drop missed realtime pushes.
      */
@@ -102,7 +102,7 @@ data class DecisionResult(
 )
 
 /**
- * Plan 07 G7: shape returned by [WorkflowEngineService.listPendingForUser]. Mirrors the
+ * Shape returned by [WorkflowEngineService.listPendingForUser]. Mirrors the
  * frontend `PendingWorkflowStep` interface so the inbox can render without an extra mapping
  * layer. Times are epoch millis (ISO-8601 conversion happens client-side).
  */

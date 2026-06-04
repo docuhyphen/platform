@@ -219,12 +219,6 @@ export interface SharingSessionInitiationRequest
     participants?: SharingSessionParticipantRequest[];
     status?: SharingSessionStatus;
     rejectionReason?: string;
-    // Plan 07 G1 — explicit recipient role + constraints override at initiation.
-    // When `recipientRoleName` is set, the backend uses it directly (must be one of
-    // EDITOR/REVIEWER/SIGNER/VIEWER/COMMENTER/PARTICIPANT). When null/undefined the
-    // backend falls back to legacy auto-derivation (EDITOR if any write flag, else
-    // VIEWER). `recipientConstraintsJson` is a raw JSON blob; explicit keys win over
-    // the legacy `allowDocument*`-derived ones.
     recipientRoleName?: string;
     recipientConstraintsJson?: string;
 }
@@ -427,10 +421,6 @@ export interface SharingSessionDetailedDto
     allowDocumentUpload?: boolean
     noAuthAccessValidityDays?: number;
     participants?: SharingSessionParticipantDetailedDto[];
-    // Plan 07 G6 — viewer obligations. Populated by SharingSessionResource.enrichSessionWithPermissions
-    // from the merged ShareConstraints for the current viewer. `watermark` flips on a translucent
-    // overlay in SessionDocumentPreviewer; `maxViews` caps how many times the viewer may open the doc
-    // (counting deferred until a `share_view` table lands); `requireMfa` is informational on the UI.
     watermark?: boolean;
     maxViews?: number;
     requireMfa?: boolean;

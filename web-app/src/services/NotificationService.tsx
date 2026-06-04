@@ -37,7 +37,7 @@ export type RealtimeMessageType =
     | 'SHARING_SESSION_STATUS_CHANGED'
     // NB: workflow.step_assigned / workflow.escalated / session.activated / session.rejected
     // are *not* envelope types — the backend wraps them inside NOTIFICATION. Consumers key
-    // off `msg.notification.type`. Removed standalone union members as part of Plan 07 G9.
+    // off `msg.notification.type`.
     | 'ERROR'
     | 'WELCOME';
 

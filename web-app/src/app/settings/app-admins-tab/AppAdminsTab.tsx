@@ -21,7 +21,7 @@ import {fetchAppAdmins, grantAppAdmin, revokeAppAdmin, searchAppAdminCandidates}
 import {AppAdminDto, AppUserSearchResult} from '../../../services/types/dtos';
 
 /**
- * App Admins management screen (Plan 04).
+ * App Admins management screen.
  * Lists current admins, add by user lookup, revoke with last-admin guard.
  */
 const AppAdminsTab: React.FC = () =>
@@ -33,7 +33,7 @@ const AppAdminsTab: React.FC = () =>
     const [noAccess, setNoAccess] = useState(false);
     const [busy, setBusy] = useState(false);
 
-    // Add form (Plan 07 G3b — global user search, not org-scoped)
+    // Add form (global user search, not org-scoped)
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<AppUserSearchResult[]>([]);
     const [searching, setSearching] = useState(false);
@@ -84,9 +84,8 @@ const AppAdminsTab: React.FC = () =>
         loadAdmins();
     }, [loadAdmins]);
 
-    // Plan 07 G3b — debounced global user-search against the new
-    // GET /admin/roles/app-admin-candidates endpoint. Triggers when the query
-    // is at least 2 chars long; clears results otherwise.
+    // Debounced global user-search against GET /admin/roles/app-admin-candidates.
+    // Triggers when the query is at least 2 chars long; clears results otherwise.
     useEffect(() =>
     {
         if (selectedUserId) return; // a candidate is already locked in

@@ -31,7 +31,7 @@ export const recordWorkflowDecision = (
     );
 
 /**
- * Plan 07 G7: list PENDING workflow steps where the current user is an assignee.
+ * List PENDING workflow steps where the current user is an assignee.
  * Called on PendingApprovals mount so a page refresh doesn't drop missed realtime
  * pushes. Backend resolves "current user" from the auth session.
  */

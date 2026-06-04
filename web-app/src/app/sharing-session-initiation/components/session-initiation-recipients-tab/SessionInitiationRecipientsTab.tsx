@@ -43,7 +43,6 @@ interface SessionRecipientsTabProps
     newRecipient: SharingSessionNewMainRecipient | undefined;
     setNewRecipient: (recipient: SharingSessionNewMainRecipient | undefined) => void;
     isRequestingDocuments: boolean | null | undefined;
-    // Plan 07 G1 — recipient role + constraints override at initiation.
     recipientRole: SessionShareRole | undefined;
     setRecipientRole: (role: SessionShareRole | undefined) => void;
     recipientConstraints: ShareConstraints;
@@ -200,10 +199,6 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
                 />
             )}
 
-            {/* Plan 07 G5 — soften the external-recipient case into a badge instead of a hard
-                error. Backend permits this when OrganizationSettings.allowExternalCustomerSharing
-                is true (default). Shown only in PEOPLE/EMAIL mode when the user typed a fresh
-                email rather than selecting a known app user. */}
             {(props.recipientMode === SharingSessionInitiationRecipientMode.PEOPLE
                 || props.recipientMode === SharingSessionInitiationRecipientMode.EMAIL)
                 && !props.recipientOrgUser
@@ -218,11 +213,6 @@ const SessionInitiationRecipientsTab: React.FC<SessionRecipientsTabProps> = (pro
                 </div>
             )}
 
-            {/* Plan 07 G1 — recipient access controls. The dropdown overrides the legacy
-                auto-derivation (EDITOR if any write flag, else VIEWER). When the chosen role
-                supports constraints (PARTICIPANT / VIEWER), show the full toggle panel so the
-                initiator can pin watermark / max-views / MFA / download / reshare up-front
-                instead of having to PATCH the access entry after creation. */}
             <div style={{marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--colorNeutralStroke2)'}}>
                 <Field label="Recipient role" hint="Defaults to Editor/Viewer based on document permissions.">
                     <Dropdown

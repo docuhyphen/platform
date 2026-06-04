@@ -34,7 +34,7 @@ const PendingApprovals: React.FC = () =>
     const [comments, setComments] = useState<Record<string, string>>({});
     const [decisionError, setDecisionError] = useState<string | null>(null);
 
-    // Plan 07 G7: initial fetch so a page refresh doesn't drop missed realtime pushes.
+    // Initial fetch so a page refresh doesn't drop missed realtime pushes.
     // The realtime listener below prepends new items on top of whatever this returned.
     useEffect(() =>
     {

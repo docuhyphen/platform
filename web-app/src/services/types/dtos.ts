@@ -1,9 +1,9 @@
 /**
- * Shared TypeScript interfaces mirroring backend DTOs for Plans 01–05.
+ * Shared TypeScript interfaces mirroring backend DTOs.
  */
 import {AppUserDetailedDto} from '../../app/models/models';
 
-// ── Session Access (Plan 01/02 — share table) ──
+// ── Session Access ──
 
 export interface SessionAccessEntryDto
 {
@@ -35,7 +35,7 @@ export interface UpdateSessionShareRoleRequest
     constraintsJson?: string;
 }
 
-// ── Share Constraints (Plan 01) ──
+// ── Share Constraints ──
 
 export interface ShareConstraints
 {
@@ -46,7 +46,7 @@ export interface ShareConstraints
     require_mfa?: boolean;
 }
 
-// ── Workflow decisions (Plan 01 workflow engine) ──
+// ── Workflow decisions ──
 
 export interface WorkflowDecisionRequest
 {
@@ -73,7 +73,7 @@ export interface PendingWorkflowStep
     requestedByName?: string;
     groupName?: string;
     /**
-     * Server returns epoch millis (Plan 07 G7). Older client paths (the realtime push
+     * Server returns epoch millis. Older client paths (the realtime push
      * fallback) populate `createdAt` with an ISO string when the notification payload
      * carries `timestamp` — kept here for back-compat. Prefer `createdAtEpochMillis`.
      */
@@ -81,7 +81,7 @@ export interface PendingWorkflowStep
     createdAtEpochMillis?: number;
 }
 
-// ── Personal Groups (Plan 02) ──
+// ── Personal Groups ──
 
 export interface PrincipalGroupDto
 {
@@ -126,7 +126,7 @@ export interface GroupMemberEntry
     groupRole?: string;         // default 'MEMBER'
 }
 
-// ── App Admin (Plan 04) ──
+// ── App Admin ──
 
 export interface AppAdminDto
 {
@@ -143,7 +143,7 @@ export interface GrantAppAdminRequest
 }
 
 /**
- * Plan 07 G3b: a single hit from /admin/roles/app-admin-candidates. Used by the App
+ * A single hit from /admin/roles/app-admin-candidates. Used by the App
  * Admins picker (app-admin is a global role, not org-scoped).
  */
 export interface AppUserSearchResult
@@ -154,6 +154,6 @@ export interface AppUserSearchResult
     lastName?: string;
 }
 
-// ── Org Settings (Plan 05) ──
-// NB: OrganizationSettingsV2Dto removed as part of Plan 07 G9 hygiene — it was never
-// consumed. OrganizationTab uses the legacy `OrganizationSettingsDto` from models.tsx.
+// ── Org Settings ──
+// NB: OrganizationSettingsV2Dto was removed — it was never consumed.
+// OrganizationTab uses the legacy `OrganizationSettingsDto` from models.tsx.

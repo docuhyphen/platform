@@ -249,7 +249,7 @@ export const getLatestDocumentVersion = (sessionId: string, documentId: string) 
         apiClient.get(`/sharing-sessions/${sessionId}/documents/${documentId}/versions/latest`)
     );
 
-// ── Session Access Management (Plan 01/02) ──
+// ── Session Access Management ──
 
 export const listSessionAccess = (sessionId: string): Promise<SessionAccessEntryDto[]> =>
     executeRequest(() => apiClient.get(`/sharing-sessions/${sessionId}/access`));

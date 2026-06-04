@@ -11,7 +11,7 @@ import java.util.UUID
 
 /**
  * Enforces an organization's outbound-sharing policy on the share-initiation path. The policy
- * distinguishes by the **nature of the recipient** (Plan 05), because sharing to a person is not
+ * distinguishes by the **nature of the recipient**, because sharing to a person is not
  * the same act as federating into another managed tenant:
  *
  *   * **B2C — recipient is an individual with no organization.** Allowed by default. Gated only by

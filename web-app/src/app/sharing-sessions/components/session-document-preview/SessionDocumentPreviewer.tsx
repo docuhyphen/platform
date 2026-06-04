@@ -93,10 +93,6 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     const styles = useSessionDocumentPreviewerStyles();
     const isMobile = useIsMobile();
     const {appUser} = useAuth();
-    // Plan 07 G6 — viewer obligations. `session.watermark` flips on the overlay;
-    // `session.allowDocumentDownload === false` hides the "Download original" button.
-    // Both come from SharingSessionResource.enrichSessionWithPermissions which merges
-    // ShareConstraints for the current viewer.
     const watermarkEnabled = !!session?.watermark;
     const downloadAllowed = session?.allowDocumentDownload !== false;
     const watermarkText = (appUser?.email || 'CONFIDENTIAL').toUpperCase();

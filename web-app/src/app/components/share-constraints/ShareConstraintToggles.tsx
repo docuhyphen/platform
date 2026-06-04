@@ -10,7 +10,7 @@ interface ShareConstraintTogglesProps
 }
 
 /**
- * Toggles for participant-level constraints (Plan 01).
+ * Toggles for participant-level constraints.
  * Used when granting/editing access with PARTICIPANT or VIEWER role.
  */
 const ShareConstraintToggles: React.FC<ShareConstraintTogglesProps> = ({constraints, onChange, disabled}) =>

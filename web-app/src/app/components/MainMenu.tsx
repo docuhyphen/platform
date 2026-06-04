@@ -102,8 +102,6 @@ const MainMenu: React.FC = () =>
                 <NotificationList/>
             </div>
 
-            {/* Plan 07 G8 — show PendingApprovals only for users with an active organisation.
-                Workflow steps are org-scoped; a pending/disabled org has no approvals to action. */}
             {appUserPersonOrganization?.isActive && <PendingApprovals/>}
 
             {/*<Button icon={<InfoIcon/>}*/}

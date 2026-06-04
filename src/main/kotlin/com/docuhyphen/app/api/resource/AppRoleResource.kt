@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory
 import java.util.UUID
 
 /**
- * App Admin (APP-scope role) provisioning (Plan 04). Every route requires the caller to already
+ * App Admin (APP-scope role) provisioning. Every route requires the caller to already
  * be an App Admin — resolved from the authenticated session, never the request body. App roles
  * are additive, so an admin keeps all their normal org/group/personal grants.
  */
@@ -79,7 +79,7 @@ class AppRoleResource @Inject constructor(
     }
 
     /**
-     * Plan 07 G3b: global app-user search for the App Admins picker. App-admin is a global
+     * Global app-user search for the App Admins picker. App-admin is a global
      * role, so the picker must reach users outside the caller's org. Guarded by the same
      * `isAppAdmin` check as the rest of this resource — an attacker without app-admin gets a
      * 403 before any DB hit.

@@ -57,7 +57,7 @@ import {PrincipalGroupDto} from '../../../services/types/dtos';
 import {GroupRoleDisplayNames} from '../../../services/types/roles';
 
 /**
- * "My Groups" tab — personal/self-service groups (Plan 02).
+ * "My Groups" tab — personal/self-service groups.
  * Shown under Settings for all users (not org-gated).
  */
 const MyGroupsTab: React.FC = () =>

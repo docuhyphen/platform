@@ -74,7 +74,7 @@ class AppUserRepository : BaseRepository<AppUser>(AppUser::class.java)
     }
 
     /**
-     * Plan 07 G3b: case-insensitive search across email + first/last name for the App
+     * Case-insensitive search across email + first/last name for the App
      * Admins picker (admin-scope, audit-logged at the resource layer). Excludes temporary
      * placeholder users since they can't be granted app-admin until they sign up. Returns
      * at most [limit] rows (capped at 50 to keep the response small).

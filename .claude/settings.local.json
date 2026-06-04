@@ -115,7 +115,10 @@
       "Bash(echo \"EXIT: $?\")",
       "PowerShell(docker ps --format \"{{.Names}} {{.Image}} {{.Ports}}\" 2>&1; echo \"---\"; \\(Get-Command psql -ErrorAction SilentlyContinue\\).Source; \\(Get-Command docker -ErrorAction SilentlyContinue\\).Source)",
       "PowerShell(docker exec -e PGPASSWORD=admin doc-hyphen-postgres-db psql -U postgres -d postgres -c \"DROP DATABASE IF EXISTS dh_validate_tmp;\" -c \"CREATE DATABASE dh_validate_tmp;\" 2>&1; echo \"EXIT: $LASTEXITCODE\")",
-      "PowerShell($env:QUARKUS_DATASOURCE_JDBC_URL=\"jdbc:postgresql://localhost:5432/dh_validate_tmp\"; $env:QUARKUS_HTTP_PORT=\"8099\"; $env:QUARKUS_PROFILE=\"prod\"; cmd /c \".\\\\mvnw.cmd -o -q compile quarkus:dev -Dquarkus.http.port=8099 > validate_boot.log 2>&1\")"
+      "PowerShell($env:QUARKUS_DATASOURCE_JDBC_URL=\"jdbc:postgresql://localhost:5432/dh_validate_tmp\"; $env:QUARKUS_HTTP_PORT=\"8099\"; $env:QUARKUS_PROFILE=\"prod\"; cmd /c \".\\\\mvnw.cmd -o -q compile quarkus:dev -Dquarkus.http.port=8099 > validate_boot.log 2>&1\")",
+      "Bash(Remove-Item -Recurse -Force \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\plans\")",
+      "Bash(Remove-Item -Force \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\plan-sharingCollaborationRedesign.v1.prompt.md\", \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\plan-sharingCollaborationRedesign.v2.prompt.md\", \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\plan-oAuthMultiIdpArchitecture.v4.prompt.md\")",
+      "Bash(Write-Output \"Done\")"
     ]
   }
 }

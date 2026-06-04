@@ -112,7 +112,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
 
                 setSelectedUsers(userMap);
 
-                // Initialize role map from group member data (Plan 03)
+                // Initialize role map from group member data
                 const rolesMap = new Map<string, GroupRole>();
                 group.members?.forEach((member: any) =>
                 {
@@ -181,10 +181,9 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
         }
         catch (err: any)
         {
-            // Plan 07 G4: capability gating. The backend authorizes group mutations on
-            // GROUP_MANAGE_MEMBERS / GROUP_DELETE — anything else returns 403. We catch
-            // it here and lock the dialog into a "read-only, no permission" state so the
-            // user understands the system is refusing on purpose, not just throwing.
+            // Backend authorizes group mutations on GROUP_MANAGE_MEMBERS / GROUP_DELETE —
+            // anything else returns 403. Lock the dialog into a "read-only, no permission"
+            // state so the user understands the system is refusing on purpose, not just throwing.
             const status = (err as { status?: number; response?: { status?: number } } | null | undefined)
                 ?.status ?? (err as { response?: { status?: number } } | null | undefined)?.response?.status;
             if (status === 403)

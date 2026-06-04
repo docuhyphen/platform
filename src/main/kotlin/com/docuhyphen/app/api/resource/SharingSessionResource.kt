@@ -602,14 +602,14 @@ class SharingSessionResource @Inject constructor(
      * Populate the session DTO's document permission flags from the primary recipient share's
      * constraints JSON. The permissions live on the Share row, not on the SharingSession entity.
      *
-     * Plan 07 G6: also parse the viewer-obligation keys (`watermark`, `max_views`, `require_mfa`)
+     * Also parses the viewer-obligation keys (`watermark`, `max_views`, `require_mfa`)
      * so the viewer can apply a watermark overlay and hide the download button when denied.
      */
     private fun enrichSessionWithPermissions(sessionDto: SharingSessionDetailedDto?): SharingSessionDetailedDto?
     {
         if (sessionDto == null) return null
         val constraintsJson = shareService.recipientConstraintsJson(sessionDto.id) ?: return sessionDto
-        // The download key is `can_download` in the new constraints (Plan 01) but
+        // The download key is `can_download` in the newer constraints but
         // `allow_document_download` in the legacy initiation flags — accept either.
         val downloadAllowed = !constraintsJson.contains("\"can_download\":false") &&
             (constraintsJson.contains("\"allow_document_download\":true") ||

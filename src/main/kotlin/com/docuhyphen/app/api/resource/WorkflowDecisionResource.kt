@@ -91,7 +91,7 @@ class WorkflowDecisionResource @Inject constructor(
     }
 
     /**
-     * Plan 07 G7: list PENDING workflow steps assigned to the authenticated user (either
+     * List PENDING workflow steps assigned to the authenticated user (either
      * directly as a USER assignee or via a PRINCIPAL_GROUP assignee they're a member of).
      * Powers the "Pending approvals" inbox on app load so realtime push isn't the only path
      * to discovering pending tasks.

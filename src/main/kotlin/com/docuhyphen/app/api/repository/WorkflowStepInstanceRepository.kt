@@ -44,7 +44,7 @@ class WorkflowStepInstanceRepository :
             .firstOrNull()
 
     /**
-     * Plan 07 G7: every PENDING step instance. Caller filters by assignee in app code
+     * Every PENDING step instance. Caller filters by assignee in app code
      * (assignees are stored as a JSON snapshot, not an indexable column). Capped at 1000
      * since the per-user inbox is meant to be small.
      */

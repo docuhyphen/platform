@@ -318,7 +318,7 @@ class SharingSessionInitiationService @Inject constructor(
      * (add/delete/update/upload) implies EDITOR, otherwise VIEWER. The full flag set is
      * preserved verbatim in the share's constraints JSON (see [sessionConstraintsJson]).
      *
-     * Plan 07 G1: when the caller supplies an explicit `recipientRoleName`, honor it (after
+     * When the caller supplies an explicit `recipientRoleName`, honor it (after
      * validating it's a known [RoleName]). Lets the UI offer PARTICIPANT / VIEWER /
      * COMMENTER / SIGNER / REVIEWER at initiation, not just EDITOR/VIEWER.
      */
@@ -336,7 +336,7 @@ class SharingSessionInitiationService @Inject constructor(
     /**
      * Build the constraints JSON for the recipient share. Always emits the legacy
      * `can_download` + `allow_document_*` keys derived from the per-permission flags; when
-     * the caller supplies an explicit `recipientConstraintsJson` blob (Plan 07 G1), its keys
+     * the caller supplies an explicit `recipientConstraintsJson` blob, its keys
      * are merged on top (explicit wins). The result is parsed by
      * [com.docuhyphen.app.api.service.auth.authz.ShareConstraints] at read time and powers
      * the access panel + viewer obligations.

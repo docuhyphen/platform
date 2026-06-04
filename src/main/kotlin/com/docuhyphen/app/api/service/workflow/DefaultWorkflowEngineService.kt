@@ -43,7 +43,6 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     @Inject private lateinit var stepRepository: WorkflowStepInstanceRepository
     @Inject private lateinit var assigneeResolver: WorkflowAssigneeResolver
     @Inject private lateinit var eventPublisher: DomainEventPublisher
-    // Plan 07 G7: extra repos for the pending-approvals enrichment (session name, group name, requester).
     @Inject private lateinit var principalGroupMemberRepository: com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
     @Inject private lateinit var principalGroupRepository: com.docuhyphen.app.api.repository.PrincipalGroupRepository
     @Inject private lateinit var sharingSessionRepository: com.docuhyphen.app.api.repository.SharingSessionRepository
@@ -299,7 +298,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     // -------------------------------------------------------------------------
 
     /**
-     * Plan 07 G7: scan all PENDING steps and return those the given user can decide on,
+     * Scans all PENDING steps and return those the given user can decide on,
      * either as a direct USER assignee or as an active member of an assignee PRINCIPAL_GROUP.
      * Steps the user has already voted on are filtered out (idempotent re-decision is allowed
      * by [recordDecision] but irrelevant for the inbox).

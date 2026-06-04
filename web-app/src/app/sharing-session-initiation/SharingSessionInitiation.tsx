@@ -367,9 +367,6 @@ const SharingSessionInitiation: React.FC = () =>
                 allowDocumentUpdate: allowDocumentUpdate,
                 allowDocumentUpload: allowDocumentUpload,
                 recipientType,
-                // Plan 07 G1 — only send when the user picked a non-Auto role. The
-                // constraints blob is only sent when non-empty and the role supports them;
-                // otherwise the backend keeps its legacy auto-derived constraints.
                 recipientRoleName: recipientRole,
                 recipientConstraintsJson:
                     Object.keys(recipientConstraints).length > 0
