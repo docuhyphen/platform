@@ -19,7 +19,7 @@ const ProtectedRoute: React.FC<{ element: React.ReactElement, path: string }> = 
     return token ? (
         <>
             <MainMenu/>
-            <TourCoach/>
+            {/*<TourCoach/>*/}
             {element}
         </>
     ) : (

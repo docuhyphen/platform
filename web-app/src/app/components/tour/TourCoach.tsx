@@ -77,6 +77,9 @@ function TourCoach() {
 
     // Decide whether to show the tour when the user is loaded.
     useEffect(() => {
+
+        return;
+
         if (!appUser?.person) return;
         if (startedRef.current) return;
 
