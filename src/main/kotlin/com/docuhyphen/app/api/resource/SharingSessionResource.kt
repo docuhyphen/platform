@@ -19,6 +19,7 @@ import com.docuhyphen.app.api.resource.model.UpdateSharingSessionRequest
 import com.docuhyphen.app.api.service.sharingsession.*
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.storage.FileStorageService
+import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
 import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
@@ -609,24 +610,22 @@ class SharingSessionResource @Inject constructor(
     {
         if (sessionDto == null) return null
         val constraintsJson = shareService.recipientConstraintsJson(sessionDto.id) ?: return sessionDto
+        val c = ShareConstraints.parse(constraintsJson)
         // The download key is `can_download` in the newer constraints but
         // `allow_document_download` in the legacy initiation flags — accept either.
-        val downloadAllowed = !constraintsJson.contains("\"can_download\":false") &&
+        val downloadAllowed = c.canDownload != false &&
             (constraintsJson.contains("\"allow_document_download\":true") ||
-                constraintsJson.contains("\"can_download\":true"))
-        val watermark = constraintsJson.contains("\"watermark\":true")
-        val requireMfa = constraintsJson.contains("\"require_mfa\":true")
-        val maxViews = Regex("\"max_views\"\\s*:\\s*(-?\\d+)")
-            .find(constraintsJson)?.groupValues?.get(1)?.toIntOrNull()?.takeIf { it > 0 }
+                c.canDownload == true)
         return sessionDto.copy(
-            allowDocumentAddition = constraintsJson.contains("\"allow_document_addition\":true"),
-            allowDocumentDeletion = constraintsJson.contains("\"allow_document_deletion\":true"),
+            allowDocumentAddition = c.allowDocumentAddition == true,
+            allowDocumentDeletion = c.allowDocumentDeletion == true,
             allowDocumentDownload = downloadAllowed,
-            allowDocumentUpdate = constraintsJson.contains("\"allow_document_update\":true"),
-            allowDocumentUpload = constraintsJson.contains("\"allow_document_upload\":true"),
-            watermark = watermark,
-            maxViews = maxViews,
-            requireMfa = requireMfa,
+            allowDocumentUpdate = c.allowDocumentUpdate == true,
+            allowDocumentUpload = c.allowDocumentUpload == true,
+            watermark = c.watermark,
+            maxViews = c.maxViews?.takeIf { it > 0 },
+            requireMfa = c.requireMfa,
+            allowedDownloadFormats = c.allowedDownloadFormats,
         )
     }
 

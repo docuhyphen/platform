@@ -92,6 +92,7 @@ data class SharingSessionDetailedDto(
     var watermark: Boolean = false,
     var maxViews: Int? = null,
     var requireMfa: Boolean = false,
+    var allowedDownloadFormats: List<String>? = null,
 )
 
 @Serializable

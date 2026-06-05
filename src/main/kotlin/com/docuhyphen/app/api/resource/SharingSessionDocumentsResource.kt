@@ -14,6 +14,7 @@ import com.docuhyphen.app.api.resource.model.UpdateShareSessionDocumentRequest
 import com.docuhyphen.app.api.service.sharingsession.DocumentPreviewConversionException
 import com.docuhyphen.app.api.service.sharingsession.SharingSessionDocumentService
 import com.docuhyphen.app.api.service.storage.FileStorageService
+import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
@@ -354,6 +355,13 @@ class SharingSessionDocumentsResource @Inject constructor(
                     logger.error("Error downloading sharing session document", exception)
                     val responseError = ResponseError(exception.message)
                     Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
+                }
+
+                is ForbiddenException ->
+                {
+                    logger.warn("Download format blocked: {}", exception.message)
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
                 }
 
                 is IllegalArgumentException ->

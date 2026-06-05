@@ -41,6 +41,7 @@ import {InfoIcon, RegenerateOTPIcon} from "../../../components/IconBundles.tsx";
 import {getOtpFriendlyMessage, normalizeApiError} from "../../../../utils/apiErrorUtils.ts";
 import SessionAccessPanel from "./SessionAccessPanel.tsx";
 import ManageAccessHelpGuide from "./ManageAccessHelpGuide.tsx";
+import DownloadFormatRestriction from "../../../components/share-constraints/DownloadFormatRestriction.tsx";
 
 interface SessionAccessManagementDialogProps
 {
@@ -86,6 +87,7 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
     const [allowDocumentDownload, setAllowDocumentDownload] = useState<boolean>(false);
     const [allowDocumentUpdate, setAllowDocumentUpdate] = useState<boolean>(false);
     const [allowDocumentUpload, setAllowDocumentUpload] = useState<boolean>(false);
+    const [allowedDownloadFormats, setAllowedDownloadFormats] = useState<string[] | undefined>(undefined);
     const [noAuthAccessValidityDays, setNoAuthAccessValidityDays] = useState<string>('7');
     const [selectedTab, setSelectedTab] = useState<TabValue>(tabIds.people);
     const [showHelpGuide, setShowHelpGuide] = useState(false);
@@ -102,6 +104,7 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
             setAllowDocumentDownload(session.allowDocumentDownload);
             setAllowDocumentUpdate(session.allowDocumentUpdate);
             setAllowDocumentUpload(session.allowDocumentUpload);
+            setAllowedDownloadFormats(session.allowedDownloadFormats);
             setNoAuthAccessValidityDays(String(session.noAuthAccessValidityDays ?? 7));
             setAccessCodeError('');
             setAccessCodeStatus('');
@@ -222,6 +225,7 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
                 allowDocumentDownload,
                 allowDocumentUpdate,
                 allowDocumentUpload,
+                allowedDownloadFormats: allowDocumentDownload ? (allowedDownloadFormats ?? []) : [],
                 noAuthAccessValidityDays: parsedNoAuthValidityDays,
             }
             await updateSharingSession(session.id, request);
@@ -365,11 +369,17 @@ const SessionAccessManagementDialog: React.FC<SessionAccessManagementDialogProps
                                                     </Field>
                                                     <Field>
                                                         <Switch
-                                                            label="Allow document zip download"
+                                                            label="Allow document download"
                                                             checked={allowDocumentDownload}
                                                             onChange={handleCheckboxChange(setAllowDocumentDownload)}
                                                         />
                                                     </Field>
+                                                    {allowDocumentDownload && (
+                                                        <DownloadFormatRestriction
+                                                            allowedDownloadFormats={allowedDownloadFormats}
+                                                            onChange={setAllowedDownloadFormats}
+                                                        />
+                                                    )}
                                                     <Field>
                                                         <Switch
                                                             label="Allow document update"

@@ -297,6 +297,7 @@ data class SharingSessionInitiationDto(
     var recipientType: SharingSessionRecipientType? = null,
     var recipientRoleName: String? = null,
     var recipientConstraintsJson: String? = null,
+    var allowedDownloadFormats: List<String>? = null,
     //ToDo: add accepted by, rejected by, ended by
 )
 
@@ -313,7 +314,8 @@ data class UpdateSharingSessionRequest(
     var allowDocumentUpdate: Boolean? = null,
     var noAuthAccessValidityDays: Int? = null,
     var status: SharingSessionStatus? = null,
-    var rejectionReason: String? = null
+    var rejectionReason: String? = null,
+    var allowedDownloadFormats: List<String>? = null,
 )
 
 @Serializable

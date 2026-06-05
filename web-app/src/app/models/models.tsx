@@ -221,6 +221,7 @@ export interface SharingSessionInitiationRequest
     rejectionReason?: string;
     recipientRoleName?: string;
     recipientConstraintsJson?: string;
+    allowedDownloadFormats?: string[];
 }
 
 export enum SharingSessionStatus
@@ -245,6 +246,7 @@ export interface UpdateSharingSessionRequest
     noAuthAccessValidityDays?: number;
     status?: SharingSessionStatus;
     rejectionReason?: string;
+    allowedDownloadFormats?: string[];
 }
 
 export interface UpdateNoAuthSharingSessionRequest
@@ -424,6 +426,7 @@ export interface SharingSessionDetailedDto
     watermark?: boolean;
     maxViews?: number;
     requireMfa?: boolean;
+    allowedDownloadFormats?: string[];   // mirrors backend DTO
 }
 
 export interface SharingSessionParticipantDetailedDto

@@ -95,6 +95,12 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     const {appUser} = useAuth();
     const watermarkEnabled = !!session?.watermark;
     const downloadAllowed = session?.allowDocumentDownload !== false;
+    const canDownloadOriginal =
+        downloadAllowed &&
+        (!session?.allowedDownloadFormats ||
+         session.allowedDownloadFormats.includes(sessionDocument?.type ?? ''));
+    const canDownloadAsPdf =
+        downloadAllowed && sessionDocument?.type !== 'PDF';
     const watermarkText = (appUser?.email || 'CONFIDENTIAL').toUpperCase();
     const sectionRef = useRef<HTMLElement>(null);
     const pdfContainerRef = useRef<HTMLDivElement>(null);
@@ -111,6 +117,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     const [enlargedZoomLevel, setEnlargedZoomLevel] = useState<number>(() => readZoomPreference(ENLARGED_ZOOM_STORAGE_KEY));
     const [previewError, setPreviewError] = useState<string | null>(null);
     const [downloadingOriginal, setDownloadingOriginal] = useState<boolean>(false);
+    const [downloadingPdf, setDownloadingPdf] = useState<boolean>(false);
     const [isEditingPageInput, setIsEditingPageInput] = useState<boolean>(false);
     const [visiblePages, setVisiblePages] = useState<Set<number>>(() => new Set([1]));
     // Width of the scroll container's content box, used to auto-fit the
@@ -376,6 +383,32 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         finally
         {
             setDownloadingOriginal(false);
+        }
+    };
+
+    const handleDownloadAsPdf = async () =>
+    {
+        if (!sessionDocument?.id) return;
+        setDownloadingPdf(true);
+        try
+        {
+            const blob = await downloadPreviewPDFSharingSessionDocument(session.id, sessionDocument.id);
+            const url = URL.createObjectURL(new Blob([blob as Blob], {type: 'application/pdf'}));
+            const a = window.document.createElement('a');
+            a.href = url;
+            a.download = `${sessionDocument?.title ?? 'document'}.pdf`;
+            window.document.body.appendChild(a);
+            a.click();
+            window.document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        catch (err)
+        {
+            console.error("Failed to download document as PDF:", err);
+        }
+        finally
+        {
+            setDownloadingPdf(false);
         }
     };
 
@@ -668,7 +701,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                 }}>
                     <Text size={500} weight={"semibold"}>Preview unavailable</Text>
                     <Text size={300}>{previewError}</Text>
-                    {downloadAllowed ? (
+                    {canDownloadOriginal && (
                         <Button appearance="primary"
                                 id="session-document-preview-download-original"
                                 shape="circular"
@@ -676,7 +709,17 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                                 onClick={handleDownloadOriginal}>
                             {downloadingOriginal ? 'Preparing download...' : 'Download original'}
                         </Button>
-                    ) : (
+                    )}
+                    {canDownloadAsPdf && (
+                        <Button appearance="secondary"
+                                id="session-document-preview-download-pdf"
+                                shape="circular"
+                                disabled={downloadingPdf}
+                                onClick={handleDownloadAsPdf}>
+                            {downloadingPdf ? 'Preparing PDF…' : 'Download as PDF'}
+                        </Button>
+                    )}
+                    {!downloadAllowed && (
                         <Text size={200} italic>
                             Download is disabled for this session.
                         </Text>

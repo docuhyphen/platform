@@ -15,6 +15,7 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
 import com.docuhyphen.app.api.service.communication.AppNotificationService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
@@ -288,6 +289,9 @@ class SharingSessionDocumentService @Inject constructor(
         validateDownloadPermission(sharingSession)
         val document = getDocument(sharingSession, documentId)
 
+        val constraintsJson = shareService.recipientConstraintsJson(sharingSession.id)
+        validateDownloadFormat(document, constraintsJson)
+
         val fileKey = "${document.id}${DocumentType.toFileExtension(document.type!!)}"
         return fileStorageService.downloadDocument(fileKey)
     }
@@ -337,8 +341,68 @@ class SharingSessionDocumentService @Inject constructor(
         validateDownloadPermission(sharingSession)
         val documents = documentIds.map { getDocument(sharingSession, it) }
 
-        val fileKeys = documents.map { "${it.id}${DocumentType.toFileExtension(it.type!!)}" }
-        return fileStorageService.downloadDocumentsAsZip(fileKeys)
+        val constraintsJson = shareService.recipientConstraintsJson(sharingSession.id)
+        val allowedFormats = ShareConstraints.parse(constraintsJson).allowedDownloadFormats
+
+        if (allowedFormats == null)
+        {
+            // No format restriction — fast path using original files
+            val fileKeys = documents.map { "${it.id}${DocumentType.toFileExtension(it.type!!)}" }
+            return fileStorageService.downloadDocumentsAsZip(fileKeys)
+        }
+
+        return buildZipRespectingFormats(sessionId, documents, allowedFormats)
+    }
+
+    /**
+     * Builds a ZIP file that includes originals for allowed formats and
+     * PDF-converted versions for restricted formats.
+     */
+    private fun buildZipRespectingFormats(
+        sessionId: String,
+        documents: List<Document>,
+        allowedFormats: List<String>,
+    ): File
+    {
+        val tempZip = File.createTempFile("documents-", ".zip")
+        val tempFiles = mutableListOf<File>()
+
+        try
+        {
+            java.util.zip.ZipOutputStream(tempZip.outputStream()).use { zos ->
+                for (document in documents)
+                {
+                    val docType = document.type?.name
+                    if (docType != null && docType in allowedFormats)
+                    {
+                        // Original format is allowed — include as-is
+                        val fileKey = "${document.id}${DocumentType.toFileExtension(document.type!!)}"
+                        val file = fileStorageService.downloadDocument(fileKey)
+                        tempFiles.add(file)
+                        val entryName = "${document.title ?: document.id}${DocumentType.toFileExtension(document.type!!)}"
+                        zos.putNextEntry(java.util.zip.ZipEntry(entryName))
+                        file.inputStream().use { it.copyTo(zos) }
+                        zos.closeEntry()
+                    }
+                    else
+                    {
+                        // Format not allowed — convert to PDF via LibreOffice
+                        val pdfFile = getDocumentFilePreviewAsPdf(sessionId, document.id.toString())
+                        tempFiles.add(pdfFile)
+                        val entryName = "${document.title ?: document.id}.pdf"
+                        zos.putNextEntry(java.util.zip.ZipEntry(entryName))
+                        pdfFile.inputStream().use { it.copyTo(zos) }
+                        zos.closeEntry()
+                    }
+                }
+            }
+        }
+        finally
+        {
+            tempFiles.forEach { runCatching { it.delete() } }
+        }
+
+        return tempZip
     }
 
     private fun getSharingSession(sessionId: String): SharingSession
@@ -501,6 +565,24 @@ class SharingSessionDocumentService @Inject constructor(
         if (decision is Decision.Deny)
         {
             throw IllegalArgumentException("Permission to download document not granted")
+        }
+    }
+
+    /**
+     * Blocks the original-file download when the document's type is not in the
+     * share's `allowed_download_formats` list. Null list means no restriction.
+     */
+    private fun validateDownloadFormat(document: Document, constraintsJson: String?)
+    {
+        val allowed = ShareConstraints.parse(constraintsJson).allowedDownloadFormats
+            ?: return                          // null = no restriction, always pass
+        val docType = document.type?.name ?: return
+        if (docType !in allowed)
+        {
+            throw io.quarkus.security.ForbiddenException(
+                "Downloading format '$docType' is not permitted. " +
+                "Use the 'Download as PDF' option instead."
+            )
         }
     }
 

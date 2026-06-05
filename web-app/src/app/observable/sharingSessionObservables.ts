@@ -22,6 +22,7 @@ export interface RecreateRejectedSessionDraft
     allowDocumentDownload: boolean;
     allowDocumentUpdate: boolean;
     allowDocumentUpload: boolean;
+    allowedDownloadFormats?: string[];
     sessionDocuments: SharingSessionRequestDocumentRequest[];
     recipientUser?: AppUserDetailedDto;
     recipientEmail?: string;

@@ -1,6 +1,7 @@
 import React, {ChangeEvent} from 'react';
 import {Divider, Field, Switch} from "@fluentui/react-components";
 import {useSharingSessionInitiationStyles} from "../../SharingSessionInitiationStyles.tsx";
+import DownloadFormatRestriction from '../../../components/share-constraints/DownloadFormatRestriction.tsx';
 
 interface SharingOptionsTabProps
 {
@@ -10,12 +11,14 @@ interface SharingOptionsTabProps
     allowDocumentDownload: boolean;
     allowDocumentUpdate: boolean;
     allowDocumentUpload: boolean;
+    allowedDownloadFormats: string[] | undefined;
     onRequireSignInChange: (ev: ChangeEvent<HTMLInputElement>) => void;
     onAllowDocumentAdditionsChange: (ev: ChangeEvent<HTMLInputElement>) => void;
     onAllowDocumentDeletionsChange: (ev: ChangeEvent<HTMLInputElement>) => void;
     onAllowDocumentDownloadChange: (ev: ChangeEvent<HTMLInputElement>) => void;
     onAllowDocumentUpdateChange: (ev: ChangeEvent<HTMLInputElement>) => void;
     onAllowDocumentUploadChange: (ev: ChangeEvent<HTMLInputElement>) => void;
+    onAllowedDownloadFormatsChange: (formats: string[] | undefined) => void;
 }
 
 const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
@@ -26,12 +29,14 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
         allowDocumentDownload,
         allowDocumentUpdate,
         allowDocumentUpload,
+        allowedDownloadFormats,
         onRequireSignInChange,
         onAllowDocumentAdditionsChange,
         onAllowDocumentDeletionsChange,
         onAllowDocumentDownloadChange,
         onAllowDocumentUpdateChange,
-        onAllowDocumentUploadChange
+        onAllowDocumentUploadChange,
+        onAllowedDownloadFormatsChange,
     }) =>
 {
     const styles = useSharingSessionInitiationStyles();
@@ -68,6 +73,12 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
                     onChange={onAllowDocumentDownloadChange}
                 />
             </Field>
+            {allowDocumentDownload && (
+                <DownloadFormatRestriction
+                    allowedDownloadFormats={allowedDownloadFormats}
+                    onChange={onAllowedDownloadFormatsChange}
+                />
+            )}
             <Field>
                 <Switch
                     label="Allow document update"

@@ -44,6 +44,7 @@ export interface ShareConstraints
     watermark?: boolean;
     max_views?: number;
     require_mfa?: boolean;
+    allowed_download_formats?: string[];   // undefined = no restriction
 }
 
 // ── Workflow decisions ──

@@ -84,6 +84,7 @@ const SharingSessionInitiation: React.FC = () =>
         newRecipient, setNewRecipient,
         recipientRole, setRecipientRole,
         recipientConstraints, setRecipientConstraints,
+        allowedDownloadFormats, setAllowedDownloadFormats,
     } = useSharingSessionInitiatingState();
 
     const toasterId = useId("sharing-session-initiation-toaster");
@@ -359,6 +360,7 @@ const SharingSessionInitiation: React.FC = () =>
                 allowDocumentDownload: allowDocumentDownload,
                 allowDocumentUpdate: allowDocumentUpdate,
                 allowDocumentUpload: allowDocumentUpload,
+                allowedDownloadFormats: allowDocumentDownload ? (allowedDownloadFormats ?? undefined) : undefined,
                 recipientType,
                 recipientRoleName: recipientRole,
                 recipientConstraintsJson:
@@ -485,6 +487,7 @@ const SharingSessionInitiation: React.FC = () =>
             setAllowDocumentDownload(!!draft.allowDocumentDownload);
             setAllowDocumentUpdate(!!draft.allowDocumentUpdate);
             setAllowDocumentUpload(!!draft.allowDocumentUpload);
+            setAllowedDownloadFormats(draft.allowedDownloadFormats);
             setDocuments(draft.sessionDocuments || []);
             setSelectedTab('details-tab');
             setRecipientOrg(undefined);
@@ -607,6 +610,8 @@ const SharingSessionInitiation: React.FC = () =>
                 onAllowDocumentDownloadChange={handleCheckboxChange(setAllowDocumentDownload)}
                 onAllowDocumentUpdateChange={handleCheckboxChange(setAllowDocumentUpdate)}
                 onAllowDocumentUploadChange={handleCheckboxChange(setAllowDocumentUpload)}
+                allowedDownloadFormats={allowedDownloadFormats}
+                onAllowedDownloadFormatsChange={setAllowedDownloadFormats}
             />
         )
     }

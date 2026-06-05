@@ -353,9 +353,18 @@ class SharingSessionInitiationService @Inject constructor(
         )
         val explicit = parseExplicitConstraints(dto.recipientConstraintsJson)
         val merged = legacy + explicit
-        return merged.entries.joinToString(prefix = "{", postfix = "}", separator = ",") { (k, v) ->
+        val parts = merged.entries.map { (k, v) ->
             "\"$k\":${renderConstraintValue(v)}"
+        }.toMutableList()
+
+        // Add allowed_download_formats as a JSON array if present
+        if (dto.allowedDownloadFormats != null)
+        {
+            val formatsArray = dto.allowedDownloadFormats!!.joinToString(",") { "\"$it\"" }
+            parts.add("\"allowed_download_formats\":[$formatsArray]")
         }
+
+        return parts.joinToString(prefix = "{", postfix = "}", separator = ",")
     }
 
     private fun parseExplicitConstraints(jsonStr: String?): Map<String, Any>

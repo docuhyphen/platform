@@ -50,7 +50,7 @@ const SessionInitiationDocumentsCard: React.FC<DocumentCardProps> = (
                     <div className={styles.sharingSessionDocumentsRestrictionField}>
                     <Field label="">
                         <Switch
-                            label="Restrict type"
+                            label="Restrict upload type"
                             checked={document.restrictType}
                             onChange={(ev) => onRestrictDocumentTypeChange(index, ev)}
                         />
@@ -61,7 +61,7 @@ const SessionInitiationDocumentsCard: React.FC<DocumentCardProps> = (
                         appearance="underline"
                         value={document.restrictedType}
                         size="small"
-                        placeholder="Select document type to restrict"
+                        placeholder="Select allowed upload type"
                         onOptionSelect={(_e, data) => onDocumentTypeChange(index, data.optionValue as any)}
                     >
                         <OptionGroup label="Documents">

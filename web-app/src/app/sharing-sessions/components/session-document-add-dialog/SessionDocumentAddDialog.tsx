@@ -125,7 +125,7 @@ const AddDocumentDialog: React.FC<AddDocumentDialogProps> = (
                         <div className={styles.documentRestriction}>
                             <Field label="">
                                 <Switch
-                                    label="Restrict type"
+                                    label="Restrict upload type"
                                     checked={restrictType}
                                     onChange={(ev) => setRestrictType(ev.target.checked)}
                                 />
@@ -133,7 +133,7 @@ const AddDocumentDialog: React.FC<AddDocumentDialogProps> = (
                             <Dropdown
                                 disabled={!restrictType}
                                 value={restrictedType}
-                                placeholder="Select document type to restrict"
+                                placeholder="Select allowed upload type"
                                 onOptionSelect={onOptionSelected}>
                                 <OptionGroup label="Documents">
                                     {Object.values(DocumentType).map((option) => (

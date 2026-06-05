@@ -118,7 +118,9 @@
       "PowerShell($env:QUARKUS_DATASOURCE_JDBC_URL=\"jdbc:postgresql://localhost:5432/dh_validate_tmp\"; $env:QUARKUS_HTTP_PORT=\"8099\"; $env:QUARKUS_PROFILE=\"prod\"; cmd /c \".\\\\mvnw.cmd -o -q compile quarkus:dev -Dquarkus.http.port=8099 > validate_boot.log 2>&1\")",
       "Bash(Remove-Item -Recurse -Force \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\plans\")",
       "Bash(Remove-Item -Force \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\plan-sharingCollaborationRedesign.v1.prompt.md\", \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\plan-sharingCollaborationRedesign.v2.prompt.md\", \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\plan-oAuthMultiIdpArchitecture.v4.prompt.md\")",
-      "Bash(Write-Output \"Done\")"
+      "Bash(Write-Output \"Done\")",
+      "Bash(xargs grep -l \"watermark\" -i)",
+      "Bash(xargs grep -l \"Preview\\\\|preview\\\\|render\")"
     ]
   }
 }

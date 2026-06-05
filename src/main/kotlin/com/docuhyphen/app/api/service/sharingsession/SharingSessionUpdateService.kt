@@ -119,10 +119,12 @@ class SharingSessionUpdateService @Inject constructor(
             request?.allowDocumentDeletion != null ||
             request?.allowDocumentDownload != null ||
             request?.allowDocumentUpdate != null ||
-            request?.allowDocumentUpload != null)
+            request?.allowDocumentUpload != null ||
+            request?.allowedDownloadFormats != null)
         {
             // Read the current constraints to preserve flags that aren't being changed.
             val currentJson = shareService.recipientConstraintsJson(sessionUUID) ?: "{}"
+            val currentConstraints = com.docuhyphen.app.api.service.auth.authz.ShareConstraints.parse(currentJson)
             val addition = request?.allowDocumentAddition
                 ?: currentJson.contains("\"allow_document_addition\":true")
             val deletion = request?.allowDocumentDeletion
@@ -136,13 +138,25 @@ class SharingSessionUpdateService @Inject constructor(
             val requireSignIn = request?.requireRecipientSignIn
                 ?: currentJson.contains("\"require_recipient_sign_in\":true")
 
-            val constraintsJson =
-                """{"can_download":$download,""" +
-                """"allow_document_addition":$addition,""" +
-                """"allow_document_deletion":$deletion,""" +
-                """"allow_document_update":$update,""" +
-                """"allow_document_upload":$upload,""" +
-                """"require_recipient_sign_in":$requireSignIn}"""
+            val parts = mutableListOf(
+                """"can_download":$download""",
+                """"allow_document_addition":$addition""",
+                """"allow_document_deletion":$deletion""",
+                """"allow_document_update":$update""",
+                """"allow_document_upload":$upload""",
+                """"require_recipient_sign_in":$requireSignIn""",
+            )
+
+            // Preserve or update allowed_download_formats
+            // Empty list = explicitly clear restriction; null = preserve current value
+            val formats = if (request?.allowedDownloadFormats != null) request.allowedDownloadFormats else currentConstraints.allowedDownloadFormats
+            if (formats != null && formats.isNotEmpty())
+            {
+                val formatsArray = formats.joinToString(",") { "\"$it\"" }
+                parts.add(""""allowed_download_formats":[$formatsArray]""")
+            }
+
+            val constraintsJson = parts.joinToString(prefix = "{", postfix = "}", separator = ",")
 
             shareService.updateRecipientConstraints(sessionUUID, constraintsJson)
         }

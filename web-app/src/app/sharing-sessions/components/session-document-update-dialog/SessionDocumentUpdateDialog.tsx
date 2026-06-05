@@ -153,7 +153,7 @@ const SessionDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
                         <div className={styles.documentRestriction}>
                             <Field label="">
                                 <Switch
-                                    label="Restrict type"
+                                    label="Restrict upload type"
                                     checked={isRestrictionEnabled}
                                     onChange={(e) => setIsRestrictionEnabled(e.target.checked)}
                                 />
@@ -161,7 +161,7 @@ const SessionDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
                             <Dropdown
                                 disabled={!isRestrictionEnabled}
                                 value={selectedRestrictionType}
-                                placeholder="Select document type to restrict"
+                                placeholder="Select allowed upload type"
                                 onOptionSelect={handleOptionSelect}
                             >
                                 <OptionGroup label="Documents">

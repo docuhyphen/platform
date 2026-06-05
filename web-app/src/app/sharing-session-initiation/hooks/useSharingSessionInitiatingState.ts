@@ -40,6 +40,7 @@ const useSharingSessionInitiatingState = () =>
     });
     const [recipientRole, setRecipientRole] = useState<SessionShareRole | undefined>(undefined);
     const [recipientConstraints, setRecipientConstraints] = useState<ShareConstraints>({});
+    const [allowedDownloadFormats, setAllowedDownloadFormats] = useState<string[] | undefined>(undefined);
 
     return {
         choosingTemplate, setChoosingTemplate,
@@ -67,6 +68,7 @@ const useSharingSessionInitiatingState = () =>
         newRecipient, setNewRecipient,
         recipientRole, setRecipientRole,
         recipientConstraints, setRecipientConstraints,
+        allowedDownloadFormats, setAllowedDownloadFormats,
     };
 };
 

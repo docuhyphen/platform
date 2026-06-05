@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.auth.authz
 
+import com.docuhyphen.app.api.model.entity.DocumentType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -39,6 +40,7 @@ data class ShareConstraints(
     @SerialName("allow_document_addition") val allowDocumentAddition: Boolean? = null,
     @SerialName("allow_document_update") val allowDocumentUpdate: Boolean? = null,
     @SerialName("allow_document_deletion") val allowDocumentDeletion: Boolean? = null,
+    @SerialName("allowed_download_formats") val allowedDownloadFormats: List<String>? = null,
 )
 {
     /**
@@ -78,6 +80,15 @@ data class ShareConstraints(
         if (maxViews != null && maxViews <= 0)
         {
             throw IllegalArgumentException("max_views must be a positive integer")
+        }
+        if (allowedDownloadFormats != null)
+        {
+            for (format in allowedDownloadFormats)
+            {
+                runCatching { DocumentType.valueOf(format) }.getOrElse {
+                    throw IllegalArgumentException("Invalid download format: '$format'. Must be one of ${DocumentType.entries.map { it.name }}")
+                }
+            }
         }
     }
 

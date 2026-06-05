@@ -1,5 +1,5 @@
 import React from 'react';
-import {Checkbox, Field, Input, Text} from '@fluentui/react-components';
+import {Checkbox, Field, InfoLabel, Input, Text} from '@fluentui/react-components';
 import {ShareConstraints} from '../../../services/types/dtos';
 
 interface ShareConstraintTogglesProps
@@ -22,10 +22,14 @@ const ShareConstraintToggles: React.FC<ShareConstraintTogglesProps> = ({constrai
 
     return (
         <div style={{display: 'flex', flexDirection: 'column', gap: 6}}>
-            <Text weight="semibold" size={200}>Access Constraints</Text>
+            <Text weight="semibold" size={200}>Recipient Constraints</Text>
             <Field>
                 <Checkbox
-                    label="Allow download"
+                    label={
+                        <InfoLabel info="Override the session's download setting for this recipient. When unchecked, this recipient cannot download any documents regardless of the session-level setting.">
+                            Can download documents
+                        </InfoLabel>
+                    }
                     checked={constraints.can_download !== false}
                     disabled={disabled}
                     onChange={(_e, d) => update({can_download: !!d.checked})}
@@ -33,7 +37,7 @@ const ShareConstraintToggles: React.FC<ShareConstraintTogglesProps> = ({constrai
             </Field>
             <Field>
                 <Checkbox
-                    label="Allow reshare"
+                    label="Can reshare session"
                     checked={constraints.can_reshare !== false}
                     disabled={disabled}
                     onChange={(_e, d) => update({can_reshare: !!d.checked})}
@@ -41,7 +45,7 @@ const ShareConstraintToggles: React.FC<ShareConstraintTogglesProps> = ({constrai
             </Field>
             <Field>
                 <Checkbox
-                    label="Watermark"
+                    label="Apply watermark"
                     checked={!!constraints.watermark}
                     disabled={disabled}
                     onChange={(_e, d) => update({watermark: !!d.checked})}
