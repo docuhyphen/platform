@@ -23,7 +23,6 @@ import {useGlobalStyles} from "../../GlobalStyles.tsx";
 import {SettingsIcon, SharingSessionIcon, SignOutButtonIcon} from "./IconBundles.tsx";
 import NotificationList from './main-menu/notification/NotificationList';
 import PendingApprovals from './main-menu/pending-approvals/PendingApprovals';
-import TourCoach from './tour/TourCoach';
 
 const MAX_DISPLAY_EMAIL_LENGTH = 36;
 const LAST_SHARING_SESSIONS_QUERY_STORAGE_KEY = 'sharingSessions.lastRoute.query';
@@ -157,9 +156,6 @@ const MainMenu: React.FC = () =>
                     </DialogBody>
                 </DialogSurface>
             </Dialog>
-
-            {/* First-time feature tour */}
-            <TourCoach/>
         </section>
     );
 };

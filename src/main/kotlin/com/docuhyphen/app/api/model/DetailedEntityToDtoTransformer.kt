@@ -201,6 +201,7 @@ class DetailedEntityToDtoTransformer
                         notifyDocAdd = notifyDocAdd,
                         notifyDocUpload = notifyDocUpload,
                         theme = theme,
+                        tourCompleted = tourCompleted,
                     )
                 }
             } ?: SettingsService.getDefaultAppUserSettings()

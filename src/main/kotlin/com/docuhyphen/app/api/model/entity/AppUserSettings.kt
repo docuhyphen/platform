@@ -59,6 +59,9 @@ class AppUserSettings
     @Column(name = "theme", nullable = false, length = 16)
     var theme: String = "light"
 
+    @Column(name = "tour_completed", nullable = false)
+    var tourCompleted: Boolean = false
+
     @OneToOne(mappedBy = "settings")
     @JsonIgnore
     var appUser: AppUser? = null

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import {
     Button,
     Text,
@@ -8,14 +8,20 @@ import {
     TeachingPopoverHeader,
     TeachingPopoverSurface,
     TeachingPopoverTitle,
+    TeachingPopoverTrigger,
 } from '@fluentui/react-components';
 import { useAuth } from '../../../context/AuthContext';
+import { updateAppUserSettings } from '../../../services/appUserApi';
 
 /**
  * Bump the version suffix to re-show the tour for all users when
  * significant new nav features are introduced.
+ *
+ * NOTE: For testing, the tour is currently forced visible on every login
+ * regardless of server-side `tourCompleted`. Once positioning is verified,
+ * revert FORCE_TOUR_VISIBLE to false.
  */
-const TOUR_STORAGE_KEY = 'docuhyphen:tour:v1';
+const FORCE_TOUR_VISIBLE = false;
 
 interface TourStep {
     targetId: string;
@@ -61,46 +67,89 @@ const TOUR_STEPS: TourStep[] = [
 ];
 
 function TourCoach() {
-    const { appUser } = useAuth();
+    const { appUser, token } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
     const [targetEl, setTargetEl] = useState<HTMLElement | null>(null);
+    const startedRef = useRef(false);
+    // Guard: true while we're transitioning between steps so we ignore onOpenChange(false)
+    const steppingRef = useRef(false);
 
-    // Start tour once after the user has completed individual onboarding.
+    // Decide whether to show the tour when the user is loaded.
     useEffect(() => {
         if (!appUser?.person) return;
-        if (localStorage.getItem(TOUR_STORAGE_KEY)) return;
+        if (startedRef.current) return;
 
-        // Small delay so all main-menu DOM nodes are rendered.
-        const timer = setTimeout(() => setIsOpen(true), 700);
+        const shouldShow = FORCE_TOUR_VISIBLE || !appUser.settings?.tourCompleted;
+        if (!shouldShow) return;
+
+        startedRef.current = true;
+        const timer = setTimeout(() => {
+            setCurrentStep(0);
+            setIsOpen(true);
+        }, 700);
         return () => clearTimeout(timer);
-    }, [appUser?.person]);
+    }, [appUser]);
 
     // Re-resolve the anchor element whenever the step or open state changes.
     useEffect(() => {
         if (!isOpen) return;
-        const el = document.getElementById(TOUR_STEPS[currentStep].targetId);
-        setTargetEl(el);
+
+        const step = TOUR_STEPS[currentStep];
+        let cancelled = false;
+
+        const tryResolve = (attempt = 0) => {
+            if (cancelled) return;
+            const el = document.getElementById(step.targetId);
+            if (el) {
+                setTargetEl(el);
+                // Clear the stepping guard after target is resolved
+                steppingRef.current = false;
+            } else if (attempt < 20) {
+                requestAnimationFrame(() => tryResolve(attempt + 1));
+            }
+        };
+
+        tryResolve();
+        return () => { cancelled = true; };
     }, [currentStep, isOpen]);
 
-    const completeTour = () => {
+    const completeTour = useCallback(async () => {
         setIsOpen(false);
-        localStorage.setItem(TOUR_STORAGE_KEY, 'true');
-    };
+        setTargetEl(null);
 
-    const handleNext = () => {
+        if (appUser?.settings && token) {
+            try {
+                await updateAppUserSettings(
+                    { ...appUser.settings, tourCompleted: true },
+                    token,
+                );
+            } catch {
+                // Non-critical
+            }
+        }
+    }, [appUser, token]);
+
+    const handleNext = useCallback(() => {
         if (currentStep < TOUR_STEPS.length - 1) {
+            steppingRef.current = true;
+            setTargetEl(null); // clear so we don't flash at old position
             setCurrentStep((s) => s + 1);
         } else {
             completeTour();
         }
-    };
+    }, [currentStep, completeTour]);
 
-    const handlePrev = () => {
-        if (currentStep > 0) setCurrentStep((s) => s - 1);
-    };
+    const handlePrev = useCallback(() => {
+        if (currentStep > 0) {
+            steppingRef.current = true;
+            setTargetEl(null);
+            setCurrentStep((s) => s - 1);
+        }
+    }, [currentStep]);
 
-    if (!isOpen) return null;
+    // Don't render until we have both an open signal and a resolved target.
+    if (!isOpen || !targetEl) return null;
 
     const step = TOUR_STEPS[currentStep];
     const isLast = currentStep === TOUR_STEPS.length - 1;
@@ -110,15 +159,22 @@ function TourCoach() {
             open
             withArrow
             onOpenChange={(_e, data) => {
-                if (!data.open) completeTour();
+                // Only act on genuine user-initiated close (click outside, Escape, etc.)
+                // Ignore close events that fire during step transitions.
+                if (!data.open && !steppingRef.current) {
+                    completeTour();
+                }
             }}
             positioning={{
-                target: targetEl ?? undefined,
+                target: targetEl,
                 position: step.position ?? 'below',
                 align: step.align ?? 'center',
                 offset: 12,
             }}
         >
+            <TeachingPopoverTrigger>
+                <span style={{ position: 'fixed', top: -9999, left: -9999, width: 0, height: 0 }} />
+            </TeachingPopoverTrigger>
             <TeachingPopoverSurface style={{ maxWidth: 340 }}>
                 <TeachingPopoverHeader>
                     Step {currentStep + 1} of {TOUR_STEPS.length}
@@ -146,6 +202,3 @@ function TourCoach() {
 }
 
 export default TourCoach;
-
-
-

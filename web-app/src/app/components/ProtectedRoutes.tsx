@@ -3,6 +3,7 @@ import {Navigate} from 'react-router-dom';
 import {useAuth} from '../../context/AuthContext';
 import MainMenu from "./MainMenu.tsx";
 import AuthBootstrapSplash from "./AuthBootstrapSplash.tsx";
+import TourCoach from './tour/TourCoach';
 
 const ProtectedRoute: React.FC<{ element: React.ReactElement, path: string }> = ({element, path}) =>
 {
@@ -18,6 +19,7 @@ const ProtectedRoute: React.FC<{ element: React.ReactElement, path: string }> = 
     return token ? (
         <>
             <MainMenu/>
+            <TourCoach/>
             {element}
         </>
     ) : (

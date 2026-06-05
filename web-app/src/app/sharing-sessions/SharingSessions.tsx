@@ -30,7 +30,6 @@ import SessionList from "./components/session-list/SessionList.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {getPermissions, SharingSessionPermissions} from "./SessionPermissions.ts";
 import SessionDocumentsList from "./components/session-document-list/SessionDocumentsList.tsx";
-import MainMenu from "../components/MainMenu.tsx";
 import {realtimeService} from "../../services/NotificationService";
 import {
     publishRecreateRejectedSession,
@@ -1045,7 +1044,6 @@ const SharingSessions: React.FC = () =>
 
     return (
         <>
-            <MainMenu/>
             <Toaster toasterId={toasterId} position="bottom-end"/>
             {preparingSharingSessions && <SessionPreLoader/>}
             {!preparingSharingSessions && (appUserHasSessions) && renderSessionsSection()}

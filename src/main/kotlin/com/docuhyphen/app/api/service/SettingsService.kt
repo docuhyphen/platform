@@ -107,6 +107,9 @@ class SettingsService @Inject constructor(
         }
         settings.theme = requestedTheme
 
+        // Tour completion is a personal preference — no admin check needed.
+        settings.tourCompleted = settingsDto.tourCompleted
+
         targetUser.settings = settings
         appUserService.update(targetUser)
 
@@ -197,6 +200,7 @@ class SettingsService @Inject constructor(
                 notifyDocAdd = true,
                 notifyDocUpload = true,
                 theme = "light",
+                tourCompleted = false,
             )
         }
 

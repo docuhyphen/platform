@@ -1,7 +1,6 @@
 import {useEffect, useState} from "react";
 import {SelectTabData, SelectTabEvent, Tab, TabList, TabValue,} from "@fluentui/react-components";
 import {useSettingsStyles} from "./SettingsStyles.tsx";
-import MainMenu from "../components/MainMenu.tsx";
 import OrganizationTab from "./organization-tab/OrganizationTab.tsx";
 import {
     PairOrgTabIcon,
@@ -56,7 +55,6 @@ const Settings = () =>
 
     return (
         <>
-            <MainMenu/>
             <div className={styles.container}>
                 <TabList selectedValue={selectedValue}
                          onTabSelect={onTabSelect}

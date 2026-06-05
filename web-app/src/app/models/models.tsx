@@ -703,6 +703,7 @@ export interface AppUserSettingsDto
     notifyDocAdd: boolean;
     notifyDocUpload: boolean;
     theme: "light" | "dark" | "system";
+    tourCompleted: boolean;
 }
 
 export interface OrganizationSettingsDto

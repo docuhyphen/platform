@@ -273,20 +273,29 @@ const AccountRecovery: React.FC = () =>
     if (pwdResetSuccessful)
     {
         return (
-            <div className={accountRecoveryStyles.passwordResetSuccessfulFullscreen}>
-                <div className={accountRecoveryStyles.passwordResetSuccessfulCard}>
-                    <AppLogo/>
-                    <Text align={"center"} size={500} font="monospace">
-                        Password Reset Successful!
-                    </Text>
-                    <Text align={"center"} size={300}>
-                        Your password has been updated successfully.
-                    </Text>
-                    <Button onClick={() => navigate("/sign-in")} appearance={"primary"} shape={"circular"}>
-                        Sign In
-                    </Button>
-                </div>
-            </div>
+            <section className={authorizationStyles.auth}>
+                <section className={authorizationStyles.authSection}>
+                    <section className={authorizationStyles.authSection1}>
+                        <div>
+                            <AppLogo/>
+                        </div>
+                        <div className={authorizationStyles.authorizationFormSection}>
+                            <Text align={"center"} size={500} font="monospace">
+                                Password Reset Successful!
+                            </Text>
+                            <Text align={"center"} size={300}>
+                                Your password has been updated successfully.
+                            </Text>
+                            <Button onClick={() => navigate("/sign-in")} appearance={"primary"} shape={"circular"}>
+                                Sign In
+                            </Button>
+                        </div>
+                    </section>
+                    <section className={authorizationStyles.authSection2}>
+                        <AccountRecoveryCarousel/>
+                    </section>
+                </section>
+            </section>
         );
     }
 
