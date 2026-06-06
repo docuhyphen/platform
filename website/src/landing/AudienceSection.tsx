@@ -101,7 +101,7 @@ const useStyles = makeStyles({
     },
 
     list: {
-        border: "1px solid white",
+        border: "3px dotted rgba(255, 255, 255, 0.3)",
         borderRadius: CARD_RADIUS,
         padding: "12px",
         marginTop: SPACE_XS,

@@ -1,0 +1,108 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FBFF"/>
+      <stop offset="1" stop-color="#EEF3FA"/>
+    </linearGradient>
+    <linearGradient id="lineFade" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#8FA6C5" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#6E88AD" stop-opacity="0.2"/>
+    </linearGradient>
+    <filter id="soft" x="-40" y="-40" width="1680" height="980" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+    <g id="fileIcon">
+      <path d="M0 2.5C0 1.12 1.12 0 2.5 0H13.5L18 4.5V23.5C18 24.88 16.88 26 15.5 26H2.5C1.12 26 0 24.88 0 23.5V2.5Z" fill="white" fill-opacity="0.72"/>
+      <path d="M13.5 0V3.3C13.5 4.51 14.49 5.5 15.7 5.5H18" stroke="#6D83A6" stroke-opacity="0.45" stroke-width="1"/>
+      <path d="M3.8 10.4H14.2M3.8 14.3H14.2M3.8 18.2H11.5" stroke="#6D83A6" stroke-opacity="0.36" stroke-width="1.1" stroke-linecap="round"/>
+      <path d="M0.5 2.5C0.5 1.4 1.4 0.5 2.5 0.5H13.29L17.5 4.71V23.5C17.5 24.6 16.6 25.5 15.5 25.5H2.5C1.4 25.5 0.5 24.6 0.5 23.5V2.5Z" stroke="#6D83A6" stroke-opacity="0.35"/>
+    </g>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+
+  <g filter="url(#soft)" opacity="0.35">
+    <circle cx="210" cy="130" r="120" fill="#DCE7F5"/>
+    <circle cx="1420" cy="760" r="170" fill="#D5E2F1"/>
+    <circle cx="1170" cy="200" r="95" fill="#E3ECF9"/>
+  </g>
+
+  <g stroke="url(#lineFade)" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="6 10">
+    <path d="M120 170L330 210L520 130L760 190L980 140L1240 210L1450 170"/>
+    <path d="M110 390L290 310L520 350L710 300L940 360L1170 320L1440 380"/>
+    <path d="M140 600L360 540L560 620L800 560L1040 610L1270 560L1480 620"/>
+    <path d="M230 780L410 690L650 760L850 700L1070 770L1300 710"/>
+  </g>
+
+  <g stroke="#8EA6C7" stroke-opacity="0.22" stroke-width="1.6">
+    <path d="M330 210L290 310L360 540L410 690"/>
+    <path d="M520 130L520 350L560 620L650 760"/>
+    <path d="M760 190L710 300L800 560L850 700"/>
+    <path d="M980 140L940 360L1040 610L1070 770"/>
+    <path d="M1240 210L1170 320L1270 560L1300 710"/>
+  </g>
+
+  <g opacity="0.78">
+    <g transform="translate(111 157)"><use href="#fileIcon"/></g>
+    <g transform="translate(321 197)"><use href="#fileIcon"/></g>
+    <g transform="translate(511 117)"><use href="#fileIcon"/></g>
+    <g transform="translate(751 177)"><use href="#fileIcon"/></g>
+    <g transform="translate(971 127)"><use href="#fileIcon"/></g>
+    <g transform="translate(1231 197)"><use href="#fileIcon"/></g>
+    <g transform="translate(1441 157)"><use href="#fileIcon"/></g>
+
+    <g transform="translate(101 377)"><use href="#fileIcon"/></g>
+    <g transform="translate(281 297)"><use href="#fileIcon"/></g>
+    <g transform="translate(511 337)"><use href="#fileIcon"/></g>
+    <g transform="translate(701 287)"><use href="#fileIcon"/></g>
+    <g transform="translate(931 347)"><use href="#fileIcon"/></g>
+    <g transform="translate(1161 307)"><use href="#fileIcon"/></g>
+    <g transform="translate(1431 367)"><use href="#fileIcon"/></g>
+
+    <g transform="translate(131 587)"><use href="#fileIcon"/></g>
+    <g transform="translate(351 527)"><use href="#fileIcon"/></g>
+    <g transform="translate(551 607)"><use href="#fileIcon"/></g>
+    <g transform="translate(791 547)"><use href="#fileIcon"/></g>
+    <g transform="translate(1031 597)"><use href="#fileIcon"/></g>
+    <g transform="translate(1261 547)"><use href="#fileIcon"/></g>
+    <g transform="translate(1471 607)"><use href="#fileIcon"/></g>
+
+    <g transform="translate(221 767)"><use href="#fileIcon"/></g>
+    <g transform="translate(401 677)"><use href="#fileIcon"/></g>
+    <g transform="translate(641 747)"><use href="#fileIcon"/></g>
+    <g transform="translate(841 687)"><use href="#fileIcon"/></g>
+    <g transform="translate(1061 757)"><use href="#fileIcon"/></g>
+    <g transform="translate(1291 697)"><use href="#fileIcon"/></g>
+  </g>
+
+  <g>
+    <circle cx="520" cy="130" r="7" fill="#E94A58" fill-opacity="0.88"/>
+    <circle cx="520" cy="130" r="13" fill="#E94A58" fill-opacity="0.18"/>
+
+    <circle cx="940" cy="360" r="7.2" fill="#E94A58" fill-opacity="0.9"/>
+    <circle cx="940" cy="360" r="14" fill="#E94A58" fill-opacity="0.2"/>
+
+    <circle cx="560" cy="620" r="6.6" fill="#E94A58" fill-opacity="0.86"/>
+    <circle cx="560" cy="620" r="12.6" fill="#E94A58" fill-opacity="0.17"/>
+
+    <circle cx="800" cy="560" r="7.3" fill="#E94A58" fill-opacity="0.9"/>
+    <circle cx="800" cy="560" r="14.2" fill="#E94A58" fill-opacity="0.2"/>
+
+    <circle cx="410" cy="690" r="6.8" fill="#E94A58" fill-opacity="0.88"/>
+    <circle cx="410" cy="690" r="13.2" fill="#E94A58" fill-opacity="0.18"/>
+
+    <circle cx="1070" cy="770" r="6.6" fill="#E94A58" fill-opacity="0.87"/>
+    <circle cx="1070" cy="770" r="12.8" fill="#E94A58" fill-opacity="0.17"/>
+
+    <path d="M545 110L565 92" stroke="#E94A58" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.7"/>
+    <path d="M958 337L983 323" stroke="#E94A58" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.72"/>
+    <path d="M579 604L602 590" stroke="#E94A58" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.68"/>
+    <path d="M818 538L842 523" stroke="#E94A58" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.72"/>
+    <path d="M429 669L453 654" stroke="#E94A58" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.7"/>
+    <path d="M1089 751L1111 736" stroke="#E94A58" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.67"/>
+  </g>
+</svg>
+
+
+
+

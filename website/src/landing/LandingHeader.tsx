@@ -7,7 +7,7 @@ import {
     MenuTrigger,
     Text,
     makeStyles,
-    tokens,
+    tokens, mergeClasses,
 } from "@fluentui/react-components";
 import {ChevronDown16Regular, Navigation24Regular} from "@fluentui/react-icons";
 import AppLogo from "../app-logo/AppLogo.tsx";
@@ -123,8 +123,10 @@ const useStyles = makeStyles({
     signInButton: {
         minWidth: BUTTON_MIN_WIDTH,
 
-        "@media (max-width: 36em)": {
-            display: "none",
+        [BREAKPOINT_MOBILE]: {
+            minWidth: "auto",
+            paddingLeft: SPACE_SM,
+            paddingRight: SPACE_SM,
         },
     },
 
@@ -132,9 +134,7 @@ const useStyles = makeStyles({
         minWidth: BUTTON_MIN_WIDTH,
 
         [BREAKPOINT_MOBILE]: {
-            minWidth: "auto",
-            paddingLeft: SPACE_MD,
-            paddingRight: SPACE_MD,
+            display: "none",
         },
     },
 
@@ -145,6 +145,16 @@ const useStyles = makeStyles({
             display: "inline-flex",
         },
     },
+    mainMobileMenu: {
+        display: "flex",
+        gap: "0.2rem"
+    },
+    mainMobileMenuItem: {
+        backgroundColor: "rgba(0, 0, 0, .04)"
+    },
+    mainMobileSubMenuItem: {
+        paddingLeft: "1.5rem"
+    }
 });
 
 export function LandingHeader()
@@ -236,22 +246,34 @@ export function LandingHeader()
                             />
                         </MenuTrigger>
                         <MenuPopover>
-                            <MenuList>
-                                <MenuItem onClick={() => navigate("/pricing")}>Pricing</MenuItem>
-                                <MenuItem onClick={() => navigate("/resources")}>Resources</MenuItem>
-                                <MenuItem onClick={() => navigate("/security")}>Security</MenuItem>
-                                <MenuItem onClick={() => navigate("/about")}>About</MenuItem>
-                                <MenuItem onClick={() => navigate("/contact")}>Contact</MenuItem>
-                                <MenuItem disabled>Solutions</MenuItem>
+                            <MenuList className={styles.mainMobileMenu}
+                                      id={"main-mobile-menu"}>
+                                <MenuItem >Solutions</MenuItem>
                                 {SOLUTIONS.map((s) => (
-                                    <MenuItem key={s.to} onClick={() => navigate(s.to)}>
-                                        &nbsp;&nbsp;{s.label}
+                                    <MenuItem key={s.to} onClick={() => navigate(s.to)}
+                                              className={mergeClasses(styles.mainMobileMenuItem, styles.mainMobileSubMenuItem)}>
+                                        {s.label}
                                     </MenuItem>
                                 ))}
-                                <MenuItem
-                                    onClick={() => window.open(SIGN_IN_URL, "_blank", "noopener,noreferrer")}
-                                >
-                                    Sign in
+                                <MenuItem onClick={() => navigate("/pricing")}
+                                          className={styles.mainMobileMenuItem}>
+                                    Pricing
+                                </MenuItem>
+                                <MenuItem onClick={() => navigate("/security")}
+                                          className={styles.mainMobileMenuItem}>
+                                    Security
+                                </MenuItem>
+                                <MenuItem onClick={() => navigate("/about")}
+                                          className={styles.mainMobileMenuItem}>
+                                    About
+                                </MenuItem>
+                                <MenuItem onClick={() => navigate("/contact")}
+                                          className={styles.mainMobileMenuItem}>
+                                    Contact
+                                </MenuItem>
+                                <MenuItem onClick={() => navigate("/resources")}
+                                          className={styles.mainMobileMenuItem}>
+                                    Resources
                                 </MenuItem>
                             </MenuList>
                         </MenuPopover>

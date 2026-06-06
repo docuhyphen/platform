@@ -27,7 +27,11 @@ const useStyles = makeStyles({
     sectionWrapper: {
         padding: SECTION_PADDING_DESKTOP,
         boxSizing: "border-box",
-        background: "white",
+        backgroundColor: "#f4f8fd",
+        backgroundImage: "url('/backgrounds/leaky-file-network.svg')",
+        backgroundRepeat: "no-repeat",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
 
         [BREAKPOINT_MOBILE]: {
             padding: SECTION_PADDING_MOBILE,
@@ -56,7 +60,7 @@ const useStyles = makeStyles({
 
     cardsWrapper: {
         boxSizing: "border-box",
-        background: "white",
+        background: "transparent",
         marginTop: "2rem",
     },
 

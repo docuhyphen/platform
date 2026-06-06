@@ -164,10 +164,9 @@ const useStyles = makeStyles({
 
         [BREAKPOINT_MOBILE]: {
             width: "100%",
-            maxWidth: "15rem",
-            minHeight: "3rem",
-            fontSize: tokens.fontSizeBase500,
-            lineHeight: tokens.lineHeightBase500,
+            maxWidth: "14rem",
+            fontSize: tokens.fontSizeBase400,
+            lineHeight: tokens.lineHeightBase400,
         },
     },
 
@@ -179,8 +178,7 @@ const useStyles = makeStyles({
 
         [BREAKPOINT_MOBILE]: {
             width: "100%",
-            maxWidth: "15rem",
-            minHeight: "2.6rem",
+            maxWidth: "14rem",
         },
     },
 });
@@ -290,4 +288,3 @@ export function HeroSection()
         </section>
     );
 }
-

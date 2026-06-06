@@ -1,5 +1,4 @@
-import {Text, Title2, makeStyles, mergeClasses, tokens} from "@fluentui/react-components";
-import {Checkmark20Filled} from "@fluentui/react-icons";
+import {Badge, Text, Title2, makeStyles, mergeClasses, tokens} from "@fluentui/react-components";
 import {LinkButton} from "../shared/LinkButton.tsx";
 import {
     BREAKPOINT_MOBILE,
@@ -18,6 +17,7 @@ type Tier = {
     name: string;
     price: string;
     cadence: string;
+    bestFor: string;
     blurb: string;
     bullets: string[];
     cta: string;
@@ -28,12 +28,13 @@ const tiers: Tier[] = [
     {
         name: "Starter",
         price: "R0",
-        cadence: "per user / month",
-        blurb: "For small teams getting started with secure document exchange.",
+        cadence: "per user / month, cancel anytime",
+        bestFor: "Best for: solo professionals and very small teams",
+        blurb: "For small teams starting secure document exchange with essential controls.",
         bullets: [
             "Up to 3 users",
-            "Secure share sessions",
-            "Basic audit log",
+            "Collaborative share sessions",
+            "30-day audit log retention",
             "Email support",
         ],
         cta: "Start free",
@@ -41,15 +42,20 @@ const tiers: Tier[] = [
     {
         name: "Business",
         price: "R180",
-        cadence: "per user / month (20% off annual)",
-        blurb: "For growing teams that need controls, SSO, and integrations. Annual plans get a 20% discount.",
+        cadence: "per user / month, cancel anytime",
+        bestFor: "Best for: growing teams that need SSO and governance",
+        blurb: "Everything in Starter, plus SSO, role controls, and compliance-ready audit exports.",
         bullets: [
+            "Everything in Starter",
             "Unlimited share sessions",
             "Microsoft & Google SSO",
             "Role-based permissions",
-            "Full audit & export",
+            "1-year audit retention and export",
             "Priority support",
-            "WhatsApp App integration",
+            "WhatsApp integration",
+            "Google Drive / OneDrive backups",
+            "Microsoft Teams integration",
+            "Slack integration",
         ],
         cta: "Start trial",
         featured: true,
@@ -58,17 +64,17 @@ const tiers: Tier[] = [
         name: "Enterprise",
         price: "Custom",
         cadence: "tailored to your org",
-        blurb: "For regulated organizations with compliance and procurement needs.",
+        bestFor: "Best for: regulated organizations with procurement workflows",
+        blurb: "Everything in Business, plus advanced security, procurement, and deployment requirements.",
         bullets: [
+            "Everything in Business",
             "Custom user caps",
-            "SOC 2 reports & DPA",
+            "SOC 2 report access and DPA",
             "Tenant isolation review",
-            "Dedicated CSM",
+            "Dedicated customer success manager",
             "Custom data residency",
-            "Full Integration Assistance/Support",
-            "FTP / Google Drive / One Drive Backup",
-            "Microsoft Teams App integration",
-            "Slack App integration",
+            "Integration onboarding and support",
+            "FTP backups",
         ],
         cta: "Talk to sales",
     },
@@ -143,6 +149,35 @@ const useStyles = makeStyles({
         fontWeight: tokens.fontWeightSemibold,
     },
 
+    bestFor: {
+        color: tokens.colorNeutralForeground1,
+        fontWeight: tokens.fontWeightSemibold,
+        fontSize: tokens.fontSizeBase200,
+    },
+
+    metaRow: {
+        display: "flex",
+        alignItems: "center",
+        gap: SPACE_XS,
+    },
+
+    metaIcon: {
+        width: "1rem",
+        height: "1rem",
+        borderRadius: "999px",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "0.65rem",
+        fontWeight: tokens.fontWeightSemibold,
+        flexShrink: 0,
+    },
+
+    metaIconBestFor: {
+        backgroundColor: tokens.colorBrandBackground2,
+        color: tokens.colorBrandForeground1,
+    },
+
     priceRow: {
         display: "flex",
         alignItems: "baseline",
@@ -183,9 +218,14 @@ const useStyles = makeStyles({
         fontSize: tokens.fontSizeBase300,
     },
 
-    bulletIcon: {
-        color: tokens.colorBrandForeground1,
+    bulletBadge: {
         flexShrink: 0,
+        width: "0.65rem",
+        height: "0.65rem",
+        minWidth: "0.65rem",
+        minHeight: "0.65rem",
+        padding: 0,
+        borderRadius: "999px",
     },
 
     cta: {
@@ -221,7 +261,7 @@ export function PricingTeaserSection()
                 <div className={styles.intro}>
                     <Title2 className={styles.sectionTitle}>Pricing built for every stage</Title2>
                     <Text size={500} className={styles.subheading} align={"center"}>
-                        Start free. Scale with controls when you need them. Talk to us for enterprise needs.
+                        Start free. Scale with controls when you need them. Monthly billing, cancel anytime.
                     </Text>
                 </div>
 
@@ -239,6 +279,10 @@ export function PricingTeaserSection()
                                 <span className={styles.featuredBadge}>Most popular</span>
                             )}
                             <Text className={styles.tierName}>{tier.name}</Text>
+                            <div className={styles.metaRow}>
+                                <span className={mergeClasses(styles.metaIcon, styles.metaIconBestFor)} aria-hidden="true">B</span>
+                                <Text className={styles.bestFor}>{tier.bestFor}</Text>
+                            </div>
                             <div className={styles.priceRow}>
                                 <Text className={styles.price}>{tier.price}</Text>
                                 <Text className={styles.cadence}>{tier.cadence}</Text>
@@ -247,7 +291,11 @@ export function PricingTeaserSection()
                             <ul className={styles.bullets}>
                                 {tier.bullets.map((b) => (
                                     <li key={b} className={styles.bullet}>
-                                        <Checkmark20Filled className={styles.bulletIcon}/>
+                                        <Badge
+                                            size="small"
+                                            appearance="filled"
+                                            className={styles.bulletBadge}
+                                        />
                                         {b}
                                     </li>
                                 ))}

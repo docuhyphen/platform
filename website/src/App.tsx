@@ -1,4 +1,5 @@
 import {Routes, Route} from "react-router-dom";
+import {useState} from "react";
 import {LandingHeader} from "./landing/LandingHeader.tsx";
 import {HeroSection} from "./landing/HeroSection.tsx";
 import {RisksSection} from "./landing/RisksSection.tsx";
@@ -6,6 +7,8 @@ import {FeaturesSection} from "./landing/FeaturesSection.tsx";
 import {AudienceSection} from "./landing/AudienceSection.tsx";
 import {FooterCtaSection} from "./landing/FooterCtaSection.tsx";
 import {PricingTeaserSection} from "./landing/PricingTeaserSection.tsx";
+import {IndustryPickerDialog, getStoredIndustry} from "./landing/IndustryPickerDialog.tsx";
+import type {IndustrySlug} from "./landing/IndustryPickerDialog.tsx";
 import {Footer} from "./shared/Footer.tsx";
 import {appStyles} from "./AppStyles.tsx";
 import {IdpSetupGuidePage} from "./pages/IdpSetupGuidePage.tsx";
@@ -18,7 +21,7 @@ import {AboutPage} from "./pages/AboutPage.tsx";
 import {ContactPage} from "./pages/ContactPage.tsx";
 import {NotFoundPage} from "./pages/NotFoundPage.tsx";
 
-function LandingPage()
+function LandingPage({industrySlug}: {industrySlug: IndustrySlug | null})
 {
     const styles = appStyles();
 
@@ -27,10 +30,10 @@ function LandingPage()
             <LandingHeader/>
             <main>
                 <HeroSection/>
-                <FeaturesSection/>
+                <FeaturesSection initialIndustrySlug={industrySlug ?? undefined}/>
                 <RisksSection/>
                 <AudienceSection/>
-                <PricingTeaserSection/>
+                {/*<PricingTeaserSection/>*/}
             </main>
             <FooterCtaSection/>
             <Footer/>
@@ -40,9 +43,16 @@ function LandingPage()
 
 export default function App()
 {
+    const [industrySlug, setIndustrySlug] = useState<IndustrySlug | null>(() => getStoredIndustry());
+    const showPicker = industrySlug === null;
+
     return (
-        <Routes>
-            <Route path="/" element={<LandingPage/>}/>
+        <>
+            {showPicker && (
+                <IndustryPickerDialog onSelect={(slug) => setIndustrySlug(slug)}/>
+            )}
+            <Routes>
+                <Route path="/" element={<LandingPage industrySlug={industrySlug}/>}/>
             <Route path="/pricing" element={<PricingPage/>}/>
             <Route path="/solutions/:industry" element={<SolutionsPage/>}/>
             <Route path="/resources" element={<ResourcesPage/>}/>
@@ -52,6 +62,7 @@ export default function App()
             <Route path="/help/idp-setup" element={<IdpSetupGuidePage/>}/>
             <Route path="/help/security-faq" element={<SecurityFaqPage/>}/>
             <Route path="*" element={<NotFoundPage/>}/>
-        </Routes>
+            </Routes>
+        </>
     );
 }

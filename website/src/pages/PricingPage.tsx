@@ -3,9 +3,8 @@ import {
     AccordionHeader,
     AccordionItem,
     AccordionPanel,
+    Badge,
     Button,
-    Radio,
-    RadioGroup,
     Text,
     Title1,
     Title3,
@@ -14,7 +13,6 @@ import {
     tokens,
 } from "@fluentui/react-components";
 import {Checkmark16Filled, Dismiss16Regular} from "@fluentui/react-icons";
-import {useState} from "react";
 import {Link} from "react-router-dom";
 import {PageShell} from "../shared/PageShell.tsx";
 import {SpeakToSalesDialog} from "../landing/SpeakToSalesDialog.tsx";
@@ -32,10 +30,11 @@ const tiers = [
     {
         name: "Starter",
         monthly: 0,
-        annual: 0,
         currency: "R",
-        blurb: "For small teams getting started with secure document exchange.",
-        bullets: ["Up to 3 users", "Secure share sessions", "Basic audit log", "Email support"],
+        bestFor: "Best for: solo professionals and very small teams",
+        proofPoint: "Get started in minutes with no contract required.",
+        blurb: "For small teams starting secure document exchange with essential controls.",
+        bullets: ["Up to 3 users", "Collaborative share sessions", "30-day audit log retention", "Email support"],
         ctaLabel: "Start free",
         ctaHref: SIGN_UP_URL,
         featured: false,
@@ -43,16 +42,21 @@ const tiers = [
     {
         name: "Business",
         monthly: 180,
-        annual: 144,
         currency: "R",
-        blurb: "For growing teams that need controls, SSO, and integrations. Save 20% with annual billing.",
+        bestFor: "Best for: growing teams that need SSO and governance",
+        proofPoint: "Includes DPA support and audit export for security reviews.",
+        blurb: "Everything in Starter, plus SSO, role controls, and compliance-ready audit exports.",
         bullets: [
+            "Everything in Starter",
             "Unlimited share sessions",
             "Microsoft & Google SSO",
             "Role-based permissions",
-            "Full audit & export",
+            "1-year audit retention and export",
             "Priority support",
-            "WhatsApp App integration",
+            "WhatsApp integration",
+            "Google Drive / OneDrive backups",
+            "Microsoft Teams integration",
+            "Slack integration",
         ],
         ctaLabel: "Start trial",
         ctaHref: SIGN_UP_URL,
@@ -61,19 +65,19 @@ const tiers = [
     {
         name: "Enterprise",
         monthly: null,
-        annual: null,
         currency: "R",
-        blurb: "For regulated organizations with compliance and procurement needs.",
+        bestFor: "Best for: regulated organizations with procurement workflows",
+        proofPoint: "Security, legal, and onboarding support aligned to enterprise requirements.",
+        blurb: "Everything in Business, plus advanced security, procurement, and deployment requirements.",
         bullets: [
+            "Everything in Business",
             "Custom user caps",
-            "SOC 2 reports & DPA",
+            "SOC 2 report access and DPA",
             "Tenant isolation review",
-            "Dedicated CSM",
+            "Dedicated customer success manager",
             "Custom data residency",
-            "Full Integration Assistance/Support",
-            "FTP / Google Drive / One Drive Backup",
-            "Microsoft Teams App integration",
-            "Slack App integration",
+            "Integration onboarding and support",
+            "FTP backups",
         ],
         ctaLabel: "Talk to sales",
         ctaHref: null,
@@ -89,8 +93,8 @@ type CompareRow = {
 };
 
 const compareRows: CompareRow[] = [
-    {feature: "Users", starter: "Up to 3", business: "Unlimited", enterprise: "Unlimited"},
-    {feature: "Secure share sessions", starter: true, business: true, enterprise: true},
+    {feature: "Users", starter: "Up to 3", business: "Unlimited", enterprise: "Custom"},
+    {feature: "Collaborative share sessions", starter: true, business: true, enterprise: true},
     {feature: "Microsoft & Google SSO", starter: false, business: true, enterprise: true},
     {feature: "Role-based permissions", starter: false, business: true, enterprise: true},
     {feature: "Audit log retention", starter: "30 days", business: "1 year", enterprise: "Custom"},
@@ -99,11 +103,12 @@ const compareRows: CompareRow[] = [
     {feature: "Data Processing Agreement", starter: false, business: true, enterprise: true},
     {feature: "Custom data residency", starter: false, business: false, enterprise: true},
     {feature: "Dedicated customer success", starter: false, business: false, enterprise: true},
-    {feature: "WhatsApp App integration", starter: false, business: true, enterprise: true},
-    {feature: "Full Integration Assistance/Support", starter: false, business: false, enterprise: true},
-    {feature: "FTP / Google Drive / One Drive Backup", starter: false, business: false, enterprise: true},
-    {feature: "Microsoft Teams App integration", starter: false, business: false, enterprise: true},
-    {feature: "Slack App integration", starter: false, business: false, enterprise: true},
+    {feature: "WhatsApp integration", starter: false, business: true, enterprise: true},
+    {feature: "Integration onboarding and support", starter: false, business: false, enterprise: true},
+    {feature: "Google Drive / OneDrive backups", starter: false, business: true, enterprise: true},
+    {feature: "FTP backups", starter: false, business: false, enterprise: true},
+    {feature: "Microsoft Teams integration", starter: false, business: true, enterprise: true},
+    {feature: "Slack integration", starter: false, business: true, enterprise: true},
 ];
 
 const faqs = [
@@ -113,15 +118,19 @@ const faqs = [
     },
     {
         q: "Can I switch plans later?",
-        a: "Yes. Upgrade or downgrade at any time from your organization settings. Annual subscriptions are pro-rated.",
+        a: "Yes. Upgrade or downgrade at any time from your organization settings. Monthly plans can be canceled anytime.",
     },
     {
         q: "Do you offer non-profit or education discounts?",
-        a: "Yes. Get in touch with sales for a 30% discount on annual Business plans for verified non-profits and educational institutions.",
+        a: "Yes. Get in touch with sales for a 30% discount on Business plans for verified non-profits and educational institutions.",
     },
     {
         q: "What payment methods do you accept?",
         a: "Credit card for self-serve. Enterprise customers can pay by invoice (NET 30) and EFT.",
+    },
+    {
+        q: "Do you offer uptime SLAs?",
+        a: "Yes. Business includes standard support, and Enterprise plans can include contractual uptime and response SLAs based on your requirements.",
     },
     {
         q: "Is my data really mine?",
@@ -147,23 +156,6 @@ const useStyles = makeStyles({
     heroSubtitle: {
         color: tokens.colorNeutralForeground2,
         maxWidth: "40rem",
-    },
-
-    toggleRow: {
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: SPACE_MD,
-        marginTop: SPACE_SM,
-    },
-
-    savePill: {
-        backgroundColor: tokens.colorPaletteGreenBackground2,
-        color: tokens.colorPaletteGreenForeground1,
-        padding: "0.15rem 0.6rem",
-        borderRadius: "999px",
-        fontSize: "0.7rem",
-        fontWeight: tokens.fontWeightSemibold,
     },
 
     tierGrid: {
@@ -217,6 +209,44 @@ const useStyles = makeStyles({
         fontSize: tokens.fontSizeBase200,
     },
 
+    bestFor: {
+        color: tokens.colorNeutralForeground1,
+        fontWeight: tokens.fontWeightSemibold,
+    },
+
+    metaRow: {
+        display: "flex",
+        alignItems: "center",
+        gap: SPACE_XS,
+    },
+
+    metaIcon: {
+        width: "1rem",
+        height: "1rem",
+        borderRadius: "999px",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "0.65rem",
+        fontWeight: tokens.fontWeightSemibold,
+        flexShrink: 0,
+    },
+
+    metaIconBestFor: {
+        backgroundColor: tokens.colorBrandBackground2,
+        color: tokens.colorBrandForeground1,
+    },
+
+    metaIconProof: {
+        backgroundColor: tokens.colorNeutralBackground3,
+        color: tokens.colorNeutralForeground2,
+    },
+
+    proofPoint: {
+        color: tokens.colorNeutralForeground2,
+        fontSize: tokens.fontSizeBase200,
+    },
+
     bullets: {
         listStyle: "none",
         margin: 0,
@@ -233,8 +263,14 @@ const useStyles = makeStyles({
         gap: SPACE_XS,
     },
 
-    bulletIcon: {
-        color: tokens.colorBrandForeground1,
+    bulletBadge: {
+        flexShrink: 0,
+        width: "0.65rem",
+        height: "0.65rem",
+        minWidth: "0.65rem",
+        minHeight: "0.65rem",
+        padding: 0,
+        borderRadius: "999px",
     },
 
     cta: {
@@ -296,33 +332,21 @@ const useStyles = makeStyles({
 export function PricingPage()
 {
     const styles = useStyles();
-    const [annual, setAnnual] = useState(true);
 
     return (
         <PageShell>
             <section className={styles.hero}>
-                <Title1 className={styles.heroTitle}>Simple, transparent pricing</Title1>
+                <Title1 className={styles.heroTitle}>Pricing</Title1>
                 <Text size={500} className={styles.heroSubtitle} align={"center"}>
-                    Start free. Scale with controls when your team needs them. Talk to us for enterprise compliance.
+                    Choose the best tier for your business on monthly billing, cancel anytime.
                 </Text>
-                <div className={styles.toggleRow}>
-                    <RadioGroup
-                        layout="horizontal"
-                        value={annual ? "annual" : "monthly"}
-                        onChange={(_, data) => setAnnual(data.value === "annual")}
-                    >
-                        <Radio value="monthly" label="Monthly"/>
-                        <Radio value="annual" label="Annual"/>
-                    </RadioGroup>
-                    <span className={styles.savePill}>Save 20%</span>
-                </div>
             </section>
 
             <div className={styles.tierGrid}>
                 {tiers.map((tier) => {
                     const price = tier.monthly === null
                         ? "Custom"
-                        : `${tier.currency}${annual ? tier.annual : tier.monthly}`;
+                        : `${tier.currency}${tier.monthly}`;
 
                     return (
                         <article
@@ -331,15 +355,27 @@ export function PricingPage()
                         >
                             {tier.featured && <span className={styles.featuredBadge}>Most popular</span>}
                             <Title3>{tier.name}</Title3>
+                            <div className={styles.metaRow}>
+                                <span className={mergeClasses(styles.metaIcon, styles.metaIconBestFor)} aria-hidden="true">B</span>
+                                <Text className={styles.bestFor}>{tier.bestFor}</Text>
+                            </div>
                             <Text className={styles.price}>{price}</Text>
                             <Text className={styles.cadence}>
-                                {tier.monthly === null ? "tailored to your org" : "per user / month"}
+                                {tier.monthly === null ? "tailored to your org" : "per user / month, cancel anytime"}
                             </Text>
                             <Text>{tier.blurb}</Text>
+                            <div className={styles.metaRow}>
+                                <span className={mergeClasses(styles.metaIcon, styles.metaIconProof)} aria-hidden="true">P</span>
+                                <Text className={styles.proofPoint}>{tier.proofPoint}</Text>
+                            </div>
                             <ul className={styles.bullets}>
                                 {tier.bullets.map((b) => (
                                     <li key={b} className={styles.bullet}>
-                                        <Checkmark16Filled className={styles.bulletIcon}/>
+                                        <Badge
+                                            size="small"
+                                            appearance="filled"
+                                            className={styles.bulletBadge}
+                                        />
                                         {b}
                                     </li>
                                 ))}
@@ -419,7 +455,14 @@ export function PricingPage()
 
 function CompareCell({value, styles}: {value: boolean | string; styles: ReturnType<typeof useStyles>})
 {
-    if (value === true) return <td className={styles.td}><Checkmark16Filled className={styles.yes}/></td>;
+    if (value === true)
+    {
+        return (
+            <td className={styles.td}>
+                <Badge size="medium" appearance="tint" icon={<Checkmark16Filled className={styles.yes}/>}/>
+            </td>
+        );
+    }
     if (value === false) return <td className={styles.td}><Dismiss16Regular className={styles.no}/></td>;
     return <td className={styles.td}>{value}</td>;
 }
