@@ -19,6 +19,7 @@ import {DeleteRegular, PersonAddRegular} from '@fluentui/react-icons';
 import {useAppAdminsTabStyles} from './AppAdminsTabStyles';
 import {fetchAppAdmins, grantAppAdmin, revokeAppAdmin, searchAppAdminCandidates} from '../../../services/appRoleApi';
 import {AppAdminDto, AppUserSearchResult} from '../../../services/types/dtos';
+import {useAuth} from '../../../context/AuthContext.tsx';
 
 /**
  * App Admins management screen.
@@ -27,6 +28,7 @@ import {AppAdminDto, AppUserSearchResult} from '../../../services/types/dtos';
 const AppAdminsTab: React.FC = () =>
 {
     const styles = useAppAdminsTabStyles();
+    const {appUser} = useAuth();
     const [admins, setAdmins] = useState<AppAdminDto[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -43,6 +45,12 @@ const AppAdminsTab: React.FC = () =>
     {
         const e = err as { status?: number; statusCode?: number; response?: { status?: number } } | null | undefined;
         return e?.status ?? e?.response?.status ?? e?.statusCode;
+    };
+
+    const extractErrorMessage = (err: unknown, fallback: string): string =>
+    {
+        const e = err as { errorMessage?: string; message?: string } | null | undefined;
+        return e?.errorMessage || e?.message || fallback;
     };
 
     const looksLikeLastAdminError = (err: unknown): boolean =>
@@ -62,7 +70,7 @@ const AppAdminsTab: React.FC = () =>
             const data = await fetchAppAdmins();
             setAdmins(data);
         }
-        catch (err: any)
+        catch (err: unknown)
         {
             if (extractErrorStatus(err) === 403)
             {
@@ -70,7 +78,7 @@ const AppAdminsTab: React.FC = () =>
             }
             else
             {
-                setError(err?.errorMessage || err?.message || 'Failed to load admins');
+                setError(extractErrorMessage(err, 'Failed to load admins'));
             }
         }
         finally
@@ -137,9 +145,9 @@ const AppAdminsTab: React.FC = () =>
             setSearchQuery('');
             await loadAdmins();
         }
-        catch (err: any)
+        catch (err: unknown)
         {
-            setError(err?.errorMessage || err?.message || 'Failed to grant admin role');
+            setError(extractErrorMessage(err, 'Failed to grant admin role'));
         }
         finally
         {
@@ -149,6 +157,13 @@ const AppAdminsTab: React.FC = () =>
 
     const handleRevoke = async (assignmentId: string) =>
     {
+        const target = admins.find((admin) => admin.assignmentId === assignmentId);
+        if (target?.appUserId && target.appUserId === appUser?.id)
+        {
+            setError('You cannot revoke your own app administrator access. Ask another app admin to do this.');
+            return;
+        }
+
         setBusy(true);
         setError(null);
         try
@@ -156,7 +171,7 @@ const AppAdminsTab: React.FC = () =>
             await revokeAppAdmin(assignmentId);
             await loadAdmins();
         }
-        catch (err: any)
+        catch (err: unknown)
         {
             // Backend throws LastAppAdminException → 409 to protect the system from
             // ending up with zero admins. Surface a tailored copy instead of the raw
@@ -167,7 +182,7 @@ const AppAdminsTab: React.FC = () =>
             }
             else
             {
-                setError(err?.errorMessage || err?.message || 'Failed to revoke admin role');
+                setError(extractErrorMessage(err, 'Failed to revoke admin role'));
             }
         }
         finally
@@ -287,6 +302,9 @@ const AppAdminsTab: React.FC = () =>
                                         {admin.grantedAt ? new Date(admin.grantedAt).toLocaleString() : '—'}
                                     </TableCell>
                                     <TableCell>
+                                        {admin.appUserId === appUser?.id ? (
+                                            <Text size={200}>Current session</Text>
+                                        ) : (
                                         <Button
                                             size="small"
                                             appearance="subtle"
@@ -296,6 +314,7 @@ const AppAdminsTab: React.FC = () =>
                                         >
                                             Revoke
                                         </Button>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

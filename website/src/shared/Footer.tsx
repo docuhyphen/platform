@@ -178,7 +178,6 @@ const columns: FooterColumn[] = [
         title: "Resources",
         links: [
             {label: "All resources", to: "/resources"},
-            {label: "IdP Setup Guide", to: "/help/idp-setup"},
             {label: "Security FAQ", to: "/help/security-faq"},
         ],
     },

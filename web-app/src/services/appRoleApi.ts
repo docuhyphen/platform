@@ -12,9 +12,23 @@ const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
         const {data} = await fn();
         return data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        const axiosLikeError = error as {
+            message?: string;
+            response?: {
+                status?: number;
+                data?: { errorMessage?: string; message?: string; [key: string]: unknown };
+            };
+        };
+
+        const status = axiosLikeError.response?.status;
+        const payload = axiosLikeError.response?.data;
+        throw {
+            status,
+            errorMessage: payload?.errorMessage || payload?.message || axiosLikeError.message || 'Request failed',
+            ...(payload && typeof payload === 'object' ? payload : {}),
+        };
     }
 };
 

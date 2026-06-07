@@ -40,7 +40,6 @@ const SOLUTIONS: NavLink[] = [
 
 const RESOURCES: NavLink[] = [
     {label: "Overview", to: "/resources"},
-    {label: "IdP Setup Guide", to: "/help/idp-setup"},
     {label: "Security FAQ", to: "/help/security-faq"},
     {label: "Security & Trust", to: "/security"},
 ];
@@ -258,10 +257,6 @@ export function LandingHeader()
                                 <MenuItem onClick={() => navigate("/pricing")}
                                           className={styles.mainMobileMenuItem}>
                                     Pricing
-                                </MenuItem>
-                                <MenuItem onClick={() => navigate("/security")}
-                                          className={styles.mainMobileMenuItem}>
-                                    Security
                                 </MenuItem>
                                 <MenuItem onClick={() => navigate("/about")}
                                           className={styles.mainMobileMenuItem}>

@@ -105,10 +105,6 @@ const SessionsTab: React.FC = () =>
 
     return (
         <div className={styles.container}>
-            <div className={styles.header}>
-                <Title3>Active Sessions</Title3>
-            </div>
-
             <Caption1>
                 These are all devices currently signed in to your account. Revoking a session will sign that device out immediately.
             </Caption1>

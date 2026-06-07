@@ -6,12 +6,10 @@ import {RisksSection} from "./landing/RisksSection.tsx";
 import {FeaturesSection} from "./landing/FeaturesSection.tsx";
 import {AudienceSection} from "./landing/AudienceSection.tsx";
 import {FooterCtaSection} from "./landing/FooterCtaSection.tsx";
-import {PricingTeaserSection} from "./landing/PricingTeaserSection.tsx";
 import {IndustryPickerDialog, getStoredIndustry} from "./landing/IndustryPickerDialog.tsx";
 import type {IndustrySlug} from "./landing/IndustryPickerDialog.tsx";
 import {Footer} from "./shared/Footer.tsx";
 import {appStyles} from "./AppStyles.tsx";
-import {IdpSetupGuidePage} from "./pages/IdpSetupGuidePage.tsx";
 import {SecurityFaqPage} from "./pages/SecurityFaqPage.tsx";
 import {PricingPage} from "./pages/PricingPage.tsx";
 import {SolutionsPage} from "./pages/SolutionsPage.tsx";
@@ -59,7 +57,6 @@ export default function App()
             <Route path="/security" element={<SecurityPage/>}/>
             <Route path="/about" element={<AboutPage/>}/>
             <Route path="/contact" element={<ContactPage/>}/>
-            <Route path="/help/idp-setup" element={<IdpSetupGuidePage/>}/>
             <Route path="/help/security-faq" element={<SecurityFaqPage/>}/>
             <Route path="*" element={<NotFoundPage/>}/>
             </Routes>

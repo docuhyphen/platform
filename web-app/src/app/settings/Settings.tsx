@@ -42,6 +42,10 @@ const Settings = () =>
     const {appUser, appUserPersonOrganization} = useAuth();
     const styles = useSettingsStyles();
     const [selectedValue, setSelectedValue] = useState<TabValue>(tabIds.profile);
+    const roleValue = `${appUser?.role ?? ''}`;
+    const canManageOrganization = Boolean(
+        appUserPersonOrganization?.isActive && (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN')
+    );
 
 
     const onTabSelect = (_event: SelectTabEvent, data: SelectTabData) =>
@@ -71,15 +75,14 @@ const Settings = () =>
                     </Tab>
                     <Tab id="SessionsTab"
                          value={tabIds.sessions}>
-                        Sessions
+                        Device Sessions
                     </Tab>
                     <Tab id="OrganizationTab"
                          icon={<SettingsOrganizationTabIcon/>}
                          value={tabIds.organization}>
                         Your Organization
                     </Tab>
-                    {appUser?.role == AppUserRole.ORG_ADMIN && appUserPersonOrganization
-                        && appUserPersonOrganization.isActive && <>
+                    {canManageOrganization && <>
 
                         <Tab id="PeopleTab"
                              icon={<SettingsOrganizationPeopleTabIcon/>}
@@ -102,8 +105,7 @@ const Settings = () =>
                          value={tabIds.myGroups}>
                         My Groups
                     </Tab>
-                    {appUser?.role == AppUserRole.ORG_ADMIN && appUserPersonOrganization
-                        && appUserPersonOrganization.isActive &&
+                    {canManageOrganization &&
 
                         <Tab id="OrganiationPairingTab"
                              icon={<PairOrgTabIcon/>}

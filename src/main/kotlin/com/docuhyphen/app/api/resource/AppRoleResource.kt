@@ -117,6 +117,17 @@ class AppRoleResource @Inject constructor(
         {
             val actor = authTokenContext.authToken.appUser
                 ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Authentication required")).build()
+
+            if (!userRoleService.isAppAdmin(actor.id))
+            {
+                val noActiveAppAdmins = roleAssignmentService.listAppAdmins().isEmpty()
+                if (noActiveAppAdmins && userRoleService.isOrgAdmin(actor.id))
+                {
+                    roleAssignmentService.grantAppRole(actor.id, RoleName.APP_ADMIN, actor.id)
+                    logger.info("Bootstrapped APP_ADMIN from /admin/roles access for org admin {}", actor.id)
+                }
+            }
+
             if (!userRoleService.isAppAdmin(actor.id))
             {
                 return Response.status(FORBIDDEN)

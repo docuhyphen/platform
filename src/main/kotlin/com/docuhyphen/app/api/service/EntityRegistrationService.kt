@@ -11,6 +11,7 @@ import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.repository.PersonRepositoryRepository
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
+import com.docuhyphen.app.api.service.auth.RoleAssignmentService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import jakarta.enterprise.context.RequestScoped
@@ -30,6 +31,7 @@ class EntityRegistrationService @Inject constructor(
     private val emailTemplateService: EmailTemplateService,
     private val organizationVerificationProducer: OrganizationVerificationProducer,
     private val organizationMembershipService: OrganizationMembershipService,
+    private val roleAssignmentService: RoleAssignmentService,
 )
 {
     @PersistenceContext
@@ -168,6 +170,17 @@ class EntityRegistrationService @Inject constructor(
             role = RoleName.ORG_ADMIN,
             isPrimary = true,
         )
+
+        // If no global App Admin exists yet, promote the org creator as the first one.
+        if (roleAssignmentService.listAppAdmins().isEmpty())
+        {
+            roleAssignmentService.grantAppRole(
+                targetAppUserId = managedAppUser.id,
+                roleName = RoleName.APP_ADMIN,
+                actorId = null,
+            )
+            logger.info("Bootstrapped first APP_ADMIN from organization registration for user {}", managedAppUser.id)
+        }
 
         logger.info("Organization registration successful for registration number $registrationNumber.")
 

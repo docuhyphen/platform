@@ -1,6 +1,5 @@
 import {Text, Title1, Title3, makeStyles, tokens} from "@fluentui/react-components";
 import {
-    Book20Regular,
     DocumentBulletList20Regular,
     ShieldCheckmark20Regular,
     Question20Regular,
@@ -28,13 +27,6 @@ type ResourceCard = {
 };
 
 const cards: ResourceCard[] = [
-    {
-        icon: <Book20Regular/>,
-        title: "IdP Setup Guide",
-        body: "Configure Microsoft Entra ID or Google Workspace SSO for your organization.",
-        to: "/help/idp-setup",
-        cta: "Read guide",
-    },
     {
         icon: <Question20Regular/>,
         title: "Security FAQ",

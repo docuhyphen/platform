@@ -1,8 +1,6 @@
 import {
-    Badge,
     Button,
     Card,
-    CardHeader,
     Text,
     Title2,
     makeStyles,
@@ -1017,14 +1015,7 @@ export function FeaturesSection({initialIndustrySlug}: FeaturesSectionProps)
             subtitle: "Cross-team upload request set for filing evidence and sign-off workflows.",
             avatarInitial: "M",
             avatarTone: styles.structuredAvatarToneC,
-        },
-        {
-            title: "Vendor Contract Intake Batch",
-            date: currentDateLabel,
-            subtitle: "Third-party agreement uploads with checklist validation and routing.",
-            avatarInitial: "R",
-            avatarTone: styles.structuredAvatarToneD,
-        },
+        }
     ];
 
     return (

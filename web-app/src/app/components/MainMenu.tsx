@@ -20,7 +20,7 @@ import SignOutClickSurface from './SignOutClickSurface.tsx';
 import SharingSessionInitiation from "../sharing-session-initiation/SharingSessionInitiation.tsx";
 import AppLogo from "./app-logo/AppLogo.tsx";
 import {useGlobalStyles} from "../../GlobalStyles.tsx";
-import {SettingsIcon, SharingSessionIcon, SignOutButtonIcon} from "./IconBundles.tsx";
+import {InfoIcon, SettingsIcon, SharingSessionIcon, SignOutButtonIcon} from "./IconBundles.tsx";
 import NotificationList from './main-menu/notification/NotificationList';
 import PendingApprovals from './main-menu/pending-approvals/PendingApprovals';
 
@@ -57,7 +57,7 @@ function formatEmailForDisplay(email?: string, maxLength: number = MAX_DISPLAY_E
     return `${localPart.slice(0, allowedLocalLength)}...@${domainPart}`;
 }
 
-const MainMenu: React.FC = () =>
+const MainMenu: React.FC<{ onToggleHelpSidebar: () => void }> = ({onToggleHelpSidebar}) =>
 {
     const {appUser, appUserPersonOrganization} = useAuth();
     const navigate = useNavigate();
@@ -136,6 +136,10 @@ const MainMenu: React.FC = () =>
                             <MenuItem onClick={() => navigate("/settings")}
                                       icon={<SettingsIcon/>}>
                                 Settings
+                            </MenuItem>
+                            <MenuItem onClick={onToggleHelpSidebar}
+                                      icon={<InfoIcon/>}>
+                                Help
                             </MenuItem>
                             <MenuItem icon={<SignOutButtonIcon/>}>
                                 <SignOutClickSurface onSignOut={onSignOut}/>

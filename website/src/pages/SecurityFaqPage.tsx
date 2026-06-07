@@ -117,9 +117,6 @@ export function SecurityFaqPage()
             </div>
 
             <div className={styles.buttonRow}>
-                <LinkButton to="/help/idp-setup" appearance="secondary" shape="circular">
-                    View IdP Setup Guide
-                </LinkButton>
                 <LinkButton to="/resources" appearance="outline" shape="circular">
                     Back to Resources
                 </LinkButton>
