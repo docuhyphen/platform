@@ -213,7 +213,7 @@ export function Footer()
                     <div className={styles.brand}>
                         <AppLogo/>
                         <Text className={styles.brandTagline}>
-                            Secure document sharing for regulated teams ,
+                            Secure document sharing for regulated teams,
                             built for control, transparency, and audit.
                         </Text>
                     </div>

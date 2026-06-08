@@ -3,6 +3,8 @@ package com.docuhyphen.app.api.model
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.service.SettingsService
+import org.hibernate.Hibernate
+import org.hibernate.LazyInitializationException
 
 class DetailedEntityToDtoTransformer
 {
@@ -13,6 +15,9 @@ class DetailedEntityToDtoTransformer
             return document?.let {
                 with(document)
                 {
+                    val lastUploadedByFirstName = safeLastUploadedByName(document, true)
+                    val lastUploadedByLastName = safeLastUploadedByName(document, false)
+
                     DocumentDetailedDto(
                         id,
                         createdDate,
@@ -23,8 +28,28 @@ class DetailedEntityToDtoTransformer
                         restrictedType != null,
                         hash,
                         mutableListOf(),
+                        null,
+                        lastUploadedByFirstName,
+                        lastUploadedByLastName,
                     )
                 }
+            }
+        }
+
+        private fun safeLastUploadedByName(document: Document, isFirstName: Boolean): String?
+        {
+            return try
+            {
+                if (!Hibernate.isPropertyInitialized(document, "lastUpdatedBy")) return null
+                val uploader = document.lastUpdatedBy ?: return null
+                if (!Hibernate.isPropertyInitialized(uploader, "person")) return null
+                val person = uploader.person ?: return null
+
+                if (isFirstName) person.firstName else person.lastName
+            }
+            catch (_: LazyInitializationException)
+            {
+                null
             }
         }
 

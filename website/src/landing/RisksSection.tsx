@@ -95,22 +95,22 @@ const useStyles = makeStyles({
     },
 
     card1: {
-        backgroundColor: "#F2F7FB",
+        backgroundColor: "rgba(242 247 251, 0.5)",
         borderTop: "0.4rem solid #5B9BD5",
     },
 
     card2: {
-        backgroundColor: "#F6F4FA",
+        backgroundColor: "rgba(246 244 250, 0.5)",
         borderTop: "0.4rem solid #8E7CC3",
     },
 
     card3: {
-        backgroundColor: "#F1F9F7",
+        backgroundColor: "rgb(241 249 247, 0.5)",
         borderTop: "0.4rem solid #4FB3A8",
     },
 
     card4: {
-        backgroundColor: "#FBF7F1",
+        backgroundColor: "rgba(251 247 241, 0.5)",
         borderTop: "0.4rem solid #C7A76C",
     },
 

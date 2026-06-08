@@ -137,6 +137,16 @@ const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
         return formatDateTimeWithOrdinal(value);
     };
 
+    const formatUploaderName = (firstName?: string, lastName?: string) =>
+    {
+        const fullName = [firstName, lastName]
+            .map((part) => part?.trim())
+            .filter((part): part is string => Boolean(part))
+            .join(" ");
+
+        return fullName || "-";
+    };
+
     const renderMetadataRow = (label: string, value: string) =>
     {
         return (
@@ -174,6 +184,10 @@ const SessionDocumentSidebar: React.FC<SessionDocumentSidebarProps> = (
     const metadataRows = [
         {label: "Date Added", value: formatDateValue(sessionDocument?.createdDate)},
         {label: "Latest Uploaded Date", value: formatDateValue(sessionDocument?.uploadDate)},
+        {
+            label: "Last Uploaded By",
+            value: formatUploaderName(sessionDocument?.lastUploadedByFirstName, sessionDocument?.lastUploadedByLastName)
+        },
         {label: "Type", value: formatDocumentType(sessionDocument?.type)},
         {label: "Restricted type", value: formatRestrictedType(sessionDocument?.restrictedType)},
         {label: "File size", value: getFileSizeLabel()},

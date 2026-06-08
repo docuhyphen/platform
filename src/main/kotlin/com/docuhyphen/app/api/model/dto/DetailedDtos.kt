@@ -47,6 +47,8 @@ data class DocumentDetailedDto(
     val hash: String?,
     val comments: List<DocumentCommentDetailedDto>?,
     val fileSize: Long? = null,
+    val lastUploadedByFirstName: String? = null,
+    val lastUploadedByLastName: String? = null,
 )
 
 @Serializable

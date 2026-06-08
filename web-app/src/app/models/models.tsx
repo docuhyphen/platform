@@ -400,6 +400,8 @@ export interface DocumentDetailedDto
     restrictType?: boolean;
     comments?: DocumentCommentDetailedDto[];
     fileSize?: number;
+    lastUploadedByFirstName?: string;
+    lastUploadedByLastName?: string;
 }
 
 export interface SharingSessionDetailedDto

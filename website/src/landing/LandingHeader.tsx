@@ -108,7 +108,6 @@ const useStyles = makeStyles({
         color: tokens.colorNeutralForeground1,
         textDecorationLine: "none",
         fontSize: tokens.fontSizeBase300,
-        fontWeight: tokens.fontWeightSemibold,
         padding: "0.4rem 0.2rem",
         background: "transparent",
         border: "none",
@@ -188,7 +187,7 @@ export function LandingHeader()
                         </Menu>
 
                         <Link to="/pricing" className={styles.navLink}>
-                            <Text weight="semibold">Pricing</Text>
+                            <Text>Pricing</Text>
                         </Link>
 
                         <Menu>
