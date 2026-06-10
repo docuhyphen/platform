@@ -33,7 +33,6 @@ export const useOrganizationGroupTabStyles = makeStyles({
     // settings card to grow wider than the viewport.
     table: {
         width: "100%",
-        display: "block",
         overflowX: "auto",
         minWidth: 0,
     },

@@ -112,7 +112,8 @@ import {
     ZoomInRegular,
     ZoomOutFilled,
     ZoomOutRegular, PeopleTeamToolboxFilled, PeopleTeamToolboxRegular, PhoneLaptopRegular, PhoneLaptopFilled,
-    ShieldPersonFilled, ShieldPersonRegular, PersonShieldRegular, PersonShieldFilled
+    ShieldPersonFilled, ShieldPersonRegular, PersonShieldRegular, PersonShieldFilled, ImageSplitFilled,
+    ImageSplitRegular
 } from "@fluentui/react-icons";
 
 export const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
@@ -122,6 +123,7 @@ export const ParedOrganizationsTabIcon = bundleIcon(LinkMultipleFilled, LinkMult
 export const OrganizationParingRequestsTabIcon = bundleIcon(LinkAddFilled, LinkAddRegular)
 export const SettingsProfileTabIcon = bundleIcon(PersonSettingsFilled, PersonSettingsRegular)
 export const SettingsOrganizationTabIcon = bundleIcon(BuildingFilled, BuildingRegular)
+export const SettingsExchangeTemplatesTabIcon = bundleIcon(ImageSplitFilled, ImageSplitRegular)
 export const SettingsOrganizationPeopleTabIcon = bundleIcon(BuildingPeopleFilled, BuildingPeopleRegular)
 export const SettingsLinkedAccountsTabIcon = bundleIcon(ShieldPersonFilled, ShieldPersonRegular)
 export const SettingsDeviceSessionsTabIcon = bundleIcon(PhoneLaptopFilled, PhoneLaptopRegular)

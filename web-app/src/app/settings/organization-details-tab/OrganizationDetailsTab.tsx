@@ -210,11 +210,7 @@ const OrganizationDetailsTab = () =>
                          appearance="brand"
                          className={styles.mainDivider}>
 
-                    <Button
-                        icon={<ProfileEditBasicDetailsIcon/>}
-                        onClick={() => setIsDetailsDialogOpen(true)}
-                        appearance="subtle"
-                    />
+                    Basic
                 </Divider>
 
                 <div style={{marginBottom: '20px'}}>
@@ -232,7 +228,7 @@ const OrganizationDetailsTab = () =>
                 <Divider alignContent="start"
                          appearance="brand"
                          className={styles.mainDivider}>
-                    Contact Details
+                    Contact
                 </Divider>
 
                 <div>
@@ -290,7 +286,7 @@ const OrganizationDetailsTab = () =>
                 <Divider alignContent="start"
                          appearance="brand"
                          className={styles.mainDivider}>
-                    Organization Settings
+                    Organization Preferences
                 </Divider>
 
                 {organizationSettings && <>

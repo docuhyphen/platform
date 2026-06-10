@@ -17,6 +17,7 @@ import {useSessionsTabStyles} from "./SessionsTabStyles.tsx";
 import {realtimeService} from "../../../services/NotificationService.tsx";
 import PasswordResetDialog from "../profile-tab/password-reset-dialog/PasswordResetDialog.tsx";
 import AllDeviceSignOutDialog from "../profile-tab/all-device-sign-out-dialog/AllDeviceSignOutDialog.tsx";
+import {SignOutButtonIcon} from "../../components/IconBundles.tsx";
 
 const formatDate = (iso: string) =>
     new Date(iso).toLocaleString(undefined, {dateStyle: "medium", timeStyle: "short"});
@@ -113,8 +114,9 @@ const SessionsTab: React.FC = () =>
                 <span></span>
 
                 <div>
-                    <Button appearance={"primary"}
+                    <Button appearance={"secondary"}
                             shape="circular"
+                            icon={<SignOutButtonIcon></SignOutButtonIcon>}
                             onClick={() => setIsAllDeviceSignOutDialogOpen(true)}
                             size={"medium"}> Sign out of all devices</Button>
                 </div>

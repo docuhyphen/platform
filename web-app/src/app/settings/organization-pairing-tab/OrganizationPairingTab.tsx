@@ -178,7 +178,7 @@ const OrganizationPairingTab = () =>
 
                     <Button
                         icon={<LinkAddRegular/>}
-                        appearance="primary"
+                        appearance="secondary"
                         shape="circular"
                         onClick={() => setIsParingRequestDialogOpen(true)}>
                         Find & Pair

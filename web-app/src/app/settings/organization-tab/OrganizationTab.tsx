@@ -246,21 +246,21 @@ const OrganizationTab = () =>
 
                 <TabList selectedValue={selectedValue}
                          onTabSelect={onTabSelect}
-                         size="small">
+                         size="medium">
                     <Tab id="OrganizationTab"
-                         icon={<SettingsOrganizationTabIcon/>}
+                         // icon={<SettingsOrganizationTabIcon/>}
                          value={tabIds.organization}>
                         Details
                     </Tab>
                     {canManageOrganization && <>
 
                         <Tab id="PeopleTab"
-                             icon={<SettingsOrganizationPeopleTabIcon/>}
+                             // icon={<SettingsOrganizationPeopleTabIcon/>}
                              value={tabIds.people}>
                             People
                         </Tab>
                         <Tab id="GroupsTab"
-                             icon={<SettingsOrganizationGroupsTabIcon/>}
+                             // icon={<SettingsOrganizationGroupsTabIcon/>}
                              value={tabIds.groups}>
                             Groups
                         </Tab>
@@ -269,7 +269,7 @@ const OrganizationTab = () =>
                     {canManageOrganization &&
 
                         <Tab id="OrganiationPairingTab"
-                             icon={<PairOrgTabIcon/>}
+                             // icon={<PairOrgTabIcon/>}
                              value={tabIds.organizationPairing}>
                             Pairing
                         </Tab>
@@ -283,7 +283,7 @@ const OrganizationTab = () =>
                     */}
                     {appUserPersonOrganization?.isActive && (
                         <Tab id="AppAdminsTab"
-                             icon={<SettingsAppAdminsIcon/>}
+                             // icon={<SettingsAppAdminsIcon/>}
                              value={tabIds.appAdmins}>
                             App Admins
                         </Tab>

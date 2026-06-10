@@ -42,21 +42,12 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
     }) =>
 {
     const styles = useAddGroupDialogStyles()
-    const {token} = useAuth();
+    const {token, appUser} = useAuth();
     const [name, setName] = useState("");
     const [users, setUsers] = useState<AppUserDetailedDto[]>([]);
     const [selectedUsers, setSelectedUsers] = useState<Map<string, {
         appUserId: string;
-        allowSessionAccept: boolean;
-        allowSessionReject: boolean;
-        allowSessionEdit: boolean;
-        allowSessionDelete: boolean;
-        allowSessionEnd: boolean;
-        allowDocumentAddition: boolean;
-        allowDocumentDeletion: boolean;
-        allowDocumentDownload: boolean;
-        allowDocumentUpdate: boolean;
-        allowDocumentUpload: boolean;
+        groupRole: string
     }>>(new Map());
     const [savingData, setSavingData] = useState(false);
     const [loadingUsers, setLoadingUsers] = useState(false);
@@ -151,18 +142,10 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
         }
         else
         {
+            //ToDo: Default is MEMBER but apply role selection from options: New role-based model: OWNER | MANAGER | MEMBER | OBSERVER.
             newSelectedUsers.set(userId, {
                 appUserId: userId,
-                allowSessionAccept: true,
-                allowSessionReject: true,
-                allowSessionEdit: true,
-                allowSessionDelete: true,
-                allowSessionEnd: true,
-                allowDocumentAddition: true,
-                allowDocumentDeletion: true,
-                allowDocumentDownload: true,
-                allowDocumentUpdate: true,
-                allowDocumentUpload: true
+                groupRole: userId == appUser.id ? "OWNER" : "MEMBER"
             });
         }
 

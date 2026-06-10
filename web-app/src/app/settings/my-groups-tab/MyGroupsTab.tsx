@@ -282,7 +282,7 @@ const MyGroupsTab: React.FC = () =>
                         <span></span>
                         <Button
                             icon={<AddRegular/>}
-                            appearance="primary"
+                            appearance="secondary"
                             shape="circular"
                             onClick={() => setCreateOpen(true)}
                         >

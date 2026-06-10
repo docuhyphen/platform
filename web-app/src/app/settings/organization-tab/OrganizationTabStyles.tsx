@@ -35,6 +35,6 @@ export const useOrganizationTabStyles = makeStyles({
     },
     tabsContainer: {
         flex: 1,
-        overflow: "scroll"
+        overflow: "auto"
     }
 });

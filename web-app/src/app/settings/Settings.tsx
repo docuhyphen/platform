@@ -13,7 +13,8 @@ import {useSettingsStyles} from "./SettingsStyles.tsx";
 import OrganizationDetailsTab from "./organization-tab/OrganizationTab.tsx";
 import {
     PairOrgTabIcon, SettingsAppAdminsIcon,
-    SettingsAppSettingsTabIcon, SettingsDeviceSessionsTabIcon, SettingsLinkedAccountsTabIcon, SettingsMyGroupsTabIcon,
+    SettingsAppSettingsTabIcon, SettingsDeviceSessionsTabIcon,
+    SettingsExchangeTemplatesTabIcon, SettingsLinkedAccountsTabIcon, SettingsMyGroupsTabIcon,
     SettingsOrganizationGroupsTabIcon,
     SettingsOrganizationPeopleTabIcon,
     SettingsOrganizationTabIcon,
@@ -108,6 +109,11 @@ const Settings = () =>
                              icon={<SettingsOrganizationTabIcon/>}
                              value={tabIds.organization}>
                             Your Organization
+                        </Tab>
+                        <Tab id="TemplatesTab"
+                             icon={<SettingsExchangeTemplatesTabIcon/>}
+                             value={tabIds.templates}>
+                            Exchange Templates
                         </Tab>
                     </TabList>
                 </Drawer>
