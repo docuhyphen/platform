@@ -107,7 +107,7 @@ class SettingsService @Inject constructor(
         }
         settings.theme = requestedTheme
 
-        // Tour completion is a personal preference — no admin check needed.
+        // Tour completion is a personal preference, no admin check needed.
         settings.tourCompleted = settingsDto.tourCompleted
 
         targetUser.settings = settings

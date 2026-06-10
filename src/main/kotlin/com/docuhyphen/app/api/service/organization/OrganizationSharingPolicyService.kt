@@ -14,15 +14,15 @@ import java.util.UUID
  * distinguishes by the **nature of the recipient**, because sharing to a person is not
  * the same act as federating into another managed tenant:
  *
- *   * **B2C — recipient is an individual with no organization.** Allowed by default. Gated only by
+ *   * **B2C, recipient is an individual with no organization.** Allowed by default. Gated only by
  *     [OrganizationSettings.allowExternalCustomerSharing] (**default `true`**); an org may opt out.
  *     This is the headline B2C topology and must be ergonomic out of the box.
- *   * **Internal — recipient is in the initiator's own org.** Always allowed.
- *   * **B2B — recipient belongs to another organization.** Allowed only when the two orgs have an
+ *   * **Internal, recipient is in the initiator's own org.** Always allowed.
+ *   * **B2B, recipient belongs to another organization.** Allowed only when the two orgs have an
  *     ACCEPTED pairing link ([OrganizationSharingSessionLink], either direction), or the initiator
  *     org has explicitly set [OrganizationSettings.allowShareWithoutPairing] = `true`.
  *
- * Initiators who belong to no organization are unconstrained — the policy is an org-level control
+ * Initiators who belong to no organization are unconstrained, the policy is an org-level control
  * and there is no org to read the settings from.
  */
 @ApplicationScoped
@@ -41,7 +41,7 @@ class OrganizationSharingPolicyService @Inject constructor(
     /**
      * Throws [IllegalArgumentException] when the initiator's org policy forbids the share.
      * [recipientAppUserId] is null for recipients with no resolvable account (e.g. a brand-new
-     * external email) — treated as an external individual (B2C).
+     * external email), treated as an external individual (B2C).
      */
     fun assertCanShareWithUser(initiatorAppUserId: UUID, recipientAppUserId: UUID?)
     {
@@ -57,7 +57,7 @@ class OrganizationSharingPolicyService @Inject constructor(
         // Internal share (same org) is always allowed.
         if (recipientOrgId != null && recipientOrgId == initiatorOrgId) return
 
-        // B2C — recipient is an external individual with no org. Allowed by default; an org may
+        // B2C, recipient is an external individual with no org. Allowed by default; an org may
         // opt out via allowExternalCustomerSharing. Audit-logged because it bypasses the pairing
         // gate, so admins retain visibility into external-customer shares.
         if (recipientOrgId == null)
@@ -73,7 +73,7 @@ class OrganizationSharingPolicyService @Inject constructor(
             return
         }
 
-        // B2B — recipient belongs to another organization.
+        // B2B, recipient belongs to another organization.
         val allowShareWithoutPairing = settings?.allowShareWithoutPairing ?: false
         if (allowShareWithoutPairing) return
         if (arePaired(initiatorOrgId, recipientOrgId)) return

@@ -2,13 +2,12 @@ import {Button, Divider, Switch, Text} from "@fluentui/react-components";
 import {useProfileTabStyles} from "./ProfileTabStyles.tsx";
 import {ProfileEditBasicDetailsIcon} from "../../components/IconBundles.tsx";
 import {useAuth} from "../../../context/AuthContext.tsx";
-import React, {useEffect, useState} from "react";
+import {useEffect, useState} from "react";
 import {AppUserDetailedDto, AppUserSettingsDto} from "../../models/models.tsx";
 import {updateAppUserSettings} from "../../../services/appUserApi.ts";
 import BasicDetailsEditDialog from "./basic-details-edit-dialog/BasicDetailsEditDialog.tsx";
 import PhoneManagementDialog, {PhoneManagementMode} from "../../components/phone-management/PhoneManagementDialog.tsx";
 import AppUserEmailUpdateDialog from "../../components/app-user-email-update-dialog/AppUserEmailUpdateDialog.tsx";
-import AllDeviceSignOutDialog from "./all-device-sign-out-dialog/AllDeviceSignOutDialog.tsx";
 import PasswordResetDialog from "./password-reset-dialog/PasswordResetDialog.tsx";
 
 const ProfileTab = () =>
@@ -16,7 +15,6 @@ const ProfileTab = () =>
     const {appUser, token, setAppUser} = useAuth()
     const styles = useProfileTabStyles()
     const [isBasicDetailsDialogOpen, setIsBasicDetailsDialogOpen] = useState(false);
-    const [isAllDeviceSignOutDialogOpen, setIsAllDeviceSignOutDialogOpen] = useState(false);
     const [isPasswordResetDialogOpen, setIsPasswordResetDialogOpen] = useState(false);
     const [phoneManagementMode, setPhoneManagementMode] = useState(PhoneManagementMode.ADD);
     const [isContactDetailsEditDialogOpen, setIsContactDetailsEditDialogOpen] = useState(false);
@@ -64,6 +62,7 @@ const ProfileTab = () =>
 
     return <>
         <div className={styles.container}>
+
             {appUser &&
                 <Switch
                     checked={appUser.settings.notifyLogin}
@@ -132,12 +131,6 @@ const ProfileTab = () =>
                         onClick={() => setIsPasswordResetDialogOpen(true)}
                         size={"medium"}> Change password</Button>
             </div>
-            <div>
-                <Button appearance={"outline"}
-                        shape={"circular"}
-                        onClick={() => setIsAllDeviceSignOutDialogOpen(true)}
-                        size={"medium"}> Sign out of all devices</Button>
-            </div>
         </div>
 
         <AppUserEmailUpdateDialog
@@ -167,11 +160,6 @@ const ProfileTab = () =>
         <BasicDetailsEditDialog
             isOpen={isBasicDetailsDialogOpen}
             onDismiss={() => setIsBasicDetailsDialogOpen(false)}
-        />
-
-        <AllDeviceSignOutDialog
-            isOpen={isAllDeviceSignOutDialogOpen}
-            onDismiss={() => setIsAllDeviceSignOutDialogOpen(false)}
         />
 
         <PasswordResetDialog

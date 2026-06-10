@@ -211,7 +211,7 @@ class ShareService @Inject constructor(
             }
 
     /**
-     * All non-owner, non-participant shares on a session — includes both USER and
+     * All non-owner, non-participant shares on a session, includes both USER and
      * PRINCIPAL_GROUP recipients. Used for constraint reads/writes so that group-recipient
      * sessions are handled correctly.
      */

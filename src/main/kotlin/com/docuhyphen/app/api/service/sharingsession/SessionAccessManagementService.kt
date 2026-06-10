@@ -240,7 +240,7 @@ class SessionAccessManagementService @Inject constructor(
         val share = requireShareBelongsToSession(shareId, sessionId)
         val callerAppUserId = authTokenContext.authToken.appUser?.id
 
-        // Protect the session initiator's OWNER share — it's structural and must not be changed.
+        // Protect the session initiator's OWNER share, it's structural and must not be changed.
         val initiatorId = session.initiator?.id
         if (
             initiatorId != null &&
@@ -306,7 +306,7 @@ class SessionAccessManagementService @Inject constructor(
             val normalizedEmail = trimmed.normalizeEmailOrNull()
                 ?: throw IllegalArgumentException("Invalid principalId")
             appUserService.getAppUserByEmail(normalizedEmail)?.let { return kind to it.id }
-            // No registered user — promote to an ExternalParticipant so the invite is durable.
+            // No registered user, promote to an ExternalParticipant so the invite is durable.
             val participantId = findOrCreateExternalParticipant(normalizedEmail).id
             return PrincipalKind.PARTICIPANT to participantId
         }

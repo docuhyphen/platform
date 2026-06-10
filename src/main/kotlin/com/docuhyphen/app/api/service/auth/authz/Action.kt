@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.service.auth.authz
 /**
  * High-level operations callers ask `AuthorizationService.authorize(...)` about.
  * Each Action declares the [Capability] it requires. Add new actions here rather than
- * re-deriving the mapping at call sites — keeps the matrix in one place.
+ * re-deriving the mapping at call sites, keeps the matrix in one place.
  */
 enum class Action(val required: Capability)
 {

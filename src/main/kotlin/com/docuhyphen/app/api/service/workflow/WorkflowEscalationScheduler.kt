@@ -13,7 +13,7 @@ import java.time.Instant
  * `app.workflow.escalation.every`.
  *
  * Quarkus' built-in scheduler bean is wired automatically when `quarkus-scheduler` is on
- * the classpath — which it is transitively via `quarkus-arc`. No extra dependency is
+ * the classpath, which it is transitively via `quarkus-arc`. No extra dependency is
  * needed.
  *
  * The job is deliberately tiny: all logic stays in the engine so it can also be invoked

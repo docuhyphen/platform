@@ -25,7 +25,7 @@ interface AuthorizationService
         context: AuthorizationContext = AuthorizationContext.ANONYMOUS,
     ): Set<Capability>
 
-    /** Returns the per-grant breakdown that produced the union — for UI / audit / debugging. */
+    /** Returns the per-grant breakdown that produced the union, for UI / audit / debugging. */
     fun grantsOn(
         principal: PrincipalRef,
         resource: ResourceRef,

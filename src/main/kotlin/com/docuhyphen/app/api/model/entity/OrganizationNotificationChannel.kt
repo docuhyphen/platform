@@ -11,7 +11,7 @@ import java.util.*
 /**
  * Org-level configuration for a third-party channel (Slack / Teams / WhatsApp).
  *
- * `enforced=true` means individual users cannot opt out via [NotificationPreference] —
+ * `enforced=true` means individual users cannot opt out via [NotificationPreference],
  * the org has mandated this channel as the primary route. `fallbackChain` is a csv of
  * [NotificationChannelType] names used by the delivery dispatcher when the primary
  * channel fails (e.g. `SLACK,IN_APP,EMAIL`).

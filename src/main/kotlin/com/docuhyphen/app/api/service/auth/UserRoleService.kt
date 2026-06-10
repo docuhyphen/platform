@@ -9,7 +9,7 @@ import jakarta.inject.Inject
 import java.util.UUID
 
 /**
- * Resolves a user's effective roles from the unified model — `role_assignment` (APP scope)
+ * Resolves a user's effective roles from the unified model, `role_assignment` (APP scope)
  * and `organization_membership.role_name` (ORG scope). Replaces the retired single
  * `AppUser.role` enum.
  *

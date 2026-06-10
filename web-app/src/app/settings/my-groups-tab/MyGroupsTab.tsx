@@ -279,7 +279,7 @@ const MyGroupsTab: React.FC = () =>
             ) : (
                 <>
                     <div className={styles.header}>
-                        <Text weight="semibold" size={500}>My Groups</Text>
+                        <span></span>
                         <Button
                             icon={<AddRegular/>}
                             appearance="primary"

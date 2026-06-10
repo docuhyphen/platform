@@ -7,6 +7,7 @@ export const useSessionsTabStyles = makeStyles({
         gap: "16px",
         width: "100%",
         minWidth: 0,
+        height: "100%"
     },
     header: {
         display: "flex",
@@ -38,8 +39,6 @@ export const useSessionsTabStyles = makeStyles({
         flex: "1",
         flexDirection: "column",
         overflowY: "auto",
-        overflowX: "hidden",
-        maxHeight: "60vh",
         minHeight: 0,
         gap: "8px"
     },

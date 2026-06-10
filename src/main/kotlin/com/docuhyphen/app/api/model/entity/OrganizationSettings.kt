@@ -30,7 +30,7 @@ class OrganizationSettings
     var allowShareWithoutPairing: Boolean = false
 
     /**
-     * Whether this org may share with external **individual** customers — recipients who belong to
+     * Whether this org may share with external **individual** customers, recipients who belong to
      * no organization (the headline B2C topology). Defaults to `true`: sharing to a person is not
      * federating into a managed tenant, so it is allowed out of the box. The B2B-unpaired case
      * (recipient belongs to another, non-paired org) stays gated by [allowShareWithoutPairing].

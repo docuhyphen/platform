@@ -1,4 +1,4 @@
-# Sharing / Collaboration Redesign — Memory Log
+# Sharing / Collaboration Redesign, Memory Log
 
 ## Consolidated Status (2026-06-01)
 
@@ -18,7 +18,7 @@ Boot-validated from empty DB (Flyway V1→V3, Hibernate validate). Next migratio
 
 ---
 
-## DONE — Plan 02: Personal / self-service groups (2026-06-01)
+## DONE, Plan 02: Personal / self-service groups (2026-06-01)
 
 **What shipped:**
 - Extended `PrincipalGroupService` with PERSONAL-scope group CRUD:

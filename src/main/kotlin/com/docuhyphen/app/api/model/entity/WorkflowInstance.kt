@@ -23,7 +23,7 @@ enum class WorkflowInstanceStatus
  * in-flight state.
  *
  * `subjectDataJson` is the engine's frozen view of fields it needs to resolve
- * placeholders (`$subject.recipientGroupId`, `$subject.orgId`, …) — keeping it on
+ * placeholders (`$subject.recipientGroupId`, `$subject.orgId`, …), keeping it on
  * the row means the engine never has to dereference the subject mid-run.
  */
 @Entity

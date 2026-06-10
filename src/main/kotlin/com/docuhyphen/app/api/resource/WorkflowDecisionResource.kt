@@ -1,9 +1,11 @@
 package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.dto.SharingSessionBasicDto
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.workflow.Decision
+import com.docuhyphen.app.api.service.workflow.PendingWorkflowStepDto
 import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes
@@ -23,7 +25,7 @@ import java.util.UUID
  * group-manager approval that gates a group-recipient sharing session). The step instance id is
  * delivered to assignees in the `workflow.step_assigned` notification payload.
  *
- * The decider identity is taken from the authenticated session — never the request body — and
+ * The decider identity is taken from the authenticated session, never the request body, and
  * [WorkflowEngineService.recordDecision] independently verifies the decider is a snapshotted
  * assignee of the step, so an attacker cannot decide on a step they were not assigned.
  */
@@ -80,7 +82,7 @@ class WorkflowDecisionResource @Inject constructor(
         }
         catch (e: IllegalStateException)
         {
-            // Not an assignee, step not PENDING, or instance missing — a conflict with current state.
+            // Not an assignee, step not PENDING, or instance missing, a conflict with current state.
             logger.info("Workflow decision rejected for step {}: {}", stepId, e.message)
             Response.status(Response.Status.CONFLICT).entity(ResponseError(e.message)).build()
         }
@@ -104,7 +106,8 @@ class WorkflowDecisionResource @Inject constructor(
             ?: return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
         return try
         {
-            val pending = workflowEngineService.listPendingForUser(actor.id)
+            val pending = workflowEngineService.listPendingForUser(actor.id).toTypedArray()
+
             Response.ok(pending).build()
         }
         catch (e: Exception)

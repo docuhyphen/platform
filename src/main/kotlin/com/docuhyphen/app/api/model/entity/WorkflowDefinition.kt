@@ -20,7 +20,7 @@ enum class WorkflowScope
  * and described by a JSON `stepsJson` document conforming to
  * [com.docuhyphen.app.api.service.workflow.WorkflowSpec].
  *
- * The combination `(name, version)` is unique — bumping `version` is how a definition
+ * The combination `(name, version)` is unique, bumping `version` is how a definition
  * evolves without rewriting in-flight instances (which always capture
  * `definition_version` for replay-safety).
  */

@@ -72,7 +72,7 @@ class AppUser
     var application: Application? = null
 
     // Roles now live in organization_membership.role_name (org scope) and role_assignment
-    // (app scope) — resolved via UserRoleService. The legacy role columns are dropped at cutover.
+    // (app scope), resolved via UserRoleService. The legacy role columns are dropped at cutover.
 
     @Column(name = "is_temporary", nullable = false)
     var isTemporary: Boolean = false

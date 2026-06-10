@@ -113,7 +113,7 @@ class OAuthUserLinkingService @Inject constructor(
 
         val savedUser = appUserService.create(newUser)
 
-        // JIT users become members of the organization that owns their email domain — recorded
+        // JIT users become members of the organization that owns their email domain, recorded
         // in the organization_membership model so role resolution (UserRoleService) sees them.
         organizationIdentityPolicyService.resolveOrganizationForEmail(userInfo.email)?.let { organization ->
             organizationMembershipService.assignOrgRole(

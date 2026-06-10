@@ -15,6 +15,8 @@ import {UserSessionDto} from "../../models/models.tsx";
 import {listUserSessions, revokeUserSession} from "../../../services/authApi.ts";
 import {useSessionsTabStyles} from "./SessionsTabStyles.tsx";
 import {realtimeService} from "../../../services/NotificationService.tsx";
+import PasswordResetDialog from "../profile-tab/password-reset-dialog/PasswordResetDialog.tsx";
+import AllDeviceSignOutDialog from "../profile-tab/all-device-sign-out-dialog/AllDeviceSignOutDialog.tsx";
 
 const formatDate = (iso: string) =>
     new Date(iso).toLocaleString(undefined, {dateStyle: "medium", timeStyle: "short"});
@@ -26,6 +28,7 @@ const SessionsTab: React.FC = () =>
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [revoking, setRevoking] = useState<string | null>(null);
+    const [isAllDeviceSignOutDialogOpen, setIsAllDeviceSignOutDialogOpen] = useState(false);
 
     const load = async () =>
     {
@@ -104,7 +107,19 @@ const SessionsTab: React.FC = () =>
     };
 
     return (
-        <div className={styles.container}>
+        <div className={styles.container} id={"device-sessions-container"}>
+
+            <div className={styles.header}>
+                <span></span>
+
+                <div>
+                    <Button appearance={"primary"}
+                            shape="circular"
+                            onClick={() => setIsAllDeviceSignOutDialogOpen(true)}
+                            size={"medium"}> Sign out of all devices</Button>
+                </div>
+            </div>
+
             <Caption1>
                 These are all devices currently signed in to your account. Revoking a session will sign that device out immediately.
             </Caption1>
@@ -126,14 +141,6 @@ const SessionsTab: React.FC = () =>
                         <div className={styles.sessionMeta}>
                             <Subtitle2>
                                 {session.deviceName ?? session.userAgent?.split(' ')[0] ?? "Unknown device"}
-                                {session.isCurrent && (
-                                    <>
-                                        &nbsp;
-                                        <Badge appearance="filled" color="brand" size="small">
-                                            This device
-                                        </Badge>
-                                    </>
-                                )}
                             </Subtitle2>
                             {session.ipAddress && (
                                 <Caption1>IP: {session.ipAddress}</Caption1>
@@ -145,9 +152,14 @@ const SessionsTab: React.FC = () =>
                             )}
                         </div>
                         <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                            <Badge appearance="outline" color="informative" size="small">Active</Badge>
+                            {session.isCurrent && (
+                                <Badge appearance="filled" color="brand">
+                                    This device
+                                </Badge>
+                            )}
                             <Button
                                 icon={<DeleteRegular/>}
+                                shape={"circular"}
                                 appearance="subtle"
                                 size="small"
                                 disabled={revoking === session.sessionId}
@@ -161,6 +173,11 @@ const SessionsTab: React.FC = () =>
                     </div>
                 ))}
             </div>
+
+            <AllDeviceSignOutDialog
+                isOpen={isAllDeviceSignOutDialogOpen}
+                onDismiss={() => setIsAllDeviceSignOutDialogOpen(false)}
+            />
         </div>
     );
 };

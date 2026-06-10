@@ -39,7 +39,7 @@ const INLINE_ZOOM_STORAGE_KEY = 'sharingSessions.preview.zoom.inline';
 const ENLARGED_ZOOM_STORAGE_KEY = 'sharingSessions.preview.zoom.enlarged';
 const DEFAULT_ZOOM_LEVEL = 1.0;
 const MIN_ZOOM_LEVEL = 0.5;
-const MAX_ZOOM_LEVEL = 2.0;
+const MAX_ZOOM_LEVEL = 4.0;
 
 // Default US-letter page dimensions used as a placeholder size until a page reports
 // its actual size. This keeps the scroll height stable so virtualization works smoothly.
@@ -771,7 +771,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
             return (
                 <div className={styles.pdfLoadingContainer}>
                     <Spinner size="small"/>
-                    <Text size={300} className={styles.pdfLoadingText}>Loading PDF...</Text>
+                    <Text size={300} className={styles.pdfLoadingText}>Loading Document</Text>
                 </div>
             );
         }
@@ -784,7 +784,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                 loading={
                     <div className={styles.pdfLoadingContainer}>
                         <Spinner size="small"/>
-                        <Text size={300} className={styles.pdfLoadingText}>Loading PDF...</Text>
+                        <Text size={300} className={styles.pdfLoadingText}>Loading Document</Text>
                     </div>
                 }
                 onLoadSuccess={onDocumentLoadSuccess}

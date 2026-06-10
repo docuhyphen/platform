@@ -15,6 +15,7 @@ import jakarta.ws.rs.container.ContainerRequestFilter
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.ext.Provider
 import org.slf4j.LoggerFactory
+import java.util.UUID
 
 @RequestScoped
 class AuthTokenContext
@@ -152,7 +153,7 @@ class EndpointVerificationFilter @Inject constructor(
 
         val userId = try
         {
-            java.util.UUID.fromString(claims.subject)
+            UUID.fromString(claims.subject)
         }
         catch (e: Exception)
         {
@@ -209,7 +210,7 @@ class EndpointVerificationFilter @Inject constructor(
 
         val sessionId = try
         {
-            java.util.UUID.fromString(sessionIdRaw)
+            UUID.fromString(sessionIdRaw)
         }
         catch (_: Exception)
         {

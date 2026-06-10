@@ -562,7 +562,7 @@ class SignUpService @Inject constructor(
 
     /**
      * Creates the INTERNAL identity-provider link for a user who registered with email + password.
-     * Idempotent — if the link already exists (e.g. for an upgraded temp user) this is a no-op.
+     * Idempotent, if the link already exists (e.g. for an upgraded temp user) this is a no-op.
      * Failures must never block sign-up; callers wrap this in runCatching.
      */
     private fun createInternalIdpLink(appUser: AppUser)

@@ -38,11 +38,11 @@ const SOLUTIONS: NavLink[] = [
     {label: "Banking", to: "/solutions/banking"},
 ];
 
-const RESOURCES: NavLink[] = [
-    {label: "Overview", to: "/resources"},
-    {label: "Security FAQ", to: "/help/security-faq"},
-    {label: "Security & Trust", to: "/security"},
-];
+// const RESOURCES: NavLink[] = [
+//     {label: "Overview", to: "/resources"},
+//     {label: "Security FAQ", to: "/help/security-faq"},
+//     {label: "Security & Trust", to: "/security"},
+// ];
 
 const useStyles = makeStyles({
     wrapper: {
@@ -190,22 +190,30 @@ export function LandingHeader()
                             <Text>Pricing</Text>
                         </Link>
 
-                        <Menu>
-                            <MenuTrigger disableButtonEnhancement>
-                                <button className={styles.navLink} type="button">
-                                    Resources <ChevronDown16Regular/>
-                                </button>
-                            </MenuTrigger>
-                            <MenuPopover>
-                                <MenuList>
-                                    {RESOURCES.map((r) => (
-                                        <MenuItem key={r.to} onClick={() => navigate(r.to)}>
-                                            {r.label}
-                                        </MenuItem>
-                                    ))}
-                                </MenuList>
-                            </MenuPopover>
-                        </Menu>
+                        <Link to="/about" className={styles.navLink}>
+                            <Text>About</Text>
+                        </Link>
+
+                        <Link to="/contact" className={styles.navLink}>
+                            <Text>Contact</Text>
+                        </Link>
+
+                        {/*<Menu>*/}
+                        {/*    <MenuTrigger disableButtonEnhancement>*/}
+                        {/*        <button className={styles.navLink} type="button">*/}
+                        {/*            Resources <ChevronDown16Regular/>*/}
+                        {/*        </button>*/}
+                        {/*    </MenuTrigger>*/}
+                        {/*    <MenuPopover>*/}
+                        {/*        <MenuList>*/}
+                        {/*            {RESOURCES.map((r) => (*/}
+                        {/*                <MenuItem key={r.to} onClick={() => navigate(r.to)}>*/}
+                        {/*                    {r.label}*/}
+                        {/*                </MenuItem>*/}
+                        {/*            ))}*/}
+                        {/*        </MenuList>*/}
+                        {/*    </MenuPopover>*/}
+                        {/*</Menu>*/}
                     </div>
                 </div>
 
@@ -265,10 +273,10 @@ export function LandingHeader()
                                           className={styles.mainMobileMenuItem}>
                                     Contact
                                 </MenuItem>
-                                <MenuItem onClick={() => navigate("/resources")}
-                                          className={styles.mainMobileMenuItem}>
-                                    Resources
-                                </MenuItem>
+                                {/*<MenuItem onClick={() => navigate("/resources")}*/}
+                                {/*          className={styles.mainMobileMenuItem}>*/}
+                                {/*    Resources*/}
+                                {/*</MenuItem>*/}
                             </MenuList>
                         </MenuPopover>
                     </Menu>

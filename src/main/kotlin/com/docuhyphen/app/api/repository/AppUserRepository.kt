@@ -12,7 +12,7 @@ class AppUserRepository : BaseRepository<AppUser>(AppUser::class.java)
     /**
      * Users belonging to an organization, resolved through `organization_membership`
      * (the replacement for the retired `app_user.organization_id` join). Returns members
-     * with an ACTIVE membership — including users whose own `isActive` flag is false, since
+     * with an ACTIVE membership, including users whose own `isActive` flag is false, since
      * deactivation flips `AppUser.isActive` but leaves the membership ACTIVE so admins can
      * still see/reactivate them.
      */

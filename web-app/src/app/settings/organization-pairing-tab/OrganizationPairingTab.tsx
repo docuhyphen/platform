@@ -173,6 +173,9 @@ const OrganizationPairingTab = () =>
 
             <section className={styles.container}>
                 <div className={styles.header}>
+
+                    <span></span>
+
                     <Button
                         icon={<LinkAddRegular/>}
                         appearance="primary"
@@ -198,22 +201,20 @@ const OrganizationPairingTab = () =>
                             Pared
                         </Tab>
                     </TabList>
-                    <div className={styles.tabs} id={"settings-tabs"}>
-                        {selectedTab === tabIds.pairedOrganizations &&
-                            <ParedOrganizationsTab
-                                orgPairs={pairedOrgs}
-                                onOrgPareUnpaired={() => fetchOrgPairs()}
-                            />
-                        }
-                        {selectedTab === tabIds.paringRequests &&
-                            <OrganizationParingRequestsTab
-                                orgPairs={orgPairRequests}
-                                onOrgPairRequestDeleted={onParingRequestDeleted}
-                                onOrgPairRequestRejected={onParingRequestRejected}
-                                onOrgPairRequestAccepted={onParingRequestAccepted}
-                            />
-                        }
-                    </div>
+                    {selectedTab === tabIds.pairedOrganizations &&
+                        <ParedOrganizationsTab
+                            orgPairs={pairedOrgs}
+                            onOrgPareUnpaired={() => fetchOrgPairs()}
+                        />
+                    }
+                    {selectedTab === tabIds.paringRequests &&
+                        <OrganizationParingRequestsTab
+                            orgPairs={orgPairRequests}
+                            onOrgPairRequestDeleted={onParingRequestDeleted}
+                            onOrgPairRequestRejected={onParingRequestRejected}
+                            onOrgPairRequestAccepted={onParingRequestAccepted}
+                        />
+                    }
                 </div>
             </section>
             <ParingRequestDialog isOpen={isParingRequestDialogOpen}

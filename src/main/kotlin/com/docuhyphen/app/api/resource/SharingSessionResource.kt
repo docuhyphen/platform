@@ -174,7 +174,7 @@ class SharingSessionResource @Inject constructor(
             val sharingSessionDto = DetailedEntityToDtoTransformer.toDto(sharingSession)
             val enriched = enrichSessionWithRecipient(enrichSessionWithPermissions(enrichSessionWithFileSizes(sharingSessionDto)))
 
-            // TEMP DEBUG — remove once permissions issue resolved
+            // TEMP DEBUG, remove once permissions issue resolved
             val rawConstraints = shareService.recipientConstraintsJson(java.util.UUID.fromString(sessionId))
             logger.info(
                 "DEBUG getSharingSession sessionId={} rawConstraints={} dto.allowDocumentUpload={} dto.allowDocumentUpdate={} dto.allowDocumentDeletion={} dto.allowDocumentDownload={} dto.allowDocumentAddition={}",
@@ -612,7 +612,7 @@ class SharingSessionResource @Inject constructor(
         val constraintsJson = shareService.recipientConstraintsJson(sessionDto.id) ?: return sessionDto
         val c = ShareConstraints.parse(constraintsJson)
         // The download key is `can_download` in the newer constraints but
-        // `allow_document_download` in the legacy initiation flags — accept either.
+        // `allow_document_download` in the legacy initiation flags, accept either.
         val downloadAllowed = c.canDownload != false &&
             (constraintsJson.contains("\"allow_document_download\":true") ||
                 c.canDownload == true)

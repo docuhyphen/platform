@@ -192,7 +192,8 @@ export function HeroSection()
     const [isSupportingVisible, setIsSupportingVisible] = useState(false);
     const [isActionsVisible, setIsActionsVisible] = useState(false);
 
-    useEffect(() => {
+    useEffect(() =>
+    {
         let index = 0;
         const startDelayMs = 600;
         const charDelayMs = 50;
@@ -201,21 +202,27 @@ export function HeroSection()
         let supportingTimerId: number | undefined;
         let actionsTimerId: number | undefined;
 
-        const startTimer = window.setTimeout(() => {
-            intervalId = window.setInterval(() => {
+        const startTimer = window.setTimeout(() =>
+        {
+            intervalId = window.setInterval(() =>
+            {
                 index += 1;
                 setTypedSuffix(suffixText.slice(0, index));
 
-                if (index >= suffixText.length) {
-                    if (intervalId !== undefined) {
+                if (index >= suffixText.length)
+                {
+                    if (intervalId !== undefined)
+                    {
                         window.clearInterval(intervalId);
                     }
                     setIsTyping(false);
 
-                    supportingTimerId = window.setTimeout(() => {
+                    supportingTimerId = window.setTimeout(() =>
+                    {
                         setIsSupportingVisible(true);
 
-                        actionsTimerId = window.setTimeout(() => {
+                        actionsTimerId = window.setTimeout(() =>
+                        {
                             setIsActionsVisible(true);
                         }, revealActionsDelayMs);
                     }, 0);
@@ -223,15 +230,19 @@ export function HeroSection()
             }, charDelayMs);
         }, startDelayMs);
 
-        return () => {
+        return () =>
+        {
             window.clearTimeout(startTimer);
-            if (intervalId !== undefined) {
+            if (intervalId !== undefined)
+            {
                 window.clearInterval(intervalId);
             }
-            if (supportingTimerId !== undefined) {
+            if (supportingTimerId !== undefined)
+            {
                 window.clearTimeout(supportingTimerId);
             }
-            if (actionsTimerId !== undefined) {
+            if (actionsTimerId !== undefined)
+            {
                 window.clearTimeout(actionsTimerId);
             }
         };
@@ -239,7 +250,7 @@ export function HeroSection()
 
     return (
         <section className={styles.wrapper}>
-            <FloatingDocuments />
+            <FloatingDocuments/>
             <section className={styles.container}>
                 <LargeTitle align="center" className={styles.title}>
                     Welcome to <span className={styles.noWrap}>DocuHyphen</span>, {typedSuffix}

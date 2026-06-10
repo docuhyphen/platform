@@ -152,7 +152,7 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
         return <>
 
             <div className={styles.header}>
-                <div></div>
+                <span></span>
                 <Button
                     icon={<GroupAddIcon/>}
                     appearance="primary"
@@ -181,6 +181,7 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
 
     return <>
         <div className={styles.container}>
+
             {error && <div className={styles.error}>{error}</div>}
 
             {loading ? (

@@ -111,7 +111,8 @@ import {
     ZoomInFilled,
     ZoomInRegular,
     ZoomOutFilled,
-    ZoomOutRegular
+    ZoomOutRegular, PeopleTeamToolboxFilled, PeopleTeamToolboxRegular, PhoneLaptopRegular, PhoneLaptopFilled,
+    ShieldPersonFilled, ShieldPersonRegular, PersonShieldRegular, PersonShieldFilled
 } from "@fluentui/react-icons";
 
 export const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
@@ -122,11 +123,15 @@ export const OrganizationParingRequestsTabIcon = bundleIcon(LinkAddFilled, LinkA
 export const SettingsProfileTabIcon = bundleIcon(PersonSettingsFilled, PersonSettingsRegular)
 export const SettingsOrganizationTabIcon = bundleIcon(BuildingFilled, BuildingRegular)
 export const SettingsOrganizationPeopleTabIcon = bundleIcon(BuildingPeopleFilled, BuildingPeopleRegular)
-export const SettingsOrganizationGroupsTabIcon = bundleIcon(PeopleTeamFilled, PeopleTeamRegular)
+export const SettingsLinkedAccountsTabIcon = bundleIcon(ShieldPersonFilled, ShieldPersonRegular)
+export const SettingsDeviceSessionsTabIcon = bundleIcon(PhoneLaptopFilled, PhoneLaptopRegular)
+export const SettingsOrganizationGroupsTabIcon = bundleIcon(PeopleTeamToolboxFilled, PeopleTeamToolboxRegular)
+export const SettingsMyGroupsTabIcon = bundleIcon(PeopleTeamFilled, PeopleTeamRegular)
 export const SettingsAppSettingsTabIcon = bundleIcon(SettingsCogMultipleFilled, SettingsCogMultipleRegular)
 export const OrganizationPairingTabIcon = bundleIcon(BuildingBankLinkFilled, BuildingBankLinkRegular)
 export const SettingsTemplatesTabIcon = bundleIcon(BookTemplateFilled, BookTemplateRegular)
 export const TemplateAddIcon = bundleIcon(BookAddFilled, BookAddRegular)
+export const SettingsAppAdminsIcon = bundleIcon(PersonShieldFilled, PersonShieldRegular)
 export const PairOrgTabIcon = bundleIcon(BuildingTownhouseFilled, BuildingTownhouseRegular)
 export const PersonAddIcon = bundleIcon(PersonAddFilled, PersonAddRegular)
 export const FilterIcon = bundleIcon(FilterFilled, FilterRegular);

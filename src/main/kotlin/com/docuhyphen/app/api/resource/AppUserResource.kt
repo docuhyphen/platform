@@ -13,6 +13,7 @@ import com.docuhyphen.app.api.resource.model.InitiateAddOrUpdateEmailRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
+import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -30,6 +31,7 @@ import java.util.*
 class AppUserResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val organizationGroupService: OrganizationGroupService,
+    private val membershipService: OrganizationMembershipService,
     private val appUserService: AppUserService,
 )
 {
@@ -44,8 +46,15 @@ class AppUserResource @Inject constructor(
         return try
         {
             authTokenContext.authToken.appUser?.let {
+                membershipService.primaryOrganizationId(it.id)?.let { orgId ->
 
-                Response.ok(DetailedEntityToDtoTransformer.toDto(it)).build()
+                    val userRole = membershipService.roleOf(it.id, orgId)
+
+                    if(userRole != null) {
+                        Response.ok(DetailedEntityToDtoTransformer.toDto(it, userRole)).build()
+                    } else null
+
+                } ?: Response.ok(DetailedEntityToDtoTransformer.toDto(it)).build()
 
             } ?: Response.status(BAD_REQUEST).entity(ResponseError("No user found")).build()
         }

@@ -31,7 +31,7 @@ import java.util.UUID
  *   * Event "emission" returns the list to the caller (iteration 3 wires Kafka).
  *   * SLA escalation is a no-op marker (iteration 3 wires a Quarkus scheduler).
  *   * Only APPROVAL steps are exercised. NOTIFICATION / CONDITION / ACTION steps
- *     decode and advance unconditionally — concrete handlers land later.
+ *     decode and advance unconditionally, concrete handlers land later.
  */
 @ApplicationScoped
 class DefaultWorkflowEngineService : WorkflowEngineService
@@ -181,7 +181,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                 }
             }
         }
-        // else: quorum not yet met — leave step PENDING.
+        // else: quorum not yet met, leave step PENDING.
 
         stepRepository.update(step)
         instanceRepository.update(instance)
@@ -466,7 +466,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     /**
      * Emit `workflow.step_assigned` so the notification rule engine can fan it out to
      * each resolved assignee. The assignees are serialised into the event payload as a
-     * csv of `USER:<uuid>` tokens — the format [com.docuhyphen.app.api.service.notification.NotificationRuleEngine]
+     * csv of `USER:<uuid>` tokens, the format [com.docuhyphen.app.api.service.notification.NotificationRuleEngine]
      * understands for `EVENT_PAYLOAD` rules.
      */
     private fun publishStepAssigned(

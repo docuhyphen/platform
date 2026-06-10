@@ -11,7 +11,7 @@ import jakarta.inject.Inject
 import java.util.UUID
 
 /**
- * Write-side for `organization_membership` — the unified replacement for the retired
+ * Write-side for `organization_membership`, the unified replacement for the retired
  * single `AppUser.role` enum. Provisioning paths (org registration, JIT/SCIM/OAuth, admin
  * role assignment) call [assignOrgRole] to record a user's role within an organization.
  *
@@ -69,7 +69,7 @@ class OrganizationMembershipService @Inject constructor(
     /**
      * Enabled administrators (ORG_ADMIN / ORG_OWNER) of the org: ACTIVE members whose own
      * account is enabled (not deactivated, not deprovisioned). Used to enforce the
-     * "an organization must always retain at least one usable admin" invariant — a deactivated
+     * "an organization must always retain at least one usable admin" invariant, a deactivated
      * or deprovisioned admin can't actually administer, so they don't count toward the floor.
      */
     fun activeAdmins(organizationId: UUID): List<AppUser>
@@ -82,7 +82,7 @@ class OrganizationMembershipService @Inject constructor(
     }
 
     /**
-     * True when [appUserId] is the *only* enabled administrator of the org — i.e. demoting,
+     * True when [appUserId] is the *only* enabled administrator of the org, i.e. demoting,
      * deactivating, or removing them would leave the organization with no usable admin.
      */
     fun isLastActiveAdmin(appUserId: UUID, organizationId: UUID): Boolean

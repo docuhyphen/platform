@@ -14,7 +14,7 @@ data class PrincipalGroupMemberDto(
 )
 
 /**
- * Group response in the new unified model. Replaces OrganizationGroupDetailedDto — members
+ * Group response in the new unified model. Replaces OrganizationGroupDetailedDto, members
  * carry a [groupRole] (OWNER/MANAGER/MEMBER/OBSERVER) instead of a per-member permission bag.
  */
 @Serializable

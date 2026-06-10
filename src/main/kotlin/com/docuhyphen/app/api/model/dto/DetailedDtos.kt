@@ -13,6 +13,7 @@ data class OrganizationDetailedDto(
     @Serializable(with = TimestampSerializer::class)
     val createdDate: Timestamp?,
     val isActive: Boolean?,
+    val verificationComplete: Boolean?,
     val name: String?,
     val registrationNumber: String?,
     val contactDetails: ContactDetailsDetailedDto?,

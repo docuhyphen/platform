@@ -8,7 +8,7 @@ import jakarta.inject.Inject
 
 /**
  * Action-level authorization checks for user/org settings flows. Roles are resolved through
- * [UserRoleService] (organization_membership / role_assignment) — the legacy `AppUser.role`
+ * [UserRoleService] (organization_membership / role_assignment), the legacy `AppUser.role`
  * enum is gone.
  */
 @ApplicationScoped
@@ -20,10 +20,11 @@ class ServiceActionAuthorizationService @Inject constructor(
     {
         // Normal users may manage their phone number; application admins operate as users and
         // are not the target of this self-service flow.
-        if (userRoleService.isAppAdmin(appUser.id))
-        {
-            throw UnauthorizedException("Application administrators cannot add a phone number here")
-        }
+        //ToDO: admins must be able to update org phone numbers
+//        if (userRoleService.isAppAdmin(appUser.id))
+//        {
+//            throw UnauthorizedException("Application administrators cannot add a phone number here")
+//        }
     }
 
     fun validateAppUserEmailModification(appUser: AppUser)
@@ -41,7 +42,7 @@ class ServiceActionAuthorizationService @Inject constructor(
 
     fun validateUpdateAppUserSettings(appUser: AppUser, targetUser: AppUser)
     {
-        // (Intentionally permissive — retained from the legacy implementation.)
+        // (Intentionally permissive, retained from the legacy implementation.)
     }
 
     fun validateUpdateNotificationSettings(appUser: AppUser, targetUser: AppUser)

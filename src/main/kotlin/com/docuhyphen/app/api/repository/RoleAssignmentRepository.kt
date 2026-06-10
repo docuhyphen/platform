@@ -46,7 +46,7 @@ class RoleAssignmentRepository : BaseRepository<RoleAssignment>(RoleAssignment::
                 .resultList
         }
 
-    /** Count of active APP_ADMIN role assignments — used to enforce the "keep ≥1 admin" invariant. */
+    /** Count of active APP_ADMIN role assignments, used to enforce the "keep ≥1 admin" invariant. */
     fun countActiveAppAdmins(): Long =
         entityManager.createQuery(
             """SELECT COUNT(r) FROM RoleAssignment r
@@ -68,7 +68,7 @@ class RoleAssignmentRepository : BaseRepository<RoleAssignment>(RoleAssignment::
 
     /**
      * A user's APP-scope assignment for a given role (any status), if one exists. Used to make
-     * grants idempotent — reactivate a soft-deleted row rather than inserting a duplicate.
+     * grants idempotent, reactivate a soft-deleted row rather than inserting a duplicate.
      */
     fun findAppRoleForUser(appUserId: UUID, roleName: String): RoleAssignment? =
         entityManager.createQuery(

@@ -5,7 +5,6 @@ export const useMyGroupsTabStyles = makeStyles({
         display: 'flex',
         flexDirection: 'column',
         ...shorthands.gap('12px'),
-        ...shorthands.padding('16px', '0'),
     },
     header: {
         display: 'flex',

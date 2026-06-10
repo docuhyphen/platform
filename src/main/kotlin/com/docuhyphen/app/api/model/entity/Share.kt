@@ -37,8 +37,8 @@ enum class ShareStatus
 /**
  * Unified sharing grant. Replaces the legacy three-way recipient columns on
  * [SharingSession] (`recipient_id`, `recipient_type`, `group_id`) and the
- * boolean `allow_document_*` flags. Every recipient — be it a user, participant,
- * group, organization, service account, or public link — gets its own row.
+ * boolean `allow_document_*` flags. Every recipient, be it a user, participant,
+ * group, organization, service account, or public link, gets its own row.
  *
  * Inheritance is materialised: when a group is shared with, a DIRECT row is created
  * for the group plus INHERITED_FROM_GROUP rows for each member, with `sourceShareId`

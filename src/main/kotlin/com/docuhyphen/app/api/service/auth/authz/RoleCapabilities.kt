@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.entity.RoleName
 
 /**
  * Static mapping from [RoleName] to the set of [Capability]s it grants. This is the
- * single source of truth for "what can role X do" — no booleans scattered across entities.
+ * single source of truth for "what can role X do", no booleans scattered across entities.
  *
  * Resolution is most-permissive: when multiple roles apply, the union of their
  * capabilities wins. Explicit denies (from share constraints, org policy, session state)
@@ -134,7 +134,7 @@ object RoleCapabilities
         RoleName.VIEWER to setOf(
             Capability.SESSION_READ,
             Capability.DOCUMENT_READ,
-            // DOCUMENT_DOWNLOAD is conditional on share constraints.can_download — applied
+            // DOCUMENT_DOWNLOAD is conditional on share constraints.can_download, applied
             // dynamically by DefaultAuthorizationService.
         ),
         RoleName.COMMENTER to setOf(

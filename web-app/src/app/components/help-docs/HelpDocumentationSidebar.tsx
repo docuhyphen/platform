@@ -10,7 +10,7 @@ import {
     makeStyles,
     tokens,
 } from "@fluentui/react-components";
-import {Navigation24Regular} from "@fluentui/react-icons";
+import {DismissFilled, Navigation24Regular} from "@fluentui/react-icons";
 import {
     getDefaultHelpDocArticle,
     getHelpDocArticleById,
@@ -230,7 +230,10 @@ const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOp
                                         ))}
                                     </React.Fragment>
                                 ))}
-                                <MenuItem onClick={() => onOpenChange(false)}>Close help panel</MenuItem>
+                                <MenuItem onClick={() => onOpenChange(false)}
+                                          icon={<DismissFilled></DismissFilled>}>
+                                    Close help panel
+                                </MenuItem>
                             </MenuList>
                         </MenuPopover>
                     </Menu>

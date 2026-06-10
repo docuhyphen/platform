@@ -15,7 +15,7 @@ import java.util.UUID
  * model. The approval workflow ([DefaultWorkflowEngineService]) emits `session.activated` /
  * `session.rejected` domain events when its single APPROVAL step resolves (via an assignee
  * decision *or* via SLA escalation auto-approve/auto-reject). This handler is the business sink
- * for those events — distinct from the notification fan-out — so the outcome is applied uniformly
+ * for those events, distinct from the notification fan-out, so the outcome is applied uniformly
  * regardless of which path produced it.
  *
  * Invoked synchronously by [com.docuhyphen.app.api.service.notification.EventRouter], inside the
@@ -34,7 +34,7 @@ class SessionApprovalEventHandler @Inject constructor(
         const val EVENT_REJECTED = "session.rejected"
     }
 
-    /** True for the event types this handler acts on — lets the router skip the lookup otherwise. */
+    /** True for the event types this handler acts on, lets the router skip the lookup otherwise. */
     fun handles(eventType: String): Boolean =
         eventType == EVENT_ACTIVATED || eventType == EVENT_REJECTED
 

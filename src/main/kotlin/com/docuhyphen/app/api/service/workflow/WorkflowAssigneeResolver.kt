@@ -18,8 +18,8 @@ import java.util.UUID
  * the concrete set of [PrincipalRef]s that should receive an APPROVAL step.
  *
  * Placeholder resolution reads from a `subjectDataJson` blob captured on the
- * [com.docuhyphen.app.api.model.entity.WorkflowInstance] at startup — never from the live
- * subject — so the resolution is replay-safe and immune to mid-flow mutations.
+ * [com.docuhyphen.app.api.model.entity.WorkflowInstance] at startup, never from the live
+ * subject, so the resolution is replay-safe and immune to mid-flow mutations.
  */
 @ApplicationScoped
 class WorkflowAssigneeResolver

@@ -8,7 +8,7 @@ import java.util.UUID
 
 /**
  * One entry in a resource's unified access view (see v2 plan §6.2). Sourced from the `share`
- * table — replaces the legacy three-way recipient + per-session permission representation.
+ * table, replaces the legacy three-way recipient + per-session permission representation.
  */
 @Serializable
 data class SessionAccessEntryDto(

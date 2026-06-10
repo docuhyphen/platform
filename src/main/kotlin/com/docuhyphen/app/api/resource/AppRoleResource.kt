@@ -22,7 +22,7 @@ import java.util.UUID
 
 /**
  * App Admin (APP-scope role) provisioning. Every route requires the caller to already
- * be an App Admin — resolved from the authenticated session, never the request body. App roles
+ * be an App Admin, resolved from the authenticated session, never the request body. App roles
  * are additive, so an admin keeps all their normal org/group/personal grants.
  */
 @Path("admin/roles")
@@ -81,7 +81,7 @@ class AppRoleResource @Inject constructor(
     /**
      * Global app-user search for the App Admins picker. App-admin is a global
      * role, so the picker must reach users outside the caller's org. Guarded by the same
-     * `isAppAdmin` check as the rest of this resource — an attacker without app-admin gets a
+     * `isAppAdmin` check as the rest of this resource, an attacker without app-admin gets a
      * 403 before any DB hit.
      */
     @GET

@@ -1,10 +1,19 @@
-import {useEffect, useState} from "react";
-import {SelectTabData, SelectTabEvent, Tab, TabList, TabValue,} from "@fluentui/react-components";
-import {useSettingsStyles} from "./SettingsStyles.tsx";
-import OrganizationTab from "./organization-tab/OrganizationTab.tsx";
+import React, {useEffect, useState} from "react";
+
 import {
-    PairOrgTabIcon,
-    SettingsAppSettingsTabIcon,
+    SelectTabData,
+    Drawer,
+    DrawerBody,
+    DrawerHeader,
+    DrawerHeaderTitle,
+    InlineDrawer,
+    OverlayDrawer,
+    SelectTabEvent, Tab, TabList, TabValue,} from "@fluentui/react-components";
+import {useSettingsStyles} from "./SettingsStyles.tsx";
+import OrganizationDetailsTab from "./organization-tab/OrganizationTab.tsx";
+import {
+    PairOrgTabIcon, SettingsAppAdminsIcon,
+    SettingsAppSettingsTabIcon, SettingsDeviceSessionsTabIcon, SettingsLinkedAccountsTabIcon, SettingsMyGroupsTabIcon,
     SettingsOrganizationGroupsTabIcon,
     SettingsOrganizationPeopleTabIcon,
     SettingsOrganizationTabIcon,
@@ -22,6 +31,7 @@ import LinkedAccountsTab from "./linked-accounts-tab/LinkedAccountsTab.tsx";
 import SessionsTab from "./sessions-tab/SessionsTab.tsx";
 import MyGroupsTab from "./my-groups-tab/MyGroupsTab.tsx";
 import AppAdminsTab from "./app-admins-tab/AppAdminsTab.tsx";
+import OrganizationTab from "./organization-tab/OrganizationTab.tsx";
 
 const Settings = () =>
 {
@@ -29,7 +39,7 @@ const Settings = () =>
         profile: "ProfileTab",
         linkedAccounts: "LinkedAccountsTab",
         sessions: "SessionsTab",
-        organization: "OrganizationTab",
+        organization: "OrganizationDetailsTab",
         appSettings: "AppSettingsTab",
         people: "PeopleTab",
         groups: "GroupsTab",
@@ -39,102 +49,70 @@ const Settings = () =>
         appAdmins: "AppAdminsTab"
     }
 
+    const [isMenuDrawerOpen, setIsMenuDrawerOpen] = React.useState(true);
+    const [menuDrawerType, setMenuDrawerType] = React.useState<"overlay" | "inline">("inline");
     const {appUser, appUserPersonOrganization} = useAuth();
     const styles = useSettingsStyles();
     const [selectedValue, setSelectedValue] = useState<TabValue>(tabIds.profile);
     const roleValue = `${appUser?.role ?? ''}`;
-    const canManageOrganization = Boolean(
-        appUserPersonOrganization?.isActive && (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN')
-    );
 
+    const canManageOrganization =  () =>
+    {
+        return appUserPersonOrganization?.isActive && (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN')
+    }
 
     const onTabSelect = (_event: SelectTabEvent, data: SelectTabData) =>
     {
         setSelectedValue(data.value);
     };
 
-    useEffect(() =>
-    {
-    }, [appUserPersonOrganization]);
-
     return (
         <>
             <div className={styles.container}>
-                <TabList selectedValue={selectedValue}
-                         onTabSelect={onTabSelect}
-                         size="medium"
-                         className={styles.tabList}>
-                    <Tab id="ProfileTab"
-                         icon={<SettingsProfileTabIcon/>}
-                         value={tabIds.profile}>
-                        Profile
-                    </Tab>
-                    <Tab id="LinkedAccountsTab"
-                         value={tabIds.linkedAccounts}>
-                        Linked Accounts
-                    </Tab>
-                    <Tab id="SessionsTab"
-                         value={tabIds.sessions}>
-                        Device Sessions
-                    </Tab>
-                    <Tab id="OrganizationTab"
-                         icon={<SettingsOrganizationTabIcon/>}
-                         value={tabIds.organization}>
-                        Your Organization
-                    </Tab>
-                    {canManageOrganization && <>
-
-                        <Tab id="PeopleTab"
-                             icon={<SettingsOrganizationPeopleTabIcon/>}
-                             value={tabIds.people}>
-                            Your People
+                <Drawer
+                    type={menuDrawerType}
+                    open={isMenuDrawerOpen}
+                    onOpenChange={(_, { open }) => setIsMenuDrawerOpen(open)}
+                >
+                    <TabList selectedValue={selectedValue}
+                             appearance="subtle-circular"
+                             onTabSelect={onTabSelect}
+                             vertical
+                             size="medium">
+                        <Tab id="ProfileTab"
+                             icon={<SettingsProfileTabIcon/>}
+                             value={tabIds.profile}>
+                            Profile
                         </Tab>
-                        <Tab id="GroupsTab"
-                             icon={<SettingsOrganizationGroupsTabIcon/>}
-                             value={tabIds.groups}>
-                            Groups
+                        <Tab id="AppSettingsTab"
+                             icon={<SettingsAppSettingsTabIcon/>}
+                             value={tabIds.appSettings}>
+                            App Preferences
                         </Tab>
-                    </>
-                    }
-                    <Tab id="AppSettingsTab"
-                         icon={<SettingsAppSettingsTabIcon/>}
-                         value={tabIds.appSettings}>
-                        App Settings
-                    </Tab>
-                    <Tab id="MyGroupsTab"
-                         value={tabIds.myGroups}>
-                        My Groups
-                    </Tab>
-                    {canManageOrganization &&
-
-                        <Tab id="OrganiationPairingTab"
-                             icon={<PairOrgTabIcon/>}
-                             value={tabIds.organizationPairing}>
-                            Organization Pairing
+                        <Tab id="LinkedAccountsTab"
+                             icon={<SettingsLinkedAccountsTabIcon/>}
+                             value={tabIds.linkedAccounts}>
+                            Linked Accounts
                         </Tab>
-                    }
-                    {/*
-                      App Admins is a *global* role, not org-scoped. We can't pre-check
-                      it from the current user DTO, so the tab is rendered for any
-                      signed-in user with an active organisation and AppAdminsTab itself
-                      renders a clean "no access" state on 403. Don't gate this on AppUserRole.
-                      Hidden while the org is pending/disabled to avoid confusion.
-                    */}
-                    {appUserPersonOrganization?.isActive && (
-                        <Tab id="AppAdminsTab"
-                             value={tabIds.appAdmins}>
-                            App Admins
+                        <Tab id="SessionsTab"
+                             icon={<SettingsDeviceSessionsTabIcon/>}
+                             value={tabIds.sessions}>
+                            Device Sessions
                         </Tab>
-                    )}
-                    {/*{appUserPersonOrganization &&*/}
-                    {/*    <Tab id="TemplatesTab"*/}
-                    {/*         icon={<SettingsTemplatesTabIcon/>}*/}
-                    {/*         value={tabIds.templates}>*/}
-                    {/*        Templates*/}
-                    {/*    </Tab>*/}
-                    {/*}*/}
-                </TabList>
-                <div className={styles.tabs} id={"settings-tabs"}>
+                        <Tab id="MyGroupsTab"
+                             icon={<SettingsMyGroupsTabIcon/>}
+                             value={tabIds.myGroups}>
+                            My Groups
+                        </Tab>
+                        <Tab id="OrganizationTab"
+                             icon={<SettingsOrganizationTabIcon/>}
+                             value={tabIds.organization}>
+                            Your Organization
+                        </Tab>
+                    </TabList>
+                </Drawer>
+                <div className={styles.tabsContainer}
+                     id={"settings-tabs"}>
                     {selectedValue === tabIds.profile && <ProfileTab/>}
                     {selectedValue === tabIds.linkedAccounts && <LinkedAccountsTab/>}
                     {selectedValue === tabIds.sessions && <SessionsTab/>}

@@ -348,7 +348,7 @@ class SharingSessionDocumentService @Inject constructor(
 
         if (allowedFormats == null)
         {
-            // No format restriction — fast path using original files
+            // No format restriction, fast path using original files
             val fileKeys = documents.map { "${it.id}${DocumentType.toFileExtension(it.type!!)}" }
             return fileStorageService.downloadDocumentsAsZip(fileKeys)
         }
@@ -377,7 +377,7 @@ class SharingSessionDocumentService @Inject constructor(
                     val docType = document.type?.name
                     if (docType != null && docType in allowedFormats)
                     {
-                        // Original format is allowed — include as-is
+                        // Original format is allowed, include as-is
                         val fileKey = "${document.id}${DocumentType.toFileExtension(document.type!!)}"
                         val file = fileStorageService.downloadDocument(fileKey)
                         tempFiles.add(file)
@@ -388,7 +388,7 @@ class SharingSessionDocumentService @Inject constructor(
                     }
                     else
                     {
-                        // Format not allowed — convert to PDF via LibreOffice
+                        // Format not allowed, convert to PDF via LibreOffice
                         val pdfFile = getDocumentFilePreviewAsPdf(sessionId, document.id.toString())
                         tempFiles.add(pdfFile)
                         val entryName = "${document.title ?: document.id}.pdf"

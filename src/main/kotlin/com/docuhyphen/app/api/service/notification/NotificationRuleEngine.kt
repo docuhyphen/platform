@@ -195,7 +195,7 @@ class NotificationRuleEngine
 
     /**
      * Superset of [AssigneeSpec] that adds an `EVENT_PAYLOAD` kind. The other kinds
-     * delegate to the workflow assignee resolver — same DSL, single resolver, no drift.
+     * delegate to the workflow assignee resolver, same DSL, single resolver, no drift.
      */
     @Serializable
     @JsonClassDiscriminator("kind")

@@ -18,7 +18,7 @@ import java.util.*
  * - `ownerOrganizationId == null` : "personal" participant created by an individual
  *   [AppUser] for ad-hoc sharing outside any org.
  *
- * Uniqueness: per owner (org or "PERSONAL" partition) on lower-cased email — enforced by
+ * Uniqueness: per owner (org or "PERSONAL" partition) on lower-cased email, enforced by
  * a partial unique index in V8. Cross-tenant merging is intentionally an explicit admin
  * operation, never implicit.
  */

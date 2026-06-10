@@ -13,7 +13,7 @@ import java.util.*
  * state transitions). Distinct from the existing [DocumentAuditLog] (document I/O) and
  * [AuthAuditEvent] (authentication), which remain in place.
  *
- * Hash-chained — `eventHash = sha256(canonical(row) || prevEventHash)` — mirroring the
+ * Hash-chained, `eventHash = sha256(canonical(row) || prevEventHash)`, mirroring the
  * existing [AuthAuditEvent] design so the same WORM tooling can ingest it later.
  */
 @Entity

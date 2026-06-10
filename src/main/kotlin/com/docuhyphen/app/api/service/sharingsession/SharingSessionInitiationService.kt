@@ -119,7 +119,7 @@ class SharingSessionInitiationService @Inject constructor(
             )
         }
 
-        // Participants as (principal kind, id) pairs — group participants fan out to members.
+        // Participants as (principal kind, id) pairs, group participants fan out to members.
         val participantPrincipals: List<Pair<PrincipalKind, UUID>> = sessionInitiationDto.participants.map { p ->
             if (p.participantType == SharingSessionParticipantType.GROUP)
                 PrincipalKind.PRINCIPAL_GROUP to UUID.fromString(p.id)
@@ -167,7 +167,7 @@ class SharingSessionInitiationService @Inject constructor(
             maybeTriggerGroupApproval(savedSharingSession, it, initiator)
         } ?: false
 
-        // Recipients/participants/permissions live in the unified Share model — the initiator
+        // Recipients/participants/permissions live in the unified Share model, the initiator
         // gets an OWNER share, the recipient a role derived from the requested document
         // permissions, and each participant a PARTICIPANT share (groups fan out to members).
         grantInitiatorOwnerShare(savedSharingSession, initiator)
@@ -203,7 +203,7 @@ class SharingSessionInitiationService @Inject constructor(
      * `INHERITED_FROM_GROUP` rows per member. USER / EMAIL recipients (the latter already
      * materialised as a temporary [AppUser] by the legacy flow) become `USER` shares.
      *
-     * Participants are not mirrored here yet — that is a separate follow-up slice.
+     * Participants are not mirrored here yet, that is a separate follow-up slice.
      */
     private fun grantRecipientShare(
         session: SharingSession,
@@ -240,7 +240,7 @@ class SharingSessionInitiationService @Inject constructor(
      * PENDING_APPROVAL), false when no active definition matched (proceed un-gated).
      *
      * The subject snapshot carries everything the seeded `session-approval-in-group` workflow
-     * references: `recipientGroupId` (whose MANAGERs approve), `orgId` (the group's owning org —
+     * references: `recipientGroupId` (whose MANAGERs approve), `orgId` (the group's owning org,
      * SLA escalation targets its ORG_ADMINs), and `initiatorId` (for outcome-event routing).
      */
     private fun maybeTriggerGroupApproval(

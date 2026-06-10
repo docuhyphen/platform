@@ -157,4 +157,4 @@ export interface AppUserSearchResult
 
 // ── Org Settings ──
 // NB: OrganizationSettingsV2Dto was removed — it was never consumed.
-// OrganizationTab uses the legacy `OrganizationSettingsDto` from models.tsx.
+// OrganizationDetailsTab uses the legacy `OrganizationSettingsDto` from models.tsx.

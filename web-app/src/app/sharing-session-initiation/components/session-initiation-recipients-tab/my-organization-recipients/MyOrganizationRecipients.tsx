@@ -295,7 +295,7 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
                     layout={"horizontal"}
                     value={shareWith}
                     onChange={onShareWithChange}>
-                    <Radio value={ShareWithMode.INDIVIDUAL} label="Individual"/>
+                    <Radio value={ShareWithMode.INDIVIDUAL} label="Person"/>
                     <Radio value={ShareWithMode.GROUP} label="Group"/>
                 </RadioGroup>
             </Field>
@@ -307,7 +307,7 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
                     ) : (
                         <Combobox
                             onOptionSelect={setRecipientOrgUserOptionItem}
-                            placeholder="Select Individual"
+                            placeholder="Select or find person"
                             onChange={(ev) => setUserSearchQuery(ev.target.value)}
                             value={userSearchQuery}>
                             {filteredUsers}

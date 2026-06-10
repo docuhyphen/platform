@@ -15,7 +15,7 @@ import java.sql.Timestamp
 import java.time.Instant
 
 /**
- * Persists an [InAppNotification] row for the recipient — the inbox backing store. A
+ * Persists an [InAppNotification] row for the recipient, the inbox backing store. A
  * follow-up iteration adds the Quarkus WebSocket endpoint that subscribes to a Redis
  * pub/sub topic and live-pushes new rows to connected clients; this bean already publishes
  * the title/body/payload so the WS layer is a thin wrapper when it lands.

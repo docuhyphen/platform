@@ -100,7 +100,7 @@ class DetailedEntityToDtoTransformer
 
         /**
          * [role] is the user's effective role within the organization in whose context this
-         * DTO is being produced (per-org now, via organization_membership) — callers that have
+         * DTO is being produced (per-org now, via organization_membership), callers that have
          * an org context (e.g. the org-members listing) resolve and pass it; context-free
          * callers pass null.
          */
@@ -199,6 +199,7 @@ class DetailedEntityToDtoTransformer
                         id,
                         createdDate,
                         isActive,
+                        verificationComplete,
                         name,
                         registrationNumber,
                         toDto(contactDetails),

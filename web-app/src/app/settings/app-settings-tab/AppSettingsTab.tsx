@@ -1,6 +1,6 @@
-import {Divider, Radio, RadioGroup, Switch} from "@fluentui/react-components";
+import {Divider, Radio, RadioGroup, Switch, Text} from "@fluentui/react-components";
 import {useAppSettingsTabStyles} from "./AppSettingsTabStyles.tsx";
-import {useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import {fetchAppUser, updateAppUserSettings} from "../../../services/appUserApi";
 import {AppUserSettingsDto} from "../../models/models.tsx";
 import {useAuth} from "../../../context/AuthContext.tsx";

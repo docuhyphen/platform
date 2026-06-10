@@ -82,7 +82,7 @@ class SharingSessionRepository : BaseRepository<SharingSession>(SharingSession::
         return count > 0
     }
 
-    /** Sessions where the user is a recipient — i.e. holds a non-OWNER active USER share. */
+    /** Sessions where the user is a recipient, i.e. holds a non-OWNER active USER share. */
     fun findByRecipientId(recipient: UUID): List<SharingSession> =
         bindAccess(
             entityManager.createQuery(

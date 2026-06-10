@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.workflow
 
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import kotlinx.serialization.Serializable
 import java.util.UUID
 
 /**
@@ -12,15 +13,15 @@ import java.util.UUID
  * Implementation in [DefaultWorkflowEngineService].
  *
  * Lifecycle:
- *   1. `trigger(...)`  — invoked by a domain service (e.g. SharingSessionInitiationService
+ *   1. `trigger(...)` , invoked by a domain service (e.g. SharingSessionInitiationService
  *      in iteration 4) when an event fires. The engine resolves the matching definition
  *      via [com.docuhyphen.app.api.repository.WorkflowDefinitionRepository.findActiveForTrigger]
  *      and creates a [com.docuhyphen.app.api.model.entity.WorkflowInstance] + first
  *      [com.docuhyphen.app.api.model.entity.WorkflowStepInstance] with resolved assignees.
- *   2. `recordDecision(...)` — invoked by an assignee approving/rejecting. The engine
+ *   2. `recordDecision(...)`, invoked by an assignee approving/rejecting. The engine
  *      appends to `decisions_json`, checks quorum, and either advances to the next
  *      step, completes/rejects the instance, or stays pending.
- *   3. SLA breach handling — iteration 3 will add a scheduled job that calls
+ *   3. SLA breach handling, iteration 3 will add a scheduled job that calls
  *      `escalateOverdue(...)` periodically.
  */
 interface WorkflowEngineService
@@ -72,7 +73,7 @@ enum class Decision
  * @param triggerEvent       e.g. "session.approval_requested"
  * @param subjectResourceType e.g. "SHARING_SESSION"
  * @param subjectResourceId  the subject's UUID
- * @param organizationId     org context — drives org-scope definition lookup
+ * @param organizationId     org context, drives org-scope definition lookup
  * @param subjectData        frozen fields the workflow may reference via `$subject.<key>`
  * @param initiatedByAppUserId  who initiated the trigger; surfaces in audit
  */
@@ -106,7 +107,7 @@ data class DecisionResult(
  * frontend `PendingWorkflowStep` interface so the inbox can render without an extra mapping
  * layer. Times are epoch millis (ISO-8601 conversion happens client-side).
  */
-@kotlinx.serialization.Serializable
+@Serializable
 data class PendingWorkflowStepDto(
     val stepInstanceId: String,
     val workflowInstanceId: String,

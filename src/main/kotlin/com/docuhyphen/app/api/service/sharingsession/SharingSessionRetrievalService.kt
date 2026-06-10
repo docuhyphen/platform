@@ -56,7 +56,7 @@ class SharingSessionRetrievalService @Inject constructor(
     {
         val appUserId = authTokenContext.authToken.appUser?.id ?: return emptyList()
         // findByParticipatingAppUser now resolves access through Share rows (initiator + any
-        // active USER share — direct, group-inherited, or participant), so it is the single
+        // active USER share, direct, group-inherited, or participant), so it is the single
         // source of "sessions this user can see".
         val participatingSessions = sharingSessionRepository.findByParticipatingAppUser(appUserId)
 

@@ -92,6 +92,7 @@ const LinkedAccountsTab: React.FC = () =>
 
     return (
         <div style={{display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '500px'}}>
+
             <Text size={200}>
                 Manage the identity providers linked to your account.
                 You can sign in using any linked provider.

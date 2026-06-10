@@ -24,7 +24,7 @@ import java.util.UUID
 
 /**
  * User-facing resource for managing PERSONAL-scope groups (self-service, no org admin).
- * The owner is **always** the authenticated principal — never from the request body.
+ * The owner is **always** the authenticated principal, never from the request body.
  */
 @Path("me/groups")
 @Produces(APPLICATION_JSON)

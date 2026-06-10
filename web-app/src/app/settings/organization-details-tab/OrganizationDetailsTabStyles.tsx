@@ -11,8 +11,7 @@ export const useOrganizationTabStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
-        height: "100%",
+        gap: "16px"
     },
 
     dataContainer: {
@@ -32,9 +31,5 @@ export const useOrganizationTabStyles = makeStyles({
 
     mainDivider: {
         width: "300px"
-    },
-    tabsContainer: {
-        flex: 1,
-        overflow: "scroll"
     }
 });

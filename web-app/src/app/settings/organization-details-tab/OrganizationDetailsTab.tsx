@@ -16,45 +16,18 @@ import {updateOrganizationSettings} from "../../../services/organizationApi";
 import {ContactDetailsDetailedDto, OrganizationDetailedDto, OrganizationSettingsDto} from "../../models/models.tsx";
 import {AppUserRole} from "../../models/models.tsx";
 import {
-    PairOrgTabIcon,
-    ProfileEditBasicDetailsIcon, SettingsAppAdminsIcon,
-    SettingsAppSettingsTabIcon, SettingsDeviceSessionsTabIcon, SettingsLinkedAccountsTabIcon, SettingsMyGroupsTabIcon,
-    SettingsOrganizationGroupsTabIcon,
-    SettingsOrganizationPeopleTabIcon,
-    SettingsOrganizationTabIcon,
-    SettingsProfileTabIcon
+    ProfileEditBasicDetailsIcon
 } from "../../components/IconBundles.tsx";
 import PhoneManagementDialog, {PhoneManagementMode} from "../../components/phone-management/PhoneManagementDialog.tsx";
 import EmailManagementDialog, {EmailManagementMode} from "../../components/email-management/EmailManagementDialog.tsx";
-import {useOrganizationTabStyles} from "./OrganizationTabStyles.tsx";
+import {useOrganizationTabStyles} from "./OrganizationDetailsTabStyles.tsx";
 import OrganizationDetailsEditDialog from "./details-edit-dialog/OrganizationDetailsEditDialog.tsx";
 import {AxiosError} from "axios";
 import OrganizationOnboardingDialog from "./organization-onboarding-dialog/OrganizationOnboardingDialog.tsx";
 import {AuthSessionPolicySection} from "./AuthSessionPolicySection.tsx";
-import ProfileTab from "../profile-tab/ProfileTab.tsx";
-import LinkedAccountsTab from "../linked-accounts-tab/LinkedAccountsTab.tsx";
-import SessionsTab from "../sessions-tab/SessionsTab.tsx";
-import AppSettingsTab from "../app-settings-tab/AppSettingsTab.tsx";
-import MyGroupsTab from "../my-groups-tab/MyGroupsTab.tsx";
-import OrganizationPeopleTab from "../organization-people-tab/OrganizationPeopleTab.tsx";
-import OrganizationGroupsTab from "../organization-groups-tab/OrganizationGroupsTab.tsx";
-import OrganizationPairingTab from "../organization-pairing-tab/OrganizationPairingTab.tsx";
-import AppAdminsTab from "../app-admins-tab/AppAdminsTab.tsx";
-import TemplatesTab from "../templates-tab/TemplatesTab.tsx";
-import OrganizationDetailsTab from "../organization-details-tab/OrganizationDetailsTab.tsx";
 
-
-const OrganizationTab = () =>
+const OrganizationDetailsTab = () =>
 {
-    const tabIds = {
-        organization: "OrganizationTab",
-        people: "PeopleTab",
-        groups: "GroupsTab",
-        organizationPairing: "OrganizationPairingTab",
-        templates: "TemplatesTab",
-        myGroups: "MyGroupsTab",
-        appAdmins: "AppAdminsTab"
-    }
 
     const styles = useOrganizationTabStyles()
     const {appUser, token, appUserPersonOrganization} = useAuth();
@@ -70,16 +43,6 @@ const OrganizationTab = () =>
     const [emailManagementMode, setEmailManagementMode] = useState(EmailManagementMode.ADD);
     const [isOnboardingDialogOpen, setOnboardingDialogOpen] = useState(false);
     const roleValue = `${appUser?.role ?? ''}`;
-    const [selectedValue, setSelectedValue] = useState<TabValue>(tabIds.organization);
-
-    const onTabSelect = (_event: SelectTabEvent, data: SelectTabData) =>
-    {
-        setSelectedValue(data.value);
-    };
-    const canManageOrganization =  () =>
-    {
-        return appUserPersonOrganization?.isActive && (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN')
-    }
 
     const getOrganization = async () =>
     {
@@ -243,73 +206,157 @@ const OrganizationTab = () =>
 
         {organization && !fetchingOrganization && organization.isActive && (
             <div className={styles.container}>
+                <Divider alignContent="start"
+                         appearance="brand"
+                         className={styles.mainDivider}>
 
-                <TabList selectedValue={selectedValue}
-                         onTabSelect={onTabSelect}
-                         size="small">
-                    <Tab id="OrganizationTab"
-                         icon={<SettingsOrganizationTabIcon/>}
-                         value={tabIds.organization}>
-                        Details
-                    </Tab>
-                    {canManageOrganization && <>
+                    <Button
+                        icon={<ProfileEditBasicDetailsIcon/>}
+                        onClick={() => setIsDetailsDialogOpen(true)}
+                        appearance="subtle"
+                    />
+                </Divider>
 
-                        <Tab id="PeopleTab"
-                             icon={<SettingsOrganizationPeopleTabIcon/>}
-                             value={tabIds.people}>
-                            People
-                        </Tab>
-                        <Tab id="GroupsTab"
-                             icon={<SettingsOrganizationGroupsTabIcon/>}
-                             value={tabIds.groups}>
-                            Groups
-                        </Tab>
-                    </>
-                    }
-                    {canManageOrganization &&
-
-                        <Tab id="OrganiationPairingTab"
-                             icon={<PairOrgTabIcon/>}
-                             value={tabIds.organizationPairing}>
-                            Pairing
-                        </Tab>
-                    }
-                    {/*
-                      App Admins is a *global* role, not org-scoped. We can't pre-check
-                      it from the current user DTO, so the tab is rendered for any
-                      signed-in user with an active organisation and AppAdminsTab itself
-                      renders a clean "no access" state on 403. Don't gate this on AppUserRole.
-                      Hidden while the org is pending/disabled to avoid confusion.
-                    */}
-                    {appUserPersonOrganization?.isActive && (
-                        <Tab id="AppAdminsTab"
-                             icon={<SettingsAppAdminsIcon/>}
-                             value={tabIds.appAdmins}>
-                            App Admins
-                        </Tab>
+                <div style={{marginBottom: '20px'}}>
+                    <Text size={500} weight="semibold">
+                        {organization.name || "Unnamed Organization"}
+                    </Text>
+                    {organization.registrationNumber && (
+                        <div style={{marginTop: '5px'}}>
+                            <Text size={300}>Registration: {organization.registrationNumber}</Text>
+                        </div>
                     )}
-                    {/*{appUserPersonOrganization &&*/}
-                    {/*    <Tab id="TemplatesTab"*/}
-                    {/*         icon={<SettingsTemplatesTabIcon/>}*/}
-                    {/*         value={tabIds.templates}>*/}
-                    {/*        Templates*/}
-                    {/*    </Tab>*/}
-                    {/*}*/}
-                </TabList>
-
-                <div className={styles.tabsContainer}
-                     id={"settings-tabs"}>
-                    {selectedValue === tabIds.organization && <OrganizationDetailsTab/>}
-                    {selectedValue === tabIds.people && <OrganizationPeopleTab/>}
-                    {selectedValue === tabIds.groups &&
-                        <OrganizationGroupsTab appUserPersonOrganization={appUserPersonOrganization}/>}
-                    {selectedValue === tabIds.organizationPairing && <OrganizationPairingTab/>}
-                    {selectedValue === tabIds.appAdmins && <AppAdminsTab/>}
-                    {selectedValue === tabIds.templates && <TemplatesTab/>}
                 </div>
+
+
+                <Divider alignContent="start"
+                         appearance="brand"
+                         className={styles.mainDivider}>
+                    Contact Details
+                </Divider>
+
+                <div>
+                    <Text size={500} className={styles.dataEditable}>
+                        <Button
+                            appearance="subtle"
+                            size="small"
+                            icon={<ProfileEditBasicDetailsIcon/>}
+                            onClick={onAddOrEditEmail}
+                        />
+                        {organization?.contactDetails?.email || 'No email added'}
+                    </Text>
+                </div>
+
+                <div>
+                    <Text size={500} className={styles.dataEditable}>
+                        {organization?.contactDetails?.phoneNumber ? (
+                            <>
+                                <Button
+                                    appearance="subtle"
+                                    size="small"
+                                    icon={<ProfileEditBasicDetailsIcon/>}
+                                    onClick={onAddOrEditPhone}
+                                />
+                                {organization.contactDetails.phoneNumber}
+                            </>
+                        ) : (
+                            <Button
+                                appearance="outline"
+                                shape="circular"
+                                size="small"
+                                onClick={onAddOrEditPhone}
+                            >
+                                Add phone number
+                            </Button>
+                        )}
+                    </Text>
+                </div>
+
+                <PhoneManagementDialog
+                    isOpen={isPhoneDialogOpen}
+                    mode={phoneManagementMode}
+                    onDismiss={() => setIsPhoneDialogOpen(false)}
+                    contactDetails={organization?.contactDetails}
+                    onComplete={handleContactDetailsUpdate}
+                />
+
+                <EmailManagementDialog
+                    isOpen={isEmailDialogOpen}
+                    mode={emailManagementMode}
+                    onDismiss={() => setIsEmailDialogOpen(false)}
+                    contactDetails={organization?.contactDetails}
+                    onComplete={handleContactDetailsUpdate}
+                />
+                <Divider alignContent="start"
+                         appearance="brand"
+                         className={styles.mainDivider}>
+                    Organization Settings
+                </Divider>
+
+                {organizationSettings && <>
+                    <Switch
+                        checked={organizationSettings.allowExternalCustomerSharing !== false}
+                        onChange={(_, data) => handleSettingChange('allowExternalCustomerSharing', data.checked)}
+                        label="Allow sharing with external customers (individuals)"
+                        disabled={savingSettings}
+                    />
+                    <Switch
+                        checked={organizationSettings.allowShareWithoutPairing}
+                        onChange={(_, data) => handleSettingChange('allowShareWithoutPairing', data.checked)}
+                        label="Allow sharing with unpaired organizations"
+                        disabled={savingSettings}
+                    />
+                    <Switch
+                        checked={organizationSettings.allowProfileUpdate}
+                        onChange={(_, data) => handleSettingChange('allowProfileUpdate', data.checked)}
+                        label="Allow users to update their basic profiles"
+                        disabled={savingSettings}
+                    />
+                    <Switch
+                        checked={organizationSettings.allowEmailUpdate}
+                        onChange={(_, data) => handleSettingChange('allowEmailUpdate', data.checked)}
+                        label="Allow users to update their email addresses"
+                        disabled={savingSettings}
+                    />
+                </>}
+
+                {organization?.id && appUser?.role === AppUserRole.ORG_ADMIN && (
+                    <AuthSessionPolicySection organizationId={organization.id}/>
+                )}
+
+                <OrganizationDetailsEditDialog
+                    isOpen={isDetailsDialogOpen}
+                    onDismiss={() => setIsDetailsDialogOpen(false)}
+                    organization={organization}
+                    onComplete={(updatedOrg) => setOrganization(updatedOrg)}
+                />
             </div>
         )}
+
+        {!organization && !fetchingOrganization && <>
+            <section className={styles.orgOnboardingContainer}>
+                <Text>
+                    You are not part of an organization. You can onboard your organization to use the full
+                    potential of DocHyphen.
+                </Text>
+                <div>
+                    <Button shape={"circular"}
+                            appearance={"outline"}
+                            onClick={() => setOnboardingDialogOpen(true)}
+                            icon={<></>}>
+                        Register your organization
+                    </Button>
+                </div>
+            </section>
+            <OrganizationOnboardingDialog isOpen={isOnboardingDialogOpen}
+                                          onDismiss={() => {
+                                              setOnboardingDialogOpen(false);
+                                              getOrganization();
+                                          }}
+                                          onRegistered={() => getOrganization()}/>
+        </>
+        }
     </>
 }
 
-export default OrganizationTab;
+export default OrganizationDetailsTab;

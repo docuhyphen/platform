@@ -95,7 +95,7 @@ class OrganizationGroupService @Inject constructor(
     )
     {
         val orgId = UUID.fromString(organizationId)
-        // Creating a group is an org-level action against this specific org — there is no group
+        // Creating a group is an org-level action against this specific org, there is no group
         // resource yet to authorize on, so we require an admin role *in this org* (not merely the
         // caller's primary org, which the old initiator-only check conflated).
         requireOrgAdminIn(orgId)
@@ -163,7 +163,7 @@ class OrganizationGroupService @Inject constructor(
 
         val orgId = UUID.fromString(organizationId)
         val gid = UUID.fromString(groupId)
-        // Managing a group's membership/metadata requires GROUP_ADMIN on the group itself —
+        // Managing a group's membership/metadata requires GROUP_ADMIN on the group itself,
         // satisfied by an org admin of the group's org or by a group OWNER/MANAGER.
         authorizeGroup(Action.GROUP_MANAGE_MEMBERS, gid)
         adminActionGuardService.enforce(
@@ -248,7 +248,7 @@ class OrganizationGroupService @Inject constructor(
         }
 
         val gid = UUID.fromString(groupId)
-        // Deleting a group requires GROUP_DELETE on the group — satisfied by an org ADMIN/OWNER
+        // Deleting a group requires GROUP_DELETE on the group, satisfied by an org ADMIN/OWNER
         // of the group's org or by a group OWNER (group MANAGER cannot delete).
         authorizeGroup(Action.GROUP_DELETE, gid)
         adminActionGuardService.enforce(

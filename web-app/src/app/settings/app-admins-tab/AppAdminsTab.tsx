@@ -199,9 +199,6 @@ const AppAdminsTab: React.FC = () =>
 
     return (
         <div className={styles.container}>
-            <div className={styles.header}>
-                <Text weight="semibold" size={500}>App Administrators</Text>
-            </div>
 
             {noAccess ? (
                 <MessageBar intent="info">
@@ -228,11 +225,9 @@ const AppAdminsTab: React.FC = () =>
                         </div>
                     ) : (
                 <>
-                    {/* Add admin */}
                     <div className={styles.addRow}>
-                        <Field label="Add admin by user" style={{flex: 1}}>
+                        <Field label="Add admin by user">
                             <Input
-                                size="small"
                                 placeholder="Search by name or email..."
                                 value={searchQuery}
                                 onChange={(_e, d) =>

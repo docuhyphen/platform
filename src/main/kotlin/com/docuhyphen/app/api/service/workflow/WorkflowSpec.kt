@@ -10,7 +10,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonClassDiscriminator
 
 /**
- * Workflow DSL — the in-memory representation of `workflow_definition.steps_json`.
+ * Workflow DSL, the in-memory representation of `workflow_definition.steps_json`.
  *
  * Keep the wire format intentionally small and stable: every step has a `type` discriminator,
  * every assignee has a `kind` discriminator. Placeholder references (`$subject.foo`) are
@@ -38,12 +38,12 @@ data class WorkflowStepSpec(
     val actionHandlerKey: String? = null,
 )
 
-/** Sealed assignee model — every variant carries the data needed to resolve a principal set. */
+/** Sealed assignee model, every variant carries the data needed to resolve a principal set. */
 @Serializable
 @JsonClassDiscriminator("kind")
 sealed class AssigneeSpec
 {
-    /** Direct principal — exact (kind, id) reference. */
+    /** Direct principal, exact (kind, id) reference. */
     @Serializable
     @kotlinx.serialization.SerialName("PRINCIPAL")
     data class Principal(
@@ -120,7 +120,7 @@ data class StepOutcomeSpec(
 )
 
 /**
- * Single shared JSON config — `ignoreUnknownKeys` makes the DSL forwards-compatible,
+ * Single shared JSON config, `ignoreUnknownKeys` makes the DSL forwards-compatible,
  * `classDiscriminator` matches what's already in this package.
  */
 object WorkflowSpecJson

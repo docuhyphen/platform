@@ -13,10 +13,10 @@ import org.slf4j.LoggerFactory
  *
  * Replaces the old substring-matching hack in [DefaultAuthorizationService]. Two parse
  * modes:
- *  - [parse]  — lenient, never throws; used on the *read* / authorize path where a
+ *  - [parse] , lenient, never throws; used on the *read* / authorize path where a
  *               malformed blob must degrade to "permissive defaults" rather than fail a
  *               live request.
- *  - [parseStrict] — throws on malformed JSON; used on the *write* path
+ *  - [parseStrict], throws on malformed JSON; used on the *write* path
  *               ([com.docuhyphen.app.api.service.sharingsession.SessionAccessManagementService])
  *               so we reject garbage at the source and store a canonical form.
  *
@@ -108,7 +108,7 @@ data class ShareConstraints(
         /** Fully permissive baseline (no constraints set). */
         val PERMISSIVE = ShareConstraints()
 
-        /** Lenient parse for the authorize/read path — malformed input ⇒ [PERMISSIVE]. */
+        /** Lenient parse for the authorize/read path, malformed input ⇒ [PERMISSIVE]. */
         fun parse(json: String?): ShareConstraints
         {
             if (json.isNullOrBlank()) return PERMISSIVE
@@ -119,7 +119,7 @@ data class ShareConstraints(
                 }
         }
 
-        /** Strict parse for the write path — throws on malformed JSON. */
+        /** Strict parse for the write path, throws on malformed JSON. */
         fun parseStrict(json: String): ShareConstraints = JSON.decodeFromString(json)
 
         /**

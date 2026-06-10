@@ -8,7 +8,9 @@ export const useAppSettingsTabStyles = makeStyles({
         width: "100%",
         minWidth: 0,
     },
+    header: {
 
+    },
     dataContainer: {
         display: "flex",
         flexDirection: "row",

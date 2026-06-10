@@ -24,13 +24,13 @@ import java.time.Instant
  *     (APP, ORG matching activeOrgId, PRINCIPAL_GROUP for groups the principal is in,
  *     RESOURCE for this exact resource).
  *  2. Collect direct shares for the principal on this resource, plus shares granted to
- *     any [PrincipalGroup] the principal belongs to (V8 caps nesting depth at 1 — true
+ *     any [PrincipalGroup] the principal belongs to (V8 caps nesting depth at 1, true
  *     transitive membership lands in a later iteration).
  *  3. Translate every grant to a Capability set via [RoleCapabilities].
  *  4. Union the capability sets.
  *  5. Apply per-share constraints (require_mfa, ip_allowlist, expiry, status).
  *  6. Apply resource-state denies (SUSPENDED / ARCHIVED session denies non-admin writes
- *     — looked up in iteration 4 once SharingSession state machine ships).
+ *    , looked up in iteration 4 once SharingSession state machine ships).
  *  7. Return Allow if required capability ∈ union, else Deny.
  *
  * NOTE: This is the *foundational* implementation. It intentionally does not yet:
@@ -70,7 +70,7 @@ class DefaultAuthorizationService : AuthorizationService
 
         // Constraint denies are evaluated against the *shares* (not role assignments).
         // A user holding a role that grants the capability still needs to satisfy any
-        // share-level MFA/IP constraint that applies — if their access comes via that share.
+        // share-level MFA/IP constraint that applies, if their access comes via that share.
         val now = Timestamp.from(Instant.now())
         val activeShares = shareRepository.findActiveForPrincipalOnResource(
             principal.kind, principal.id, resource.type, resource.id,
@@ -114,7 +114,7 @@ class DefaultAuthorizationService : AuthorizationService
         val grants = mutableListOf<Grant>()
         val now = Timestamp.from(Instant.now())
 
-        // 1) Role assignments — only for USER / SERVICE_ACCOUNT principals.
+        // 1) Role assignments, only for USER / SERVICE_ACCOUNT principals.
         if (principal.kind == PrincipalKind.USER || principal.kind == PrincipalKind.SERVICE_ACCOUNT)
         {
             grants += collectRoleAssignmentGrants(principal, resource, context, now)
@@ -179,7 +179,7 @@ class DefaultAuthorizationService : AuthorizationService
             }
         }
 
-        // 4) PUBLIC_LINK: deferred to iteration 5 — once ShareLinkValidationService
+        // 4) PUBLIC_LINK: deferred to iteration 5, once ShareLinkValidationService
         // resolves the token, the caller passes the resulting Share as a synthetic
         // grant on the AuthorizationContext.
 
@@ -198,7 +198,7 @@ class DefaultAuthorizationService : AuthorizationService
     ): List<Grant>
     {
         val userId = principal.id.takeIf { principal.kind == PrincipalKind.USER } ?: return emptyList()
-        // SERVICE_ACCOUNT role lookup is symmetric — added in iteration 2.
+        // SERVICE_ACCOUNT role lookup is symmetric, added in iteration 2.
 
         val results = mutableListOf<Grant>()
         val assignments = roleAssignmentRepository.findActiveForUser(userId)

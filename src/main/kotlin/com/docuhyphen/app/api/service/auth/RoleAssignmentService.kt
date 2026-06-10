@@ -19,7 +19,7 @@ import java.util.UUID
 /**
  * Write-side API over APP-scope [RoleAssignment]s. Lets multiple App Admins be
  * granted / revoked at runtime, with a "never drop below one App Admin" invariant. App roles
- * are *additive* — a user keeps all their org/group/personal grants; an APP_ADMIN row simply
+ * are *additive*, a user keeps all their org/group/personal grants; an APP_ADMIN row simply
  * unions APP-wide capabilities on top (see [com.docuhyphen.app.api.service.auth.authz.DefaultAuthorizationService]).
  *
  * Authorization of *who* may call grant/revoke lives at the endpoint
@@ -93,7 +93,7 @@ class RoleAssignmentService @Inject constructor(
             ?: throw IllegalArgumentException("Role assignment not found")
         require(assignment.scopeType == RoleScopeType.APP) { "Not an APP-scope assignment" }
 
-        if (!assignment.isActive) return // already revoked — idempotent
+        if (!assignment.isActive) return // already revoked, idempotent
 
         val isAppAdmin = assignment.roleName == RoleName.APP_ADMIN.name
         if (isAppAdmin && roleAssignmentRepository.countActiveAppAdmins() <= 1)
@@ -125,7 +125,7 @@ class RoleAssignmentService @Inject constructor(
         val user = appUserService.findByEmail(email)
         if (user == null)
         {
-            logger.warn("App Admin bootstrap: no user found for configured email '{}' — skipping", email)
+            logger.warn("App Admin bootstrap: no user found for configured email '{}', skipping", email)
             return
         }
         grantAppRole(user.id, RoleName.APP_ADMIN, actorId = null)

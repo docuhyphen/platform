@@ -225,7 +225,7 @@ data class UpdateOrganizationRequest(
     var registrationNumber: String? = null
 )
 
-/** POST /admin/roles/app-admins — promote a user to App Admin. */
+/** POST /admin/roles/app-admins, promote a user to App Admin. */
 @Serializable
 data class GrantAppAdminRequest(
     var appUserId: String? = null,
