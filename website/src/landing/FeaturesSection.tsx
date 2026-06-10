@@ -1041,7 +1041,7 @@ export function FeaturesSection({initialIndustrySlug}: FeaturesSectionProps)
                         {industrySlides.map((slide) => (
                             <article key={slide.title} className={styles.carouselSlide}>
                                 <Link
-                                    to={`/solutions/${slide.slug}`}
+                                    to={`/industries/${slide.slug}`}
                                     className={mergeClasses(styles.carouselImagePlaceholder, slide.visualClass)}
                                     aria-label={`View ${slide.title} solution`}
                                     style={{display: "block", textDecoration: "none"}}

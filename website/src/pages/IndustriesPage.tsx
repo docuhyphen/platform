@@ -14,7 +14,7 @@ import {
     SPACE_XS,
 } from "../landing/shared.ts";
 
-type SolutionContent = {
+type IndustriesContent = {
     name: string;
     headline: string;
     blurb: string;
@@ -24,7 +24,7 @@ type SolutionContent = {
     gradient: string;
 };
 
-const solutions: Record<string, SolutionContent> = {
+const industries: Record<string, IndustriesContent> = {
     "real-estate": {
         name: "Real Estate & Property",
         headline: "Move deals forward without losing control of the paperwork.",
@@ -228,23 +228,23 @@ const useStyles = makeStyles({
     },
 });
 
-export function SolutionsPage()
+export function IndustriesPage()
 {
     const styles = useStyles();
     const {industry} = useParams<{industry: string}>();
 
-    if (!industry || !solutions[industry])
+    if (!industry || !industries[industry])
     {
         return <Navigate to="/" replace/>;
     }
 
-    const data = solutions[industry];
+    const data = industries[industry];
 
     return (
         <PageShell>
             <section className={styles.hero} style={{background: data.gradient}}>
                 <div className={styles.heroText}>
-                    <Text className={styles.heroEyebrow}>Solutions / {data.name}</Text>
+                    <Text className={styles.heroEyebrow}>Industries / {data.name}</Text>
                     <Title1 className={styles.heroTitle}>{data.headline}</Title1>
                     <Text size={500} className={styles.heroBlurb}>{data.blurb}</Text>
                     <div className={styles.heroActions}>
@@ -256,7 +256,7 @@ export function SolutionsPage()
                             rel="noopener noreferrer"
                             shape="circular"
                         >
-                            Try it free
+                            Start Free
                         </Button>
                         <SpeakToSalesDialog
                             trigger={

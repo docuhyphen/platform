@@ -1,5 +1,5 @@
 import React from 'react';
-import {Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, SplitButton, Tooltip} from "@fluentui/react-components";
+import {Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, SplitButton} from "@fluentui/react-components";
 import {ShareAndroidRegular} from "@fluentui/react-icons";
 import {useSharingSessionInitiationStyles} from "../../SharingSessionInitiationStyles.tsx";
 import {ReceiveDocumentsIcon, SendDocumentsIcon} from "../../../components/IconBundles.tsx";
@@ -30,17 +30,14 @@ const SessionInitiationDialogTrigger = React.forwardRef<HTMLButtonElement, Sessi
                   preserved so users get a visual hint that this control
                   expands into Request / Send Documents.
                 */}
-                <Tooltip content="Start sharing" relationship="label">
-                    <SplitButton
-                        shape="circular"
-                        appearance="primary"
-                        icon={<ShareAndroidRegular/>}
-                        aria-label="Start sharing"
-                        menuButton={{"aria-label": "Choose sharing type"}}
-                    >
-                        {!isMobile && "Start Sharing"}
-                    </SplitButton>
-                </Tooltip>
+                <SplitButton
+                    shape="circular"
+                    appearance="primary"
+                    icon={<ShareAndroidRegular/>}
+                    menuButton={{"aria-label": "Choose sharing type"}}
+                >
+                    {!isMobile && "Start Exchange"}
+                </SplitButton>
             </MenuTrigger>
             <MenuPopover>
                 <MenuList>

@@ -30,12 +30,12 @@ type NavLink = {
     to: string;
 };
 
-const SOLUTIONS: NavLink[] = [
-    {label: "Real Estate", to: "/solutions/real-estate"},
-    {label: "Legal", to: "/solutions/legal"},
-    {label: "Healthcare", to: "/solutions/healthcare"},
-    {label: "Accounting", to: "/solutions/accounting"},
-    {label: "Banking", to: "/solutions/banking"},
+const INDUSTRIES: NavLink[] = [
+    {label: "Real Estate", to: "/industries/real-estate"},
+    {label: "Legal", to: "/industries/legal"},
+    {label: "Healthcare", to: "/industries/healthcare"},
+    {label: "Accounting", to: "/industries/accounting"},
+    {label: "Banking", to: "/industries/banking"},
 ];
 
 // const RESOURCES: NavLink[] = [
@@ -172,12 +172,12 @@ export function LandingHeader()
                         <Menu>
                             <MenuTrigger disableButtonEnhancement>
                                 <button className={styles.navLink} type="button">
-                                    Solutions <ChevronDown16Regular/>
+                                    Industries <ChevronDown16Regular/>
                                 </button>
                             </MenuTrigger>
                             <MenuPopover>
                                 <MenuList>
-                                    {SOLUTIONS.map((s) => (
+                                    {INDUSTRIES.map((s) => (
                                         <MenuItem key={s.to} onClick={() => navigate(s.to)}>
                                             {s.label}
                                         </MenuItem>
@@ -219,17 +219,6 @@ export function LandingHeader()
 
                 <div className={styles.rightActions}>
                     <Button
-                        appearance="subtle"
-                        as="a"
-                        className={styles.signInButton}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        shape="circular"
-                        href={SIGN_IN_URL}
-                    >
-                        Sign in
-                    </Button>
-                    <Button
                         appearance="primary"
                         as="a"
                         className={styles.tryFreeButton}
@@ -238,7 +227,18 @@ export function LandingHeader()
                         shape="circular"
                         href={SIGN_UP_URL}
                     >
-                        Try it free
+                        Start Free
+                    </Button>
+                    <Button
+                        appearance="outline"
+                        as="a"
+                        className={styles.signInButton}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        shape="circular"
+                        href={SIGN_IN_URL}
+                    >
+                        Sign in
                     </Button>
 
                     <Menu>
@@ -254,8 +254,8 @@ export function LandingHeader()
                         <MenuPopover>
                             <MenuList className={styles.mainMobileMenu}
                                       id={"main-mobile-menu"}>
-                                <MenuItem >Solutions</MenuItem>
-                                {SOLUTIONS.map((s) => (
+                                <MenuItem >Industries</MenuItem>
+                                {INDUSTRIES.map((s) => (
                                     <MenuItem key={s.to} onClick={() => navigate(s.to)}
                                               className={mergeClasses(styles.mainMobileMenuItem, styles.mainMobileSubMenuItem)}>
                                         {s.label}

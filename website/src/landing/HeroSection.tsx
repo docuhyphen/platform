@@ -1,5 +1,4 @@
 import {Button, LargeTitle, Text, makeStyles, mergeClasses, tokens} from "@fluentui/react-components";
-import {useEffect, useState} from "react";
 import {
     BREAKPOINT_MOBILE,
     BUTTON_MIN_WIDTH,
@@ -101,7 +100,7 @@ const useStyles = makeStyles({
         margin: "0 auto",
         fontSize: tokens.fontSizeBase500,
         lineHeight: tokens.lineHeightBase500,
-        fontWeight: "100",
+        fontWeight: tokens.fontWeightRegular,
         color: tokens.colorNeutralForeground1,
     },
 
@@ -186,89 +185,19 @@ const useStyles = makeStyles({
 export function HeroSection()
 {
     const styles = useStyles();
-    const suffixText = "secure document sharing for your sensitive business data";
-    const [typedSuffix, setTypedSuffix] = useState("");
-    const [isTyping, setIsTyping] = useState(true);
-    const [isSupportingVisible, setIsSupportingVisible] = useState(false);
-    const [isActionsVisible, setIsActionsVisible] = useState(false);
-
-    useEffect(() =>
-    {
-        let index = 0;
-        const startDelayMs = 600;
-        const charDelayMs = 50;
-        const revealActionsDelayMs = 180;
-        let intervalId: number | undefined;
-        let supportingTimerId: number | undefined;
-        let actionsTimerId: number | undefined;
-
-        const startTimer = window.setTimeout(() =>
-        {
-            intervalId = window.setInterval(() =>
-            {
-                index += 1;
-                setTypedSuffix(suffixText.slice(0, index));
-
-                if (index >= suffixText.length)
-                {
-                    if (intervalId !== undefined)
-                    {
-                        window.clearInterval(intervalId);
-                    }
-                    setIsTyping(false);
-
-                    supportingTimerId = window.setTimeout(() =>
-                    {
-                        setIsSupportingVisible(true);
-
-                        actionsTimerId = window.setTimeout(() =>
-                        {
-                            setIsActionsVisible(true);
-                        }, revealActionsDelayMs);
-                    }, 0);
-                }
-            }, charDelayMs);
-        }, startDelayMs);
-
-        return () =>
-        {
-            window.clearTimeout(startTimer);
-            if (intervalId !== undefined)
-            {
-                window.clearInterval(intervalId);
-            }
-            if (supportingTimerId !== undefined)
-            {
-                window.clearTimeout(supportingTimerId);
-            }
-            if (actionsTimerId !== undefined)
-            {
-                window.clearTimeout(actionsTimerId);
-            }
-        };
-    }, []);
 
     return (
         <section className={styles.wrapper}>
             <FloatingDocuments/>
             <section className={styles.container}>
                 <LargeTitle align="center" className={styles.title}>
-                    Welcome to <span className={styles.noWrap}>DocuHyphen</span>, {typedSuffix}
-                    <span className={mergeClasses(styles.typingCursor, !isTyping && styles.typingCursorHidden)}>|</span>
+                    Secure document exchanges for sensitive business information
                 </LargeTitle>
-                <Text className={mergeClasses(
-                    styles.supportingText,
-                    styles.supportingHidden,
-                    isSupportingVisible && styles.supportingVisible,
-                )}>
-                    Request, Send, Track, and Collaborate on your most important documents
+                <Text className={styles.supportingText}>
+                    Securely exchange and collaborate on documents with clients, teams, and external organizations.
                 </Text>
 
-                <div className={mergeClasses(
-                    styles.actions,
-                    styles.actionsHidden,
-                    isActionsVisible && styles.actionsVisible,
-                )}>
+                <div className={styles.actions}>
                     <Button
                         appearance="primary"
                         as="a"
@@ -279,7 +208,7 @@ export function HeroSection()
                         rel="noopener noreferrer"
                         href={SIGN_UP_URL}
                     >
-                        Try it for free
+                        Start Free
                     </Button>
                     <Text weight="semibold">OR</Text>
                     <SpeakToSalesDialog

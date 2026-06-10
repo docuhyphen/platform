@@ -12,7 +12,7 @@ import {Footer} from "./shared/Footer.tsx";
 import {appStyles} from "./AppStyles.tsx";
 import {SecurityFaqPage} from "./pages/SecurityFaqPage.tsx";
 import {PricingPage} from "./pages/PricingPage.tsx";
-import {SolutionsPage} from "./pages/SolutionsPage.tsx";
+import {IndustriesPage} from "./pages/IndustriesPage.tsx";
 import {ResourcesPage} from "./pages/ResourcesPage.tsx";
 import {SecurityPage} from "./pages/SecurityPage.tsx";
 import {AboutPage} from "./pages/AboutPage.tsx";
@@ -52,7 +52,7 @@ export default function App()
             <Routes>
                 <Route path="/" element={<LandingPage industrySlug={industrySlug}/>}/>
             <Route path="/pricing" element={<PricingPage/>}/>
-            <Route path="/solutions/:industry" element={<SolutionsPage/>}/>
+            <Route path="/industries/:industry" element={<IndustriesPage/>}/>
             <Route path="/resources" element={<ResourcesPage/>}/>
             <Route path="/security" element={<SecurityPage/>}/>
             <Route path="/about" element={<AboutPage/>}/>

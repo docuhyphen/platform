@@ -41,7 +41,7 @@ export function FooterCtaSection()
                     className={styles.button}
                     href={SIGN_UP_URL}
                 >
-                    Try it for free
+                    Start Free
                 </Button>
             </div>
         </footer>
