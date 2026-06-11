@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.service.auth
+﻿package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.UserSession
@@ -90,7 +90,7 @@ class UserSessionService @Inject constructor(
             reasonCode = reasonCode.name,
         )
         sessionRevocationCache.markRevoked(sessionId, reasonCode)
-        // Push SESSION_REVOKED to the affected device and SESSION_REMOVED to all peers.
+        // Push EXCHANGE_REVOKED to the affected device and EXCHANGE_REMOVED to all peers.
         realtimeEventService.notifySessionRevoked(sessionId, reasonCode.name)
         if (appUserId != null)
         {

@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.resource
+﻿package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.model.entity.AuthTokenType.REFRESH
 import com.docuhyphen.app.api.resource.model.ResponseError
@@ -146,7 +146,7 @@ class TokenRefreshResource @Inject constructor(
                     authenticationService.deleteRefreshTokenByJti(jti)
                     logger.warn("Refresh token jti={} has no sessionId,  pre-session token, forcing re-auth", jti)
                     return Response.status(Response.Status.UNAUTHORIZED)
-                        .entity(ResponseError("SESSION_EXPIRED"))
+                        .entity(ResponseError("EXCHANGE_EXPIRED"))
                         .build()
                 }
 
@@ -190,7 +190,7 @@ class TokenRefreshResource @Inject constructor(
                     .build()
             }
 
-            // Per-session revocation check (replaces the older session_version JWT claim).
+            // Per-session revocation check (replaces the older exchange_version JWT claim).
             // O(1) Redis lookup; entries TTL out after the refresh-token window.
             // The interceptor performs the same check on every authenticated request.
             if (!userSessionService.isActiveSession(sessionId, appUser.id))

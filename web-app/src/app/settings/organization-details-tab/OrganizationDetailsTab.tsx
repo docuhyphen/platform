@@ -328,30 +328,6 @@ const OrganizationDetailsTab = () =>
                 />
             </div>
         )}
-
-        {!organization && !fetchingOrganization && <>
-            <section className={styles.orgOnboardingContainer}>
-                <Text>
-                    You are not part of an organization. You can onboard your organization to use the full
-                    potential of DocHyphen.
-                </Text>
-                <div>
-                    <Button shape={"circular"}
-                            appearance={"outline"}
-                            onClick={() => setOnboardingDialogOpen(true)}
-                            icon={<></>}>
-                        Register your organization
-                    </Button>
-                </div>
-            </section>
-            <OrganizationOnboardingDialog isOpen={isOnboardingDialogOpen}
-                                          onDismiss={() => {
-                                              setOnboardingDialogOpen(false);
-                                              getOrganization();
-                                          }}
-                                          onRegistered={() => getOrganization()}/>
-        </>
-        }
     </>
 }
 

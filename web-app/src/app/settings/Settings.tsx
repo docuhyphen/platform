@@ -69,7 +69,7 @@ const Settings = () =>
 
     return (
         <>
-            <div className={styles.container}>
+            <div className={styles.container} id={"settings-container"}>
                 <Drawer
                     type={menuDrawerType}
                     open={isMenuDrawerOpen}

@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.resource
+﻿package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.resource.model.ResponseError
@@ -39,7 +39,7 @@ class UserSessionResource @Inject constructor(
             val sessions = userSessionService.listActiveSessions(appUser.id)
             val currentSessionId = authenticationService
                 .verifyAccessToken(authTokenContext.authToken.token)
-                ?.let { it["session_id"] as? String }
+                ?.let { it["exchange_id"] as? String }
             val dtos = sessions.map { s ->
                 UserSessionDto(
                     sessionId = s.sessionId.toString(),
@@ -88,7 +88,7 @@ class UserSessionResource @Inject constructor(
 
             userSessionService.revokeSession(sid, RevocationReasonCode.LOGOUT_DEVICE)
             authAuditService.emit(
-                action = "SESSION_REVOKE",
+                action = "EXCHANGE_REVOKE",
                 outcome = "SUCCESS",
                 sessionId = sid.toString(),
                 actorId = appUser.id,

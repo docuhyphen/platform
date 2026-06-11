@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.service.auth
+﻿package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.realtime.RealtimeEventService
@@ -37,11 +37,11 @@ class SignOutService @Inject constructor(
             userSessionService.revokeAllUserSessions(appUser.id, RevocationReasonCode.LOGOUT_ALL_DEVICES)
             if (configurationService.isAuthSessionVersionEnabled())
             {
-                // Force currently issued access tokens to fail request-time session_version checks.
+                // Force currently issued access tokens to fail request-time exchange_version checks.
                 appUser.sessionVersion += 1
                 appUserRepository.update(appUser)
             }
-            // Push SESSION_REVOKED to every other open socket; the current device's socket
+            // Push EXCHANGE_REVOKED to every other open socket; the current device's socket
             // (if any) is left for the client to close on its own logout flow.
             realtimeEventService.notifyAllSessionsRevoked(
                 appUser.id,
@@ -80,7 +80,7 @@ class SignOutService @Inject constructor(
 
     /**
      * Context-free sign-out used by flows that have no [AuthTokenContext],  e.g. password reset,
-     * admin-driven revocation. Revokes all sessions for [appUserId] and pushes SESSION_REVOKED
+     * admin-driven revocation. Revokes all sessions for [appUserId] and pushes EXCHANGE_REVOKED
      * to every open socket.
      */
     fun signOutByUserId(appUserId: UUID, reason: RevocationReasonCode, requestId: String? = null)
@@ -110,6 +110,6 @@ class SignOutService @Inject constructor(
     private fun currentSessionIdFromToken(): UUID?
     {
         val claims = authenticationService.verifyAccessToken(authTokenContext.authToken.token) ?: return null
-        return runCatching { UUID.fromString(claims["session_id"] as? String ?: "") }.getOrNull()
+        return runCatching { UUID.fromString(claims["exchange_id"] as? String ?: "") }.getOrNull()
     }
 }
