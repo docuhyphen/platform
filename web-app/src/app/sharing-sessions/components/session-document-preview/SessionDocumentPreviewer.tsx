@@ -746,7 +746,7 @@ const SessionDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
             }
 
             return (
-                <div className={styles.previewEmptyState}>
+                <div className={styles.previewEmptyState} id={'preview-empty-state'}>
                     <Text size={500} weight={"semibold"}>No file uploaded yet</Text>
                     <Text size={300} className={styles.previewEmptySubText}>
                         Upload a file for <b>{sessionDocument.title}</b> to start previewing.

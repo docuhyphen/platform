@@ -444,6 +444,8 @@ export const useSessionDocumentPreviewerStyles = makeStyles({
         backgroundColor: tokens.colorNeutralBackground1,
         padding: "20px",
         textAlign: "center",
+        margin: "auto",
+        maxWidth: "380px"
     },
 
     previewEmptySubText: {
