@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.resource
+﻿package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
@@ -141,7 +141,7 @@ class StepUpResource @Inject constructor(
             ?: return Response.status(Response.Status.UNAUTHORIZED)
                 .entity(ResponseError("Not authenticated."))
                 .build()
-        val sessionId = (claims["session_id"] as? String)
+        val sessionId = (claims["exchange_id"] as? String)
             ?.let { runCatching { java.util.UUID.fromString(it) }.getOrNull() }
             ?: return Response.status(Response.Status.UNAUTHORIZED)
                 .entity(ResponseError("Session context missing for step-up."))
@@ -368,9 +368,9 @@ class StepUpResource @Inject constructor(
     private fun normalizeReturnTo(returnTo: String?): String
     {
         val trimmed = returnTo?.trim().orEmpty()
-        if (trimmed.isBlank()) return "/sharing-sessions"
-        if (!trimmed.startsWith("/")) return "/sharing-sessions"
-        if (trimmed.startsWith("//")) return "/sharing-sessions"
+        if (trimmed.isBlank()) return "/exchanges"
+        if (!trimmed.startsWith("/")) return "/exchanges"
+        if (trimmed.startsWith("//")) return "/exchanges"
         return trimmed
     }
 }

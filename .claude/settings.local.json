@@ -120,7 +120,11 @@
       "Bash(Remove-Item -Force \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\plan-sharingCollaborationRedesign.v1.prompt.md\", \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\plan-sharingCollaborationRedesign.v2.prompt.md\", \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\plan-oAuthMultiIdpArchitecture.v4.prompt.md\")",
       "Bash(Write-Output \"Done\")",
       "Bash(xargs grep -l \"watermark\" -i)",
-      "Bash(xargs grep -l \"Preview\\\\|preview\\\\|render\")"
+      "Bash(xargs grep -l \"Preview\\\\|preview\\\\|render\")",
+      "Bash(Get-ChildItem -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(xargs grep -l -i \"sharing\")",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\web-app\\\\src\\\\app\\\\sharing-sessions\" -Recurse | Where-Object { !$_.PSIsContainer } | Select-Object -ExpandProperty Name | Sort-Object | head -60)"
     ]
   }
 }

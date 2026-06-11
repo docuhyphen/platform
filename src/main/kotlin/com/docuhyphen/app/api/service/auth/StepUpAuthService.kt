@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.service.auth
+﻿package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import jakarta.enterprise.context.RequestScoped
@@ -40,7 +40,7 @@ class StepUpAuthService @Inject constructor(
         val tokenAuthTime = (claims["auth_time"] as? Number)?.toLong()
 
         // Server-authoritative source: session.lastAuthTime updated by step-up completion.
-        val sessionAuthTime = ((claims["session_id"] as? String)
+        val sessionAuthTime = ((claims["exchange_id"] as? String)
             ?.let { raw -> runCatching { java.util.UUID.fromString(raw) }.getOrNull() }
             ?.let { sessionId -> userSessionService.findSession(sessionId)?.lastAuthTime?.toInstant()?.epochSecond })
 
@@ -64,7 +64,7 @@ class StepUpAuthService @Inject constructor(
     {
         val token = authTokenContext.authToken.token ?: return
         val sessionIdRaw = authenticationService.parseTokenClaims(token)
-            ?.get("session_id") as? String ?: return
+            ?.get("exchange_id") as? String ?: return
         val sessionId = runCatching { java.util.UUID.fromString(sessionIdRaw) }.getOrNull() ?: return
         markFresh(sessionId)
     }

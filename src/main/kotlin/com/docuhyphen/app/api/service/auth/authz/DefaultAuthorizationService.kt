@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.service.auth.authz
+﻿package com.docuhyphen.app.api.service.auth.authz
 
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
@@ -30,12 +30,12 @@ import java.time.Instant
  *  4. Union the capability sets.
  *  5. Apply per-share constraints (require_mfa, ip_allowlist, expiry, status).
  *  6. Apply resource-state denies (SUSPENDED / ARCHIVED session denies non-admin writes
- *    , looked up in iteration 4 once SharingSession state machine ships).
+ *    , looked up in iteration 4 once Exchange state machine ships).
  *  7. Return Allow if required capability ∈ union, else Deny.
  *
  * NOTE: This is the *foundational* implementation. It intentionally does not yet:
  *   - resolve PUBLIC_LINK tokens (iteration 5)
- *   - enforce SharingSession state machine (iteration 4)
+ *   - enforce Exchange state machine (iteration 4)
  *   - apply org-level sharing policy denies (iteration 6)
  *   - walk nested group membership (iteration 2)
  * Each of those is a localised follow-up; the contract above doesn't change.
@@ -365,7 +365,7 @@ class DefaultAuthorizationService : AuthorizationService
     {
         // Base role caps, then shaped by this share's constraints: VIEWER/PARTICIPANT only
         // gain DOCUMENT_DOWNLOAD via can_download=true; an explicit can_download=false strips
-        // it from richer roles; can_reshare=false strips SESSION_SHARE.
+        // it from richer roles; can_reshare=false strips EXCHANGE_SHARE.
         val base = RoleCapabilities.forRole(this.roleName)
         val caps = ShareConstraints.parse(this.constraintsJson).adjustCapabilities(base)
         return Grant(

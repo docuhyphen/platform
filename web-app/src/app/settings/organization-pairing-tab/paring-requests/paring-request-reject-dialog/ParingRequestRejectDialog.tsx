@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+﻿import React, {useEffect, useState} from "react";
 import useToken from "../../../../../context/useToken.tsx";
 import {useGlobalStyles} from "../../../../../GlobalStyles.tsx";
 import {
@@ -12,17 +12,17 @@ import {
     DialogTrigger, MessageBar, MessageBarActions, MessageBarBody,
     Spinner, Text
 } from "@fluentui/react-components";
-import {LinkStatus, OrganizationSharingSessionLinkBasicDto, ResponseError} from "../../../../models/models.tsx";
+import {LinkStatus, OrganizationExchangeLinkBasicDto, ResponseError} from "../../../../models/models.tsx";
 import {DismissRegular} from "@fluentui/react-icons";
 import {useParingRequestRejectDialogStyles} from "./ParingRequestRejectDialogStyles.tsx";
-import {acceptOrRejectOrganizationLink} from "../../../../../services/organizationSharingSession.ts";
+import {acceptOrRejectOrganizationLink} from "../../../../../services/organizationExchange.ts";
 
 interface ParingRequestDeleteDialogProps
 {
-    orgPair: OrganizationSharingSessionLinkBasicDto | null,
+    orgPair: OrganizationExchangeLinkBasicDto | null,
     isOpen: boolean;
     onDismiss: () => void;
-    onRejected: (orgPair: OrganizationSharingSessionLinkBasicDto) => void;
+    onRejected: (orgPair: OrganizationExchangeLinkBasicDto) => void;
 }
 
 const ParingRequestRejectDialog: React.FC<ParingRequestDeleteDialogProps> = (

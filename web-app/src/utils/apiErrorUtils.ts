@@ -1,4 +1,4 @@
-export type ApiErrorShape = {
+﻿export type ApiErrorShape = {
     message?: string;
     errorMessage?: string;
     reasonCode?: string;
@@ -53,12 +53,12 @@ const formatDuration = (seconds: number): string =>
  * App-wide friendly copy for OTP / verification-code flows.
  *
  * Covers reason codes from:
- *  - No-auth sharing session OTP (`OTP_REQUIRED`, `OTP_INVALID`, `OTP_EXPIRED`,
+ *  - No-auth exchange OTP (`OTP_REQUIRED`, `OTP_INVALID`, `OTP_EXPIRED`,
  *    `OTP_NOT_ISSUED`, `OTP_RATE_LIMITED`, `OTP_LOCKED`)
  *  - Sharing session status transition errors (`INVALID_STATUS_TRANSITION`)
  *  - Sign-in / sign-up / account recovery flows when the backend chooses to
  *    emit reason codes (`PASSWORD_CHANGE_REQUIRED`, `TEMP_PASSWORD_EXPIRED`,
- *    `STEP_UP_REQUIRED`, `MFA_SESSION_EXPIRED`).
+ *    `STEP_UP_REQUIRED`, `MFA_EXCHANGE_EXPIRED`).
  *
  * Unknown reason codes fall back to the original API message.
  */
@@ -86,7 +86,7 @@ export const getOtpFriendlyMessage = (error: NormalizedApiError): string =>
             return 'Your temporary password has expired. Start account recovery to set a new one.';
         case 'STEP_UP_REQUIRED':
             return 'Please confirm your identity to continue with this action.';
-        case 'MFA_SESSION_EXPIRED':
+        case 'MFA_EXCHANGE_EXPIRED':
             return 'Your verification session expired. Please start over and request a new code.';
         default:
             return error.message;
@@ -94,7 +94,7 @@ export const getOtpFriendlyMessage = (error: NormalizedApiError): string =>
 };
 
 /**
- * Backwards-compatible alias for no-auth sharing session OTP error mapping.
+ * Backwards-compatible alias for no-auth exchange OTP error mapping.
  * New callers should use `getOtpFriendlyMessage` directly.
  */
 export const getNoAuthOtpFriendlyMessage = getOtpFriendlyMessage;

@@ -22,10 +22,10 @@ function getNotificationTitle(type: NotificationType | string): string
             return 'Document Added';
         case NotificationType.DOCUMENT_UPDATED:
             return 'Document Updated';
-        case NotificationType.SESSION_ENDED:
+        case NotificationType.EXCHANGE_ENDED:
             return 'Session Ended';
-        case NotificationType.SESSION_INITIATED:
-            return 'Session Initiated';
+        case NotificationType.EXCHANGE_INITIATED:
+            return 'Exchange Initiated';
         case 'workflow.step_assigned':
         case 'WORKFLOW_STEP_ASSIGNED':
             return 'Approval Required';
@@ -33,10 +33,10 @@ function getNotificationTitle(type: NotificationType | string): string
         case 'WORKFLOW_ESCALATED':
             return 'Approval Escalated';
         case 'session.activated':
-        case 'SESSION_ACTIVATED':
+        case 'EXCHANGE_ACTIVATED':
             return 'Session Approved';
         case 'session.rejected':
-        case 'SESSION_REJECTED':
+        case 'EXCHANGE_REJECTED':
             return 'Session Rejected';
         default:
             return 'Notification';

@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.model.entity
+﻿package com.docuhyphen.app.api.model.entity
 
 /**
  * Resource types that can be the target of a [Share] or a [RoleAssignment] with
@@ -6,7 +6,7 @@ package com.docuhyphen.app.api.model.entity
  */
 enum class ResourceType
 {
-    SHARING_SESSION,
+    EXCHANGE,
     DOCUMENT,
     PRINCIPAL_GROUP,
 }

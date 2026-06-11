@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+﻿import React, {useEffect, useState} from 'react';
 import IndividualOnboardingForm from './IndividualOnboardingForm.tsx';
 import {useOnboardingStyles} from '../OnboardingStyles.tsx';
 import AppLogo from "../../components/app-logo/AppLogo.tsx";
@@ -23,7 +23,7 @@ const IndividualOnboarding: React.FC = () =>
         }
         else
         {
-            navigate('/sharing-sessions');
+            navigate('/exchanges');
         }
     }, []);
 
@@ -56,7 +56,7 @@ const IndividualOnboarding: React.FC = () =>
                                 </Text>
                             </div>
                             <p>
-                                Here’s your progress before you can start sharing documents.
+                                Here’s your progress before you can start exhchanging documents.
                             </p>
                             <OnBoardingBreadcrumbs
                                 registerOrganization={registerOrganization}

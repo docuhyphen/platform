@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+﻿import React, {useEffect, useState} from "react";
 import {
     Badge,
     Button,
@@ -61,7 +61,7 @@ const SessionsTab: React.FC = () =>
 
     useEffect(() =>
     {
-        const offCreated = realtimeService.on('SESSION_CREATED', (msg) =>
+        const offCreated = realtimeService.on('EXCHANGE_CREATED', (msg) =>
         {
             if (!msg.session) return;
             const newSession: UserSessionDto = {...msg.session, isCurrent: false};
@@ -76,7 +76,7 @@ const SessionsTab: React.FC = () =>
             });
         });
 
-        const offRemoved = realtimeService.on('SESSION_REMOVED', (msg) =>
+        const offRemoved = realtimeService.on('EXCHANGE_REMOVED', (msg) =>
         {
             if (!msg.userSessionId) return;
             setSessions(prev => prev.filter(s => s.sessionId !== msg.userSessionId));

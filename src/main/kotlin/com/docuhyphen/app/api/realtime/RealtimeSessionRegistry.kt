@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.realtime
+﻿package com.docuhyphen.app.api.realtime
 
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.websocket.Session
@@ -13,9 +13,9 @@ import java.util.concurrent.ConcurrentHashMap
  *  - `socketsByUserSessionId`: the live socket for a single browser/device session.
  *  - `userSessionIdsByUser`:   reverse lookup, lets revocation broadcasts fan out to all of
  *                               a user's open sockets.
- *  - `subscribers`:             sharing-session subscriptions, used both for notifications
+ *  - `subscribers`:             exchange subscriptions, used both for notifications
  *                               and for live "who is viewing" data.
- *  - `sharingSessionsByUserSession`: per-socket subscription set, so socket close cleans up
+ *  - `exchangesByUserSession`: per-socket subscription set, so socket close cleans up
  *                                     viewer state cheaply.
  */
 @ApplicationScoped
@@ -27,8 +27,8 @@ class RealtimeSessionRegistry
     private val userIdByUserSession = ConcurrentHashMap<UUID, UUID>()
     private val userSessionIdsByUser = ConcurrentHashMap<UUID, MutableSet<UUID>>()
 
-    private val subscribers = ConcurrentHashMap<UUID, MutableSet<UUID>>() // sharingSessionId → userSessionIds
-    private val sharingSessionsByUserSession = ConcurrentHashMap<UUID, MutableSet<UUID>>()
+    private val subscribers = ConcurrentHashMap<UUID, MutableSet<UUID>>() // exchangeId → userSessionIds
+    private val exchangesByUserSession = ConcurrentHashMap<UUID, MutableSet<UUID>>()
 
     fun addSocket(userSessionId: UUID, appUserId: UUID, session: Session)
     {
@@ -52,8 +52,8 @@ class RealtimeSessionRegistry
                 if (set.isEmpty()) userSessionIdsByUser.remove(appUserId)
             }
         }
-        sharingSessionsByUserSession.remove(userSessionId)?.forEach { sharingSessionId ->
-            subscribers[sharingSessionId]?.remove(userSessionId)
+        exchangesByUserSession.remove(userSessionId)?.forEach { exchangeId ->
+            subscribers[exchangeId]?.remove(userSessionId)
         }
         logger.info("Realtime socket removed userSessionId={}", userSessionId)
     }
@@ -70,18 +70,18 @@ class RealtimeSessionRegistry
 
     fun snapshotOnlineUserIds(): Set<UUID> = userSessionIdsByUser.keys.toSet()
 
-    fun subscribeToSharingSession(userSessionId: UUID, sharingSessionId: UUID)
+    fun subscribeToExchange(userSessionId: UUID, exchangeId: UUID)
     {
-        subscribers.computeIfAbsent(sharingSessionId) { ConcurrentHashMap.newKeySet() }.add(userSessionId)
-        sharingSessionsByUserSession.computeIfAbsent(userSessionId) { ConcurrentHashMap.newKeySet() }.add(sharingSessionId)
+        subscribers.computeIfAbsent(exchangeId) { ConcurrentHashMap.newKeySet() }.add(userSessionId)
+        exchangesByUserSession.computeIfAbsent(userSessionId) { ConcurrentHashMap.newKeySet() }.add(exchangeId)
     }
 
-    fun unsubscribeFromSharingSession(userSessionId: UUID, sharingSessionId: UUID)
+    fun unsubscribeFromExchange(userSessionId: UUID, exchangeId: UUID)
     {
-        subscribers[sharingSessionId]?.remove(userSessionId)
-        sharingSessionsByUserSession[userSessionId]?.remove(sharingSessionId)
+        subscribers[exchangeId]?.remove(userSessionId)
+        exchangesByUserSession[userSessionId]?.remove(exchangeId)
     }
 
-    fun sharingSessionSubscribers(sharingSessionId: UUID): Set<UUID> =
-        subscribers[sharingSessionId]?.toSet() ?: emptySet()
+    fun exchangeSubscribers(exchangeId: UUID): Set<UUID> =
+        subscribers[exchangeId]?.toSet() ?: emptySet()
 }

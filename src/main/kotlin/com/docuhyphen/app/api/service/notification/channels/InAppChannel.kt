@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.service.notification.channels
+﻿package com.docuhyphen.app.api.service.notification.channels
 
 import com.docuhyphen.app.api.model.entity.InAppNotification
 import com.docuhyphen.app.api.model.entity.NotificationChannelType
@@ -59,9 +59,9 @@ class InAppChannel : NotificationChannel
     private fun titleFor(task: DeliveryTask): String =
         when (task.event.type)
         {
-            "session.activated"        -> "Your sharing session was approved"
-            "session.rejected"         -> "Your sharing session was rejected"
-            "session.approval_requested" -> "A sharing session is awaiting your approval"
+            "session.activated"        -> "Your exchange was approved"
+            "session.rejected"         -> "Your exchange was rejected"
+            "session.approval_requested" -> "A exchange is awaiting your approval"
             "workflow.step_assigned"   -> "You have a new task awaiting your decision"
             "workflow.escalated"       -> "A workflow step has been escalated to you"
             else                       -> task.event.type

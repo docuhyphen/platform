@@ -1,13 +1,13 @@
-import {DocumentCommentDetailedDto} from "../app/models/models.tsx";
-import {addDocumentComment, getDocumentComments} from "./sharingSessionApi.ts";
+﻿import {DocumentCommentDetailedDto} from "../app/models/models.tsx";
+import {addDocumentComment, getDocumentComments} from "./exchangeApi.ts";
 
 export class DocumentCommentService
 {
-    async getComments(sessionId: string, documentId: string): Promise<DocumentCommentDetailedDto[]>
+    async getComments(exchangeId: string, documentId: string): Promise<DocumentCommentDetailedDto[]>
     {
         try
         {
-            const response = await getDocumentComments(sessionId, documentId);
+            const response = await getDocumentComments(exchangeId, documentId);
             return response as DocumentCommentDetailedDto[];
         }
         catch (error)
@@ -18,7 +18,7 @@ export class DocumentCommentService
     }
 
     async addComment(
-        sessionId: string,
+        exchangeId: string,
         documentId: string,
         commentText: string,
         commentedBy: string
@@ -27,7 +27,7 @@ export class DocumentCommentService
         try
         {
             const response = await addDocumentComment(
-                sessionId,
+                exchangeId,
                 documentId,
                 commentText,
                 commentedBy

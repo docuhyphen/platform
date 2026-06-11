@@ -1,9 +1,9 @@
-export const AppUserRoleDisplayNames = {
+﻿export const AppUserRoleDisplayNames = {
     'ORG_ADMIN': 'Organization Admin',
     'ORG_MEMBER': 'Organization Member'
 };
 
-export enum SharingSessionParticipantRole
+export enum ExchangeParticipantRole
 {
     VIEWER = "VIEWER",
     FULL_ACCESS = "FULL_ACCESS",
@@ -14,7 +14,7 @@ export enum SharingSessionParticipantRole
     DOWNLOADER = "DOWNLOADER"
 }
 
-export enum SharingSessionParticipantType
+export enum ExchangeParticipantType
 {
     GROUP = "GROUP",
     APP_USER = "APP_USER"
@@ -193,38 +193,38 @@ export interface OrganizationRegistrationRequest
     email?: string;
 }
 
-export enum SharingSessionRecipientType
+export enum ExchangeRecipientType
 {
     APP_USER = 'APP_USER',
     GROUP = 'GROUP',
     EMAIL = 'EMAIL'
 }
 
-export interface SharingSessionInitiationRequest
+export interface ExchangeInitiationRequest
 {
     initialShareMessage?: string;
     description?: string;
-    recipientType?: SharingSessionRecipientType;
+    recipientType?: ExchangeRecipientType;
     recipientEmail?: string;
     recipientFirstName?: string;
     recipientLastName?: string;
-    sessionName?: string;
-    sessionDocuments?: SharingSessionRequestDocumentRequest[];
+    name?: string;
+    exchangeDocuments?: ExchangeRequestDocumentRequest[];
     requestRecipientSignIn?: boolean;
     allowDocumentAddition?: boolean;
     allowDocumentDeletion?: boolean;
     allowDocumentDownload?: boolean;
     allowDocumentUpdate?: boolean;
     allowDocumentUpload?: boolean;
-    participants?: SharingSessionParticipantRequest[];
-    status?: SharingSessionStatus;
+    participants?: ExchangeParticipantRequest[];
+    status?: ExchangeStatus;
     rejectionReason?: string;
     recipientRoleName?: string;
     recipientConstraintsJson?: string;
     allowedDownloadFormats?: string[];
 }
 
-export enum SharingSessionStatus
+export enum ExchangeStatus
 {
     INITIATED = "INITIATED",
     ACCEPTED_STARTED = "ACCEPTED_STARTED",
@@ -232,11 +232,11 @@ export enum SharingSessionStatus
     REJECTED = "REJECTED"
 }
 
-export interface UpdateSharingSessionRequest
+export interface UpdateExchangeRequest
 {
     initialShareMessage?: string;
     description?: string;
-    sessionName?: string;
+    name?: string;
     requireRecipientSignIn?: boolean;
     allowDocumentAddition?: boolean;
     allowDocumentDeletion?: boolean;
@@ -244,20 +244,20 @@ export interface UpdateSharingSessionRequest
     allowDocumentUpdate?: boolean;
     allowDocumentUpload?: boolean;
     noAuthAccessValidityDays?: number;
-    status?: SharingSessionStatus;
+    status?: ExchangeStatus;
     rejectionReason?: string;
     allowedDownloadFormats?: string[];
 }
 
-export interface UpdateNoAuthSharingSessionRequest
+export interface UpdateNoAuthExchangeRequest
 {
     otp?: string;
-    status?: SharingSessionStatus;
+    status?: ExchangeStatus;
     rejectReason?: string;
     rejectionReason?: string;
 }
 
-export interface SharingSessionRequestDocumentRequest
+export interface ExchangeRequestDocumentRequest
 {
     title: string;
     restrictedType?: DocumentType | ImageType;
@@ -270,13 +270,13 @@ export interface DownloadDocumentsZipRequest
     documentIds: string[];
 }
 
-export interface SharingSessionParticipantRequest
+export interface ExchangeParticipantRequest
 {
     id: string;
-    role: SharingSessionParticipantRole;
+    role: ExchangeParticipantRole;
 }
 
-export interface UpdateShareSessionDocumentRequest
+export interface UpdateShareExchangeDocumentRequest
 {
     title?: string;
     restrictedType?: DocumentType;
@@ -305,31 +305,31 @@ export interface OrganizationDetailedDto
     settings?: OrganizationSettingsDto,
 }
 
-export interface SharingSessionBasicDto
+export interface ExchangeBasicDto
 {
     id: string;
     createdDate: string;
     lastActivity: string;
-    sessionName?: string;
+    name?: string;
     initialShareMessage?: string;
     description?: string;
     initiator?: string;
     recipientId?: string;
-    status?: SharingSessionStatus;
+    status?: ExchangeStatus;
     recipientEmail?: string;
     recipientFirstName?: string;
     recipientLastName?: string;
     recipientOrganizationName?: string;
 }
 
-export interface NoAuthSharingSessionBasicDto
+export interface NoAuthExchangeBasicDto
 {
     id: string;
     createdDate: string;
     lastActivity: string;
-    sessionName?: string;
+    name?: string;
     initialShareMessage?: string;
-    status?: SharingSessionStatus;
+    status?: ExchangeStatus;
     recipientEmail?: string;
     recipientFirstName?: string;
     recipientLastName?: string;
@@ -404,18 +404,18 @@ export interface DocumentDetailedDto
     lastUploadedByLastName?: string;
 }
 
-export interface SharingSessionDetailedDto
+export interface ExchangeDetailedDto
 {
     id: string;
     createdDate: string;
     endDate: string;
     lastActivity: string;
-    sessionName?: string;
+    name?: string;
     initialShareMessage?: string;
     description?: string;
     initiator?: AppUserDetailedDto;
     recipient?: AppUserDetailedDto;
-    status?: SharingSessionStatus;
+    status?: ExchangeStatus;
     documents?: DocumentDetailedDto[];
     requestRecipientSignIn?: boolean;
     allowDocumentAddition?: boolean;
@@ -424,14 +424,14 @@ export interface SharingSessionDetailedDto
     allowDocumentUpdate?: boolean
     allowDocumentUpload?: boolean
     noAuthAccessValidityDays?: number;
-    participants?: SharingSessionParticipantDetailedDto[];
+    participants?: ExchangeParticipantDetailedDto[];
     watermark?: boolean;
     maxViews?: number;
     requireMfa?: boolean;
     allowedDownloadFormats?: string[];   // mirrors backend DTO
 }
 
-export interface SharingSessionParticipantDetailedDto
+export interface ExchangeParticipantDetailedDto
 {
     id: string;
     participantType: 'GROUP' | 'APP_USER' | string;
@@ -668,13 +668,13 @@ export enum NotificationType
     NEW_SESSION = 'NEW_SESSION',
     DOCUMENT_ADDED = 'DOCUMENT_ADDED',
     DOCUMENT_UPDATED = 'DOCUMENT_UPDATED',
-    SESSION_ENDED = 'SESSION_ENDED',
-    SESSION_INITIATED = 'SESSION_INITIATED',
+    EXCHANGE_ENDED = 'EXCHANGE_ENDED',
+    EXCHANGE_INITIATED = 'EXCHANGE_INITIATED',
     // New types from Plans 01–05
     WORKFLOW_STEP_ASSIGNED = 'workflow.step_assigned',
     WORKFLOW_ESCALATED = 'workflow.escalated',
-    SESSION_ACTIVATED = 'session.activated',
-    SESSION_REJECTED = 'session.rejected',
+    EXCHANGE_ACTIVATED = 'session.activated',
+    EXCHANGE_REJECTED = 'session.rejected',
 }
 
 export interface NotificationDto
@@ -683,7 +683,7 @@ export interface NotificationDto
     type: NotificationType;
     message: string;
     timestamp: string;
-    sessionId?: string;
+    exchangeId?: string;
     documentId?: string;
     commentId?: string;
     userId?: string;
@@ -720,11 +720,11 @@ export interface OrganizationSettingsDto
 
 export interface OrganizationGroupMemberPermissionDto
 {
-    allowSessionAccept: boolean;
-    allowSessionReject: boolean;
-    allowSessionEdit: boolean;
-    allowSessionDelete: boolean;
-    allowSessionEnd: boolean;
+    allowExchangeAccept: boolean;
+    allowExchangeReject: boolean;
+    allowExchangeEdit: boolean;
+    allowExchangeDelete: boolean;
+    allowExchangeEnd: boolean;
     allowDocumentAddition: boolean;
     allowDocumentDeletion: boolean;
     allowDocumentDownload: boolean;
@@ -754,7 +754,7 @@ export enum LinkStatus
     REJECTED = "REJECTED"
 }
 
-export interface OrganizationSharingSessionLinkBasicDto
+export interface OrganizationExchangeLinkBasicDto
 {
     id: string;
     createdDate: string;

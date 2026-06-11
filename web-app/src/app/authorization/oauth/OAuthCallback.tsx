@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+﻿import React, {useEffect, useState} from 'react';
 import {useNavigate, useSearchParams} from 'react-router-dom';
 import {useAuth} from '../../../context/AuthContext.tsx';
 import {setApiClientAuthToken} from '../../../services/apiClient.ts';
@@ -73,7 +73,7 @@ const OAuthCallback: React.FC = () =>
                     {
                         // Organization not found is okay
                     }
-                    navigate('/sharing-sessions');
+                    navigate('/exchanges');
                 }
                 else
                 {

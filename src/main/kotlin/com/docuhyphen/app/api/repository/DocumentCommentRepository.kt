@@ -1,22 +1,22 @@
-package com.docuhyphen.app.api.repository
+﻿package com.docuhyphen.app.api.repository
 
-import com.docuhyphen.app.api.model.entity.SharingSessionDocumentComment
+import com.docuhyphen.app.api.model.entity.ExchangeDocumentComment
 import jakarta.enterprise.context.ApplicationScoped
 import java.util.*
 
 @ApplicationScoped
 class DocumentCommentRepository :
-    BaseRepository<SharingSessionDocumentComment>(SharingSessionDocumentComment::class.java)
+    BaseRepository<ExchangeDocumentComment>(ExchangeDocumentComment::class.java)
 {
-    fun findByDocumentId(documentId: UUID): List<SharingSessionDocumentComment>
+    fun findByDocumentId(documentId: UUID): List<ExchangeDocumentComment>
     {
         return entityManager
             .createQuery(
                 """
-                |SELECT c FROM SharingSessionDocumentComment c
+                |SELECT c FROM ExchangeDocumentComment c
                 |WHERE c.document.id = :documentId
                 |ORDER BY c.createdDate DESC """.trimMargin(),
-                SharingSessionDocumentComment::class.java
+                ExchangeDocumentComment::class.java
             )
             .setParameter("documentId", documentId).resultList
     }

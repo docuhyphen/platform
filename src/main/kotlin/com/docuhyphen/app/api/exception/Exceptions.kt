@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.exception
+﻿package com.docuhyphen.app.api.exception
 
 import com.docuhyphen.app.api.model.entity.SignUpStatus
 
@@ -40,7 +40,7 @@ class OrganizationNotFoundException(message: String?) : RuntimeException(message
 class OrganizationLinkNotFoundException(message: String? = "") : RuntimeException(message)
 class OrganizationGroupNotFoundException(message: String?) : RuntimeException(message)
 class AppUserNotFoundException(message: String?) : RuntimeException(message)
-class SharingSessionNotFoundException(message: String?) : RuntimeException(message)
-class SharingSessionDocumentNotFoundException(message: String?) : RuntimeException(message)
+class ExchangeNotFoundException(message: String?) : RuntimeException(message)
+class ExchangeDocumentNotFoundException(message: String?) : RuntimeException(message)
 class TooManyRequestsException(message: String?) : RuntimeException(message)
 class LastAppAdminException(message: String = "Cannot remove the last application administrator") : RuntimeException(message)

@@ -8,13 +8,13 @@ package com.docuhyphen.app.api.service.auth.authz
 enum class Action(val required: Capability)
 {
     // Sharing sessions
-    SESSION_VIEW(Capability.SESSION_READ),
-    SESSION_EDIT(Capability.SESSION_WRITE),
-    SESSION_DELETE(Capability.SESSION_DELETE),
-    SESSION_SUSPEND(Capability.SESSION_ADMIN),
-    SESSION_END(Capability.SESSION_ADMIN),
-    SESSION_TRANSFER_OWNERSHIP(Capability.SESSION_OWNER),
-    SESSION_MANAGE_ACCESS(Capability.SESSION_SHARE),
+    EXCHANGE_VIEW(Capability.EXCHANGE_READ),
+    EXCHANGE_EDIT(Capability.EXCHANGE_WRITE),
+    EXCHANGE_DELETE(Capability.EXCHANGE_DELETE),
+    EXCHANGE_SUSPEND(Capability.EXCHANGE_ADMIN),
+    EXCHANGE_END(Capability.EXCHANGE_ADMIN),
+    EXCHANGE_TRANSFER_OWNERSHIP(Capability.EXCHANGE_OWNER),
+    EXCHANGE_MANAGE_ACCESS(Capability.EXCHANGE_SHARE),
 
     // Documents
     DOCUMENT_VIEW(Capability.DOCUMENT_READ),

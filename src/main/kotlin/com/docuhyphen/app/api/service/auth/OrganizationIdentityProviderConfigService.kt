@@ -202,7 +202,7 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
         val orgId = requireUuid(organizationId, "organization ID")
 
         adminActionGuardService.enforce(
-            action = "ORG_AUTH_SESSION_POLICY_UPDATE",
+            action = "ORG_AUTH_EXCHANGE_POLICY_UPDATE",
             actorId = actor.id,
             context = adminApprovalContext,
             requireStepUp = false,
@@ -239,7 +239,7 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
         organizationIdentityProviderConfigRepository.update(config)
 
         authAuditService.emit(
-            action = "ORG_AUTH_SESSION_POLICY_UPDATE",
+            action = "ORG_AUTH_EXCHANGE_POLICY_UPDATE",
             outcome = "SUCCESS",
             actorId = actor.id,
             organizationId = orgId,

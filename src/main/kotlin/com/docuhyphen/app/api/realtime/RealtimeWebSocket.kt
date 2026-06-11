@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.realtime
+﻿package com.docuhyphen.app.api.realtime
 
 import com.docuhyphen.app.api.model.entity.AuthTokenType
 import com.docuhyphen.app.api.service.auth.AuthenticationService
@@ -21,7 +21,7 @@ import java.util.UUID
 
 /**
  * One socket per [UserSession] (per device/browser). Auth: opening handshake's `?token=…`
- * must be a valid ACCESS token whose `session_id` claim equals the path's `userSessionId`.
+ * must be a valid ACCESS token whose `exchange_id` claim equals the path's `userSessionId`.
  *
  * Why per-userSession and not per-user: revocation and presence both want to act on one
  * device at a time. Two browsers for the same user need independent lifecycles.
@@ -46,7 +46,7 @@ class RealtimeWebSocket
     private lateinit var presence: PresenceRegistry
 
     @Inject
-    private lateinit var viewers: SharingViewerRegistry
+    private lateinit var viewers: ExchangeViewerRegistry
 
     @Inject
     private lateinit var authenticationService: AuthenticationService
@@ -87,10 +87,10 @@ class RealtimeWebSocket
             return
         }
 
-        val tokenSessionId = parseUuid(claims["session_id"] as? String)
+        val tokenSessionId = parseUuid(claims["exchange_id"] as? String)
         if (tokenSessionId == null || tokenSessionId != userSessionId)
         {
-            closeAuth(session, "session_id mismatch")
+            closeAuth(session, "exchange_id mismatch")
             return
         }
 
@@ -163,26 +163,26 @@ class RealtimeWebSocket
                 userSessionService.touchSession(userSessionId)
                 sendTo(userSessionId, RealtimeMessage(type = RealtimeMessageType.PONG, serverTime = System.currentTimeMillis()))
             }
-            RealtimeMessageType.SUBSCRIBE_SHARING_SESSION ->
+            RealtimeMessageType.SUBSCRIBE_EXCHANGE ->
             {
-                val sharingSessionId = parseUuid(parsed.sharingSessionId) ?: return
-                registry.subscribeToSharingSession(userSessionId, sharingSessionId)
-                viewers.markViewing(sharingSessionId, appUserId, userSessionId)
+                val exchangeId = parseUuid(parsed.exchangeId) ?: return
+                registry.subscribeToExchange(userSessionId, exchangeId)
+                viewers.markViewing(exchangeId, appUserId, userSessionId)
                 // Send the current viewer list to the new subscriber.
                 sendTo(
                     userSessionId,
                     RealtimeMessage(
                         type = RealtimeMessageType.SHARING_VIEWERS,
-                        sharingSessionId = sharingSessionId.toString(),
-                        viewerUserIds = viewers.viewerUserIds(sharingSessionId).map { it.toString() },
+                        exchangeId = exchangeId.toString(),
+                        viewerUserIds = viewers.viewerUserIds(exchangeId).map { it.toString() },
                     )
                 )
             }
-            RealtimeMessageType.UNSUBSCRIBE_SHARING_SESSION ->
+            RealtimeMessageType.UNSUBSCRIBE_EXCHANGE ->
             {
-                val sharingSessionId = parseUuid(parsed.sharingSessionId) ?: return
-                registry.unsubscribeFromSharingSession(userSessionId, sharingSessionId)
-                viewers.markNotViewing(sharingSessionId, appUserId, userSessionId)
+                val exchangeId = parseUuid(parsed.exchangeId) ?: return
+                registry.unsubscribeFromExchange(userSessionId, exchangeId)
+                viewers.markNotViewing(exchangeId, appUserId, userSessionId)
             }
             else -> logger.warn("Unhandled realtime message type={} userSessionId={}", parsed.type, userSessionId)
         }

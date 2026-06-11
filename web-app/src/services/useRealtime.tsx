@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+﻿import {useEffect, useState} from 'react';
 import {realtimeService} from './NotificationService';
 
 /**
@@ -35,33 +35,33 @@ export function usePresence(): { onlineUserIds: Set<string>; isOnline: (userId: 
 }
 
 /**
- * Subscribe to viewers of a sharing session. While the hook is mounted, this client is
+ * Subscribe to viewers of a exchange. While the hook is mounted, this client is
  * marked as viewing the session on the server side; on unmount it unsubscribes.
  */
-export function useSharingSessionViewers(sharingSessionId: string | null | undefined): string[]
+export function useExchangeViewers(exchangeId: string | null | undefined): string[]
 {
     const [viewerIds, setViewerIds] = useState<string[]>([]);
 
     useEffect(() =>
     {
-        if (!sharingSessionId) return;
+        if (!exchangeId) return;
 
         const off = realtimeService.on('SHARING_VIEWERS', (msg) =>
         {
-            if (msg.sharingSessionId === sharingSessionId && msg.viewerUserIds)
+            if (msg.exchangeId === exchangeId && msg.viewerUserIds)
             {
                 setViewerIds(msg.viewerUserIds);
             }
         });
 
-        realtimeService.subscribeToSharingSession(sharingSessionId);
+        realtimeService.subscribeToExchange(exchangeId);
 
         return () =>
         {
-            realtimeService.unsubscribeFromSharingSession(sharingSessionId);
+            realtimeService.unsubscribeFromExchange(exchangeId);
             off();
         };
-    }, [sharingSessionId]);
+    }, [exchangeId]);
 
     return viewerIds;
 }

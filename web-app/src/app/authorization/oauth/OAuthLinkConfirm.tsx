@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+﻿import React, {useState} from 'react';
 import {useNavigate, useSearchParams} from 'react-router-dom';
 import {useAuth} from '../../../context/AuthContext.tsx';
 import {setApiClientAuthToken} from '../../../services/apiClient.ts';
@@ -59,7 +59,7 @@ const OAuthLinkConfirm: React.FC = () =>
             if (response.idToken) setIdToken(response.idToken);
             setApiClientAuthToken(response.accessToken);
 
-            navigate('/sharing-sessions');
+            navigate('/exchanges');
         }
         catch (error)
         {

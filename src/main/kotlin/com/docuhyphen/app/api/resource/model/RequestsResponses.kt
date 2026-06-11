@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.resource.model
+﻿package com.docuhyphen.app.api.resource.model
 
 import com.docuhyphen.app.api.model.entity.*
 import kotlinx.serialization.Serializable
@@ -275,7 +275,7 @@ data class UpdateOrganizationAppUserRequest(
 )
 
 @Serializable
-data class SharingSessionInitiationDto(
+data class ExchangeInitiationDto(
     var initialShareMessage: String? = null,
     var description: String? = null,
     var recipientOrgGroupId: String? = null,
@@ -283,18 +283,18 @@ data class SharingSessionInitiationDto(
     var recipientEmail: String? = null,
     var recipientFirstName: String? = null,
     var recipientLastName: String? = null,
-    var sessionName: String? = null,
-    var sessionDocuments: List<SharingSessionRequestDocumentRequest>? = null,
+    var name: String? = null,
+    var exchangeDocuments: List<ExchangeRequestDocumentRequest>? = null,
     var requestRecipientSignIn: Boolean = false,
     var allowDocumentAddition: Boolean = false,
     var allowDocumentDeletion: Boolean = false,
     var allowDocumentDownload: Boolean = false,
     var allowDocumentUpdate: Boolean = false,
     var allowDocumentUpload: Boolean = false,
-    var participants: List<SharingSessionParticipantRequest> = listOf(),
-    var status: SharingSessionStatus? = null,
+    var participants: List<ExchangeParticipantRequest> = listOf(),
+    var status: ExchangeStatus? = null,
     var rejectionReason: String? = null,
-    var recipientType: SharingSessionRecipientType? = null,
+    var recipientType: ExchangeRecipientType? = null,
     var recipientRoleName: String? = null,
     var recipientConstraintsJson: String? = null,
     var allowedDownloadFormats: List<String>? = null,
@@ -302,10 +302,10 @@ data class SharingSessionInitiationDto(
 )
 
 @Serializable
-data class UpdateSharingSessionRequest(
+data class UpdateExchangeRequest(
     var initialShareMessage: String? = null,
     var description: String? = null,
-    var sessionName: String? = null,
+    var name: String? = null,
     var requireRecipientSignIn: Boolean? = null,
     var allowDocumentAddition: Boolean? = null,
     var allowDocumentDeletion: Boolean? = null,
@@ -313,21 +313,21 @@ data class UpdateSharingSessionRequest(
     var allowDocumentUpload: Boolean? = null,
     var allowDocumentUpdate: Boolean? = null,
     var noAuthAccessValidityDays: Int? = null,
-    var status: SharingSessionStatus? = null,
+    var status: ExchangeStatus? = null,
     var rejectionReason: String? = null,
     var allowedDownloadFormats: List<String>? = null,
 )
 
 @Serializable
-data class UpdateNoAuthSharingSession(
-    var status: SharingSessionStatus? = null,
+data class UpdateNoAuthExchange(
+    var status: ExchangeStatus? = null,
     var otp: String? = null,
     var rejectReason: String? = null,
     var rejectionReason: String? = null,
 )
 
 @Serializable
-class AddSharingSessionDocumentRequest(
+class AddExchangeDocumentRequest(
     val title: String?,
     val documentType: DocumentType? = null,
     val restrictedType: DocumentType? = null,
@@ -335,13 +335,13 @@ class AddSharingSessionDocumentRequest(
 )
 
 @Serializable
-class DownloadSharingSessionDocumentRequest(
+class DownloadExchangeDocumentRequest(
     val documentId: String,
-    val sessionId: String,
+    val exchangeId: String,
 )
 
 @Serializable
-class SharingSessionRequestDocumentRequest
+class ExchangeRequestDocumentRequest
 {
     var title: String = ""
     var restrictedType: DocumentType? = null
@@ -350,10 +350,10 @@ class SharingSessionRequestDocumentRequest
 }
 
 @Serializable
-class SharingSessionParticipantRequest
+class ExchangeParticipantRequest
 {
     var id: String = ""
-    var participantType: SharingSessionParticipantType = SharingSessionParticipantType.APP_USER
+    var participantType: ExchangeParticipantType = ExchangeParticipantType.APP_USER
 }
 
 @Serializable
@@ -716,7 +716,7 @@ data class OrgMemberCapacityResponse(
     val nearCap: Boolean,
 )
 
-/** Grant access on a sharing session to a principal (manage-access write API). */
+/** Grant access on a exchange to a principal (manage-access write API). */
 @Serializable
 data class GrantSessionShareRequest(
     val principalKind: String,

@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.model.dto
+﻿package com.docuhyphen.app.api.model.dto
 
 import com.docuhyphen.app.api.model.entity.LinkStatus
 import com.docuhyphen.app.api.serializer.TimestampSerializer
@@ -8,32 +8,32 @@ import java.sql.Timestamp
 import java.util.*
 
 @Serializable
-data class SharingSessionBasicDto(
+data class ExchangeBasicDto(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID,
     @Serializable(with = TimestampSerializer::class)
     val createdDate: Timestamp,
     @Serializable(with = TimestampSerializer::class)
     val lastActivity: Timestamp,
-    val sessionName: String?,
+    val name: String?,
     val initialShareMessage: String? = null,
     val description: String? = null,
     @Serializable(with = UUIDSerializer::class)
     val initiator: UUID?,
     val status: String?,
     // Recipients/participants are exposed via the unified access view
-    // (GET /sharing-sessions/{id}/access), not embedded recipient columns.
+    // (GET /exchanges/{id}/access), not embedded recipient columns.
 )
 
 @Serializable
-data class NoAuthSharingSessionBasicDto(
+data class NoAuthExchangeBasicDto(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID,
     @Serializable(with = TimestampSerializer::class)
     val createdDate: Timestamp,
     @Serializable(with = TimestampSerializer::class)
     val lastActivity: Timestamp,
-    val sessionName: String?,
+    val name: String?,
     val initialShareMessage: String? = null,
     val status: String?,
     var recipientEmail: String? = null,
@@ -67,7 +67,7 @@ data class OrganizationBasicDto(
 )
 
 @Serializable
-data class OrganizationSharingSessionLinkBasicDto(
+data class OrganizationExchangeLinkBasicDto(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID?,
     @Serializable(with = TimestampSerializer::class)

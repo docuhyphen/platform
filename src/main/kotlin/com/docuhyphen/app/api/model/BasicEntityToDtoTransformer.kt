@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.model
+﻿package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.*
@@ -7,16 +7,16 @@ class BasicEntityToDtoTransformer
 {
     companion object
     {
-        fun toDto(sharingSession: SharingSession?): SharingSessionBasicDto?
+        fun toDto(exchange: Exchange?): ExchangeBasicDto?
         {
-            return sharingSession?.let {
-                with(sharingSession)
+            return exchange?.let {
+                with(exchange)
                 {
-                    SharingSessionBasicDto(
+                    ExchangeBasicDto(
                         id,
                         createdDate,
                         lastActivity,
-                        sessionName,
+                        name,
                         initialShareMessage,
                         description,
                         initiator?.id,
@@ -26,16 +26,16 @@ class BasicEntityToDtoTransformer
             }
         }
 
-        fun toNoAuthDto(sharingSession: SharingSession?): NoAuthSharingSessionBasicDto?
+        fun toNoAuthDto(exchange: Exchange?): NoAuthExchangeBasicDto?
         {
-            return sharingSession?.let {
-                with(sharingSession)
+            return exchange?.let {
+                with(exchange)
                 {
-                    NoAuthSharingSessionBasicDto(
+                    NoAuthExchangeBasicDto(
                         id,
                         createdDate,
                         lastActivity,
-                        sessionName,
+                        name,
                         initialShareMessage,
                         status.toString(),
                         // Recipient email lives on the recipient's Share now; the no-auth viewer
@@ -125,12 +125,12 @@ class BasicEntityToDtoTransformer
             }
         }
 
-        fun toDto(organizationSharingSessionLink: OrganizationSharingSessionLink?): OrganizationSharingSessionLinkBasicDto?
+        fun toDto(organizationExchangeLink: OrganizationExchangeLink?): OrganizationExchangeLinkBasicDto?
         {
-            return organizationSharingSessionLink?.let {
-                with(organizationSharingSessionLink)
+            return organizationExchangeLink?.let {
+                with(organizationExchangeLink)
                 {
-                    OrganizationSharingSessionLinkBasicDto(
+                    OrganizationExchangeLinkBasicDto(
                         id,
                         createdDate,
                         requestingOrganization?.id.toString(),

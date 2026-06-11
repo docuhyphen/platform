@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.model.dto
+﻿package com.docuhyphen.app.api.model.dto
 
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
@@ -66,7 +66,7 @@ data class DocumentVersionDetailedDto(
 )
 
 @Serializable
-data class SharingSessionDetailedDto(
+data class ExchangeDetailedDto(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID,
     @Serializable(with = TimestampSerializer::class)
@@ -76,7 +76,7 @@ data class SharingSessionDetailedDto(
     val endNote: String?,
     @Serializable(with = TimestampSerializer::class)
     val lastActivity: Timestamp,
-    val sessionName: String?,
+    val name: String?,
     val initialShareMessage: String? = null,
     val description: String? = null,
     val initiator: AppUserDetailedDto? = null,

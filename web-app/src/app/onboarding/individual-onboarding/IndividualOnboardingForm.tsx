@@ -1,4 +1,4 @@
-import React, {ChangeEvent, useEffect, useState} from 'react';
+﻿import React, {ChangeEvent, useEffect, useState} from 'react';
 import {useAuth} from '../../../context/AuthContext.tsx';
 import {useNavigate} from 'react-router-dom';
 import {registerIndividual, updateAppUserSettings} from '../../../services/appUserApi.ts';
@@ -163,7 +163,7 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
             }
             else
             {
-                navigate('/sharing-sessions');
+                navigate('/exchanges');
             }
         }
         catch (error)

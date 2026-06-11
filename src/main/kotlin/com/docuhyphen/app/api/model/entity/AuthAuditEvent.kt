@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.model.entity
+﻿package com.docuhyphen.app.api.model.entity
 
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -36,7 +36,7 @@ class AuthAuditEvent
     @Column(name = "reason_code")
     var reasonCode: String? = null
 
-    @Column(name = "session_id")
+    @Column(name = "exchange_id")
     var sessionId: String? = null
 
     @Column(name = "organization_id")

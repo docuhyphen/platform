@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.repository
+﻿package com.docuhyphen.app.api.repository
 
 import com.docuhyphen.app.api.model.entity.Organization
 import jakarta.enterprise.context.RequestScoped
@@ -70,10 +70,10 @@ class OrganizationRepository : BaseRepository<Organization>(Organization::class.
         WHERE
             o.id <> :orgId AND (
                 o.id IN (
-                    SELECT l.requestedOrganization.id FROM OrganizationSharingSessionLink l
+                    SELECT l.requestedOrganization.id FROM OrganizationExchangeLink l
                     WHERE l.requestingOrganization.id = :orgId AND l.status = 'ACCEPTED'
                     UNION
-                    SELECT l.requestingOrganization.id FROM OrganizationSharingSessionLink l
+                    SELECT l.requestingOrganization.id FROM OrganizationExchangeLink l
                     WHERE l.requestedOrganization.id = :orgId AND l.status = 'ACCEPTED'
                 )
                 OR o.settings.allowShareWithoutPairing = :includePublic

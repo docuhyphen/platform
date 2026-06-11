@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.service.auth
+﻿package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.exception.*
 import com.docuhyphen.app.api.extension.maskEmailForLogs
@@ -8,10 +8,10 @@ import com.docuhyphen.app.api.model.entity.IdentityProviderLink
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.model.entity.SignUpEntity
 import com.docuhyphen.app.api.model.entity.SignUpStatus
-import com.docuhyphen.app.api.model.entity.SharingSessionStatus
+import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.repository.IdentityProviderLinkRepository
-import com.docuhyphen.app.api.repository.SharingSessionRepository
+import com.docuhyphen.app.api.repository.ExchangeRepository
 import com.docuhyphen.app.api.repository.SignUpRepository
 import com.docuhyphen.app.api.service.UserContactService
 import com.docuhyphen.app.api.service.communication.EmailService
@@ -37,7 +37,7 @@ class SignUpService @Inject constructor(
     private val authenticationService: AuthenticationService,
     private val signUpEmailConfirmationTokenService: SignUpEmailConfirmationTokenService,
     private val userContactService: UserContactService,
-    private val sharingSessionRepository: SharingSessionRepository,
+    private val exchangeRepository: ExchangeRepository,
 )
 {
     companion object
@@ -481,8 +481,8 @@ class SignUpService @Inject constructor(
         val hashedPassword = authenticationService.hashPassword(password, passwordSalt)
 
         // Temp-user merge: if the no-auth recipient flow previously created a placeholder
-        // AppUser for this email, upgrade it in place. The id is preserved so SharingSession,
-        // SharingSessionParticipant, and other FK references all keep pointing at the same
+        // AppUser for this email, upgrade it in place. The id is preserved so Exchange,
+        // ExchangeParticipant, and other FK references all keep pointing at the same
         // row, no re-pointing or cascading updates needed.
         val existingTemp = appUserRepository.findTemporaryByEmail(email)
         val savedUser = if (existingTemp != null)
@@ -551,9 +551,9 @@ class SignUpService @Inject constructor(
             logger.info("Backfilled contactAppUserId on {} rows for new user", updatedRows)
         }
 
-        val pastSessions = sharingSessionRepository.findByRecipientId(newUser.id)
+        val pastSessions = exchangeRepository.findByRecipientId(newUser.id)
         pastSessions
-            .filter { it.status == SharingSessionStatus.ACCEPTED_STARTED || it.status == SharingSessionStatus.ENDED }
+            .filter { it.status == ExchangeStatus.ACCEPTED_STARTED || it.status == ExchangeStatus.ENDED }
             .forEach { session ->
                 val initiator = session.initiator ?: return@forEach
                 userContactService.recordOneWayFromSignupMerge(newUser, initiator, session.id)

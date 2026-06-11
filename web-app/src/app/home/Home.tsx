@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+﻿import React, {useEffect} from 'react';
 import {useNavigate} from 'react-router-dom';
 
 const Home: React.FC = () =>
@@ -8,7 +8,7 @@ const Home: React.FC = () =>
 
     useEffect(() =>
     {
-        navigate("/sharing-sessions")
+        navigate("/exchanges")
     }, [navigate]);
 
     return (

@@ -1,10 +1,10 @@
-import {jwtDecode} from "jwt-decode";
+﻿import {jwtDecode} from "jwt-decode";
 import {NotificationDto} from '../app/models/models';
 
 /**
  * Realtime client for the per-userSession WebSocket at /realtime/{userSessionId}.
  *
- *  - Keyed by the access token's `session_id` claim so two devices for the same user have
+ *  - Keyed by the access token's `exchange_id` claim so two devices for the same user have
  *    independent sockets.
  *  - Indefinite reconnect with exponential backoff. The old 5-attempt cap dropped users
  *    permanently after a transient network blip; we never want that for the auth-event
@@ -21,20 +21,20 @@ import {NotificationDto} from '../app/models/models';
 export type RealtimeMessageType =
     | 'PING'
     | 'PONG'
-    | 'SUBSCRIBE_SHARING_SESSION'
-    | 'UNSUBSCRIBE_SHARING_SESSION'
-    | 'SESSION_REVOKED'
-    | 'SESSION_CREATED'
-    | 'SESSION_REMOVED'
+    | 'SUBSCRIBE_EXCHANGE'
+    | 'UNSUBSCRIBE_EXCHANGE'
+    | 'EXCHANGE_REVOKED'
+    | 'EXCHANGE_CREATED'
+    | 'EXCHANGE_REMOVED'
     | 'PASSWORD_CHANGED'
     | 'SIGNED_OUT_OTHER_DEVICE'
     | 'NOTIFICATION'
     | 'PRESENCE_UPDATE'
     | 'SHARING_VIEWERS'
-    | 'SHARING_SESSION_DOCUMENT_ADDED'
-    | 'SHARING_SESSION_DOCUMENT_REMOVED'
-    | 'SHARING_SESSION_DOCUMENT_UPDATED'
-    | 'SHARING_SESSION_STATUS_CHANGED'
+    | 'EXCHANGE_DOCUMENT_ADDED'
+    | 'EXCHANGE_DOCUMENT_REMOVED'
+    | 'EXCHANGE_DOCUMENT_UPDATED'
+    | 'EXCHANGE_STATUS_CHANGED'
     // NB: workflow.step_assigned / workflow.escalated / session.activated / session.rejected
     // are *not* envelope types — the backend wraps them inside NOTIFICATION. Consumers key
     // off `msg.notification.type`.
@@ -56,7 +56,7 @@ export interface RealtimeSessionInfo
 export interface RealtimeMessage
 {
     type: RealtimeMessageType;
-    sharingSessionId?: string;
+    exchangeId?: string;
     notification?: NotificationDto;
     userId?: string;
     userSessionId?: string;
@@ -77,14 +77,14 @@ type LegacyNotificationHandler = (notification: NotificationDto) => void;
 interface AccessTokenClaims
 {
     sub?: string;
-    session_id?: string;
+    exchange_id?: string;
     exp?: number;
 }
 
 const HEARTBEAT_INTERVAL_MS = 25_000;
 const RECONNECT_BASE_MS = 1_000;
 const RECONNECT_CAP_MS = 30_000;
-const CLOSE_CODE_SESSION_REVOKED = 4001;
+const CLOSE_CODE_EXCHANGE_REVOKED = 4001;
 const CLOSE_CODE_AUTH_FAILED = 4401;
 
 class RealtimeService
@@ -101,7 +101,7 @@ class RealtimeService
 
     /**
      * Connect using the current access token in sessionStorage. The userSessionId is
-     * derived from the token's `session_id` claim,  callers don't need to pass anything,
+     * derived from the token's `exchange_id` claim,  callers don't need to pass anything,
      * but for backwards compat we still accept an unused appUserId argument.
      */
     connect(appUserId?: string): void
@@ -122,10 +122,10 @@ class RealtimeService
             return;
         }
 
-        const sessionId = claims?.session_id;
+        const sessionId = claims?.exchange_id;
         if (!sessionId)
         {
-            console.warn('[Realtime] access token missing session_id claim', claims);
+            console.warn('[Realtime] access token missing exchange_id claim', claims);
             return;
         }
 
@@ -191,14 +191,14 @@ class RealtimeService
         }
     }
 
-    subscribeToSharingSession(sharingSessionId: string): void
+    subscribeToExchange(exchangeId: string): void
     {
-        this.send({type: 'SUBSCRIBE_SHARING_SESSION', sharingSessionId});
+        this.send({type: 'SUBSCRIBE_EXCHANGE', exchangeId});
     }
 
-    unsubscribeFromSharingSession(sharingSessionId: string): void
+    unsubscribeFromExchange(exchangeId: string): void
     {
-        this.send({type: 'UNSUBSCRIBE_SHARING_SESSION', sharingSessionId});
+        this.send({type: 'UNSUBSCRIBE_EXCHANGE', exchangeId});
     }
 
     private openSocket(token: string, userSessionId: string): void
@@ -259,8 +259,8 @@ class RealtimeService
                 return;
             }
             // Server told us this device's session is revoked. AuthContext picks it up via
-            // the SESSION_REVOKED handler that already ran. No reconnect.
-            if (event.code === CLOSE_CODE_SESSION_REVOKED)
+            // the EXCHANGE_REVOKED handler that already ran. No reconnect.
+            if (event.code === CLOSE_CODE_EXCHANGE_REVOKED)
             {
                 this.userSessionId = null;
                 return;
@@ -325,7 +325,7 @@ class RealtimeService
                 return;
             }
 
-            const sessionId = this.userSessionId ?? claims?.session_id ?? null;
+            const sessionId = this.userSessionId ?? claims?.exchange_id ?? null;
             if (!token || !sessionId)
             {
                 // Token disappeared (logout). Stop trying.
@@ -341,7 +341,7 @@ class RealtimeService
     {
         // Built-in auth-event handling: any device-level revocation triggers the existing
         // auth-session-expired event. AuthContext already wires this to a redirect.
-        if (msg.type === 'SESSION_REVOKED' || msg.type === 'PASSWORD_CHANGED')
+        if (msg.type === 'EXCHANGE_REVOKED' || msg.type === 'PASSWORD_CHANGED')
         {
             const reason = msg.reason ?? msg.type;
             window.dispatchEvent(new CustomEvent('auth-session-expired', {detail: {reason}}));

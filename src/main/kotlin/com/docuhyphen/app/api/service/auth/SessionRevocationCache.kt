@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.service.auth
+﻿package com.docuhyphen.app.api.service.auth
 
 import io.vertx.mutiny.redis.client.Command
 import io.vertx.mutiny.redis.client.Redis
@@ -10,7 +10,7 @@ import java.util.UUID
 
 /**
  * O(1) revocation check for session IDs. Replaces the coarser `sessionVersion` global bump:
- * EndpointAuthorizationFilter looks up the current request's session_id against this set on
+ * EndpointAuthorizationFilter looks up the current request's exchange_id against this set on
  * every authenticated request, denying immediately if present.
  *
  * Entries TTL out after [DEFAULT_TTL_DAYS],  sessions older than that are guaranteed to have

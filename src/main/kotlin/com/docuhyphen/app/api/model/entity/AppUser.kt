@@ -84,7 +84,7 @@ class AppUser
     @Serializable(with = TimestampSerializer::class)
     var temporaryPasswordExpiresAt: Timestamp? = null
 
-    @Column(name = "session_version", nullable = false)
+    @Column(name = "exchange_version", nullable = false)
     var sessionVersion: Long = 0
 
     @Column(name = "deprovisioned_at", nullable = true)

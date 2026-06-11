@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.model.entity
+﻿package com.docuhyphen.app.api.model.entity
 
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import jakarta.persistence.*
@@ -40,7 +40,7 @@ class MfaRecord {
     @Column(name = "attempt_count")
     var attemptCount: Int = 0
 
-    @Column(name = "session_id")
+    @Column(name = "exchange_id")
     var sessionId: String? = null
 
     @Column(name = "ip_address")

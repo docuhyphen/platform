@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+﻿import React, {useEffect, useState} from "react";
 import {
     Button,
     MessageBar,
@@ -17,9 +17,9 @@ import {DismissRegular, LinkAddRegular} from "@fluentui/react-icons";
 import {OrganizationParingRequestsTabIcon, ParedOrganizationsTabIcon} from "../../components/IconBundles.tsx";
 import ParedOrganizationsTab from "./pared-organizations-tab/ParedOrganizationsTab.tsx";
 import OrganizationParingRequestsTab from "./paring-requests/ParingRequestsTab.tsx";
-import {fetchOrganizationLinks} from "../../../services/organizationSharingSession.ts";
+import {fetchOrganizationLinks} from "../../../services/organizationExchange.ts";
 import {useAuth} from "../../../context/AuthContext.tsx";
-import {LinkStatus, OrganizationSharingSessionLinkBasicDto, ResponseError} from "../../models/models.tsx";
+import {LinkStatus, OrganizationExchangeLinkBasicDto, ResponseError} from "../../models/models.tsx";
 import ParingRequestDialog from "./paring-request-dialog/ParingRequestDialog.tsx";
 import {useNotifications} from "../../../context/NotificationContext.tsx";
 
@@ -35,8 +35,8 @@ const OrganizationPairingTab = () =>
     const [fetchingOrgPairs, setFetchingOrgPairs] = useState(false);
     const [tabErrorMessage, setTabErrorMessage] = useState<string | null>(null);
     const [selectedTab, setSelectedTab] = useState<TabValue>(tabIds.paringRequests);
-    const [pairedOrgs, setPairedOrgs] = useState<OrganizationSharingSessionLinkBasicDto[]>([]);
-    const [orgPairRequests, setOrgPairRequests] = useState<OrganizationSharingSessionLinkBasicDto[]>([]);
+    const [pairedOrgs, setPairedOrgs] = useState<OrganizationExchangeLinkBasicDto[]>([]);
+    const [orgPairRequests, setOrgPairRequests] = useState<OrganizationExchangeLinkBasicDto[]>([]);
     const [isParingRequestDialogOpen, setIsParingRequestDialogOpen] = useState<boolean>(false);
 
     const fetchOrgPairs = async () =>
@@ -52,16 +52,16 @@ const OrganizationPairingTab = () =>
 
         try
         {
-            const pairs = (await fetchOrganizationLinks()) as OrganizationSharingSessionLinkBasicDto[]
+            const pairs = (await fetchOrganizationLinks()) as OrganizationExchangeLinkBasicDto[]
 
             if (pairs && pairs.length)
             {
                 const pared = pairs.filter(
-                    (l: OrganizationSharingSessionLinkBasicDto) => l.status === LinkStatus.ACCEPTED
+                    (l: OrganizationExchangeLinkBasicDto) => l.status === LinkStatus.ACCEPTED
                 );
 
                 const pairRequests = pairs.filter(
-                    (l: OrganizationSharingSessionLinkBasicDto) => (l.status === LinkStatus.PENDING || l.status === LinkStatus.REJECTED)
+                    (l: OrganizationExchangeLinkBasicDto) => (l.status === LinkStatus.PENDING || l.status === LinkStatus.REJECTED)
                 )
 
                 setPairedOrgs(pared)
@@ -127,7 +127,7 @@ const OrganizationPairingTab = () =>
         setIsParingRequestDialogOpen(false)
     }
 
-    const onParingRequestSent = (pair: OrganizationSharingSessionLinkBasicDto) =>
+    const onParingRequestSent = (pair: OrganizationExchangeLinkBasicDto) =>
     {
         fetchOrgPairs().then(() =>
         {
@@ -136,7 +136,7 @@ const OrganizationPairingTab = () =>
         })
     }
 
-    const onParingRequestDeleted = (pair: OrganizationSharingSessionLinkBasicDto) =>
+    const onParingRequestDeleted = (pair: OrganizationExchangeLinkBasicDto) =>
     {
         fetchOrgPairs().then(() =>
         {
@@ -144,7 +144,7 @@ const OrganizationPairingTab = () =>
         })
     }
 
-    const onParingRequestAccepted = (pair: OrganizationSharingSessionLinkBasicDto) =>
+    const onParingRequestAccepted = (pair: OrganizationExchangeLinkBasicDto) =>
     {
         fetchOrgPairs().then(() =>
         {
@@ -152,7 +152,7 @@ const OrganizationPairingTab = () =>
         })
     }
 
-    const onParingRequestRejected = (pair: OrganizationSharingSessionLinkBasicDto) =>
+    const onParingRequestRejected = (pair: OrganizationExchangeLinkBasicDto) =>
     {
         fetchOrgPairs().then(() =>
         {

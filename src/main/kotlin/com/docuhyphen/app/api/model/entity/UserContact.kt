@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.model.entity
+﻿package com.docuhyphen.app.api.model.entity
 
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
@@ -9,7 +9,7 @@ import java.time.Instant
 import java.util.*
 
 /**
- * Per-owner personal contact entry. Populated only when a sharing-session recipient
+ * Per-owner personal contact entry. Populated only when a exchange recipient
  * accepts (reciprocity gate). One row per (owner, contactEmail) pair; both sides of
  * an accepted relationship get a row.
  */
@@ -58,7 +58,7 @@ class UserContact
     @Column(name = "share_count", nullable = false)
     var shareCount: Int = 0
 
-    @Column(name = "last_session_id", nullable = true)
+    @Column(name = "last_exchange_id", nullable = true)
     @Serializable(with = UUIDSerializer::class)
     var lastSessionId: UUID? = null
 

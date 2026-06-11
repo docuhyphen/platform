@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 
 export type HelpDocArticle = {
     id: string;
@@ -45,7 +45,7 @@ const helpDocSections: HelpDocSectionInput[] = [
                             </li>
                             <li>
                                 <a href="#"
-                                   data-help-article="session-lifecycle"><b>Session Lifecycle</b></a> - standardize end-to-end collaboration flow.
+                                   data-help-article="exchange-lifecycle"><b>Session Lifecycle</b></a> - standardize end-to-end collaboration flow.
                             </li>
                         </ol>
 
@@ -120,11 +120,11 @@ const helpDocSections: HelpDocSectionInput[] = [
         ],
     },
     {
-        id: "sharing-sessions",
+        id: "exchanges",
         title: "Sharing sessions",
         articles: [
             {
-                id: "session-lifecycle",
+                id: "exchange-lifecycle",
                 title: "Session Lifecycle",
                 content: (
                     <>

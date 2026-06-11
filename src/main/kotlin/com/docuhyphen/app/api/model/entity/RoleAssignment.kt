@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.model.entity
+﻿package com.docuhyphen.app.api.model.entity
 
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
@@ -15,7 +15,7 @@ import java.util.*
  * - [RoleScopeType.APP]              : `scopeId` is null; role is application-wide.
  * - [RoleScopeType.ORG]              : `scopeId` is an [Organization] id.
  * - [RoleScopeType.PRINCIPAL_GROUP]  : `scopeId` is a [PrincipalGroup] id.
- * - [RoleScopeType.RESOURCE]         : `scopeId` is the resource id (e.g. a [SharingSession]).
+ * - [RoleScopeType.RESOURCE]         : `scopeId` is the resource id (e.g. a [Exchange]).
  *
  * DDL enforces:
  * - APP scope <=> `scope_id IS NULL`

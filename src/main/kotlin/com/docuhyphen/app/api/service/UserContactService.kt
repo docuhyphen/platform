@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.service
+﻿package com.docuhyphen.app.api.service
 
 import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.model.entity.AppUser
@@ -15,7 +15,7 @@ import java.util.*
 /**
  * Personal contacts list per AppUser.
  *
- * Writes are reciprocity-gated: a contact entry is only created when a sharing-session
+ * Writes are reciprocity-gated: a contact entry is only created when a exchange
  * recipient *accepts*. Initiation alone never produces a contact entry, that's the spam-
  * resistance invariant. Call [recordMutualOnAccept] from the accept path only.
  *
@@ -34,7 +34,7 @@ class UserContactService @Inject constructor(
 
     /**
      * Records the mutual contact relationship between [initiator] and [recipient] after
-     * the recipient accepts a sharing session.
+     * the recipient accepts a exchange.
      *
      * - The initiator-side entry (owner=initiator, contact=recipient) is always written.
      * - The recipient-side entry is **skipped when the recipient is still a temp AppUser**
@@ -45,10 +45,10 @@ class UserContactService @Inject constructor(
      * the accept transaction. Idempotent: a repeated call bumps shareCount and lastSharedAt.
      */
     @Transactional
-    fun recordMutualOnAccept(initiator: AppUser, recipient: AppUser, sessionId: UUID)
+    fun recordMutualOnAccept(initiator: AppUser, recipient: AppUser, exchangeId: UUID)
     {
-        runCatching { recordOneWay(initiator, recipient, sessionId) }
-            .onFailure { logger.warn("Failed to record initiator-side contact for session={}", sessionId, it) }
+        runCatching { recordOneWay(initiator, recipient, exchangeId) }
+            .onFailure { logger.warn("Failed to record initiator-side contact for session={}", exchangeId, it) }
 
         if (recipient.isTemporary)
         {
@@ -56,8 +56,8 @@ class UserContactService @Inject constructor(
             return
         }
 
-        runCatching { recordOneWay(recipient, initiator, sessionId) }
-            .onFailure { logger.warn("Failed to record recipient-side contact for session={}", sessionId, it) }
+        runCatching { recordOneWay(recipient, initiator, exchangeId) }
+            .onFailure { logger.warn("Failed to record recipient-side contact for session={}", exchangeId, it) }
     }
 
     /**
@@ -65,14 +65,14 @@ class UserContactService @Inject constructor(
      * accepted sessions where the recipient was a temp AppUser at the time of accept.
      */
     @Transactional
-    fun recordOneWayFromSignupMerge(owner: AppUser, contact: AppUser, sessionId: UUID)
+    fun recordOneWayFromSignupMerge(owner: AppUser, contact: AppUser, exchangeId: UUID)
     {
-        runCatching { recordOneWay(owner, contact, sessionId) }
-            .onFailure { logger.warn("Failed to seed contact on signup merge for session={}", sessionId, it) }
+        runCatching { recordOneWay(owner, contact, exchangeId) }
+            .onFailure { logger.warn("Failed to seed contact on signup merge for session={}", exchangeId, it) }
     }
 
     @Transactional
-    internal fun recordOneWay(owner: AppUser, contact: AppUser, sessionId: UUID)
+    internal fun recordOneWay(owner: AppUser, contact: AppUser, exchangeId: UUID)
     {
         val email = contact.email.normalizeEmailOrNull()
             ?: throw IllegalArgumentException("Contact has no email")
@@ -90,7 +90,7 @@ class UserContactService @Inject constructor(
                 this.firstSharedAt = now
                 this.lastSharedAt = now
                 this.shareCount = 1
-                this.lastSessionId = sessionId
+                this.lastSessionId = exchangeId
             }
             userContactRepository.save(row)
         }
@@ -99,7 +99,7 @@ class UserContactService @Inject constructor(
             // Bump usage stats and refresh the cached name/id in case they've changed since.
             existing.lastSharedAt = now
             existing.shareCount = existing.shareCount + 1
-            existing.lastSessionId = sessionId
+            existing.lastSessionId = exchangeId
             if (existing.contactAppUserId == null && !contact.isTemporary)
             {
                 existing.contactAppUserId = contact.id

@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+﻿import React, {useEffect, useState} from "react";
 import {
     Button,
     MessageBar,
@@ -17,14 +17,14 @@ import {
     DismissRegular, LinkDismissRegular,
     MoreHorizontalRegular
 } from "@fluentui/react-icons";
-import {OrganizationSharingSessionLinkBasicDto} from "../../../models/models.tsx";
+import {OrganizationExchangeLinkBasicDto} from "../../../models/models.tsx";
 import useToken from "../../../../context/useToken";
 import OrganizationUnpairDialog from "./organization-unpair-dialog/OrganizationUnpairDialog.tsx";
 
 interface ParedOrganizationsTabProps
 {
-    orgPairs: OrganizationSharingSessionLinkBasicDto[]
-    onOrgPareUnpaired: (orgPair: OrganizationSharingSessionLinkBasicDto) => void
+    orgPairs: OrganizationExchangeLinkBasicDto[]
+    onOrgPareUnpaired: (orgPair: OrganizationExchangeLinkBasicDto) => void
 }
 
 const ParedOrganizationsTab: React.FC<ParedOrganizationsTabProps> = (
@@ -36,7 +36,7 @@ const ParedOrganizationsTab: React.FC<ParedOrganizationsTabProps> = (
     const styles = useOrganizationParingTabStyles();
     const [tabErrorMessage, setTabErrorMessage] = useState<string | null>(null);
     const [unpairDialogOpen, setUnpairDialogOpen] = useState(false);
-    const [selectedOrgPair, setSelectedOrgPair] = useState<OrganizationSharingSessionLinkBasicDto | null>(null);
+    const [selectedOrgPair, setSelectedOrgPair] = useState<OrganizationExchangeLinkBasicDto | null>(null);
     const token = useToken();
 
     const renderTabError = () => (
@@ -58,13 +58,13 @@ const ParedOrganizationsTab: React.FC<ParedOrganizationsTabProps> = (
         )
     );
 
-    const onUnpair = (orgPair: OrganizationSharingSessionLinkBasicDto) =>
+    const onUnpair = (orgPair: OrganizationExchangeLinkBasicDto) =>
     {
         setSelectedOrgPair(orgPair);
         setUnpairDialogOpen(true);
     };
 
-    const handleUnpairConfirmed = (orgPair: OrganizationSharingSessionLinkBasicDto) =>
+    const handleUnpairConfirmed = (orgPair: OrganizationExchangeLinkBasicDto) =>
     {
         setUnpairDialogOpen(false);
         setSelectedOrgPair(null);
@@ -77,7 +77,7 @@ const ParedOrganizationsTab: React.FC<ParedOrganizationsTabProps> = (
         setSelectedOrgPair(null);
     };
 
-    const renderActionsMenu = (orgPair: OrganizationSharingSessionLinkBasicDto) =>
+    const renderActionsMenu = (orgPair: OrganizationExchangeLinkBasicDto) =>
     {
         return <>
             <Menu positioning={{autoSize: true}}>

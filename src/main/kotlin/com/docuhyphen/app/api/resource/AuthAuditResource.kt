@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.resource
+﻿package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.resource.model.AuthAuditEventResponse

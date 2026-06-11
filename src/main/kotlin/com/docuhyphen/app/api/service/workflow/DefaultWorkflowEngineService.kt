@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.service.workflow
+﻿package com.docuhyphen.app.api.service.workflow
 
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
@@ -45,7 +45,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     @Inject private lateinit var eventPublisher: DomainEventPublisher
     @Inject private lateinit var principalGroupMemberRepository: com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
     @Inject private lateinit var principalGroupRepository: com.docuhyphen.app.api.repository.PrincipalGroupRepository
-    @Inject private lateinit var sharingSessionRepository: com.docuhyphen.app.api.repository.SharingSessionRepository
+    @Inject private lateinit var exchangeRepository: com.docuhyphen.app.api.repository.ExchangeRepository
     @Inject private lateinit var appUserRepository: com.docuhyphen.app.api.repository.AppUserRepository
 
     private val json = WorkflowSpecJson.instance
@@ -329,8 +329,8 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             if (alreadyVoted) return@mapNotNull null
 
             val instance = instanceRepository.findById(step.instanceId) ?: return@mapNotNull null
-            val sessionId = instance.subjectResourceId
-            val session = sessionId?.let { sharingSessionRepository.findById(it) }
+            val exchangeId = instance.subjectResourceId
+            val session = exchangeId?.let { exchangeRepository.findById(it) }
             val initiator = instance.initiatedByAppUserId?.let { appUserRepository.findById(it) }
             val groupName = decodeSubjectData(instance.subjectDataJson)["recipientGroupId"]
                 ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
@@ -340,8 +340,8 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                 stepInstanceId = step.id.toString(),
                 workflowInstanceId = instance.id.toString(),
                 stepType = step.stepType.name,
-                sessionId = sessionId?.toString(),
-                sessionName = session?.sessionName,
+                exchangeId = exchangeId?.toString(),
+                name = session?.name,
                 requestedByEmail = initiator?.email,
                 requestedByName = initiator?.person?.let { p ->
                     "${p.firstName.orEmpty()} ${p.lastName.orEmpty()}".trim().takeIf { it.isNotBlank() }

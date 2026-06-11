@@ -1,4 +1,4 @@
-import {
+﻿import {
     Button,
     Checkbox,
     Dialog,
@@ -58,11 +58,11 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
     const [permissionManagementAppUser, setPermissionManagementAppUser] = useState<AppUserDetailedDto | null>(null);
     const [selectedUsers, setSelectedUsers] = useState<Map<string, {
         appUserId: string;
-        allowSessionAccept: boolean;
-        allowSessionReject: boolean;
-        allowSessionEdit: boolean;
-        allowSessionDelete: boolean;
-        allowSessionEnd: boolean;
+        allowExchangeAccept: boolean;
+        allowExchangeReject: boolean;
+        allowExchangeEdit: boolean;
+        allowExchangeDelete: boolean;
+        allowExchangeEnd: boolean;
         allowDocumentAddition: boolean;
         allowDocumentDeletion: boolean;
         allowDocumentDownload: boolean;
@@ -95,11 +95,11 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                         const appUserMember = member.user
                         userMap.set(appUserMember.id, {
                             appUserId: appUserMember.id,
-                            allowSessionAccept: member.permissions?.allowSessionAccept || false,
-                            allowSessionReject: member.permissions?.allowSessionReject || false,
-                            allowSessionEdit: member.permissions?.allowSessionEdit || false,
-                            allowSessionDelete: member.permissions?.allowSessionDelete || false,
-                            allowSessionEnd: member.permissions?.allowSessionEnd || false,
+                            allowExchangeAccept: member.permissions?.allowExchangeAccept || false,
+                            allowExchangeReject: member.permissions?.allowExchangeReject || false,
+                            allowExchangeEdit: member.permissions?.allowExchangeEdit || false,
+                            allowExchangeDelete: member.permissions?.allowExchangeDelete || false,
+                            allowExchangeEnd: member.permissions?.allowExchangeEnd || false,
                             allowDocumentAddition: member.permissions?.allowDocumentAddition || false,
                             allowDocumentDeletion: member.permissions?.allowDocumentDeletion || false,
                             allowDocumentDownload: member.permissions?.allowDocumentDownload || false,
@@ -212,11 +212,11 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
         {
             newSelectedUsers.set(userId, {
                 appUserId: userId,
-                allowSessionAccept: true,
-                allowSessionReject: true,
-                allowSessionEdit: true,
-                allowSessionDelete: true,
-                allowSessionEnd: true,
+                allowExchangeAccept: true,
+                allowExchangeReject: true,
+                allowExchangeEdit: true,
+                allowExchangeDelete: true,
+                allowExchangeEnd: true,
                 allowDocumentAddition: true,
                 allowDocumentDeletion: true,
                 allowDocumentDownload: true,
@@ -297,36 +297,36 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
             <Field>
                 <Checkbox
                     label="Accept Sessions"
-                    checked={permissions.allowSessionAccept}
-                    onChange={(_, data) => updateUserPermission(appUserId, "allowSessionAccept", !!data.checked)}
+                    checked={permissions.allowExchangeAccept}
+                    onChange={(_, data) => updateUserPermission(appUserId, "allowExchangeAccept", !!data.checked)}
                 />
             </Field>
             <Field>
                 <Checkbox
                     label="Reject Sessions"
-                    checked={permissions.allowSessionReject}
-                    onChange={(_, data) => updateUserPermission(appUserId, "allowSessionReject", !!data.checked)}
+                    checked={permissions.allowExchangeReject}
+                    onChange={(_, data) => updateUserPermission(appUserId, "allowExchangeReject", !!data.checked)}
                 />
             </Field>
             <Field>
                 <Checkbox
                     label="Edit Sessions"
-                    checked={permissions.allowSessionEdit}
-                    onChange={(_, data) => updateUserPermission(appUserId, "allowSessionEdit", !!data.checked)}
+                    checked={permissions.allowExchangeEdit}
+                    onChange={(_, data) => updateUserPermission(appUserId, "allowExchangeEdit", !!data.checked)}
                 />
             </Field>
             <Field>
                 <Checkbox
                     label="Delete Sessions"
-                    checked={permissions.allowSessionDelete}
-                    onChange={(_, data) => updateUserPermission(appUserId, "allowSessionDelete", !!data.checked)}
+                    checked={permissions.allowExchangeDelete}
+                    onChange={(_, data) => updateUserPermission(appUserId, "allowExchangeDelete", !!data.checked)}
                 />
             </Field>
             <Field>
                 <Checkbox
                     label="End Sessions"
-                    checked={permissions.allowSessionEnd}
-                    onChange={(_, data) => updateUserPermission(appUserId, "allowSessionEnd", !!data.checked)}
+                    checked={permissions.allowExchangeEnd}
+                    onChange={(_, data) => updateUserPermission(appUserId, "allowExchangeEnd", !!data.checked)}
                 />
             </Field>
             <Divider appearance={"brand"}

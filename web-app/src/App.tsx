@@ -1,12 +1,12 @@
-import React from 'react';
+﻿import React from 'react';
 import {BrowserRouter, Route, Routes} from 'react-router-dom';
 import {AuthProvider} from './context/AuthContext';
-import SharingSessions from "./app/sharing-sessions/SharingSessions.tsx";
+import Exchanges from "./app/exchanges/Exchanges.tsx";
 import RedirectIfNotAuthenticated from "./app/components/RedirectIfAuthenticated.tsx";
 import NotFound from './app/NotFound.tsx';
 import IndividualOnboarding from "./app/onboarding/individual-onboarding/IndividualOnboarding.tsx";
 import Settings from "./app/settings/Settings.tsx";
-import NoAuthSharingSession from "./app/no-auth-sharing-session/NoAuthSharingSession.tsx";
+import NoAuthExchange from "./app/no-auth-exchange/NoAuthExchange.tsx";
 import NoMenuProtectedRoute from "./app/components/NoMenuProtectedRoutes.tsx";
 import OrganizationOnboarding from "./app/onboarding/organization-onboarding/OrganizationOnboarding.tsx";
 import SignIn from "./app/authorization/sign-in/SignIn.tsx";
@@ -62,7 +62,7 @@ const App: React.FC = () =>
 
                                element={
                                    <RedirectIfNotAuthenticated
-                                       element={<NoAuthSharingSession/>
+                                       element={<NoAuthExchange/>
                                        }/>
                                }/>
 
@@ -89,10 +89,10 @@ const App: React.FC = () =>
                                                    element={<OrganizationOnboarding/>}/>
                                }/>
 
-                        <Route path="/sharing-sessions"
+                        <Route path="/exchanges"
                                element={
                                    <ProtectedRoute path='/sign-in'
-                                                   element={<SharingSessions/>}/>
+                                                   element={<Exchanges/>}/>
                                }/>
 
                         <Route path="/oauth/callback"

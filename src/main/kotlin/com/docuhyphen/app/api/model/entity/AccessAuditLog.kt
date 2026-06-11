@@ -29,7 +29,7 @@ class AccessAuditLog
     @Serializable(with = TimestampSerializer::class)
     var createdDate: Timestamp = Timestamp.from(Instant.now())
 
-    /** e.g. "SHARE_GRANT", "SHARE_REVOKE", "SESSION_TRANSITION", "AUTHORIZE_DENY". */
+    /** e.g. "SHARE_GRANT", "SHARE_REVOKE", "EXCHANGE_TRANSITION", "AUTHORIZE_DENY". */
     @Column(name = "action", nullable = false, length = 64)
     lateinit var action: String
 

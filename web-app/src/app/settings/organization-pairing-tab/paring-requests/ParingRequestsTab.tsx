@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+﻿import React, {useEffect, useState} from "react";
 import {
     Badge,
     Button,
@@ -21,7 +21,7 @@ import {
     DismissRegular,
     MoreHorizontalRegular,
 } from "@fluentui/react-icons";
-import {LinkStatus, OrganizationSharingSessionLinkBasicDto} from "../../../models/models.tsx";
+import {LinkStatus, OrganizationExchangeLinkBasicDto} from "../../../models/models.tsx";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import {formatDate} from "../../../helpers.ts";
 import ParingRequestDeleteDialog from "./paring-request-delete-dialog/ParingRequestDeleteDialog.tsx";
@@ -30,10 +30,10 @@ import ParingRequestRejectDialog from "./paring-request-reject-dialog/ParingRequ
 
 interface ParingOrganizationsTabProps
 {
-    orgPairs: OrganizationSharingSessionLinkBasicDto[]
-    onOrgPairRequestDeleted: (orgPair: OrganizationSharingSessionLinkBasicDto) => void
-    onOrgPairRequestRejected: (orgPair: OrganizationSharingSessionLinkBasicDto) => void
-    onOrgPairRequestAccepted: (orgPair: OrganizationSharingSessionLinkBasicDto) => void
+    orgPairs: OrganizationExchangeLinkBasicDto[]
+    onOrgPairRequestDeleted: (orgPair: OrganizationExchangeLinkBasicDto) => void
+    onOrgPairRequestRejected: (orgPair: OrganizationExchangeLinkBasicDto) => void
+    onOrgPairRequestAccepted: (orgPair: OrganizationExchangeLinkBasicDto) => void
 }
 
 const ParingRequestsTab: React.FC<ParingOrganizationsTabProps> = (
@@ -47,12 +47,12 @@ const ParingRequestsTab: React.FC<ParingOrganizationsTabProps> = (
     const styles = useOrganizationParingTabStyles();
     const {appUserPersonOrganization} = useAuth();
     const [tabErrorMessage, setTabErrorMessage] = useState<string | null>(null);
-    const [incomingOrgParingRequests, setIncomingOrgParingRequests] = useState<OrganizationSharingSessionLinkBasicDto[]>([]);
-    const [outgoingOrgParingRequests, setOutgoingOrgParingRequests] = useState<OrganizationSharingSessionLinkBasicDto[]>([]);
+    const [incomingOrgParingRequests, setIncomingOrgParingRequests] = useState<OrganizationExchangeLinkBasicDto[]>([]);
+    const [outgoingOrgParingRequests, setOutgoingOrgParingRequests] = useState<OrganizationExchangeLinkBasicDto[]>([]);
     const [isOrgPairRequestDeleteDialogOpen, setIsOrgPairRequestDeleteDialogOpen] = useState<boolean>(false);
     const [isOrgPairRequestAcceptDialogOpen, setIsOrgPairRequestAcceptDialogOpen] = useState<boolean>(false);
     const [isOrgPairRequestRejectDialogOpen, setIsOrgPairRequestRejectDialogOpen] = useState<boolean>(false);
-    const [currentOrgPairRequest, setCurrentOrgPairRequest] = useState<OrganizationSharingSessionLinkBasicDto | null>(null);
+    const [currentOrgPairRequest, setCurrentOrgPairRequest] = useState<OrganizationExchangeLinkBasicDto | null>(null);
 
     const columns = [
         {columnKey: "organizationName", label: "Organization Name"},
@@ -91,37 +91,37 @@ const ParingRequestsTab: React.FC<ParingOrganizationsTabProps> = (
         )
     );
 
-    const onDeleteOrgPairRequest = async (orgPair: OrganizationSharingSessionLinkBasicDto) =>
+    const onDeleteOrgPairRequest = async (orgPair: OrganizationExchangeLinkBasicDto) =>
     {
         setIsOrgPairRequestDeleteDialogOpen(true)
         setCurrentOrgPairRequest(orgPair)
     }
 
-    const onOrgPairDeleted = (orgPair: OrganizationSharingSessionLinkBasicDto) =>
+    const onOrgPairDeleted = (orgPair: OrganizationExchangeLinkBasicDto) =>
     {
         setIsOrgPairRequestDeleteDialogOpen(false)
         onOrgPairRequestDeleted(orgPair)
     }
 
-    const onAcceptRequest = async (orgPair: OrganizationSharingSessionLinkBasicDto) =>
+    const onAcceptRequest = async (orgPair: OrganizationExchangeLinkBasicDto) =>
     {
         setCurrentOrgPairRequest(orgPair)
         setIsOrgPairRequestAcceptDialogOpen(true)
     }
 
-    const onOrgPairAccepted = (orgPair: OrganizationSharingSessionLinkBasicDto) =>
+    const onOrgPairAccepted = (orgPair: OrganizationExchangeLinkBasicDto) =>
     {
         setIsOrgPairRequestAcceptDialogOpen(false)
         onOrgPairRequestAccepted(orgPair)
     }
 
-    const onRejectRequest = async (orgPair: OrganizationSharingSessionLinkBasicDto) =>
+    const onRejectRequest = async (orgPair: OrganizationExchangeLinkBasicDto) =>
     {
         setCurrentOrgPairRequest(orgPair)
         setIsOrgPairRequestRejectDialogOpen(true)
     }
 
-    const onOrgPairRejected = (orgPair: OrganizationSharingSessionLinkBasicDto) =>
+    const onOrgPairRejected = (orgPair: OrganizationExchangeLinkBasicDto) =>
     {
         setIsOrgPairRequestRejectDialogOpen(false)
         onOrgPairRequestRejected(orgPair)
@@ -129,7 +129,7 @@ const ParingRequestsTab: React.FC<ParingOrganizationsTabProps> = (
 
     const renderTableActionsMenu = (
         isOutgoingOrgRequests: boolean,
-        orgPair: OrganizationSharingSessionLinkBasicDto) =>
+        orgPair: OrganizationExchangeLinkBasicDto) =>
     {
         return <>
             <Menu positioning={{autoSize: true}}>

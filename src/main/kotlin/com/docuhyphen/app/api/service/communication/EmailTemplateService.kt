@@ -1,11 +1,11 @@
-package com.docuhyphen.app.api.service.communication
+﻿package com.docuhyphen.app.api.service.communication
 
-import com.docuhyphen.app.api.model.entity.SharingSessionStatus
+import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.service.communication.templates.AuthEmailTemplateService
 import com.docuhyphen.app.api.service.communication.templates.EmailTemplateRenderer
 import com.docuhyphen.app.api.service.communication.templates.OrganizationEmailTemplateService
 import com.docuhyphen.app.api.service.communication.templates.RenderedEmailTemplate
-import com.docuhyphen.app.api.service.communication.templates.SharingSessionEmailTemplateService
+import com.docuhyphen.app.api.service.communication.templates.ExchangeEmailTemplateService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 
@@ -14,10 +14,10 @@ class EmailTemplateService @Inject constructor(
     private val renderer: EmailTemplateRenderer,
     private val authTemplates: AuthEmailTemplateService,
     private val organizationTemplates: OrganizationEmailTemplateService,
-    private val sharingSessionTemplates: SharingSessionEmailTemplateService,
+    private val exchangeTemplates: ExchangeEmailTemplateService,
 )
 {
-    enum class SharingSessionStatusEmailAudience
+    enum class ExchangeStatusEmailAudience
     {
         INITIATOR,
         RECIPIENT,
@@ -179,17 +179,17 @@ class EmailTemplateService @Inject constructor(
         changedBy,
     )
 
-    fun renderSharingSessionCreatedRecipientEmail(
-        sessionId: String,
-        sessionName: String,
+    fun renderExchangeCreatedRecipientEmail(
+        exchangeId: String,
+        name: String,
         initiatorName: String,
         initiatorOrganization: String?,
         sessionMessage: String?,
         documents: List<String>,
         requireSignIn: Boolean = false,
-    ): String = sharingSessionTemplates.renderSharingSessionCreatedRecipientEmail(
-        sessionId,
-        sessionName,
+    ): String = exchangeTemplates.renderExchangeCreatedRecipientEmail(
+        exchangeId,
+        name,
         initiatorName,
         initiatorOrganization,
         sessionMessage,
@@ -197,23 +197,23 @@ class EmailTemplateService @Inject constructor(
         requireSignIn,
     )
 
-    fun renderSharingSessionCreatedInitiatorEmail(
-        sessionId: String,
-        sessionName: String,
+    fun renderExchangeCreatedInitiatorEmail(
+        exchangeId: String,
+        name: String,
         recipientLabel: String,
         documents: List<String>,
-    ): String = sharingSessionTemplates.renderSharingSessionCreatedInitiatorEmail(
-        sessionId,
-        sessionName,
+    ): String = exchangeTemplates.renderExchangeCreatedInitiatorEmail(
+        exchangeId,
+        name,
         recipientLabel,
         documents,
     )
 
-    fun renderSharingSessionStatusEmail(
-        status: SharingSessionStatus,
-        audience: SharingSessionStatusEmailAudience,
-        sessionId: String,
-        sessionName: String,
+    fun renderExchangeStatusEmail(
+        status: ExchangeStatus,
+        audience: ExchangeStatusEmailAudience,
+        exchangeId: String,
+        name: String,
         statusText: String,
         initiatorEmail: String,
         recipientEmail: String,
@@ -221,11 +221,11 @@ class EmailTemplateService @Inject constructor(
         lastActivity: String,
         rejectionReason: String? = null,
         endedAt: String? = null,
-    ): RenderedEmailTemplate? = sharingSessionTemplates.renderSharingSessionStatusEmail(
+    ): RenderedEmailTemplate? = exchangeTemplates.renderExchangeStatusEmail(
         status,
         audience,
-        sessionId,
-        sessionName,
+        exchangeId,
+        name,
         statusText,
         initiatorEmail,
         recipientEmail,
@@ -235,15 +235,15 @@ class EmailTemplateService @Inject constructor(
         endedAt,
     )
 
-    fun renderNoAuthSharingSessionOtpEmail(
-        sessionId: String,
-        sessionName: String,
+    fun renderNoAuthExchangeOtpEmail(
+        exchangeId: String,
+        name: String,
         otp: String,
         expiryMinutes: Long,
         initiatorName: String? = null,
-    ): RenderedEmailTemplate = sharingSessionTemplates.renderNoAuthSharingSessionOtpEmail(
-        sessionId,
-        sessionName,
+    ): RenderedEmailTemplate = exchangeTemplates.renderNoAuthExchangeOtpEmail(
+        exchangeId,
+        name,
         otp,
         expiryMinutes,
         initiatorName,

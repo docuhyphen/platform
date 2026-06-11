@@ -18,7 +18,7 @@ class RefreshTokenRecord
     @Column(name = "user_id", nullable = false)
     var userId: UUID = UUID.randomUUID()
 
-    @Column(name = "user_session_id")
+    @Column(name = "user_exchange_id")
     var userSessionId: UUID? = null
 
     @Column(name = "family_id", nullable = false)

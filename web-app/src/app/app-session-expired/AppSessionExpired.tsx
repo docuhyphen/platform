@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+﻿import React, {useEffect, useState} from "react";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {isTokenExpired} from "../../utils/helpers.ts";
 import {useNavigate, useSearchParams} from "react-router-dom";
@@ -8,7 +8,7 @@ const REASON_MESSAGES: Record<string, string> = {
     SECURITY_SIGN_OUT: "Your session was ended for security reasons. Please sign in again.",
     ACCOUNT_DEPROVISIONED: "Your account has been deprovisioned. Contact your administrator for help.",
     ORG_MEMBERSHIP_INACTIVE: "Your organization membership is no longer active.",
-    SESSION_VERSION_MISMATCH: "Your session was invalidated because you signed out from all devices.",
+    EXCHANGE_VERSION_MISMATCH: "Your session was invalidated because you signed out from all devices.",
     REFRESH_REUSE_DETECTED: "A suspicious sign-in attempt was detected and your session was terminated for your protection.",
 };
 
@@ -29,7 +29,7 @@ const AppSessionExpired: React.FC = () =>
 
         if (token != null && !isTokenExpired(token))
         {
-            navigate("/sharing-sessions");
+            navigate("/exchanges");
         }
     }, []);
 

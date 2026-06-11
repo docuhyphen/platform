@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.interceptor
+﻿package com.docuhyphen.app.api.interceptor
 
 import com.docuhyphen.app.api.model.entity.AuthToken
 import com.docuhyphen.app.api.model.entity.AuthTokenType.ACCESS
@@ -80,7 +80,7 @@ class EndpointVerificationFilter @Inject constructor(
         "/auth/token/refresh",
         "/auth/oauth/",
         "/auth/application/token",
-        "/no-auth/sharing-sessions",
+        "/no-auth/exchanges",
         "/scim/", // SCIM endpoints use their own static bearer token, validated in the resource.
     )
 
@@ -191,7 +191,7 @@ class EndpointVerificationFilter @Inject constructor(
 
         if (configurationService.isAuthSessionVersionEnabled())
         {
-            val tokenSessionVersion = (claims["session_version"] as? Number)?.toLong() ?: 0L
+            val tokenSessionVersion = (claims["exchange_version"] as? Number)?.toLong() ?: 0L
             if (tokenSessionVersion != appUser.sessionVersion)
             {
                 logger.warn("Session version mismatch for user={} tokenVersion={} currentVersion={}", userId, tokenSessionVersion, appUser.sessionVersion)
@@ -200,10 +200,10 @@ class EndpointVerificationFilter @Inject constructor(
             }
         }
 
-        val sessionIdRaw = claims["session_id"] as? String
+        val sessionIdRaw = claims["exchange_id"] as? String
         if (sessionIdRaw.isNullOrBlank())
         {
-            logger.warn("Missing session_id claim for user={}", userId)
+            logger.warn("Missing exchange_id claim for user={}", userId)
             abortRequest(requestContext, "Unauthorized request")
             return
         }
@@ -214,7 +214,7 @@ class EndpointVerificationFilter @Inject constructor(
         }
         catch (_: Exception)
         {
-            logger.warn("Invalid session_id claim format for user={}", userId)
+            logger.warn("Invalid exchange_id claim format for user={}", userId)
             abortRequest(requestContext, "Unauthorized request")
             return
         }

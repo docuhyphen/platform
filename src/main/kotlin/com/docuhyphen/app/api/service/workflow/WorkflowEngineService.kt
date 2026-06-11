@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.service.workflow
+﻿package com.docuhyphen.app.api.service.workflow
 
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import kotlinx.serialization.Serializable
@@ -6,14 +6,14 @@ import java.util.UUID
 
 /**
  * Generic workflow engine. The first registered workflow (`session-approval-in-group`,
- * seeded by V9) gates [com.docuhyphen.app.api.model.entity.SharingSession] activation
+ * seeded by V9) gates [com.docuhyphen.app.api.model.entity.Exchange] activation
  * inside groups that require approval; new workflows simply need a [WorkflowSpec]
  * persisted as a [com.docuhyphen.app.api.model.entity.WorkflowDefinition].
  *
  * Implementation in [DefaultWorkflowEngineService].
  *
  * Lifecycle:
- *   1. `trigger(...)` , invoked by a domain service (e.g. SharingSessionInitiationService
+ *   1. `trigger(...)` , invoked by a domain service (e.g. ExchangeInitiationService
  *      in iteration 4) when an event fires. The engine resolves the matching definition
  *      via [com.docuhyphen.app.api.repository.WorkflowDefinitionRepository.findActiveForTrigger]
  *      and creates a [com.docuhyphen.app.api.model.entity.WorkflowInstance] + first
@@ -71,7 +71,7 @@ enum class Decision
 
 /**
  * @param triggerEvent       e.g. "session.approval_requested"
- * @param subjectResourceType e.g. "SHARING_SESSION"
+ * @param subjectResourceType e.g. "EXCHANGE"
  * @param subjectResourceId  the subject's UUID
  * @param organizationId     org context, drives org-scope definition lookup
  * @param subjectData        frozen fields the workflow may reference via `$subject.<key>`
@@ -112,8 +112,8 @@ data class PendingWorkflowStepDto(
     val stepInstanceId: String,
     val workflowInstanceId: String,
     val stepType: String,
-    val sessionId: String? = null,
-    val sessionName: String? = null,
+    val exchangeId: String? = null,
+    val name: String? = null,
     val requestedByEmail: String? = null,
     val requestedByName: String? = null,
     val groupName: String? = null,

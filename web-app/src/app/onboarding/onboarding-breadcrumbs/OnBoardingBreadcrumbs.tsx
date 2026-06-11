@@ -84,7 +84,7 @@ const OnBoardingBreadcrumbs: React.FC<OnBoardingBreadcrumbsProps> = (
                     <LocationRippleRegular className={styles.onBoardingBreadcrumbItemIcon}/> : null}
             />
             <BreadcrumbItem
-                text="Start Sharing"
+                text="Start Exchanging"
                 isCurrentStep={isOnboardingComplete}
                 icon={<LocationRippleRegular className={styles.onBoardingBreadcrumbItemIcon}/>}/>
         </div>

@@ -1,4 +1,4 @@
-import {Divider, Radio, RadioGroup, Switch, Text} from "@fluentui/react-components";
+﻿import {Divider, Radio, RadioGroup, Switch, Text} from "@fluentui/react-components";
 import {useAppSettingsTabStyles} from "./AppSettingsTabStyles.tsx";
 import React, {useEffect, useState} from "react";
 import {fetchAppUser, updateAppUserSettings} from "../../../services/appUserApi";
@@ -123,28 +123,28 @@ const AppSettingsTab = () =>
                 </Divider>
 
                 <Switch
-                    label="Get notifications on Sharing Session Initiation"
+                    label="Get notifications on Exchange Initiation"
                     checked={settings.notifyShareStart}
                     onChange={(_, data) => handleSettingChange('notifyShareStart', !!data.checked)}
                     disabled={isLoading}
                 />
 
                 <Switch
-                    label="Get notifications on Sharing Session Accepted"
+                    label="Get notifications on Exchange Accepted"
                     checked={settings.notifyShareAccept}
                     onChange={(_, data) => handleSettingChange('notifyShareAccept', !!data.checked)}
                     disabled={isLoading}
                 />
 
                 <Switch
-                    label="Get notifications on Sharing Session Declined"
+                    label="Get notifications on Exchange Declined"
                     checked={settings.notifyShareDecline}
                     onChange={(_, data) => handleSettingChange('notifyShareDecline', !!data.checked)}
                     disabled={isLoading}
                 />
 
                 <Switch
-                    label="Get notifications on Sharing Session End"
+                    label="Get notifications on Exchange End"
                     checked={settings.notifyShareEnd}
                     onChange={(_, data) => handleSettingChange('notifyShareEnd', !!data.checked)}
                     disabled={isLoading}

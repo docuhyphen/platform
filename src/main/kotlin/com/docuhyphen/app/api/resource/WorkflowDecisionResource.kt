@@ -1,7 +1,7 @@
-package com.docuhyphen.app.api.resource
+﻿package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.dto.SharingSessionBasicDto
+import com.docuhyphen.app.api.model.dto.ExchangeBasicDto
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.workflow.Decision
@@ -22,7 +22,7 @@ import java.util.UUID
 
 /**
  * Lets an assignee record an approve/reject decision on a pending workflow step (e.g. the
- * group-manager approval that gates a group-recipient sharing session). The step instance id is
+ * group-manager approval that gates a group-recipient exchange). The step instance id is
  * delivered to assignees in the `workflow.step_assigned` notification payload.
  *
  * The decider identity is taken from the authenticated session, never the request body, and

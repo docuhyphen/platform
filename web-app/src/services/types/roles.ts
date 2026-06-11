@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Centralized role enums matching the backend domain model.
  * Replaces any stale hardcoded role strings throughout the UI.
  */
@@ -19,8 +19,8 @@ export const GroupRoleDisplayNames: Record<GroupRole, string> = {
     [GroupRole.OBSERVER]: 'Observer',
 };
 
-/** Roles assignable on a sharing-session share (access entry). */
-export enum SessionShareRole
+/** Roles assignable on a exchange share (access entry). */
+export enum ExchangeShareRole
 {
     OWNER = 'OWNER',
     EDITOR = 'EDITOR',
@@ -31,34 +31,34 @@ export enum SessionShareRole
     PARTICIPANT = 'PARTICIPANT',
 }
 
-export const SessionShareRoleDisplayNames: Record<SessionShareRole, string> = {
-    [SessionShareRole.OWNER]: 'Owner',
-    [SessionShareRole.EDITOR]: 'Editor',
-    [SessionShareRole.REVIEWER]: 'Reviewer',
-    [SessionShareRole.SIGNER]: 'Signer',
-    [SessionShareRole.VIEWER]: 'Viewer',
-    [SessionShareRole.COMMENTER]: 'Commenter',
-    [SessionShareRole.PARTICIPANT]: 'Participant',
+export const ExchangeShareRoleDisplayNames: Record<ExchangeShareRole, string> = {
+    [ExchangeShareRole.OWNER]: 'Owner',
+    [ExchangeShareRole.EDITOR]: 'Editor',
+    [ExchangeShareRole.REVIEWER]: 'Reviewer',
+    [ExchangeShareRole.SIGNER]: 'Signer',
+    [ExchangeShareRole.VIEWER]: 'Viewer',
+    [ExchangeShareRole.COMMENTER]: 'Commenter',
+    [ExchangeShareRole.PARTICIPANT]: 'Participant',
 };
 
 /** Roles that the manage-access UI allows assigning to new/existing entries. OWNER is structural and not assignable. */
-export const ASSIGNABLE_ROLES: ReadonlySet<SessionShareRole> = new Set([
-    SessionShareRole.EDITOR,
-    SessionShareRole.REVIEWER,
-    SessionShareRole.SIGNER,
-    SessionShareRole.VIEWER,
-    SessionShareRole.COMMENTER,
-    SessionShareRole.PARTICIPANT,
+export const ASSIGNABLE_ROLES: ReadonlySet<ExchangeShareRole> = new Set([
+    ExchangeShareRole.EDITOR,
+    ExchangeShareRole.REVIEWER,
+    ExchangeShareRole.SIGNER,
+    ExchangeShareRole.VIEWER,
+    ExchangeShareRole.COMMENTER,
+    ExchangeShareRole.PARTICIPANT,
 ]);
 
 export const AssignableRoleDisplayNames: Record<string, string> = Object.fromEntries(
-    [...ASSIGNABLE_ROLES].map((r) => [r, SessionShareRoleDisplayNames[r]]),
+    [...ASSIGNABLE_ROLES].map((r) => [r, ExchangeShareRoleDisplayNames[r]]),
 );
 
 /** Roles that support participant-level constraints (download gate, watermark, etc.). */
-export const CONSTRAINED_ROLES: ReadonlySet<SessionShareRole> = new Set([
-    SessionShareRole.PARTICIPANT,
-    SessionShareRole.VIEWER,
+export const CONSTRAINED_ROLES: ReadonlySet<ExchangeShareRole> = new Set([
+    ExchangeShareRole.PARTICIPANT,
+    ExchangeShareRole.VIEWER,
 ]);
 
 export enum PrincipalKind

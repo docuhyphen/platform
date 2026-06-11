@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+﻿import { useEffect, useRef, useState, useCallback } from 'react';
 import {
     Button,
     Text,
@@ -33,16 +33,16 @@ interface TourStep {
 
 const TOUR_STEPS: TourStep[] = [
     {
-        targetId: 'tour-start-sharing',
+        targetId: 'tour-start-exchanging',
         title: 'Start Sharing',
         description:
-            'This is your primary action. Click "Start Sharing" to request documents from someone or send documents to a colleague. Use the dropdown arrow to choose between requesting and sending.',
+            'This is your primary action. Click "Start Exchanging" to request documents from someone or send documents to a colleague. Use the dropdown arrow to choose between requesting and sending.',
         position: 'below',
         align: 'start',
     },
     {
         targetId: 'tour-sessions-btn',
-        title: 'Sharing Sessions',
+        title: 'Exchanges',
         description:
             'All your active and past document exchanges live here. Click this icon at any time to jump straight back to your sessions list.',
         position: 'below',

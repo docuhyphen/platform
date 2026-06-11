@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.model.entity
+﻿package com.docuhyphen.app.api.model.entity
 
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
@@ -23,7 +23,7 @@ enum class PrincipalGroupScope
 /**
  * Unified group entity. Replaces [OrganizationGroup] (which is kept alongside until V9
  * for backwards compatibility). For ORG-scoped groups the row IDs are reused from the
- * legacy `organization_group` rows so existing FKs (e.g. `sharing_session.group_id`)
+ * legacy `organization_group` rows so existing FKs (e.g. `exchange.group_id`)
  * keep resolving during the dual-write window.
  */
 @Entity

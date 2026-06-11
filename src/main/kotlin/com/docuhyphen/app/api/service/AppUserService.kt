@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.service
+﻿package com.docuhyphen.app.api.service
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.dto.AppUserSettingsDto
@@ -14,7 +14,7 @@ import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
-import com.docuhyphen.app.api.service.sharingsession.SharingSessionRetrievalService
+import com.docuhyphen.app.api.service.exchange.ExchangeRetrievalService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
@@ -34,7 +34,7 @@ class AppUserService @Inject constructor(
     val emailTemplateService: EmailTemplateService,
     val configurationService: ConfigurationService,
     val signOutService: SignOutService,
-    val sharingSessionService: SharingSessionRetrievalService,
+    val exchangeService: ExchangeRetrievalService,
     val serviceActionAuthorizationService: ServiceActionAuthorizationService
 )
 {
@@ -287,9 +287,9 @@ class AppUserService @Inject constructor(
         signOutService.signOut(outOfAllDevices = true)
     }
 
-    fun hasLinkedSharingSessions(appUserId: UUID): Boolean
+    fun hasLinkedExchanges(appUserId: UUID): Boolean
     {
-        return sharingSessionService.getSharingSessionsLinkedToAppUserId(appUserId).isNotEmpty()
+        return exchangeService.getExchangesLinkedToAppUserId(appUserId).isNotEmpty()
     }
 
     fun delete(appUserId: String?)
@@ -301,9 +301,9 @@ class AppUserService @Inject constructor(
             throw IllegalArgumentException("App user not found")
         }
 
-        if (hasLinkedSharingSessions(appUser.id))
+        if (hasLinkedExchanges(appUser.id))
         {
-            throw IllegalArgumentException("Cannot delete app user with linked sharing sessions")
+            throw IllegalArgumentException("Cannot delete app user with linked exchanges")
         }
 
         val deletedEmail = appUser.email

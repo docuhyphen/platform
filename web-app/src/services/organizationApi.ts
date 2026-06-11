@@ -1,4 +1,4 @@
-import apiClient, {addBearerToHeaderToken} from './apiClient';
+﻿import apiClient, {addBearerToHeaderToken} from './apiClient';
 import {
     AppUserDetailedDto,
     Organization,
@@ -85,11 +85,11 @@ export const addOrganizationGroup = async (
         name: string;
         members: Array<{
             appUserId: string;
-            allowSessionAccept: boolean;
-            allowSessionReject: boolean;
-            allowSessionEdit: boolean;
-            allowSessionDelete: boolean;
-            allowSessionEnd: boolean;
+            allowExchangeAccept: boolean;
+            allowExchangeReject: boolean;
+            allowExchangeEdit: boolean;
+            allowExchangeDelete: boolean;
+            allowExchangeEnd: boolean;
             allowDocumentAddition: boolean;
             allowDocumentDeletion: boolean;
             allowDocumentDownload: boolean;
@@ -121,11 +121,11 @@ export const updateOrganizationGroup = async (
         isActive: boolean;
         members: Array<{
             appUserId: string;
-            allowSessionAccept: boolean;
-            allowSessionReject: boolean;
-            allowSessionEdit: boolean;
-            allowSessionDelete: boolean;
-            allowSessionEnd: boolean;
+            allowExchangeAccept: boolean;
+            allowExchangeReject: boolean;
+            allowExchangeEdit: boolean;
+            allowExchangeDelete: boolean;
+            allowExchangeEnd: boolean;
             allowDocumentAddition: boolean;
             allowDocumentDeletion: boolean;
             allowDocumentDownload: boolean;

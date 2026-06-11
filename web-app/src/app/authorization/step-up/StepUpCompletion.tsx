@@ -1,4 +1,4 @@
-import React, {useEffect} from "react";
+﻿import React, {useEffect} from "react";
 import {useNavigate} from "react-router-dom";
 import {Spinner, Text} from "@fluentui/react-components";
 
@@ -8,7 +8,7 @@ const StepUpCompletion: React.FC = () =>
 
     useEffect(() =>
     {
-        const target = "/sharing-sessions";
+        const target = "/exchanges";
         // Short handoff page after OAuth callback; users can retry the original action.
         const timer = window.setTimeout(() => navigate(target), 1200);
         return () => window.clearTimeout(timer);

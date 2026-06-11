@@ -1,4 +1,4 @@
-<#assign emailTitle = (appName!'DocuHyphen') + " - Removed From a Group">
+﻿<#assign emailTitle = (appName!'DocuHyphen') + " - Removed From a Group">
 <#include "email-header.ftl">
 
 <p style="margin:0 0 14px 0;"><strong>Hi ${firstName},</strong></p>
@@ -14,6 +14,6 @@
     </tr>
 </table>
 
-<p style="margin:0 0 14px 0;">You will no longer receive new sharing sessions routed to this group. Your access to the rest of the organization is unchanged.</p>
+<p style="margin:0 0 14px 0;">You will no longer receive new exchanges routed to this group. Your access to the rest of the organization is unchanged.</p>
 
 <#include "email-footer.ftl">

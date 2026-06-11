@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.service.auth.authz
+﻿package com.docuhyphen.app.api.service.auth.authz
 
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
@@ -23,7 +23,7 @@ data class ResourceRef(val type: ResourceType, val id: UUID)
 {
     companion object
     {
-        fun session(id: UUID)  = ResourceRef(ResourceType.SHARING_SESSION, id)
+        fun session(id: UUID)  = ResourceRef(ResourceType.EXCHANGE, id)
         fun document(id: UUID) = ResourceRef(ResourceType.DOCUMENT, id)
         fun group(id: UUID)    = ResourceRef(ResourceType.PRINCIPAL_GROUP, id)
     }

@@ -300,7 +300,7 @@
     <text x="920" y="1898" text-anchor="middle" class="small">User deprovisioned mid-session</text>
     <text x="920" y="1914" text-anchor="middle" class="small">Org/membership becomes inactive</text>
     <text x="920" y="1930" text-anchor="middle" class="small">Reason codes: REFRESH_REUSE_DETECTED,</text>
-    <text x="920" y="1944" text-anchor="middle" class="small">SESSION_EXPIRED, DEPROVISIONED,</text>
+    <text x="920" y="1944" text-anchor="middle" class="small">EXCHANGE_EXPIRED, DEPROVISIONED,</text>
     <text x="920" y="1958" text-anchor="middle" class="small">RISK_SIGNAL_DETECTED, …</text>
   </g>
 

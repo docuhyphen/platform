@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.model.dto
+﻿package com.docuhyphen.app.api.model.dto
 
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import kotlinx.serialization.Serializable
@@ -11,7 +11,7 @@ data class NotificationDto(
     val message: String,
     @Serializable(with = TimestampSerializer::class)
     val timestamp: Timestamp,
-    val sessionId: String? = null,
+    val exchangeId: String? = null,
     val documentId: String? = null,
     val commentId: String? = null,
     val userId: String? = null,
@@ -25,6 +25,6 @@ enum class NotificationType
     NEW_SESSION,
     DOCUMENT_ADDED,
     DOCUMENT_UPDATED,
-    SESSION_ENDED,
-    SESSION_INITATED
+    EXCHANGE_ENDED,
+    EXCHANGE_INITATED
 }

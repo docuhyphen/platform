@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.model.entity
+﻿package com.docuhyphen.app.api.model.entity
 
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -15,7 +15,7 @@ import java.util.UUID
 class UserSession
 {
     @Id
-    @Column(name = "session_id", nullable = false)
+    @Column(name = "exchange_id", nullable = false)
     var sessionId: UUID = UUID.randomUUID()
 
     @ManyToOne

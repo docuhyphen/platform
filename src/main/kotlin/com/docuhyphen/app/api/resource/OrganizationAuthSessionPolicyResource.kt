@@ -119,7 +119,7 @@ class OrganizationAuthSessionPolicyResource @Inject constructor(
                 )
             ).build().also {
                 authAuditService.emit(
-                    action = "ORG_AUTH_SESSION_POLICY_VIEW",
+                    action = "ORG_AUTH_EXCHANGE_POLICY_VIEW",
                     outcome = "SUCCESS",
                     actorId = actorId,
                     organizationId = resolvedOrgId,
@@ -133,7 +133,7 @@ class OrganizationAuthSessionPolicyResource @Inject constructor(
         {
             logger.error("Error fetching effective auth session policy", exception)
             authAuditService.emit(
-                action = "ORG_AUTH_SESSION_POLICY_VIEW",
+                action = "ORG_AUTH_EXCHANGE_POLICY_VIEW",
                 outcome = "DENY",
                 reasonCode = RevocationReasonCode.SECURITY_POLICY,
                 actorId = actorId,
@@ -228,7 +228,7 @@ class OrganizationAuthSessionPolicyResource @Inject constructor(
             )
 
             authAuditService.emit(
-                action = "ORG_AUTH_SESSION_POLICY_VIEW",
+                action = "ORG_AUTH_EXCHANGE_POLICY_VIEW",
                 outcome = "SUCCESS",
                 actorId = actorId,
                 organizationId = resolvedOrgId,
@@ -242,7 +242,7 @@ class OrganizationAuthSessionPolicyResource @Inject constructor(
         {
             logger.error("Error fetching auth session policy settings", exception)
             authAuditService.emit(
-                action = "ORG_AUTH_SESSION_POLICY_VIEW",
+                action = "ORG_AUTH_EXCHANGE_POLICY_VIEW",
                 outcome = "DENY",
                 reasonCode = RevocationReasonCode.SECURITY_POLICY,
                 actorId = actorId,

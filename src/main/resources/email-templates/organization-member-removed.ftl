@@ -1,4 +1,4 @@
-<#assign emailTitle = (appName!'DocuHyphen') + " - Removed From Organization">
+﻿<#assign emailTitle = (appName!'DocuHyphen') + " - Removed From Organization">
 <#include "email-header.ftl">
 
 <p style="margin:0 0 14px 0;"><strong>Hi ${firstName},</strong></p>
@@ -13,7 +13,7 @@
     </tr>
 </table>
 
-<p style="margin:0 0 14px 0;">You will no longer have access to this organization's documents, groups, or sharing sessions.</p>
+<p style="margin:0 0 14px 0;">You will no longer have access to this organization's documents, groups, or exchanges.</p>
 <p style="margin:0 0 14px 0;">If this was a mistake, contact your organization administrator or <a href="mailto:support@docuhyphen.com" style="color:#1f73b7;">support@docuhyphen.com</a>.</p>
 
 <#include "email-footer.ftl">

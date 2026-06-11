@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.service.organization
+﻿package com.docuhyphen.app.api.service.organization
 
 import com.docuhyphen.app.api.exception.OrganizationGroupNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationLinkNotFoundException
@@ -15,7 +15,7 @@ import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
 import com.docuhyphen.app.api.repository.OrganizationRepository
-import com.docuhyphen.app.api.repository.OrganizationSharingSessionLinkRepository
+import com.docuhyphen.app.api.repository.OrganizationExchangeLinkRepository
 import com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.PrincipalGroupRepository
 import com.docuhyphen.app.api.repository.ShareRepository
@@ -52,7 +52,7 @@ class OrganizationGroupService @Inject constructor(
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
     private val configurationService: ConfigurationService,
-    private val orgLinkRepository: OrganizationSharingSessionLinkRepository,
+    private val orgLinkRepository: OrganizationExchangeLinkRepository,
     private val principalGroupService: PrincipalGroupService,
     private val userRoleService: UserRoleService,
     private val principalGroupRepository: PrincipalGroupRepository,
@@ -265,7 +265,7 @@ class OrganizationGroupService @Inject constructor(
 
         // A group still referenced by an active share is deactivated rather than hard-deleted.
         val linkedToSessions = shareRepository.findActiveForPrincipal(PrincipalKind.PRINCIPAL_GROUP, gid)
-            .any { it.resourceType == ResourceType.SHARING_SESSION }
+            .any { it.resourceType == ResourceType.EXCHANGE }
 
         if (linkedToSessions)
         {

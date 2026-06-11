@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.service.auth
+﻿package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.ApplicationScoped

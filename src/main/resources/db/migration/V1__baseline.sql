@@ -1,17 +1,21 @@
 --
--- V1 — Consolidated baseline schema.
+-- V1 — Consolidated baseline schema (Exchange-native).
 --
--- This squashes the original V1–V14 migration history into a single from-scratch
--- schema. The legacy sharing/collaboration model (organization_group*,
--- sharing_session_participant, admin_approval_request, sharing_session recipient/
--- permission columns, app_user.role*/organization_id) was fully cut over to the
--- unified model (share / principal_group / organization_membership / role_assignment /
--- workflow_* / notification_*), so the create-then-drop churn of V8–V14 is gone.
--- Generated mechanically via `pg_dump --schema-only` of the validated post-V14
--- schema; seed data lives in V2__seed.sql.
+-- Single from-scratch schema for the app. "Exchange" is the first-class concept here:
+-- there is no legacy "sharing session" table/column and no rename migration — the
+-- baseline is generated directly in Exchange terms (tables exchange / exchange_document
+-- / organization_exchange_link, column exchange_document.exchange_id, share.resource_type
+-- value 'EXCHANGE'). The former V3 (organization_settings.allow_external_customer_sharing)
+-- and V4 (app_user_settings.tour_completed) additions are folded in.
 --
--- Pre-production, no backwards-compat owed. Safe to squash because V8–V14 were only
--- ever applied to the (now-cleared) dev DB.
+-- Generated mechanically via `pg_dump --schema-only --no-owner`; seed data lives in V2__seed.sql.
+--
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 15.12 (Debian 15.12-1.pgdg120+1)
+-- Dumped by pg_dump version 15.12 (Debian 15.12-1.pgdg120+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -51,7 +55,7 @@ CREATE TABLE public.access_audit_log (
     after_snapshot text,
     event_hash character varying(128) NOT NULL,
     prev_event_hash character varying(128),
-    CONSTRAINT access_audit_log_outcome_check CHECK (((outcome)::text = ANY ((ARRAY['ALLOW'::character varying, 'DENY'::character varying, 'GRANT'::character varying, 'REVOKE'::character varying, 'TRANSITION'::character varying])::text[])))
+    CONSTRAINT access_audit_log_outcome_check CHECK (((outcome)::text = ANY (ARRAY[('ALLOW'::character varying)::text, ('DENY'::character varying)::text, ('GRANT'::character varying)::text, ('REVOKE'::character varying)::text, ('TRANSITION'::character varying)::text])))
 );
 
 
@@ -66,7 +70,7 @@ CREATE TABLE public.app_user (
     sign_in_attempts integer NOT NULL,
     created_date timestamp(6) without time zone NOT NULL,
     deprovisioned_at timestamp(6) without time zone,
-    session_version bigint NOT NULL,
+    exchange_version bigint NOT NULL,
     application_id uuid,
     id uuid NOT NULL,
     organization_id uuid,
@@ -82,7 +86,7 @@ CREATE TABLE public.app_user (
     pending_email_old_verified boolean,
     is_password_temporary boolean DEFAULT false NOT NULL,
     temporary_password_expires_at timestamp without time zone,
-    CONSTRAINT app_user_multifactor_authentication_type_check CHECK (((multifactor_authentication_type)::text = ANY ((ARRAY['SMS'::character varying, 'EMAIL'::character varying, 'PASSKEY'::character varying, 'PASSWORD_RESET'::character varying])::text[])))
+    CONSTRAINT app_user_multifactor_authentication_type_check CHECK (((multifactor_authentication_type)::text = ANY (ARRAY[('SMS'::character varying)::text, ('EMAIL'::character varying)::text, ('PASSKEY'::character varying)::text, ('PASSWORD_RESET'::character varying)::text])))
 );
 
 
@@ -105,7 +109,8 @@ CREATE TABLE public.app_user_settings (
     updated_date timestamp(6) without time zone NOT NULL,
     id uuid NOT NULL,
     theme character varying(16) DEFAULT 'light'::character varying NOT NULL,
-    CONSTRAINT app_user_settings_theme_chk CHECK (((theme)::text = ANY ((ARRAY['light'::character varying, 'dark'::character varying, 'system'::character varying])::text[])))
+    tour_completed boolean DEFAULT false NOT NULL,
+    CONSTRAINT app_user_settings_theme_chk CHECK (((theme)::text = ANY (ARRAY[('light'::character varying)::text, ('dark'::character varying)::text, ('system'::character varying)::text])))
 );
 
 
@@ -123,7 +128,7 @@ CREATE TABLE public.application (
     application_type character varying(255) NOT NULL,
     description character varying(255),
     name character varying(255) NOT NULL,
-    CONSTRAINT application_application_type_check CHECK (((application_type)::text = ANY ((ARRAY['WEB'::character varying, 'MOBILE'::character varying, 'SERVICE'::character varying, 'INTEGRATION'::character varying])::text[])))
+    CONSTRAINT application_application_type_check CHECK (((application_type)::text = ANY (ARRAY[('WEB'::character varying)::text, ('MOBILE'::character varying)::text, ('SERVICE'::character varying)::text, ('INTEGRATION'::character varying)::text])))
 );
 
 
@@ -138,7 +143,7 @@ CREATE TABLE public.audit_log (
     performed_by_app_user_id uuid,
     action character varying(255) NOT NULL,
     performed_by_email character varying(255) NOT NULL,
-    CONSTRAINT audit_log_action_check CHECK (((action)::text = ANY ((ARRAY['UPLOAD'::character varying, 'DOWNLOAD'::character varying, 'VIEW'::character varying, 'CREATED'::character varying, 'DELETE'::character varying, 'UPDATE'::character varying, 'COMMENT'::character varying, 'VERSION_CREATED'::character varying])::text[])))
+    CONSTRAINT audit_log_action_check CHECK (((action)::text = ANY (ARRAY[('UPLOAD'::character varying)::text, ('DOWNLOAD'::character varying)::text, ('VIEW'::character varying)::text, ('CREATED'::character varying)::text, ('DELETE'::character varying)::text, ('UPDATE'::character varying)::text, ('COMMENT'::character varying)::text, ('VERSION_CREATED'::character varying)::text])))
 );
 
 
@@ -161,7 +166,7 @@ CREATE TABLE public.auth_audit_event (
     outcome character varying(255) NOT NULL,
     reason_code character varying(255),
     request_id character varying(255),
-    session_id character varying(255),
+    exchange_id character varying(255),
     target_id character varying(255),
     target_type character varying(255)
 );
@@ -180,7 +185,7 @@ CREATE TABLE public.auth_token (
     jti character varying(255),
     otp character varying(255),
     token_type character varying(255),
-    CONSTRAINT auth_token_token_type_check CHECK (((token_type)::text = ANY ((ARRAY['ACCESS'::character varying, 'REFRESH'::character varying, 'ID'::character varying])::text[])))
+    CONSTRAINT auth_token_token_type_check CHECK (((token_type)::text = ANY (ARRAY[('ACCESS'::character varying)::text, ('REFRESH'::character varying)::text, ('ID'::character varying)::text])))
 );
 
 
@@ -222,7 +227,7 @@ CREATE TABLE public.document (
     type character varying(255),
     CONSTRAINT document_encryption_mode_check CHECK (((encryption_mode >= 0) AND (encryption_mode <= 1))),
     CONSTRAINT document_restricted_type_check CHECK (((restricted_type >= 0) AND (restricted_type <= 8))),
-    CONSTRAINT document_type_check CHECK (((type)::text = ANY ((ARRAY['PDF'::character varying, 'DOCX'::character varying, 'DOC'::character varying, 'XLSX'::character varying, 'XLS'::character varying, 'PPTX'::character varying, 'PPT'::character varying, 'PNG'::character varying, 'JPG'::character varying])::text[])))
+    CONSTRAINT document_type_check CHECK (((type)::text = ANY (ARRAY[('PDF'::character varying)::text, ('DOCX'::character varying)::text, ('DOC'::character varying)::text, ('XLSX'::character varying)::text, ('XLS'::character varying)::text, ('PPTX'::character varying)::text, ('PPT'::character varying)::text, ('PNG'::character varying)::text, ('JPG'::character varying)::text])))
 );
 
 
@@ -256,6 +261,44 @@ CREATE TABLE public.document_version (
 
 
 --
+-- Name: exchange; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.exchange (
+    is_deleted boolean NOT NULL,
+    require_recipient_sign_in boolean NOT NULL,
+    created_date timestamp(6) without time zone NOT NULL,
+    date_deleted timestamp(6) without time zone,
+    end_date timestamp(6) without time zone,
+    expire_date timestamp(6) without time zone,
+    last_activity timestamp(6) without time zone NOT NULL,
+    id uuid NOT NULL,
+    initiator_id uuid,
+    description character varying(255) NOT NULL,
+    end_note character varying(255),
+    initial_share_message character varying(255) NOT NULL,
+    rejection_reason character varying(255),
+    name character varying(255) NOT NULL,
+    status character varying(255) NOT NULL,
+    recipient_otp_hash character varying(255),
+    recipient_otp_expiry timestamp(6) without time zone,
+    no_auth_access_verified_at timestamp(6) without time zone,
+    no_auth_access_validity_days integer DEFAULT 7 NOT NULL,
+    CONSTRAINT exchange_status_check CHECK (((status)::text = ANY (ARRAY[('INITIATED'::character varying)::text, ('ACCEPTED_STARTED'::character varying)::text, ('ENDED'::character varying)::text, ('REJECTED'::character varying)::text])))
+);
+
+
+--
+-- Name: exchange_document; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.exchange_document (
+    exchange_id uuid NOT NULL,
+    documents_id uuid NOT NULL
+);
+
+
+--
 -- Name: external_participant; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -283,7 +326,7 @@ CREATE TABLE public.identity_provider_link (
     external_email character varying(255) NOT NULL,
     external_subject_id character varying(255) NOT NULL,
     provider character varying(255) NOT NULL,
-    CONSTRAINT identity_provider_link_provider_check CHECK (((provider)::text = ANY ((ARRAY['INTERNAL'::character varying, 'MICROSOFT'::character varying, 'GOOGLE'::character varying])::text[])))
+    CONSTRAINT identity_provider_link_provider_check CHECK (((provider)::text = ANY (ARRAY[('INTERNAL'::character varying)::text, ('MICROSOFT'::character varying)::text, ('GOOGLE'::character varying)::text])))
 );
 
 
@@ -317,10 +360,10 @@ CREATE TABLE public.mfa_record (
     ip_address character varying(255),
     mfa_token character varying(255),
     mfa_type character varying(255),
-    session_id character varying(255),
+    exchange_id character varying(255),
     status character varying(255),
-    CONSTRAINT mfa_record_mfa_type_check CHECK (((mfa_type)::text = ANY ((ARRAY['SMS'::character varying, 'EMAIL'::character varying, 'PASSKEY'::character varying, 'PASSWORD_RESET'::character varying])::text[]))),
-    CONSTRAINT mfa_record_status_check CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'COMPLETED'::character varying, 'LOCKED'::character varying])::text[])))
+    CONSTRAINT mfa_record_mfa_type_check CHECK (((mfa_type)::text = ANY (ARRAY[('SMS'::character varying)::text, ('EMAIL'::character varying)::text, ('PASSKEY'::character varying)::text, ('PASSWORD_RESET'::character varying)::text]))),
+    CONSTRAINT mfa_record_status_check CHECK (((status)::text = ANY (ARRAY[('PENDING'::character varying)::text, ('COMPLETED'::character varying)::text, ('LOCKED'::character varying)::text])))
 );
 
 
@@ -338,7 +381,7 @@ CREATE TABLE public.notification_delivery_log (
     attempt_number integer DEFAULT 1 NOT NULL,
     error_message character varying(2048),
     created_at timestamp(6) without time zone NOT NULL,
-    CONSTRAINT notification_delivery_log_outcome_check CHECK (((outcome)::text = ANY ((ARRAY['DELIVERED'::character varying, 'FAILED'::character varying, 'SUPPRESSED'::character varying, 'QUIET_HOURS'::character varying, 'FALLBACK'::character varying, 'SKIPPED'::character varying])::text[])))
+    CONSTRAINT notification_delivery_log_outcome_check CHECK (((outcome)::text = ANY (ARRAY[('DELIVERED'::character varying)::text, ('FAILED'::character varying)::text, ('SUPPRESSED'::character varying)::text, ('QUIET_HOURS'::character varying)::text, ('FALLBACK'::character varying)::text, ('SKIPPED'::character varying)::text])))
 );
 
 
@@ -358,7 +401,7 @@ CREATE TABLE public.notification_preference (
     is_active boolean DEFAULT true NOT NULL,
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
-    CONSTRAINT notification_preference_delivery_check CHECK (((delivery)::text = ANY ((ARRAY['INSTANT'::character varying, 'DIGEST_HOURLY'::character varying, 'DIGEST_DAILY'::character varying])::text[])))
+    CONSTRAINT notification_preference_delivery_check CHECK (((delivery)::text = ANY (ARRAY[('INSTANT'::character varying)::text, ('DIGEST_HOURLY'::character varying)::text, ('DIGEST_DAILY'::character varying)::text])))
 );
 
 
@@ -378,8 +421,8 @@ CREATE TABLE public.notification_rule (
     is_active boolean DEFAULT true NOT NULL,
     created_at timestamp(6) without time zone NOT NULL,
     CONSTRAINT ck_notif_rule_scope CHECK (((((scope)::text = 'APP'::text) AND (organization_id IS NULL)) OR (((scope)::text = 'ORG'::text) AND (organization_id IS NOT NULL)))),
-    CONSTRAINT notification_rule_action_check CHECK (((action)::text = ANY ((ARRAY['NOTIFY'::character varying, 'SUPPRESS'::character varying])::text[]))),
-    CONSTRAINT notification_rule_scope_check CHECK (((scope)::text = ANY ((ARRAY['APP'::character varying, 'ORG'::character varying])::text[])))
+    CONSTRAINT notification_rule_action_check CHECK (((action)::text = ANY (ARRAY[('NOTIFY'::character varying)::text, ('SUPPRESS'::character varying)::text]))),
+    CONSTRAINT notification_rule_scope_check CHECK (((scope)::text = ANY (ARRAY[('APP'::character varying)::text, ('ORG'::character varying)::text])))
 );
 
 
@@ -400,6 +443,24 @@ CREATE TABLE public.organization (
 
 
 --
+-- Name: organization_exchange_link; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.organization_exchange_link (
+    created_date timestamp(6) without time zone NOT NULL,
+    linked_date timestamp(6) without time zone,
+    rejected_date timestamp(6) without time zone,
+    id uuid NOT NULL,
+    requested_organization_id uuid NOT NULL,
+    requesting_organization_id uuid NOT NULL,
+    rejection_reason character varying(255),
+    requesting_message character varying(255),
+    status character varying(255) NOT NULL,
+    CONSTRAINT organization_exchange_link_status_check CHECK (((status)::text = ANY (ARRAY[('PENDING'::character varying)::text, ('ACCEPTED'::character varying)::text, ('REJECTED'::character varying)::text])))
+);
+
+
+--
 -- Name: organization_identity_provider_config; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -407,7 +468,7 @@ CREATE TABLE public.organization_identity_provider_config (
     is_active boolean NOT NULL,
     access_token_expiry_minutes bigint,
     created_date timestamp(6) without time zone NOT NULL,
-    max_session_duration_hours bigint,
+    max_exchange_duration_hours bigint,
     updated_date timestamp(6) without time zone NOT NULL,
     created_by uuid,
     id uuid NOT NULL,
@@ -443,7 +504,7 @@ CREATE TABLE public.organization_membership (
     expires_at timestamp(6) without time zone,
     deprovisioned_at timestamp(6) without time zone,
     created_date timestamp(6) without time zone NOT NULL,
-    CONSTRAINT organization_membership_status_check CHECK (((status)::text = ANY ((ARRAY['INVITED'::character varying, 'ACTIVE'::character varying, 'SUSPENDED'::character varying, 'LEFT'::character varying])::text[])))
+    CONSTRAINT organization_membership_status_check CHECK (((status)::text = ANY (ARRAY[('INVITED'::character varying)::text, ('ACTIVE'::character varying)::text, ('SUSPENDED'::character varying)::text, ('LEFT'::character varying)::text])))
 );
 
 
@@ -462,7 +523,7 @@ CREATE TABLE public.organization_notification_channel (
     is_active boolean DEFAULT true NOT NULL,
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
-    CONSTRAINT organization_notification_channel_channel_check CHECK (((channel)::text = ANY ((ARRAY['SLACK'::character varying, 'TEAMS'::character varying, 'WHATSAPP'::character varying])::text[])))
+    CONSTRAINT organization_notification_channel_channel_check CHECK (((channel)::text = ANY (ARRAY[('SLACK'::character varying)::text, ('TEAMS'::character varying)::text, ('WHATSAPP'::character varying)::text])))
 );
 
 
@@ -476,25 +537,8 @@ CREATE TABLE public.organization_settings (
     allow_share_without_pairing boolean NOT NULL,
     created_date timestamp(6) without time zone NOT NULL,
     updated_date timestamp(6) without time zone NOT NULL,
-    id uuid NOT NULL
-);
-
-
---
--- Name: organization_sharing_session_link; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.organization_sharing_session_link (
-    created_date timestamp(6) without time zone NOT NULL,
-    linked_date timestamp(6) without time zone,
-    rejected_date timestamp(6) without time zone,
     id uuid NOT NULL,
-    requested_organization_id uuid NOT NULL,
-    requesting_organization_id uuid NOT NULL,
-    rejection_reason character varying(255),
-    requesting_message character varying(255),
-    status character varying(255) NOT NULL,
-    CONSTRAINT organization_sharing_session_link_status_check CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'ACCEPTED'::character varying, 'REJECTED'::character varying])::text[])))
+    allow_external_customer_sharing boolean DEFAULT true NOT NULL
 );
 
 
@@ -525,7 +569,7 @@ CREATE TABLE public.person (
     identification_number character varying(255),
     last_name character varying(255) NOT NULL,
     person_id_type character varying(255),
-    CONSTRAINT person_person_id_type_check CHECK (((person_id_type)::text = ANY ((ARRAY['ID_NUMBER'::character varying, 'PASSPORT_NUMBER'::character varying, 'SOCIAL_SECURITY'::character varying])::text[])))
+    CONSTRAINT person_person_id_type_check CHECK (((person_id_type)::text = ANY (ARRAY[('ID_NUMBER'::character varying)::text, ('PASSPORT_NUMBER'::character varying)::text, ('SOCIAL_SECURITY'::character varying)::text])))
 );
 
 
@@ -545,7 +589,7 @@ CREATE TABLE public.principal_group (
     is_active boolean DEFAULT true NOT NULL,
     created_date timestamp(6) without time zone NOT NULL,
     CONSTRAINT ck_pgroup_scope CHECK (((((scope)::text = 'ORG'::text) AND (owner_organization_id IS NOT NULL) AND (owner_app_user_id IS NULL)) OR (((scope)::text = 'PERSONAL'::text) AND (owner_app_user_id IS NOT NULL) AND (owner_organization_id IS NULL)) OR ((scope)::text = 'SHARED_PROJECT'::text))),
-    CONSTRAINT principal_group_scope_check CHECK (((scope)::text = ANY ((ARRAY['ORG'::character varying, 'PERSONAL'::character varying, 'SHARED_PROJECT'::character varying])::text[])))
+    CONSTRAINT principal_group_scope_check CHECK (((scope)::text = ANY (ARRAY[('ORG'::character varying)::text, ('PERSONAL'::character varying)::text, ('SHARED_PROJECT'::character varying)::text])))
 );
 
 
@@ -573,8 +617,8 @@ CREATE TABLE public.principal_group_member (
     added_by_app_user_id uuid,
     added_at timestamp(6) without time zone NOT NULL,
     is_active boolean DEFAULT true NOT NULL,
-    CONSTRAINT principal_group_member_group_role_check CHECK (((group_role)::text = ANY ((ARRAY['OWNER'::character varying, 'MANAGER'::character varying, 'MEMBER'::character varying, 'OBSERVER'::character varying])::text[]))),
-    CONSTRAINT principal_group_member_principal_kind_check CHECK (((principal_kind)::text = ANY ((ARRAY['USER'::character varying, 'PARTICIPANT'::character varying])::text[])))
+    CONSTRAINT principal_group_member_group_role_check CHECK (((group_role)::text = ANY (ARRAY[('OWNER'::character varying)::text, ('MANAGER'::character varying)::text, ('MEMBER'::character varying)::text, ('OBSERVER'::character varying)::text]))),
+    CONSTRAINT principal_group_member_principal_kind_check CHECK (((principal_kind)::text = ANY (ARRAY[('USER'::character varying)::text, ('PARTICIPANT'::character varying)::text])))
 );
 
 
@@ -590,7 +634,7 @@ CREATE TABLE public.refresh_token (
     revoked_at timestamp(6) without time zone,
     id uuid NOT NULL,
     user_id uuid NOT NULL,
-    user_session_id uuid,
+    user_exchange_id uuid,
     token_hash character varying(128) NOT NULL,
     family_id character varying(255) NOT NULL,
     jti character varying(255) NOT NULL,
@@ -617,7 +661,7 @@ CREATE TABLE public.role_assignment (
     is_active boolean DEFAULT true NOT NULL,
     CONSTRAINT ck_role_assignment_scope CHECK (((((scope_type)::text = 'APP'::text) AND (scope_id IS NULL)) OR (((scope_type)::text <> 'APP'::text) AND (scope_id IS NOT NULL)))),
     CONSTRAINT ck_role_assignment_subject CHECK ((((app_user_id IS NOT NULL) AND (service_account_id IS NULL)) OR ((app_user_id IS NULL) AND (service_account_id IS NOT NULL)))),
-    CONSTRAINT role_assignment_scope_type_check CHECK (((scope_type)::text = ANY ((ARRAY['APP'::character varying, 'ORG'::character varying, 'PRINCIPAL_GROUP'::character varying, 'RESOURCE'::character varying])::text[])))
+    CONSTRAINT role_assignment_scope_type_check CHECK (((scope_type)::text = ANY (ARRAY[('APP'::character varying)::text, ('ORG'::character varying)::text, ('PRINCIPAL_GROUP'::character varying)::text, ('RESOURCE'::character varying)::text])))
 );
 
 
@@ -673,10 +717,10 @@ CREATE TABLE public.share (
     revoked_by_app_user_id uuid,
     constraints_json text,
     CONSTRAINT ck_share_expiry CHECK (((expires_at IS NULL) OR (expires_at > granted_at))),
-    CONSTRAINT share_principal_kind_check CHECK (((principal_kind)::text = ANY ((ARRAY['USER'::character varying, 'PARTICIPANT'::character varying, 'PRINCIPAL_GROUP'::character varying, 'ORGANIZATION'::character varying, 'SERVICE_ACCOUNT'::character varying, 'PUBLIC_LINK'::character varying])::text[]))),
-    CONSTRAINT share_resource_type_check CHECK (((resource_type)::text = ANY ((ARRAY['SHARING_SESSION'::character varying, 'DOCUMENT'::character varying, 'PRINCIPAL_GROUP'::character varying])::text[]))),
-    CONSTRAINT share_source_check CHECK (((source)::text = ANY ((ARRAY['DIRECT'::character varying, 'INVITE'::character varying, 'LINK'::character varying, 'INHERITED_FROM_GROUP'::character varying, 'INHERITED_FROM_ORG'::character varying])::text[]))),
-    CONSTRAINT share_status_check CHECK (((status)::text = ANY ((ARRAY['PENDING_APPROVAL'::character varying, 'ACTIVE'::character varying, 'REVOKED'::character varying, 'EXPIRED'::character varying])::text[])))
+    CONSTRAINT share_principal_kind_check CHECK (((principal_kind)::text = ANY (ARRAY[('USER'::character varying)::text, ('PARTICIPANT'::character varying)::text, ('PRINCIPAL_GROUP'::character varying)::text, ('ORGANIZATION'::character varying)::text, ('SERVICE_ACCOUNT'::character varying)::text, ('PUBLIC_LINK'::character varying)::text]))),
+    CONSTRAINT share_resource_type_check CHECK (((resource_type)::text = ANY (ARRAY[('EXCHANGE'::character varying)::text, ('DOCUMENT'::character varying)::text, ('PRINCIPAL_GROUP'::character varying)::text]))),
+    CONSTRAINT share_source_check CHECK (((source)::text = ANY (ARRAY[('DIRECT'::character varying)::text, ('INVITE'::character varying)::text, ('LINK'::character varying)::text, ('INHERITED_FROM_GROUP'::character varying)::text, ('INHERITED_FROM_ORG'::character varying)::text]))),
+    CONSTRAINT share_status_check CHECK (((status)::text = ANY (ARRAY[('PENDING_APPROVAL'::character varying)::text, ('ACTIVE'::character varying)::text, ('REVOKED'::character varying)::text, ('EXPIRED'::character varying)::text])))
 );
 
 
@@ -697,45 +741,7 @@ CREATE TABLE public.share_link (
     expires_at timestamp(6) without time zone,
     created_by_app_user_id uuid,
     created_at timestamp(6) without time zone NOT NULL,
-    CONSTRAINT share_link_status_check CHECK (((status)::text = ANY ((ARRAY['ACTIVE'::character varying, 'REVOKED'::character varying, 'EXPIRED'::character varying])::text[])))
-);
-
-
---
--- Name: sharing_session; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.sharing_session (
-    is_deleted boolean NOT NULL,
-    require_recipient_sign_in boolean NOT NULL,
-    created_date timestamp(6) without time zone NOT NULL,
-    date_deleted timestamp(6) without time zone,
-    end_date timestamp(6) without time zone,
-    expire_date timestamp(6) without time zone,
-    last_activity timestamp(6) without time zone NOT NULL,
-    id uuid NOT NULL,
-    initiator_id uuid,
-    description character varying(255) NOT NULL,
-    end_note character varying(255),
-    initial_share_message character varying(255) NOT NULL,
-    rejection_reason character varying(255),
-    session_name character varying(255) NOT NULL,
-    status character varying(255) NOT NULL,
-    recipient_otp_hash character varying(255),
-    recipient_otp_expiry timestamp(6) without time zone,
-    no_auth_access_verified_at timestamp(6) without time zone,
-    no_auth_access_validity_days integer DEFAULT 7 NOT NULL,
-    CONSTRAINT sharing_session_status_check CHECK (((status)::text = ANY ((ARRAY['INITIATED'::character varying, 'ACCEPTED_STARTED'::character varying, 'ENDED'::character varying, 'REJECTED'::character varying])::text[])))
-);
-
-
---
--- Name: sharing_session_document; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.sharing_session_document (
-    sharingsession_id uuid NOT NULL,
-    documents_id uuid NOT NULL
+    CONSTRAINT share_link_status_check CHECK (((status)::text = ANY (ARRAY[('ACTIVE'::character varying)::text, ('REVOKED'::character varying)::text, ('EXPIRED'::character varying)::text])))
 );
 
 
@@ -753,7 +759,7 @@ CREATE TABLE public.sign_up (
     email character varying(255) NOT NULL,
     otp character varying(255) NOT NULL,
     status character varying(255) NOT NULL,
-    CONSTRAINT sign_up_status_check CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'VERIFIED'::character varying, 'EXPIRED'::character varying, 'EXPIRED_MAX_RETRIES'::character varying, 'OTP_LOCKED'::character varying])::text[])))
+    CONSTRAINT sign_up_status_check CHECK (((status)::text = ANY (ARRAY[('PENDING'::character varying)::text, ('VERIFIED'::character varying)::text, ('EXPIRED'::character varying)::text, ('EXPIRED_MAX_RETRIES'::character varying)::text, ('OTP_LOCKED'::character varying)::text])))
 );
 
 
@@ -786,7 +792,7 @@ CREATE TABLE public.user_contact (
     first_shared_at timestamp(6) without time zone NOT NULL,
     last_shared_at timestamp(6) without time zone NOT NULL,
     share_count integer DEFAULT 0 NOT NULL,
-    last_session_id uuid
+    last_exchange_id uuid
 );
 
 
@@ -804,7 +810,7 @@ CREATE TABLE public.user_session (
     app_user_id uuid NOT NULL,
     organization_id uuid,
     revoked_by_user_id uuid,
-    session_id uuid NOT NULL,
+    exchange_id uuid NOT NULL,
     risk_flags character varying(1024),
     user_agent character varying(1024),
     device_id character varying(255),
@@ -831,7 +837,7 @@ CREATE TABLE public.workflow_definition (
     created_by_app_user_id uuid,
     created_at timestamp(6) without time zone NOT NULL,
     CONSTRAINT ck_workflow_def_scope CHECK (((((scope)::text = 'APP'::text) AND (organization_id IS NULL)) OR (((scope)::text = 'ORG'::text) AND (organization_id IS NOT NULL)))),
-    CONSTRAINT workflow_definition_scope_check CHECK (((scope)::text = ANY ((ARRAY['APP'::character varying, 'ORG'::character varying])::text[])))
+    CONSTRAINT workflow_definition_scope_check CHECK (((scope)::text = ANY (ARRAY[('APP'::character varying)::text, ('ORG'::character varying)::text])))
 );
 
 
@@ -852,7 +858,7 @@ CREATE TABLE public.workflow_instance (
     initiated_by_app_user_id uuid,
     created_at timestamp(6) without time zone NOT NULL,
     completed_at timestamp(6) without time zone,
-    CONSTRAINT workflow_instance_status_check CHECK (((status)::text = ANY ((ARRAY['RUNNING'::character varying, 'COMPLETED'::character varying, 'REJECTED'::character varying, 'CANCELLED'::character varying, 'ESCALATED'::character varying])::text[])))
+    CONSTRAINT workflow_instance_status_check CHECK (((status)::text = ANY (ARRAY[('RUNNING'::character varying)::text, ('COMPLETED'::character varying)::text, ('REJECTED'::character varying)::text, ('CANCELLED'::character varying)::text, ('ESCALATED'::character varying)::text])))
 );
 
 
@@ -873,8 +879,8 @@ CREATE TABLE public.workflow_step_instance (
     escalated_at timestamp(6) without time zone,
     completed_at timestamp(6) without time zone,
     created_at timestamp(6) without time zone NOT NULL,
-    CONSTRAINT workflow_step_instance_status_check CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'APPROVED'::character varying, 'REJECTED'::character varying, 'ESCALATED'::character varying, 'SKIPPED'::character varying, 'COMPLETED'::character varying])::text[]))),
-    CONSTRAINT workflow_step_instance_step_type_check CHECK (((step_type)::text = ANY ((ARRAY['APPROVAL'::character varying, 'NOTIFICATION'::character varying, 'CONDITION'::character varying, 'ACTION'::character varying])::text[])))
+    CONSTRAINT workflow_step_instance_status_check CHECK (((status)::text = ANY (ARRAY[('PENDING'::character varying)::text, ('APPROVED'::character varying)::text, ('REJECTED'::character varying)::text, ('ESCALATED'::character varying)::text, ('SKIPPED'::character varying)::text, ('COMPLETED'::character varying)::text]))),
+    CONSTRAINT workflow_step_instance_step_type_check CHECK (((step_type)::text = ANY (ARRAY[('APPROVAL'::character varying)::text, ('NOTIFICATION'::character varying)::text, ('CONDITION'::character varying)::text, ('ACTION'::character varying)::text])))
 );
 
 
@@ -1023,6 +1029,22 @@ ALTER TABLE ONLY public.document_version
 
 
 --
+-- Name: exchange_document exchange_document_documents_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.exchange_document
+    ADD CONSTRAINT exchange_document_documents_id_key UNIQUE (documents_id);
+
+
+--
+-- Name: exchange exchange_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.exchange
+    ADD CONSTRAINT exchange_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: external_participant external_participant_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1095,6 +1117,14 @@ ALTER TABLE ONLY public.organization
 
 
 --
+-- Name: organization_exchange_link organization_exchange_link_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organization_exchange_link
+    ADD CONSTRAINT organization_exchange_link_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: organization_identity_provider_config organization_identity_provider_config_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1140,14 +1170,6 @@ ALTER TABLE ONLY public.organization
 
 ALTER TABLE ONLY public.organization_settings
     ADD CONSTRAINT organization_settings_pkey PRIMARY KEY (id);
-
-
---
--- Name: organization_sharing_session_link organization_sharing_session_link_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.organization_sharing_session_link
-    ADD CONSTRAINT organization_sharing_session_link_pkey PRIMARY KEY (id);
 
 
 --
@@ -1255,22 +1277,6 @@ ALTER TABLE ONLY public.share
 
 
 --
--- Name: sharing_session_document sharing_session_document_documents_id_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sharing_session_document
-    ADD CONSTRAINT sharing_session_document_documents_id_key UNIQUE (documents_id);
-
-
---
--- Name: sharing_session sharing_session_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sharing_session
-    ADD CONSTRAINT sharing_session_pkey PRIMARY KEY (id);
-
-
---
 -- Name: sign_up sign_up_email_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1367,11 +1373,11 @@ ALTER TABLE ONLY public.user_contact
 
 
 --
--- Name: user_session user_session_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: user_session user_exchange_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.user_session
-    ADD CONSTRAINT user_session_pkey PRIMARY KEY (session_id);
+    ADD CONSTRAINT user_exchange_pkey PRIMARY KEY (exchange_id);
 
 
 --
@@ -1651,6 +1657,22 @@ CREATE UNIQUE INDEX uq_org_membership_primary ON public.organization_membership 
 
 
 --
+-- Name: exchange_document exchange_document_documents_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.exchange_document
+    ADD CONSTRAINT exchange_document_documents_id_fkey FOREIGN KEY (documents_id) REFERENCES public.document(id);
+
+
+--
+-- Name: exchange_document exchange_document_exchange_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.exchange_document
+    ADD CONSTRAINT exchange_document_exchange_id_fkey FOREIGN KEY (exchange_id) REFERENCES public.exchange(id);
+
+
+--
 -- Name: contact_details fk2yuj227wi05ujycdcs6w4hsh4; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1680,14 +1702,6 @@ ALTER TABLE ONLY public.document_comment
 
 ALTER TABLE ONLY public.auth_token
     ADD CONSTRAINT fk7pvqug8fqs5d119gxxw88f2y5 FOREIGN KEY (app_user_id) REFERENCES public.app_user(id);
-
-
---
--- Name: sharing_session_document fk7vocc392sve21f24l77wgh0ae; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sharing_session_document
-    ADD CONSTRAINT fk7vocc392sve21f24l77wgh0ae FOREIGN KEY (sharingsession_id) REFERENCES public.sharing_session(id);
 
 
 --
@@ -2027,10 +2041,10 @@ ALTER TABLE ONLY public.document
 
 
 --
--- Name: organization_sharing_session_link fkevvh893aydrdluwjnea8x9uw0; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: organization_exchange_link fkevvh893aydrdluwjnea8x9uw0; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.organization_sharing_session_link
+ALTER TABLE ONLY public.organization_exchange_link
     ADD CONSTRAINT fkevvh893aydrdluwjnea8x9uw0 FOREIGN KEY (requesting_organization_id) REFERENCES public.organization(id);
 
 
@@ -2067,10 +2081,10 @@ ALTER TABLE ONLY public.audit_log
 
 
 --
--- Name: sharing_session fkm047uybns2p1a6x8fhooegf3m; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: exchange fkm047uybns2p1a6x8fhooegf3m; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sharing_session
+ALTER TABLE ONLY public.exchange
     ADD CONSTRAINT fkm047uybns2p1a6x8fhooegf3m FOREIGN KEY (initiator_id) REFERENCES public.app_user(id);
 
 
@@ -2107,14 +2121,6 @@ ALTER TABLE ONLY public.organization_identity_provider_config
 
 
 --
--- Name: sharing_session_document fkpw6naen54xetoc37ebr8h946d; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sharing_session_document
-    ADD CONSTRAINT fkpw6naen54xetoc37ebr8h946d FOREIGN KEY (documents_id) REFERENCES public.document(id);
-
-
---
 -- Name: app_user fksbybenwfu7p3254px36jpl6iv; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2123,10 +2129,10 @@ ALTER TABLE ONLY public.app_user
 
 
 --
--- Name: organization_sharing_session_link fksdfhfouosmk7nc4xuho20wa1l; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: organization_exchange_link fksdfhfouosmk7nc4xuho20wa1l; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.organization_sharing_session_link
+ALTER TABLE ONLY public.organization_exchange_link
     ADD CONSTRAINT fksdfhfouosmk7nc4xuho20wa1l FOREIGN KEY (requested_organization_id) REFERENCES public.organization(id);
 
 

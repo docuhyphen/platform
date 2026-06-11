@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {Checkbox, Field, InfoLabel, Input, Text} from '@fluentui/react-components';
 import {ShareConstraints} from '../../../services/types/dtos';
 
@@ -26,7 +26,7 @@ const ShareConstraintToggles: React.FC<ShareConstraintTogglesProps> = ({constrai
             <Field>
                 <Checkbox
                     label={
-                        <InfoLabel info="Override the session's download setting for this recipient. When unchecked, this recipient cannot download any documents regardless of the session-level setting.">
+                        <InfoLabel info="Override the session's download setting for this recipient. When unchecked, this recipient cannot download any documents regardless of the exchange-level setting.">
                             Can download documents
                         </InfoLabel>
                     }

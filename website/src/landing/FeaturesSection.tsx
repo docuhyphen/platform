@@ -1,4 +1,4 @@
-import {
+﻿import {
     Button,
     Card,
     Text,
@@ -1118,7 +1118,7 @@ export function FeaturesSection({initialIndustrySlug}: FeaturesSectionProps)
                                         <div className={styles.structuredToolbar}>
                                             <div className={styles.structuredSearch}>
                                                 <span className={styles.structuredSearchIcon} aria-hidden="true"/>
-                                                <span className={styles.structuredSearchText}>Search Document Sharing Sessions</span>
+                                                <span className={styles.structuredSearchText}>Search Document Exchanges</span>
                                             </div>
                                             <span className={styles.structuredControl} aria-hidden="true">
                                             <FilterRegular className={styles.structuredControlIcon}/>

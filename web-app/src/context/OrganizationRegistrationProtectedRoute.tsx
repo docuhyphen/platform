@@ -1,4 +1,4 @@
-import {Navigate} from "react-router-dom";
+﻿import {Navigate} from "react-router-dom";
 import {useAuth} from "./AuthContext.tsx";
 
 export const OrganizationRegistrationProtectedRoute: React.FC<{ element: JSX.Element }> = ({element}) =>
@@ -17,7 +17,7 @@ export const OrganizationRegistrationProtectedRoute: React.FC<{ element: JSX.Ele
 
     if (appUserPersonOrganization)
     {
-        return <Navigate to="/sharing-sessions" replace/>;
+        return <Navigate to="/exchanges" replace/>;
     }
 
     return element;

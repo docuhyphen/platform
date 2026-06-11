@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.service.notification
+﻿package com.docuhyphen.app.api.service.notification
 
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -20,7 +20,7 @@ class EventRouter
 
     @Inject private lateinit var ruleEngine: NotificationRuleEngine
     @Inject private lateinit var dispatcher: DeliveryDispatcher
-    @Inject private lateinit var sessionApprovalEventHandler: com.docuhyphen.app.api.service.sharingsession.SessionApprovalEventHandler
+    @Inject private lateinit var sessionApprovalEventHandler: com.docuhyphen.app.api.service.exchange.ExchangeApprovalEventHandler
 
     fun route(event: DomainEvent)
     {

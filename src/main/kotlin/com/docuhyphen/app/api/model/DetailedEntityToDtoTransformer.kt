@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.model
+﻿package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.*
@@ -72,18 +72,18 @@ class DetailedEntityToDtoTransformer
             }
         }
 
-        fun toDto(sharingSession: SharingSession?): SharingSessionDetailedDto?
+        fun toDto(exchange: Exchange?): ExchangeDetailedDto?
         {
-            return sharingSession?.let {
-                with(sharingSession)
+            return exchange?.let {
+                with(exchange)
                 {
-                    SharingSessionDetailedDto(
+                    ExchangeDetailedDto(
                         id = id,
                         createdDate = createdDate,
                         endDate = endDate,
                         endNote = endNote,
                         lastActivity = lastActivity,
-                        sessionName = sessionName,
+                        name = name,
                         initialShareMessage = initialShareMessage,
                         description = description,
                         initiator = toDto(initiator),
@@ -173,7 +173,7 @@ class DetailedEntityToDtoTransformer
             }
         }
 
-        fun toDto(comment: SharingSessionDocumentComment?): DocumentCommentDetailedDto?
+        fun toDto(comment: ExchangeDocumentComment?): DocumentCommentDetailedDto?
         {
             return comment?.let {
                 with(comment)

@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.service.auth.authz
+﻿package com.docuhyphen.app.api.service.auth.authz
 
 import com.docuhyphen.app.api.model.entity.DocumentType
 import kotlinx.serialization.SerialName
@@ -17,14 +17,14 @@ import org.slf4j.LoggerFactory
  *               malformed blob must degrade to "permissive defaults" rather than fail a
  *               live request.
  *  - [parseStrict], throws on malformed JSON; used on the *write* path
- *               ([com.docuhyphen.app.api.service.sharingsession.SessionAccessManagementService])
+ *               ([com.docuhyphen.app.api.service.exchange.ExchangeAccessManagementService])
  *               so we reject garbage at the source and store a canonical form.
  *
  * Field semantics (see plan 01-participant-limited-access.md):
  *  - [canDownload] tri-state. `null` = "inherit from role" (so VIEWER/PARTICIPANT, whose
  *    base role carries no DOCUMENT_DOWNLOAD, stay download-less unless explicitly opted in
  *    with `true`; EDITOR keeps download unless explicitly `false`). See [adjustCapabilities].
- *  - [canReshare] tri-state. Only an explicit `false` strips SESSION_SHARE; `null` leaves the
+ *  - [canReshare] tri-state. Only an explicit `false` strips EXCHANGE_SHARE; `null` leaves the
  *    base untouched so owners/managers keep their reshare power.
  *  - [watermark] / [maxViews] are non-blocking *obligations* surfaced on the [Decision].
  *  - [requireMfa] denies when the context's MFA isn't satisfied.
@@ -47,7 +47,7 @@ data class ShareConstraints(
      * Apply this share's constraints to a role's base capability set.
      *
      * download: opt-in / opt-out, defaulting to whatever the base role already grants;
-     *           reshare: only an explicit `false` removes SESSION_SHARE.
+     *           reshare: only an explicit `false` removes EXCHANGE_SHARE.
      */
     fun adjustCapabilities(base: Set<Capability>): Set<Capability>
     {
@@ -56,7 +56,7 @@ data class ShareConstraints(
         val effectiveDownload = canDownload ?: (Capability.DOCUMENT_DOWNLOAD in base)
         if (effectiveDownload) caps += Capability.DOCUMENT_DOWNLOAD else caps -= Capability.DOCUMENT_DOWNLOAD
 
-        if (canReshare == false) caps -= Capability.SESSION_SHARE
+        if (canReshare == false) caps -= Capability.EXCHANGE_SHARE
 
         // Document write permissions: when any of upload/addition/update is explicitly true
         // in the constraints, grant DOCUMENT_WRITE even if the base role (e.g. VIEWER) lacks it.

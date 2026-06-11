@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.service.organization
+﻿package com.docuhyphen.app.api.service.organization
 
 import com.docuhyphen.app.api.exception.AppUserNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
@@ -395,7 +395,7 @@ class OrganizationAppUserService @Inject constructor(
         return organizationMembershipService.isMember(appUser.id, organization.id)
                 // Cannot delete the org's last enabled administrator (min-admins invariant).
                 && !organizationMembershipService.isLastActiveAdmin(appUser.id, organization.id)
-                && appUserService.hasLinkedSharingSessions(appUser.id) == false
+                && appUserService.hasLinkedExchanges(appUser.id) == false
     }
 
     private fun appUserSnapshot(appUser: AppUser): String

@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+﻿import React, {useCallback, useEffect, useState} from 'react';
 import {
     Badge,
     Button,
@@ -70,8 +70,8 @@ const PendingApprovals: React.FC = () =>
                     stepInstanceId: n.data?.stepInstanceId || n.id,
                     workflowInstanceId: n.data?.workflowInstanceId || '',
                     stepType: n.data?.stepType || 'APPROVAL',
-                    sessionId: n.sessionId || n.data?.sessionId,
-                    sessionName: n.data?.sessionName,
+                    exchangeId: n.exchangeId || n.data?.exchangeId,
+                    name: n.data?.name,
                     requestedByEmail: n.data?.requestedByEmail,
                     requestedByName: n.data?.requestedByName,
                     groupName: n.data?.groupName,
@@ -86,14 +86,14 @@ const PendingApprovals: React.FC = () =>
 
             // Remove items when session is activated or rejected (decided elsewhere)
             if (
-                n.type as string === 'session.activated' || n.type as string === 'SESSION_ACTIVATED' ||
-                n.type as string === 'session.rejected' || n.type as string === 'SESSION_REJECTED'
+                n.type as string === 'session.activated' || n.type as string === 'EXCHANGE_ACTIVATED' ||
+                n.type as string === 'session.rejected' || n.type as string === 'EXCHANGE_REJECTED'
             )
             {
-                const sid = n.sessionId || n.data?.sessionId;
+                const sid = n.exchangeId || n.data?.exchangeId;
                 if (sid)
                 {
-                    setItems((prev) => prev.filter((p) => p.sessionId !== sid));
+                    setItems((prev) => prev.filter((p) => p.exchangeId !== sid));
                 }
             }
         });
@@ -170,7 +170,7 @@ const PendingApprovals: React.FC = () =>
                             <div key={step.stepInstanceId} className={styles.card}>
                                 <div className={styles.cardHeader}>
                                     <Text weight="semibold">
-                                        {step.sessionName || 'Sharing Session'}
+                                        {step.name || 'Exchange'}
                                     </Text>
                                     <Badge appearance="outline" color="warning">
                                         Pending

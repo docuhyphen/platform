@@ -45,7 +45,7 @@ class OrganizationIdentityProviderConfig
     @Column(name = "refresh_token_expiry_minutes")
     var refreshTokenExpiryMinutes: Long? = null
 
-    @Column(name = "max_session_duration_hours")
+    @Column(name = "max_exchange_duration_hours")
     var maxSessionDurationHours: Long? = null
 
     @Column(name = "idle_timeout_minutes")

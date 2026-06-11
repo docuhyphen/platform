@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.model.entity
+﻿package com.docuhyphen.app.api.model.entity
 
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
@@ -65,7 +65,7 @@ class Document
 
     @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.EAGER)
     @JoinColumn(name = "document_id")
-    var comments: MutableList<SharingSessionDocumentComment> = mutableListOf()
+    var comments: MutableList<ExchangeDocumentComment> = mutableListOf()
 
     //ToDo: add upload reminder frequency for a document to be uploaded if not uploaded
 

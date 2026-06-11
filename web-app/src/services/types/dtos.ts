@@ -1,11 +1,11 @@
-/**
+﻿/**
  * Shared TypeScript interfaces mirroring backend DTOs.
  */
 import {AppUserDetailedDto} from '../../app/models/models';
 
-// ── Session Access ──
+// ── Exchange Access ──
 
-export interface SessionAccessEntryDto
+export interface ExchangeAccessEntryDto
 {
     shareId: string;
     principalKind: string;   // 'USER' | 'GROUP'
@@ -20,7 +20,7 @@ export interface SessionAccessEntryDto
     constraintsJson?: string;
 }
 
-export interface GrantSessionShareRequest
+export interface GrantExchangeShareRequest
 {
     principalKind: string;
     principalId: string;
@@ -29,7 +29,7 @@ export interface GrantSessionShareRequest
     expiresAtEpochMillis?: number;
 }
 
-export interface UpdateSessionShareRoleRequest
+export interface UpdateExchangeShareRoleRequest
 {
     roleName: string;
     constraintsJson?: string;
@@ -68,8 +68,8 @@ export interface PendingWorkflowStep
     stepInstanceId: string;
     workflowInstanceId: string;
     stepType: string;
-    sessionId?: string;
-    sessionName?: string;
+    exchangeId?: string;
+    name?: string;
     requestedByEmail?: string;
     requestedByName?: string;
     groupName?: string;

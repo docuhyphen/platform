@@ -191,7 +191,7 @@ export function HeroSection()
             <FloatingDocuments/>
             <section className={styles.container}>
                 <LargeTitle align="center" className={styles.title}>
-                    Secure document exchanges for sensitive business information
+                    Secure document exchange for sensitive business information
                 </LargeTitle>
                 <Text className={styles.supportingText}>
                     Securely exchange and collaborate on documents with clients, teams, and external organizations.

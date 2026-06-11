@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {useNavigate} from 'react-router-dom';
 import {
     Button,
@@ -35,23 +35,23 @@ const NotificationList: React.FC = () =>
         // Workflow step assigned → navigate to session if available
         if (WORKFLOW_NOTIFICATION_TYPES.includes(notification.type as string))
         {
-            const sid = notification.sessionId || notification.data?.sessionId;
+            const sid = notification.exchangeId || notification.data?.exchangeId;
             if (sid)
             {
-                navigate(`/sharing-sessions?s=${sid}`);
+                navigate(`/exchanges?s=${sid}`);
             }
             return;
         }
 
-        if (notification.sessionId)
+        if (notification.exchangeId)
         {
             if (notification.documentId)
             {
-                navigate(`/sharing-sessions?s=${notification.sessionId}&d=${notification.documentId}`);
+                navigate(`/exchanges?s=${notification.exchangeId}&d=${notification.documentId}`);
             }
             else
             {
-                navigate(`/sharing-sessions?s=${notification.sessionId}`);
+                navigate(`/exchanges?s=${notification.exchangeId}`);
             }
         }
     };

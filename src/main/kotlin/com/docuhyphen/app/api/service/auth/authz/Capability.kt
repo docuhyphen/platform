@@ -11,12 +11,12 @@ package com.docuhyphen.app.api.service.auth.authz
 enum class Capability
 {
     // Session-scoped
-    SESSION_READ,
-    SESSION_WRITE,
-    SESSION_DELETE,
-    SESSION_ADMIN,     // suspend / end / manage state
-    SESSION_OWNER,     // transfer ownership
-    SESSION_SHARE,     // add/remove recipients
+    EXCHANGE_READ,
+    EXCHANGE_WRITE,
+    EXCHANGE_DELETE,
+    EXCHANGE_ADMIN,     // suspend / end / manage state
+    EXCHANGE_OWNER,     // transfer ownership
+    EXCHANGE_SHARE,     // add/remove recipients
 
     // Document-scoped
     DOCUMENT_READ,

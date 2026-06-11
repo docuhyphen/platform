@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+﻿import React, {useEffect, useRef, useState} from 'react';
 import {completeSignIn, initiateSignIn, lookupSignInMethod, regenerateSignInOtp} from '../../../services/authApi.ts';
 import {fetchAppUser, fetchAppUserPersonOrganization,} from '../../../services/appUserApi.ts';
 import {useAuth} from '../../../context/AuthContext.tsx';
@@ -31,7 +31,7 @@ import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 import validator from 'validator';
 import {getOtpFriendlyMessage, normalizeApiError} from "../../../utils/apiErrorUtils.ts";
 
-const SIGN_IN_SESSION_DURATION_MS = 30 * 60 * 1000; // 30 minutes
+const SIGN_IN_EXCHANGE_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 const RESEND_COOLDOWN_SECONDS = 30;
 
 type SignInStep = 'EMAIL_ENTRY' | 'ORG_PICKER' | 'PASSWORD_ENTRY' | 'MFA_ENTRY';
@@ -201,7 +201,7 @@ const SignIn: React.FC = () =>
                 {
                     const organization = await fetchAppUserPersonOrganization(appUser.id, appUser.person?.id, activeToken?.toString());
                     setAppUserPersonOrganization(organization);
-                    navigate("/sharing-sessions");
+                    navigate("/exchanges");
                     return;
                 }
                 else
@@ -212,8 +212,8 @@ const SignIn: React.FC = () =>
             }
             catch
             {
-                // Navigate to sharing sessions even if org fetch fails
-                navigate("/sharing-sessions");
+                // Navigate to exchanges even if org fetch fails
+                navigate("/exchanges");
             }
         }
         catch (error)
@@ -261,7 +261,7 @@ const SignIn: React.FC = () =>
         sessionTimerRef.current = window.setTimeout(() =>
         {
             setSessionExpired(true);
-        }, SIGN_IN_SESSION_DURATION_MS);
+        }, SIGN_IN_EXCHANGE_DURATION_MS);
     };
 
     const startResendCooldown = () =>

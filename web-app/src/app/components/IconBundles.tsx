@@ -1,4 +1,4 @@
-import {
+﻿import {
     AlertFilled,
     AlertRegular,
     ArrowDownloadFilled,
@@ -141,7 +141,7 @@ export const SortDownIcon = bundleIcon(ArrowSortDownLinesFilled, ArrowSortDownLi
 export const SortUpIcon = bundleIcon(ArrowSortUpLinesFilled, ArrowSortUpLinesRegular);
 export const ReceiveDocumentsIcon = bundleIcon(DocumentArrowLeftFilled, DocumentArrowLeftRegular)
 export const SendDocumentsIcon = bundleIcon(DocumentArrowRightFilled, DocumentArrowRightRegular)
-export const SharingSessionIcon = bundleIcon(ChannelShareFilled, ChannelShareRegular);
+export const ExchangeIcon = bundleIcon(ChannelShareFilled, ChannelShareRegular);
 export const NotificationsIcon = bundleIcon(AlertFilled, AlertRegular);
 export const SignOutButtonIcon = bundleIcon(ArrowExitFilled, ArrowExitRegular);
 export const InfoIcon = bundleIcon(InfoFilled, InfoRegular)
@@ -155,11 +155,11 @@ export const PreviousPageIcon = bundleIcon(ChevronLeftFilled, ChevronLeftRegular
 export const ZoomInIcon = bundleIcon(ZoomInFilled, ZoomInRegular)
 export const ZoomOutIcon = bundleIcon(ZoomOutFilled, ZoomOutRegular)
 export const ResetZoomIcon = bundleIcon(ZoomFitFilled, ZoomFitRegular)
-export const SessionEndIcon = bundleIcon(CheckmarkNoteFilled, CheckmarkNoteRegular);
-export const SessionDetailedViewIcon = bundleIcon(ContentViewFilled, ContentViewRegular);
+export const ExchangeEndIcon = bundleIcon(CheckmarkNoteFilled, CheckmarkNoteRegular);
+export const ExchangeDetailedViewIcon = bundleIcon(ContentViewFilled, ContentViewRegular);
 export const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular);
 export const RegenerateOTPIcon = bundleIcon(CalculatorArrowClockwiseFilled, CalculatorArrowClockwiseRegular);
-export const EditSessionIcon = bundleIcon(WindowEditFilled, WindowEditRegular);
+export const EditExchangeIcon = bundleIcon(WindowEditFilled, WindowEditRegular);
 export const ManageAccessIcon = bundleIcon(PeopleLockFilled, PeopleLockRegular);
 export const EditIcon = bundleIcon(NotepadEditFilled, NotepadEditRegular)
 export const ProfileEditBasicDetailsIcon = bundleIcon(NotepadEditFilled, NotepadEditRegular)
@@ -177,7 +177,7 @@ export const RecipientsIcon = bundleIcon(PeopleCommunityAddFilled, PeopleCommuni
 export const DetailsIcon = bundleIcon(DocumentOnePageFilled, DocumentOnePageRegular)
 export const DocumentsIcon = bundleIcon(DocumentBulletListMultipleFilled, DocumentBulletListMultipleRegular)
 export const OptionsIcon = bundleIcon(OptionsFilled, OptionsRegular)
-export const CollapseSessionListSidebarIcon = bundleIcon(ChevronDoubleLeftFilled, ChevronDoubleLeftRegular)
-export const ExpandSessionListSidebarIcon = bundleIcon(ChevronDoubleRightFilled, ChevronDoubleRightRegular)
+export const CollapseExchangeListSidebarIcon = bundleIcon(ChevronDoubleLeftFilled, ChevronDoubleLeftRegular)
+export const ExpandExchangeListSidebarIcon = bundleIcon(ChevronDoubleRightFilled, ChevronDoubleRightRegular)
 export const FullScreenEnterIcon = bundleIcon(FullScreenMaximizeFilled, FullScreenMaximizeRegular)
 export const FullScreenExitIcon = bundleIcon(FullScreenMinimizeFilled, FullScreenMinimizeRegular)

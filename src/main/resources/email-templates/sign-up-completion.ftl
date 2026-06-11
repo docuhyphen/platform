@@ -12,7 +12,7 @@
 <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin:0 0 14px 0;">
     <tr><td style="padding:0 0 6px 0;">- Complete your profile</td></tr>
     <tr><td style="padding:0 0 6px 0;">- Review your security settings</td></tr>
-    <tr><td style="padding:0 0 6px 0;">- Start sharing and managing documents</td></tr>
+    <tr><td style="padding:0 0 6px 0;">- Start exchanging and managing documents</td></tr>
 </table>
 
 <p style="margin:0 0 14px 0;">Need help? Contact support at <a href="mailto:support@docuhyphen.com" style="color:#1f73b7;">support@docuhyphen.com</a>.</p>

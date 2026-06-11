@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+﻿import React, {useEffect, useState} from 'react';
 import {useOnboardingStyles} from '../OnboardingStyles.tsx';
 import AppLogo from "../../components/app-logo/AppLogo.tsx";
 import {
@@ -35,7 +35,7 @@ const OrganizationOnboarding: React.FC = () =>
             try
             {
                 setAppUserPersonOrganization(await fetchAppUserPersonOrganization(appUser?.id, appUser?.person?.id, token!!));
-                navigate('/sharing-sessions');
+                navigate('/exchanges');
             }
             catch (error: any)
             {
@@ -61,7 +61,7 @@ const OrganizationOnboarding: React.FC = () =>
                         <OrganizationOnboardingForm onOrganizationRegistered={
                             (organization) =>
                             {
-                                navigate('/sharing-sessions');
+                                navigate('/exchanges');
                             }
                         }/>
                     </div>
@@ -80,7 +80,7 @@ const OrganizationOnboarding: React.FC = () =>
                             </Text>
                         </div>
                         <p>
-                            Here’s your progress before you can start sharing documents.
+                            Here’s your progress before you can start exchanging documents.
                         </p>
                         <OnboardingBreadcrumbs
                             registerOrganization={true}
@@ -108,7 +108,7 @@ const OrganizationOnboarding: React.FC = () =>
                             <Button appearance="primary"
                                     className={globalStyles.buttonWithLoading}
                                     shape={"circular"}
-                                    onClick={() => navigate('/sharing-sessions')}>
+                                    onClick={() => navigate('/exchanges')}>
                                 Yes, Skip Registration
                             </Button>
                             <DialogTrigger disableButtonEnhancement>

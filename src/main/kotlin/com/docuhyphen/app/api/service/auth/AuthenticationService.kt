@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.service.auth
+﻿package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AuthTokenType.ACCESS
@@ -85,11 +85,11 @@ class AuthenticationService @Inject constructor(
             .subject(appUser.id.toString())
             .claim("email", appUser.email)
             .claim("role", roleClaim)
-            .claim("session_version", appUser.sessionVersion)
+            .claim("exchange_version", appUser.sessionVersion)
             .claim("token_type", ACCESS.name)
             .claim("auth_time", authTime)
 
-        sessionId?.let { builder.claim("session_id", it.toString()) }
+        sessionId?.let { builder.claim("exchange_id", it.toString()) }
 
         return builder
             .issuedAt(Date())
@@ -127,10 +127,10 @@ class AuthenticationService @Inject constructor(
         val builder = Jwts.builder()
             .subject(appUser.id.toString())
             .claim("email", appUser.email)
-            .claim("session_version", appUser.sessionVersion)
+            .claim("exchange_version", appUser.sessionVersion)
             .claim("token_type", ID.name)
 
-        sessionId?.let { builder.claim("session_id", it.toString()) }
+        sessionId?.let { builder.claim("exchange_id", it.toString()) }
 
         appUser.person?.let { person ->
             builder.claim("firstName", person.firstName)

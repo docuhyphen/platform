@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.model.entity
+﻿package com.docuhyphen.app.api.model.entity
 
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
@@ -36,7 +36,7 @@ enum class ShareStatus
 
 /**
  * Unified sharing grant. Replaces the legacy three-way recipient columns on
- * [SharingSession] (`recipient_id`, `recipient_type`, `group_id`) and the
+ * [Exchange] (`recipient_id`, `recipient_type`, `group_id`) and the
  * boolean `allow_document_*` flags. Every recipient, be it a user, participant,
  * group, organization, service account, or public link, gets its own row.
  *
@@ -56,7 +56,7 @@ class Share
 
     @Column(name = "resource_type", nullable = false, length = 32)
     @Enumerated(EnumType.STRING)
-    var resourceType: ResourceType = ResourceType.SHARING_SESSION
+    var resourceType: ResourceType = ResourceType.EXCHANGE
 
     @Column(name = "resource_id", nullable = false)
     @Serializable(with = UUIDSerializer::class)

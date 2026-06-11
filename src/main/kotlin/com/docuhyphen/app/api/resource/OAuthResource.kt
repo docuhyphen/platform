@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.resource
+﻿package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.resource.model.*
@@ -442,7 +442,7 @@ class OAuthResource @Inject constructor(
 
     private fun redirectToStepUpReturn(returnTo: String?): Response
     {
-        val safePath = returnTo?.takeIf { it.startsWith("/") && !it.startsWith("//") } ?: "/sharing-sessions"
+        val safePath = returnTo?.takeIf { it.startsWith("/") && !it.startsWith("//") } ?: "/exchanges"
         val separator = if (safePath.contains("?")) "&" else "?"
         val destination = "${configurationService.baseUrl.trimEnd('/')}$safePath${separator}stepUp=success"
         return Response.temporaryRedirect(URI.create(destination)).build()

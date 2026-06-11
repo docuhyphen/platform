@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.service.auth
+﻿package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Organization
@@ -70,7 +70,7 @@ class ServiceActionAuthorizationService @Inject constructor(
     fun validateUpdateShareWithoutPairingSetting(appUser: AppUser)
     {
         if (userRoleService.isOrgAdmin(appUser.id)) return
-        throw UnauthorizedException("Only organization admins can update sharing session settings")
+        throw UnauthorizedException("Only organization admins can update exchange settings")
     }
 
     fun validateUpdateProfileUpdatePermission(appUser: AppUser)

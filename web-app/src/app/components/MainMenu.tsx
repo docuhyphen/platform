@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+﻿import React, {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {
     Button,
@@ -17,15 +17,15 @@ import {
 } from "@fluentui/react-components";
 import {useAuth} from '../../context/AuthContext';
 import SignOutClickSurface from './SignOutClickSurface.tsx';
-import SharingSessionInitiation from "../sharing-session-initiation/SharingSessionInitiation.tsx";
+import ExchangeInitiation from "../exchange-initiation/ExchangeInitiation.tsx";
 import AppLogo from "./app-logo/AppLogo.tsx";
 import {useGlobalStyles} from "../../GlobalStyles.tsx";
-import {InfoIcon, SettingsIcon, SharingSessionIcon, SignOutButtonIcon} from "./IconBundles.tsx";
+import {InfoIcon, SettingsIcon, ExchangeIcon, SignOutButtonIcon} from "./IconBundles.tsx";
 import NotificationList from './main-menu/notification/NotificationList';
 import PendingApprovals from './main-menu/pending-approvals/PendingApprovals';
 
 const MAX_DISPLAY_EMAIL_LENGTH = 36;
-const LAST_SHARING_SESSIONS_QUERY_STORAGE_KEY = 'sharingSessions.lastRoute.query';
+const LAST_EXCHANGES_QUERY_STORAGE_KEY = 'exchanges.lastRoute.query';
 
 function formatEmailForDisplay(email?: string, maxLength: number = MAX_DISPLAY_EMAIL_LENGTH): string | undefined
 {
@@ -76,20 +76,20 @@ const MainMenu: React.FC<{ onToggleHelpSidebar: () => void }> = ({onToggleHelpSi
                 <AppLogo/>
             </span>
 
-            {/* Tour anchor: Start Sharing */}
-            <div id="tour-start-sharing" style={{display: 'inline-flex', alignItems: 'center'}}>
-                <SharingSessionInitiation/>
+            {/* Tour anchor: Start Exchanging */}
+            <div id="tour-start-exchanging" style={{display: 'inline-flex', alignItems: 'center'}}>
+                <ExchangeInitiation/>
             </div>
 
-            {/* Tour anchor: Sharing Sessions */}
+            {/* Tour anchor: Exchanges */}
             <div id="tour-sessions-btn" style={{display: 'inline-flex', alignItems: 'center'}}>
-                <Button icon={<SharingSessionIcon/>}
+                <Button icon={<ExchangeIcon/>}
                         onClick={() =>
                         {
-                            if (window.location.pathname !== '/sharing-sessions')
+                            if (window.location.pathname !== '/exchanges')
                             {
-                                const savedQuery = window.localStorage.getItem(LAST_SHARING_SESSIONS_QUERY_STORAGE_KEY) || '';
-                                navigate(`/sharing-sessions${savedQuery}`);
+                                const savedQuery = window.localStorage.getItem(LAST_EXCHANGES_QUERY_STORAGE_KEY) || '';
+                                navigate(`/exchanges${savedQuery}`);
                             }
                         }}
                         appearance={"subtle"}>

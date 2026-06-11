@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+﻿import React, {useState} from "react";
 import {
     Button,
     Dialog,
@@ -15,15 +15,15 @@ import {
     Text
 } from "@fluentui/react-components";
 import {DismissRegular} from "@fluentui/react-icons";
-import {OrganizationSharingSessionLinkBasicDto, ResponseError} from "../../../../models/models";
-import {deleteOrganizationLink} from "../../../../../services/organizationSharingSession";
+import {OrganizationExchangeLinkBasicDto, ResponseError} from "../../../../models/models";
+import {deleteOrganizationLink} from "../../../../../services/organizationExchange";
 
 interface UnpairOrganizationDialogProps
 {
     isOpen: boolean;
-    orgPair: OrganizationSharingSessionLinkBasicDto | null;
+    orgPair: OrganizationExchangeLinkBasicDto | null;
     onDismiss: () => void;
-    onUnpaired: (orgPair: OrganizationSharingSessionLinkBasicDto) => void;
+    onUnpaired: (orgPair: OrganizationExchangeLinkBasicDto) => void;
     setError: (msg: string | null) => void;
     token: string | null;
 }

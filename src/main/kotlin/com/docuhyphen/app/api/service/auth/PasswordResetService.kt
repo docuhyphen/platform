@@ -148,7 +148,7 @@ class PasswordResetService @Inject constructor(
         }
 
         // Revoke every active session + refresh token for this user. Any other browser that
-        // was already signed in receives SESSION_REVOKED over the realtime channel and is
+        // was already signed in receives EXCHANGE_REVOKED over the realtime channel and is
         // logged out immediately; subsequent API calls also fail at the auth filter.
         runCatching {
             signOutService.signOutByUserId(appUser.id, RevocationReasonCode.PASSWORD_CHANGED)

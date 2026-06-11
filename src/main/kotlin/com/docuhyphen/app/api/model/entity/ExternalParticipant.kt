@@ -1,4 +1,4 @@
-package com.docuhyphen.app.api.model.entity
+﻿package com.docuhyphen.app.api.model.entity
 
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
@@ -10,7 +10,7 @@ import java.util.*
 
 /**
  * Persistent identity for an email-only recipient (no platform login). Replaces the
- * ad-hoc "EMAIL recipient" pattern that previously lived as columns on [SharingSession]
+ * ad-hoc "EMAIL recipient" pattern that previously lived as columns on [Exchange]
  * (`recipient_otp_hash`, `recipient_otp_expiry`, `no_auth_access_*`).
  *
  * Scoping:

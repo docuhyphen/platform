@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from "react";
+﻿import React, {useState, useEffect, useRef} from "react";
 import {
     Button,
     Combobox,
@@ -19,18 +19,18 @@ import {useParingRequestDialogStyles} from "./ParingRequestDialogStyles.tsx";
 import {
     fetchOrganizationsForLinking,
     createOrganizationLink
-} from "../../../../services/organizationSharingSession";
-import {OrganizationBasicDto, OrganizationSharingSessionLinkBasicDto} from "../../../../app/models/models";
+} from "../../../../services/organizationExchange";
+import {OrganizationBasicDto, OrganizationExchangeLinkBasicDto} from "../../../../app/models/models";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 
-interface SessionDeleteDialogProps
+interface ExchangeDeleteDialogProps
 {
     isOpen: boolean;
     onDismiss: () => void;
-    onRequestSent: (pair: OrganizationSharingSessionLinkBasicDto) => void;
+    onRequestSent: (pair: OrganizationExchangeLinkBasicDto) => void;
 }
 
-const ParingRequestDialog: React.FC<SessionDeleteDialogProps> = (
+const ParingRequestDialog: React.FC<ExchangeDeleteDialogProps> = (
     {
         isOpen,
         onDismiss,
