@@ -290,6 +290,12 @@ const OrganizationTab = () =>
                             App Admins
                         </Tab>
                     )}
+                    {canManageOrganization && (
+                        <Tab id="AuthTab"
+                             value={tabIds.auth}>
+                            Auth
+                        </Tab>
+                    )}
                     {/*{appUserPersonOrganization &&*/}
                     {/*    <Tab id="TemplatesTab"*/}
                     {/*         icon={<SettingsTemplatesTabIcon/>}*/}
@@ -309,6 +315,9 @@ const OrganizationTab = () =>
                     {selectedValue === tabIds.organizationPairing && <OrganizationPairingTab/>}
                     {selectedValue === tabIds.appAdmins && <AppAdminsTab/>}
                     {selectedValue === tabIds.templates && <TemplatesTab/>}
+                    {selectedValue === tabIds.auth && organization?.id && (
+                        <AuthSessionPolicySection organizationId={organization.id}/>
+                    )}
                 </div>
             </div>
         )}

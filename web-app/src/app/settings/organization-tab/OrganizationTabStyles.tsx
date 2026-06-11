@@ -27,7 +27,7 @@ export const useOrganizationTabStyles = makeStyles({
         background: tokens.colorNeutralBackground1,
         paddingBottom: "4px",
         marginBottom: "4px",
-        borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+        // borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
     },
 
     dataContainer: {

@@ -24,7 +24,6 @@ import {useOrganizationTabStyles} from "./OrganizationDetailsTabStyles.tsx";
 import OrganizationDetailsEditDialog from "./details-edit-dialog/OrganizationDetailsEditDialog.tsx";
 import {AxiosError} from "axios";
 import OrganizationOnboardingDialog from "./organization-onboarding-dialog/OrganizationOnboardingDialog.tsx";
-import {AuthSessionPolicySection} from "./AuthSessionPolicySection.tsx";
 
 const OrganizationDetailsTab = () =>
 {
@@ -316,9 +315,6 @@ const OrganizationDetailsTab = () =>
                     />
                 </>}
 
-                {organization?.id && appUser?.role === AppUserRole.ORG_ADMIN && (
-                    <AuthSessionPolicySection organizationId={organization.id}/>
-                )}
 
                 <OrganizationDetailsEditDialog
                     isOpen={isDetailsDialogOpen}
