@@ -134,6 +134,8 @@ export interface AppAdminDto
     assignmentId: string;
     appUserId?: string;
     email?: string;
+    firstName?: string;
+    lastName?: string;
     grantedByAppUserId?: string;
     grantedAt?: string;
 }

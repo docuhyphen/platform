@@ -201,14 +201,11 @@ const ExchangeInitiationRecipientsTab: React.FC<ExchangeRecipientsTabProps> = (p
                 && !props.recipientOrgUser
                 && props.newRecipient?.email
                 && props.newRecipient.email.includes('@')
-                && appUserPersonOrganization?.verificationComplete
-                && appUserPersonOrganization?.isActive && (
+                && appUserPersonOrganization != null
+                && appUserPersonOrganization.verificationComplete
+                && appUserPersonOrganization.isActive && (
                 <div style={{marginTop: 8, display: 'flex', alignItems: 'center', gap: 8}}>
                     <Badge appearance="outline" color="warning">External recipient</Badge>
-                    {/*<Text size={200}>*/}
-                    {/*    This recipient isn't in your organization exch- they'll receive a B2C-style*/}
-                    {/*    invite. Use the constraints below to limit what they can do.*/}
-                    {/*</Text>*/}
                 </div>
             )}
 

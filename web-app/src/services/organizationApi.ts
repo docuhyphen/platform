@@ -85,17 +85,9 @@ export const addOrganizationGroup = async (
         name: string;
         members: Array<{
             appUserId: string;
-            allowExchangeAccept: boolean;
-            allowExchangeReject: boolean;
-            allowExchangeEdit: boolean;
-            allowExchangeDelete: boolean;
-            allowExchangeEnd: boolean;
-            allowDocumentAddition: boolean;
-            allowDocumentDeletion: boolean;
-            allowDocumentDownload: boolean;
-            allowDocumentUpdate: boolean;
-            allowDocumentUpload: boolean;
+            groupRole: string;
         }>;
+        externallyPublished?: boolean;
     },
     token?: string
 ) =>
@@ -121,17 +113,9 @@ export const updateOrganizationGroup = async (
         isActive: boolean;
         members: Array<{
             appUserId: string;
-            allowExchangeAccept: boolean;
-            allowExchangeReject: boolean;
-            allowExchangeEdit: boolean;
-            allowExchangeDelete: boolean;
-            allowExchangeEnd: boolean;
-            allowDocumentAddition: boolean;
-            allowDocumentDeletion: boolean;
-            allowDocumentDownload: boolean;
-            allowDocumentUpdate: boolean;
-            allowDocumentUpload: boolean;
+            groupRole: string;
         }>;
+        externallyPublished?: boolean;
     },
     token?: string
 ) =>

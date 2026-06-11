@@ -8,8 +8,10 @@ import {
     DialogSurface,
     DialogTitle,
     DialogTrigger,
+    Dropdown,
     Field,
     Input,
+    Option,
     Spinner,
     Table,
     TableBody,
@@ -24,6 +26,7 @@ import {useAuth} from "../../../../context/AuthContext.tsx";
 import {addOrganizationGroup, fetchMyOrganizationUsers} from "../../../../services/organizationApi.ts";
 import {AppUserDetailedDto} from "../../../models/models.tsx";
 import {useAddGroupDialogStyles} from "./AddGroupDialogStyles.tsx";
+import {GroupRole, GroupRoleDisplayNames} from "../../../../services/types/roles";
 
 interface AddGroupDialogProps
 {
@@ -45,10 +48,8 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
     const {token, appUser} = useAuth();
     const [name, setName] = useState("");
     const [users, setUsers] = useState<AppUserDetailedDto[]>([]);
-    const [selectedUsers, setSelectedUsers] = useState<Map<string, {
-        appUserId: string;
-        groupRole: string
-    }>>(new Map());
+    const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+    const [memberRoles, setMemberRoles] = useState<Map<string, GroupRole>>(new Map());
     const [savingData, setSavingData] = useState(false);
     const [loadingUsers, setLoadingUsers] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -56,7 +57,8 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
     const resetForm = () =>
     {
         setName("");
-        setSelectedUsers(new Map());
+        setSelectedUsers(new Set());
+        setMemberRoles(new Map());
         setError(null);
     }
 
@@ -107,7 +109,10 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
 
         try
         {
-            const members = Array.from(selectedUsers.values());
+            const members = Array.from(selectedUsers).map(userId => ({
+                appUserId: userId,
+                groupRole: memberRoles.get(userId) || GroupRole.MEMBER,
+            }));
 
             await addOrganizationGroup(
                 organizationId,
@@ -134,36 +139,25 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
 
     const toggleUserSelection = (userId: string) =>
     {
-        const newSelectedUsers = new Map(selectedUsers);
-
-        if (newSelectedUsers.has(userId))
+        const next = new Set(selectedUsers);
+        if (next.has(userId))
         {
-            newSelectedUsers.delete(userId);
+            next.delete(userId);
         }
         else
         {
-            //ToDo: Default is MEMBER but apply role selection from options: New role-based model: OWNER | MANAGER | MEMBER | OBSERVER.
-            newSelectedUsers.set(userId, {
-                appUserId: userId,
-                groupRole: userId == appUser.id ? "OWNER" : "MEMBER"
-            });
+            next.add(userId);
+            if (!memberRoles.has(userId))
+            {
+                setMemberRoles(prev =>
+                {
+                    const r = new Map(prev);
+                    r.set(userId, userId === appUser.id ? GroupRole.OWNER : GroupRole.MEMBER);
+                    return r;
+                });
+            }
         }
-
-        setSelectedUsers(newSelectedUsers);
-    };
-
-    const updateUserPermission = (userId: string, permission: string, value: boolean) =>
-    {
-        const userPermissions = selectedUsers.get(userId);
-        if (!userPermissions) return;
-
-        const newSelectedUsers = new Map(selectedUsers);
-        newSelectedUsers.set(userId, {
-            ...userPermissions,
-            [permission]: value
-        });
-
-        setSelectedUsers(newSelectedUsers);
+        setSelectedUsers(next);
     };
 
     const onClose = () =>
@@ -196,24 +190,56 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
                                 <Table size="small">
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHeaderCell>Select</TableHeaderCell>
+                                            <TableHeaderCell style={{width: '48px', paddingRight: 0}}>Select</TableHeaderCell>
                                             <TableHeaderCell>Name</TableHeaderCell>
                                             <TableHeaderCell>Email</TableHeaderCell>
+                                            <TableHeaderCell>Role</TableHeaderCell>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {users.map((user) => (
-                                            <TableRow key={user.id}>
-                                                <TableCell>
-                                                    <Checkbox
-                                                        checked={selectedUsers.has(user.id?.toString() || "")}
-                                                        onChange={() => toggleUserSelection(user.id?.toString() || "")}
-                                                    />
-                                                </TableCell>
-                                                <TableCell>{user.person?.firstName} {user.person?.lastName}</TableCell>
-                                                <TableCell>{user.email}</TableCell>
-                                            </TableRow>
-                                        ))}
+                                        {users.map((user) => {
+                                            const uid = user.id?.toString() || "";
+                                            const isSelected = selectedUsers.has(uid);
+                                            return (
+                                                <TableRow key={user.id}>
+                                                    <TableCell style={{width: '48px', paddingRight: 0}}>
+                                                        <Checkbox
+                                                            checked={isSelected}
+                                                            onChange={() => toggleUserSelection(uid)}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>{user.person?.firstName} {user.person?.lastName}</TableCell>
+                                                    <TableCell title={user.email}>
+                                                        <div style={{maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                                                            {user.email}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {isSelected && (
+                                                            <Dropdown
+                                                                size="small"
+                                                                style={{minWidth: 0, width: '110px'}}
+                                                                value={GroupRoleDisplayNames[memberRoles.get(uid) || GroupRole.MEMBER]}
+                                                                selectedOptions={[memberRoles.get(uid) || GroupRole.MEMBER]}
+                                                                onOptionSelect={(_e, d) =>
+                                                                {
+                                                                    setMemberRoles(prev =>
+                                                                    {
+                                                                        const next = new Map(prev);
+                                                                        next.set(uid, (d.optionValue || GroupRole.MEMBER) as GroupRole);
+                                                                        return next;
+                                                                    });
+                                                                }}
+                                                            >
+                                                                {Object.entries(GroupRoleDisplayNames).map(([k, v]) => (
+                                                                    <Option key={k} value={k}>{v}</Option>
+                                                                ))}
+                                                            </Dropdown>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
                                     </TableBody>
                                 </Table>
                             )}

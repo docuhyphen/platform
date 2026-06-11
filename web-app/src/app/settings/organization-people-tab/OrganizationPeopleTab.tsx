@@ -99,8 +99,8 @@ const OrganizationPeopleTab = () =>
         {columnKey: "person", label: "Person name"},
         {columnKey: "email", label: "Email"},
         {columnKey: "role", label: "Role"},
-        {columnKey: "status", label: "Status"},
-        {columnKey: "actions", label: "Actions"}
+        {columnKey: "status", label: "Status", className: styles.statusCell},
+        {columnKey: "actions", label: "Actions", className: styles.actionsCell}
     ];
 
     return (
@@ -159,7 +159,7 @@ const OrganizationPeopleTab = () =>
                     <TableHeader>
                         <TableRow>
                             {columns.map((column) => (
-                                <TableHeaderCell key={column.columnKey}>
+                                <TableHeaderCell key={column.columnKey} className={column.className}>
                                     <Text weight={"semibold"}> {column.label}</Text>
                                 </TableHeaderCell>
                             ))}
@@ -179,7 +179,7 @@ const OrganizationPeopleTab = () =>
                                 <TableCell>
                                     {AppUserRoleDisplayNames[user.role as keyof typeof AppUserRoleDisplayNames] || user.role}
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className={styles.statusCell}>
                                     <Badge
                                         color={user.isActive ? "success" : "danger"}
                                         appearance="outline"
@@ -187,7 +187,7 @@ const OrganizationPeopleTab = () =>
                                         {user.isActive ? "Active" : "Inactive"}
                                     </Badge>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className={styles.actionsCell}>
                                     <Menu positioning={{autoSize: true}}>
                                         <MenuTrigger disableButtonEnhancement>
                                             <Button icon={<MoreHorizontalRegular/>}

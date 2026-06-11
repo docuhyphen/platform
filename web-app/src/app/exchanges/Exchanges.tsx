@@ -104,6 +104,9 @@ const Exchanges: React.FC = () =>
     const deepLinkedDocumentIdRef = useRef<string | null>(null);
     const deepLinkedDocumentExchangeIdRef = useRef<string | null>(null);
     const lastUnavailableExchangeIdRef = useRef<string | null>(null);
+    // True when the user has no saved tab preference and no URL tab param - i.e. a
+    // first visit.  We use it to intelligently pick the initial tab once counts load.
+    const isFirstVisitRef = useRef<boolean>(false);
 
     const notifyExchangeUnavailable = (exchangeId?: string | null) =>
     {
@@ -211,6 +214,14 @@ const Exchanges: React.FC = () =>
 
         const urlTab = parseExchangeListTab(params.get('tab'));
         const savedTab = parseExchangeListTab(window.localStorage.getItem(ACTIVE_TAB_STORAGE_KEY));
+
+        // Mark as first visit when neither a URL tab param nor a stored preference
+        // exists so we can apply a smarter default once exchange counts are known.
+        if (!urlTab && !savedTab)
+        {
+            isFirstVisitRef.current = true;
+        }
+
         setActiveListTab(urlTab ?? savedTab ?? 'active');
 
         const deepLinkedId = params.get('s');
@@ -232,6 +243,20 @@ const Exchanges: React.FC = () =>
         if (typeof window === 'undefined') return;
         window.localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeListTab);
     }, [activeListTab]);
+
+    // On a first visit (no saved tab preference), switch to the inbox tab once
+    // counts are available if there are incoming requests but nothing active yet.
+    useEffect(() =>
+    {
+        if (!isFirstVisitRef.current) return;
+        const total = tabCounts.inbox + tabCounts.active + tabCounts.archive;
+        if (total === 0) return; // counts not loaded yet
+        isFirstVisitRef.current = false;
+        if (tabCounts.inbox > 0)
+        {
+            setActiveListTab('inbox');
+        }
+    }, [tabCounts]);
 
     useEffect(() =>
     {
@@ -409,6 +434,19 @@ const Exchanges: React.FC = () =>
         if (activeListTab !== targetTab)
         {
             setActiveListTab(targetTab);
+        }
+
+        // A newly-created (INITIATED) exchange deep-linked by its own initiator is
+        // an outgoing request. Switch to the outgoing inbox sub-tab so the exchange
+        // is visible without the user having to manually toggle the role selector.
+        if (
+            targetTab === 'inbox' &&
+            exchangeDetails.status === ExchangeStatus.INITIATED &&
+            appUser?.id != null &&
+            exchangeDetails.initiator?.id === appUser.id
+        )
+        {
+            setInboxRole('outgoing');
         }
 
         // Apply only once for the deep-link landing flow.

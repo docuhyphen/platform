@@ -28,7 +28,12 @@ class MfaService(
 )
 {
     @Transactional
-    fun createMfaSession(user: AppUser, mfaType: MultifactorAuthenticationType, ipAddress: String): MfaSessionDto
+    fun createMfaSession(
+        user: AppUser,
+        mfaType: MultifactorAuthenticationType,
+        ipAddress: String,
+        actionDescription: String? = null,
+    ): MfaSessionDto
     {
         enforceRateLimits(user.email, ipAddress)
 
@@ -49,6 +54,7 @@ class MfaService(
             this.status = PENDING
             this.sessionId = sessionId
             this.ipAddress = ipAddress
+            this.actionDescription = actionDescription
         }
 
         mfaRecordRepository.save(mfaRecord)
@@ -93,16 +99,33 @@ class MfaService(
         }
     }
 
-    fun doEmailMFA(appUser: AppUser, mfaToken: String)
+    fun doEmailMFA(appUser: AppUser, mfaToken: String, actionDescription: String? = null)
     {
-        val body = emailTemplateService.renderSignInMfaEmail(
-            otp = mfaToken,
-            expiryMinutes = configurationService.getSignInEmailOtpMFAExpiryMins(),
-        )
+        val expiryMinutes = configurationService.getSignInEmailOtpMFAExpiryMins()
+        val body: String
+        val subject: String
+
+        if (actionDescription != null)
+        {
+            body = emailTemplateService.renderStepUpMfaEmail(
+                otp = mfaToken,
+                expiryMinutes = expiryMinutes,
+                actionDescription = actionDescription,
+            )
+            subject = "${configurationService.emailSubjectTitle} | Verification Required"
+        }
+        else
+        {
+            body = emailTemplateService.renderSignInMfaEmail(
+                otp = mfaToken,
+                expiryMinutes = expiryMinutes,
+            )
+            subject = "${configurationService.emailSubjectTitle} | Sign In"
+        }
 
         emailService.sendEmail(
             to = appUser.email,
-            subject = "${configurationService.emailSubjectTitle} | Sign In",
+            subject = subject,
             body = body,
             useHtml = true
         )

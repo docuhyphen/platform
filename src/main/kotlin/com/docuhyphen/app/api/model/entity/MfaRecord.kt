@@ -46,5 +46,8 @@ class MfaRecord {
     @Column(name = "ip_address")
     var ipAddress: String? = null
 
+    @Column(name = "action_description")
+    var actionDescription: String? = null
+
     constructor()
 }

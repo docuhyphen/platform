@@ -333,11 +333,11 @@ export interface StepUpInitiateResponse
 
 export interface StepUpResult { fresh: boolean; message: string; }
 
-export const initiateStepUp = async (returnTo: string): Promise<StepUpInitiateResponse> =>
+export const initiateStepUp = async (returnTo: string, action?: string | null): Promise<StepUpInitiateResponse> =>
 {
     try
     {
-        const response = await apiClient.post(`/auth/step-up/initiate`, {returnTo});
+        const response = await apiClient.post(`/auth/step-up/initiate`, {returnTo, action: action ?? undefined});
         return response.data;
     }
     catch (error)

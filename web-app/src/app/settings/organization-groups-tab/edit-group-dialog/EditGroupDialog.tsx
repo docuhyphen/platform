@@ -161,7 +161,10 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
 
         try
         {
-            const members = Array.from(selectedUsers.values());
+            const members = Array.from(selectedUsers.keys()).map(uid => ({
+                appUserId: uid,
+                groupRole: memberRoles.get(uid) || GroupRole.MEMBER,
+            }));
 
             await updateOrganizationGroup(
                 appUserPersonOrganization.id,

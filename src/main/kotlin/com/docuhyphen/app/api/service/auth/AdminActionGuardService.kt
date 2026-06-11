@@ -21,6 +21,37 @@ class AdminActionGuardService @Inject constructor(
     private val stepUpAuthService: StepUpAuthService,
 )
 {
+    companion object
+    {
+        private val ACTION_LABELS: Map<String, String> = mapOf(
+            "ORG_APP_USER_ADD"                          to "add a new user",
+            "ORG_APP_USER_UPDATE"                       to "update a user",
+            "ORG_APP_USER_DELETE"                       to "remove a user",
+            "ORG_UPDATE"                                to "update your organization",
+            "ORG_SETTINGS_UPDATE"                       to "update organization settings",
+            "ORG_GROUP_ADD"                             to "create a group",
+            "ORG_GROUP_UPDATE"                          to "update a group",
+            "ORG_GROUP_DELETE"                          to "delete a group",
+            "ORG_SHARE_EXTERNAL_CUSTOMER"               to "share with an external customer",
+            "ORG_LINK_CREATE"                           to "create an organization link",
+            "ORG_LINK_DECIDE"                           to "respond to an organization link request",
+            "ORG_IDP_CONFIG_CREATE"                     to "add an identity provider",
+            "ORG_IDP_CONFIG_UPDATE"                     to "update an identity provider",
+            "ORG_IDP_CONFIG_DELETE"                     to "remove an identity provider",
+            "ORG_AUTH_EXCHANGE_POLICY_UPDATE"           to "update the exchange authentication policy",
+            "ORG_IDP_SECRET_ROTATE"                     to "rotate an identity provider secret",
+            "ORG_IDP_SECRET_ROLLBACK"                   to "roll back an identity provider secret",
+            "ORG_IDP_SECRET_ACTIVATE"                   to "activate an identity provider secret",
+            "ORG_IDP_SECRET_DISABLE"                    to "disable an identity provider secret",
+            "ORG_IDP_SECRET_ENABLE"                     to "enable an identity provider secret",
+            "ORG_IDP_SECRET_RETIRE"                     to "retire an identity provider secret",
+            "ORG_IDP_SECRET_ROTATION_RUNBOOK"           to "run an identity provider secret rotation",
+            "ORG_IDP_SECRET_ROTATION_PREVIEW"           to "preview an identity provider secret rotation",
+            "PLATFORM_ORG_SUBSCRIPTION_POLICY_UPSERT"  to "update an organization subscription policy",
+            "PLATFORM_ORG_SUBSCRIPTION_POLICY_DELETE"  to "delete an organization subscription policy",
+        )
+    }
+
     /**
      * Enforce step-up authentication for a sensitive admin action.
      *
@@ -47,7 +78,7 @@ class AdminActionGuardService @Inject constructor(
                 requestId = context.requestId,
                 reason = "Session lacks fresh authentication for sensitive action",
             )
-            throw StepUpRequiredException(action = action)
+            throw StepUpRequiredException(action = ACTION_LABELS[action] ?: action)
         }
 
         authAuditService.emit(

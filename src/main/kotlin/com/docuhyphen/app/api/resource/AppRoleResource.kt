@@ -45,10 +45,13 @@ class AppRoleResource @Inject constructor(
     @Path("/app-admins")
     fun listAppAdmins(): Response = guarded {
         val admins = roleAssignmentService.listAppAdmins().map { ra ->
+            val appUser = ra.appUserId?.let { appUserService.getById(it) }
             AppAdminDto(
                 assignmentId = ra.id.toString(),
                 appUserId = ra.appUserId?.toString(),
-                email = ra.appUserId?.let { appUserService.getById(it)?.email },
+                email = appUser?.email,
+                firstName = appUser?.person?.firstName,
+                lastName = appUser?.person?.lastName,
                 grantedByAppUserId = ra.grantedByAppUserId?.toString(),
                 grantedAt = ra.grantedAt.toInstant().toString(),
             )

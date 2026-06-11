@@ -33,6 +33,7 @@ import MyGroupsTab from "./my-groups-tab/MyGroupsTab.tsx";
 import AppAdminsTab from "./app-admins-tab/AppAdminsTab.tsx";
 import OrganizationTab from "./organization-tab/OrganizationTab.tsx";
 import {useIsMobile} from "../../utils/useMediaQuery.ts";
+import {AppUserRole} from "../models/models.tsx";
 
 const Settings = () =>
 {
@@ -60,7 +61,7 @@ const Settings = () =>
         [tabIds.templates]: "Exchange Templates",
     };
 
-    const {appUserPersonOrganization} = useAuth();
+    const {appUser, appUserPersonOrganization} = useAuth();
     const styles = useSettingsStyles();
     const isMobile = useIsMobile();
     const [selectedValue, setSelectedValue] = useState<TabValue>(tabIds.profile);
@@ -73,6 +74,11 @@ const Settings = () =>
     };
 
     const currentTabLabel = tabLabels[selectedValue as string] ?? "Settings";
+
+    const roleValue = `${appUser?.role ?? ''}`;
+    const canManageOrganization =
+        appUserPersonOrganization?.isActive &&
+        (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN');
 
     const tabListContent = (
         <TabList
@@ -97,9 +103,11 @@ const Settings = () =>
             <Tab id="MyGroupsTab" icon={<SettingsMyGroupsTabIcon/>} value={tabIds.myGroups}>
                 My Groups
             </Tab>
-            <Tab id="OrganizationTab" icon={<SettingsOrganizationTabIcon/>} value={tabIds.organization}>
-                Your Organization
-            </Tab>
+            {canManageOrganization && (
+                <Tab id="OrganizationTab" icon={<SettingsOrganizationTabIcon/>} value={tabIds.organization}>
+                    Your Organization
+                </Tab>
+            )}
             <Tab id="TemplatesTab" icon={<SettingsExchangeTemplatesTabIcon/>} value={tabIds.templates}>
                 Exchange Templates
             </Tab>

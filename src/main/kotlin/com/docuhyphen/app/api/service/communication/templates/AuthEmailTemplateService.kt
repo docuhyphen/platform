@@ -65,6 +65,18 @@ class AuthEmailTemplateService @Inject constructor(
         return renderer.render("sign-in-email-MFA.ftl", model)
     }
 
+    fun renderStepUpMfaEmail(otp: String, expiryMinutes: Long, actionDescription: String): String
+    {
+        val model = mapOf(
+            "verificationCode" to otp,
+            "expiryMinutes" to expiryMinutes,
+            "appName" to configurationService.emailSubjectTitle,
+            "actionDescription" to actionDescription,
+        )
+
+        return renderer.render("step-up-email-MFA.ftl", model)
+    }
+
     fun renderSignInMfaResendEmail(otp: String, expiryMinutes: Long): String
     {
         val model = mapOf(

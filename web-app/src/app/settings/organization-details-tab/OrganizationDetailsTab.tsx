@@ -42,6 +42,8 @@ const OrganizationDetailsTab = () =>
     const [emailManagementMode, setEmailManagementMode] = useState(EmailManagementMode.ADD);
     const [isOnboardingDialogOpen, setOnboardingDialogOpen] = useState(false);
     const roleValue = `${appUser?.role ?? ''}`;
+    const canManageOrganization = appUserPersonOrganization?.isActive &&
+        (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN');
 
     const getOrganization = async () =>
     {
@@ -226,12 +228,14 @@ const OrganizationDetailsTab = () =>
 
                 <div>
                     <Text size={500} className={styles.dataEditable}>
-                        <Button
-                            appearance="subtle"
-                            size="small"
-                            icon={<ProfileEditBasicDetailsIcon/>}
-                            onClick={onAddOrEditEmail}
-                        />
+                        {canManageOrganization && (
+                            <Button
+                                appearance="subtle"
+                                size="small"
+                                icon={<ProfileEditBasicDetailsIcon/>}
+                                onClick={onAddOrEditEmail}
+                            />
+                        )}
                         {organization?.contactDetails?.email || 'No email added'}
                     </Text>
                 </div>
@@ -240,49 +244,60 @@ const OrganizationDetailsTab = () =>
                     <Text size={500} className={styles.dataEditable}>
                         {organization?.contactDetails?.phoneNumber ? (
                             <>
-                                <Button
-                                    appearance="subtle"
-                                    size="small"
-                                    icon={<ProfileEditBasicDetailsIcon/>}
-                                    onClick={onAddOrEditPhone}
-                                />
+                                {canManageOrganization && (
+                                    <Button
+                                        appearance="subtle"
+                                        size="small"
+                                        icon={<ProfileEditBasicDetailsIcon/>}
+                                        onClick={onAddOrEditPhone}
+                                    />
+                                )}
                                 {organization.contactDetails.phoneNumber}
                             </>
                         ) : (
-                            <Button
-                                appearance="outline"
-                                shape="circular"
-                                size="small"
-                                onClick={onAddOrEditPhone}
-                            >
-                                Add phone number
-                            </Button>
+                            canManageOrganization ? (
+                                <Button
+                                    appearance="outline"
+                                    shape="circular"
+                                    size="small"
+                                    onClick={onAddOrEditPhone}
+                                >
+                                    Add phone number
+                                </Button>
+                            ) : (
+                                <Text size={300}>No phone number added</Text>
+                            )
                         )}
                     </Text>
                 </div>
 
-                <PhoneManagementDialog
-                    isOpen={isPhoneDialogOpen}
-                    mode={phoneManagementMode}
-                    onDismiss={() => setIsPhoneDialogOpen(false)}
-                    contactDetails={organization?.contactDetails}
-                    onComplete={handleContactDetailsUpdate}
-                />
+                {canManageOrganization && (
+                    <>
+                        <PhoneManagementDialog
+                            isOpen={isPhoneDialogOpen}
+                            mode={phoneManagementMode}
+                            onDismiss={() => setIsPhoneDialogOpen(false)}
+                            contactDetails={organization?.contactDetails}
+                            onComplete={handleContactDetailsUpdate}
+                        />
 
-                <EmailManagementDialog
-                    isOpen={isEmailDialogOpen}
-                    mode={emailManagementMode}
-                    onDismiss={() => setIsEmailDialogOpen(false)}
-                    contactDetails={organization?.contactDetails}
-                    onComplete={handleContactDetailsUpdate}
-                />
+                        <EmailManagementDialog
+                            isOpen={isEmailDialogOpen}
+                            mode={emailManagementMode}
+                            onDismiss={() => setIsEmailDialogOpen(false)}
+                            contactDetails={organization?.contactDetails}
+                            onComplete={handleContactDetailsUpdate}
+                        />
+                    </>
+                )}
+
                 <Divider alignContent="start"
                          appearance="brand"
                          className={styles.mainDivider}>
                     Organization Preferences
                 </Divider>
 
-                {organizationSettings && <>
+                {organizationSettings && canManageOrganization && <>
                     <Switch
                         checked={organizationSettings.allowExternalCustomerSharing !== false}
                         onChange={(_, data) => handleSettingChange('allowExternalCustomerSharing', data.checked)}
@@ -309,13 +324,24 @@ const OrganizationDetailsTab = () =>
                     />
                 </>}
 
+                {organizationSettings && !canManageOrganization && (
+                    <div>
+                        <Text size={300}>External sharing: {organizationSettings.allowExternalCustomerSharing !== false ? 'Enabled' : 'Disabled'}</Text><br/>
+                        <Text size={300}>Sharing with unpaired orgs: {organizationSettings.allowShareWithoutPairing ? 'Enabled' : 'Disabled'}</Text><br/>
+                        <Text size={300}>Profile updates: {organizationSettings.allowProfileUpdate ? 'Allowed' : 'Not allowed'}</Text><br/>
+                        <Text size={300}>Email updates: {organizationSettings.allowEmailUpdate ? 'Allowed' : 'Not allowed'}</Text>
+                    </div>
+                )}
 
-                <OrganizationDetailsEditDialog
-                    isOpen={isDetailsDialogOpen}
-                    onDismiss={() => setIsDetailsDialogOpen(false)}
-                    organization={organization}
-                    onComplete={(updatedOrg) => setOrganization(updatedOrg)}
-                />
+
+                {canManageOrganization && (
+                    <OrganizationDetailsEditDialog
+                        isOpen={isDetailsDialogOpen}
+                        onDismiss={() => setIsDetailsDialogOpen(false)}
+                        organization={organization}
+                        onComplete={(updatedOrg) => setOrganization(updatedOrg)}
+                    />
+                )}
             </div>
         )}
     </>

@@ -237,6 +237,8 @@ data class AppAdminDto(
     val assignmentId: String,
     val appUserId: String?,
     val email: String? = null,
+    val firstName: String? = null,
+    val lastName: String? = null,
     val grantedByAppUserId: String? = null,
     val grantedAt: String? = null,
 )

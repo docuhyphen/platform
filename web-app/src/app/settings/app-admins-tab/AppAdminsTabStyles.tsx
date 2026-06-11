@@ -5,7 +5,6 @@ export const useAppAdminsTabStyles = makeStyles({
         display: 'flex',
         flexDirection: 'column',
         ...shorthands.gap('12px'),
-        ...shorthands.padding('16px', '0'),
     },
     header: {
         display: 'flex',
@@ -23,10 +22,5 @@ export const useAppAdminsTabStyles = makeStyles({
     error: {
         color: tokens.colorPaletteRedForeground1,
         ...shorthands.padding('8px'),
-    },
-    addRow: {
-        display: 'flex',
-        ...shorthands.gap('8px'),
-        alignItems: 'end',
     },
 });

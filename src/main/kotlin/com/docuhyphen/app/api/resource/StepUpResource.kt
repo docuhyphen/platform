@@ -26,7 +26,7 @@ import java.sql.Timestamp
 import java.time.Instant
 
 @Serializable
-data class StepUpInitiateRequest(val returnTo: String? = null)
+data class StepUpInitiateRequest(val returnTo: String? = null, val action: String? = null)
 
 @Serializable
 data class StepUpInitiateResponse(
@@ -103,12 +103,14 @@ class StepUpResource @Inject constructor(
         // Prefer internal step-up (email OTP) when an internal credential exists.
         if (hasInternalCredential || internalLink)
         {
+            val actionDescription = payload.action?.trim()?.takeIf { it.isNotBlank() }
             val mfaSession = mfaService.createMfaSession(
                 user = appUser,
                 mfaType = EMAIL,
                 ipAddress = ip,
+                actionDescription = actionDescription,
             )
-            mfaService.doEmailMFA(appUser, mfaSession.mfaToken!!)
+            mfaService.doEmailMFA(appUser, mfaSession.mfaToken!!, actionDescription)
 
             authAuditService.emit(
                 action = "STEP_UP_INITIATE",
@@ -353,7 +355,7 @@ class StepUpResource @Inject constructor(
 
         mfaService.enforceRateLimits(appUser.email, mfaRecord.ipAddress ?: ip)
         val newOtp = mfaService.regenerateOtp(mfaRecord)
-        mfaService.doEmailMFA(appUser, newOtp)
+        mfaService.doEmailMFA(appUser, newOtp, mfaRecord.actionDescription)
 
         authAuditService.emit(
             action = "STEP_UP_REGENERATE_OTP",

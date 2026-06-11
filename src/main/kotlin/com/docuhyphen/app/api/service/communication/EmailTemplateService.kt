@@ -38,6 +38,9 @@ class EmailTemplateService @Inject constructor(
     fun renderSignInMfaEmail(otp: String, expiryMinutes: Long): String =
         authTemplates.renderSignInMfaEmail(otp, expiryMinutes)
 
+    fun renderStepUpMfaEmail(otp: String, expiryMinutes: Long, actionDescription: String): String =
+        authTemplates.renderStepUpMfaEmail(otp, expiryMinutes, actionDescription)
+
     fun renderSignInMfaResendEmail(otp: String, expiryMinutes: Long): String =
         authTemplates.renderSignInMfaResendEmail(otp, expiryMinutes)
 

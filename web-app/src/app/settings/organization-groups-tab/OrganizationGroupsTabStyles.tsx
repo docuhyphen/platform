@@ -39,5 +39,15 @@ export const useOrganizationGroupTabStyles = makeStyles({
     actions: {
         display: "flex",
         gap: "8px",
-    }
+    },
+    statusCell: {
+        width: "90px",
+        minWidth: "90px",
+        maxWidth: "90px",
+    },
+    actionsCell: {
+        width: "60px",
+        minWidth: "60px",
+        maxWidth: "60px",
+    },
 });

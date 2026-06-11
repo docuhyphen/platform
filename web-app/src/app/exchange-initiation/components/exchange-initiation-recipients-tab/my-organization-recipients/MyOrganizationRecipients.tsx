@@ -271,6 +271,21 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
             setGroupSearchQuery(group.name);
             setSelectedOrgGroup(group);
             setRecipientOrgGroup(group);
+
+            // Remove any already-selected participants who are members of this group
+            // to prevent a user from appearing as both a group recipient and a participant.
+            const groupMemberIds = new Set(
+                (group.members || []).map((m: any) => m.user?.id).filter(Boolean)
+            );
+            if (groupMemberIds.size > 0 && setInternalParticipants)
+            {
+                const pruned = selectedInternalRecipients.filter(u => !groupMemberIds.has(u.id));
+                if (pruned.length !== selectedInternalRecipients.length)
+                {
+                    setSelectedInternalParticipants(pruned);
+                    setInternalParticipants(pruned);
+                }
+            }
         }
     };
 
@@ -283,6 +298,16 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
         if (selectedOrgUser)
         {
             usersToFilter = usersToFilter.filter(user => user.id !== selectedOrgUser.id);
+        }
+
+        // Exclude users who are already members of the selected group -
+        // they're covered by the group recipient and should not be addable as participants.
+        if (selectedOrgGroup)
+        {
+            const groupMemberIds = new Set(
+                (selectedOrgGroup.members || []).map((m: any) => m.user?.id).filter(Boolean)
+            );
+            usersToFilter = usersToFilter.filter(user => !groupMemberIds.has(user.id));
         }
 
         return usersToFilter;

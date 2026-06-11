@@ -66,7 +66,7 @@ export const requestStepUp = (opts: { action?: string | null; message?: string |
         try
         {
             const returnTo = `${window.location.pathname}${window.location.search}`;
-            const initiation: StepUpInitiateResponse = await initiateStepUp(returnTo);
+            const initiation: StepUpInitiateResponse = await initiateStepUp(returnTo, opts.action);
 
             if (initiation.method === 'INTERNAL_EMAIL_OTP')
             {

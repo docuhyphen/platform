@@ -57,8 +57,8 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
     const columns = [
         {columnKey: "name", label: "Group Name"},
         {columnKey: "members", label: "Members"},
-        {columnKey: "status", label: "Status"},
-        {columnKey: "actions", label: "Actions"}
+        {columnKey: "status", label: "Status", className: styles.statusCell},
+        {columnKey: "actions", label: "Actions", className: styles.actionsCell}
     ];
 
     const loadGroups = async () =>
@@ -143,14 +143,14 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
                         );
                     })()}
                 </TableCell>
-                <TableCell>
+                <TableCell className={styles.statusCell}>
                     <Badge
                         color={group.isActive ? "success" : "danger"}
                         appearance="outline">
                         {group.isActive ? "Active" : "Inactive"}
                     </Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className={styles.actionsCell}>
                     <Menu positioning={{autoSize: true}}>
                         <MenuTrigger disableButtonEnhancement>
                             <Button icon={<MoreHorizontalRegular/>}
@@ -195,7 +195,7 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
                 <TableHeader>
                     <TableRow>
                         {columns.map((column) => (
-                            <TableHeaderCell key={column.columnKey}>
+                            <TableHeaderCell key={column.columnKey} className={column.className}>
                                 <Text weight={"semibold"}> {column.label}</Text>
                             </TableHeaderCell>
                         ))}

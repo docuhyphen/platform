@@ -2,8 +2,6 @@ import React, {useCallback, useEffect, useState} from 'react';
 import {
     Badge,
     Button,
-    Field,
-    Input,
     MessageBar,
     MessageBarBody,
     MessageBarTitle,
@@ -18,13 +16,14 @@ import {
 } from '@fluentui/react-components';
 import {DeleteRegular, PersonAddRegular} from '@fluentui/react-icons';
 import {useAppAdminsTabStyles} from './AppAdminsTabStyles';
-import {fetchAppAdmins, grantAppAdmin, revokeAppAdmin, searchAppAdminCandidates} from '../../../services/appRoleApi';
-import {AppAdminDto, AppUserSearchResult} from '../../../services/types/dtos';
+import {fetchAppAdmins, revokeAppAdmin} from '../../../services/appRoleApi';
+import {AppAdminDto} from '../../../services/types/dtos';
 import {useAuth} from '../../../context/AuthContext.tsx';
+import AddAdminDialog from './add-admin-dialog/AddAdminDialog.tsx';
 
 /**
  * App Admins management screen.
- * Lists current admins, add by user lookup, revoke with last-admin guard.
+ * Lists current admins, add via dialog, revoke with last-admin guard.
  */
 const AppAdminsTab: React.FC = () =>
 {
@@ -35,12 +34,7 @@ const AppAdminsTab: React.FC = () =>
     const [error, setError] = useState<string | null>(null);
     const [noAccess, setNoAccess] = useState(false);
     const [busy, setBusy] = useState(false);
-
-    // Add form (global user search, not org-scoped)
-    const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState<AppUserSearchResult[]>([]);
-    const [searching, setSearching] = useState(false);
-    const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
     const extractErrorStatus = (err: unknown): number | undefined =>
     {
@@ -93,69 +87,6 @@ const AppAdminsTab: React.FC = () =>
         loadAdmins();
     }, [loadAdmins]);
 
-    // Debounced global user-search against GET /admin/roles/app-admin-candidates.
-    // Triggers when the query is at least 2 chars long; clears results otherwise.
-    useEffect(() =>
-    {
-        if (selectedUserId) return; // a candidate is already locked in
-        const q = searchQuery.trim();
-        if (q.length < 2)
-        {
-            setSearchResults([]);
-            setSearching(false);
-            return;
-        }
-        let cancelled = false;
-        setSearching(true);
-        const handle = window.setTimeout(() =>
-        {
-            searchAppAdminCandidates(q)
-                .then((rows) =>
-                {
-                    if (cancelled) return;
-                    // Hide users who are already admins so we don't offer a no-op.
-                    setSearchResults(rows.filter((u) => !admins.some((a) => a.appUserId === u.id)));
-                })
-                .catch(() =>
-                {
-                    if (cancelled) return;
-                    setSearchResults([]);
-                })
-                .finally(() =>
-                {
-                    if (cancelled) return;
-                    setSearching(false);
-                });
-        }, 250);
-        return () =>
-        {
-            cancelled = true;
-            window.clearTimeout(handle);
-        };
-    }, [searchQuery, selectedUserId, admins]);
-
-    const handleGrant = async () =>
-    {
-        if (!selectedUserId) return;
-        setBusy(true);
-        setError(null);
-        try
-        {
-            await grantAppAdmin({appUserId: selectedUserId});
-            setSelectedUserId(null);
-            setSearchQuery('');
-            await loadAdmins();
-        }
-        catch (err: unknown)
-        {
-            setError(extractErrorMessage(err, 'Failed to grant admin role'));
-        }
-        finally
-        {
-            setBusy(false);
-        }
-    };
-
     const handleRevoke = async (assignmentId: string) =>
     {
         const target = admins.find((admin) => admin.assignmentId === assignmentId);
@@ -174,9 +105,6 @@ const AppAdminsTab: React.FC = () =>
         }
         catch (err: unknown)
         {
-            // Backend throws LastAppAdminException → 409 to protect the system from
-            // ending up with zero admins. Surface a tailored copy instead of the raw
-            // message so the user knows the system is doing it on purpose.
             if (extractErrorStatus(err) === 409 || looksLikeLastAdminError(err))
             {
                 setError('You can\'t revoke the last app administrator. Grant the role to another user first.');
@@ -192,11 +120,7 @@ const AppAdminsTab: React.FC = () =>
         }
     };
 
-    const formatCandidate = (u: AppUserSearchResult): string =>
-    {
-        const name = `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim();
-        return name ? `${name} (${u.email})` : u.email;
-    };
+    const existingAdminUserIds = new Set(admins.map((a) => a.appUserId).filter(Boolean) as string[]);
 
     return (
         <div className={styles.container}>
@@ -225,108 +149,79 @@ const AppAdminsTab: React.FC = () =>
                             <Spinner label="Loading..." size="small"/>
                         </div>
                     ) : (
-                <>
-                    <div className={styles.addRow}>
-                        <Field label="Add admin by user">
-                            <Input
-                                placeholder="Search by name or email..."
-                                value={searchQuery}
-                                onChange={(_e, d) =>
-                                {
-                                    setSearchQuery(d.value);
-                                    setSelectedUserId(null);
-                                }}
-                            />
-                        </Field>
-                        <Button
-                            size="small"
-                            shape="circular"
-                            appearance="primary"
-                            icon={<PersonAddRegular/>}
-                            disabled={busy || !selectedUserId}
-                            onClick={handleGrant}
-                        >
-                            Add Admin
-                        </Button>
-                    </div>
-
-                    {searchQuery.length >= 2 && !selectedUserId && (
-                        <div style={{border: '1px solid var(--colorNeutralStroke1)', borderRadius: 4, maxHeight: 160, overflowY: 'auto'}}>
-                            {searching && (
-                                <div style={{padding: 8}}>
-                                    <Spinner size="tiny" label="Searching..."/>
-                                </div>
-                            )}
-                            {!searching && searchResults.length === 0 && (
-                                <div style={{padding: 8}}>
-                                    <Text size={200}>No matching users.</Text>
-                                </div>
-                            )}
-                            {!searching && searchResults.slice(0, 10).map((u) => (
+                        <>
+                            <div className={styles.header}>
+                                <span/>
                                 <Button
-                                    key={u.id}
-                                    size="small"
-                                    appearance="subtle"
-                                    style={{display: 'block', width: '100%', textAlign: 'left'}}
-                                    onClick={() =>
-                                    {
-                                        setSelectedUserId(u.id);
-                                        setSearchQuery(formatCandidate(u));
-                                        setSearchResults([]);
-                                    }}
+                                    icon={<PersonAddRegular/>}
+                                    appearance="secondary"
+                                    shape="circular"
+                                    onClick={() => setIsAddDialogOpen(true)}
                                 >
-                                    {formatCandidate(u)}
+                                    Add Admin
                                 </Button>
-                            ))}
-                        </div>
-                    )}
+                            </div>
 
-                    {/* Admin list */}
-                    <Table size="small" className={styles.table}>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHeaderCell><Text weight="semibold">Email</Text></TableHeaderCell>
-                                <TableHeaderCell><Text weight="semibold">Granted At</Text></TableHeaderCell>
-                                <TableHeaderCell><Text weight="semibold">Actions</Text></TableHeaderCell>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {admins.map((admin) => (
-                                <TableRow key={admin.assignmentId}>
-                                    <TableCell>{admin.email}</TableCell>
-                                    <TableCell>
-                                        {admin.grantedAt ? new Date(admin.grantedAt).toLocaleString() : 'exch-'}
-                                    </TableCell>
-                                    <TableCell>
-                                        {admin.appUserId === appUser?.id ? (
-                                            <Badge>You</Badge>
-                                        ) : (
-                                        <Button
-                                            size="small"
-                                            appearance="subtle"
-                                            icon={<DeleteRegular/>}
-                                            disabled={busy}
-                                            onClick={() => handleRevoke(admin.assignmentId)}
-                                        >
-                                            Revoke
-                                        </Button>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            {admins.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={3}>
-                                        <Text>No app administrators found.</Text>
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                            <Table size="small" className={styles.table}>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHeaderCell><Text weight="semibold">Name</Text></TableHeaderCell>
+                                        <TableHeaderCell><Text weight="semibold">Email</Text></TableHeaderCell>
+                                        <TableHeaderCell><Text weight="semibold">Granted At</Text></TableHeaderCell>
+                                        <TableHeaderCell style={{width: '90px', minWidth: '90px', maxWidth: '90px'}}><Text weight="semibold">Actions</Text></TableHeaderCell>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {admins.map((admin) => (
+                                        <TableRow key={admin.assignmentId}>
+                                            <TableCell>
+                                                {`${admin.firstName ?? ''} ${admin.lastName ?? ''}`.trim() || '-'}
+                                            </TableCell>
+                                            <TableCell>{admin.email}</TableCell>
+                                            <TableCell>
+                                                {admin.grantedAt ? new Date(admin.grantedAt).toLocaleString() : '-'}
+                                            </TableCell>
+                                            <TableCell style={{width: '90px', minWidth: '90px', maxWidth: '90px'}}>
+                                                {admin.appUserId === appUser?.id ? (
+                                                    <Badge>You</Badge>
+                                                ) : (
+                                                    <Button
+                                                        size="small"
+                                                        appearance="subtle"
+                                                        icon={<DeleteRegular/>}
+                                                        disabled={busy}
+                                                        onClick={() => handleRevoke(admin.assignmentId)}
+                                                    >
+                                                        Revoke
+                                                    </Button>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {admins.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={4}>
+                                                <Text>No app administrators found.</Text>
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </>
+                    )}
                 </>
             )}
-                </>
-            )}
+
+            <AddAdminDialog
+                isOpen={isAddDialogOpen}
+                onDismiss={() => setIsAddDialogOpen(false)}
+                existingAdminUserIds={existingAdminUserIds}
+                onComplete={() =>
+                {
+                    setIsAddDialogOpen(false);
+                    loadAdmins();
+                }}
+            />
         </div>
     );
 };

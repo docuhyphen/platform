@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.model.dto.PrincipalGroupDto
 import com.docuhyphen.app.api.model.dto.PrincipalGroupMemberDto
 import com.docuhyphen.app.api.model.entity.PrincipalGroup
+import com.docuhyphen.app.api.model.entity.PrincipalGroupScope
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.PrincipalGroupRepository
@@ -112,7 +113,7 @@ class PersonalGroupResource @Inject constructor(
                 .map { it.principalGroupId }
                 .filter { gid -> owned.none { it.id == gid } }  // avoid duplicates
                 .mapNotNull { groupRepository.findById(it) }
-                .filter { it.isActive }
+                .filter { it.isActive && it.scope == PrincipalGroupScope.PERSONAL }
 
             val all = (owned + memberOf).map { toDto(it) }
             Response.ok(all.toTypedArray()).build()

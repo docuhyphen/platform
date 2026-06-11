@@ -250,59 +250,29 @@ const OrganizationTab = () =>
                          onTabSelect={onTabSelect}
                          size="medium">
                     <Tab id="OrganizationTab"
-                         // icon={<SettingsOrganizationTabIcon/>}
                          value={tabIds.organization}>
                         Details
                     </Tab>
-                    {canManageOrganization && <>
-
-                        <Tab id="PeopleTab"
-                             // icon={<SettingsOrganizationPeopleTabIcon/>}
-                             value={tabIds.people}>
-                            People
-                        </Tab>
-                        <Tab id="GroupsTab"
-                             // icon={<SettingsOrganizationGroupsTabIcon/>}
-                             value={tabIds.groups}>
-                            Groups
-                        </Tab>
-                    </>
-                    }
-                    {canManageOrganization &&
-
-                        <Tab id="OrganiationPairingTab"
-                             // icon={<PairOrgTabIcon/>}
-                             value={tabIds.organizationPairing}>
-                            Pairing
-                        </Tab>
-                    }
-                    {/*
-                      App Admins is a *global* role, not org-scoped. We can't pre-check
-                      it from the current user DTO, so the tab is rendered for any
-                      signed-in user with an active organisation and AppAdminsTab itself
-                      renders a clean "no access" state on 403. Don't gate this on AppUserRole.
-                      Hidden while the org is pending/disabled to avoid confusion.
-                    */}
-                    {appUserPersonOrganization?.isActive && (
-                        <Tab id="AppAdminsTab"
-                             // icon={<SettingsAppAdminsIcon/>}
-                             value={tabIds.appAdmins}>
-                            App Admins
-                        </Tab>
-                    )}
-                    {canManageOrganization && (
-                        <Tab id="AuthTab"
-                             value={tabIds.auth}>
-                            Auth
-                        </Tab>
-                    )}
-                    {/*{appUserPersonOrganization &&*/}
-                    {/*    <Tab id="TemplatesTab"*/}
-                    {/*         icon={<SettingsTemplatesTabIcon/>}*/}
-                    {/*         value={tabIds.templates}>*/}
-                    {/*        Templates*/}
-                    {/*    </Tab>*/}
-                    {/*}*/}
+                    <Tab id="PeopleTab"
+                         value={tabIds.people}>
+                        People
+                    </Tab>
+                    <Tab id="GroupsTab"
+                         value={tabIds.groups}>
+                        Groups
+                    </Tab>
+                    <Tab id="OrganiationPairingTab"
+                         value={tabIds.organizationPairing}>
+                        Pairing
+                    </Tab>
+                    <Tab id="AppAdminsTab"
+                         value={tabIds.appAdmins}>
+                        App Admins
+                    </Tab>
+                    <Tab id="AuthTab"
+                         value={tabIds.auth}>
+                        Auth
+                    </Tab>
                 </TabList>
                 </div>
 
