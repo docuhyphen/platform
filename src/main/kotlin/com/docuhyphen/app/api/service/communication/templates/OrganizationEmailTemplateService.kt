@@ -150,6 +150,25 @@ class OrganizationEmailTemplateService @Inject constructor(
         return renderer.render("group-member-added.ftl", model)
     }
 
+    fun renderGroupCreatedEmail(
+        firstName: String,
+        groupName: String,
+        organizationName: String?,
+        memberCount: Int,
+    ): String
+    {
+        val model = mutableMapOf(
+            "firstName" to firstName,
+            "groupName" to groupName,
+            "memberCount" to memberCount,
+            "appName" to configurationService.emailSubjectTitle,
+            "appBaseUrl" to configurationService.baseUrl,
+        )
+        if (organizationName != null) model["organizationName"] = organizationName
+
+        return renderer.render("group-created.ftl", model)
+    }
+
     fun renderGroupMemberRemovedEmail(
         firstName: String,
         groupName: String,

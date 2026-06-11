@@ -1,18 +1,10 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
 
-/** Height of the fixed app header — keep in sync with GlobalStyles.mainAppHeader (60px = 3.75rem) */
+/** Height of the fixed app header exch- keep in sync with GlobalStyles.mainAppHeader (60px = 3.75rem) */
 export const SETTINGS_HEADER_HEIGHT = "3.75rem";
 
 export const useSettingsStyles = makeStyles({
-    /**
-     * Outermost settings wrapper.
-     * Acts as the scroll container for the whole settings page so that the
-     * app header, the left sidebar, and any inner section headers can each
-     * declare `position:sticky` relative to this element.
-     *
-     * padding-top offsets the fixed app header so content is never hidden
-     * behind it.  No margin-top needed because the container starts at y=0.
-     */
+
     container: {
         height: "100%",
         overflowY: "auto",
@@ -22,10 +14,6 @@ export const useSettingsStyles = makeStyles({
         paddingTop: SETTINGS_HEADER_HEIGHT,
     },
 
-    /**
-     * Inner flex-row that holds the sidebar and content pane.
-     * Centred with a max-width cap and some breathing room.
-     */
     layout: {
         display: "flex",
         flexDirection: "row",
@@ -34,7 +22,7 @@ export const useSettingsStyles = makeStyles({
         margin: "0 auto",
         padding: "1rem 2rem 3rem 2rem",
         boxSizing: "border-box",
-        gap: "1rem",
+        gap: "2rem",
         minHeight: "100%",
         "@media (max-width: 1024px)": {
             padding: "1rem 1.5rem 3rem 1.5rem",
@@ -45,10 +33,6 @@ export const useSettingsStyles = makeStyles({
         },
     },
 
-    /**
-     * Sticky left navigation sidebar (desktop only).
-     * Sticks just below the fixed app header.
-     */
     sidebarWrapper: {
         position: "sticky",
         top: SETTINGS_HEADER_HEIGHT,
@@ -60,10 +44,6 @@ export const useSettingsStyles = makeStyles({
         },
     },
 
-    /**
-     * Sticky hamburger bar shown on mobile instead of the sidebar.
-     * Hidden on desktop.
-     */
     mobileMenuBar: {
         display: "none",
         "@media (max-width: 768px)": {
@@ -79,7 +59,6 @@ export const useSettingsStyles = makeStyles({
         },
     },
 
-    /** Main content pane that holds the rendered tab component. */
     tabsContainer: {
         flex: 1,
         paddingTop: "2rem",

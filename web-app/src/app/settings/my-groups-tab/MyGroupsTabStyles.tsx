@@ -23,10 +23,4 @@ export const useMyGroupsTabStyles = makeStyles({
         color: tokens.colorPaletteRedForeground1,
         ...shorthands.padding('8px'),
     },
-    memberList: {
-        display: 'flex',
-        flexDirection: 'column',
-        ...shorthands.gap('4px'),
-        marginTop: '8px',
-    },
 });

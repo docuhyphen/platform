@@ -3,6 +3,7 @@
 import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.UserContact
+import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.repository.UserContactRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -25,6 +26,7 @@ import java.util.*
 @ApplicationScoped
 class UserContactService @Inject constructor(
     private val userContactRepository: UserContactRepository,
+    private val appUserRepository: AppUserRepository,
 )
 {
     companion object
@@ -41,22 +43,36 @@ class UserContactService @Inject constructor(
      *   ([AppUser.isTemporary] == true). It will be seeded by the signup-merge step when
      *   that user creates a real account.
      *
+     * If [recipient] is a temp placeholder but a real (non-temporary) account exists with
+     * the same email (i.e. they accepted via the no-auth flow while already registered),
+     * the real account is used so that [contactAppUserId] is populated immediately and
+     * the contact becomes usable for group membership without waiting for a signup-merge.
+     *
      * Wrapped in runCatching at each side so a contact-write failure can never roll back
      * the accept transaction. Idempotent: a repeated call bumps shareCount and lastSharedAt.
      */
     @Transactional
     fun recordMutualOnAccept(initiator: AppUser, recipient: AppUser, exchangeId: UUID)
     {
-        runCatching { recordOneWay(initiator, recipient, exchangeId) }
+        // If the recipient accepted via the no-auth flow they may be a temp placeholder even
+        // when a real registered account exists for that email.  Resolve to the real account
+        // so contactAppUserId is set correctly from the start.
+        val effectiveRecipient = if (!recipient.isTemporary) recipient
+        else recipient.email.normalizeEmailOrNull()
+            ?.let { appUserRepository.findActiveByEmail(it) }
+            ?: recipient
+
+        runCatching { recordOneWay(initiator, effectiveRecipient, exchangeId) }
             .onFailure { logger.warn("Failed to record initiator-side contact for session={}", exchangeId, it) }
 
-        if (recipient.isTemporary)
+        if (effectiveRecipient.isTemporary)
         {
-            // Recipient-side entry deferred until the temp user signs up.
+            // Still a temp user (no real account found yet) — recipient-side entry
+            // deferred until they sign up via seedContactsAfterSignup.
             return
         }
 
-        runCatching { recordOneWay(recipient, initiator, exchangeId) }
+        runCatching { recordOneWay(effectiveRecipient, initiator, exchangeId) }
             .onFailure { logger.warn("Failed to record recipient-side contact for session={}", exchangeId, it) }
     }
 

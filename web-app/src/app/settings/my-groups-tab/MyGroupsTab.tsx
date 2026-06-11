@@ -1,5 +1,8 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
+    AvatarGroup,
+    AvatarGroupItem,
+    AvatarGroupPopover,
     Badge,
     Button,
     Dialog,
@@ -9,6 +12,7 @@ import {
     DialogSurface,
     DialogTitle,
     DialogTrigger,
+    Divider,
     Field,
     Input,
     Menu,
@@ -16,6 +20,7 @@ import {
     MenuList,
     MenuPopover,
     MenuTrigger,
+    partitionAvatarGroupItems,
     Spinner,
     Table,
     TableBody,
@@ -40,7 +45,7 @@ import {
     DeleteRegular,
     EditRegular,
     MoreHorizontalRegular,
-    PersonAddRegular,
+    PeopleRegular,
     PersonDeleteRegular,
 } from '@fluentui/react-icons';
 import {useMyGroupsTabStyles} from './MyGroupsTabStyles';
@@ -57,7 +62,7 @@ import {PrincipalGroupDto} from '../../../services/types/dtos';
 import {GroupRoleDisplayNames} from '../../../services/types/roles';
 
 /**
- * "My Groups" tab — personal/self-service groups.
+ * "My Groups" tab exch- personal/self-service groups.
  * Shown under Settings for all users (not org-gated).
  */
 const MyGroupsTab: React.FC = () =>
@@ -79,10 +84,11 @@ const MyGroupsTab: React.FC = () =>
     const [editDesc, setEditDesc] = useState('');
     const [saving, setSaving] = useState(false);
 
-    // Add member dialog (replaces inline add)
-    const [addMemberDialogGroupId, setAddMemberDialogGroupId] = useState<string | null>(null);
+    // Manage members dialog
+    const [manageMembersGroupId, setManageMembersGroupId] = useState<string | null>(null);
     const [memberTagQuery, setMemberTagQuery] = useState('');
     const [memberSearchResults, setMemberSearchResults] = useState<UserContactDto[]>([]);
+    const [hasUnregisteredHits, setHasUnregisteredHits] = useState(false);
     const [selectedContacts, setSelectedContacts] = useState<UserContactDto[]>([]);
     const [addingMember, setAddingMember] = useState(false);
     const memberDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -137,6 +143,7 @@ const MyGroupsTab: React.FC = () =>
             setSelectedContacts([]);
             setMemberTagQuery('');
             setMemberSearchResults([]);
+            setHasUnregisteredHits(false);
             await loadGroups();
         }
         catch (err: any)
@@ -194,6 +201,7 @@ const MyGroupsTab: React.FC = () =>
         if (q.length < 2)
         {
             setMemberSearchResults([]);
+            setHasUnregisteredHits(false);
             return;
         }
         memberDebounceRef.current = setTimeout(async () =>
@@ -201,22 +209,25 @@ const MyGroupsTab: React.FC = () =>
             try
             {
                 const results = await searchContacts(q, 10);
-                setMemberSearchResults(results.filter(c => !!c.contactAppUserId));
+                const registered = results.filter(c => !!c.contactAppUserId);
+                setMemberSearchResults(registered);
+                setHasUnregisteredHits(results.length > registered.length);
             }
             catch
             {
                 setMemberSearchResults([]);
+                setHasUnregisteredHits(false);
             }
         }, 250);
     };
 
     const onAddMembersConfirm = async () =>
     {
-        if (!addMemberDialogGroupId || selectedContacts.length === 0) return;
+        if (!manageMembersGroupId || selectedContacts.length === 0) return;
         setAddingMember(true);
         try
         {
-            await addPersonalGroupMembers(addMemberDialogGroupId, {
+            await addPersonalGroupMembers(manageMembersGroupId, {
                 members: selectedContacts.map(c => ({
                     principalId: c.contactAppUserId!,
                     principalKind: 'USER',
@@ -224,10 +235,10 @@ const MyGroupsTab: React.FC = () =>
                 })),
             });
             await loadGroups();
-            setAddMemberDialogGroupId(null);
             setSelectedContacts([]);
             setMemberTagQuery('');
             setMemberSearchResults([]);
+            setHasUnregisteredHits(false);
         }
         catch (err: any)
         {
@@ -239,12 +250,13 @@ const MyGroupsTab: React.FC = () =>
         }
     };
 
-    const closeAddMemberDialog = () =>
+    const closeManageMembersDialog = () =>
     {
-        setAddMemberDialogGroupId(null);
+        setManageMembersGroupId(null);
         setSelectedContacts([]);
         setMemberTagQuery('');
         setMemberSearchResults([]);
+        setHasUnregisteredHits(false);
     };
 
     const handleRemoveMember = async (groupId: string, principalId: string) =>
@@ -311,48 +323,30 @@ const MyGroupsTab: React.FC = () =>
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <div className={styles.memberList}>
-                                            {group.members
-                                                .filter(m => m.groupRole !== 'OWNER')
-                                                .map((m, i) => (
-                                                <div key={i} style={{display: 'flex', alignItems: 'center', gap: 4}}>
-                                                    <Text size={200}>
-                                                        {m.user?.email || m.user?.person?.firstName || 'Unknown'}
-                                                    </Text>
-                                                    <Badge size="small" appearance="outline">
-                                                        {GroupRoleDisplayNames[m.groupRole as keyof typeof GroupRoleDisplayNames] || m.groupRole}
-                                                    </Badge>
-                                                    <Button
-                                                        size="small"
-                                                        appearance="subtle"
-                                                        icon={<PersonDeleteRegular/>}
-                                                        title="Remove member"
-                                                        onClick={() =>
-                                                        {
-                                                            if (m.user?.id)
-                                                            {
-                                                                const name = m.user?.email || m.user?.person?.firstName || 'this member';
-                                                                setConfirmRemove({
-                                                                    groupId: group.id,
-                                                                    userId: m.user.id,
-                                                                    displayName: name,
-                                                                });
-                                                            }
-                                                        }}
-                                                    />
-                                                </div>
-                                            ))}
-                                            {group.members.filter(m => m.groupRole !== 'OWNER').length === 0 && (
-                                                <Button
-                                                    size="small"
-                                                    appearance="subtle"
-                                                    icon={<PersonAddRegular/>}
-                                                    onClick={() => setAddMemberDialogGroupId(group.id)}
-                                                >
-                                                    Add member
-                                                </Button>
-                                            )}
-                                        </div>
+                                        {(() =>
+                                        {
+                                            const nonOwners = group.members.filter(m => m.groupRole !== 'OWNER');
+                                            if (nonOwners.length === 0) return <Text size={200}>exch-</Text>;
+                                            const items = nonOwners.map(m => ({
+                                                name: [m.user?.person?.firstName, m.user?.person?.lastName].filter(Boolean).join(' ') || m.user?.email || 'Unknown',
+                                                key: m.user?.id || m.user?.email || String(Math.random()),
+                                            }));
+                                            const {inlineItems, overflowItems} = partitionAvatarGroupItems({items, maxInlineItems: 5});
+                                            return (
+                                                <AvatarGroup size={24} layout="stack">
+                                                    {inlineItems?.map(item => (
+                                                        <AvatarGroupItem key={item.key} name={item.name}/>
+                                                    ))}
+                                                    {overflowItems?.length > 0 && (
+                                                        <AvatarGroupPopover>
+                                                            {overflowItems.map(item => (
+                                                                <AvatarGroupItem key={item.key} name={item.name}/>
+                                                            ))}
+                                                        </AvatarGroupPopover>
+                                                    )}
+                                                </AvatarGroup>
+                                            );
+                                        })()}
                                     </TableCell>
                                     <TableCell>
                                         <Badge color={group.isActive ? 'success' : 'danger'} appearance="outline">
@@ -366,9 +360,9 @@ const MyGroupsTab: React.FC = () =>
                                             </MenuTrigger>
                                             <MenuPopover>
                                                 <MenuList>
-                                                    <MenuItem icon={<PersonAddRegular/>}
-                                                              onClick={() => setAddMemberDialogGroupId(group.id)}>
-                                                        Add Member
+                                                    <MenuItem icon={<PeopleRegular/>}
+                                                              onClick={() => setManageMembersGroupId(group.id)}>
+                                                        Manage Members
                                                     </MenuItem>
                                                     <MenuItem icon={<EditRegular/>} onClick={() => openEdit(group)}>
                                                         Rename
@@ -440,14 +434,20 @@ const MyGroupsTab: React.FC = () =>
                                         {memberSearchResults
                                             .filter(c => !selectedContacts.some(s => s.contactAppUserId === c.contactAppUserId))
                                             .map(c => (
-                                                <TagPickerOption key={c.contactAppUserId!} value={c.contactAppUserId!}>
+                                                <TagPickerOption
+                                                    key={c.contactAppUserId!}
+                                                    value={c.contactAppUserId!}
+                                                    text={[c.firstName, c.lastName].filter(Boolean).join(' ') || c.email}
+                                                >
                                                     {[c.firstName, c.lastName].filter(Boolean).join(' ')} ({c.email})
                                                 </TagPickerOption>
                                             ))
                                         }
                                         {memberSearchResults.length === 0 && memberTagQuery.length >= 2 && (
-                                            <TagPickerOption value="__no_results__" disabled>
-                                                No registered contacts found
+                                            <TagPickerOption value="__no_results__" text="no results">
+                                                {hasUnregisteredHits
+                                                    ? "This contact hasn't fully registered yet and can't be added to a group"
+                                                    : 'No registered contacts found'}
                                             </TagPickerOption>
                                         )}
                                     </TagPickerList>
@@ -471,6 +471,7 @@ const MyGroupsTab: React.FC = () =>
                                 setSelectedContacts([]);
                                 setMemberTagQuery('');
                                 setMemberSearchResults([]);
+                                setHasUnregisteredHits(false);
                             }}>Cancel</Button>
                         </DialogActions>
                     </DialogBody>
@@ -504,13 +505,68 @@ const MyGroupsTab: React.FC = () =>
                 </DialogSurface>
             </Dialog>
 
-            {/* Add Member dialog */}
-            <Dialog modalType="alert" open={!!addMemberDialogGroupId}>
-                <DialogSurface>
+            {/* Manage Members dialog */}
+            <Dialog modalType="alert" open={!!manageMembersGroupId}>
+                <DialogSurface style={{minWidth: 480}}>
                     <DialogBody>
-                        <DialogTitle>Add Members</DialogTitle>
-                        <DialogContent style={{display: 'flex', flexDirection: 'column', gap: 12}}>
-                            <Field label="Search and select members">
+                        <DialogTitle>Manage Members</DialogTitle>
+                        <DialogContent style={{display: 'flex', flexDirection: 'column', gap: 16}}>
+
+                            {/* Current members */}
+                            <div>
+                                <Text weight="semibold" size={300}>Current Members</Text>
+                                <div style={{marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2}}>
+                                    {(() =>
+                                    {
+                                        const grp = groups.find(g => g.id === manageMembersGroupId);
+                                        const nonOwners = grp?.members.filter(m => m.groupRole !== 'OWNER') ?? [];
+                                        if (nonOwners.length === 0)
+                                        {
+                                            return (
+                                                <Text size={200} italic>No members yet.</Text>
+                                            );
+                                        }
+                                        return nonOwners.map((m, i) => (
+                                            <div key={i} style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 8,
+                                                padding: '4px 0',
+                                            }}>
+                                                <Text size={200} style={{flex: 1}}>
+                                                    {m.user?.email || m.user?.person?.firstName || 'Unknown'}
+                                                </Text>
+                                                <Badge size="small" appearance="outline">
+                                                    {GroupRoleDisplayNames[m.groupRole as keyof typeof GroupRoleDisplayNames] || m.groupRole}
+                                                </Badge>
+                                                <Button
+                                                    size="small"
+                                                    appearance="subtle"
+                                                    icon={<PersonDeleteRegular/>}
+                                                    title="Remove member"
+                                                    onClick={() =>
+                                                    {
+                                                        if (m.user?.id)
+                                                        {
+                                                            const name = m.user?.email || m.user?.person?.firstName || 'this member';
+                                                            setConfirmRemove({
+                                                                groupId: manageMembersGroupId!,
+                                                                userId: m.user.id,
+                                                                displayName: name,
+                                                            });
+                                                        }
+                                                    }}
+                                                />
+                                            </div>
+                                        ));
+                                    })()}
+                                </div>
+                            </div>
+
+                            <Divider/>
+
+                            {/* Add new members */}
+                            <Field label="Add Members" hint="Only contacts with a registered account can be added.">
                                 <TagPicker
                                     selectedOptions={selectedContacts.map(c => c.contactAppUserId!)}
                                     onOptionSelect={(_e, data) =>
@@ -547,20 +603,25 @@ const MyGroupsTab: React.FC = () =>
                                         {memberSearchResults
                                             .filter(c => !selectedContacts.some(s => s.contactAppUserId === c.contactAppUserId))
                                             .map(c => (
-                                                <TagPickerOption key={c.contactAppUserId!} value={c.contactAppUserId!}>
+                                                <TagPickerOption
+                                                    key={c.contactAppUserId!}
+                                                    value={c.contactAppUserId!}
+                                                    text={[c.firstName, c.lastName].filter(Boolean).join(' ') || c.email}
+                                                >
                                                     {[c.firstName, c.lastName].filter(Boolean).join(' ')} ({c.email})
                                                 </TagPickerOption>
                                             ))
                                         }
                                         {memberSearchResults.length === 0 && memberTagQuery.length >= 2 && (
-                                            <TagPickerOption value="__no_results__" disabled>
-                                                No registered contacts found
+                                            <TagPickerOption value="__no_results__" text="no results">
+                                                {hasUnregisteredHits
+                                                    ? "This contact hasn't fully registered yet and can't be added to a group"
+                                                    : 'No registered contacts found'}
                                             </TagPickerOption>
                                         )}
                                     </TagPickerList>
                                 </TagPicker>
                             </Field>
-                            <Text size={200}>Only contacts with a registered account can be added as members.</Text>
                         </DialogContent>
                         <DialogActions>
                             <Button
@@ -569,10 +630,10 @@ const MyGroupsTab: React.FC = () =>
                                 disabled={addingMember || selectedContacts.length === 0}
                                 onClick={onAddMembersConfirm}
                             >
-                                {addingMember && <Spinner size="tiny"/>} Add
+                                {addingMember && <Spinner size="tiny"/>} Add Selected
                             </Button>
-                            <Button appearance="secondary" shape="circular" onClick={closeAddMemberDialog}>
-                                Cancel
+                            <Button appearance="secondary" shape="circular" onClick={closeManageMembersDialog}>
+                                Close
                             </Button>
                         </DialogActions>
                     </DialogBody>

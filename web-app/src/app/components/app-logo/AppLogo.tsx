@@ -30,7 +30,7 @@ const AppLogo: React.FC = () =>
                 <rect x="79" y="25" width="20" height="6" rx="3" ry="3"
                       fill={tokens.colorBrandBackground}/>
 
-                {/* "HYPHEN" text — adapts to theme */}
+                {/* "HYPHEN" text exch- adapts to theme */}
                 <text x="10" y="75"
                       fontFamily="Arial" fontSize="22" fontWeight="bold"
                       fill={tokens.colorNeutralForeground1}>

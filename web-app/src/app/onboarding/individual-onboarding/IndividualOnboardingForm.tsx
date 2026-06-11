@@ -146,7 +146,7 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
             const updatedUser = {...(appUser as AppUserDetailedDto), person: registeredPerson};
             setAppUser(updatedUser);
 
-            // Persist the chosen theme to the server (best-effort — don't block navigation on failure)
+            // Persist the chosen theme to the server (best-effort exch- don't block navigation on failure)
             try
             {
                 const baseSettings = appUser?.settings ?? {} as AppUserSettingsDto;

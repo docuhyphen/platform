@@ -205,12 +205,6 @@ const OrganizationDetailsTab = () =>
 
         {organization && !fetchingOrganization && organization.isActive && (
             <div className={styles.container}>
-                <Divider alignContent="start"
-                         appearance="brand"
-                         className={styles.mainDivider}>
-
-                    Basic
-                </Divider>
 
                 <div style={{marginBottom: '20px'}}>
                     <Text size={500} weight="semibold">

@@ -178,7 +178,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
         }
         catch (err: any)
         {
-            // Backend authorizes group mutations on GROUP_MANAGE_MEMBERS / GROUP_DELETE —
+            // Backend authorizes group mutations on GROUP_MANAGE_MEMBERS / GROUP_DELETE exch-
             // anything else returns 403. Lock the dialog into a "read-only, no permission"
             // state so the user understands the system is refusing on purpose, not just throwing.
             const status = (err as { status?: number; response?: { status?: number } } | null | undefined)

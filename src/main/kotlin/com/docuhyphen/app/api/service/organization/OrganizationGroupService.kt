@@ -139,8 +139,18 @@ class OrganizationGroupService @Inject constructor(
             afterSnapshot = groupSnapshot(groupId, name.trim(), true, specs),
         )
 
+        val actorId = authTokenContext.authToken.appUser?.id
         specs.forEach { spec ->
-            appUserService.getById(spec.appUserId)?.let { sendGroupMemberAddedEmail(it, name.trim(), organization.name) }
+            appUserService.getById(spec.appUserId)?.let { member ->
+                if (actorId != null && member.id == actorId)
+                {
+                    sendGroupCreatedEmail(member, name.trim(), organization.name, specs.size)
+                }
+                else
+                {
+                    sendGroupMemberAddedEmail(member, name.trim(), organization.name)
+                }
+            }
         }
     }
 
@@ -443,6 +453,29 @@ class OrganizationGroupService @Inject constructor(
     {
         val actor = authTokenContext.authToken.appUser ?: return "an administrator"
         return actor.person?.let { "${it.firstName} ${it.lastName}" } ?: actor.email
+    }
+
+    private fun sendGroupCreatedEmail(appUser: AppUser, groupName: String, organizationName: String, memberCount: Int)
+    {
+        try
+        {
+            val body = emailTemplateService.renderGroupCreatedEmail(
+                firstName = appUser.person?.firstName ?: "there",
+                groupName = groupName,
+                organizationName = organizationName,
+                memberCount = memberCount,
+            )
+            emailService.sendEmail(
+                to = appUser.email,
+                subject = "${configurationService.emailSubjectTitle} | Group \"$groupName\" created",
+                body = body,
+                useHtml = true,
+            )
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to send group-created email to {}", appUser.email, e)
+        }
     }
 
     private fun sendGroupMemberAddedEmail(appUser: AppUser, groupName: String, organizationName: String)

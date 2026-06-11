@@ -14,7 +14,7 @@ const isValidMode = (v: unknown): v is ThemeMode =>
  *
  * Priority rules (evaluated once per sign-in, not on every render):
  *   1. If localStorage already holds a theme the user chose on this
- *      device, that value wins — it is pushed to the DB so the
+ *      device, that value wins exch- it is pushed to the DB so the
  *      preference follows the user to other devices.
  *   2. Otherwise the DB value is applied locally (and written to
  *      localStorage via setMode).
@@ -25,7 +25,7 @@ const isValidMode = (v: unknown): v is ThemeMode =>
  *
  * Subsequent explicit theme changes go through the Settings page,
  * which calls setMode (ThemeContext + localStorage) and
- * updateAppUserSettings (DB) directly — ThemeSync does not need to
+ * updateAppUserSettings (DB) directly exch- ThemeSync does not need to
  * react to those.
  *
  * Must be rendered inside both AuthProvider and ThemeProvider.
@@ -43,7 +43,7 @@ const ThemeSync = () =>
     {
         if (!appUser?.id || !appUser.settings)
         {
-            // Not signed in (yet) — nothing to sync.
+            // Not signed in (yet) exch- nothing to sync.
             // Reset so we re-merge on the next sign-in.
             syncedUserIdRef.current = null;
             return;
@@ -61,7 +61,7 @@ const ThemeSync = () =>
 
         if (isValidMode(localTheme) && localTheme !== dbTheme)
         {
-            // localStorage wins — apply it locally and push to DB.
+            // localStorage wins exch- apply it locally and push to DB.
             setMode(localTheme);
 
             const updatedSettings = {...appUser.settings, theme: localTheme};
@@ -75,7 +75,7 @@ const ThemeSync = () =>
         }
         else if (isValidMode(dbTheme))
         {
-            // No local preference (or already matches) — apply the DB
+            // No local preference (or already matches) exch- apply the DB
             // value locally (also writes to localStorage via setMode).
             setMode(dbTheme as ThemeMode);
         }

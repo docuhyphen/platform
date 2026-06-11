@@ -11,7 +11,8 @@ export const useOrganizationTabStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px"
+        gap: "16px",
+        paddingTop: "1.5rem"
     },
 
     dataContainer: {

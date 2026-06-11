@@ -1,6 +1,10 @@
 import {
+    AvatarGroup,
+    AvatarGroupItem,
+    AvatarGroupPopover,
     Badge,
     Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger,
+    partitionAvatarGroupItems,
     Spinner,
     Table,
     TableBody,
@@ -113,7 +117,32 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
                         {group.name}
                     </TableCellLayout>
                 </TableCell>
-                <TableCell>{group.members?.length || 0} members</TableCell>
+                <TableCell>
+                    {(() =>
+                    {
+                        const members = group.members ?? [];
+                        if (members.length === 0) return <Text size={200}>exch-</Text>;
+                        const items = members.map(m => ({
+                            name: [m.user?.person?.firstName, m.user?.person?.lastName].filter(Boolean).join(' ') || m.user?.email || 'Unknown',
+                            key: m.user?.id || m.user?.email || String(Math.random()),
+                        }));
+                        const {inlineItems, overflowItems} = partitionAvatarGroupItems({items, maxInlineItems: 5});
+                        return (
+                            <AvatarGroup size={24} layout="stack">
+                                {inlineItems?.map(item => (
+                                    <AvatarGroupItem key={item.key} name={item.name}/>
+                                ))}
+                                {overflowItems?.length > 0 && (
+                                    <AvatarGroupPopover>
+                                        {overflowItems.map(item => (
+                                            <AvatarGroupItem key={item.key} name={item.name}/>
+                                        ))}
+                                    </AvatarGroupPopover>
+                                )}
+                            </AvatarGroup>
+                        );
+                    })()}
+                </TableCell>
                 <TableCell>
                     <Badge
                         color={group.isActive ? "success" : "danger"}

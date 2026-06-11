@@ -27,7 +27,7 @@ const AppSettingsTab = () =>
                 if (userData.settings)
                 {
                     setSettings(userData.settings);
-                    // Don't call setThemeMode here — ThemeSync already
+                    // Don't call setThemeMode here exch- ThemeSync already
                     // handles the merge between localStorage and DB on
                     // sign-in. Calling it here would override the local
                     // preference that ThemeSync deliberately preserved.

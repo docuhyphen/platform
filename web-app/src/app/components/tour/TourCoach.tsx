@@ -52,7 +52,7 @@ const TOUR_STEPS: TourStep[] = [
         targetId: 'tour-notifications',
         title: 'Notifications',
         description:
-            'Real-time alerts appear here — new document uploads, session status changes, and responses from your contacts, so nothing slips through the cracks.',
+            'Real-time alerts appear here exch- new document uploads, session status changes, and responses from your contacts, so nothing slips through the cracks.',
         position: 'below',
         align: 'center',
     },

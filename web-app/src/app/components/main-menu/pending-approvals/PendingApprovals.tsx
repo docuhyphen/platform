@@ -23,7 +23,7 @@ import {PendingWorkflowStep} from '../../../../services/types/dtos';
 import {realtimeService} from '../../../../services/NotificationService';
 
 /**
- * Pending approvals popover — surfaces workflow.step_assigned items so an assignee can
+ * Pending approvals popover exch- surfaces workflow.step_assigned items so an assignee can
  * approve/reject directly from the top bar. New items arrive via realtime push.
  */
 const PendingApprovals: React.FC = () =>
@@ -47,7 +47,7 @@ const PendingApprovals: React.FC = () =>
             })
             .catch((err) =>
             {
-                // Silent on 401/403 (user just doesn't have the role yet) — only log others.
+                // Silent on 401/403 (user just doesn't have the role yet) exch- only log others.
                 console.warn('Failed to load pending approvals', err);
             });
         return () =>

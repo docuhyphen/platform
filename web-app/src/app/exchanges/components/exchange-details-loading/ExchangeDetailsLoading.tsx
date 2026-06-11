@@ -11,7 +11,7 @@ const ExchangeDetailsLoading: React.FC = () =>
           Mirror the real ExchangeDetailsHeader's *default* (collapsed)
           layout: only the title row is visible. The dates row and the
           description line live inside the expandable section in the real
-          component, so we don't render placeholders for them here — that
+          component, so we don't render placeholders for them here exch- that
           previously made the skeleton noticeably "taller" than what loads
           in, producing a visible layout shift on first paint.
 

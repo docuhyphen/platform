@@ -205,10 +205,10 @@ const ExchangeInitiationRecipientsTab: React.FC<ExchangeRecipientsTabProps> = (p
                 && appUserPersonOrganization?.isActive && (
                 <div style={{marginTop: 8, display: 'flex', alignItems: 'center', gap: 8}}>
                     <Badge appearance="outline" color="warning">External recipient</Badge>
-                    <Text size={200}>
-                        This recipient isn't in your organization — they'll receive a B2C-style
-                        invite. Use the constraints below to limit what they can do.
-                    </Text>
+                    {/*<Text size={200}>*/}
+                    {/*    This recipient isn't in your organization exch- they'll receive a B2C-style*/}
+                    {/*    invite. Use the constraints below to limit what they can do.*/}
+                    {/*</Text>*/}
                 </div>
             )}
 
@@ -220,13 +220,13 @@ const ExchangeInitiationRecipientsTab: React.FC<ExchangeRecipientsTabProps> = (p
                                 <div style={{display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 320}}>
                                     <Text size={200}>Each role determines what the recipient can do in this exchange.</Text>
                                     <div style={{display: 'flex', flexDirection: 'column', gap: 6}}>
-                                        <div><Text size={200} weight="semibold">Auto</Text> <Text size={200}>— derived from document permissions (Editor if write access granted, Viewer otherwise).</Text></div>
-                                        <div><Text size={200} weight="semibold">Editor</Text> <Text size={200}>— can add, update, upload, and manage documents.</Text></div>
-                                        <div><Text size={200} weight="semibold">Viewer</Text> <Text size={200}>— read-only access. Supports download and watermark constraints.</Text></div>
-                                        <div><Text size={200} weight="semibold">Participant</Text> <Text size={200}>— flexible read access with optional constraints.</Text></div>
-                                        <div><Text size={200} weight="semibold">Commenter</Text> <Text size={200}>— can view documents and leave comments.</Text></div>
-                                        <div><Text size={200} weight="semibold">Reviewer</Text> <Text size={200}>— can view and comment, typically for approval workflows.</Text></div>
-                                        <div><Text size={200} weight="semibold">Signer</Text> <Text size={200}>— read access plus formal signing capabilities.</Text></div>
+                                        <div><Text size={200} weight="semibold">Auto</Text> <Text size={200}>exch- derived from document permissions (Editor if write access granted, Viewer otherwise).</Text></div>
+                                        <div><Text size={200} weight="semibold">Editor</Text> <Text size={200}>exch- can add, update, upload, and manage documents.</Text></div>
+                                        <div><Text size={200} weight="semibold">Viewer</Text> <Text size={200}>exch- read-only access. Supports download and watermark constraints.</Text></div>
+                                        <div><Text size={200} weight="semibold">Participant</Text> <Text size={200}>exch- flexible read access with optional constraints.</Text></div>
+                                        <div><Text size={200} weight="semibold">Commenter</Text> <Text size={200}>exch- can view documents and leave comments.</Text></div>
+                                        <div><Text size={200} weight="semibold">Reviewer</Text> <Text size={200}>exch- can view and comment, typically for approval workflows.</Text></div>
+                                        <div><Text size={200} weight="semibold">Signer</Text> <Text size={200}>exch- read access plus formal signing capabilities.</Text></div>
                                     </div>
                                 </div>
                             }

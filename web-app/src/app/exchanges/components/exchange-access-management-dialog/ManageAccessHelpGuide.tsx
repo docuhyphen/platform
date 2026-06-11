@@ -224,7 +224,7 @@ const ManageAccessHelpGuide: React.FC = () =>
                                 <Text size={200}>
                                     When enabled, the recipient must sign in with their account to access
                                     the exchange. When disabled, the recipient can use a one-time email
-                                    access code (OTP) instead — useful for external parties who don't
+                                    access code (OTP) instead exch- useful for external parties who don't
                                     have an account.
                                 </Text>
                             </div>

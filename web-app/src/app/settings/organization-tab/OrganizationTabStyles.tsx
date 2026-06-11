@@ -49,6 +49,6 @@ export const useOrganizationTabStyles = makeStyles({
         width: "300px"
     },
     tabsContainer: {
-        // Natural height — content scrolls via the settings container scroller.
+        // Natural height exch- content scrolls via the settings container scroller.
     }
 });

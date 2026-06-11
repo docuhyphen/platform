@@ -139,6 +139,18 @@ class EmailTemplateService @Inject constructor(
         addedBy,
     )
 
+    fun renderGroupCreatedEmail(
+        firstName: String,
+        groupName: String,
+        organizationName: String?,
+        memberCount: Int,
+    ): String = organizationTemplates.renderGroupCreatedEmail(
+        firstName,
+        groupName,
+        organizationName,
+        memberCount,
+    )
+
     fun renderGroupMemberRemovedEmail(
         firstName: String,
         groupName: String,

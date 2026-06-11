@@ -87,7 +87,7 @@ const MyGroupsRecipients: React.FC<MyGroupsRecipientsProps> = ({recipientOrgGrou
                     const selected = activeGroups.find(g => g.id === data.optionValue);
                     if (selected)
                     {
-                        // Cast to OrganizationGroupBasicDto — only id and name are consumed downstream
+                        // Cast to OrganizationGroupBasicDto exch- only id and name are consumed downstream
                         setRecipientOrgGroup(selected as unknown as OrganizationGroupBasicDto);
                         setQuery(selected.name);
                     }

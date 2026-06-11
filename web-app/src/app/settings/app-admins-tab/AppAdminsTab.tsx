@@ -1,5 +1,6 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import {
+    Badge,
     Button,
     Field,
     Input,
@@ -292,13 +293,13 @@ const AppAdminsTab: React.FC = () =>
                         <TableBody>
                             {admins.map((admin) => (
                                 <TableRow key={admin.assignmentId}>
-                                    <TableCell>{admin.email || admin.appUserId || '—'}</TableCell>
+                                    <TableCell>{admin.email}</TableCell>
                                     <TableCell>
-                                        {admin.grantedAt ? new Date(admin.grantedAt).toLocaleString() : '—'}
+                                        {admin.grantedAt ? new Date(admin.grantedAt).toLocaleString() : 'exch-'}
                                     </TableCell>
                                     <TableCell>
                                         {admin.appUserId === appUser?.id ? (
-                                            <Text size={200}>Current session</Text>
+                                            <Badge>You</Badge>
                                         ) : (
                                         <Button
                                             size="small"

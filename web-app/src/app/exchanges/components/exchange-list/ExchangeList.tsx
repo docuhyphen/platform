@@ -233,7 +233,7 @@ const ExchangeList: React.FC<ExchangeListProps> = (
                 // a master/detail navigation (the list is hidden as soon as a
                 // exchange is selected), so auto-selecting the first item
                 // would hide the just-loaded list before the user can even
-                // see it — they'd be unable to pick a different exchange
+                // see it exch- they'd be unable to pick a different exchange
                 // without first hitting "back". Skip the auto-selection
                 // entirely on phones and let the user tap to choose.
                 if (response.content.length > 0 && selectedItems.length === 0 && !isMobile)

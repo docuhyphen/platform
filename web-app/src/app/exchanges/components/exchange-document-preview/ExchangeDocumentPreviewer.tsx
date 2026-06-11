@@ -137,7 +137,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     const isProgrammaticScrollRef = useRef(false);
     // Tracks which PDF URL we last fired the "reset to page 1" logic for. When the
     // <Document> remounts (e.g. when toggling enlarged/fullscreen, which changes the
-    // surrounding JSX tree) onDocumentLoadSuccess fires again with the *same* URL —
+    // surrounding JSX tree) onDocumentLoadSuccess fires again with the *same* URL exch-
     // we must NOT reset the user's current page in that case.
     const lastLoadedUrlRef = useRef<string | null>(null);
 
@@ -822,7 +822,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                                         // registered with react-pdf's LinkService (otherwise internal
                                         // PDF links / TOC clicks to this page would silently no-op).
                                         // `renderMode="none"` skips the expensive canvas paint, and we
-                                        // disable text + annotation layers — the page becomes essentially
+                                        // disable text + annotation layers exch- the page becomes essentially
                                         // free while still being a proper navigation target.
                                         <Page
                                             pageNumber={pageNumber}
@@ -1093,7 +1093,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
 
             {/*
               * Two render paths so that inline mode mirrors the original (proven) DOM
-              * layout exactly — a single scroll pane as a direct flex child of <section>.
+              * layout exactly exch- a single scroll pane as a direct flex child of <section>.
               * The enlarged mode adds the reader-layout wrappers (which previously had a
               * thumbnail sidebar slot, now disabled). Toggling modes does briefly remount
               * the <Document>, but with virtualization only the visible page(s) re-render,
