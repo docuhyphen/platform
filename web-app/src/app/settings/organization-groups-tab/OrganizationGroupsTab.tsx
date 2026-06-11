@@ -174,6 +174,13 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
                 </TableHeader>
                 <TableBody>
                     {groups.map((group) => renderTableRow(group))}
+                    {groups.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={4}>
+                                <Text>No organization groups yet. Create one to start organizing your members.</Text>
+                            </TableCell>
+                        </TableRow>
+                    )}
                 </TableBody>
             </Table>
         </>
