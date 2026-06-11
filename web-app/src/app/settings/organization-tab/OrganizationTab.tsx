@@ -53,7 +53,8 @@ const OrganizationTab = () =>
         organizationPairing: "OrganizationPairingTab",
         templates: "TemplatesTab",
         myGroups: "MyGroupsTab",
-        appAdmins: "AppAdminsTab"
+        appAdmins: "AppAdminsTab",
+        auth: "AuthTab",
     }
 
     const styles = useOrganizationTabStyles()
@@ -244,6 +245,7 @@ const OrganizationTab = () =>
         {organization && !fetchingOrganization && organization.isActive && (
             <div className={styles.container}>
 
+                <div className={styles.tabListWrapper}>
                 <TabList selectedValue={selectedValue}
                          onTabSelect={onTabSelect}
                          size="medium">
@@ -296,6 +298,7 @@ const OrganizationTab = () =>
                     {/*    </Tab>*/}
                     {/*}*/}
                 </TabList>
+                </div>
 
                 <div className={styles.tabsContainer}
                      id={"settings-tabs"}>

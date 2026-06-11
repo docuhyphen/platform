@@ -1,22 +1,22 @@
-import React, {useEffect, useState} from "react";
-
+import {useState} from "react";
 import {
-    SelectTabData,
-    Drawer,
+    Button,
     DrawerBody,
     DrawerHeader,
     DrawerHeaderTitle,
-    InlineDrawer,
     OverlayDrawer,
-    SelectTabEvent, Tab, TabList, TabValue,} from "@fluentui/react-components";
+    SelectTabData,
+    SelectTabEvent,
+    Tab,
+    TabList,
+    TabValue,
+    Text,
+} from "@fluentui/react-components";
+import {Navigation24Regular} from "@fluentui/react-icons";
 import {useSettingsStyles} from "./SettingsStyles.tsx";
-import OrganizationDetailsTab from "./organization-tab/OrganizationTab.tsx";
 import {
-    PairOrgTabIcon, SettingsAppAdminsIcon,
     SettingsAppSettingsTabIcon, SettingsDeviceSessionsTabIcon,
     SettingsExchangeTemplatesTabIcon, SettingsLinkedAccountsTabIcon, SettingsMyGroupsTabIcon,
-    SettingsOrganizationGroupsTabIcon,
-    SettingsOrganizationPeopleTabIcon,
     SettingsOrganizationTabIcon,
     SettingsProfileTabIcon,
 } from "../components/IconBundles.tsx";
@@ -26,13 +26,13 @@ import ProfileTab from "./profile-tab/ProfileTab.tsx";
 import OrganizationGroupsTab from "./organization-groups-tab/OrganizationGroupsTab.tsx";
 import OrganizationPeopleTab from "./organization-people-tab/OrganizationPeopleTab.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
-import {AppUserRole} from "../models/models.tsx";
 import OrganizationPairingTab from "./organization-pairing-tab/OrganizationPairingTab.tsx";
 import LinkedAccountsTab from "./linked-accounts-tab/LinkedAccountsTab.tsx";
 import SessionsTab from "./sessions-tab/SessionsTab.tsx";
 import MyGroupsTab from "./my-groups-tab/MyGroupsTab.tsx";
 import AppAdminsTab from "./app-admins-tab/AppAdminsTab.tsx";
 import OrganizationTab from "./organization-tab/OrganizationTab.tsx";
+import {useIsMobile} from "../../utils/useMediaQuery.ts";
 
 const Settings = () =>
 {
@@ -50,75 +50,100 @@ const Settings = () =>
         appAdmins: "AppAdminsTab"
     }
 
-    const [isMenuDrawerOpen, setIsMenuDrawerOpen] = React.useState(true);
-    const [menuDrawerType, setMenuDrawerType] = React.useState<"overlay" | "inline">("inline");
-    const {appUser, appUserPersonOrganization} = useAuth();
-    const styles = useSettingsStyles();
-    const [selectedValue, setSelectedValue] = useState<TabValue>(tabIds.profile);
-    const roleValue = `${appUser?.role ?? ''}`;
+    const tabLabels: Record<string, string> = {
+        [tabIds.profile]: "Profile",
+        [tabIds.linkedAccounts]: "Linked Accounts",
+        [tabIds.sessions]: "Device Sessions",
+        [tabIds.organization]: "Your Organization",
+        [tabIds.appSettings]: "App Preferences",
+        [tabIds.myGroups]: "My Groups",
+        [tabIds.templates]: "Exchange Templates",
+    };
 
-    const canManageOrganization =  () =>
-    {
-        return appUserPersonOrganization?.isActive && (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN')
-    }
+    const {appUserPersonOrganization} = useAuth();
+    const styles = useSettingsStyles();
+    const isMobile = useIsMobile();
+    const [selectedValue, setSelectedValue] = useState<TabValue>(tabIds.profile);
+    const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
     const onTabSelect = (_event: SelectTabEvent, data: SelectTabData) =>
     {
         setSelectedValue(data.value);
+        setIsMobileDrawerOpen(false);
     };
 
+    const currentTabLabel = tabLabels[selectedValue as string] ?? "Settings";
+
+    const tabListContent = (
+        <TabList
+            selectedValue={selectedValue}
+            appearance="subtle-circular"
+            onTabSelect={onTabSelect}
+            vertical
+            size="medium"
+        >
+            <Tab id="ProfileTab" icon={<SettingsProfileTabIcon/>} value={tabIds.profile}>
+                Profile
+            </Tab>
+            <Tab id="AppSettingsTab" icon={<SettingsAppSettingsTabIcon/>} value={tabIds.appSettings}>
+                App Preferences
+            </Tab>
+            <Tab id="LinkedAccountsTab" icon={<SettingsLinkedAccountsTabIcon/>} value={tabIds.linkedAccounts}>
+                Linked Accounts
+            </Tab>
+            <Tab id="SessionsTab" icon={<SettingsDeviceSessionsTabIcon/>} value={tabIds.sessions}>
+                Device Sessions
+            </Tab>
+            <Tab id="MyGroupsTab" icon={<SettingsMyGroupsTabIcon/>} value={tabIds.myGroups}>
+                My Groups
+            </Tab>
+            <Tab id="OrganizationTab" icon={<SettingsOrganizationTabIcon/>} value={tabIds.organization}>
+                Your Organization
+            </Tab>
+            <Tab id="TemplatesTab" icon={<SettingsExchangeTemplatesTabIcon/>} value={tabIds.templates}>
+                Exchange Templates
+            </Tab>
+        </TabList>
+    );
+
     return (
-        <>
-            <div className={styles.container} id={"settings-container"}>
-                <Drawer
-                    type={menuDrawerType}
-                    open={isMenuDrawerOpen}
-                    onOpenChange={(_, { open }) => setIsMenuDrawerOpen(open)}
-                >
-                    <TabList selectedValue={selectedValue}
-                             appearance="subtle-circular"
-                             onTabSelect={onTabSelect}
-                             vertical
-                             size="medium">
-                        <Tab id="ProfileTab"
-                             icon={<SettingsProfileTabIcon/>}
-                             value={tabIds.profile}>
-                            Profile
-                        </Tab>
-                        <Tab id="AppSettingsTab"
-                             icon={<SettingsAppSettingsTabIcon/>}
-                             value={tabIds.appSettings}>
-                            App Preferences
-                        </Tab>
-                        <Tab id="LinkedAccountsTab"
-                             icon={<SettingsLinkedAccountsTabIcon/>}
-                             value={tabIds.linkedAccounts}>
-                            Linked Accounts
-                        </Tab>
-                        <Tab id="SessionsTab"
-                             icon={<SettingsDeviceSessionsTabIcon/>}
-                             value={tabIds.sessions}>
-                            Device Sessions
-                        </Tab>
-                        <Tab id="MyGroupsTab"
-                             icon={<SettingsMyGroupsTabIcon/>}
-                             value={tabIds.myGroups}>
-                            My Groups
-                        </Tab>
-                        <Tab id="OrganizationTab"
-                             icon={<SettingsOrganizationTabIcon/>}
-                             value={tabIds.organization}>
-                            Your Organization
-                        </Tab>
-                        <Tab id="TemplatesTab"
-                             icon={<SettingsExchangeTemplatesTabIcon/>}
-                             value={tabIds.templates}>
-                            Exchange Templates
-                        </Tab>
-                    </TabList>
-                </Drawer>
-                <div className={styles.tabsContainer}
-                     id={"settings-tabs"}>
+        <div className={styles.container} id="settings-container">
+
+            <div className={styles.mobileMenuBar}>
+                <Button
+                    appearance="subtle"
+                    shape="circular"
+                    icon={<Navigation24Regular/>}
+                    aria-label="Open settings menu"
+                    onClick={() => setIsMobileDrawerOpen(true)}
+                />
+                <Text weight="semibold">{currentTabLabel}</Text>
+            </div>
+
+            {/* ── Mobile-only: overlay drawer ── */}
+            <OverlayDrawer
+                open={isMobile && isMobileDrawerOpen}
+                onOpenChange={(_, {open}) => setIsMobileDrawerOpen(open)}
+                position="start"
+            >
+                <DrawerHeader>
+                    <DrawerHeaderTitle>Settings</DrawerHeaderTitle>
+                </DrawerHeader>
+                <DrawerBody>
+                    {tabListContent}
+                </DrawerBody>
+            </OverlayDrawer>
+
+            {/* ── Main flex layout ── */}
+            <div className={styles.layout}>
+
+                {/* Desktop sticky sidebar */}
+                <div className={styles.sidebarWrapper}>
+                    {tabListContent}
+                </div>
+
+                {/* Tab content area */}
+                <div className={styles.tabsContainer} id="settings-tabs">
                     {selectedValue === tabIds.profile && <ProfileTab/>}
                     {selectedValue === tabIds.linkedAccounts && <LinkedAccountsTab/>}
                     {selectedValue === tabIds.sessions && <SessionsTab/>}
@@ -132,8 +157,9 @@ const Settings = () =>
                     {selectedValue === tabIds.appAdmins && <AppAdminsTab/>}
                     {selectedValue === tabIds.templates && <TemplatesTab/>}
                 </div>
+
             </div>
-        </>
+        </div>
     );
 }
 
