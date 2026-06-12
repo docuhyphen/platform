@@ -185,8 +185,6 @@ const NotificationsPanel: React.FC = () =>
         }
     };
 
-    const totalBadgeCount = unreadCount + items.length;
-
     return (
         <Popover withArrow>
             <PopoverTrigger disableButtonEnhancement>
@@ -197,12 +195,12 @@ const NotificationsPanel: React.FC = () =>
                         shape="circular"
                         aria-label="Notifications and pending approvals"
                     />
-                    {totalBadgeCount > 0 && (
+                    {unreadCount > 0 && (
                         <CounterBadge
                             className={styles.badge}
                             appearance="filled"
                             color="danger"
-                            count={totalBadgeCount}
+                            count={unreadCount}
                         />
                     )}
                 </div>
