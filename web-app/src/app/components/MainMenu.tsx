@@ -21,8 +21,7 @@ import ExchangeInitiation from "../exchange-initiation/ExchangeInitiation.tsx";
 import AppLogo from "./app-logo/AppLogo.tsx";
 import {useGlobalStyles} from "../../GlobalStyles.tsx";
 import {InfoIcon, SettingsIcon, ExchangeIcon, SignOutButtonIcon} from "./IconBundles.tsx";
-import NotificationList from './main-menu/notification/NotificationList';
-import PendingApprovals from './main-menu/pending-approvals/PendingApprovals';
+import NotificationsPanel from './main-menu/notifications-panel/NotificationsPanel';
 
 const MAX_DISPLAY_EMAIL_LENGTH = 36;
 const LAST_EXCHANGES_QUERY_STORAGE_KEY = 'exchanges.lastRoute.query';
@@ -59,7 +58,7 @@ function formatEmailForDisplay(email?: string, maxLength: number = MAX_DISPLAY_E
 
 const MainMenu: React.FC<{ onToggleHelpSidebar: () => void }> = ({onToggleHelpSidebar}) =>
 {
-    const {appUser, appUserPersonOrganization} = useAuth();
+    const {appUser} = useAuth();
     const navigate = useNavigate();
     const [isSignOutDialogOpen, setIsSignOutDialogOpen] = useState(false);
 
@@ -98,10 +97,9 @@ const MainMenu: React.FC<{ onToggleHelpSidebar: () => void }> = ({onToggleHelpSi
 
             {/* Tour anchor: Notifications */}
             <div id="tour-notifications" style={{display: 'inline-flex', alignItems: 'center'}}>
-                <NotificationList/>
+                <NotificationsPanel/>
             </div>
 
-            {appUserPersonOrganization?.isActive && <PendingApprovals/>}
 
             {/*<Button icon={<InfoIcon/>}*/}
             {/*        onClick={() => navigate('/')}*/}
