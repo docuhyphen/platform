@@ -44,7 +44,7 @@ const industries: Record<string, IndustriesContent> = {
     },
     "legal": {
         name: "Law Firms & Legal Practices",
-        headline: "Privileged documents deserve privileged controls.",
+        headline: "Protect confidential legal information at every stage.",
         blurb: "Replace attachment email chains and consumer file-sharing tools with structured, auditable client exchanges.",
         screenshotSrc: "/demo-screenshots/app-screenshot-legal.JPG",
         useCases: [

@@ -291,10 +291,12 @@ const ExchangeList: React.FC<ExchangeListProps> = (
                 setActiveCount(activeResponse && !('error' in activeResponse) ? activeResponse.totalElements : 0);
                 setArchiveCount(archiveResponse && !('error' in archiveResponse) ? archiveResponse.totalElements : 0);
 
-                if (activeTab === 'inbox')
-                {
-                    await fetchInboxRoleCounts();
-                }
+                // Always refresh inbox counts regardless of the current tab so the inbox badge
+                // is accurate on initial load and the first-visit auto-tab-switch works correctly
+                // for users whose only visible exchanges are in draft (INITIATED) state, e.g. when
+                // they have been added as a manager to an existing exchange that hasn't been
+                // accepted or declined yet.
+                await fetchInboxRoleCounts();
             }
             catch (error)
             {

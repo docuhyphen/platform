@@ -28,6 +28,26 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
                 "AND sh.principalKind = :upk AND sh.principalId = :appUserId AND sh.status = :ass))"
 
         /**
+         * Visibility predicate for INITIATED (draft) exchanges in [searchSessions] /
+         * [countSearchResults]. A draft exchange is visible to the user when at least one of:
+         *  - the exchange is not in draft state (status != INITIATED)
+         *  - the user is the initiator
+         *  - the user holds an active USER share with a role other than PARTICIPANT
+         *
+         * This prevents pure participant-role users (co-witnesses added at creation) from seeing
+         * an exchange before the primary recipient has accepted, while correctly showing it to
+         * users with elevated roles such as MANAGER - even when they also carry an inherited
+         * PARTICIPANT share from a group that is itself a participant on the exchange.
+         *
+         * Requires :initiatedStatus, :srt, :upk, :ass, :appUserId (all bound by the callers).
+         */
+        private const val DRAFT_VISIBLE =
+            "(s.status <> :initiatedStatus OR s.initiator.id = :appUserId OR EXISTS (" +
+                "SELECT sh2 FROM Share sh2 WHERE sh2.resourceType = :srt AND sh2.resourceId = s.id " +
+                "AND sh2.principalKind = :upk AND sh2.principalId = :appUserId AND sh2.status = :ass " +
+                "AND sh2.roleName <> 'PARTICIPANT'))"
+
+        /**
          * Free-text predicate for [searchSessions] / [countSearchResults]. Matches the session's
          * own fields plus its recipients, which under the unified model live in `share` rows keyed
          * by a polymorphic `principalId` (no JPA relationship), so each recipient kind is reached
@@ -221,10 +241,7 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
         SELECT DISTINCT s FROM Exchange s
         WHERE $ACCESSIBLE
         AND s.isDeleted = false
-        AND NOT (s.status = :initiatedStatus AND EXISTS (
-            SELECT sh2 FROM Share sh2 WHERE sh2.resourceType = :srt AND sh2.resourceId = s.id
-            AND sh2.principalKind = :upk AND sh2.principalId = :appUserId AND sh2.status = :ass
-            AND sh2.roleName = 'PARTICIPANT'))
+        AND $DRAFT_VISIBLE
     """
         )
 
@@ -294,10 +311,7 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
         SELECT COUNT(DISTINCT s) FROM Exchange s
         WHERE $ACCESSIBLE
         AND s.isDeleted = false
-        AND NOT (s.status = :initiatedStatus AND EXISTS (
-            SELECT sh2 FROM Share sh2 WHERE sh2.resourceType = :srt AND sh2.resourceId = s.id
-            AND sh2.principalKind = :upk AND sh2.principalId = :appUserId AND sh2.status = :ass
-            AND sh2.roleName = 'PARTICIPANT'))
+        AND $DRAFT_VISIBLE
     """
         )
 

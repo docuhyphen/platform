@@ -415,6 +415,7 @@ export interface ExchangeDetailedDto
     description?: string;
     initiator?: AppUserDetailedDto;
     recipient?: AppUserDetailedDto;
+    recipientGroupName?: string;
     status?: ExchangeStatus;
     documents?: DocumentDetailedDto[];
     requestRecipientSignIn?: boolean;

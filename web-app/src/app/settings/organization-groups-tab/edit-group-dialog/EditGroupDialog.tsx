@@ -1,6 +1,5 @@
 ﻿import {
     Button,
-    Checkbox,
     Dialog,
     DialogActions,
     DialogBody,
@@ -8,7 +7,6 @@
     DialogSurface,
     DialogTitle,
     DialogTrigger,
-    Divider,
     Dropdown,
     Field,
     Input, MessageBar, MessageBarActions, MessageBarBody, MessageBarTitle,
@@ -21,14 +19,23 @@
     TableHeader,
     TableHeaderCell,
     TableRow,
+    Tag,
     Text
 } from "@fluentui/react-components";
-import React, {useEffect, useState} from "react";
+import {
+    TagPicker,
+    TagPickerControl,
+    TagPickerGroup,
+    TagPickerInput,
+    TagPickerList,
+    TagPickerOption,
+} from "@fluentui/react-tag-picker";
+import React, {useEffect, useRef, useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import {fetchMyOrganizationUsers, updateOrganizationGroup} from "../../../../services/organizationApi.ts";
 import {AppUserDetailedDto, OrganizationDetailedDto, OrganizationGroupDetailedDto} from "../../../models/models.tsx";
 import {useEditGroupDialogStyles} from "./EditGroupDialogStyles.tsx";
-import {ArrowLeftRegular, ArrowRightRegular, DismissRegular} from "@fluentui/react-icons";
+import {DeleteRegular, DismissRegular} from "@fluentui/react-icons";
 import {GroupRole, GroupRoleDisplayNames} from "../../../../services/types/roles";
 
 interface EditGroupDialogProps
@@ -36,7 +43,7 @@ interface EditGroupDialogProps
     isOpen: boolean;
     onDismiss: () => void;
     appUserPersonOrganization: OrganizationDetailedDto;
-    group: OrganizationGroupDetailedDto
+    group: OrganizationGroupDetailedDto;
     onComplete: () => void;
 }
 
@@ -49,31 +56,24 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
         onComplete
     }) =>
 {
-    const styles = useEditGroupDialogStyles()
+    const styles = useEditGroupDialogStyles();
     const {token} = useAuth();
     const [name, setName] = useState("");
     const [isActive, setIsActive] = useState(true);
     const [users, setUsers] = useState<AppUserDetailedDto[]>([]);
-    const [showingPermissions, setShowingPermissions] = useState(false);
-    const [permissionManagementAppUser, setPermissionManagementAppUser] = useState<AppUserDetailedDto | null>(null);
-    const [selectedUsers, setSelectedUsers] = useState<Map<string, {
-        appUserId: string;
-        allowExchangeAccept: boolean;
-        allowExchangeReject: boolean;
-        allowExchangeEdit: boolean;
-        allowExchangeDelete: boolean;
-        allowExchangeEnd: boolean;
-        allowDocumentAddition: boolean;
-        allowDocumentDeletion: boolean;
-        allowDocumentDownload: boolean;
-        allowDocumentUpdate: boolean;
-        allowDocumentUpload: boolean;
-    }>>(new Map());
+    const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
+    const [memberRoles, setMemberRoles] = useState<Map<string, GroupRole>>(new Map());
     const [savingData, setSavingData] = useState(false);
     const [loadingUsers, setLoadingUsers] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [permissionDenied, setPermissionDenied] = useState(false);
-    const [memberRoles, setMemberRoles] = useState<Map<string, GroupRole>>(new Map());
+
+    // Add-member picker state
+    const [addMemberQuery, setAddMemberQuery] = useState("");
+    const addMemberDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [addMemberFilteredQuery, setAddMemberFilteredQuery] = useState("");
+    // Tracks which users are staged as tags inside the TagPicker (proper controlled state)
+    const [pickerSelectedIds, setPickerSelectedIds] = useState<string[]>([]);
 
     useEffect(() =>
     {
@@ -81,64 +81,48 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
         {
             setName(group.name || "");
             setIsActive(group.isActive);
+            setPermissionDenied(false);
+            setError(null);
+            setAddMemberQuery("");
+            setAddMemberFilteredQuery("");
+            setPickerSelectedIds([]);
 
-            loadUsers().then(() =>
+            loadUsers().then((fetchedUsers) =>
             {
-                const userMap = new Map();
-
-                group.members?.forEach((member: any) =>
-                {
-                    const appUserIsMember = users.find(u => u.id == member.user.id)
-
-                    if (appUserIsMember)
-                    {
-                        const appUserMember = member.user
-                        userMap.set(appUserMember.id, {
-                            appUserId: appUserMember.id,
-                            allowExchangeAccept: member.permissions?.allowExchangeAccept || false,
-                            allowExchangeReject: member.permissions?.allowExchangeReject || false,
-                            allowExchangeEdit: member.permissions?.allowExchangeEdit || false,
-                            allowExchangeDelete: member.permissions?.allowExchangeDelete || false,
-                            allowExchangeEnd: member.permissions?.allowExchangeEnd || false,
-                            allowDocumentAddition: member.permissions?.allowDocumentAddition || false,
-                            allowDocumentDeletion: member.permissions?.allowDocumentDeletion || false,
-                            allowDocumentDownload: member.permissions?.allowDocumentDownload || false,
-                            allowDocumentUpdate: member.permissions?.allowDocumentUpdate || false,
-                            allowDocumentUpload: member.permissions?.allowDocumentUpload || false
-                        });
-                    }
-                });
-
-                setSelectedUsers(userMap);
-
-                // Initialize role map from group member data
+                const newMembers = new Set<string>();
                 const rolesMap = new Map<string, GroupRole>();
+
                 group.members?.forEach((member: any) =>
                 {
                     const uid = member.user?.id;
-                    if (uid)
-                    {
-                        const role = member.groupRole || member.permissions?.groupRole || GroupRole.MEMBER;
-                        rolesMap.set(uid, role as GroupRole);
-                    }
+                    if (!uid) return;
+                    const isFetched = fetchedUsers.some(u => u.id === uid || u.id == uid);
+                    if (isFetched) newMembers.add(String(uid));
+                    const role = member.groupRole || member.permissions?.groupRole || GroupRole.MEMBER;
+                    rolesMap.set(String(uid), role as GroupRole);
                 });
+
+                setSelectedMembers(newMembers);
                 setMemberRoles(rolesMap);
-            })
+            });
         }
     }, [isOpen]);
 
-    const loadUsers = async () =>
+    const loadUsers = async (): Promise<AppUserDetailedDto[]> =>
     {
         setLoadingUsers(true);
         try
         {
-            const fetchedUsers = await fetchMyOrganizationUsers(token || undefined);
-            setUsers(fetchedUsers.filter(user => user.isActive));
+            const fetched = await fetchMyOrganizationUsers(token || undefined);
+            const active = fetched.filter(u => u.isActive);
+            setUsers(active);
+            return active;
         }
         catch (err: any)
         {
             setError(err.message || "Failed to load users");
             console.error("Failed to load users:", err);
+            return [];
         }
         finally
         {
@@ -150,18 +134,24 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
     {
         if (!appUserPersonOrganization.id || !group?.id || !name.trim()) return;
 
-        if (selectedUsers.size === 0)
+        if (selectedMembers.size === 0)
         {
-            setError("Please select at least one member for the group");
+            setError("Please add at least one member to the group");
+            return;
+        }
+
+        const hasOwner = Array.from(selectedMembers).some(uid => memberRoles.get(uid) === GroupRole.OWNER);
+        if (!hasOwner)
+        {
+            setError("The group must have at least one member with the Owner role.");
             return;
         }
 
         setSavingData(true);
         setError(null);
-
         try
         {
-            const members = Array.from(selectedUsers.keys()).map(uid => ({
+            const members = Array.from(selectedMembers).map(uid => ({
                 appUserId: uid,
                 groupRole: memberRoles.get(uid) || GroupRole.MEMBER,
             }));
@@ -169,23 +159,15 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
             await updateOrganizationGroup(
                 appUserPersonOrganization.id,
                 group.id.toString(),
-                {
-                    name: name.trim(),
-                    isActive,
-                    members
-                },
+                {name: name.trim(), isActive, members},
                 token || undefined
             );
 
-            onClose(true)
+            onClose(true);
         }
         catch (err: any)
         {
-            // Backend authorizes group mutations on GROUP_MANAGE_MEMBERS / GROUP_DELETE exch-
-            // anything else returns 403. Lock the dialog into a "read-only, no permission"
-            // state so the user understands the system is refusing on purpose, not just throwing.
-            const status = (err as { status?: number; response?: { status?: number } } | null | undefined)
-                ?.status ?? (err as { response?: { status?: number } } | null | undefined)?.response?.status;
+            const status = (err as any)?.status ?? (err as any)?.response?.status;
             if (status === 403)
             {
                 setPermissionDenied(true);
@@ -203,265 +185,71 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
         }
     };
 
-    const toggleUserSelection = (userId: string) =>
+    const addMember = (userId: string) =>
     {
-        const newSelectedUsers = new Map(selectedUsers);
-
-        if (newSelectedUsers.has(userId))
+        setSelectedMembers(prev =>
         {
-            newSelectedUsers.delete(userId);
-        }
-        else
+            const next = new Set(prev);
+            next.add(userId);
+            return next;
+        });
+        setMemberRoles(prev =>
         {
-            newSelectedUsers.set(userId, {
-                appUserId: userId,
-                allowExchangeAccept: true,
-                allowExchangeReject: true,
-                allowExchangeEdit: true,
-                allowExchangeDelete: true,
-                allowExchangeEnd: true,
-                allowDocumentAddition: true,
-                allowDocumentDeletion: true,
-                allowDocumentDownload: true,
-                allowDocumentUpdate: true,
-                allowDocumentUpload: true
-            });
-        }
-
-        setSelectedUsers(newSelectedUsers);
+            const next = new Map(prev);
+            if (!next.has(userId)) next.set(userId, GroupRole.MEMBER);
+            return next;
+        });
     };
 
-    const updateUserPermission = (userId: string, permission: string, value: boolean) =>
+    const removeMember = (userId: string) =>
     {
-        const userPermissions = selectedUsers.get(userId);
-        if (!userPermissions) return;
-
-        const newSelectedUsers = new Map(selectedUsers);
-        newSelectedUsers.set(userId, {
-            ...userPermissions,
-            [permission]: value
+        setSelectedMembers(prev =>
+        {
+            const next = new Set(prev);
+            next.delete(userId);
+            return next;
         });
-
-        setSelectedUsers(newSelectedUsers);
     };
 
     const onClose = (complete?: boolean) =>
     {
-        setShowingPermissions(false)
-        setPermissionManagementAppUser(null)
         setError(null);
-
-        if (complete)
-        {
-            onComplete()
-        }
-        else
-        {
-            onDismiss();
-        }
+        if (complete) onComplete();
+        else onDismiss();
     };
 
-    const renderTable = () =>
+    // Options for the picker: org users not yet members and not staged in picker, filtered by query
+    const pickerOptions = users.filter(u =>
     {
-        return <>
-            <Table size="small">
-                <TableHeader>
-                    <TableRow>
-                        <TableHeaderCell>Select</TableHeaderCell>
-                        <TableHeaderCell>Name</TableHeaderCell>
-                        <TableHeaderCell>Email</TableHeaderCell>
-                        <TableHeaderCell>Role</TableHeaderCell>
-                        <TableHeaderCell>Permissions</TableHeaderCell>
-                    </TableRow>
-                </TableHeader>
-                {renderTableBody()}
-            </Table>
-        </>
-    }
+        const uid = String(u.id ?? "");
+        if (selectedMembers.has(uid)) return false;
+        if (pickerSelectedIds.includes(uid)) return false;
+        if (!addMemberFilteredQuery) return true;
+        const q = addMemberFilteredQuery.toLowerCase();
+        const fullName = `${u.person?.firstName ?? ""} ${u.person?.lastName ?? ""}`.toLowerCase();
+        return fullName.includes(q) || u.email.toLowerCase().includes(q);
+    });
 
-    const renderPermissionsSection = () =>
+    const onAddMemberQueryChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     {
-        const name = `${permissionManagementAppUser?.person.firstName} ${permissionManagementAppUser?.person.lastName}`;
-        const appUserId = permissionManagementAppUser?.id?.toString() || "";
-        const permissions = selectedUsers.get(appUserId);
+        const q = e.target.value;
+        setAddMemberQuery(q);
+        if (addMemberDebounceRef.current) clearTimeout(addMemberDebounceRef.current);
+        addMemberDebounceRef.current = setTimeout(() => setAddMemberFilteredQuery(q), 150);
+    };
 
-        return <section className={styles.appUserPermissionListContainer}>
-            <div>
-                <Button icon={<ArrowLeftRegular/>}
-                        appearance={"transparent"}
-                        onClick={() => onManageAppUserPermissions(null)}/>
-                Permissions for <Text weight={"semibold"}>{name}</Text>
-            </div>
-            <Divider appearance={"brand"}
-                     alignContent={"start"}
-                     className={styles.mainDivider}>
-                Session Permissions
-            </Divider>
-            <Field>
-                <Checkbox
-                    label="Accept Sessions"
-                    checked={permissions.allowExchangeAccept}
-                    onChange={(_, data) => updateUserPermission(appUserId, "allowExchangeAccept", !!data.checked)}
-                />
-            </Field>
-            <Field>
-                <Checkbox
-                    label="Reject Sessions"
-                    checked={permissions.allowExchangeReject}
-                    onChange={(_, data) => updateUserPermission(appUserId, "allowExchangeReject", !!data.checked)}
-                />
-            </Field>
-            <Field>
-                <Checkbox
-                    label="Edit Sessions"
-                    checked={permissions.allowExchangeEdit}
-                    onChange={(_, data) => updateUserPermission(appUserId, "allowExchangeEdit", !!data.checked)}
-                />
-            </Field>
-            <Field>
-                <Checkbox
-                    label="Delete Sessions"
-                    checked={permissions.allowExchangeDelete}
-                    onChange={(_, data) => updateUserPermission(appUserId, "allowExchangeDelete", !!data.checked)}
-                />
-            </Field>
-            <Field>
-                <Checkbox
-                    label="End Sessions"
-                    checked={permissions.allowExchangeEnd}
-                    onChange={(_, data) => updateUserPermission(appUserId, "allowExchangeEnd", !!data.checked)}
-                />
-            </Field>
-            <Divider appearance={"brand"}
-                     alignContent={"start"}
-                     className={styles.mainDivider}>
-                Document Permissions
-            </Divider>
-            <Field>
-                <Checkbox
-                    label="Add Documents"
-                    checked={permissions.allowDocumentAddition}
-                    onChange={(_, data) => updateUserPermission(appUserId, "allowDocumentAddition", !!data.checked)}
-                />
-            </Field>
-            <Field>
-                <Checkbox
-                    label="Delete Documents"
-                    checked={permissions.allowDocumentDeletion}
-                    onChange={(_, data) => updateUserPermission(appUserId, "allowDocumentDeletion", !!data.checked)}
-                />
-            </Field>
-            <Field>
-                <Checkbox
-                    label="Download Documents"
-                    checked={permissions.allowDocumentDownload}
-                    onChange={(_, data) => updateUserPermission(appUserId, "allowDocumentDownload", !!data.checked)}
-                />
-            </Field>
-            <Field>
-                <Checkbox
-                    label="Update Documents"
-                    checked={permissions.allowDocumentUpdate}
-                    onChange={(_, data) => updateUserPermission(appUserId, "allowDocumentUpdate", !!data.checked)}
-                />
-            </Field>
-            <Field>
-                <Checkbox
-                    label="Upload Documents"
-                    checked={permissions.allowDocumentUpload}
-                    onChange={(_, data) => updateUserPermission(appUserId, "allowDocumentUpload", !!data.checked)}
-                />
-            </Field>
-        </section>
-    }
+    const displayName = (u: AppUserDetailedDto) =>
+        `${u.person?.firstName ?? ""} ${u.person?.lastName ?? ""}`.trim() || u.email;
 
-    const onManageAppUserPermissions = (appUser?: AppUserDetailedDto | null) =>
-    {
-        if (appUser == null)
-        {
-            setShowingPermissions(false);
-            setPermissionManagementAppUser(null);
-        }
-        else
-        {
-            setShowingPermissions(true);
-            setPermissionManagementAppUser(appUser);
-        }
-    }
-
-    const renderTableBody = () =>
-    {
-        return <>
-            <TableBody>
-                {users.map((user) => (
-                    <TableRow key={user.id}>
-                        <TableCell
-                            width={80}>
-                            <Checkbox
-                                checked={selectedUsers.has(user.id?.toString() || "")}
-                                disabled={permissionDenied}
-                                onChange={() => toggleUserSelection(user.id?.toString() || "")}
-                            />
-                        </TableCell>
-                        <TableCell title={`${user.person?.firstName ?? ""} ${user.person?.lastName ?? ""}`.trim()}>
-                            <div style={{maxWidth: "180px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>
-                                {user.person?.firstName} {user.person?.lastName}
-                            </div>
-                        </TableCell>
-                        <TableCell title={user.email}>
-                            <div style={{maxWidth: "220px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>
-                                {user.email}
-                            </div>
-                        </TableCell>
-                        <TableCell>
-                            {selectedUsers.has(user.id?.toString() || "") && (
-                                <Dropdown
-                                    size="small"
-                                    disabled={permissionDenied}
-                                    value={GroupRoleDisplayNames[memberRoles.get(user.id?.toString() || "") || GroupRole.MEMBER]}
-                                    selectedOptions={[memberRoles.get(user.id?.toString() || "") || GroupRole.MEMBER]}
-                                    onOptionSelect={(_e, d) =>
-                                    {
-                                        const uid = user.id?.toString() || "";
-                                        setMemberRoles(prev =>
-                                        {
-                                            const next = new Map(prev);
-                                            next.set(uid, (d.optionValue || GroupRole.MEMBER) as GroupRole);
-                                            return next;
-                                        });
-                                    }}
-                                >
-                                    {Object.entries(GroupRoleDisplayNames).map(([k, v]) => (
-                                        <Option key={k} value={k}>{v}</Option>
-                                    ))}
-                                </Dropdown>
-                            )}
-                        </TableCell>
-                        <TableCell>
-                            {selectedUsers.has(user.id?.toString() || "") && (
-                                <Button size={"small"}
-                                        onClick={() => onManageAppUserPermissions(user)}
-                                        iconPosition={"after"}
-                                        shape={"circular"}
-                                        disabled={permissionDenied}
-                                        icon={<ArrowRightRegular/>}
-                                        appearance={"outline"}>
-                                    Permissions
-                                </Button>
-                            )}
-                        </TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </>
-    }
+    // Current members (only users that are in selectedMembers)
+    const memberUsers = users.filter(u => selectedMembers.has(String(u.id ?? "")));
 
     return (
         <Dialog modalType="alert" open={isOpen}>
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle className={styles.dialogTitleContainer}>
-                        <span> Edit Group</span>
+                        <span>Edit Group</span>
                         <Field>
                             <Switch
                                 checked={isActive}
@@ -472,7 +260,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                     </DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
                         {permissionDenied &&
-                            <MessageBar intent={"info"}>
+                            <MessageBar intent="info">
                                 <MessageBarBody>
                                     <MessageBarTitle>No permission</MessageBarTitle>
                                     You don't have permission to manage this group's members.
@@ -481,7 +269,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                             </MessageBar>
                         }
                         {error &&
-                            <MessageBar intent={"error"}>
+                            <MessageBar intent="error">
                                 <MessageBarBody>
                                     <MessageBarTitle>Error</MessageBarTitle>
                                     {error}
@@ -507,15 +295,157 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                             />
                         </Field>
 
-                        <Field label="Group Members" required>
-                            {loadingUsers ? (
-                                <Spinner size="tiny" label="Loading users..."/>
-                            ) : <>
-                                {showingPermissions && renderPermissionsSection()}
-                                {!showingPermissions && renderTable()}
+                        {loadingUsers ? (
+                            <Spinner size="tiny" label="Loading users..."/>
+                        ) : (
+                            <>
+                                <Field
+                                    label="Add members"
+                                    hint="Search by name or email to add org members."
+                                    style={{marginBottom: "12px"}}
+                                >
+                                    <TagPicker
+                                        selectedOptions={pickerSelectedIds}
+                                        onOptionSelect={(_e, data) =>
+                                        {
+                                            const nextIds = data.selectedOptions;
+                                            const added = nextIds.filter(id => !pickerSelectedIds.includes(id));
+                                            const removed = pickerSelectedIds.filter(id => !nextIds.includes(id));
+
+                                            added.forEach(uid =>
+                                            {
+                                                if (uid !== "__no_results__") addMember(uid);
+                                            });
+                                            removed.forEach(uid => removeMember(uid));
+
+                                            setPickerSelectedIds(nextIds.filter(id => id !== "__no_results__"));
+                                            if (added.length > 0)
+                                            {
+                                                setAddMemberQuery("");
+                                                setAddMemberFilteredQuery("");
+                                            }
+                                        }}
+                                    >
+                                        <TagPickerControl>
+                                            <TagPickerGroup>
+                                                {pickerSelectedIds.map(uid =>
+                                                {
+                                                    const u = users.find(x => String(x.id) === uid);
+                                                    return (
+                                                        <Tag key={uid} value={uid} dismissible>
+                                                            {u ? displayName(u) : uid}
+                                                        </Tag>
+                                                    );
+                                                })}
+                                            </TagPickerGroup>
+                                            <TagPickerInput
+                                                disabled={permissionDenied}
+                                                value={addMemberQuery}
+                                                onChange={onAddMemberQueryChange}
+                                                placeholder="Type a name or email..."
+                                            />
+                                        </TagPickerControl>
+                                        <TagPickerList>
+                                            {pickerOptions.map(u => (
+                                                <TagPickerOption
+                                                    key={String(u.id)}
+                                                    value={String(u.id)}
+                                                    text={displayName(u)}
+                                                >
+                                                    {displayName(u)} ({u.email})
+                                                </TagPickerOption>
+                                            ))}
+                                            {pickerOptions.length === 0 && addMemberFilteredQuery.length >= 1 && (
+                                                <TagPickerOption value="__no_results__" text="no results">
+                                                    No matching org members found
+                                                </TagPickerOption>
+                                            )}
+                                        </TagPickerList>
+                                    </TagPicker>
+                                </Field>
+
+                                {/* Members table */}
+                                {memberUsers.length === 0 ? (
+                                    <Text size={200} italic>
+                                        No members added yet. Use the search above to add members.
+                                    </Text>
+                                ) : (
+                                    <Table size="small">
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHeaderCell>Name</TableHeaderCell>
+                                                <TableHeaderCell>Email</TableHeaderCell>
+                                                <TableHeaderCell style={{width: 120}}>Role</TableHeaderCell>
+                                                <TableHeaderCell style={{width: 56}}>Actions</TableHeaderCell>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {memberUsers.map((user) =>
+                                            {
+                                                const uid = String(user.id ?? "");
+                                                return (
+                                                    <TableRow key={uid}>
+                                                        <TableCell
+                                                            title={`${user.person?.firstName ?? ""} ${user.person?.lastName ?? ""}`.trim()}>
+                                                            <div style={{
+                                                                maxWidth: "180px",
+                                                                overflow: "hidden",
+                                                                textOverflow: "ellipsis",
+                                                                whiteSpace: "nowrap"
+                                                            }}>
+                                                                {user.person?.firstName} {user.person?.lastName}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell title={user.email}>
+                                                            <div style={{
+                                                                maxWidth: "220px",
+                                                                overflow: "hidden",
+                                                                textOverflow: "ellipsis",
+                                                                whiteSpace: "nowrap"
+                                                            }}>
+                                                                {user.email}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell style={{width: 120}}>
+                                                            <Dropdown
+                                                                size="small"
+                                                                disabled={permissionDenied}
+                                                                style={{minWidth: "90px", maxWidth: "110px"}}
+                                                                value={GroupRoleDisplayNames[memberRoles.get(uid) || GroupRole.MEMBER]}
+                                                                selectedOptions={[memberRoles.get(uid) || GroupRole.MEMBER]}
+                                                                onOptionSelect={(_e, d) =>
+                                                                {
+                                                                    setMemberRoles(prev =>
+                                                                    {
+                                                                        const next = new Map(prev);
+                                                                        next.set(uid, (d.optionValue || GroupRole.MEMBER) as GroupRole);
+                                                                        return next;
+                                                                    });
+                                                                }}
+                                                            >
+                                                                {Object.entries(GroupRoleDisplayNames).map(([k, v]) => (
+                                                                    <Option key={k} value={k}>{v}</Option>
+                                                                ))}
+                                                            </Dropdown>
+                                                        </TableCell>
+                                                        <TableCell style={{width: 56}}>
+                                                            <Button
+                                                                size="small"
+                                                                appearance="subtle"
+                                                                icon={<DeleteRegular/>}
+                                                                disabled={permissionDenied}
+                                                                title="Remove member"
+                                                                onClick={() => removeMember(uid)}
+                                                            />
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                        </TableBody>
+                                    </Table>
+                                )}
                             </>
-                            }
-                        </Field>
+                        )}
                     </DialogContent>
                 </DialogBody>
                 <DialogActions>

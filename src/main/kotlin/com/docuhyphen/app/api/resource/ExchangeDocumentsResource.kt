@@ -288,8 +288,9 @@ class ExchangeDocumentsResource @Inject constructor(
         return try
         {
             val zipFile = exchangeDocumentService.downloadDocumentsAsZip(exchangeId, request.documentIds)
-            Response.ok(zipFile)
+            Response.ok(zipFile.inputStream())
                 .header("Content-Disposition", "attachment; filename=\"documents.zip\"")
+                .header("Content-Length", zipFile.length())
                 .build()
         }
         catch (exception: Exception)
@@ -341,8 +342,9 @@ class ExchangeDocumentsResource @Inject constructor(
         return try
         {
             val file = exchangeDocumentService.downloadDocument(exchangeId, documentId)
-            Response.ok(file)
+            Response.ok(file.inputStream())
                 .header("Content-Disposition", "attachment; filename=\"${file.name}\"")
+                .header("Content-Length", file.length())
                 .build()
         }
         catch (exception: Exception)
@@ -393,9 +395,11 @@ class ExchangeDocumentsResource @Inject constructor(
         return try
         {
             val document = exchangeDocumentService.getDocumentFilePreviewAsPdf(exchangeId, documentId)
-            Response.ok(document)
+//            Response.ok(document)
+            Response.ok(document.inputStream())
                 .header("Content-Type", "application/pdf")
                 .header("Content-Disposition", "attachment; filename=\"${document.name}\"")
+                .header("Content-Length", document.length())
                 .build()
         }
         catch (exception: Exception)

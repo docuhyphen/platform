@@ -11,6 +11,7 @@ import com.docuhyphen.app.api.model.dto.DocumentDetailedDto
 import com.docuhyphen.app.api.model.dto.ExchangeBasicDto
 import com.docuhyphen.app.api.model.dto.ExchangeDetailedDto
 import com.docuhyphen.app.api.model.entity.DocumentType
+import com.docuhyphen.app.api.repository.PrincipalGroupRepository
 import com.docuhyphen.app.api.resource.model.GrantSessionShareRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.ExchangeInitiationDto
@@ -43,7 +44,7 @@ class ExchangeResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val fileStorageService: FileStorageService,
     private val appUserService: AppUserService,
-
+    private val principalGroupRepository: PrincipalGroupRepository,
     )
 {
     companion object
@@ -594,9 +595,15 @@ class ExchangeResource @Inject constructor(
     {
         if (sessionDto == null) return null
         if (sessionDto.recipient != null) return sessionDto
-        val recipientUserId = shareService.primaryRecipientUserId(sessionDto.id) ?: return sessionDto
-        val recipient = appUserService.getById(recipientUserId) ?: return sessionDto
-        return sessionDto.copy(recipient = com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer.toDto(recipient))
+        val recipientUserId = shareService.primaryRecipientUserId(sessionDto.id)
+        if (recipientUserId != null)
+        {
+            val recipient = appUserService.getById(recipientUserId) ?: return sessionDto
+            return sessionDto.copy(recipient = com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer.toDto(recipient))
+        }
+        val recipientGroupId = shareService.primaryRecipientGroupId(sessionDto.id) ?: return sessionDto
+        val groupName = principalGroupRepository.findById(recipientGroupId)?.name ?: return sessionDto
+        return sessionDto.copy(recipientGroupName = groupName)
     }
 
     /**

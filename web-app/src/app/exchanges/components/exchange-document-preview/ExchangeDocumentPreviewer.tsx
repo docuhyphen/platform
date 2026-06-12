@@ -212,9 +212,11 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                 catch (error: unknown)
                 {
                     console.error("Error downloading document:", error);
+                    const dlMsg = downloadAllowed ? "You can still download the original file" : ''
+
                     const message = (typeof error === 'object' && error && 'message' in error)
                         ? String((error as { message?: unknown }).message)
-                        : "Preview is unavailable for this document. You can still download the original file.";
+                        : `Preview is unavailable for this document. ${dlMsg}`;
                     setPreviewError(message);
                 }
             }
@@ -737,8 +739,8 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
             {
                 return (
                     <div className={styles.previewEmptyState}>
-                        <Text size={500} weight={"semibold"}>No file was uploaded</Text>
-                        <Text size={300} className={styles.previewEmptySubText}>
+                        <Text size={500} weight={"semibold"}>Document not yet uploaded</Text>
+                        <Text size={300} className={styles.previewEmptySubText} align={"center"}>
                             <b>{exchangeDocument.title}</b> has no uploaded file, and this exchange is archived so no further uploads can be made.
                         </Text>
                     </div>
@@ -791,7 +793,8 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                 onLoadError={(error) =>
                 {
                     console.error("Failed to load PDF:", error);
-                    setPreviewError("The preview could not be rendered. You can still download the original file.");
+                    const dlMsg = downloadAllowed ? "You can still download the original file" : ''
+                    setPreviewError(`The preview could not be rendered. ${dlMsg}`);
                 }}
             >
                 {numPages > 0 && (

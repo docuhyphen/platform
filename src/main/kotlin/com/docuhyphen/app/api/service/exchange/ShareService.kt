@@ -226,6 +226,15 @@ class ShareService @Inject constructor(
 
     fun primaryRecipientUserId(exchangeId: UUID): UUID? = recipientShares(exchangeId).firstOrNull()?.principalId
 
+    /** Returns the group ID of the primary PRINCIPAL_GROUP recipient share, or null if none. */
+    fun primaryRecipientGroupId(exchangeId: UUID): UUID? =
+        shareRepository.findActiveByResource(ResourceType.EXCHANGE, exchangeId)
+            .filter {
+                it.principalKind == PrincipalKind.PRINCIPAL_GROUP &&
+                    it.roleName != RoleName.OWNER.name
+            }
+            .firstOrNull()?.principalId
+
     /** Whether the session's recipient share permits the given constraint flag (e.g. "allow_document_upload"). */
     fun recipientConstraintAllows(exchangeId: UUID, flag: String): Boolean
     {

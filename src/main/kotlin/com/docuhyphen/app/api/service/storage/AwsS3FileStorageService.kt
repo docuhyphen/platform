@@ -130,8 +130,9 @@ class AwsS3FileStorageService : FileStorageService
        ============================ */
 
     override fun downloadDocument(key: String): File {
-        // Create a truly unique temp file
-        val tempFile = Files.createTempFile("docuhyphen-${UUID.randomUUID()}", ".tmp").toFile()
+        // Preserve the real file extension so callers can use file.name reliably
+        val extension = "." + key.substringAfterLast('.', "tmp")
+        val tempFile = Files.createTempFile("docuhyphen-${UUID.randomUUID()}", extension).toFile()
 
         val getObjectRequest = GetObjectRequest.builder()
             .bucket(BUCKET_NAME)

@@ -313,8 +313,13 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
 
                                     <div className={styles.personCard}>
                                         <div className={styles.personDetails}>
-                                            <Text weight="semibold">{formatName(exchange.recipient?.person?.firstName, exchange.recipient?.person?.lastName, exchange.recipient?.email)}</Text>
-                                            <Text size={200} className={styles.personEmail}>{exchange.recipient?.email || 'No email'}</Text>
+                                            <Text weight="semibold">
+                                                {exchange.recipientGroupName
+                                                    || formatName(exchange.recipient?.person?.firstName, exchange.recipient?.person?.lastName, exchange.recipient?.email)}
+                                            </Text>
+                                            <Text size={200} className={styles.personEmail}>
+                                                {exchange.recipientGroupName ? 'Group recipient' : (exchange.recipient?.email || 'No email')}
+                                            </Text>
                                         </div>
                                         <Badge appearance="outline" color="brand">Primary recipient</Badge>
                                     </div>

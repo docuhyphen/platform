@@ -7,11 +7,8 @@ import {
     SIGN_UP_URL,
     SPACE_LG,
     SPACE_MD,
-    SPACE_XL,
     SPACE_XS,
     WIDTH_CONTENT,
-    WIDTH_HERO,
-    WIDTH_SUBTITLE,
 } from "./shared.ts";
 import {SpeakToSalesDialog} from "./SpeakToSalesDialog.tsx";
 import {FloatingDocuments} from "./FloatingDocuments.tsx";
@@ -42,7 +39,7 @@ const useStyles = makeStyles({
         zIndex: 1,
 
         [BREAKPOINT_MOBILE]: {
-            padding: `${SPACE_XL} 0`,
+            padding: `8rem 0`,
         },
     },
 
@@ -52,8 +49,9 @@ const useStyles = makeStyles({
         WebkitBackgroundClip: "text",
         WebkitTextFillColor: "transparent",
         color: "transparent",
-        maxWidth: WIDTH_HERO,
-        margin: "0 auto",
+        // maxWidth: WIDTH_HERO,
+        maxWidth: "58rem",
+        // margin: "0 auto",
         fontSize: "4rem",
         fontWeight: tokens.fontWeightSemibold,
         lineHeight: "5rem",
@@ -95,9 +93,10 @@ const useStyles = makeStyles({
     },
 
     supportingText: {
-        maxWidth: WIDTH_SUBTITLE,
-        textAlign: "center",
-        margin: "0 auto",
+        // maxWidth: WIDTH_SUBTITLE,
+        maxWidth: "48rem",
+        // textAlign: "center",
+        // margin: "0 auto",
         fontSize: tokens.fontSizeBase500,
         lineHeight: tokens.lineHeightBase500,
         fontWeight: tokens.fontWeightRegular,
@@ -117,14 +116,14 @@ const useStyles = makeStyles({
 
     actions: {
         display: "flex",
-        justifyContent: "center",
+        justifyContent: "left",
         alignItems: "center",
         flexWrap: "wrap",
         gap: SPACE_MD,
         marginTop: SPACE_LG,
 
         [BREAKPOINT_MOBILE]: {
-            flexDirection: "column",
+            flexDirection: "row",
             gap: SPACE_XS,
         },
     },
@@ -163,7 +162,9 @@ const useStyles = makeStyles({
 
         [BREAKPOINT_MOBILE]: {
             width: "100%",
-            maxWidth: "14rem",
+            maxWidth: "8rem",
+            minWidth: "0",
+            minHeight: "2rem",
             fontSize: tokens.fontSizeBase400,
             lineHeight: tokens.lineHeightBase400,
         },
@@ -177,7 +178,8 @@ const useStyles = makeStyles({
 
         [BREAKPOINT_MOBILE]: {
             width: "100%",
-            maxWidth: "14rem",
+            maxWidth: "8rem",
+            minWidth: "0",
         },
     },
 });
@@ -190,11 +192,11 @@ export function HeroSection()
         <section className={styles.wrapper}>
             <FloatingDocuments/>
             <section className={styles.container}>
-                <LargeTitle align="center" className={styles.title}>
-                    Secure document exchange for sensitive business information
+                <LargeTitle className={styles.title}>
+                    Privileged documents deserve privileged controls
                 </LargeTitle>
                 <Text className={styles.supportingText}>
-                    Securely exchange and collaborate on documents with clients, teams, and external organizations.
+                    Exchange and collaborate on documents with clients, teams, and external organizations.
                 </Text>
 
                 <div className={styles.actions}>

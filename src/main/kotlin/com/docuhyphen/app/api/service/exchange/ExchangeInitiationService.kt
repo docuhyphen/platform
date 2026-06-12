@@ -180,6 +180,15 @@ class ExchangeInitiationService @Inject constructor(
             dto = sessionInitiationDto,
             pendingApproval = recipientNeedsApproval,
         )
+        // When approval is required, the group's share (and all inherited member shares) starts
+        // as PENDING_APPROVAL and is invisible to group members. Give group OWNERs and MANAGERs
+        // an explicit ACTIVE REVIEWER share so they can see the draft and act on the approval
+        // workflow step. Once the approval completes, the group's full shares are activated and
+        // supersede this temporary reviewer access.
+        if (recipientNeedsApproval)
+        {
+            grantGroupManagerViewerAccess(savedExchange, recipientGroupId, initiator)
+        }
         grantParticipantShares(savedExchange, participantPrincipals, initiator)
 
         sendNotifications(
@@ -192,6 +201,38 @@ class ExchangeInitiationService @Inject constructor(
 
         logger.info("Sharing Exchange Initiated ID: ${exchange.id}")
         return savedExchange
+    }
+
+    /**
+     * When a group-recipient exchange requires approval, grant each group OWNER/MANAGER an
+     * active REVIEWER share so they can see the draft exchange in their list and act on the
+     * approval workflow step assigned to them. Without this the group's share (and all
+     * inherited member shares) sits at PENDING_APPROVAL status, which the ACCESSIBLE predicate
+     * does not match, leaving the exchange invisible to the approvers and stuck in draft.
+     *
+     * Regular group MEMBER/OBSERVER principals are intentionally excluded: they only get access
+     * once the approval completes and the group's share is activated.
+     */
+    private fun grantGroupManagerViewerAccess(
+        session: Exchange,
+        recipientGroupId: UUID,
+        initiator: AppUser,
+    )
+    {
+        principalGroupMemberRepository.findActiveMembers(recipientGroupId)
+            .filter { it.principalKind == PrincipalKind.USER }
+            .filter { it.groupRole == GroupRole.MANAGER || it.groupRole == GroupRole.OWNER }
+            .forEach { member ->
+                shareService.grant(
+                    resourceType = ResourceType.EXCHANGE,
+                    resourceId = session.id,
+                    principalKind = PrincipalKind.USER,
+                    principalId = member.principalId,
+                    roleName = RoleName.REVIEWER,
+                    grantedByAppUserId = initiator.id,
+                    source = ShareSource.DIRECT,
+                )
+            }
     }
 
     /**

@@ -12,7 +12,6 @@ import {
     MoreInfoIcon,
     UploadIcon
 } from "../../../components/IconBundles.tsx";
-import {useAuth} from "../../../../context/AuthContext.tsx";
 import {ExchangePermissions} from "../../ExchangePermissions.ts";
 
 interface DocumentActionsMenuProps
@@ -39,7 +38,6 @@ const ExchangeDocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
         onDocumentDeleted
     }) =>
 {
-    const {appUserPersonOrganization} = useAuth();
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [isDownloadDocumentOpen, setIsDownloadDocumentOpen] = React.useState(false);
 
@@ -101,7 +99,7 @@ const ExchangeDocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
                                   onClick={() => onPreviewDocument()}>
                             Preview
                         </MenuItem>
-                        {isActiveExchange && appUserPersonOrganization &&
+                        {isActiveExchange &&
                             <MenuItem icon={<MoreInfoIcon/>}
                                       id={`exchange-document-action-details-${exchangeDocument.id}`}
                                       onClick={() => onOpenDetailsSidebar()}>

@@ -81,6 +81,7 @@ data class ExchangeDetailedDto(
     val description: String? = null,
     val initiator: AppUserDetailedDto? = null,
     val recipient: AppUserDetailedDto? = null,
+    val recipientGroupName: String? = null,
     val status: String?,
     var requestRecipientSignIn: Boolean = false,
     var noAuthAccessValidityDays: Int = 7,

@@ -13,6 +13,8 @@ export const useMyGroupsTabStyles = makeStyles({
     },
     table: {
         width: '100%',
+        overflowX: 'auto',
+        minWidth: 0,
     },
     loading: {
         display: 'flex',
@@ -22,5 +24,15 @@ export const useMyGroupsTabStyles = makeStyles({
     error: {
         color: tokens.colorPaletteRedForeground1,
         ...shorthands.padding('8px'),
+    },
+    statusCell: {
+        width: '90px',
+        minWidth: '90px',
+        maxWidth: '90px',
+    },
+    actionsCell: {
+        width: '60px',
+        minWidth: '60px',
+        maxWidth: '60px',
     },
 });

@@ -12,7 +12,7 @@ import {
     TableCellLayout,
     TableHeader,
     TableHeaderCell,
-    TableRow, Text
+    TableRow, Text, Tooltip
 } from "@fluentui/react-components";
 import * as React from "react";
 import {useEffect, useState} from "react";
@@ -128,10 +128,12 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
                         }));
                         const {inlineItems, overflowItems} = partitionAvatarGroupItems({items, maxInlineItems: 5});
                         return (
-                            <AvatarGroup size={24} layout="stack">
-                                {inlineItems?.map(item => (
-                                    <AvatarGroupItem key={item.key} name={item.name}/>
-                                ))}
+                                <AvatarGroup size={24} layout="stack">
+                                    {inlineItems?.map(item => (
+                                        <Tooltip key={item.key} content={item.name} relationship="label">
+                                            <AvatarGroupItem name={item.name}/>
+                                        </Tooltip>
+                                    ))}
                                 {overflowItems?.length > 0 && (
                                     <AvatarGroupPopover>
                                         {overflowItems.map(item => (
@@ -161,7 +163,7 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
                                 <MenuItem
                                     icon={<PeopleEditRegular/>}
                                     onClick={() => onEditGroup(group)}>
-                                    Edit
+                                    Manage Group
                                 </MenuItem>
                                 <MenuItem
                                     icon={<DeleteRegular/>}

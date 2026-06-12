@@ -131,8 +131,9 @@ class ExchangeDocumentVersionResource @Inject constructor(
         return try
         {
             val file = exchangeDocumentVersionService.getVersionFile(exchangeId, documentId, versionId)
-            Response.ok(file)
+            Response.ok(file.inputStream())
                 .header("Content-Disposition", "attachment; filename=\"${file.name}\"")
+                .header("Content-Length", file.length())
                 .build()
         }
         catch (exception: Exception)

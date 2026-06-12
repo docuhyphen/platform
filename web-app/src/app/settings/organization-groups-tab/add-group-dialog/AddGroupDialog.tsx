@@ -1,6 +1,5 @@
 import {
     Button,
-    Checkbox,
     Dialog,
     DialogActions,
     DialogBody,
@@ -19,13 +18,23 @@ import {
     TableHeader,
     TableHeaderCell,
     TableRow,
-    tokens
+    Text,
+    tokens,
 } from "@fluentui/react-components";
-import React, {useEffect, useState} from "react";
+import {
+    TagPicker,
+    TagPickerControl,
+    TagPickerGroup,
+    TagPickerInput,
+    TagPickerList,
+    TagPickerOption,
+} from "@fluentui/react-tag-picker";
+import React, {useEffect, useRef, useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import {addOrganizationGroup, fetchMyOrganizationUsers} from "../../../../services/organizationApi.ts";
 import {AppUserDetailedDto} from "../../../models/models.tsx";
 import {useAddGroupDialogStyles} from "./AddGroupDialogStyles.tsx";
+import {DeleteRegular} from "@fluentui/react-icons";
 import {GroupRole, GroupRoleDisplayNames} from "../../../../services/types/roles";
 
 interface AddGroupDialogProps
@@ -44,44 +53,50 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
         onComplete
     }) =>
 {
-    const styles = useAddGroupDialogStyles()
+    const styles = useAddGroupDialogStyles();
     const {token, appUser} = useAuth();
     const [name, setName] = useState("");
     const [users, setUsers] = useState<AppUserDetailedDto[]>([]);
-    const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+    const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
     const [memberRoles, setMemberRoles] = useState<Map<string, GroupRole>>(new Map());
     const [savingData, setSavingData] = useState(false);
     const [loadingUsers, setLoadingUsers] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // TagPicker state
+    const [pickerSelectedIds, setPickerSelectedIds] = useState<string[]>([]);
+    const [addMemberQuery, setAddMemberQuery] = useState("");
+    const [addMemberFilteredQuery, setAddMemberFilteredQuery] = useState("");
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     const resetForm = () =>
     {
         setName("");
-        setSelectedUsers(new Set());
+        setSelectedMembers(new Set());
         setMemberRoles(new Map());
+        setPickerSelectedIds([]);
+        setAddMemberQuery("");
+        setAddMemberFilteredQuery("");
         setError(null);
-    }
+    };
 
     useEffect(() =>
     {
         if (isOpen)
         {
+            resetForm();
             loadUsers();
-            return;
         }
-
-        resetForm();
     }, [isOpen]);
 
     const loadUsers = async () =>
     {
         if (!organizationId) return;
-
         setLoadingUsers(true);
         try
         {
-            const fetchedUsers = await fetchMyOrganizationUsers(token || undefined);
-            setUsers(fetchedUsers.filter(user => user.isActive));
+            const fetched = await fetchMyOrganizationUsers(token || undefined);
+            setUsers(fetched.filter(u => u.isActive));
         }
         catch (err: any)
         {
@@ -97,32 +112,27 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
     const handleSave = async () =>
     {
         if (!organizationId || !name.trim()) return;
-
-        if (selectedUsers.size === 0)
+        if (selectedMembers.size === 0)
         {
-            setError("Please select at least one member for the group");
+            setError("Please add at least one member to the group");
             return;
         }
 
+        const hasOwner = Array.from(selectedMembers).some(uid => memberRoles.get(uid) === GroupRole.OWNER);
+        if (!hasOwner)
+        {
+            setError("The group must have at least one member with the Owner role.");
+            return;
+        }
         setSavingData(true);
         setError(null);
-
         try
         {
-            const members = Array.from(selectedUsers).map(userId => ({
-                appUserId: userId,
-                groupRole: memberRoles.get(userId) || GroupRole.MEMBER,
+            const members = Array.from(selectedMembers).map(uid => ({
+                appUserId: uid,
+                groupRole: memberRoles.get(uid) || GroupRole.MEMBER,
             }));
-
-            await addOrganizationGroup(
-                organizationId,
-                {
-                    name: name.trim(),
-                    members
-                },
-                token || undefined
-            );
-
+            await addOrganizationGroup(organizationId, {name: name.trim(), members}, token || undefined);
             resetForm();
             onComplete();
         }
@@ -137,28 +147,56 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
         }
     };
 
-    const toggleUserSelection = (userId: string) =>
+    const addMember = (uid: string) =>
     {
-        const next = new Set(selectedUsers);
-        if (next.has(userId))
+        setSelectedMembers(prev =>
         {
-            next.delete(userId);
-        }
-        else
+            const next = new Set(prev);
+            next.add(uid);
+            return next;
+        });
+        setMemberRoles(prev =>
         {
-            next.add(userId);
-            if (!memberRoles.has(userId))
-            {
-                setMemberRoles(prev =>
-                {
-                    const r = new Map(prev);
-                    r.set(userId, userId === appUser.id ? GroupRole.OWNER : GroupRole.MEMBER);
-                    return r;
-                });
-            }
-        }
-        setSelectedUsers(next);
+            const next = new Map(prev);
+            if (!next.has(uid))
+                next.set(uid, uid === appUser?.id ? GroupRole.OWNER : GroupRole.MEMBER);
+            return next;
+        });
     };
+
+    const removeMember = (uid: string) =>
+    {
+        setSelectedMembers(prev =>
+        {
+            const next = new Set(prev);
+            next.delete(uid);
+            return next;
+        });
+        setPickerSelectedIds(prev => prev.filter(id => id !== uid));
+    };
+
+    const onQueryChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    {
+        const q = e.target.value;
+        setAddMemberQuery(q);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => setAddMemberFilteredQuery(q), 150);
+    };
+
+    const displayName = (u: AppUserDetailedDto) =>
+        `${u.person?.firstName ?? ""} ${u.person?.lastName ?? ""}`.trim() || u.email;
+
+    const pickerOptions = users.filter(u =>
+    {
+        const uid = String(u.id ?? "");
+        if (selectedMembers.has(uid) || pickerSelectedIds.includes(uid)) return false;
+        if (!addMemberFilteredQuery) return true;
+        const q = addMemberFilteredQuery.toLowerCase();
+        const fullName = `${u.person?.firstName ?? ""} ${u.person?.lastName ?? ""}`.toLowerCase();
+        return fullName.includes(q) || u.email.toLowerCase().includes(q);
+    });
+
+    const memberUsers = users.filter(u => selectedMembers.has(String(u.id ?? "")));
 
     const onClose = () =>
     {
@@ -172,7 +210,11 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Create New Group</DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
-                        {error && <div style={{color: tokens.colorStatusDangerForeground1, marginBottom: '10px'}}>{error}</div>}
+                        {error && (
+                            <div style={{color: tokens.colorStatusDangerForeground1, marginBottom: "10px"}}>
+                                {error}
+                            </div>
+                        )}
 
                         <Field label="Group Name" required>
                             <Input
@@ -187,61 +229,141 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
                             {loadingUsers ? (
                                 <Spinner size="tiny" label="Loading users..."/>
                             ) : (
-                                <Table size="small">
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHeaderCell style={{width: '48px', paddingRight: 0}}>Select</TableHeaderCell>
-                                            <TableHeaderCell>Name</TableHeaderCell>
-                                            <TableHeaderCell>Email</TableHeaderCell>
-                                            <TableHeaderCell>Role</TableHeaderCell>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {users.map((user) => {
-                                            const uid = user.id?.toString() || "";
-                                            const isSelected = selectedUsers.has(uid);
-                                            return (
-                                                <TableRow key={user.id}>
-                                                    <TableCell style={{width: '48px', paddingRight: 0}}>
-                                                        <Checkbox
-                                                            checked={isSelected}
-                                                            onChange={() => toggleUserSelection(uid)}
-                                                        />
-                                                    </TableCell>
-                                                    <TableCell>{user.person?.firstName} {user.person?.lastName}</TableCell>
-                                                    <TableCell title={user.email}>
-                                                        <div style={{maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
-                                                            {user.email}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {isSelected && (
-                                                            <Dropdown
-                                                                size="small"
-                                                                style={{minWidth: 0, width: '110px'}}
-                                                                value={GroupRoleDisplayNames[memberRoles.get(uid) || GroupRole.MEMBER]}
-                                                                selectedOptions={[memberRoles.get(uid) || GroupRole.MEMBER]}
-                                                                onOptionSelect={(_e, d) =>
-                                                                {
-                                                                    setMemberRoles(prev =>
-                                                                    {
-                                                                        const next = new Map(prev);
-                                                                        next.set(uid, (d.optionValue || GroupRole.MEMBER) as GroupRole);
-                                                                        return next;
-                                                                    });
-                                                                }}
-                                                            >
-                                                                {Object.entries(GroupRoleDisplayNames).map(([k, v]) => (
-                                                                    <Option key={k} value={k}>{v}</Option>
-                                                                ))}
-                                                            </Dropdown>
-                                                        )}
-                                                    </TableCell>
+                                <>
+                                    {/* Search picker at the top */}
+                                    <Field
+                                        label="Add members"
+                                        hint="Search by name or email to add org members."
+                                        style={{marginBottom: "12px"}}
+                                    >
+                                        <TagPicker
+                                            selectedOptions={pickerSelectedIds}
+                                            onOptionSelect={(_e, data) =>
+                                            {
+                                                const nextIds = data.selectedOptions;
+                                                const added = nextIds.filter(id => !pickerSelectedIds.includes(id));
+                                                const removed = pickerSelectedIds.filter(id => !nextIds.includes(id));
+
+                                                added.forEach(uid =>
+                                                {
+                                                    if (uid !== "__no_results__") addMember(uid);
+                                                });
+                                                removed.forEach(uid => removeMember(uid));
+
+                                                setPickerSelectedIds(nextIds.filter(id => id !== "__no_results__"));
+                                                if (added.length > 0)
+                                                {
+                                                    setAddMemberQuery("");
+                                                    setAddMemberFilteredQuery("");
+                                                }
+                                            }}
+                                        >
+                                            <TagPickerControl>
+                                                <TagPickerGroup/>
+                                                <TagPickerInput
+                                                    value={addMemberQuery}
+                                                    onChange={onQueryChange}
+                                                    placeholder="Type a name or email..."
+                                                />
+                                            </TagPickerControl>
+                                            <TagPickerList>
+                                                {pickerOptions.map(u => (
+                                                    <TagPickerOption
+                                                        key={String(u.id)}
+                                                        value={String(u.id)}
+                                                        text={displayName(u)}
+                                                    >
+                                                        {displayName(u)} ({u.email})
+                                                    </TagPickerOption>
+                                                ))}
+                                                {pickerOptions.length === 0 && addMemberFilteredQuery.length >= 1 && (
+                                                    <TagPickerOption value="__no_results__" text="no results">
+                                                        No matching org members found
+                                                    </TagPickerOption>
+                                                )}
+                                            </TagPickerList>
+                                        </TagPicker>
+                                    </Field>
+
+                                    {/* Members-only table */}
+                                    {memberUsers.length === 0 ? (
+                                        <Text size={200} italic>
+                                            No members added yet. Use the search above to add members.
+                                        </Text>
+                                    ) : (
+                                        <Table size="small">
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHeaderCell>Name</TableHeaderCell>
+                                                    <TableHeaderCell>Email</TableHeaderCell>
+                                                    <TableHeaderCell style={{width: 120}}>Role</TableHeaderCell>
+                                                    <TableHeaderCell style={{width: 56}}>Actions</TableHeaderCell>
                                                 </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {memberUsers.map(user =>
+                                                {
+                                                    const uid = String(user.id ?? "");
+                                                    return (
+                                                        <TableRow key={uid}>
+                                                            <TableCell
+                                                                title={`${user.person?.firstName ?? ""} ${user.person?.lastName ?? ""}`.trim()}>
+                                                                <div style={{
+                                                                    maxWidth: "180px",
+                                                                    overflow: "hidden",
+                                                                    textOverflow: "ellipsis",
+                                                                    whiteSpace: "nowrap",
+                                                                }}>
+                                                                    {user.person?.firstName} {user.person?.lastName}
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell title={user.email}>
+                                                                <div style={{
+                                                                    maxWidth: "220px",
+                                                                    overflow: "hidden",
+                                                                    textOverflow: "ellipsis",
+                                                                    whiteSpace: "nowrap",
+                                                                }}>
+                                                                    {user.email}
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell style={{width: 120}}>
+                                                                <Dropdown
+                                                                    size="small"
+                                                                    style={{minWidth: "90px", maxWidth: "110px"}}
+                                                                    value={GroupRoleDisplayNames[memberRoles.get(uid) || GroupRole.MEMBER]}
+                                                                    selectedOptions={[memberRoles.get(uid) || GroupRole.MEMBER]}
+                                                                    onOptionSelect={(_e, d) =>
+                                                                    {
+                                                                        setMemberRoles(prev =>
+                                                                        {
+                                                                            const next = new Map(prev);
+                                                                            next.set(uid, (d.optionValue || GroupRole.MEMBER) as GroupRole);
+                                                                            return next;
+                                                                        });
+                                                                    }}
+                                                                >
+                                                                    {Object.entries(GroupRoleDisplayNames).map(([k, v]) => (
+                                                                        <Option key={k} value={k}>{v}</Option>
+                                                                    ))}
+                                                                </Dropdown>
+                                                            </TableCell>
+                                                            <TableCell style={{width: 56}}>
+                                                                <Button
+                                                                    size="small"
+                                                                    appearance="subtle"
+                                                                    icon={<DeleteRegular/>}
+                                                                    title="Remove member"
+                                                                    onClick={() => removeMember(uid)}
+                                                                />
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                            </TableBody>
+                                        </Table>
+                                    )}
+                                </>
                             )}
                         </Field>
                     </DialogContent>
@@ -250,7 +372,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
                     <Button
                         appearance="primary"
                         shape="circular"
-                        disabled={savingData || !name.trim() || selectedUsers.size === 0}
+                        disabled={savingData || !name.trim() || selectedMembers.size === 0}
                         onClick={handleSave}
                     >
                         {savingData && <Spinner size="tiny"/>}

@@ -49,7 +49,12 @@ class ShareQueryService @Inject constructor(
     private fun resolveDisplayName(kind: PrincipalKind, id: UUID): String? =
         when (kind)
         {
-            PrincipalKind.USER -> appUserRepository.findById(id)?.email
+            PrincipalKind.USER ->
+            {
+                val user = appUserRepository.findById(id)
+                val fullName = "${user?.person?.firstName.orEmpty()} ${user?.person?.lastName.orEmpty()}".trim()
+                fullName.ifBlank { user?.email }
+            }
             PrincipalKind.PRINCIPAL_GROUP -> principalGroupRepository.findById(id)?.name
             PrincipalKind.PARTICIPANT -> externalParticipantRepository.findById(id)?.email
             else -> null

@@ -401,8 +401,9 @@ class NoAuthExchangeResource @Inject constructor(
         return try
         {
             val file = exchangeDocumentService.downloadNoAuthSessionDocument(exchangeId, documentId)
-            Response.ok(file)
+            Response.ok(file.inputStream())
                 .header("Content-Disposition", "attachment; filename=\"${file.name}\"")
+                .header("Content-Length", file.length())
                 .build()
         }
         catch (exception: Exception)
