@@ -15,5 +15,6 @@
 
 <p style="margin:0 0 14px 0;">You can sign in at <a href="${appBaseUrl}/sign-in" style="color:#1f73b7;">${appBaseUrl}/sign-in</a>.</p>
 
+<#include "notification-opt-out.ftl">
 <#include "email-footer.ftl">
 

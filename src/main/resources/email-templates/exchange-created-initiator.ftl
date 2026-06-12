@@ -25,4 +25,5 @@
 <p style="margin:0 0 14px 0;">You will be notified when the recipient acts on this request.</p>
 <p style="margin:0 0 14px 0;">View the exchange: <a href="${exchangeLink}" style="color:#1f73b7;">${exchangeLink}</a></p>
 
+<#include "notification-opt-out.ftl">
 <#include "email-footer.ftl">

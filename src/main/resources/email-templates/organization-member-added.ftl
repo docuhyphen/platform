@@ -25,4 +25,5 @@
 
 <p style="margin:0 0 14px 0;">If you do not recognize this organization, contact <a href="mailto:support@docuhyphen.com" style="color:#1f73b7;">support@docuhyphen.com</a>.</p>
 
+<#include "notification-opt-out.ftl">
 <#include "email-footer.ftl">

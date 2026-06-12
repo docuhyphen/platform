@@ -26,4 +26,5 @@
 
 <p style="margin:0 0 14px 0;">If you have questions about this change, contact your organization administrator.</p>
 
+<#include "notification-opt-out.ftl">
 <#include "email-footer.ftl">

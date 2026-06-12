@@ -64,4 +64,5 @@
 
 <p style="margin:0 0 14px 0; font-size:12px; color:#777777;">If you did not submit this registration, please contact support immediately at <a href="mailto:support@docuhyphen.com" style="color:#1f73b7;">support@docuhyphen.com</a>.</p>
 
+<#include "notification-opt-out.ftl">
 <#include "email-footer.ftl">

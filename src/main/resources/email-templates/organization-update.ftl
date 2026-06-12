@@ -25,5 +25,6 @@
 <p style="margin:0 0 14px 0;"><strong>Updated by:</strong> ${updatedBy}</p>
 <p style="margin:0 0 14px 0;">If you did not authorize this change, please contact your organization administrator or reach out to support immediately.</p>
 
+<#include "notification-opt-out.ftl">
 <#include "email-footer.ftl">
 

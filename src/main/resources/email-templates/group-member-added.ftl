@@ -17,4 +17,5 @@
 <p style="margin:0 0 14px 0;">As a group member you may receive exchanges routed to this group and act on them according to the permissions assigned to you.</p>
 <p style="margin:0 0 14px 0;">Sign in at <a href="${appBaseUrl}/sign-in" style="color:#1f73b7;">${appBaseUrl}/sign-in</a> to view the group.</p>
 
+<#include "notification-opt-out.ftl">
 <#include "email-footer.ftl">

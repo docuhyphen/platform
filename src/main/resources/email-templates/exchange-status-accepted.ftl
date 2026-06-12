@@ -33,5 +33,6 @@
 
 <p style="margin:0 0 14px 0;">Open session: <a href="${exchangeLink}" style="color:#1f73b7;">${exchangeLink}</a></p>
 
+<#include "notification-opt-out.ftl">
 <#include "email-footer.ftl">
 

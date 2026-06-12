@@ -20,5 +20,6 @@
 <p style="margin:0 0 14px 0;">If this wasn't you, change your password immediately and sign out of all devices from your profile settings.</p>
 <p style="margin:0 0 14px 0;">Security settings: <a href="${securityUrl}" style="color:#1f73b7;">${securityUrl}</a></p>
 
+<#include "notification-opt-out.ftl">
 <#include "email-footer.ftl">
 

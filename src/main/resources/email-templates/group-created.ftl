@@ -19,5 +19,6 @@
 <p style="margin:0 0 14px 0;">You are the owner of this group and can manage its members at any time from your Settings page.</p>
 <p style="margin:0 0 14px 0;">Sign in at <a href="${appBaseUrl}/sign-in" style="color:#1f73b7;">${appBaseUrl}/sign-in</a> to view and manage the group.</p>
 
+<#include "notification-opt-out.ftl">
 <#include "email-footer.ftl">
 
