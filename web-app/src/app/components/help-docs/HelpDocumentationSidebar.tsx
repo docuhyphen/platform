@@ -10,7 +10,7 @@ import {
     makeStyles,
     tokens,
 } from "@fluentui/react-components";
-import {DismissFilled, Navigation24Regular} from "@fluentui/react-icons";
+import {DismissFilled, Navigation24Regular, ReOrderDotsVertical20Regular} from "@fluentui/react-icons";
 import {
     getDefaultHelpDocArticle,
     getHelpDocArticleById,
@@ -36,9 +36,35 @@ const useStyles = makeStyles({
         left: 0,
         top: 0,
         bottom: 0,
-        width: "8px",
+        width: "16px",
         cursor: "col-resize",
         zIndex: 2,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        ":hover > span": {
+            color: tokens.colorBrandForeground1,
+            backgroundColor: tokens.colorNeutralBackground1Hover,
+        },
+    },
+    resizeGrip: {
+        position: "absolute",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "16px",
+        height: "32px",
+        borderRadius: tokens.borderRadiusMedium,
+        backgroundColor: tokens.colorNeutralBackground3,
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
+        color: tokens.colorNeutralForeground3,
+        cursor: "col-resize",
+        pointerEvents: "none",
+        transition: "color 0.15s, background-color 0.15s",
+        boxShadow: tokens.shadow2,
     },
     header: {
         position: "sticky",
@@ -196,7 +222,12 @@ const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOp
                style={{width: `${panelWidth}px`}}>
             <div className={styles.resizeHandle}
                  onPointerDown={onResizePointerDown}
-                 aria-hidden/>
+                 aria-label="Drag to resize help panel"
+                 title="Drag to resize">
+                <span className={styles.resizeGrip} aria-hidden>
+                    <ReOrderDotsVertical20Regular/>
+                </span>
+            </div>
 
             <div className={styles.header}>
                 <div className={styles.breadcrumbRow}>

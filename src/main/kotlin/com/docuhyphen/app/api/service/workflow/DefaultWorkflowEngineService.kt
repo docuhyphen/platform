@@ -5,13 +5,18 @@ import com.docuhyphen.app.api.model.entity.WorkflowInstance
 import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
 import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
 import com.docuhyphen.app.api.model.entity.WorkflowStepStatus
+import com.docuhyphen.app.api.model.entity.WorkflowStepType
 import com.docuhyphen.app.api.repository.WorkflowDefinitionRepository
 import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
 import com.docuhyphen.app.api.repository.WorkflowStepInstanceRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.communication.AppNotificationService
+import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventPublisher
+import jakarta.annotation.PostConstruct
 import jakarta.enterprise.context.ApplicationScoped
+import jakarta.enterprise.inject.Instance
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import kotlinx.serialization.Serializable
@@ -26,12 +31,15 @@ import java.util.UUID
 /**
  * Default [WorkflowEngineService] implementation.
  *
- * Deliberately conservative for iteration 2:
- *   * Triggering and decisions are synchronous (transactional).
- *   * Event "emission" returns the list to the caller (iteration 3 wires Kafka).
- *   * SLA escalation is a no-op marker (iteration 3 wires a Quarkus scheduler).
- *   * Only APPROVAL steps are exercised. NOTIFICATION / CONDITION / ACTION steps
- *     decode and advance unconditionally, concrete handlers land later.
+ * Phase 2 additions over the original iteration-2 stub:
+ *   * NOTIFICATION steps send in-app and email notifications to each resolved assignee,
+ *     then auto-complete.
+ *   * CONDITION steps evaluate a `predicateExpression` against `subjectDataJson` fields
+ *     and follow the `onTrue` / `onFalse` outcome branch, then auto-complete.
+ *   * ACTION steps dispatch to a registered [WorkflowActionHandler] by `actionHandlerKey`.
+ *     On success the step completes; on failure the step and instance are REJECTED.
+ *   * Addon processing ([StepAddonSpec]) is evaluated in `escalateOverdue()` so the
+ *     scheduler tick covers both SLA escalation and reminder dispatch.
  */
 @ApplicationScoped
 class DefaultWorkflowEngineService : WorkflowEngineService
@@ -47,8 +55,23 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     @Inject private lateinit var principalGroupRepository: com.docuhyphen.app.api.repository.PrincipalGroupRepository
     @Inject private lateinit var exchangeRepository: com.docuhyphen.app.api.repository.ExchangeRepository
     @Inject private lateinit var appUserRepository: com.docuhyphen.app.api.repository.AppUserRepository
+    @Inject private lateinit var appNotificationService: AppNotificationService
+    @Inject private lateinit var emailService: EmailService
+
+    /** CDI programmatic lookup of all registered [WorkflowActionHandler] beans. */
+    @Inject private lateinit var actionHandlerBeans: Instance<WorkflowActionHandler>
 
     private val json = WorkflowSpecJson.instance
+
+    /** Populated at startup; key = [WorkflowActionHandler.key()]. */
+    private lateinit var actionHandlers: Map<String, WorkflowActionHandler>
+
+    @PostConstruct
+    fun buildActionHandlerRegistry()
+    {
+        actionHandlers = actionHandlerBeans.associate { it.key() to it }
+        logger.info("Registered {} workflow action handler(s): {}", actionHandlers.size, actionHandlers.keys)
+    }
 
     // -------------------------------------------------------------------------
     // trigger
@@ -86,13 +109,21 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         instanceRepository.save(instance)
 
         // Materialise the first step.
-        val firstStep = spec.steps[0]
-        val resolved = assigneeResolver.resolveAll(firstStep.assignees, instance.subjectDataJson)
-        val stepInstance = createStepInstance(instance, 0, firstStep, resolved)
+        val firstSpec = spec.steps[0]
+        val resolved = assigneeResolver.resolveAll(firstSpec.assignees, instance.subjectDataJson)
+        val stepInstance = createStepInstance(instance, 0, firstSpec, resolved)
         stepRepository.save(stepInstance)
 
-        // Notify assignees that they have a new task awaiting decision.
-        publishStepAssigned(instance, stepInstance, resolved)
+        // Activate the step: APPROVAL steps wait for human decisions; all other types
+        // execute immediately and may advance through subsequent steps in the same call.
+        val autoEvents = activateStep(instance, stepInstance, firstSpec, resolved)
+        if (stepInstance.status != WorkflowStepStatus.PENDING)
+        {
+            // Auto-advance step completed synchronously; persist the updated step and instance.
+            stepRepository.update(stepInstance)
+            autoEvents.forEach { publishOutcomeEvent(instance, it) }
+        }
+        instanceRepository.update(instance)
 
         return TriggerResult(
             instanceId = instance.id,
@@ -159,27 +190,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             step.status = WorkflowStepStatus.APPROVED
             step.completedAt = now
             spec.onApprove?.emit?.let { emitted += it }
-
-            val nextRef = spec.onApprove?.nextStep ?: "END"
-            if (nextRef.equals("END", ignoreCase = true))
-            {
-                instance.status = WorkflowInstanceStatus.COMPLETED
-                instance.completedAt = now
-            }
-            else
-            {
-                val nextIndex = nextRef.toIntOrNull()
-                if (nextIndex == null)
-                {
-                    logger.warn("Step {} has invalid onApprove.nextStep='{}', completing instance", step.id, nextRef)
-                    instance.status = WorkflowInstanceStatus.COMPLETED
-                    instance.completedAt = now
-                }
-                else
-                {
-                    advanceToStep(instance, nextIndex)
-                }
-            }
+            advanceOrComplete(instance, spec.onApprove?.nextStep ?: "END", now, step.id)
         }
         // else: quorum not yet met, leave step PENDING.
 
@@ -206,6 +217,19 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     @Transactional
     override fun escalateOverdue(now: Timestamp): Int
     {
+        // Process addons (reminders) for every pending step before handling SLA escalation.
+        stepRepository.findAllPending().forEach { step ->
+            val instance = instanceRepository.findById(step.instanceId)
+            if (instance != null && instance.status == WorkflowInstanceStatus.RUNNING)
+            {
+                val spec = WorkflowSpecJson.decodeStep(step.specSnapshotJson)
+                if (spec.addons.isNotEmpty())
+                {
+                    processAddons(step, spec, now, instance)
+                }
+            }
+        }
+
         val overdue = stepRepository.findPendingDueBefore(now)
         if (overdue.isEmpty()) return 0
 
@@ -232,16 +256,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                     step.status = WorkflowStepStatus.APPROVED
                     step.completedAt = now
                     spec.onApprove?.emit?.let { publishOutcomeEvent(instance, it) }
-                    val nextRef = spec.onApprove?.nextStep ?: "END"
-                    if (nextRef.equals("END", ignoreCase = true))
-                    {
-                        instance.status = WorkflowInstanceStatus.COMPLETED
-                        instance.completedAt = now
-                    }
-                    else
-                    {
-                        nextRef.toIntOrNull()?.let { advanceToStep(instance, it) }
-                    }
+                    advanceOrComplete(instance, spec.onApprove?.nextStep ?: "END", now, step.id)
                 }
                 EscalationAction.ESCALATE, null ->
                 {
@@ -294,7 +309,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     }
 
     // -------------------------------------------------------------------------
-    // helpers
+    // listPendingForUser
     // -------------------------------------------------------------------------
 
     /**
@@ -352,18 +367,304 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         }
     }
 
-    private fun decodeSubjectData(jsonStr: String?): Map<String, String>
+    // -------------------------------------------------------------------------
+    // Step activation and auto-advance handlers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Called once a step is created (persisted). For APPROVAL steps this notifies
+     * assignees and leaves the step PENDING. For all other step types the step is
+     * executed immediately and the list of emitted event strings is returned so the
+     * caller can publish them.
+     *
+     * Note: for auto-advance steps the caller is responsible for persisting the
+     * mutated step and instance via [stepRepository].update / [instanceRepository].update.
+     */
+    private fun activateStep(
+        instance: WorkflowInstance,
+        step: WorkflowStepInstance,
+        spec: WorkflowStepSpec,
+        resolved: List<PrincipalRef>,
+    ): List<String>
     {
-        if (jsonStr.isNullOrBlank()) return emptyMap()
-        return try
+        return when (spec.type)
         {
-            val obj = json.parseToJsonElement(jsonStr) as? kotlinx.serialization.json.JsonObject ?: return emptyMap()
-            obj.entries.mapNotNull { (k, v) ->
-                val prim = v as? kotlinx.serialization.json.JsonPrimitive ?: return@mapNotNull null
-                k to prim.content
-            }.toMap()
+            WorkflowStepType.APPROVAL ->
+            {
+                publishStepAssigned(instance, step, resolved)
+                emptyList()
+            }
+            WorkflowStepType.NOTIFICATION -> executeNotificationStep(instance, step, spec)
+            WorkflowStepType.CONDITION -> executeConditionStep(instance, step, spec)
+            WorkflowStepType.ACTION -> executeActionStep(instance, step, spec)
         }
-        catch (_: Exception) { emptyMap() }
+    }
+
+    /**
+     * Sends in-app and email notifications to every USER assignee in the step's snapshot,
+     * then marks the step COMPLETED and follows the `onApprove` outcome.
+     */
+    private fun executeNotificationStep(
+        instance: WorkflowInstance,
+        step: WorkflowStepInstance,
+        spec: WorkflowStepSpec,
+    ): List<String>
+    {
+        val now = Timestamp.from(Instant.now())
+        val assignees = decodePrincipalList(step.assigneesSnapshotJson)
+        val notificationSubject = "Workflow Notification"
+        val notificationBody = spec.messageTemplateKey
+            ?: "You have a notification from a workflow on DocuHyphen."
+
+        for (a in assignees)
+        {
+            if (a.kind == PrincipalKind.USER.name)
+            {
+                runCatching { UUID.fromString(a.id) }.getOrNull()?.let { uid ->
+                    val user = appUserRepository.findById(uid)
+                    if (user != null)
+                    {
+                        appNotificationService.sendNotification(uid.toString(), notificationSubject, notificationBody)
+                        try { emailService.sendEmail(user.email, notificationSubject, notificationBody) }
+                        catch (e: Exception) { logger.warn("Email notification failed for {}: {}", user.email, e.message) }
+                    }
+                }
+            }
+        }
+
+        step.status = WorkflowStepStatus.COMPLETED
+        step.completedAt = now
+
+        val emitted = mutableListOf<String>()
+        spec.onApprove?.emit?.let { emitted += it }
+        advanceOrComplete(instance, spec.onApprove?.nextStep ?: "END", now, step.id)
+        return emitted
+    }
+
+    /**
+     * Evaluates [WorkflowStepSpec.predicateExpression] against the instance's subject data,
+     * follows the `onTrue` or `onFalse` outcome, and marks the step COMPLETED.
+     *
+     * Supported operators: `==`, `!=`, `contains`, `startsWith`.
+     * Syntax: `"$subject.<key> <op> '<value>'"`.
+     */
+    private fun executeConditionStep(
+        instance: WorkflowInstance,
+        step: WorkflowStepInstance,
+        spec: WorkflowStepSpec,
+    ): List<String>
+    {
+        val now = Timestamp.from(Instant.now())
+        val subjectData = decodeSubjectData(instance.subjectDataJson)
+        val result = evaluatePredicate(spec.predicateExpression, subjectData)
+        logger.debug("CONDITION step {} predicate='{}' evaluated to {}", step.id, spec.predicateExpression, result)
+
+        step.status = WorkflowStepStatus.COMPLETED
+        step.completedAt = now
+
+        val outcome = if (result) spec.onTrue else spec.onFalse
+        val emitted = mutableListOf<String>()
+        outcome?.emit?.let { emitted += it }
+        advanceOrComplete(instance, outcome?.nextStep ?: "END", now, step.id)
+        return emitted
+    }
+
+    /**
+     * Dispatches the ACTION step to the [WorkflowActionHandler] registered for
+     * [WorkflowStepSpec.actionHandlerKey]. On success the step is COMPLETED; on failure
+     * the step and instance are REJECTED.
+     */
+    private fun executeActionStep(
+        instance: WorkflowInstance,
+        step: WorkflowStepInstance,
+        spec: WorkflowStepSpec,
+    ): List<String>
+    {
+        val now = Timestamp.from(Instant.now())
+        val handlerKey = spec.actionHandlerKey
+
+        if (handlerKey == null)
+        {
+            logger.warn("ACTION step {} has no actionHandlerKey; auto-completing as success", step.id)
+            step.status = WorkflowStepStatus.COMPLETED
+            step.completedAt = now
+            val emitted = mutableListOf<String>()
+            spec.onApprove?.emit?.let { emitted += it }
+            advanceOrComplete(instance, spec.onApprove?.nextStep ?: "END", now, step.id)
+            return emitted
+        }
+
+        val handler = actionHandlers[handlerKey]
+        if (handler == null)
+        {
+            logger.error("No WorkflowActionHandler for key '{}'; rejecting step {}", handlerKey, step.id)
+            step.status = WorkflowStepStatus.REJECTED
+            step.completedAt = now
+            instance.status = WorkflowInstanceStatus.REJECTED
+            instance.completedAt = now
+            val emitted = mutableListOf<String>()
+            spec.onReject?.emit?.let { emitted += it }
+            return emitted
+        }
+
+        val result = runCatching { handler.execute(instance, step) }.getOrElse { e ->
+            logger.error("WorkflowActionHandler '{}' threw for step {}: {}", handlerKey, step.id, e.message)
+            ActionResult(success = false, reason = e.message)
+        }
+
+        val emitted = mutableListOf<String>()
+        if (result.success)
+        {
+            step.status = WorkflowStepStatus.COMPLETED
+            step.completedAt = now
+            spec.onApprove?.emit?.let { emitted += it }
+            advanceOrComplete(instance, spec.onApprove?.nextStep ?: "END", now, step.id)
+        }
+        else
+        {
+            logger.warn("ACTION step {} failed (handler='{}'): {}", step.id, handlerKey, result.reason)
+            step.status = WorkflowStepStatus.REJECTED
+            step.completedAt = now
+            instance.status = WorkflowInstanceStatus.REJECTED
+            instance.completedAt = now
+            spec.onReject?.emit?.let { emitted += it }
+        }
+        return emitted
+    }
+
+    // -------------------------------------------------------------------------
+    // Addon processing (reminders)
+    // -------------------------------------------------------------------------
+
+    private fun processAddons(
+        step: WorkflowStepInstance,
+        spec: WorkflowStepSpec,
+        now: Timestamp,
+        instance: WorkflowInstance,
+    )
+    {
+        val state = decodeAddonsState(step.addonsStateJson).toMutableMap()
+        var stateChanged = false
+        val subjectFields = decodeSubjectData(instance.subjectDataJson)
+
+        spec.addons.forEachIndexed { idx, addon ->
+            val key = idx.toString()
+            val addonState = state[key]?.toMutableMap() ?: mutableMapOf()
+
+            when (addon)
+            {
+                is StepAddonSpec.ReminderBeforeDue ->
+                {
+                    if (addonState["fired"] == "true") return@forEachIndexed
+                    val dueAt = step.dueAt ?: return@forEachIndexed
+                    val minutesRemaining = (dueAt.time - now.time) / 60_000L
+                    if (minutesRemaining <= addon.minutesBeforeDue)
+                    {
+                        dispatchAddonReminder(addon.recipientRef, addon.messageTemplateKey, subjectFields)
+                        addonState["fired"] = "true"
+                        addonState["firedAt"] = now.time.toString()
+                        addonState["fireCount"] = "1"
+                        addonState["lastFiredAt"] = now.time.toString()
+                        state[key] = addonState
+                        stateChanged = true
+                        logger.debug("REMINDER_BEFORE_DUE addon {} fired for step {}", idx, step.id)
+                    }
+                }
+
+                is StepAddonSpec.ReminderIfNoDecision ->
+                {
+                    val decisions = decodeDecisions(step.decisionsJson)
+                    if (decisions.isNotEmpty()) return@forEachIndexed
+                    val minutesPending = (now.time - step.createdAt.time) / 60_000L
+                    if (minutesPending < addon.afterMinutes) return@forEachIndexed
+
+                    val fireCount = addonState["fireCount"]?.toIntOrNull() ?: 0
+                    val lastFiredAt = addonState["lastFiredAt"]?.toLongOrNull()
+
+                    val shouldFire = when
+                    {
+                        fireCount == 0 -> true
+                        addon.repeatEveryMinutes != null && lastFiredAt != null ->
+                            (now.time - lastFiredAt) / 60_000L >= addon.repeatEveryMinutes
+                        else -> false
+                    }
+
+                    if (shouldFire)
+                    {
+                        dispatchAddonReminder(addon.recipientRef, addon.messageTemplateKey, subjectFields)
+                        addonState["fired"] = "true"
+                        addonState["firedAt"] = addonState["firedAt"] ?: now.time.toString()
+                        addonState["fireCount"] = (fireCount + 1).toString()
+                        addonState["lastFiredAt"] = now.time.toString()
+                        state[key] = addonState
+                        stateChanged = true
+                        logger.debug("REMINDER_IF_NO_DECISION addon {} fired (count={}) for step {}", idx, fireCount + 1, step.id)
+                    }
+                }
+            }
+        }
+
+        if (stateChanged)
+        {
+            step.addonsStateJson = encodeAddonsState(state)
+            stepRepository.update(step)
+        }
+    }
+
+    private fun dispatchAddonReminder(
+        recipientRef: AssigneeSpec,
+        messageTemplateKey: String?,
+        subjectFields: Map<String, String>,
+    )
+    {
+        val resolved = assigneeResolver.resolveOne(recipientRef, subjectFields)
+        val subject = "Reminder: Action Required"
+        val body = messageTemplateKey ?: "A reminder: your decision is still pending on a workflow step."
+        for (p in resolved)
+        {
+            if (p.kind == PrincipalKind.USER)
+            {
+                appNotificationService.sendNotification(p.id.toString(), subject, body)
+                val user = appUserRepository.findById(p.id)
+                if (user != null)
+                {
+                    try { emailService.sendEmail(user.email, subject, body) }
+                    catch (e: Exception) { logger.warn("Reminder email failed for {}: {}", user.email, e.message) }
+                }
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Routing helpers
+    // -------------------------------------------------------------------------
+
+    private fun advanceOrComplete(
+        instance: WorkflowInstance,
+        nextRef: String,
+        now: Timestamp,
+        currentStepId: UUID,
+    )
+    {
+        if (nextRef.equals("END", ignoreCase = true))
+        {
+            instance.status = WorkflowInstanceStatus.COMPLETED
+            instance.completedAt = now
+        }
+        else
+        {
+            val nextIndex = nextRef.toIntOrNull()
+            if (nextIndex == null)
+            {
+                logger.warn("Step {} has invalid nextStep='{}'; completing instance", currentStepId, nextRef)
+                instance.status = WorkflowInstanceStatus.COMPLETED
+                instance.completedAt = now
+            }
+            else
+            {
+                advanceToStep(instance, nextIndex)
+            }
+        }
     }
 
     private fun advanceToStep(instance: WorkflowInstance, nextIndex: Int)
@@ -382,7 +683,54 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         val resolved = assigneeResolver.resolveAll(nextSpec.assignees, instance.subjectDataJson)
         val newStep = createStepInstance(instance, nextIndex, nextSpec, resolved)
         stepRepository.save(newStep)
-        publishStepAssigned(instance, newStep, resolved)
+
+        val autoEvents = activateStep(instance, newStep, nextSpec, resolved)
+        if (newStep.status != WorkflowStepStatus.PENDING)
+        {
+            stepRepository.update(newStep)
+            autoEvents.forEach { publishOutcomeEvent(instance, it) }
+        }
+    }
+
+    private fun decodeSubjectData(jsonStr: String?): Map<String, String>
+    {
+        if (jsonStr.isNullOrBlank()) return emptyMap()
+        return try
+        {
+            val obj = json.parseToJsonElement(jsonStr) as? kotlinx.serialization.json.JsonObject ?: return emptyMap()
+            obj.entries.mapNotNull { (k, v) ->
+                val prim = v as? kotlinx.serialization.json.JsonPrimitive ?: return@mapNotNull null
+                k to prim.content
+            }.toMap()
+        }
+        catch (_: Exception) { emptyMap() }
+    }
+
+    private fun evaluatePredicate(expression: String?, subjectData: Map<String, String>): Boolean
+    {
+        if (expression.isNullOrBlank()) return true
+        val trimmed = expression.trim()
+        val operators = listOf("startsWith", "contains", "!=", "==")
+        for (op in operators)
+        {
+            val delimiter = " $op "
+            val idx = trimmed.indexOf(delimiter)
+            if (idx < 0) continue
+            val fieldRef = trimmed.substring(0, idx).trim()
+            val expected = trimmed.substring(idx + delimiter.length).trim().removeSurrounding("'")
+            val fieldName = fieldRef.removePrefix("\$subject.").trim()
+            val actual = subjectData[fieldName] ?: ""
+            return when (op)
+            {
+                "==" -> actual == expected
+                "!=" -> actual != expected
+                "contains" -> actual.contains(expected)
+                "startsWith" -> actual.startsWith(expected)
+                else -> false
+            }
+        }
+        logger.warn("Could not parse predicate expression '{}'; defaulting to true", trimmed)
+        return true
     }
 
     private fun createStepInstance(
@@ -403,6 +751,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                 resolvedAssignees.map { PrincipalRefDto(it.kind.name, it.id.toString()) }
             )
             decisionsJson = "[]"
+            addonsStateJson = "{}"
             dueAt = spec.slaMinutes?.let { Timestamp.from(now.toInstant().plusSeconds(it * 60L)) }
             createdAt = now
         }
@@ -447,11 +796,26 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             json.decodeFromString(ListSerializer(DecisionEntry.serializer()), jsonStr)
         }.getOrDefault(emptyList())
 
-    /** Wire format inside `assignees_snapshot_json`. */
+    private fun decodeAddonsState(jsonStr: String): Map<String, Map<String, String>>
+    {
+        if (jsonStr.isBlank() || jsonStr == "{}") return emptyMap()
+        return runCatching {
+            json.decodeFromString(
+                MapSerializer(String.serializer(), MapSerializer(String.serializer(), String.serializer())),
+                jsonStr,
+            )
+        }.getOrDefault(emptyMap())
+    }
+
+    private fun encodeAddonsState(state: Map<String, Map<String, String>>): String =
+        json.encodeToString(
+            MapSerializer(String.serializer(), MapSerializer(String.serializer(), String.serializer())),
+            state,
+        )
+
     @Serializable
     private data class PrincipalRefDto(val kind: String, val id: String)
 
-    /** Wire format inside `decisions_json`. */
     @Serializable
     private data class DecisionEntry(
         val principalKind: String,
@@ -463,12 +827,6 @@ class DefaultWorkflowEngineService : WorkflowEngineService
 
     // ---- event publishing ---------------------------------------------------
 
-    /**
-     * Emit `workflow.step_assigned` so the notification rule engine can fan it out to
-     * each resolved assignee. The assignees are serialised into the event payload as a
-     * csv of `USER:<uuid>` tokens, the format [com.docuhyphen.app.api.service.notification.NotificationRuleEngine]
-     * understands for `EVENT_PAYLOAD` rules.
-     */
     private fun publishStepAssigned(
         instance: WorkflowInstance,
         step: WorkflowStepInstance,
@@ -496,17 +854,10 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         )
     }
 
-    /**
-     * Emit the outcome event declared on the step spec (e.g. `session.activated`). The
-     * notification rule engine has app-level rules for `session.activated` / `session.rejected`
-     * that route to the session initiator (carried in the payload as `initiator=USER:<uuid>`
-     * if the subject data captured it at trigger-time).
-     */
     private fun publishOutcomeEvent(instance: WorkflowInstance, eventType: String)
     {
         val payload = HashMap<String, String>(2)
         payload["instanceId"] = instance.id.toString()
-        // If the subject was captured with an initiator field, surface it for routing.
         val subjectFields = runCatching {
             instance.subjectDataJson?.let {
                 json.decodeFromString(MapSerializer(String.serializer(), String.serializer()), it)
@@ -528,10 +879,6 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         )
     }
 
-    /**
-     * Emit `workflow.escalated` after an SLA breach has reassigned a pending step. The
-     * payload carries the new assignees so the notification rule engine can fan it out.
-     */
     private fun publishEscalated(
         instance: WorkflowInstance,
         step: WorkflowStepInstance,
@@ -561,12 +908,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         )
     }
 
-    /** Suppress unused-warning hint for the import that's only referenced inside a serializer. */
     @Suppress("unused")
     private val keepPrincipalKindReferenced: PrincipalKind = PrincipalKind.USER
 }
-
-
-
-
 

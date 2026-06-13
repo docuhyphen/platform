@@ -113,7 +113,12 @@
     ZoomOutFilled,
     ZoomOutRegular, PeopleTeamToolboxFilled, PeopleTeamToolboxRegular, PhoneLaptopRegular, PhoneLaptopFilled,
     ShieldPersonFilled, ShieldPersonRegular, PersonShieldRegular, PersonShieldFilled, ImageSplitFilled,
-    ImageSplitRegular
+    ImageSplitRegular,
+    TaskListSquareLtrFilled, TaskListSquareLtrRegular,
+    AddFilled, AddRegular,
+    ArrowLeftFilled, ArrowLeftRegular,
+    CheckmarkFilled, CheckmarkRegular,
+    DismissFilled, DismissRegular,
 } from "@fluentui/react-icons";
 
 export const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
@@ -134,6 +139,11 @@ export const OrganizationPairingTabIcon = bundleIcon(BuildingBankLinkFilled, Bui
 export const SettingsTemplatesTabIcon = bundleIcon(BookTemplateFilled, BookTemplateRegular)
 export const TemplateAddIcon = bundleIcon(BookAddFilled, BookAddRegular)
 export const SettingsAppAdminsIcon = bundleIcon(PersonShieldFilled, PersonShieldRegular)
+export const SettingsWorkflowsTabIcon = bundleIcon(TaskListSquareLtrFilled, TaskListSquareLtrRegular)
+export const AddIcon = bundleIcon(AddFilled, AddRegular)
+export const BackIcon = bundleIcon(ArrowLeftFilled, ArrowLeftRegular)
+export const CheckmarkIcon = bundleIcon(CheckmarkFilled, CheckmarkRegular)
+export const DismissIcon = bundleIcon(DismissFilled, DismissRegular)
 export const PairOrgTabIcon = bundleIcon(BuildingTownhouseFilled, BuildingTownhouseRegular)
 export const PersonAddIcon = bundleIcon(PersonAddFilled, PersonAddRegular)
 export const FilterIcon = bundleIcon(FilterFilled, FilterRegular);

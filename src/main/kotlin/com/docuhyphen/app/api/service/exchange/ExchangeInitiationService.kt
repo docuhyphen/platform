@@ -12,6 +12,7 @@ import com.docuhyphen.app.api.model.entity.ExchangeRecipientType.GROUP
 import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.repository.ExchangeRepository
 import com.docuhyphen.app.api.resource.model.ExchangeInitiationDto
+import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthRateLimitService
@@ -21,6 +22,8 @@ import com.docuhyphen.app.api.service.communication.AppNotificationService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import com.docuhyphen.app.api.service.workflow.TriggerRequest
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
@@ -49,6 +52,8 @@ class ExchangeInitiationService @Inject constructor(
     private val principalGroupMemberRepository: com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository,
     private val organizationExchangePolicyService: com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService,
     private val workflowEngineService: com.docuhyphen.app.api.service.workflow.WorkflowEngineService,
+    private val organizationMembershipService: OrganizationMembershipService,
+    private val organizationRepository: OrganizationRepository,
 )
 {
     @PersistenceContext
@@ -158,16 +163,94 @@ class ExchangeInitiationService @Inject constructor(
 
         val savedExchange = exchangeRepository.save(exchange)
 
-        // Group-recipient sessions may require approval before the recipient share goes live.
-        // Trigger the `session.approval_requested` workflow; if a matching active definition
-        // exists (org-scoped, else the app-wide seed), the recipient share is created
-        // PENDING_APPROVAL and only flipped to ACTIVE once the workflow emits `session.activated`
-        // (see ExchangeApprovalEventHandler). Otherwise the share is ACTIVE immediately.
-        val recipientNeedsApproval = recipientGroupId?.let {
-            maybeTriggerGroupApproval(savedExchange, it, initiator)
-        } ?: false
+        // Resolve the initiator's org context once; used for both workflow triggers
+        // and the group-specific manager access grant below.
+        val orgId: UUID? = when (sessionInitiationDto.recipientType)
+        {
+            GROUP -> recipientGroupId?.let { principalGroupRepository.findById(it) }?.ownerOrganizationId
+            else -> organizationMembershipService.primaryOrganizationId(initiator.id)
+        }
+        val orgSettings = orgId?.let { organizationRepository.findById(it) }?.settings
 
-        // Recipients/participants/permissions live in the unified Share model, the initiator
+        // 1. Fire exchange.draft_submitted (optional pre-send internal-approval gate).
+        workflowEngineService.trigger(
+            TriggerRequest(
+                triggerEvent = "exchange.draft_submitted",
+                subjectResourceType = ResourceType.EXCHANGE.name,
+                subjectResourceId = savedExchange.id,
+                organizationId = orgId,
+                subjectData = buildMap {
+                    put("initiatorId", initiator.id.toString())
+                    orgId?.let { put("orgId", it.toString()) }
+                },
+                initiatedByAppUserId = initiator.id,
+            )
+        )
+
+        // 2. Determine whether the recipient's share must be held PENDING_APPROVAL.
+        //    When requireRecipientAcceptance = true, fire exchange.acceptance_pending;
+        //    a matching active WorkflowDefinition will start an approval workflow whose
+        //    completion emits "exchange.activated" to unlock the share.
+        //    When requireRecipientAcceptance = false, auto-advance immediately.
+        val requireAcceptance = orgSettings?.requireRecipientAcceptance ?: true
+        val recipientNeedsApproval: Boolean
+
+        if (requireAcceptance)
+        {
+            val subjectData = buildMap<String, String> {
+                put("initiatorId", initiator.id.toString())
+                put("recipientType", sessionInitiationDto.recipientType!!.name)
+                orgId?.let { put("orgId", it.toString()) }
+                when (sessionInitiationDto.recipientType)
+                {
+                    GROUP -> recipientGroupId?.let { put("recipientGroupId", it.toString()) }
+                    else -> appUserRecipient?.let { put("recipientId", it.id.toString()) }
+                }
+            }
+
+            val acceptanceResult = workflowEngineService.trigger(
+                TriggerRequest(
+                    triggerEvent = "exchange.acceptance_pending",
+                    subjectResourceType = ResourceType.EXCHANGE.name,
+                    subjectResourceId = savedExchange.id,
+                    organizationId = orgId,
+                    subjectData = subjectData,
+                    initiatedByAppUserId = initiator.id,
+                )
+            )
+
+            recipientNeedsApproval = acceptanceResult != null
+            if (acceptanceResult != null)
+            {
+                logger.info(
+                    "Exchange {} requires recipient acceptance (workflow instance {}); share held PENDING_APPROVAL",
+                    savedExchange.id, acceptanceResult.instanceId,
+                )
+            }
+        }
+        else
+        {
+            // Org-level auto-accept: exchange is immediately active.
+            savedExchange.status = ExchangeStatus.ACCEPTED_STARTED
+            exchangeRepository.update(savedExchange)
+            workflowEngineService.trigger(
+                TriggerRequest(
+                    triggerEvent = "exchange.activated",
+                    subjectResourceType = ResourceType.EXCHANGE.name,
+                    subjectResourceId = savedExchange.id,
+                    organizationId = orgId,
+                    subjectData = buildMap {
+                        put("initiatorId", initiator.id.toString())
+                        orgId?.let { put("orgId", it.toString()) }
+                    },
+                    initiatedByAppUserId = initiator.id,
+                )
+            )
+            recipientNeedsApproval = false
+            logger.info("Exchange {} created with auto-accept (requireRecipientAcceptance=false)", savedExchange.id)
+        }
+
+        // Recipients/participants/permissions live in the unified Share model. The initiator
         // gets an OWNER share, the recipient a role derived from the requested document
         // permissions, and each participant a PARTICIPANT share (groups fan out to members).
         grantInitiatorOwnerShare(savedExchange, initiator)
@@ -180,12 +263,9 @@ class ExchangeInitiationService @Inject constructor(
             dto = sessionInitiationDto,
             pendingApproval = recipientNeedsApproval,
         )
-        // When approval is required, the group's share (and all inherited member shares) starts
-        // as PENDING_APPROVAL and is invisible to group members. Give group OWNERs and MANAGERs
-        // an explicit ACTIVE REVIEWER share so they can see the draft and act on the approval
-        // workflow step. Once the approval completes, the group's full shares are activated and
-        // supersede this temporary reviewer access.
-        if (recipientNeedsApproval)
+        // For GROUP recipients that need approval: give group OWNERs and MANAGERs an active
+        // REVIEWER share so they can see the draft and act on the acceptance workflow step.
+        if (recipientNeedsApproval && recipientGroupId != null)
         {
             grantGroupManagerViewerAccess(savedExchange, recipientGroupId, initiator)
         }
@@ -275,46 +355,6 @@ class ExchangeInitiationService @Inject constructor(
         )
     }
 
-    /**
-     * Fire the `session.approval_requested` workflow for a group-recipient session. Returns true
-     * when an approval workflow was actually started (the recipient share must then be created
-     * PENDING_APPROVAL), false when no active definition matched (proceed un-gated).
-     *
-     * The subject snapshot carries everything the seeded `session-approval-in-group` workflow
-     * references: `recipientGroupId` (whose MANAGERs approve), `orgId` (the group's owning org,
-     * SLA escalation targets its ORG_ADMINs), and `initiatorId` (for outcome-event routing).
-     */
-    private fun maybeTriggerGroupApproval(
-        session: Exchange,
-        recipientGroupId: UUID,
-        initiator: AppUser,
-    ): Boolean
-    {
-        val group = principalGroupRepository.findById(recipientGroupId)
-        val orgId = group?.ownerOrganizationId
-        val result = workflowEngineService.trigger(
-            com.docuhyphen.app.api.service.workflow.TriggerRequest(
-                triggerEvent = "session.approval_requested",
-                subjectResourceType = ResourceType.EXCHANGE.name,
-                subjectResourceId = session.id,
-                organizationId = orgId,
-                subjectData = buildMap {
-                    put("recipientGroupId", recipientGroupId.toString())
-                    put("initiatorId", initiator.id.toString())
-                    orgId?.let { put("orgId", it.toString()) }
-                },
-                initiatedByAppUserId = initiator.id,
-            )
-        )
-        if (result != null)
-        {
-            logger.info(
-                "Session {} requires group approval (workflow instance {}); recipient share held PENDING_APPROVAL",
-                session.id, result.instanceId,
-            )
-        }
-        return result != null
-    }
 
     /** Grant the initiator an OWNER [Share] (OWNER carries EXCHANGE_OWNER / EXCHANGE_SHARE). */
     private fun grantInitiatorOwnerShare(session: Exchange, initiator: AppUser)

@@ -68,6 +68,14 @@ class WorkflowStepInstance
     @Column(name = "decisions_json", nullable = false, columnDefinition = "text")
     var decisionsJson: String = "[]"
 
+    /**
+     * Tracks per-addon fire state so the scheduler never double-sends a reminder.
+     * JSON object keyed by addon index: `{ "0": { "fired": "true", "fireCount": "1",
+     * "firedAt": "<epochMs>", "lastFiredAt": "<epochMs>" } }`.
+     */
+    @Column(name = "addons_state_json", nullable = false, columnDefinition = "text")
+    var addonsStateJson: String = "{}"
+
     @Column(name = "due_at", nullable = true)
     @Serializable(with = TimestampSerializer::class)
     var dueAt: Timestamp? = null

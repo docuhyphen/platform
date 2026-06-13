@@ -527,6 +527,16 @@ class SignUpService @Inject constructor(
             useHtml = true
         )
 
+        runCatching {
+            val notificationBody = emailTemplateService.renderNewUserRegistrationNotificationEmail(email)
+            emailService.sendEmail(
+                to = configurationService.getNewUserNotificationEmail(),
+                subject = "${configurationService.emailSubjectTitle} | New User Registration",
+                body = notificationBody,
+                useHtml = true,
+            )
+        }.onFailure { logger.warn("Failed to send new-user internal notification email for {}", email.maskEmailForLogs(), it) }
+
         return savedUser
     }
 

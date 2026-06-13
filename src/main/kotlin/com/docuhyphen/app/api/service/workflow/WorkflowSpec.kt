@@ -34,8 +34,21 @@ data class WorkflowStepSpec(
     val escalation: EscalationSpec? = null,
     val onApprove: StepOutcomeSpec? = null,
     val onReject: StepOutcomeSpec? = null,
-    /** For ACTION steps: name of the @ApplicationScoped handler bean to invoke. */
+    /** For ACTION steps: key of the registered WorkflowActionHandler bean to invoke (see Phase 2). */
     val actionHandlerKey: String? = null,
+    /** For NOTIFICATION steps: key into the email/in-app template registry. */
+    val messageTemplateKey: String? = null,
+    /**
+     * For CONDITION steps: simple predicate evaluated against `subjectDataJson` fields.
+     * Syntax: `"$subject.<key> <op> '<value>'"` where op is one of ==, !=, contains, startsWith.
+     */
+    val predicateExpression: String? = null,
+    /** For CONDITION steps: outcome when [predicateExpression] evaluates to true. */
+    val onTrue: StepOutcomeSpec? = null,
+    /** For CONDITION steps: outcome when [predicateExpression] evaluates to false. */
+    val onFalse: StepOutcomeSpec? = null,
+    /** Optional addons: reminders, conditional reminders, etc. Evaluated by the scheduler tick. */
+    val addons: List<StepAddonSpec> = emptyList(),
 )
 
 /** Sealed assignee model, every variant carries the data needed to resolve a principal set. */
@@ -118,6 +131,35 @@ data class StepOutcomeSpec(
     /** Event to emit when this outcome is reached (e.g. `session.activated`). */
     val emit: String? = null,
 )
+
+/**
+ * Optional behaviour attached to a step that is evaluated by the scheduler tick
+ * independently of the step's human-decision path.
+ */
+@Serializable
+@JsonClassDiscriminator("kind")
+sealed class StepAddonSpec
+{
+    /** Send a reminder to [recipientRef] when the step is within [minutesBeforeDue] of its dueAt. */
+    @Serializable
+    @kotlinx.serialization.SerialName("REMINDER_BEFORE_DUE")
+    data class ReminderBeforeDue(
+        val minutesBeforeDue: Int,
+        val recipientRef: AssigneeSpec,
+        val messageTemplateKey: String? = null,
+    ) : StepAddonSpec()
+
+    /** Send a reminder if no decision has been recorded after [afterMinutes]. */
+    @Serializable
+    @kotlinx.serialization.SerialName("REMINDER_IF_NO_DECISION")
+    data class ReminderIfNoDecision(
+        val afterMinutes: Int,
+        val recipientRef: AssigneeSpec,
+        val messageTemplateKey: String? = null,
+        /** When set, repeat the reminder every [repeatEveryMinutes] after the first fire. Null = send once. */
+        val repeatEveryMinutes: Int? = null,
+    ) : StepAddonSpec()
+}
 
 /**
  * Single shared JSON config, `ignoreUnknownKeys` makes the DSL forwards-compatible,

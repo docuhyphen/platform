@@ -28,6 +28,12 @@ class ConfigurationService @Inject constructor(
     @ConfigProperty(name = "app.email.subject-title")
     val emailSubjectTitle: String,
 
+    @ConfigProperty(name = "app.email.new-user-notification-address", defaultValue = "support@docuhyphen.com")
+    private val newUserNotificationAddressConfig: String,
+
+    @ConfigProperty(name = "app.email.new-org-notification-address", defaultValue = "sales@docuhyphen.com")
+    private val newOrgNotificationAddressConfig: String,
+
     @ConfigProperty(name = "app.security.jwt.secret-provider")
     val jwtSecretProvider: String,
 
@@ -84,6 +90,12 @@ class ConfigurationService @Inject constructor(
      */
     fun getBootstrapAppAdminEmail(): String? =
         bootstrapAppAdminEmailConfig.orElse(null)?.trim()?.takeIf { it.isNotBlank() }
+
+    /** Address that receives an internal notification whenever a new user completes registration. */
+    fun getNewUserNotificationEmail(): String = newUserNotificationAddressConfig
+
+    /** Address that receives an internal notification whenever a new organization registers. */
+    fun getNewOrgNotificationEmail(): String = newOrgNotificationAddressConfig
 
     fun getMaxSignUpCompletionOtpAttempts(): Long = 3
     fun getSignUpOtpExpiryMins(): Long = 5

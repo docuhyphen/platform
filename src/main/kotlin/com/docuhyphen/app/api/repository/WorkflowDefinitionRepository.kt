@@ -57,5 +57,36 @@ class WorkflowDefinitionRepository :
             .setParameter("v", version)
             .resultList
             .firstOrNull()
+
+    /**
+     * All definitions accessible to [organizationId]: platform templates (isTemplate=true)
+     * plus any ORG-scoped definitions owned by that org. When [organizationId] is null,
+     * only platform templates are returned (caller has no org context).
+     */
+    fun findAllAccessibleForOrg(organizationId: UUID?): List<WorkflowDefinition>
+    {
+        return if (organizationId != null)
+        {
+            entityManager.createQuery(
+                """SELECT d FROM WorkflowDefinition d
+                   WHERE d.isTemplate = true
+                      OR (d.scope = com.docuhyphen.app.api.model.entity.WorkflowScope.ORG
+                          AND d.organizationId = :oid)
+                   ORDER BY d.createdAt DESC""",
+                WorkflowDefinition::class.java,
+            )
+                .setParameter("oid", organizationId)
+                .resultList
+        }
+        else
+        {
+            entityManager.createQuery(
+                """SELECT d FROM WorkflowDefinition d
+                   WHERE d.isTemplate = true
+                   ORDER BY d.createdAt DESC""",
+                WorkflowDefinition::class.java,
+            ).resultList
+        }
+    }
 }
 

@@ -286,5 +286,75 @@ class EmailTemplateService @Inject constructor(
 
     fun renderAccountDeletedEmail(email: String, deletedAt: String): String =
         authTemplates.renderAccountDeletedEmail(email, deletedAt)
+
+    // -------------------------------------------------------------------------
+    // Internal admin notifications
+    // -------------------------------------------------------------------------
+
+    /**
+     * Plain-HTML notification sent to the support inbox when a new user completes
+     * registration. Intentionally simple - this is an internal operational alert,
+     * not a user-facing communication.
+     */
+    fun renderNewUserRegistrationNotificationEmail(email: String): String = """
+        <!DOCTYPE html>
+        <html lang="en">
+        <body style="font-family:sans-serif;color:#222;max-width:560px;margin:0 auto;padding:24px">
+          <h2 style="color:#1a73e8">New User Registration</h2>
+          <p>A new user has completed registration on <strong>DocuHyphen</strong>.</p>
+          <table style="border-collapse:collapse;width:100%">
+            <tr>
+              <td style="padding:6px 12px 6px 0;font-weight:bold;white-space:nowrap">Email</td>
+              <td style="padding:6px 0">$email</td>
+            </tr>
+          </table>
+        </body>
+        </html>
+    """.trimIndent()
+
+    /**
+     * Plain-HTML notification sent to the sales inbox when a new organization
+     * registers. Intentionally simple - this is an internal lead-alert email.
+     */
+    fun renderNewOrgRegistrationNotificationEmail(
+        firstName: String,
+        lastName: String,
+        orgName: String,
+        registrationNumber: String,
+        orgEmail: String?,
+        orgPhone: String?,
+    ): String
+    {
+        val optionalRows = buildString {
+            if (!orgEmail.isNullOrBlank())
+                append("""<tr><td style="padding:6px 12px 6px 0;font-weight:bold;white-space:nowrap">Organization email</td><td style="padding:6px 0">$orgEmail</td></tr>""")
+            if (!orgPhone.isNullOrBlank())
+                append("""<tr><td style="padding:6px 12px 6px 0;font-weight:bold;white-space:nowrap">Phone</td><td style="padding:6px 0">$orgPhone</td></tr>""")
+        }
+        return """
+            <!DOCTYPE html>
+            <html lang="en">
+            <body style="font-family:sans-serif;color:#222;max-width:560px;margin:0 auto;padding:24px">
+              <h2 style="color:#1a73e8">New Organization Registration</h2>
+              <p>A new organization has registered on <strong>DocuHyphen</strong> and is awaiting verification.</p>
+              <table style="border-collapse:collapse;width:100%">
+                <tr>
+                  <td style="padding:6px 12px 6px 0;font-weight:bold;white-space:nowrap">Organization</td>
+                  <td style="padding:6px 0">$orgName</td>
+                </tr>
+                <tr>
+                  <td style="padding:6px 12px 6px 0;font-weight:bold;white-space:nowrap">Registration number</td>
+                  <td style="padding:6px 0">$registrationNumber</td>
+                </tr>
+                <tr>
+                  <td style="padding:6px 12px 6px 0;font-weight:bold;white-space:nowrap">Contact name</td>
+                  <td style="padding:6px 0">$firstName $lastName</td>
+                </tr>
+                $optionalRows
+              </table>
+            </body>
+            </html>
+        """.trimIndent()
+    }
 }
 

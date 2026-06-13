@@ -200,6 +200,23 @@ class EntityRegistrationService @Inject constructor(
             useHtml = true,
         )
 
+        runCatching {
+            val notificationBody = emailTemplateService.renderNewOrgRegistrationNotificationEmail(
+                firstName = appUser.person!!.firstName!!,
+                lastName = appUser.person!!.lastName!!,
+                orgName = organizationName,
+                registrationNumber = registrationNumber,
+                orgEmail = email,
+                orgPhone = phoneNumber,
+            )
+            emailService.sendEmail(
+                to = configurationService.getNewOrgNotificationEmail(),
+                subject = "${configurationService.emailSubjectTitle} | New Organization Registration",
+                body = notificationBody,
+                useHtml = true,
+            )
+        }.onFailure { logger.warn("Failed to send new-org internal notification email for org {}", registrationNumber, it) }
+
         organizationVerificationProducer.sendToQueue(organization)
 
         return organization

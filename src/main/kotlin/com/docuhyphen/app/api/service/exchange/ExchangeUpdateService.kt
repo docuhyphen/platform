@@ -2,6 +2,8 @@
 
 import com.docuhyphen.app.api.exception.NoAuthOtpException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
+import com.docuhyphen.app.api.exception.WorkflowConflictException
+import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.RoleName
@@ -12,12 +14,19 @@ import com.docuhyphen.app.api.realtime.RealtimeMessage
 import com.docuhyphen.app.api.realtime.RealtimeMessageType
 import com.docuhyphen.app.api.repository.ShareRepository
 import com.docuhyphen.app.api.repository.ExchangeRepository
+import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
+import com.docuhyphen.app.api.repository.WorkflowStepInstanceRepository
 import com.docuhyphen.app.api.resource.model.UpdateExchangeRequest
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.UserContactService
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
+import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import com.docuhyphen.app.api.service.workflow.Decision
+import com.docuhyphen.app.api.service.workflow.TriggerRequest
+import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -43,6 +52,11 @@ class ExchangeUpdateService @Inject constructor(
     private val shareService: ShareService,
     private val shareRepository: ShareRepository,
     private val appUserService: AppUserService,
+    private val workflowInstanceRepository: WorkflowInstanceRepository,
+    private val workflowStepRepository: WorkflowStepInstanceRepository,
+    private val workflowEngineService: WorkflowEngineService,
+    private val authTokenContext: AuthTokenContext,
+    private val organizationMembershipService: OrganizationMembershipService,
 )
 {
     @PersistenceContext
@@ -68,7 +82,7 @@ class ExchangeUpdateService @Inject constructor(
 
     private val otpAttemptStates: MutableMap<UUID, OtpAttemptState> = ConcurrentHashMap()
 
-    @Transactional
+    @Transactional(dontRollbackOn = [WorkflowConflictException::class])
     fun updateExchange(
         exchangeId: String,
         request: UpdateExchangeRequest?
@@ -87,18 +101,86 @@ class ExchangeUpdateService @Inject constructor(
             exchangeRepository.updateDescription(sessionUUID, it)
         }
 
-        request?.status?.let {
+        if (request?.status != null)
+        {
+            val newStatus = request.status!!
 
-            exchangeRepository.updateStatus(sessionUUID, it)
+            // --- Workflow routing for ACCEPTED_STARTED and REJECTED -----------------------
+            // If an acceptance workflow is running for this exchange, route the decision
+            // through the engine instead of writing the status directly. The engine's event
+            // handler (ExchangeApprovalEventHandler) will apply the status transition.
+            if (newStatus == ExchangeStatus.ACCEPTED_STARTED || newStatus == ExchangeStatus.REJECTED)
+            {
+                val runningAcceptance = workflowInstanceRepository
+                    .findRunningForSubjectAndTrigger(sessionUUID, "exchange.acceptance_pending")
+                if (runningAcceptance != null)
+                {
+                    val currentStep = workflowStepRepository
+                        .findCurrent(runningAcceptance.id, runningAcceptance.currentStepIndex)
+                        ?: throw IllegalStateException("Acceptance workflow has no current step for exchange $sessionUUID")
+                    val currentUser = authTokenContext.authToken.appUser
+                        ?: throw IllegalStateException("No authenticated user in context")
+                    val decision = if (newStatus == ExchangeStatus.ACCEPTED_STARTED) Decision.APPROVE else Decision.REJECT
+                    workflowEngineService.recordDecision(
+                        stepInstanceId = currentStep.id,
+                        decider = PrincipalRef(PrincipalKind.USER, currentUser.id),
+                        decision = decision,
+                        reason = request.rejectionReason,
+                    )
+                    request.rejectionReason?.let { exchangeRepository.updateRejectionReason(sessionUUID, it) }
+                    exchangeRepository.updateLastActivity(sessionUUID, Timestamp.from(Instant.now()))
+                    val updatedSession = exchangeRepository.findById(sessionUUID)!!
+                    sendStatusChangeEmails(updatedSession, newStatus, request.rejectionReason)
+                    broadcastStatusChange(updatedSession, newStatus)
+                    logger.info(
+                        "Exchange {}: routed {} decision through acceptance workflow",
+                        sessionUUID, newStatus,
+                    )
+                    return
+                }
+            }
 
-            if (it == ExchangeStatus.ENDED)
+            // --- Workflow guard for ENDED --------------------------------------------------
+            // Fire the exchange.ending trigger. If a matching workflow starts, hold the
+            // direct ENDED write and return 409 to the caller. The workflow will apply ENDED
+            // via the exchange.ended_confirmed event when its steps complete.
+            if (newStatus == ExchangeStatus.ENDED)
+            {
+                val exchange = exchangeRepository.findById(sessionUUID)!!
+                val orgId = exchange.initiator?.id?.let { organizationMembershipService.primaryOrganizationId(it) }
+                val triggerResult = workflowEngineService.trigger(
+                    TriggerRequest(
+                        triggerEvent = "exchange.ending",
+                        subjectResourceType = ResourceType.EXCHANGE.name,
+                        subjectResourceId = sessionUUID,
+                        organizationId = orgId,
+                        subjectData = buildMap {
+                            exchange.initiator?.id?.let { put("initiatorId", it.toString()) }
+                            orgId?.let { put("orgId", it.toString()) }
+                        },
+                    )
+                )
+                if (triggerResult != null)
+                {
+                    logger.info(
+                        "Exchange {}: ending workflow {} started; holding ENDED write",
+                        sessionUUID, triggerResult.instanceId,
+                    )
+                    throw WorkflowConflictException(
+                        "A completion workflow has been started. The exchange will be closed when it completes."
+                    )
+                }
+            }
+
+            // --- Direct status write (no workflow gate) ------------------------------------
+            exchangeRepository.updateStatus(sessionUUID, newStatus)
+
+            if (newStatus == ExchangeStatus.ENDED)
             {
                 exchangeRepository.updateEndDate(sessionUUID, Timestamp.from(Instant.now()))
             }
 
-            // Dual-write: a terminal session status revokes the mirrored shares so the new
-            // model reflects that access has ended.
-            if (it == ExchangeStatus.ENDED || it == ExchangeStatus.REJECTED)
+            if (newStatus == ExchangeStatus.ENDED || newStatus == ExchangeStatus.REJECTED)
             {
                 shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID)
             }
@@ -194,6 +276,9 @@ class ExchangeUpdateService @Inject constructor(
             {
                 // Recipients are the session's direct USER shares (excluding the owner and
                 // pure participants). Record a mutual contact between initiator and each.
+                // Note: when status was set via workflow routing (engine path), this block is
+                // skipped because we returned early. Contact recording on the workflow path
+                // is handled by ExchangeApprovalEventHandler when exchange.activated fires.
                 shareRepository.findActiveByResource(ResourceType.EXCHANGE, sessionUUID)
                     .filter {
                         it.principalKind == PrincipalKind.USER &&
@@ -305,6 +390,47 @@ class ExchangeUpdateService @Inject constructor(
         }
 
         verifyRecipientOtp(session, otp)
+
+        // If an acceptance workflow is running, route the decision through the engine.
+        // The no-auth recipient's user ID (from their Share row) is used as the principal.
+        if (requestedStatus == ExchangeStatus.ACCEPTED_STARTED || requestedStatus == ExchangeStatus.REJECTED)
+        {
+            val runningAcceptance = workflowInstanceRepository
+                .findRunningForSubjectAndTrigger(sessionUUID, "exchange.acceptance_pending")
+            if (runningAcceptance != null)
+            {
+                val recipientUserId = shareService.primaryRecipientUserId(sessionUUID)
+                val currentStep = workflowStepRepository
+                    .findCurrent(runningAcceptance.id, runningAcceptance.currentStepIndex)
+                if (recipientUserId != null && currentStep != null)
+                {
+                    val decision = if (requestedStatus == ExchangeStatus.ACCEPTED_STARTED) Decision.APPROVE else Decision.REJECT
+                    workflowEngineService.recordDecision(
+                        stepInstanceId = currentStep.id,
+                        decider = PrincipalRef(PrincipalKind.USER, recipientUserId),
+                        decision = decision,
+                        reason = rejectReason,
+                    )
+                    if (requestedStatus == ExchangeStatus.ACCEPTED_STARTED)
+                    {
+                        exchangeRepository.updateNoAuthAccessVerifiedAt(sessionUUID, Timestamp.from(Instant.now()))
+                    }
+                    if (requestedStatus == ExchangeStatus.REJECTED && rejectReason != null)
+                    {
+                        exchangeRepository.updateRejectionReason(sessionUUID, rejectReason)
+                    }
+                    exchangeRepository.updateLastActivity(sessionUUID, Timestamp.from(Instant.now()))
+                    val refreshedSession = exchangeRepository.findById(sessionUUID)!!
+                    sendStatusChangeEmails(refreshedSession, requestedStatus, rejectReason)
+                    broadcastStatusChange(refreshedSession, requestedStatus)
+                    logger.info(
+                        "No-auth exchange {}: routed {} through acceptance workflow",
+                        sessionUUID, requestedStatus,
+                    )
+                    return refreshedSession
+                }
+            }
+        }
 
         if (requestedStatus == ExchangeStatus.ACCEPTED_STARTED)
         {

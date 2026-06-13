@@ -8,6 +8,215 @@
 
 ---
 
+## Implementation Status
+
+> Last updated: 2026-06-13 (Phase 5)
+
+| Phase | Title | Status |
+|---|---|---|
+| 1 | Data Model and Engine Foundations | **COMPLETE** |
+| 2 | Implement Stubbed Step Type Handlers | **COMPLETE** |
+| 3 | Exchange Lifecycle Rewiring | **COMPLETE** |
+| 4 | Workflow CRUD API | **COMPLETE** |
+| 5 | Visual Designer UI | **COMPLETE** |
+
+### Phase 1 - Completed work (2026-06-13)
+
+Files modified:
+
+| File | Change |
+|---|---|
+| `model/entity/WorkflowDefinition.kt` | Added `industryTags`, `summary`, `isTemplate`, `sourceTemplateId` |
+| `model/entity/OrganizationSettings.kt` | Added `requireRecipientAcceptance: Boolean = true` |
+| `service/workflow/WorkflowSpec.kt` | Added `messageTemplateKey`, `predicateExpression`, `onTrue`, `onFalse`, `addons` to `WorkflowStepSpec`; added `StepAddonSpec` sealed class (`ReminderBeforeDue`, `ReminderIfNoDecision`) |
+| `web-app/src/app/models/models.tsx` | Added `requireRecipientAcceptance` to `OrganizationSettingsDto`; added `WorkflowDefinitionSummaryDto`, `WorkflowTriggerEventDto`, `WorkflowSubjectFieldDto`, `WorkflowInstanceSummaryDto`, `WorkflowStepInstanceDto`, `WorkflowPrincipalRefDto`, `WorkflowDecisionEntryDto` |
+
+Files created:
+
+| File | Purpose |
+|---|---|
+| `src/main/resources/db/migration/V5__workflow_lifecycle_redesign.sql` | Adds `industry_tags`, `summary`, `is_template`, `source_template_id` to `workflow_definition`; adds `require_recipient_acceptance` to `organization_settings`; adds `addons_state_json` to `workflow_step_instance`; creates and seeds `workflow_trigger_event_registry` with five canonical trigger events |
+
+### Phase 2 - Completed work (2026-06-13)
+
+Files created:
+
+| File | Purpose |
+|---|---|
+| `service/workflow/WorkflowActionHandler.kt` | Interface (`key()`, `execute()`) + `ActionResult` data class |
+| `service/workflow/actions/ExchangeAutoAcceptActionHandler.kt` | key `exchange.auto-accept` - sets exchange to `ACCEPTED_STARTED`, fires `exchange.activated` |
+| `service/workflow/actions/ExchangeSendReminderActionHandler.kt` | key `exchange.send-reminder` - sends in-app + email reminder to `recipientId` from subject data |
+| `service/workflow/actions/ExchangeRevokeAccessActionHandler.kt` | key `exchange.revoke-access` - calls `shareService.revokeAllForResource()` |
+
+Files modified:
+
+| File | Change |
+|---|---|
+| `model/entity/WorkflowStepInstance.kt` | Added `addonsStateJson: String = "{}"` (column already exists from V5) |
+| `service/workflow/DefaultWorkflowEngineService.kt` | Full Phase 2 implementation: injected `Instance<WorkflowActionHandler>`, `AppNotificationService`, `EmailService`; `@PostConstruct` builds handler key map; `activateStep()` dispatcher; `executeNotificationStep()`, `executeConditionStep()`, `executeActionStep()` handlers; `processAddons()` + `dispatchAddonReminder()` for `ReminderBeforeDue` / `ReminderIfNoDecision` addons; `advanceOrComplete()` + updated `advanceToStep()` to handle auto-advance step chains; `evaluatePredicate()` for `==`, `!=`, `contains`, `startsWith`; `decodeAddonsState()` / `encodeAddonsState()` JSON helpers; addon processing integrated into `escalateOverdue()` |
+
+### Phase 3 - Completed work (2026-06-13)
+
+Files created:
+
+| File | Purpose |
+|---|---|
+| `exception/WorkflowConflictException.kt` | HTTP 409 signal when a running workflow gates a direct status write. `@Transactional(dontRollbackOn)` ensures the workflow instance row persists. |
+
+Files modified:
+
+| File | Change |
+|---|---|
+| `repository/WorkflowInstanceRepository.kt` | Added `findRunningForSubjectAndTrigger(subjectResourceId, triggerEvent)` - JPQL Cartesian-join with `WorkflowDefinition` to find running instances by trigger event name |
+| `service/exchange/ExchangeApprovalEventHandler.kt` | Full rewrite: fixed known gap (`session.activated` now also sets `exchange.status = ACCEPTED_STARTED`); added handling for `exchange.activated` (activate shares + set ACCEPTED_STARTED), `exchange.draft_approved` (fire `exchange.acceptance_pending` or auto-advance based on org setting), `exchange.ending` (set ENDED), `exchange.ended_confirmed` (set ENDED); injected `WorkflowEngineService`, `OrganizationMembershipService`, `OrganizationRepository` |
+| `service/exchange/ExchangeInitiationService.kt` | Replaced `maybeTriggerGroupApproval()` with unified lifecycle trigger chain: fires `exchange.draft_submitted` (pre-send gate), then fires `exchange.acceptance_pending` (if `requireRecipientAcceptance = true`) or `exchange.activated` + sets `ACCEPTED_STARTED` (if false); `recipientNeedsApproval` now covers all recipient types, not just GROUP; injected `OrganizationMembershipService` and `OrganizationRepository` |
+| `service/exchange/ExchangeUpdateService.kt` | Added workflow routing in `updateExchange()`: ACCEPTED_STARTED/REJECTED status writes check for a running `exchange.acceptance_pending` instance and route through `workflowEngineService.recordDecision()` instead of direct DB write; ENDED write fires `exchange.ending` trigger and throws `WorkflowConflictException` (409) if a workflow starts, holding the write until `exchange.ended_confirmed`; `@Transactional(dontRollbackOn)` preserves the workflow instance row on conflict; added no-auth OTP bridge in `updateNoAuthExchange()` routing through the engine when an acceptance workflow is running; injected `WorkflowInstanceRepository`, `WorkflowStepInstanceRepository`, `WorkflowEngineService`, `AuthTokenContext`, `OrganizationMembershipService` |
+| `resource/ExchangeResource.kt` | Added `WorkflowConflictException` import and 409 Conflict case in `updateExchange()` catch block |
+
+### Phase 5 - Completed work (2026-06-13)
+
+Files created:
+
+| File | Purpose |
+|---|---|
+| `web-app/src/app/settings/workflows-tab/WorkflowsTab.tsx` | Orchestrator: sub-tabs (Workflows / Activity) + designer routing state. Shows designer overlay when editing or creating. |
+| `web-app/src/app/settings/workflows-tab/WorkflowsTabStyles.tsx` | Styles for WorkflowsTab container, sticky sub-tab bar, and content area. |
+| `web-app/src/app/settings/workflows-tab/WorkflowsListView.tsx` | "My Workflows" row list + "Platform Templates" card list. Row actions: Edit, Activate/Deactivate, Duplicate (clone), Delete. Template rows have "Add to my workflows" clone button. |
+| `web-app/src/app/settings/workflows-tab/WorkflowsListViewStyles.tsx` | Styles for the list view sections, rows, tag rows, and template cards. |
+| `web-app/src/app/settings/workflows-tab/WorkflowDesigner.tsx` | Full workflow creation/edit form. Header fields: name, trigger dropdown (from `listWorkflowTriggers`), summary, industry tags multi-input, isActive toggle. Step list with Add Step. Save bar with portability warning for hardcoded Principal UUIDs. |
+| `web-app/src/app/settings/workflows-tab/WorkflowDesignerStyles.tsx` | Styles for the designer form grid, step list, save bar, and tag input area. |
+| `web-app/src/app/settings/workflows-tab/StepCard.tsx` | Collapsible step editor card. Renders type selector, quorum picker (APPROVAL), SLA field, escalation action, AssigneeBuilder, OutcomeConnector fields (onApprove/onReject for APPROVAL/NOTIFICATION/ACTION, onTrue/onFalse for CONDITION), action handler key dropdown, message template key input, and predicate expression input. |
+| `web-app/src/app/settings/workflows-tab/StepCardStyles.tsx` | Styles for step card shell, header, body grid, field groups. |
+| `web-app/src/app/settings/workflows-tab/AssigneeBuilder.tsx` | Add/remove AssigneeSpec entries. Supports ROLE (roleName + scopeType + scopeIdRef), PRINCIPAL (principalKind + principalId), and GROUP_ROLE (groupIdRef + groupRole) variants with inline field sets per kind. |
+| `web-app/src/app/settings/workflows-tab/AssigneeBuilderStyles.tsx` | Styles for the assignee builder rows and add button. |
+| `web-app/src/app/settings/workflows-tab/WorkflowInstanceDashboard.tsx` | Paginated list of `WorkflowInstance` rows for the org. Status filter dropdown. Click row opens `WorkflowInstanceDetail` drawer. |
+| `web-app/src/app/settings/workflows-tab/WorkflowInstanceDashboardStyles.tsx` | Styles for the dashboard filter bar, rows, pagination. |
+| `web-app/src/app/settings/workflows-tab/WorkflowInstanceDetail.tsx` | Overlay drawer showing full step timeline from `getWorkflowInstanceDetail`. Each step shows type, status badge, dueAt, completedAt, assignees, and decision entries (who, what decision, when, reason). Current active step is highlighted. |
+| `web-app/src/app/settings/workflows-tab/WorkflowInstanceDetailStyles.tsx` | Styles for the detail drawer step timeline cards and decision entries. |
+
+Files modified:
+
+| File | Change |
+|---|---|
+| `web-app/src/app/models/models.tsx` | Added workflow DSL draft types: `WorkflowStepType`, `AssigneeKind`, `QuorumKind`, `EscalationAction`, `AddonKind`, `WorkflowScopeType`, `AssigneeSpecDraft`, `QuorumSpecDraft`, `StepOutcomeSpecDraft`, `EscalationSpecDraft`, `AddonSpecDraft`, `WorkflowStepSpecDraft`, `WorkflowDesignerState`. |
+| `web-app/src/app/components/IconBundles.tsx` | Added `SettingsWorkflowsTabIcon` (TaskListSquareLtr), `AddIcon`, `BackIcon`, `CheckmarkIcon`, `DismissIcon`. |
+| `web-app/src/app/settings/Settings.tsx` | Added `workflows` tab entry gated by `canManageOrganization`; imports and renders `WorkflowsTab`. |
+
+### Key File Map updates (Phase 5)
+
+| File | Phase | Status |
+|---|---|---|
+| `web-app/src/app/settings/Settings.tsx` | 5 | **Done** |
+| `web-app/src/app/settings/workflows-tab/WorkflowsTab.tsx` | 5 | **Done** |
+| `web-app/src/app/settings/workflows-tab/WorkflowsListView.tsx` | 5 | **Done** |
+| `web-app/src/app/settings/workflows-tab/WorkflowDesigner.tsx` | 5 | **Done** |
+| `web-app/src/app/settings/workflows-tab/StepCard.tsx` | 5 | **Done** |
+| `web-app/src/app/settings/workflows-tab/AssigneeBuilder.tsx` | 5 | **Done** |
+| `web-app/src/app/settings/workflows-tab/WorkflowInstanceDashboard.tsx` | 5 | **Done** |
+| `web-app/src/app/settings/workflows-tab/WorkflowInstanceDetail.tsx` | 5 | **Done** |
+
+### What is next
+
+All five phases of the Workflow Redesign Plan are now complete. Further considerations from the plan that could be addressed in follow-up work:
+
+1. **Org settings toggle UI** - Add a `requireRecipientAcceptance` switch to `OrganizationTab` (small addition to the existing settings form).
+2. **`WorkflowDecisionResource` inbox enrichment** - Extend `GET /workflows/steps/pending` to return exchange name, trigger event, and step type for richer inbox rendering.
+3. **Platform template seeding** - Add `V6__workflow_templates.sql` with `isTemplate=true` entries using only portable `GROUP_ROLE`/`ROLE` assignees.
+4. **Addon editor in StepCard** - The `addons` field is serialized but not yet exposed as a UI section in `StepCard`. Add `AddonList` sub-component to let designers configure `ReminderBeforeDue` and `ReminderIfNoDecision` addons.
+5. **React Flow canvas upgrade** - Replace the linear step list in `WorkflowDesigner` with a `@xyflow/react` canvas once CONDITION branching is production-ready.
+
+---
+
+### Phase 4 - Completed work (2026-06-13)
+
+Files created:
+
+| File | Purpose |
+|---|---|
+| `model/entity/WorkflowTriggerEventRegistry.kt` | JPA entity mapping `workflow_trigger_event_registry` table (String PK = event_name). |
+| `repository/WorkflowTriggerEventRepository.kt` | Standalone repository (no UUID PK so cannot extend BaseRepository); `findAll()` and `findByEventName()`. |
+| `model/dto/WorkflowDtos.kt` | Response DTOs: `WorkflowDefinitionDto`, `WorkflowDefinitionListItemDto`, `WorkflowTriggerEventResponseDto`, `WorkflowSubjectFieldResponseDto`, `WorkflowInstanceListItemDto`, `WorkflowInstanceDetailResponseDto`, `WorkflowStepInstanceResponseDto`, `WorkflowPrincipalRefResponseDto`, `WorkflowDecisionResponseDto`. |
+| `service/workflow/WorkflowDefinitionService.kt` | `@ApplicationScoped` service for definition CRUD + clone (with UUID scrubbing) + trigger listing + instance queries. Request DTOs (`CreateWorkflowDefinitionRequest`, `UpdateWorkflowDefinitionRequest`, `PatchWorkflowStatusRequest`, `CloneWorkflowRequest`) defined in the same file. |
+| `resource/WorkflowDefinitionResource.kt` | Thin JAX-RS adapter at `/workflows` with 10 endpoints (definitions CRUD+clone, triggers, instances). Delegates all logic to `WorkflowDefinitionService`. |
+| `web-app/src/services/workflowService.ts` | Typed Axios wrappers for all `/workflows/*` endpoints: `listWorkflowDefinitions`, `getWorkflowDefinition`, `createWorkflowDefinition`, `updateWorkflowDefinition`, `patchWorkflowDefinitionStatus`, `deleteWorkflowDefinition`, `cloneWorkflowDefinition`, `listWorkflowTriggers`, `listWorkflowInstances`, `getWorkflowInstanceDetail`. |
+
+Files modified:
+
+| File | Change |
+|---|---|
+| `repository/WorkflowDefinitionRepository.kt` | Added `findAllAccessibleForOrg(organizationId)` - returns platform templates + org-scoped definitions for the caller's org. |
+| `repository/WorkflowInstanceRepository.kt` | Added `findRunningForDefinition(definitionId)` to block edits/deletes on live definitions; added `findForOrg(orgId, status?, subjectResourceType?, page, pageSize)` for paginated instance listing. |
+| `web-app/src/app/models/models.tsx` | Added `WorkflowDefinitionDto` (extends `WorkflowDefinitionSummaryDto` with stepsJson); added `WorkflowInstanceDetailDto` (extends `WorkflowInstanceSummaryDto` with steps array); added `organizationId` field to `WorkflowDefinitionSummaryDto`; added `isActive` field to `WorkflowTriggerEventDto`. |
+
+### What is next - Phase 5
+
+Phase 5 adds the Visual Workflow Designer UI inside the Settings drawer. The backend API and frontend service layer from Phase 4 are the foundation for all Phase 5 components.
+
+Key tasks in order:
+
+1. **`Settings.tsx`** - Add a `workflows` tab entry gated by `canManageOrganization` (org admin role). Lazy-import `WorkflowsTab`.
+
+2. **`WorkflowsTab.tsx`** + **`WorkflowsTabStyles.tsx`** (new)
+   - Two sections: "My Workflows" (`DataGrid` listing org definitions) and "Platform Templates" (filtered `isTemplate=true` list).
+   - Row actions: Edit (opens designer), Duplicate (clone), Activate/Deactivate, Delete.
+   - "Add to my workflows" button on template rows calls `cloneWorkflowDefinition`.
+
+3. **`WorkflowDesigner.tsx`** + **`WorkflowDesignerStyles.tsx`** (new)
+   - Header fields: name, summary, triggerEvent dropdown (from `listWorkflowTriggers`), industryTags multi-select, isActive toggle.
+   - MVP: linear step list using collapsible Fluent UI `Card` components.
+   - Save bar: serializes state to `WorkflowSpec` JSON, calls POST (new) or PUT (edit).
+
+4. **`StepCard.tsx`** + **`StepCardStyles.tsx`** (new) - individual step editor card.
+
+5. **`AssigneeBuilder.tsx`** + **`AssigneeBuilderStyles.tsx`** (new) - add/remove AssigneeSpec entries with $subject.* auto-complete.
+
+6. **`WorkflowInstanceDashboard.tsx`** + **`WorkflowInstanceDashboardStyles.tsx`** (new) - org workflow activity panel using `listWorkflowInstances`.
+
+7. **`WorkflowInstanceDetail.tsx`** + **`WorkflowInstanceDetailStyles.tsx`** (new) - drawer showing step timeline from `getWorkflowInstanceDetail`.
+
+Phase 4 adds the full Workflow CRUD REST API. The engine, lifecycle wiring, and all step types are
+now complete. This phase is purely HTTP surface area.
+
+Key tasks in order:
+
+1. **`WorkflowTriggerEventRepository.kt`** (new)
+   - `findAll(): List<WorkflowTriggerEventRegistry>` - reads from `workflow_trigger_event_registry`.
+   - `findByEventName(name): WorkflowTriggerEventRegistry?`
+
+2. **`WorkflowTriggerEventRegistry.kt`** entity (new)
+   - JPA entity mapping `workflow_trigger_event_registry` table created in V5 migration.
+   - Fields: `eventName`, `description`, `subjectFieldsJson`, `isActive`, `createdAt`.
+
+3. **DTO models** (in `model/dto/` or inline in the resource)
+   - `WorkflowDefinitionDto` (full: id, name, summary, triggerEvent, version, scope, industryTags, isTemplate, sourceTemplateId, isActive, stepsJson as raw string)
+   - `WorkflowInstanceDetailDto` (instance + decoded step timeline)
+   - `WorkflowTriggerEventDto` (eventName, description, subjectFields)
+   - `CreateWorkflowDefinitionRequest` / `UpdateWorkflowDefinitionRequest`
+   - `CloneWorkflowRequest` (optional newName)
+
+4. **`WorkflowDefinitionResource.kt`** (new) - endpoints:
+   - `GET  /workflows/definitions` - list org's own + platform templates; query: `?tag=&triggerEvent=&isTemplate=`
+   - `POST /workflows/definitions` - create; scope forced to ORG for non-admins
+   - `GET  /workflows/definitions/{id}` - full definition
+   - `PUT  /workflows/definitions/{id}` - update (blocked while RUNNING instance exists)
+   - `PATCH /workflows/definitions/{id}/status` - `{ isActive: true/false }`
+   - `DELETE /workflows/definitions/{id}` - soft-delete (sets isActive=false; blocked if running)
+   - `POST /workflows/definitions/{id}/clone` - scrubs `AssigneeSpec.Principal` UUIDs, copies to caller's org
+   - `GET  /workflows/triggers` - list `workflow_trigger_event_registry` rows
+   - `GET  /workflows/instances` - paginated instances for org; `?status=&subjectResourceType=`
+   - `GET  /workflows/instances/{id}` - instance detail with step timeline
+
+5. **`WorkflowDefinitionService.kt`** (new `@ApplicationScoped`)
+   - Business logic for create/update/clone/delete.
+   - Clone scrubs `AssigneeSpec.Principal` entries: replaces hardcoded UUIDs with `{ kind: "ROLE", roleName: "REVIEWER", scopeType: "ORG", scopeIdRef: "$subject.orgId" }`.
+   - Blocks PUT/DELETE when `WorkflowInstanceRepository.findRunningForOrg()` returns instances linked to the definition.
+
+6. **Frontend `workflowService.ts`** (new)
+   - Typed Axios wrappers for all `/workflows/*` endpoints.
+   - Functions: `listDefinitions(params)`, `getDefinition(id)`, `createDefinition(req)`, `updateDefinition(id, req)`, `patchDefinitionStatus(id, isActive)`, `deleteDefinition(id)`, `cloneDefinition(id, req)`, `listTriggers()`, `listInstances(params)`, `getInstance(id)`.
+
+---
+
 ## Table of Contents
 
 1. [Project Overview](#project-overview)
@@ -261,9 +470,9 @@ the engine.
 
 ## Phased Implementation Plan
 
-### Phase 1 - Data Model and Engine Foundations
+### Phase 1 - Data Model and Engine Foundations `[COMPLETE]`
 
-#### 1.1 Extend `WorkflowDefinition` for portability
+#### 1.1 Extend `WorkflowDefinition` for portability `[DONE]`
 
 File: `src/main/kotlin/com/docuhyphen/app/api/model/entity/WorkflowDefinition.kt`
 
@@ -283,7 +492,7 @@ var isTemplate: Boolean = false         // true = platform-bundled, false = org-
 var sourceTemplateId: UUID? = null      // set when cloned from a template
 ```
 
-#### 1.2 Add `StepAddonSpec` to the WorkflowSpec DSL
+#### 1.2 Add `StepAddonSpec` to the WorkflowSpec DSL `[DONE]`
 
 File: `src/main/kotlin/com/docuhyphen/app/api/service/workflow/WorkflowSpec.kt`
 
@@ -318,7 +527,7 @@ sealed class StepAddonSpec {
 The `WorkflowEscalationScheduler` tick evaluates addons alongside SLA checks. Add
 `processAddons(step, spec, now)` to `DefaultWorkflowEngineService`.
 
-#### 1.3 Add `requireRecipientAcceptance` to `OrganizationSettings`
+#### 1.3 Add `requireRecipientAcceptance` to `OrganizationSettings` `[DONE]`
 
 File: `src/main/kotlin/com/docuhyphen/app/api/model/entity/OrganizationSettings.kt`
 
@@ -333,7 +542,7 @@ Update `OrganizationSettingsDto` in `web-app/src/app/models/models.tsx`:
 requireRecipientAcceptance: boolean;
 ```
 
-#### 1.4 Add `messageTemplateKey` and `predicateExpression` to `WorkflowStepSpec`
+#### 1.4 Add `messageTemplateKey` and `predicateExpression` to `WorkflowStepSpec` `[DONE]`
 
 File: `src/main/kotlin/com/docuhyphen/app/api/service/workflow/WorkflowSpec.kt`
 
@@ -355,7 +564,7 @@ val onTrue: StepOutcomeSpec? = null,
 val onFalse: StepOutcomeSpec? = null,
 ```
 
-#### 1.5 Create Flyway migration
+#### 1.5 Create Flyway migration `[DONE]`
 
 File: `src/main/resources/db/migration/V5__workflow_lifecycle_redesign.sql`
 
@@ -414,7 +623,7 @@ ON CONFLICT (event_name) DO NOTHING;
 
 ---
 
-### Phase 2 - Implement Stubbed Step Type Handlers
+### Phase 2 - Implement Stubbed Step Type Handlers `[COMPLETE]`
 
 File: `src/main/kotlin/com/docuhyphen/app/api/service/workflow/DefaultWorkflowEngineService.kt`
 
@@ -474,9 +683,9 @@ to avoid duplicate sends).
 
 ---
 
-### Phase 3 - Exchange Lifecycle Rewiring
+### Phase 3 - Exchange Lifecycle Rewiring `[COMPLETE]`
 
-#### 3.1 Fire lifecycle events from `ExchangeInitiationService`
+#### 3.1 Fire lifecycle events from `ExchangeInitiationService` `[DONE]`
 
 File: `src/main/kotlin/com/docuhyphen/app/api/service/exchange/ExchangeInitiationService.kt`
 
@@ -496,7 +705,7 @@ After `exchangeRepository.save(exchange)`:
 3. If org has `requireRecipientAcceptance = false`: fire `exchange.activated` event immediately
    and set `exchange.status = ACCEPTED_STARTED`.
 
-#### 3.2 Route recipient accept/reject through the engine
+#### 3.2 Route recipient accept/reject through the engine `[DONE]`
 
 File: `src/main/kotlin/com/docuhyphen/app/api/service/exchange/ExchangeUpdateService.kt`
 
@@ -513,7 +722,7 @@ Add guard helper:
 private fun hasRunningAcceptanceWorkflow(exchangeId: UUID): Boolean
 ```
 
-#### 3.3 Fix `ExchangeApprovalEventHandler` to update `exchange.status`
+#### 3.3 Fix `ExchangeApprovalEventHandler` to update `exchange.status` `[DONE]`
 
 File: `src/main/kotlin/com/docuhyphen/app/api/service/exchange/ExchangeApprovalEventHandler.kt`
 
@@ -530,7 +739,7 @@ Extend `handles()` and `handle()` to also process:
 - `exchange.activated` (set `ACCEPTED_STARTED`, fire further post-activation workflows)
 - `exchange.ending` (fire completion workflow before setting `ENDED`)
 
-#### 3.4 Fire `exchange.ending` before ENDED transition
+#### 3.4 Fire `exchange.ending` before ENDED transition `[DONE]`
 
 In `ExchangeUpdateService.updateExchange()`, when `request.status == ENDED`:
 1. Fire `exchange.ending`.
@@ -538,7 +747,7 @@ In `ExchangeUpdateService.updateExchange()`, when `request.status == ENDED`:
    step emits `exchange.ended_confirmed`, handled in the event handler to do the final write).
 3. If no workflow, write `ENDED` immediately (existing behavior).
 
-#### 3.5 No-auth OTP bridge (recommended Option A)
+#### 3.5 No-auth OTP bridge (recommended Option A) `[DONE]`
 
 In `ExchangeUpdateService.updateNoAuthExchange()`, after OTP verification succeeds:
 - If a running `exchange.acceptance_pending` instance exists, call
@@ -775,48 +984,51 @@ Wraps all `/workflows/*` Axios calls with typed request/response shapes.
 
 ### Backend files to modify
 
-| File | Phase | Change |
-|---|---|---|
-| `model/entity/WorkflowDefinition.kt` | 1 | Add `industryTags`, `summary`, `isTemplate`, `sourceTemplateId` |
-| `model/entity/OrganizationSettings.kt` | 1 | Add `requireRecipientAcceptance` |
-| `model/entity/WorkflowStepInstance.kt` | 2 | Add `addonsStateJson` column |
-| `service/workflow/WorkflowSpec.kt` | 1, 2 | Add `StepAddonSpec`, `messageTemplateKey`, `predicateExpression`, `onTrue`, `onFalse`, `addons` to `WorkflowStepSpec` |
-| `service/workflow/DefaultWorkflowEngineService.kt` | 2 | Implement NOTIFICATION, ACTION, CONDITION handlers; addon processing |
-| `service/workflow/WorkflowEscalationScheduler.kt` | 2 | Call `processAddons()` in tick |
-| `service/exchange/ExchangeInitiationService.kt` | 3 | Fire `exchange.draft_submitted` + `exchange.acceptance_pending`; check org setting |
-| `service/exchange/ExchangeUpdateService.kt` | 3 | Route accept/reject through engine; guard direct status writes; fire `exchange.ending` |
-| `service/exchange/ExchangeApprovalEventHandler.kt` | 3 | Handle new lifecycle events; set `exchange.status = ACCEPTED_STARTED` on `session.activated` |
-| `db/migration/V5__workflow_lifecycle_redesign.sql` | 1 | Schema additions + trigger event registry seed |
+| File | Phase | Change | Status |
+|---|---|---|---|
+| `model/entity/WorkflowDefinition.kt` | 1 | Add `industryTags`, `summary`, `isTemplate`, `sourceTemplateId` | **Done** |
+| `model/entity/OrganizationSettings.kt` | 1 | Add `requireRecipientAcceptance` | **Done** |
+| `model/entity/WorkflowStepInstance.kt` | 2 | Add `addonsStateJson` field (column already in DB via V5) | **Done** |
+| `service/workflow/WorkflowSpec.kt` | 1, 2 | Add `StepAddonSpec`, `messageTemplateKey`, `predicateExpression`, `onTrue`, `onFalse`, `addons` to `WorkflowStepSpec` | **Done** |
+| `service/workflow/DefaultWorkflowEngineService.kt` | 2 | Implement NOTIFICATION, ACTION, CONDITION handlers; addon processing | **Done** |
+| `service/workflow/WorkflowEscalationScheduler.kt` | 2 | Call `processAddons()` in tick | **Done** (integrated into `escalateOverdue()`) |
+| `service/exchange/ExchangeInitiationService.kt` | 3 | Fire `exchange.draft_submitted` + `exchange.acceptance_pending`; check org setting | **Done** |
+| `service/exchange/ExchangeUpdateService.kt` | 3 | Route accept/reject through engine; guard direct status writes; fire `exchange.ending` | **Done** |
+| `service/exchange/ExchangeApprovalEventHandler.kt` | 3 | Handle new lifecycle events; set `exchange.status = ACCEPTED_STARTED` on `session.activated` | **Done** |
+| `db/migration/V5__workflow_lifecycle_redesign.sql` | 1 | Schema additions + trigger event registry seed | **Done** |
 
 ### Backend files to create
 
-| File | Phase | Purpose |
-|---|---|---|
-| `resource/WorkflowDefinitionResource.kt` | 4 | CRUD + clone + triggers + instances endpoints |
-| `service/workflow/WorkflowActionHandler.kt` | 2 | Interface for ACTION step handlers |
-| `service/workflow/actions/ExchangeAutoAcceptActionHandler.kt` | 2 | Built-in action |
-| `service/workflow/actions/ExchangeSendReminderActionHandler.kt` | 2 | Built-in action |
-| `service/workflow/actions/ExchangeRevokeAccessActionHandler.kt` | 2 | Built-in action |
-| `repository/WorkflowTriggerEventRepository.kt` | 4 | Query `workflow_trigger_event_registry` |
+| File | Phase | Purpose | Status |
+|---|---|---|---|
+| `resource/WorkflowDefinitionResource.kt` | 4 | CRUD + clone + triggers + instances endpoints | Pending |
+| `service/workflow/WorkflowDefinitionService.kt` | 4 | Business logic: create/update/clone/delete with portability rules | Pending |
+| `service/workflow/WorkflowActionHandler.kt` | 2 | Interface for ACTION step handlers | **Done** |
+| `service/workflow/actions/ExchangeAutoAcceptActionHandler.kt` | 2 | Built-in action | **Done** |
+| `service/workflow/actions/ExchangeSendReminderActionHandler.kt` | 2 | Built-in action | **Done** |
+| `service/workflow/actions/ExchangeRevokeAccessActionHandler.kt` | 2 | Built-in action | **Done** |
+| `repository/WorkflowTriggerEventRepository.kt` | 4 | Query `workflow_trigger_event_registry` | Pending |
+| `model/entity/WorkflowTriggerEventRegistry.kt` | 4 | JPA entity for trigger event registry table | Pending |
+| `exception/WorkflowConflictException.kt` | 3 | 409 signal for in-flight workflow gate | **Done** |
 
 ### Frontend files to modify
 
-| File | Phase | Change |
-|---|---|---|
-| `web-app/src/app/models/models.tsx` | 1, 5 | Add new DTO interfaces; add `requireRecipientAcceptance` to `OrganizationSettingsDto` |
-| `web-app/src/app/settings/Settings.tsx` | 5 | Add `WorkflowsTab` entry gated by `canManageOrganization` |
+| File | Phase | Change | Status |
+|---|---|---|---|
+| `web-app/src/app/models/models.tsx` | 1, 5 | Add new DTO interfaces; add `requireRecipientAcceptance` to `OrganizationSettingsDto` | **Done** |
+| `web-app/src/app/settings/Settings.tsx` | 5 | Add `WorkflowsTab` entry gated by `canManageOrganization` | Pending |
 
 ### Frontend files to create
 
-| File | Phase | Purpose |
-|---|---|---|
-| `web-app/src/app/settings/workflows-tab/WorkflowsTab.tsx` | 5 | Library view (list + templates) |
-| `web-app/src/app/settings/workflows-tab/WorkflowDesigner.tsx` | 5 | Step editor (create/edit) |
-| `web-app/src/app/settings/workflows-tab/StepCard.tsx` | 5 | Individual step editor card |
-| `web-app/src/app/settings/workflows-tab/AssigneeBuilder.tsx` | 5 | Assignee spec builder |
-| `web-app/src/app/settings/workflows-tab/WorkflowInstanceDashboard.tsx` | 5 | Instance activity view |
-| `web-app/src/app/settings/workflows-tab/WorkflowInstanceDetail.tsx` | 5 | Instance detail drawer |
-| `web-app/src/services/workflowService.ts` | 4 | API calls for all /workflows/* endpoints |
+| File | Phase | Purpose | Status |
+|---|---|---|---|
+| `web-app/src/app/settings/workflows-tab/WorkflowsTab.tsx` | 5 | Library view (list + templates) | Pending |
+| `web-app/src/app/settings/workflows-tab/WorkflowDesigner.tsx` | 5 | Step editor (create/edit) | Pending |
+| `web-app/src/app/settings/workflows-tab/StepCard.tsx` | 5 | Individual step editor card | Pending |
+| `web-app/src/app/settings/workflows-tab/AssigneeBuilder.tsx` | 5 | Assignee spec builder | Pending |
+| `web-app/src/app/settings/workflows-tab/WorkflowInstanceDashboard.tsx` | 5 | Instance activity view | Pending |
+| `web-app/src/app/settings/workflows-tab/WorkflowInstanceDetail.tsx` | 5 | Instance detail drawer | Pending |
+| `web-app/src/services/workflowService.ts` | 4 | API calls for all /workflows/* endpoints | Pending |
 
 ---
 

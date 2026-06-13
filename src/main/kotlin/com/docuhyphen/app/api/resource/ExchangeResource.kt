@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.exception.NoAuthOtpException
 import com.docuhyphen.app.api.exception.InvalidEmailException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.exception.AppUserNotFoundException
+import com.docuhyphen.app.api.exception.WorkflowConflictException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer.Companion.toDto
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
@@ -371,6 +372,15 @@ class ExchangeResource @Inject constructor(
         {
             when (exception)
             {
+                is WorkflowConflictException ->
+                {
+                    logger.info("Workflow conflict on exchange {} update: {}", exchangeId, exception.message)
+                    Response
+                        .status(Response.Status.CONFLICT)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
                 is ExchangeNotFoundException ->
                 {
                     logger.error("Error adding exchange document", exception)

@@ -59,6 +59,22 @@ class WorkflowDefinition
     @Column(name = "is_active", nullable = false)
     var isActive: Boolean = true
 
+    /** JSON array of free-form industry tag strings, e.g. `["legal","hr"]`. */
+    @Column(name = "industry_tags", nullable = false, columnDefinition = "text")
+    var industryTags: String = "[]"
+
+    @Column(name = "summary", nullable = true, length = 512)
+    var summary: String? = null
+
+    /** True for platform-bundled templates seeded via Flyway; false for org-created definitions. */
+    @Column(name = "is_template", nullable = false)
+    var isTemplate: Boolean = false
+
+    /** Set when this definition was cloned from a platform template. */
+    @Column(name = "source_template_id", nullable = true)
+    @Serializable(with = UUIDSerializer::class)
+    var sourceTemplateId: UUID? = null
+
     @Column(name = "created_by_app_user_id", nullable = true)
     @Serializable(with = UUIDSerializer::class)
     var createdByAppUserId: UUID? = null

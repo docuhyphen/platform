@@ -329,7 +329,7 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
         {
             return (
                 <Text size={200} italic>
-                    No recent external contacts yet. People will appear here once you've accepted shares with them.
+                    No recent external contacts yet. People will appear here once you've exchanged with them.
                     Users in your organization are shown under My Organization.
                 </Text>
             );

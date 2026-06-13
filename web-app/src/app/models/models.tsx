@@ -717,6 +717,7 @@ export interface OrganizationSettingsDto
     allowExternalCustomerSharing: boolean;
     allowProfileUpdate: boolean;
     allowEmailUpdate: boolean;
+    requireRecipientAcceptance: boolean;
 }
 
 
@@ -769,4 +770,171 @@ export interface OrganizationExchangeLinkBasicDto
     linkedDate?: string;
     rejectedDate?: string;
     rejectionReason?: string;
+}
+
+// ── Workflow DTOs ─────────────────────────────────────────────────────────────
+
+export interface WorkflowDefinitionSummaryDto
+{
+    id: string;
+    name: string;
+    summary?: string;
+    triggerEvent: string;
+    version: number;
+    isActive: boolean;
+    isTemplate: boolean;
+    scope: 'APP' | 'ORG';
+    industryTags: string[];
+    organizationId?: string;
+    sourceTemplateId?: string;
+    createdAt: string;
+}
+
+/** Full definition, including the raw stepsJson DSL blob. */
+export interface WorkflowDefinitionDto extends WorkflowDefinitionSummaryDto
+{
+    description?: string;
+    createdByAppUserId?: string;
+    stepsJson: string;
+}
+
+export interface WorkflowTriggerEventDto
+{
+    eventName: string;
+    description?: string;
+    subjectFields: WorkflowSubjectFieldDto[];
+    isActive: boolean;
+}
+
+export interface WorkflowSubjectFieldDto
+{
+    name: string;
+    type: string;
+    description?: string;
+}
+
+export interface WorkflowInstanceSummaryDto
+{
+    id: string;
+    definitionId: string;
+    definitionName?: string;
+    subjectResourceType?: string;
+    subjectResourceId?: string;
+    exchangeName?: string;
+    status: 'RUNNING' | 'COMPLETED' | 'REJECTED' | 'CANCELLED' | 'ESCALATED';
+    currentStepIndex: number;
+    createdAt: string;
+    completedAt?: string;
+}
+
+/** Full instance with decoded step timeline. Returned by GET /workflows/instances/{id}. */
+export interface WorkflowInstanceDetailDto extends WorkflowInstanceSummaryDto
+{
+    steps: WorkflowStepInstanceDto[];
+}
+
+export interface WorkflowStepInstanceDto
+{
+    id: string;
+    stepIndex: number;
+    stepType: string;
+    status: string;
+    assignees: WorkflowPrincipalRefDto[];
+    decisions: WorkflowDecisionEntryDto[];
+    dueAt?: string;
+    escalatedAt?: string;
+    completedAt?: string;
+    createdAt: string;
+}
+
+export interface WorkflowPrincipalRefDto
+{
+    kind: string;
+    id: string;
+}
+
+export interface WorkflowDecisionEntryDto
+{
+    principalKind: string;
+    principalId: string;
+    decision: 'APPROVE' | 'REJECT';
+    reason?: string;
+    atEpochMillis: number;
+}
+
+// ── Workflow Designer DSL types (mirror of WorkflowSpec Kotlin DSL) ────────────
+
+export type WorkflowStepType = 'APPROVAL' | 'NOTIFICATION' | 'CONDITION' | 'ACTION';
+export type AssigneeKind = 'PRINCIPAL' | 'GROUP_ROLE' | 'ROLE';
+export type QuorumKind = 'ANY' | 'ALL' | 'N_OF_M';
+export type EscalationAction = 'ESCALATE' | 'AUTO_REJECT' | 'AUTO_APPROVE';
+export type AddonKind = 'REMINDER_BEFORE_DUE' | 'REMINDER_IF_NO_DECISION';
+export type WorkflowScopeType = 'APP' | 'ORG';
+
+export interface AssigneeSpecDraft
+{
+    kind: AssigneeKind;
+    principalKind?: string;   // PRINCIPAL: APP_USER | GROUP
+    principalId?: string;     // PRINCIPAL
+    groupIdRef?: string;      // GROUP_ROLE: UUID or $subject.<field>
+    groupRole?: string;       // GROUP_ROLE: OWNER | MANAGER | MEMBER | OBSERVER
+    roleName?: string;        // ROLE | GROUP_ROLE
+    scopeType?: WorkflowScopeType; // ROLE
+    scopeIdRef?: string;      // ROLE: literal id or $subject.<field>
+}
+
+export interface QuorumSpecDraft
+{
+    kind: QuorumKind;
+    n?: number; // N_OF_M only
+}
+
+export interface StepOutcomeSpecDraft
+{
+    nextStep: string; // "END" or numeric step index as string
+    emit?: string;
+}
+
+export interface EscalationSpecDraft
+{
+    afterSlaBreach: EscalationAction;
+    escalateTo: AssigneeSpecDraft[];
+}
+
+export interface AddonSpecDraft
+{
+    kind: AddonKind;
+    minutesBeforeDue?: number;
+    afterMinutes?: number;
+    recipientRef: AssigneeSpecDraft;
+    messageTemplateKey?: string;
+    repeatEveryMinutes?: number;
+}
+
+export interface WorkflowStepSpecDraft
+{
+    type: WorkflowStepType;
+    assignees: AssigneeSpecDraft[];
+    quorum: QuorumSpecDraft;
+    slaMinutes?: number;
+    escalation?: EscalationSpecDraft;
+    onApprove?: StepOutcomeSpecDraft;
+    onReject?: StepOutcomeSpecDraft;
+    actionHandlerKey?: string;
+    messageTemplateKey?: string;
+    predicateExpression?: string;
+    onTrue?: StepOutcomeSpecDraft;
+    onFalse?: StepOutcomeSpecDraft;
+    addons: AddonSpecDraft[];
+}
+
+export interface WorkflowDesignerState
+{
+    id?: string;
+    name: string;
+    summary: string;
+    industryTags: string[];
+    triggerEvent: string;
+    isActive: boolean;
+    steps: WorkflowStepSpecDraft[];
 }

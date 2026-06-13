@@ -44,6 +44,14 @@ class OrganizationSettings
     @Column(name = "allow_email_update", nullable = false)
     var allowEmailUpdate: Boolean = false
 
+    /**
+     * When true (default), an Exchange stays at INITIATED until at least one recipient
+     * explicitly accepts it (via a workflow or a direct status update). When false, the
+     * exchange auto-advances to ACCEPTED_STARTED immediately on creation.
+     */
+    @Column(name = "require_recipient_acceptance", nullable = false)
+    var requireRecipientAcceptance: Boolean = true
+
     @OneToOne(mappedBy = "settings")
     @JsonIgnore
     var organization: Organization? = null

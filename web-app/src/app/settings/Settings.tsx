@@ -19,8 +19,10 @@ import {
     SettingsExchangeTemplatesTabIcon, SettingsLinkedAccountsTabIcon, SettingsMyGroupsTabIcon,
     SettingsOrganizationTabIcon,
     SettingsProfileTabIcon,
+    SettingsWorkflowsTabIcon,
 } from "../components/IconBundles.tsx";
 import TemplatesTab from "./templates-tab/TemplatesTab.tsx";
+import WorkflowsTab from "./workflows-tab/WorkflowsTab.tsx";
 import AppSettingsTab from "./app-settings-tab/AppSettingsTab.tsx";
 import ProfileTab from "./profile-tab/ProfileTab.tsx";
 import OrganizationGroupsTab from "./organization-groups-tab/OrganizationGroupsTab.tsx";
@@ -48,7 +50,8 @@ const Settings = () =>
         organizationPairing: "OrganizationPairingTab",
         templates: "TemplatesTab",
         myGroups: "MyGroupsTab",
-        appAdmins: "AppAdminsTab"
+        appAdmins: "AppAdminsTab",
+        workflows: "WorkflowsTab",
     }
 
     const tabLabels: Record<string, string> = {
@@ -111,6 +114,11 @@ const Settings = () =>
             <Tab id="TemplatesTab" icon={<SettingsExchangeTemplatesTabIcon/>} value={tabIds.templates}>
                 Exchange Templates
             </Tab>
+            {canManageOrganization && (
+                <Tab id="WorkflowsTab" icon={<SettingsWorkflowsTabIcon/>} value={tabIds.workflows}>
+                    Workflows
+                </Tab>
+            )}
         </TabList>
     );
 
@@ -164,6 +172,7 @@ const Settings = () =>
                     {selectedValue === tabIds.organizationPairing && <OrganizationPairingTab/>}
                     {selectedValue === tabIds.appAdmins && <AppAdminsTab/>}
                     {selectedValue === tabIds.templates && <TemplatesTab/>}
+                    {selectedValue === tabIds.workflows && <WorkflowsTab/>}
                 </div>
 
             </div>
