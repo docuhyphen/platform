@@ -5,6 +5,7 @@ import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.model.entity.DocumentAuditLogAction
 import com.docuhyphen.app.api.model.entity.DocumentType
 import com.docuhyphen.app.api.model.entity.DocumentVersion
+import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.repository.DocumentVersionRepository
 import com.docuhyphen.app.api.repository.ExchangeDocumentRepository
 import com.docuhyphen.app.api.repository.ExchangeRepository
@@ -26,6 +27,7 @@ class ExchangeDocumentVersionService @Inject constructor(
     private val exchangeRepository: ExchangeRepository,
     private val exchangeDocumentRepository: ExchangeDocumentRepository,
     private val documentVersionRepository: DocumentVersionRepository,
+    private val appUserRepository: AppUserRepository,
     private val documentAuditService: ExchangeDocumentAuditService,
     private val entityManager: EntityManager
 )
@@ -72,6 +74,7 @@ class ExchangeDocumentVersionService @Inject constructor(
             this.version = versionNumber
             this.createdDate = Timestamp.from(Instant.now())
             this.createdByEmail = currentUserEmail
+            this.createdBy = currentUserEmail?.let { appUserRepository.findByEmail(it) }
         }
 
         documentVersionRepository.save(version)

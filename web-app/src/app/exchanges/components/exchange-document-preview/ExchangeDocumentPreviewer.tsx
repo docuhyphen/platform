@@ -33,6 +33,8 @@ interface DocumentPreviewerProps
     exchange: ExchangeDetailedDto;
     canUploadDocument?: boolean;
     onUploadDocument?: () => void;
+    /** When true the Enlarge button is hidden (e.g. when already rendered inside a large dialog). */
+    hideEnlarge?: boolean;
 }
 
 const INLINE_ZOOM_STORAGE_KEY = 'exchanges.preview.zoom.inline';
@@ -88,6 +90,8 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         exchange,
         canUploadDocument = false,
         onUploadDocument,
+        overridePdfUrl,
+        hideEnlarge = false,
     }) =>
 {
     const styles = useExchangeDocumentPreviewerStyles();
@@ -194,6 +198,19 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     // Fetch / refresh the PDF blob whenever the underlying document changes.
     useEffect(() =>
     {
+        // When a pre-fetched URL is provided (e.g. for a specific version), use it directly
+        // and skip the server fetch. The caller is responsible for revoking the URL.
+        if (overridePdfUrl)
+        {
+            setPdfUrl(overridePdfUrl);
+            setPreviewError(null);
+            setCurrentPage(1);
+            setPageInput('1');
+            setVisiblePages(new Set([1]));
+            lastLoadedUrlRef.current = null;
+            return;
+        }
+
         let revokedUrl: string | null = null;
         const fetchDocument = async () =>
         {
@@ -240,7 +257,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                 URL.revokeObjectURL(revokedUrl);
             }
         };
-    }, [exchangeDocument, exchange.id]);
+    }, [exchangeDocument, exchange.id, overridePdfUrl]);
 
     useEffect(() =>
     {
@@ -945,6 +962,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                                 <Button onClick={toggleEnlarge}
                                         id="exchange-document-preview-expand"
                                         appearance="transparent"
+                                        style={hideEnlarge ? {display: 'none'} : undefined}
                                         icon={<ExpandIcon/>}/>
                             </Tooltip>
 

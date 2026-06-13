@@ -65,8 +65,11 @@ class DetailedEntityToDtoTransformer
                         version,
                         storagePath,
                         createdByEmail,
-                        "TODO"
-//                        createdBy!!.id.toString()
+                        createdBy?.person?.let {
+                            listOfNotNull(it.firstName, it.lastName)
+                                .joinToString(" ")
+                                .takeIf { name -> name.isNotBlank() }
+                        } ?: createdByEmail
                     )
                 }
             }

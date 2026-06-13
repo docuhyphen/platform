@@ -1,54 +1,57 @@
-﻿import React, {useEffect, useState} from "react";
+﻿import React, {useCallback, useEffect, useState} from "react";
 import {
+    Badge,
     Button,
+    Dialog,
+    DialogBody,
+    DialogContent,
+    DialogSurface,
+    Menu,
+    MenuItem,
+    MenuList,
+    MenuPopover,
+    MenuTrigger,
     Spinner,
-    Table,
-    TableBody,
-    TableCell,
-    TableHeader,
-    TableHeaderCell,
-    TableRow,
     Text,
     tokens
 } from "@fluentui/react-components";
-import {ArrowDownloadRegular, ArrowUploadRegular} from "@fluentui/react-icons";
-import {DocumentDetailedDto, DocumentVersion} from "../../../../models/models";
+import {ArrowDownloadRegular, EyeRegular, ArrowUploadRegular, MoreVerticalRegular, DismissRegular} from "@fluentui/react-icons";
+import {DocumentDetailedDto, DocumentVersion, ExchangeDetailedDto} from "../../../../models/models";
 import {
     downloadDocumentVersion,
     getDocumentVersions,
-    uploadDocumentVersion
 } from "../../../../../services/exchangeApi";
-import {useAuth} from "../../../../../context/AuthContext";
 import {formatDate} from "../../../../helpers.ts";
 import {useExchangeDocumentVersionsStyles} from "./ExchangeDocumentVersionsStyles.tsx";
+import ExchangeDocumentUploadDialog
+    from "../../exchange-document-upload-dialog/ExchangeDocumentUploadDialog.tsx";
+import ExchangeDocumentPreviewer
+    from "../../exchange-document-preview/ExchangeDocumentPreviewer.tsx";
 
 interface ExchangeDocumentVersionsProps
 {
     exchangeId: string;
     exchangeDocument: DocumentDetailedDto;
+    exchange: ExchangeDetailedDto;
 }
 
 const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
     {
         exchangeId,
-        exchangeDocument
+        exchangeDocument,
+        exchange,
     }) =>
 {
     const styles = useExchangeDocumentVersionsStyles();
-    const {token} = useAuth();
     const [versions, setVersions] = useState<DocumentVersion[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
-    const [uploading, setUploading] = useState<boolean>(false);
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+    const [actionInProgress, setActionInProgress] = useState<string | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [previewTitle, setPreviewTitle] = useState<string>("");
 
-    useEffect(() =>
-    {
-        fetchVersions();
-    }, [exchangeId, exchangeDocument.id]);
-
-    const fetchVersions = async () =>
+    const fetchVersions = useCallback(async () =>
     {
         try
         {
@@ -57,7 +60,7 @@ const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
             setVersions(result as DocumentVersion[]);
             setError(null);
         }
-        catch (err: any)
+        catch (err: unknown)
         {
             setError("Failed to load document versions");
             console.error("Error fetching document versions:", err);
@@ -66,163 +69,181 @@ const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
         {
             setLoading(false);
         }
+    }, [exchangeId, exchangeDocument.id, exchangeDocument.uploadDate]);
+
+    useEffect(() =>
+    {
+        fetchVersions();
+    }, [fetchVersions]);
+
+    const closePreview = () =>
+    {
+        if (previewUrl)
+        {
+            window.URL.revokeObjectURL(previewUrl);
+        }
+        setPreviewUrl(null);
+        setPreviewTitle("");
     };
 
-    const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) =>
+    const openVersionBlob = async (versionId: string, forDownload: boolean) =>
     {
-        if (event.target.files && event.target.files.length > 0)
-        {
-            setSelectedFile(event.target.files[0]);
-        }
-    };
-
-    const handleUpload = async () =>
-    {
-        if (!selectedFile)
-        {
-            return;
-        }
-
-        try
-        {
-            setUploading(true);
-
-            const formData = new FormData();
-            formData.append("file", selectedFile);
-            formData.append("userEmail", localStorage.getItem("userEmail") || "");
-
-            await uploadDocumentVersion(exchangeId, exchangeDocument.id, formData, token);
-
-            fetchVersions();
-            setSelectedFile(null);
-            if (fileInputRef.current)
-            {
-                fileInputRef.current.value = "";
-            }
-        }
-        catch (err: any)
-        {
-            setError("Failed to upload new version");
-            console.error("Error uploading document version:", err);
-        }
-        finally
-        {
-            setUploading(false);
-        }
-    };
-
-    const handleDownload = async (versionId: string) =>
-    {
+        setActionInProgress(versionId);
         try
         {
             const blob = await downloadDocumentVersion(exchangeId, exchangeDocument.id, versionId);
-
             const url = window.URL.createObjectURL(blob as Blob);
-            const a = document.createElement("a");
-            a.style.display = "none";
-            a.href = url;
-            a.download = `${exchangeDocument.title}_${versions.find(v => v.id === versionId)?.version || "document"}`;
-            document.body.appendChild(a);
-            a.click();
-
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+            if (forDownload)
+            {
+                const versionLabel = versions.find(v => v.id === versionId)?.version || "document";
+                const a = document.createElement("a");
+                a.style.display = "none";
+                a.href = url;
+                a.download = `${exchangeDocument.title}_v${versionLabel}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }
+            else
+            {
+                const versionLabel = versions.find(v => v.id === versionId)?.version || "";
+                setPreviewTitle(`${exchangeDocument.title} - v${versionLabel}`);
+                setPreviewUrl(url);
+            }
         }
         catch (err)
         {
-            setError("Failed to download version");
-            console.error("Error downloading document version:", err);
+            setError(forDownload ? "Failed to download version" : "Failed to preview version");
+            console.error("Error opening document version:", err);
+        }
+        finally
+        {
+            setActionInProgress(null);
         }
     };
 
     if (loading)
     {
-        return <Spinner size={"small"}/>;
+        return <Spinner size="small"/>;
     }
 
     return (
         <div className={styles.container}>
+            {error && (
+                <Text style={{color: tokens.colorStatusDangerForeground1}}>{error}</Text>
+            )}
+
             <div className={styles.versionList}>
                 {versions.length === 0 ? (
                     <div className={styles.noVersions}>
                         <Text align="center">No versions available</Text>
                         <Text size={200} align="center">
-                            Upload a new version to see it here
+                            Upload a version to see it here
                         </Text>
                     </div>
                 ) : (
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHeaderCell>#</TableHeaderCell>
-                                <TableHeaderCell>Uploaded</TableHeaderCell>
-                                <TableHeaderCell>Created By</TableHeaderCell>
-                                <TableHeaderCell>Actions</TableHeaderCell>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {versions.map((version) => (
-                                <TableRow key={version.id}>
-                                    <TableCell>{version.version}</TableCell>
-                                    <TableCell>{formatDate(version.createdAt)}</TableCell>
-                                    <TableCell>{version.createdByEmail || "Unknown"}</TableCell>
-                                    <TableCell>
+                    versions.map((version) => (
+                        <div key={version.id} className={styles.versionCard}>
+                            <div className={styles.versionCardHeader}>
+                                <Badge appearance="filled" color="informative">
+                                    v{version.version}
+                                </Badge>
+                                <Menu>
+                                    <MenuTrigger disableButtonEnhancement>
                                         <Button
-                                            icon={<ArrowDownloadRegular/>}
+                                            icon={actionInProgress === version.id
+                                                ? <Spinner size="tiny"/>
+                                                : <MoreVerticalRegular/>}
                                             appearance="subtle"
-                                            title="Download version"
-                                            onClick={() => handleDownload(version.id)}
+                                            size="small"
+                                            disabled={actionInProgress === version.id}
                                         />
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                                    </MenuTrigger>
+                                    <MenuPopover>
+                                        <MenuList>
+                                            <MenuItem
+                                                icon={<EyeRegular/>}
+                                                onClick={() => openVersionBlob(version.id, false)}
+                                            >
+                                                Preview
+                                            </MenuItem>
+                                            <MenuItem
+                                                icon={<ArrowDownloadRegular/>}
+                                                onClick={() => openVersionBlob(version.id, true)}
+                                            >
+                                                Download
+                                            </MenuItem>
+                                        </MenuList>
+                                    </MenuPopover>
+                                </Menu>
+                            </div>
+                            <div className={styles.versionCardMeta}>
+                                <Text size={200}>{formatDate(version.createdAt)}</Text>
+                                <Text size={200}>{version.createdByEmail || "Unknown"}</Text>
+                            </div>
+                            {version.fileName && (
+                                <Text size={200} className={styles.versionFileName}>
+                                    {version.fileName}
+                                </Text>
+                            )}
+                        </div>
+                    ))
                 )}
             </div>
 
-            <div className={styles.uploadContainer}>
-                <Text weight="semibold">Upload a new version</Text>
-
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    className={styles.uploadInput}
-                    onChange={handleFileSelect}
-                    id="version-file-input"
-                />
-
-                <div className={styles.buttonContainer}>
-                    <Text className={styles.fileLabel}>
-                        {selectedFile ? selectedFile.name : "No file selected"}
-                    </Text>
-
-                    <div>
-                        <Button
-                            appearance="secondary"
-                            shape={"circular"}
-                            size={"small"}
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={uploading}
-                        >
-                            Select File
-                        </Button>
-                        {" "}
-                        <Button
-                            appearance="primary"
-                            shape={"circular"}
-                            size={"small"}
-                            onClick={handleUpload}
-                            disabled={!selectedFile || uploading}
-                            icon={<ArrowUploadRegular/>}
-                        >
-                            {uploading ? "Uploading..." : "Upload Version"}
-                        </Button>
-                    </div>
-                </div>
-
-                {error && <Text style={{color: tokens.colorStatusDangerForeground1}}>{error}</Text>}
+            <div className={styles.uploadButtonRow}>
+                <Button
+                    appearance="primary"
+                    shape="circular"
+                    size="small"
+                    icon={<ArrowUploadRegular/>}
+                    onClick={() => setIsUploadDialogOpen(true)}
+                >
+                    Upload Version
+                </Button>
             </div>
+
+            <ExchangeDocumentUploadDialog
+                isOpen={isUploadDialogOpen}
+                exchangeId={exchangeId}
+                exchangeDocument={exchangeDocument}
+                onDismiss={() => setIsUploadDialogOpen(false)}
+                onDocumentUploaded={() =>
+                {
+                    setIsUploadDialogOpen(false);
+                    fetchVersions();
+                }}
+            />
+
+            {/* Version preview dialog using ExchangeDocumentPreviewer */}
+            <Dialog
+                open={!!previewUrl}
+                onOpenChange={(_e, data) => { if (!data.open) closePreview(); }}
+            >
+                <DialogSurface className={styles.previewDialogSurface}>
+                    <Button
+                        appearance="subtle"
+                        shape="circular"
+                        size="small"
+                        icon={<DismissRegular/>}
+                        className={styles.previewCloseButton}
+                        onClick={closePreview}
+                    />
+                    <DialogBody className={styles.previewDialogBody}>
+                        <DialogContent className={styles.previewDialogContent}>
+                            {previewUrl && (
+                                <ExchangeDocumentPreviewer
+                                    document={exchangeDocument}
+                                    exchange={exchange}
+                                    overridePdfUrl={previewUrl}
+                                    hideEnlarge
+                                />
+                            )}
+                        </DialogContent>
+                    </DialogBody>
+                </DialogSurface>
+            </Dialog>
         </div>
     );
 };

@@ -661,6 +661,7 @@ export interface DocumentVersion
     storagePath: string;
     createdAt: string;
     createdByEmail: string | null;
+    createdBy: string | null;
 }
 
 export enum NotificationType

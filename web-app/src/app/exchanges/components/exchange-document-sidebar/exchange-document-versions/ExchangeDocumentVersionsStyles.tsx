@@ -7,30 +7,51 @@ export const useExchangeDocumentVersionsStyles = makeStyles({
         height: "100%",
         gap: tokens.spacingVerticalM,
     },
-    header: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        ...shorthands.padding(tokens.spacingVerticalS, 0)
-    },
-    uploadContainer: {
+    versionList: {
         display: "flex",
         flexDirection: "column",
         gap: tokens.spacingVerticalS,
-        ...shorthands.padding(tokens.spacingVerticalM),
-        ...shorthands.border("1px", "solid", tokens.colorNeutralStroke1),
-        ...shorthands.borderRadius(tokens.borderRadiusMedium),
-        marginBottom: tokens.spacingVerticalM
+        overflowY: "auto",
+        flexGrow: 1,
+        minHeight: 0,
     },
-    uploadInput: {
-        display: "none"
+    uploadButtonRow: {
+        display: "flex",
+        justifyContent: "flex-end",
+        alignItems: "center",
+        ...shorthands.padding(tokens.spacingVerticalS, 0),
+        borderTop: `1px solid ${tokens.colorNeutralStroke1}`,
+        flexShrink: 0,
     },
-    buttonContainer: {
+    versionCard: {
         display: "flex",
         flexDirection: "column",
-        gap: tokens.spacingHorizontalM,
+        gap: tokens.spacingVerticalXS,
+        ...shorthands.padding(tokens.spacingVerticalS, tokens.spacingHorizontalM),
+        ...shorthands.border("1px", "solid", tokens.colorNeutralStroke1),
+        ...shorthands.borderRadius(tokens.borderRadiusMedium),
+        backgroundColor: tokens.colorNeutralBackground1,
+    },
+    versionCardHeader: {
+        display: "flex",
         justifyContent: "space-between",
-        alignItems: "start"
+        alignItems: "center",
+    },
+    versionCardActions: {
+        display: "flex",
+        gap: tokens.spacingHorizontalXS,
+        alignItems: "center",
+    },
+    versionCardMeta: {
+        display: "flex",
+        gap: tokens.spacingHorizontalM,
+        color: tokens.colorNeutralForeground3,
+    },
+    versionFileName: {
+        color: tokens.colorNeutralForeground3,
+        ...shorthands.overflow("hidden"),
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
     },
     noVersions: {
         display: "flex",
@@ -39,16 +60,39 @@ export const useExchangeDocumentVersionsStyles = makeStyles({
         justifyContent: "center",
         height: "200px",
         ...shorthands.gap(tokens.spacingVerticalL),
-        color: tokens.colorNeutralForeground3
+        color: tokens.colorNeutralForeground3,
     },
-    versionList: {
-        overflowY: "auto",
-        flexGrow: 1
+    previewDialogSurface: {
+        width: "90vw",
+        maxWidth: "1100px",
+        height: "90vh",
+        position: "relative",
+        ...shorthands.padding(0),
     },
-    fileLabel: {
-        ...shorthands.overflow("hidden"),
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap",
-        maxWidth: "180px"
-    }
+    previewCloseButton: {
+        position: "absolute",
+        top: "8px",
+        right: "8px",
+        zIndex: 10,
+    },
+    previewDialogBody: {
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        ...shorthands.padding(0),
+    },
+    previewDialogContent: {
+        flexGrow: 1,
+        display: "flex",
+        flexDirection: "column",
+        ...shorthands.padding(0),
+        overflow: "hidden",
+    },
+    previewIframe: {
+        width: "100%",
+        flexGrow: 1,
+        border: "none",
+        minHeight: "0",
+        height: "100%",
+    },
 });

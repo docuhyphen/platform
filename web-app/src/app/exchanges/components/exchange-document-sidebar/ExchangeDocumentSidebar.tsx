@@ -289,6 +289,7 @@ const ExchangeDocumentSidebar: React.FC<ExchangeDocumentSidebarProps> = (
                     <ExchangeDocumentVersions
                         exchangeId={exchange.id}
                         exchangeDocument={exchangeDocument}
+                        exchange={exchange}
                     />
                 )}
                 {selectedValue === "audit" && (

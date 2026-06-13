@@ -193,10 +193,10 @@ export function HeroSection()
             <FloatingDocuments/>
             <section className={styles.container}>
                 <LargeTitle className={styles.title}>
-                    Privileged documents deserve privileged controls
+                    Modernize your document exchange process
                 </LargeTitle>
                 <Text className={styles.supportingText}>
-                    Exchange and collaborate on documents with clients, teams, and external organizations.
+                    Exchange and collaborate on documents with clients, teams, and other organizations.
                 </Text>
 
                 <div className={styles.actions}>

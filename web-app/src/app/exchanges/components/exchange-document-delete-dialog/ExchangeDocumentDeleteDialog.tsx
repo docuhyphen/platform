@@ -33,11 +33,55 @@ const ExchangeDocumentDeleteDialog: React.FC<DeleteDocumentDialogProps> = (
     }) =>
 {
     const [deletingDocument, setDeletingDocument] = React.useState(false);
-    const globalStyles = useGlobalStyles()
+    const [deleteStarted, setDeleteStarted] = React.useState(false);
+    const [countdown, setCountdown] = React.useState(10);
+    const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+    const globalStyles = useGlobalStyles();
 
-    const onDelete = async () =>
+    const onDelete = () =>
     {
-        setDeletingDocument(true)
+        setDeleteStarted(true);
+        setCountdown(10);
+
+        timerRef.current = setInterval(() =>
+        {
+            setCountdown(prevCountdown =>
+            {
+                if (prevCountdown <= 1)
+                {
+                    clearInterval(timerRef.current!);
+                    completeDeletion();
+                    return 0;
+                }
+                return prevCountdown - 1;
+            });
+        }, 1000);
+    };
+
+    const onCancel = () =>
+    {
+        if (timerRef.current)
+        {
+            clearInterval(timerRef.current);
+        }
+        setDeleteStarted(false);
+        setCountdown(10);
+    };
+
+    const onDismiss = () =>
+    {
+        if (timerRef.current)
+        {
+            clearInterval(timerRef.current);
+        }
+        setDeleteStarted(false);
+        setCountdown(10);
+        onClose();
+    };
+
+    const completeDeletion = async () =>
+    {
+        setDeletingDocument(true);
 
         try
         {
@@ -52,40 +96,57 @@ const ExchangeDocumentDeleteDialog: React.FC<DeleteDocumentDialogProps> = (
         finally
         {
             setDeletingDocument(false);
+            setDeleteStarted(false);
             onClose();
         }
-    }
+    };
 
-    return <>
-        {<Dialog modalType="alert" open={isOpen}>
+    return (
+        <Dialog modalType="alert" open={isOpen}>
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle>Deleting {exchangeDocument && exchangeDocument.title}</DialogTitle>
                     <DialogContent>
-                        Are you sure you want to delete this document?
+                        {deleteStarted ? (
+                            <div>Deleting in {countdown} seconds...</div>
+                        ) : (
+                            <div>Are you sure you want to delete this document?</div>
+                        )}
                     </DialogContent>
                     <DialogActions>
-                        <Button appearance="primary"
-                                className={globalStyles.buttonWithLoading}
-                                shape={"circular"}
-                                onClick={onDelete}>
-                            {deletingDocument && <Spinner size={"tiny"}/>}
-                            Yes, Delete
-                        </Button>
-                        <DialogTrigger disableButtonEnhancement>
-                            <Button appearance="secondary"
-                                    shape={"circular"}
-                                    disabled={deletingDocument}
-                                    onClick={onClose}>
-                                No, Cancel
+                        {deleteStarted ? (
+                            <Button
+                                appearance="primary"
+                                shape="circular"
+                                onClick={onCancel}>
+                                Cancel
                             </Button>
-                        </DialogTrigger>
+                        ) : (
+                            <>
+                                <Button
+                                    appearance="primary"
+                                    className={globalStyles.buttonWithLoading}
+                                    shape="circular"
+                                    onClick={onDelete}>
+                                    {deletingDocument && <Spinner size="tiny"/>}
+                                    Yes, Delete
+                                </Button>
+                                <DialogTrigger disableButtonEnhancement>
+                                    <Button
+                                        appearance="secondary"
+                                        shape="circular"
+                                        disabled={deletingDocument}
+                                        onClick={onDismiss}>
+                                        No, Cancel
+                                    </Button>
+                                </DialogTrigger>
+                            </>
+                        )}
                     </DialogActions>
                 </DialogBody>
             </DialogSurface>
         </Dialog>
-        }
-    </>
-}
+    );
+};
 
 export default ExchangeDocumentDeleteDialog;
