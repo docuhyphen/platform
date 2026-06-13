@@ -98,7 +98,7 @@ const useStyles = makeStyles({
     content: {
         flex: 1,
         overflowY: "auto",
-        padding: "16px",
+        padding: "1.8rem",
         color: tokens.colorNeutralForeground2,
         lineHeight: tokens.lineHeightBase300,
         fontSize: tokens.fontSizeBase300,
