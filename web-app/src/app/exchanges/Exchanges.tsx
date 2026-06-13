@@ -1,6 +1,7 @@
 ﻿import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
-    Button, InputOnChangeData, Link, SearchBoxChangeEvent, Spinner, Text, Toast, Toaster,
+    Button, InputOnChangeData, Link, SearchBoxChangeEvent, SelectTabData, SelectTabEvent,
+    Spinner, Tab, TabList, TabValue, Text, Toast, Toaster,
     ToastBody,
     ToastTitle,
     ToastTrigger,
@@ -43,6 +44,9 @@ import EmptyStateIllustration from "./components/empty-state-illustration/EmptyS
 import {ExchangeListTab} from "./components/exchange-list/exchange-list-tabs/ExchangeListTabs.tsx";
 import {InboxRole, ExchangeTabCounts} from "./components/exchange-list/ExchangeList.tsx";
 import {useIsMobile} from "../../utils/useMediaQuery.ts";
+import ExchangeDetailsTab from "./components/exchange-details-tab/ExchangeDetailsTab.tsx";
+import ExchangeAuditTab from "./components/exchange-audit-tab/ExchangeAuditTab.tsx";
+import {AuditIcon, DetailsIcon, DocumentsIcon} from "../components/IconBundles.tsx";
 
 const ACTIVE_TAB_STORAGE_KEY = 'exchanges.mainTab.active';
 const LAST_ROUTE_QUERY_STORAGE_KEY = 'exchanges.lastRoute.query';
@@ -94,6 +98,7 @@ const Exchanges: React.FC = () =>
     const [isExchangeEnded, setIsExchangeEnded] = React.useState(false);
     const [filteredDocuments, setFilteredDocuments] = useState<DocumentDetailedDto[]>([]);
     const [appUserHasExchanges, setAppUserHasExchanges] = useState<boolean>(false);
+    const [detailsActiveTab, setDetailsActiveTab] = useState<TabValue>('documents');
     const permissions = useMemo<ExchangePermissions>(
         () => getPermissions(exchangeDetails, appUser),
         [exchangeDetails, appUser?.id],
@@ -402,6 +407,7 @@ const Exchanges: React.FC = () =>
     {
         setIsDocumentSidebarOpen(false);
         setSelectedExchangeDocument(undefined);
+        setDetailsActiveTab('documents');
     }, [selectedExchangeId]);
 
     useEffect(() =>
@@ -870,6 +876,17 @@ const Exchanges: React.FC = () =>
                             onRecreateRejectedExchange={onRecreateRejectedExchange}
                             onBackToList={isMobile ? () => setSelectedExchangeId(null) : undefined}
                         />
+
+                        <TabList
+                            selectedValue={detailsActiveTab}
+                            onTabSelect={(_: SelectTabEvent, data: SelectTabData) => setDetailsActiveTab(data.value)}
+                            size="small">
+                            <Tab value="documents" icon={<DocumentsIcon/>}>Documents</Tab>
+                            <Tab value="details" icon={<DetailsIcon/>}>Details</Tab>
+                            <Tab value="audit" icon={<AuditIcon/>}>Audit</Tab>
+                        </TabList>
+
+                        {detailsActiveTab === 'documents' && (
                         <div className={styles.documentsSectionContainer} id={"documentsSectionContainer"}>
                             <div className={styles.documentsSection} id={"documentsSection"}>
                                 {(exchangeDetails?.documents?.length > 0) && (
@@ -921,6 +938,23 @@ const Exchanges: React.FC = () =>
                                     exchangeDocument={selectedExchangeDocument}/>
                             }
                         </div>
+                        )}
+
+                        {detailsActiveTab === 'details' && (
+                            <div className={styles.documentsSectionContainer}>
+                                <div className={styles.documentsSection}>
+                                    <ExchangeDetailsTab exchangeDetails={exchangeDetails}/>
+                                </div>
+                            </div>
+                        )}
+
+                        {detailsActiveTab === 'audit' && (
+                            <div className={styles.documentsSectionContainer}>
+                                <div className={styles.documentsSection}>
+                                    <ExchangeAuditTab exchange={exchangeDetails}/>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Multi-exchange: absolute overlay covering detailsContainer.
                             "Decide Later" advances to the next exchange; navigating

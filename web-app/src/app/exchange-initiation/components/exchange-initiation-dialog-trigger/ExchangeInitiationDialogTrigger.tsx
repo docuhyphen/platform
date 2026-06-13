@@ -36,7 +36,7 @@ const ExchangeInitiationDialogTrigger = React.forwardRef<HTMLButtonElement, Exch
                     icon={<ShareAndroidRegular/>}
                     menuButton={{"aria-label": "Choose sharing type"}}
                 >
-                    {!isMobile && "Start an Exchange"}
+                    {!isMobile && "Start Exchange"}
                 </SplitButton>
             </MenuTrigger>
             <MenuPopover>
