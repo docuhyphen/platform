@@ -87,7 +87,7 @@ const ExchangeEndDialog: React.FC<ExchangeEndDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Ending Exchange: {exchange && exchange.name}</DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
-                        <Field label={"End notes"} className={styles.endNoteField}>
+                        <Field label={"Notes"} className={styles.endNoteField}>
                             <Textarea value={exchangeEndNote}
                                       onChange={onEndNoteChange}/>
                         </Field>

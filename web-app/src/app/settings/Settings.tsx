@@ -61,7 +61,7 @@ const Settings = () =>
         [tabIds.organization]: "Your Organization",
         [tabIds.appSettings]: "App Preferences",
         [tabIds.myGroups]: "My Groups",
-        [tabIds.templates]: "Exchange Templates",
+        [tabIds.templates]: "Templates",
     };
 
     const {appUser, appUserPersonOrganization} = useAuth();
@@ -106,13 +106,11 @@ const Settings = () =>
             <Tab id="MyGroupsTab" icon={<SettingsMyGroupsTabIcon/>} value={tabIds.myGroups}>
                 My Groups
             </Tab>
-            {canManageOrganization && (
-                <Tab id="OrganizationTab" icon={<SettingsOrganizationTabIcon/>} value={tabIds.organization}>
-                    Your Organization
-                </Tab>
-            )}
+            <Tab id="OrganizationTab" icon={<SettingsOrganizationTabIcon/>} value={tabIds.organization}>
+                Your Organization
+            </Tab>
             <Tab id="TemplatesTab" icon={<SettingsExchangeTemplatesTabIcon/>} value={tabIds.templates}>
-                Exchange Templates
+                Templates
             </Tab>
             {canManageOrganization && (
                 <Tab id="WorkflowsTab" icon={<SettingsWorkflowsTabIcon/>} value={tabIds.workflows}>
@@ -136,7 +134,6 @@ const Settings = () =>
                 <Text weight="semibold">{currentTabLabel}</Text>
             </div>
 
-            {/* ── Mobile-only: overlay drawer ── */}
             <OverlayDrawer
                 open={isMobile && isMobileDrawerOpen}
                 onOpenChange={(_, {open}) => setIsMobileDrawerOpen(open)}
@@ -150,15 +147,12 @@ const Settings = () =>
                 </DrawerBody>
             </OverlayDrawer>
 
-            {/* ── Main flex layout ── */}
             <div className={styles.layout}>
 
-                {/* Desktop sticky sidebar */}
                 <div className={styles.sidebarWrapper}>
                     {tabListContent}
                 </div>
 
-                {/* Tab content area */}
                 <div className={styles.tabsContainer} id="settings-tabs">
                     {selectedValue === tabIds.profile && <ProfileTab/>}
                     {selectedValue === tabIds.linkedAccounts && <LinkedAccountsTab/>}

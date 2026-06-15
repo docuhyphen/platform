@@ -108,7 +108,7 @@ const ExchangeAcceptanceDialog: React.FC<ExchangeAcceptanceDialogProps> = (
             </Text>
 
             <div className={styles.nameContainer}>
-                <Text size={200} weight="bold" align="center">SESSION</Text>
+                <Text size={200} weight="bold" align="center">EXCHANGE</Text>
                 <Text size={300} align="center">{exchange.name}</Text>
             </div>
 

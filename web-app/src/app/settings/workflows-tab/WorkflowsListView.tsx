@@ -44,24 +44,45 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
         }
     }, []);
 
-    useEffect(() => { load(); }, [load]);
+    useEffect(() =>
+    {
+        load();
+    }, [load]);
 
     const toggleActive = async (def: WorkflowDefinitionSummaryDto) =>
     {
-        try { await patchWorkflowDefinitionStatus(def.id, {isActive: !def.isActive}); await load(); }
-        catch { /* ignore */ }
+        try
+        {
+            await patchWorkflowDefinitionStatus(def.id, {isActive: !def.isActive});
+            await load();
+        }
+        catch
+        { /* ignore */
+        }
     };
 
     const remove = async (def: WorkflowDefinitionSummaryDto) =>
     {
-        try { await deleteWorkflowDefinition(def.id); await load(); }
-        catch { /* ignore */ }
+        try
+        {
+            await deleteWorkflowDefinition(def.id);
+            await load();
+        }
+        catch
+        { /* ignore */
+        }
     };
 
     const clone = async (def: WorkflowDefinitionSummaryDto) =>
     {
-        try { await cloneWorkflowDefinition(def.id, {}); await load(); }
-        catch { /* ignore */ }
+        try
+        {
+            await cloneWorkflowDefinition(def.id, {});
+            await load();
+        }
+        catch
+        { /* ignore */
+        }
     };
 
     const myWorkflows = definitions.filter(d => !d.isTemplate);
@@ -80,8 +101,10 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
             {/* My Workflows section */}
             <section className={styles.section}>
                 <div className={styles.sectionHeader}>
-                    <Text size={400} weight="semibold">My Workflows</Text>
-                    <Button size="small" appearance="primary" icon={<AddIcon/>} onClick={onNew}>
+                    <span></span>
+                    <Button appearance="secondary"
+                            icon={<AddIcon/>} onClick={onNew}
+                            shape={"circular"}>
                         New Workflow
                     </Button>
                 </div>
