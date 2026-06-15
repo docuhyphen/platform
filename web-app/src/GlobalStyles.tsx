@@ -42,6 +42,12 @@ export const useGlobalStyles = makeStyles({
         flex: 1,
         minWidth: 0,
         overflow: "hidden",
+        display: "flex",
+        gap: "0.5rem",
+        alignItems: "center",
+    },
+    mainHeaderOrgTitle: {
+        opacity: 0.3
     },
 
     /**

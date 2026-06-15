@@ -8,7 +8,7 @@ const AppLogo: React.FC = () =>
 
     return (
         <span>
-            <img src={logo} alt="Docu Hyphen Logo" className={styles.appLogo}/>
+            <img src={logo} alt="DocuHyphen Logo" className={styles.appLogo}/>
         </span>
     );
 };

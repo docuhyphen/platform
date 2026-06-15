@@ -7,7 +7,7 @@ const AppLogo: React.FC = () =>
     const styles = useAppLogoStyles();
 
     return (
-        <span className={styles.appLogoWrapper} aria-label="Docu Hyphen Logo" role="img">
+        <span className={styles.appLogoWrapper} aria-label="DocuHyphen Logo" role="img">
             <svg
                 className={styles.appLogo}
                 viewBox="0 0 140 80"

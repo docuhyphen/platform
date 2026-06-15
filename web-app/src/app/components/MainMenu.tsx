@@ -13,7 +13,7 @@ import {
     MenuPopover,
     MenuTrigger,
     Persona,
-    Spinner
+    Spinner, Text
 } from "@fluentui/react-components";
 import {useAuth} from '../../context/AuthContext';
 import SignOutClickSurface from './SignOutClickSurface.tsx';
@@ -58,7 +58,7 @@ function formatEmailForDisplay(email?: string, maxLength: number = MAX_DISPLAY_E
 
 const MainMenu: React.FC<{ onToggleHelpSidebar: () => void }> = ({onToggleHelpSidebar}) =>
 {
-    const {appUser} = useAuth();
+    const {appUser, appUserPersonOrganization} = useAuth();
     const navigate = useNavigate();
     const [isSignOutDialogOpen, setIsSignOutDialogOpen] = useState(false);
 
@@ -73,6 +73,14 @@ const MainMenu: React.FC<{ onToggleHelpSidebar: () => void }> = ({onToggleHelpSi
         <section className={styles.mainAppHeader}>
             <span className={styles.mainHeaderAppLogo}>
                 <AppLogo/>
+
+                {appUserPersonOrganization &&
+                    appUserPersonOrganization.isActive &&
+                    appUserPersonOrganization.verificationComplete &&
+                    <Text className={styles.mainHeaderOrgTitle}>
+                        {appUserPersonOrganization.name}
+                    </Text>
+                }
             </span>
 
             {/* Tour anchor: Start Exchanging */}
