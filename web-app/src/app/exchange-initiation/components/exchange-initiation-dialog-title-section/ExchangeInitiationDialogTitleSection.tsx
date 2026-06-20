@@ -8,9 +8,9 @@ import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
 interface DialogTitleSectionProps
 {
     exchangeInitiatedSuccessfully: boolean;
-    choosingTemplate: boolean;
+    choosingBlueprint: boolean;
     requestingDocuments: boolean;
-    setChoosingTemplate: (value: boolean) => void;
+    setChoosingBlueprint: (value: boolean) => void;
     selectedTab: TabValue;
     onTabSelect: (event: any, data: any) => void;
 }
@@ -33,9 +33,9 @@ const TAB_LABELS: Record<string, string> = {
 const ExchangeInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = (
     {
         exchangeInitiatedSuccessfully,
-        choosingTemplate,
+        choosingBlueprint,
         requestingDocuments,
-        setChoosingTemplate,
+        setChoosingBlueprint,
         selectedTab,
         onTabSelect
     }) =>
@@ -71,17 +71,17 @@ const ExchangeInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = 
                         {(requestingDocuments) ? "Request" : "Send "} Documents
                     </Text>
                 }
-                {choosingTemplate &&
+                {choosingBlueprint &&
                     <Button appearance={"primary"}
                             shape={"circular"}
                             icon={<DismissRegular/>}
-                            size={"small"} onClick={() => setChoosingTemplate(false)}>
-                        Cancel template selection
+                            size={"small"} onClick={() => setChoosingBlueprint(false)}>
+                        Cancel blueprint selection
                     </Button>
                 }
             </div>
-            {choosingTemplate && <div>Choosing Template</div>}
-            {(!choosingTemplate && !exchangeInitiatedSuccessfully) &&
+            {choosingBlueprint && <div>Choosing Blueprint</div>}
+            {(!choosingBlueprint && !exchangeInitiatedSuccessfully) &&
                 <>
                     <TabList selectedValue={selectedTab} onTabSelect={onTabSelect}>
                         {renderTab("recipients", "recipients-tab", <RecipientsIcon/>)}

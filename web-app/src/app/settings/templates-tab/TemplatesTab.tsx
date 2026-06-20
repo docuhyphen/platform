@@ -1,8 +1,8 @@
 import {Button, Text} from "@fluentui/react-components";
-import {TemplateAddIcon} from "../../components/IconBundles.tsx";
+import {BlueprintAddIcon} from "../../components/IconBundles.tsx";
 import {useTemplatesTabStyles} from "./TemplatesTabStyles.tsx";
 
-const TemplatesTab = () =>
+const BlueprintsTab = () =>
 {
     const styles = useTemplatesTabStyles();
 
@@ -10,7 +10,7 @@ const TemplatesTab = () =>
         <div className={styles.tabContainer}>
             <div className={styles.header}>
                 <div></div>
-                <Button icon={<TemplateAddIcon/>}
+                <Button icon={<BlueprintAddIcon/>}
                         appearance="secondary"
                         shape={"circular"}>
                     Create
@@ -30,4 +30,4 @@ const TemplatesTab = () =>
     </>
 }
 
-export default TemplatesTab;
+export default BlueprintsTab;

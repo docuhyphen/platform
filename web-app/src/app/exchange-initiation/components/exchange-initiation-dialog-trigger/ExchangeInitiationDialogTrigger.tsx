@@ -2,7 +2,7 @@
 import {Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, SplitButton} from "@fluentui/react-components";
 import {ShareAndroidRegular} from "@fluentui/react-icons";
 import {useExchangeInitiationStyles} from "../../ExchangeInitiationStyles.tsx";
-import {InitiateFromTemplateIcon, ReceiveDocumentsIcon, SendDocumentsIcon} from "../../../components/IconBundles.tsx";
+import {InitiateFromBlueprintIcon, ReceiveDocumentsIcon, SendDocumentsIcon} from "../../../components/IconBundles.tsx";
 import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
 
 interface ExchangeDialogTriggerProps
@@ -55,13 +55,13 @@ const ExchangeInitiationDialogTrigger = React.forwardRef<HTMLButtonElement, Exch
                             Send Documents
                         </Button>
                     </MenuItem>
-                    <MenuItem onClick={() => onRequestingDocumentsChange(false)}>
-                        <Button size="small" ref={ref} {...props} appearance="transparent"
-                                className={styles.sharingDetailsInput}
-                                icon={<InitiateFromTemplateIcon/>}>
-                            From Template
-                        </Button>
-                    </MenuItem>
+                     <MenuItem onClick={() => onRequestingDocumentsChange(false)}>
+                         <Button size="small" ref={ref} {...props} appearance="transparent"
+                                 className={styles.sharingDetailsInput}
+                                 icon={<InitiateFromBlueprintIcon/>}>
+                             From Blueprint
+                         </Button>
+                     </MenuItem>
                 </MenuList>
             </MenuPopover>
         </Menu>

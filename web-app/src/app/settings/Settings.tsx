@@ -16,12 +16,12 @@ import {Navigation24Regular} from "@fluentui/react-icons";
 import {useSettingsStyles} from "./SettingsStyles.tsx";
 import {
     SettingsAppSettingsTabIcon, SettingsDeviceSessionsTabIcon,
-    SettingsExchangeTemplatesTabIcon, SettingsLinkedAccountsTabIcon, SettingsMyGroupsTabIcon,
+    SettingsExchangeBlueprintsTabIcon, SettingsLinkedAccountsTabIcon, SettingsMyGroupsTabIcon,
     SettingsOrganizationTabIcon,
     SettingsProfileTabIcon,
     SettingsWorkflowsTabIcon,
 } from "../components/IconBundles.tsx";
-import TemplatesTab from "./templates-tab/TemplatesTab.tsx";
+import BlueprintsTab from "./templates-tab/TemplatesTab.tsx";
 import WorkflowsTab from "./workflows-tab/WorkflowsTab.tsx";
 import AppSettingsTab from "./app-settings-tab/AppSettingsTab.tsx";
 import ProfileTab from "./profile-tab/ProfileTab.tsx";
@@ -58,10 +58,10 @@ const Settings = () =>
         [tabIds.profile]: "Profile",
         [tabIds.linkedAccounts]: "Linked Accounts",
         [tabIds.sessions]: "Device Sessions",
-        [tabIds.organization]: "Your Organization",
+        [tabIds.organization]: "Organization",
         [tabIds.appSettings]: "App Preferences",
         [tabIds.myGroups]: "My Groups",
-        [tabIds.templates]: "Templates",
+        [tabIds.templates]: "Blueprints",
     };
 
     const {appUser, appUserPersonOrganization} = useAuth();
@@ -107,10 +107,10 @@ const Settings = () =>
                 My Groups
             </Tab>
             <Tab id="OrganizationTab" icon={<SettingsOrganizationTabIcon/>} value={tabIds.organization}>
-                Your Organization
+                Organization
             </Tab>
-            <Tab id="TemplatesTab" icon={<SettingsExchangeTemplatesTabIcon/>} value={tabIds.templates}>
-                Templates
+            <Tab id="TemplatesTab" icon={<SettingsExchangeBlueprintsTabIcon/>} value={tabIds.templates}>
+                Blueprints
             </Tab>
             {canManageOrganization && (
                 <Tab id="WorkflowsTab" icon={<SettingsWorkflowsTabIcon/>} value={tabIds.workflows}>
@@ -165,7 +165,7 @@ const Settings = () =>
                         <OrganizationGroupsTab appUserPersonOrganization={appUserPersonOrganization}/>}
                     {selectedValue === tabIds.organizationPairing && <OrganizationPairingTab/>}
                     {selectedValue === tabIds.appAdmins && <AppAdminsTab/>}
-                    {selectedValue === tabIds.templates && <TemplatesTab/>}
+                    {selectedValue === tabIds.templates && <BlueprintsTab/>}
                     {selectedValue === tabIds.workflows && <WorkflowsTab/>}
                 </div>
 

@@ -11,7 +11,7 @@ import {ShareConstraints} from '../../../services/types/dtos.ts';
 
 const useExchangeInitiatingState = () =>
 {
-    const [choosingTemplate, setChoosingTemplate] = useState(false);
+    const [choosingBlueprint, setChoosingBlueprint] = useState(false);
     const [isInitiating, setIsInitiating] = useState(false);
     const [name, setExchangeName] = useState<string>('');
     const [description, setDescription] = useState<string>('');
@@ -43,7 +43,7 @@ const useExchangeInitiatingState = () =>
     const [allowedDownloadFormats, setAllowedDownloadFormats] = useState<string[] | undefined>(undefined);
 
     return {
-        choosingTemplate, setChoosingTemplate,
+        choosingBlueprint, setChoosingBlueprint,
         isInitiating, setIsInitiating,
         name, setExchangeName,
         description, setDescription,

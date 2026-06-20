@@ -7,7 +7,7 @@ interface ExchangeInitiationDialogActionsProps
     requestingDocuments: boolean;
     initiatingExchange: boolean;
     exchangeInitiatedSuccessfully: boolean;
-    choosingTemplate: boolean;
+    choosingBlueprint: boolean;
     onResetInitiation: () => void;
     onCloseDialog: () => void;
     onInitiateExchange: () => void;
@@ -18,7 +18,7 @@ const ExchangeInitiationDialogActions: React.FC<ExchangeInitiationDialogActionsP
         requestingDocuments,
         initiatingExchange,
         exchangeInitiatedSuccessfully,
-        choosingTemplate,
+        choosingBlueprint,
         onResetInitiation,
         onCloseDialog,
         onInitiateExchange
@@ -30,7 +30,7 @@ const ExchangeInitiationDialogActions: React.FC<ExchangeInitiationDialogActionsP
     return (
         <>
 
-            {(!choosingTemplate && exchangeInitiatedSuccessfully) && (
+            {(!choosingBlueprint && exchangeInitiatedSuccessfully) && (
                 <Button appearance="primary"
                         onClick={onResetInitiation}
                         shape={"circular"}>
@@ -38,7 +38,7 @@ const ExchangeInitiationDialogActions: React.FC<ExchangeInitiationDialogActionsP
                 </Button>
             )}
 
-            {(!choosingTemplate && !exchangeInitiatedSuccessfully) && (
+            {(!choosingBlueprint && !exchangeInitiatedSuccessfully) && (
                 <Button
                     onClick={onInitiateExchange}
                     appearance="primary"
@@ -57,7 +57,7 @@ const ExchangeInitiationDialogActions: React.FC<ExchangeInitiationDialogActionsP
                 disabled={initiatingExchange}
                 onClick={onCloseDialog}
             >
-                {(!choosingTemplate && exchangeInitiatedSuccessfully) ? "Close" : "Cancel"}
+                {(!choosingBlueprint && exchangeInitiatedSuccessfully) ? "Close" : "Cancel"}
             </Button>
         </>
     );

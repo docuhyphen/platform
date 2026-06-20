@@ -60,7 +60,7 @@ const ExchangeInitiation: React.FC = () =>
     const {appUser} = useAuth();
     const navigate = useNavigate();
     const {
-        choosingTemplate, setChoosingTemplate,
+        choosingBlueprint, setChoosingBlueprint,
         name, setExchangeName,
         description, setDescription,
         initialShareMessage, setInitialShareMessage,
@@ -422,7 +422,7 @@ const ExchangeInitiation: React.FC = () =>
 
     const resetInitiationForm = () =>
     {
-        setChoosingTemplate(false);
+        setChoosingBlueprint(false);
         setMessageGroupMessages([]);
         setInitiatingExchange(false);
         setExchangeInitiatedSuccessfully(false);
@@ -473,7 +473,7 @@ const ExchangeInitiation: React.FC = () =>
     {
         const subscription = recreateRejectedExchangeObservable.subscribe(draft =>
         {
-            setChoosingTemplate(false);
+            setChoosingBlueprint(false);
             setMessageGroupMessages([]);
             setExchangeInitiatedSuccessfully(false);
             setInitiatingExchange(false);
@@ -696,8 +696,8 @@ const ExchangeInitiation: React.FC = () =>
                 </div>
             ) : (
                 <div className={styles.dialogContentContainer}>
-                    {choosingTemplate ? (
-                        <div>Choosing Template</div>
+                    {choosingBlueprint ? (
+                        <div>Choosing Blueprint</div>
                     ) : renderTabs()}
                 </div>
             )}
@@ -715,8 +715,8 @@ const ExchangeInitiation: React.FC = () =>
                         <ExchangeInitiationDialogTitleSection
                             exchangeInitiatedSuccessfully={exchangeInitiatedSuccessfully}
                             requestingDocuments={requestingDocuments}
-                            choosingTemplate={choosingTemplate}
-                            setChoosingTemplate={setChoosingTemplate}
+                            choosingBlueprint={choosingBlueprint}
+                            setChoosingBlueprint={setChoosingBlueprint}
                             selectedTab={selectedTab}
                             onTabSelect={(_, data) =>
                             {
@@ -734,7 +734,7 @@ const ExchangeInitiation: React.FC = () =>
                             requestingDocuments={requestingDocuments}
                             initiatingExchange={initiatingExchange}
                             exchangeInitiatedSuccessfully={exchangeInitiatedSuccessfully}
-                            choosingTemplate={choosingTemplate}
+                            choosingBlueprint={choosingBlueprint}
                             onResetInitiation={resetInitiationForm}
                             onCloseDialog={onCancelInitiation}
                             onInitiateExchange={() => onInitiateExchange()}
