@@ -36,7 +36,7 @@ into an org.
 
 ---
 ## FRONT-END
-- All HTML tags, react tags, etc attributes bust be on a new line like example
+- All HTML tags, react tags, etc attributes must be on a new line when they have more than oone attribute like example:
 <Button appearance="primary"
         shape={"circular"}
 - All Buttons must be circular shape

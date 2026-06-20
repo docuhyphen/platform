@@ -146,12 +146,8 @@ const ExchangeDetailedViewDialog: React.FC<ExchangeDetailedViewDialogProps> = (
                                 <Text className={styles.keyLabel}>Last activity</Text>
                                 <Text>{formatDateWithOrdinal(exchange.lastActivity)}</Text>
 
-                                {exchange.endDate && (
-                                    <>
-                                        <Text className={styles.keyLabel}>Date closed</Text>
-                                        <Text>{formatDateWithOrdinal(exchange.endDate)}</Text>
-                                    </>
-                                )}
+                                <Text className={styles.keyLabel}>Date closed</Text>
+                                <Text>{exchange.endDate ? formatDateWithOrdinal(exchange.endDate) : '–'}</Text>
                             </div>
                         </div>
 
@@ -162,8 +158,19 @@ const ExchangeDetailedViewDialog: React.FC<ExchangeDetailedViewDialogProps> = (
                                 <Text>{formatParticipant(exchange.initiator)}</Text>
 
                                 <Text className={styles.keyLabel}>Recipient</Text>
-                                <Text>{formatParticipant(exchange.recipient)}</Text>
+                                <Text>{exchange.recipient ? formatParticipant(exchange.recipient) : exchange.recipientGroupName ? `${exchange.recipientGroupName} (Group)` : "Not provided"}</Text>
                             </div>
+                            {(exchange.participants ?? []).length > 0 && (
+                                <div style={{marginTop: '8px'}}>
+                                    <Text size={200} style={{display: 'block', marginBottom: '4px'}}>Additional participants</Text>
+                                    {(exchange.participants ?? []).map((p) => (
+                                        <div key={p.id} className={styles.keyValueGrid} style={{marginBottom: '2px'}}>
+                                            <Text className={styles.keyLabel}>{p.participantType === 'GROUP' ? 'Group' : 'User'}</Text>
+                                            <Text>{p.organizationGroupName ?? ([p.appUserFirstName, p.appUserLastName].filter(Boolean).join(' ') || p.appUserEmail || 'Unknown')}</Text>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div className={styles.sectionCard}>
@@ -200,6 +207,19 @@ const ExchangeDetailedViewDialog: React.FC<ExchangeDetailedViewDialogProps> = (
 
                                 <Text className={styles.keyLabel}>Allow document deletion</Text>
                                 <Text>{getBooleanLabel(exchange.allowDocumentDeletion)}</Text>
+
+                                <Text className={styles.keyLabel}>Watermark</Text>
+                                <Text>{getBooleanLabel(exchange.watermark)}</Text>
+
+                                <Text className={styles.keyLabel}>Require MFA</Text>
+                                <Text>{getBooleanLabel(exchange.requireMfa)}</Text>
+
+                                {exchange.maxViews != null && (
+                                    <>
+                                        <Text className={styles.keyLabel}>Max views</Text>
+                                        <Text>{exchange.maxViews}</Text>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </DialogContent>

@@ -165,6 +165,11 @@ const ExchangeDetailsTab: React.FC<ExchangeDetailsTabProps> = ({exchangeDetails}
                 {exchangeDetails.description
                     ? <Body1 className={styles.descriptionText}>{exchangeDetails.description}</Body1>
                     : <Caption1 className={styles.noDescription}>No description provided.</Caption1>}
+                {exchangeDetails.initialShareMessage && (
+                    <Body1 className={styles.descriptionText} style={{marginTop: "6px", fontStyle: "italic"}}>
+                        {exchangeDetails.initialShareMessage}
+                    </Body1>
+                )}
             </div>
 
             <Divider/>
@@ -190,9 +195,14 @@ const ExchangeDetailsTab: React.FC<ExchangeDetailsTabProps> = ({exchangeDetails}
                     )}
                     {renderDetailRow("Recipient",
                         exchangeDetails.recipient
-                            ? `${formatPersonName(exchangeDetails.recipient.person?.firstName, exchangeDetails.recipient.person?.lastName)} (${exchangeDetails.recipient.email})`
+                            ? (() => {
+                                const name = formatPersonName(exchangeDetails.recipient!.person?.firstName, exchangeDetails.recipient!.person?.lastName);
+                                return name !== '-'
+                                    ? `${name} (${exchangeDetails.recipient!.email})`
+                                    : (exchangeDetails.recipient!.email || '-');
+                              })()
                             : exchangeDetails.recipientGroupName
-                                ? exchangeDetails.recipientGroupName
+                                ? `${exchangeDetails.recipientGroupName} (Group)`
                                 : "-"
                     )}
                 </div>

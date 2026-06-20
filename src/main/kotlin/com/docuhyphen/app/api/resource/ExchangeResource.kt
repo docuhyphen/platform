@@ -605,13 +605,15 @@ class ExchangeResource @Inject constructor(
     {
         if (sessionDto == null) return null
         if (sessionDto.recipient != null) return sessionDto
-        val recipientUserId = shareService.primaryRecipientUserId(sessionDto.id)
+        // Use display variants (search all share statuses) so ended/archived exchanges whose
+        // shares are revoked still resolve a recipient for display rather than showing nothing.
+        val recipientUserId = shareService.primaryRecipientUserIdForDisplay(sessionDto.id)
         if (recipientUserId != null)
         {
             val recipient = appUserService.getById(recipientUserId) ?: return sessionDto
             return sessionDto.copy(recipient = com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer.toDto(recipient))
         }
-        val recipientGroupId = shareService.primaryRecipientGroupId(sessionDto.id) ?: return sessionDto
+        val recipientGroupId = shareService.primaryRecipientGroupIdForDisplay(sessionDto.id) ?: return sessionDto
         val groupName = principalGroupRepository.findById(recipientGroupId)?.name ?: return sessionDto
         return sessionDto.copy(recipientGroupName = groupName)
     }

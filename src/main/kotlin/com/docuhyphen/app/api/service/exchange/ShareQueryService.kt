@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.model.dto.SessionAccessEntryDto
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.Share
+import com.docuhyphen.app.api.model.entity.ShareSource
 import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.repository.ExternalParticipantRepository
 import com.docuhyphen.app.api.repository.PrincipalGroupRepository
@@ -26,9 +27,12 @@ class ShareQueryService @Inject constructor(
     private val externalParticipantRepository: ExternalParticipantRepository,
 )
 {
-    /** All access entries (any status) for a exchange, newest grant first. */
+    /** All access entries (any status) for a exchange, newest grant first.
+     *  INHERITED_FROM_GROUP rows are internal materialisation details and are excluded;
+     *  the group's own DIRECT share row already represents them in the UI. */
     fun getSessionAccessView(exchangeId: UUID): List<SessionAccessEntryDto> =
         shareRepository.findAllByResource(ResourceType.EXCHANGE, exchangeId)
+            .filter { it.source != ShareSource.INHERITED_FROM_GROUP }
             .map { it.toAccessEntry() }
 
     private fun Share.toAccessEntry(): SessionAccessEntryDto =

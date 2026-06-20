@@ -224,7 +224,17 @@ class ShareService @Inject constructor(
     fun recipientUserIds(exchangeId: UUID): List<UUID> =
         recipientShares(exchangeId).map { it.principalId }.distinct()
 
-    fun primaryRecipientUserId(exchangeId: UUID): UUID? = recipientShares(exchangeId).firstOrNull()?.principalId
+    /** Returns the user ID of the primary direct (non-inherited) recipient, or null when the
+     *  exchange is shared with a group rather than a user directly.  Using DIRECT-only here
+     *  prevents an initiator's own INHERITED_FROM_GROUP share (created when they are also a
+     *  member of the recipient group) from being mistaken for the "primary recipient". */
+    fun primaryRecipientUserId(exchangeId: UUID): UUID? =
+        shareRepository.findActiveByResource(ResourceType.EXCHANGE, exchangeId)
+            .firstOrNull {
+                it.principalKind == PrincipalKind.USER &&
+                    it.roleName != RoleName.OWNER.name &&
+                    it.source == ShareSource.DIRECT
+            }?.principalId
 
     /** Returns the group ID of the primary PRINCIPAL_GROUP recipient share, or null if none. */
     fun primaryRecipientGroupId(exchangeId: UUID): UUID? =
@@ -234,6 +244,30 @@ class ShareService @Inject constructor(
                     it.roleName != RoleName.OWNER.name
             }
             .firstOrNull()?.principalId
+
+    /**
+     * Display-only variant of [primaryRecipientUserId]: searches ALL share rows regardless of
+     * status so that ended/archived exchanges (whose shares are revoked) still resolve a
+     * recipient for display purposes. Must not be used for authorization checks.
+     */
+    fun primaryRecipientUserIdForDisplay(exchangeId: UUID): UUID? =
+        shareRepository.findAllByResource(ResourceType.EXCHANGE, exchangeId)
+            .firstOrNull {
+                it.principalKind == PrincipalKind.USER &&
+                    it.roleName != RoleName.OWNER.name &&
+                    it.source == ShareSource.DIRECT
+            }?.principalId
+
+    /**
+     * Display-only variant of [primaryRecipientGroupId]: searches ALL share rows regardless of
+     * status. Must not be used for authorization checks.
+     */
+    fun primaryRecipientGroupIdForDisplay(exchangeId: UUID): UUID? =
+        shareRepository.findAllByResource(ResourceType.EXCHANGE, exchangeId)
+            .firstOrNull {
+                it.principalKind == PrincipalKind.PRINCIPAL_GROUP &&
+                    it.roleName != RoleName.OWNER.name
+            }?.principalId
 
     /** Whether the session's recipient share permits the given constraint flag (e.g. "allow_document_upload"). */
     fun recipientConstraintAllows(exchangeId: UUID, flag: String): Boolean

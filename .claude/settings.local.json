@@ -124,7 +124,8 @@
       "Bash(Get-ChildItem -Directory)",
       "Bash(Select-Object Name)",
       "Bash(xargs grep -l -i \"sharing\")",
-      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\web-app\\\\src\\\\app\\\\sharing-sessions\" -Recurse | Where-Object { !$_.PSIsContainer } | Select-Object -ExpandProperty Name | Sort-Object | head -60)"
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\web-app\\\\src\\\\app\\\\sharing-sessions\" -Recurse | Where-Object { !$_.PSIsContainer } | Select-Object -ExpandProperty Name | Sort-Object | head -60)",
+      "mcp__visualize__read_me"
     ]
   }
 }

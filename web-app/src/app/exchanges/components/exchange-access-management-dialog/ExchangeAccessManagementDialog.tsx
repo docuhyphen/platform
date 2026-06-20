@@ -305,8 +305,19 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
 
                                     <div className={styles.personCard}>
                                         <div className={styles.personDetails}>
-                                            <Text weight="semibold">{formatName(exchange.initiator?.person?.firstName, exchange.initiator?.person?.lastName, exchange.initiator?.email)}</Text>
-                                            <Text size={200} className={styles.personEmail}>{exchange.initiator?.email || 'No email'}</Text>
+                                            {(() => {
+                                                const hasName = !!(exchange.initiator?.person?.firstName || exchange.initiator?.person?.lastName);
+                                                return <>
+                                                    <Text weight="semibold">
+                                                        {hasName
+                                                            ? formatName(exchange.initiator?.person?.firstName, exchange.initiator?.person?.lastName)
+                                                            : (exchange.initiator?.email || 'Unknown')}
+                                                    </Text>
+                                                    <Text size={200} className={styles.personEmail}>
+                                                        {hasName ? (exchange.initiator?.email || 'No email') : 'Requester'}
+                                                    </Text>
+                                                </>;
+                                            })()}
                                         </div>
                                         <Badge appearance="outline" color="informative">Requester</Badge>
                                     </div>
@@ -315,10 +326,21 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
                                         <div className={styles.personDetails}>
                                             <Text weight="semibold">
                                                 {exchange.recipientGroupName
-                                                    || formatName(exchange.recipient?.person?.firstName, exchange.recipient?.person?.lastName, exchange.recipient?.email)}
+                                                    ? `${exchange.recipientGroupName} (Group)`
+                                                    : (() => {
+                                                        const hasName = !!(exchange.recipient?.person?.firstName || exchange.recipient?.person?.lastName);
+                                                        return hasName
+                                                            ? formatName(exchange.recipient?.person?.firstName, exchange.recipient?.person?.lastName)
+                                                            : (exchange.recipient?.email || 'Unknown recipient');
+                                                      })()}
                                             </Text>
                                             <Text size={200} className={styles.personEmail}>
-                                                {exchange.recipientGroupName ? 'Group recipient' : (exchange.recipient?.email || 'No email')}
+                                                {exchange.recipientGroupName
+                                                    ? 'Group recipient'
+                                                    : (() => {
+                                                        const hasName = !!(exchange.recipient?.person?.firstName || exchange.recipient?.person?.lastName);
+                                                        return hasName ? (exchange.recipient?.email || 'No email') : 'External recipient';
+                                                      })()}
                                             </Text>
                                         </div>
                                         <Badge appearance="outline" color="brand">Primary recipient</Badge>
