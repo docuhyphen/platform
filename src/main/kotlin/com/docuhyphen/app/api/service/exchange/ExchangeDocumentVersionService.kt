@@ -2,13 +2,21 @@
 
 import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
+import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.DocumentAuditLogAction
 import com.docuhyphen.app.api.model.entity.DocumentType
 import com.docuhyphen.app.api.model.entity.DocumentVersion
+import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.repository.DocumentVersionRepository
 import com.docuhyphen.app.api.repository.ExchangeDocumentRepository
 import com.docuhyphen.app.api.repository.ExchangeRepository
+import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.Decision
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
@@ -29,7 +37,9 @@ class ExchangeDocumentVersionService @Inject constructor(
     private val documentVersionRepository: DocumentVersionRepository,
     private val appUserRepository: AppUserRepository,
     private val documentAuditService: ExchangeDocumentAuditService,
-    private val entityManager: EntityManager
+    private val authTokenContext: AuthTokenContext,
+    private val authorizationService: AuthorizationService,
+    private val authorizationContextFactory: AuthorizationContextFactory,
 )
 {
     companion object
@@ -41,8 +51,10 @@ class ExchangeDocumentVersionService @Inject constructor(
     @Transactional
     fun createVersion(exchangeId: String, documentId: String, file: File?, currentUserEmail: String?): DocumentVersion
     {
-        exchangeRepository.findById(UUID.fromString(exchangeId))
+        val exchange = exchangeRepository.findById(UUID.fromString(exchangeId))
             ?: throw ExchangeNotFoundException("Exchange not found")
+
+        validateUploadPermission(exchange)
 
         val document = exchangeDocumentRepository.findByDocumentId(UUID.fromString(documentId))
             ?: throw ExchangeDocumentNotFoundException("Document not found")
@@ -102,8 +114,10 @@ class ExchangeDocumentVersionService @Inject constructor(
 
     fun getVersionFile(exchangeId: String, documentId: String, versionId: String): File
     {
-        exchangeRepository.findById(UUID.fromString(exchangeId))
+        val exchange = exchangeRepository.findById(UUID.fromString(exchangeId))
             ?: throw ExchangeNotFoundException("Exchange not found")
+
+        validateDownloadPermission(exchange)
 
         exchangeDocumentRepository.findByDocumentId(UUID.fromString(documentId))
             ?: throw ExchangeDocumentNotFoundException("Document not found")
@@ -123,5 +137,41 @@ class ExchangeDocumentVersionService @Inject constructor(
             ?: throw ExchangeDocumentNotFoundException("Document not found")
 
         return documentVersionRepository.findLatestByDocumentId(document.id)
+    }
+
+    private fun validateUploadPermission(exchange: Exchange)
+    {
+        val appUser = authTokenContext.authToken.appUser
+            ?: throw IllegalArgumentException("Permission to upload document version not granted")
+
+        val decision = authorizationService.authorize(
+            principal = PrincipalRef.user(appUser.id),
+            action = Action.DOCUMENT_UPLOAD,
+            resource = ResourceRef.session(exchange.id),
+            context = authorizationContextFactory.currentContext(),
+        )
+
+        if (decision is Decision.Deny)
+        {
+            throw IllegalArgumentException("Permission to upload document version not granted")
+        }
+    }
+
+    private fun validateDownloadPermission(exchange: Exchange)
+    {
+        val appUser = authTokenContext.authToken.appUser
+            ?: throw IllegalArgumentException("Permission to download document version not granted")
+
+        val decision = authorizationService.authorize(
+            principal = PrincipalRef.user(appUser.id),
+            action = Action.DOCUMENT_DOWNLOAD,
+            resource = ResourceRef.session(exchange.id),
+            context = authorizationContextFactory.currentContext(),
+        )
+
+        if (decision is Decision.Deny)
+        {
+            throw IllegalArgumentException("Permission to download document version not granted")
+        }
     }
 }

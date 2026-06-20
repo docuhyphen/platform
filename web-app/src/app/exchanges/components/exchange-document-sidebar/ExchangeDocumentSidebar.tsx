@@ -27,6 +27,7 @@ import ExchangeDocumentComments from "./exchange-document-comments/ExchangeDocum
 import ExchangeDocumentAudit from "./exchange-document-audit/ExchangeDocumentAudit.tsx";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import ExchangeDocumentVersions from "./exchange-document-versions/ExchangeDocumentVersions.tsx";
+import {getPermissions} from "../../ExchangePermissions.ts";
 import {formatDateTimeWithOrdinal} from "../../../helpers.ts";
 import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
 
@@ -57,6 +58,7 @@ const ExchangeDocumentSidebar: React.FC<ExchangeDocumentSidebarProps> = (
     const [showMetadata, setShowMetadata] = React.useState(false);
     const [isMetadataClosing, setIsMetadataClosing] = React.useState(false);
     const {appUser} = useAuth()
+    const permissions = getPermissions(exchange, appUser);
     const styles = useExchangeDocumentSidebarStyles();
     const isMobile = useIsMobile();
     const metadataCloseTimeoutRef = React.useRef<number | null>(null);
@@ -290,6 +292,8 @@ const ExchangeDocumentSidebar: React.FC<ExchangeDocumentSidebarProps> = (
                         exchangeId={exchange.id}
                         exchangeDocument={exchangeDocument}
                         exchange={exchange}
+                        canUpload={permissions.canUploadDocument}
+                        canDownload={permissions.canDownloadDocumentsZip}
                     />
                 )}
                 {selectedValue === "audit" && (

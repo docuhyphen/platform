@@ -33,6 +33,8 @@ interface ExchangeDocumentVersionsProps
     exchangeId: string;
     exchangeDocument: DocumentDetailedDto;
     exchange: ExchangeDetailedDto;
+    canUpload: boolean;
+    canDownload: boolean;
 }
 
 const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
@@ -40,6 +42,8 @@ const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
         exchangeId,
         exchangeDocument,
         exchange,
+        canUpload,
+        canDownload,
     }) =>
 {
     const styles = useExchangeDocumentVersionsStyles();
@@ -149,6 +153,7 @@ const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
                                 <Badge appearance="filled" color="informative">
                                     v{version.version}
                                 </Badge>
+                                {canDownload && (
                                 <Menu>
                                     <MenuTrigger disableButtonEnhancement>
                                         <Button
@@ -177,6 +182,7 @@ const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
                                         </MenuList>
                                     </MenuPopover>
                                 </Menu>
+                                )}
                             </div>
                             <div className={styles.versionCardMeta}>
                                 <Text size={200}>{formatDate(version.createdAt)}</Text>
@@ -192,17 +198,19 @@ const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
                 )}
             </div>
 
-            <div className={styles.uploadButtonRow}>
-                <Button
-                    appearance="primary"
-                    shape="circular"
-                    size="small"
-                    icon={<ArrowUploadRegular/>}
-                    onClick={() => setIsUploadDialogOpen(true)}
-                >
-                    Upload Version
-                </Button>
-            </div>
+            {canUpload && (
+                <div className={styles.uploadButtonRow}>
+                    <Button
+                        appearance="primary"
+                        shape="circular"
+                        size="small"
+                        icon={<ArrowUploadRegular/>}
+                        onClick={() => setIsUploadDialogOpen(true)}
+                    >
+                        Upload Version
+                    </Button>
+                </div>
+            )}
 
             <ExchangeDocumentUploadDialog
                 isOpen={isUploadDialogOpen}
