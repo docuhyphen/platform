@@ -970,7 +970,7 @@ export function FeaturesSection({initialIndustrySlug}: FeaturesSectionProps)
     const features: FeatureItem[] = [
         {
             title: "Structured Document Requests",
-            body: "Create controlled share sessions to request documents from customers or partners, with defined access, expiry controls, and full visibility.",
+            body: "Create controlled exchange sessions to request documents from customers or partners, with defined access, expiry controls, and full visibility.",
             imageSrc: "/demo-screenshots/structured-document-requests.JPG",
             imageAlt: "Structured document requests screenshot",
         },

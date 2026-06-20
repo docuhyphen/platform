@@ -62,7 +62,7 @@ const industries: Record<string, IndustriesContent> = {
     "healthcare": {
         name: "Healthcare & Medical Practices",
         headline: "Patient documents handled with the care patients expect.",
-        blurb: "Request consent forms, ID, and medical records from patients via tracked, encrypted share sessions.",
+        blurb: "Request consent forms, ID, and medical records from patients via tracked, encrypted exchange sessions.",
         screenshotSrc: "/demo-screenshots/app-screenshot-healthcare.JPG",
         useCases: [
             {title: "Patient intake", body: "Collect consent forms and IDs before the first visit,  no clipboards."},

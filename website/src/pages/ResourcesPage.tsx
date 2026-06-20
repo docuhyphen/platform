@@ -44,7 +44,7 @@ const cards: ResourceCard[] = [
     {
         icon: <DocumentBulletList20Regular/>,
         title: "Case studies",
-        body: "How real teams replace email attachments with structured share sessions.",
+        body: "How real teams replace email attachments with structured exchange sessions.",
         to: "/resources",
         cta: "Coming soon",
         badge: "Soon",

@@ -112,7 +112,7 @@ export function AboutPage()
                         and compliance teams who cannot prove what happened.
                     </Text>
                     <Text>
-                        DocuHyphen replaces ad-hoc attachments with structured, auditable share sessions that match the controls
+                        DocuHyphen replaces ad-hoc attachments with structured, auditable exchange sessions that match the controls
                         the work actually demands.
                     </Text>
                 </section>

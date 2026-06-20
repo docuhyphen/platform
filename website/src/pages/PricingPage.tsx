@@ -34,7 +34,7 @@ const tiers = [
         bestFor: "Best for: solo professionals and very small teams",
         proofPoint: "Get started in minutes with no contract required.",
         blurb: "For small teams starting secure document exchange with essential controls.",
-        bullets: ["Up to 3 users", "Collaborative share sessions", "30-day audit log retention", "Email support"],
+        bullets: ["Up to 3 users", "Collaborative exchange sessions", "30-day audit log retention", "Email support"],
         ctaLabel: "Start free",
         ctaHref: SIGN_UP_URL,
         featured: false,
@@ -48,7 +48,7 @@ const tiers = [
         blurb: "Everything in Starter, plus SSO, role controls, and compliance-ready audit exports.",
         bullets: [
             "Everything in Starter",
-            "Unlimited share sessions",
+            "Unlimited exchange sessions",
             "Microsoft & Google SSO",
             "Role-based permissions",
             "1-year audit retention and export",
@@ -94,7 +94,7 @@ type CompareRow = {
 
 const compareRows: CompareRow[] = [
     {feature: "Users", starter: "Up to 3", business: "Unlimited", enterprise: "Custom"},
-    {feature: "Collaborative share sessions", starter: true, business: true, enterprise: true},
+    {feature: "Collaborative exchange sessions", starter: true, business: true, enterprise: true},
     {feature: "Microsoft & Google SSO", starter: false, business: true, enterprise: true},
     {feature: "Role-based permissions", starter: false, business: true, enterprise: true},
     {feature: "Audit log retention", starter: "30 days", business: "1 year", enterprise: "Custom"},

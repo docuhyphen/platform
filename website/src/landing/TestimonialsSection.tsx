@@ -188,7 +188,7 @@ export function TestimonialsSection()
                             How a 200-person law firm cut document turnaround by 60%
                         </Text>
                         <Text className={styles.caseStudyBody}>
-                            See the playbook for replacing email attachments with structured share sessions.
+                            See the playbook for replacing email attachments with structured exchange sessions.
                         </Text>
                     </div>
                     <LinkButton

@@ -33,7 +33,7 @@ const tiers: Tier[] = [
         blurb: "For small teams starting secure document exchange with essential controls.",
         bullets: [
             "Up to 3 users",
-            "Collaborative share sessions",
+            "Collaborative exchange sessions",
             "30-day audit log retention",
             "Email support",
         ],
@@ -47,7 +47,7 @@ const tiers: Tier[] = [
         blurb: "Everything in Starter, plus SSO, role controls, and compliance-ready audit exports.",
         bullets: [
             "Everything in Starter",
-            "Unlimited share sessions",
+            "Unlimited exchange sessions",
             "Microsoft & Google SSO",
             "Role-based permissions",
             "1-year audit retention and export",
