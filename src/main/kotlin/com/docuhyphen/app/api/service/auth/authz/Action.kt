@@ -7,7 +7,7 @@ package com.docuhyphen.app.api.service.auth.authz
  */
 enum class Action(val required: Capability)
 {
-    // Sharing sessions
+    // Exchange
     EXCHANGE_VIEW(Capability.EXCHANGE_READ),
     EXCHANGE_EDIT(Capability.EXCHANGE_WRITE),
     EXCHANGE_DELETE(Capability.EXCHANGE_DELETE),

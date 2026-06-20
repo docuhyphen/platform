@@ -296,7 +296,7 @@ class ExchangeUpdateService @Inject constructor(
             }
         }
 
-        logger.info("Sharing session ${updatedSession.name} completed")
+        logger.info("Exchange ${updatedSession.name} completed")
     }
 
     fun deleteExchange(exchangeId: String?)
@@ -319,7 +319,7 @@ class ExchangeUpdateService @Inject constructor(
 
         shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID)
 
-        logger.info("Sharing session ${session.name} deleted")
+        logger.info("Exchange ${session.name} deleted")
     }
 
     fun updateNoAuthExchange(
@@ -342,7 +342,7 @@ class ExchangeUpdateService @Inject constructor(
 
         val requestedStatus = sessionStatus
             ?: throw NoAuthOtpException(
-                message = "Sharing session status is required",
+                message = "Exchange status is required",
                 reasonCode = "INVALID_STATUS_TRANSITION",
             )
 
@@ -356,7 +356,7 @@ class ExchangeUpdateService @Inject constructor(
         {
             logger.error("Attempted to update a exchange with an invalid status")
             throw NoAuthOtpException(
-                message = "Sharing session is not in a state that can be updated",
+                message = "Exchange is not in a state that can be updated",
                 reasonCode = "INVALID_STATUS_TRANSITION",
             )
         }
@@ -365,7 +365,7 @@ class ExchangeUpdateService @Inject constructor(
         {
             logger.error("Attempted to update a exchange that has ended or rejected: $sessionStatus")
             throw NoAuthOtpException(
-                message = "Sharing session has already ended",
+                message = "Exchange has already ended",
                 reasonCode = "INVALID_STATUS_TRANSITION",
             )
         }
@@ -384,7 +384,7 @@ class ExchangeUpdateService @Inject constructor(
         if (!isValidTransition)
         {
             throw NoAuthOtpException(
-                message = "Sharing session cannot transition from ${session.status} to $requestedStatus",
+                message = "Exchange cannot transition from ${session.status} to $requestedStatus",
                 reasonCode = "INVALID_STATUS_TRANSITION",
             )
         }
@@ -472,7 +472,7 @@ class ExchangeUpdateService @Inject constructor(
             }
         }
 
-        logger.info("Sharing session ${session.name} updated")
+        logger.info("Exchange ${session.name} updated")
 
         return refreshedSession
     }
@@ -491,7 +491,7 @@ class ExchangeUpdateService @Inject constructor(
 
         if (session.status == ExchangeStatus.ENDED || session.status == ExchangeStatus.REJECTED)
         {
-            throw IllegalArgumentException("Sharing session has already ended")
+            throw IllegalArgumentException("Exchange has already ended")
         }
 
         verifyRecipientOtp(session, otp)
@@ -530,10 +530,10 @@ class ExchangeUpdateService @Inject constructor(
 
         if (session.status == ExchangeStatus.ENDED || session.status == ExchangeStatus.REJECTED)
         {
-            throw IllegalArgumentException("Sharing session has already ended")
+            throw IllegalArgumentException("Exchange has already ended")
         }
         val recipientEmail = resolveRecipientEmail(session.id)
-            ?: throw IllegalArgumentException("Sharing session has no recipient email")
+            ?: throw IllegalArgumentException("Exchange has no recipient email")
 
         val otp = otpService.generateEmailOtp()
         session.recipientOtpHash = otpService.hashOtp(otp)
@@ -654,7 +654,7 @@ class ExchangeUpdateService @Inject constructor(
     {
         runCatching {
             val exchangeId = session.id
-                ?: throw IllegalArgumentException("Sharing session id is required")
+                ?: throw IllegalArgumentException("Exchange id is required")
 
             val message = RealtimeMessage(
                 type = RealtimeMessageType.EXCHANGE_STATUS_CHANGED,

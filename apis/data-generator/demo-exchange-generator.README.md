@@ -8,7 +8,7 @@ This tool bootstraps demo data end-to-end:
 4. Sign-in completion (OTP `123456`)
 5. Person registration
 6. Organization registration
-7. Sharing session creation
+7. Exchange creation
 
 ## What it creates
 

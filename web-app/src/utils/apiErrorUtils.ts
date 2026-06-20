@@ -55,7 +55,7 @@ const formatDuration = (seconds: number): string =>
  * Covers reason codes from:
  *  - No-auth exchange OTP (`OTP_REQUIRED`, `OTP_INVALID`, `OTP_EXPIRED`,
  *    `OTP_NOT_ISSUED`, `OTP_RATE_LIMITED`, `OTP_LOCKED`)
- *  - Sharing session status transition errors (`INVALID_STATUS_TRANSITION`)
+ *  - Exchange status transition errors (`INVALID_STATUS_TRANSITION`)
  *  - Sign-in / sign-up / account recovery flows when the backend chooses to
  *    emit reason codes (`PASSWORD_CHANGE_REQUIRED`, `TEMP_PASSWORD_EXPIRED`,
  *    `STEP_UP_REQUIRED`, `MFA_EXCHANGE_EXPIRED`).

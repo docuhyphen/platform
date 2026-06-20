@@ -154,7 +154,7 @@ class ExchangeEmailTemplateService @Inject constructor(
 
             ExchangeStatus.ACCEPTED_STARTED -> when (audience)
             {
-                ExchangeStatusEmailAudience.INITIATOR -> "Accepted: Sharing session is now active - $name"
+                ExchangeStatusEmailAudience.INITIATOR -> "Accepted: Exchange is now active - $name"
                 ExchangeStatusEmailAudience.RECIPIENT -> "Confirmed: You accepted the sharing request - $name"
             }
 
@@ -166,8 +166,8 @@ class ExchangeEmailTemplateService @Inject constructor(
 
             ExchangeStatus.ENDED -> when (audience)
             {
-                ExchangeStatusEmailAudience.INITIATOR -> "Ended: Sharing session closed - $name"
-                ExchangeStatusEmailAudience.RECIPIENT -> "Notice: Sharing session ended - $name"
+                ExchangeStatusEmailAudience.INITIATOR -> "Ended: Exchange closed - $name"
+                ExchangeStatusEmailAudience.RECIPIENT -> "Notice: Exchange ended - $name"
             }
         }
     }

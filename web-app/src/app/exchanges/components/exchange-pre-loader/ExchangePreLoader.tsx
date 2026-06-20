@@ -10,7 +10,7 @@ const ExchangePreLoader: React.FC = () =>
         <div className={styles.preLoadingContainer}>
             <Spinner labelPosition="after"
                      size="small"
-                     label="Loading Document Exchanges"/>
+                     label="Loading Exchanges"/>
         </div>
     );
 };

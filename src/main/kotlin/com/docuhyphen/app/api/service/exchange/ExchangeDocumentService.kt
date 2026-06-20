@@ -508,7 +508,7 @@ class ExchangeDocumentService @Inject constructor(
             exchange.status != ExchangeStatus.ACCEPTED_STARTED
         )
         {
-            throw IllegalArgumentException("Sharing session is not editable")
+            throw IllegalArgumentException("Exchange is not editable")
         }
     }
 
@@ -613,7 +613,7 @@ class ExchangeDocumentService @Inject constructor(
 
         val uploadedAtInstant = document.uploadDate?.toInstant() ?: Instant.now()
         val model = mapOf(
-            "name" to (exchange.name ?: "Sharing session"),
+            "name" to (exchange.name ?: "Exchange"),
             "documentTitle" to (document.title ?: "Document"),
             "uploaderEmail" to appUser.email,
             "uploadedAt" to emailDateFormatter.format(uploadedAtInstant),
