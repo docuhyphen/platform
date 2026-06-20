@@ -173,7 +173,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
             setIdToken(null);
             setAppUser(null);
             setAppUserPersonOrganization(null);
-            redirectToSessionExpired(reason);
+            // navigate is stable across renders (React Router v6 guarantee), so calling it
+            // directly avoids the stale-closure on redirectToSessionExpired which captures
+            // location.pathname from the first render and may suppress navigation if that
+            // snapshot happened to be "/app-session-expired".
+            const path = reason
+                ? `/app-session-expired?reason=${encodeURIComponent(reason)}`
+                : '/app-session-expired';
+            navigate(path);
         };
 
         window.addEventListener('tokens-refreshed', handleTokensRefreshed);

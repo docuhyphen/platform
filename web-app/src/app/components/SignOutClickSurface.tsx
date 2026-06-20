@@ -1,6 +1,7 @@
 import React from 'react';
 import {useAuth} from '../../context/AuthContext';
 import {signOut} from '../../services/authApi.ts';
+import {realtimeService} from '../../services/NotificationService.tsx';
 import {useNavigate} from 'react-router-dom';
 
 interface SignOutButtonProps
@@ -33,6 +34,9 @@ const SignOutClickSurface: React.FC<SignOutButtonProps> = (
 
             try
             {
+                // Disconnect before the API call so that any EXCHANGE_REVOKED the server may
+                // send in response does not race with our own navigate('/sign-in') below.
+                realtimeService.disconnect();
                 await signOut(outOfAllDevices ?? false, token);
                 setToken(null);
                 navigate('/sign-in');

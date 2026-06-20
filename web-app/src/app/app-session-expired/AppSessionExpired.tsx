@@ -1,8 +1,11 @@
-﻿import React, {useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {isTokenExpired} from "../../utils/helpers.ts";
 import {useNavigate, useSearchParams} from "react-router-dom";
-import {Button, MessageBar, MessageBarBody, Text, Title2, tokens} from "@fluentui/react-components";
+import {Button, MessageBar, MessageBarBody, Subtitle1, Text, tokens} from "@fluentui/react-components";
+import {useAuthorizationStyles} from "../authorization/AuthorizationStyles.tsx";
+import SignInCarousel from "../authorization/carousel/SignInCarousel.tsx";
+import AppLogo from "../components/app-logo/AppLogo.tsx";
 
 const REASON_MESSAGES: Record<string, string> = {
     SECURITY_SIGN_OUT: "Your session was ended for security reasons. Please sign in again.",
@@ -18,6 +21,7 @@ const AppSessionExpired: React.FC = () =>
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const [message, setMessage] = useState<string>("Your session has expired. Please sign in again.");
+    const authorizationStyles = useAuthorizationStyles();
 
     useEffect(() =>
     {
@@ -44,17 +48,29 @@ const AppSessionExpired: React.FC = () =>
     };
 
     return (
-        <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '20px', padding: '32px', maxWidth: '480px', margin: '0 auto'}}>
-            <Title2>Session Ended</Title2>
-            <MessageBar intent="warning" style={{width: '100%'}}>
-                <MessageBarBody>{message}</MessageBarBody>
-            </MessageBar>
-            <Text size={300} style={{color: tokens.colorNeutralForeground3, textAlign: 'center'}}>
-                For your security, sign in again to continue.
-            </Text>
-            <Button appearance="primary" shape="circular" onClick={handleSignIn}>
-                Sign In
-            </Button>
+        <div className={authorizationStyles.auth}>
+            <section className={authorizationStyles.authSection}>
+                <section className={authorizationStyles.authSection1}>
+                    <div>
+                        <AppLogo/>
+                    </div>
+                    <div className={authorizationStyles.authorizationFormSection}>
+                        <Subtitle1 align="center">Session Ended</Subtitle1>
+                        <MessageBar intent="warning">
+                            <MessageBarBody>{message}</MessageBarBody>
+                        </MessageBar>
+                        <Text size={300} style={{color: tokens.colorNeutralForeground3}}>
+                            For your security, sign in again to continue.
+                        </Text>
+                        <Button appearance="primary" shape="circular" onClick={handleSignIn}>
+                            Sign In
+                        </Button>
+                    </div>
+                </section>
+                <section className={authorizationStyles.authSection2}>
+                    <SignInCarousel/>
+                </section>
+            </section>
         </div>
     );
 };

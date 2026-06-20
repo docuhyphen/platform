@@ -89,6 +89,17 @@ class UserSessionRepository : BaseRepository<UserSession>(UserSession::class.jav
             .setParameter("now", now)
             .resultList
     }
+
+    /** Sessions that passed their absolute expiry and have not yet been explicitly revoked. */
+    fun findExpiredActiveSessions(now: Timestamp): List<UserSession>
+    {
+        return entityManager.createQuery(
+            "SELECT s FROM UserSession s WHERE s.isActive = true AND s.revokedAt IS NULL AND s.expiresAt IS NOT NULL AND s.expiresAt <= :now",
+            UserSession::class.java,
+        )
+            .setParameter("now", now)
+            .resultList
+    }
 }
 
 

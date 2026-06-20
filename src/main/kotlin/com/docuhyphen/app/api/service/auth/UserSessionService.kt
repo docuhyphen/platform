@@ -81,7 +81,13 @@ class UserSessionService @Inject constructor(
         return userSessionRepository.findBySessionId(sessionId)
     }
 
-    fun revokeSession(sessionId: UUID, reasonCode: RevocationReasonCode)
+    /**
+     * @param notifyRevoked When true (default) the revoked device receives EXCHANGE_REVOKED and
+     * its socket is closed — appropriate for server-initiated revocations (idle timeout, admin
+     * kick, password change). Pass false for voluntary sign-out: the socket is closed silently so
+     * the client's own navigation to /sign-in is not overridden by auth-session-expired.
+     */
+    fun revokeSession(sessionId: UUID, reasonCode: RevocationReasonCode, notifyRevoked: Boolean = true)
     {
         val appUserId = userSessionRepository.findBySessionId(sessionId)?.appUser?.id
         userSessionRepository.revokeSession(
@@ -90,15 +96,50 @@ class UserSessionService @Inject constructor(
             reasonCode = reasonCode.name,
         )
         sessionRevocationCache.markRevoked(sessionId, reasonCode)
-        // Push EXCHANGE_REVOKED to the affected device and EXCHANGE_REMOVED to all peers.
-        realtimeEventService.notifySessionRevoked(sessionId, reasonCode.name)
+        if (notifyRevoked)
+        {
+            realtimeEventService.notifySessionRevoked(sessionId, reasonCode.name)
+        }
+        else
+        {
+            realtimeEventService.closeSessionSocket(sessionId)
+        }
         if (appUserId != null)
         {
             realtimeEventService.notifySessionRemoved(appUserId, sessionId, exceptUserSessionId = sessionId)
         }
     }
 
-    fun revokeAllUserSessions(userId: UUID, reasonCode: RevocationReasonCode)
+    /** Revoke all sessions that have passed their absolute expiry and notify peer devices. */
+    fun cleanupExpiredSessions(): Int
+    {
+        val now = Timestamp.from(Instant.now())
+        val expired = userSessionRepository.findExpiredActiveSessions(now)
+        if (expired.isEmpty()) return 0
+
+        expired.forEach { session ->
+            userSessionRepository.revokeSession(
+                sessionId = session.sessionId,
+                revokedAt = now,
+                reasonCode = RevocationReasonCode.EXCHANGE_EXPIRED.name,
+            )
+            sessionRevocationCache.markRevoked(session.sessionId, RevocationReasonCode.EXCHANGE_EXPIRED)
+            realtimeEventService.closeSessionSocket(session.sessionId)
+            val appUserId = session.appUser?.id ?: return@forEach
+            realtimeEventService.notifySessionRemoved(appUserId, session.sessionId, exceptUserSessionId = session.sessionId)
+        }
+
+        return expired.size
+    }
+
+    /**
+     * @param sendNotifications When true (default, used by SCIM/deprovision callers) this method
+     * also sends EXCHANGE_REVOKED to every affected socket. Pass false when the caller (SignOutService)
+     * sends notifications itself BEFORE calling this method — that ordering ensures the WS messages
+     * are dispatched while all sockets are still open, avoiding the race where a concurrent 401 from
+     * the revocation cache causes Device B to tear down its socket before the notification arrives.
+     */
+    fun revokeAllUserSessions(userId: UUID, reasonCode: RevocationReasonCode, sendNotifications: Boolean = true)
     {
         val activeSessions = userSessionRepository.findActiveSessionsForUser(userId, Timestamp.from(Instant.now()))
         userSessionRepository.revokeAllActiveForUser(
@@ -107,10 +148,10 @@ class UserSessionService @Inject constructor(
             reasonCode = reasonCode.name,
         )
         sessionRevocationCache.markManyRevoked(activeSessions.map { it.sessionId }, reasonCode)
-        // SignOutService.signOutByUserId / .signOut(outOfAllDevices=true) also notify via
-        // RealtimeEventService.notifyAllSessionsRevoked. Doing it here as well covers any
-        // direct caller of revokeAllUserSessions (e.g. SCIM deprovision).
-        activeSessions.forEach { realtimeEventService.notifySessionRevoked(it.sessionId, reasonCode.name) }
+        if (sendNotifications)
+        {
+            activeSessions.forEach { realtimeEventService.notifySessionRevoked(it.sessionId, reasonCode.name) }
+        }
     }
 
     fun listActiveSessions(userId: UUID): List<UserSession>

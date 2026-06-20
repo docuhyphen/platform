@@ -60,6 +60,23 @@ class RealtimeEventService @Inject constructor(
         )
     }
 
+    /**
+     * Close the socket for a voluntarily-signing-out device without sending EXCHANGE_REVOKED.
+     * EXCHANGE_REVOKED would fire auth-session-expired on the client and redirect to the
+     * session-expired page, conflicting with the sign-out component's own navigation to /sign-in.
+     */
+    fun closeSessionSocket(userSessionId: UUID)
+    {
+        registry.getSocket(userSessionId)?.let { socket ->
+            runCatching {
+                if (socket.isOpen)
+                {
+                    socket.close(CloseReason({ CLOSE_CODE_EXCHANGE_REVOKED }, "signed out"))
+                }
+            }
+        }
+    }
+
     /** Push EXCHANGE_REVOKED and close the socket for one specific device. */
     fun notifySessionRevoked(userSessionId: UUID, reason: String)
     {

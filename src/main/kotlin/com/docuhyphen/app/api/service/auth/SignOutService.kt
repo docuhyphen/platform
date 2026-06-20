@@ -33,21 +33,27 @@ class SignOutService @Inject constructor(
         {
             logger.info("Signing out from all devices for user={}", appUser.id)
             val currentSessionId = currentSessionIdFromToken()
+
+            // Notify peer devices BEFORE writing the revocation. Writing first caused a race:
+            // once the session is in the Redis revocation cache, any in-flight request from a
+            // peer device gets 401, the apiClient fires auth-session-expired, NotificationContext
+            // cleanup runs disconnect() — and the peer's socket is gone from the registry before
+            // notifySessionRevoked can reach it. Sending first guarantees every socket is open.
+            realtimeEventService.notifyAllSessionsRevoked(
+                appUser.id,
+                reason = RevocationReasonCode.LOGOUT_ALL_DEVICES.name,
+                exceptUserSessionId = currentSessionId,
+            )
+
             authenticationService.deleteAllRefreshTokensForUser(appUser.id, RevocationReasonCode.LOGOUT_ALL_DEVICES)
-            userSessionService.revokeAllUserSessions(appUser.id, RevocationReasonCode.LOGOUT_ALL_DEVICES)
+            // sendNotifications=false: we already notified above.
+            userSessionService.revokeAllUserSessions(appUser.id, RevocationReasonCode.LOGOUT_ALL_DEVICES, sendNotifications = false)
             if (configurationService.isAuthSessionVersionEnabled())
             {
                 // Force currently issued access tokens to fail request-time exchange_version checks.
                 appUser.sessionVersion += 1
                 appUserRepository.update(appUser)
             }
-            // Push EXCHANGE_REVOKED to every other open socket; the current device's socket
-            // (if any) is left for the client to close on its own logout flow.
-            realtimeEventService.notifyAllSessionsRevoked(
-                appUser.id,
-                reason = RevocationReasonCode.LOGOUT_ALL_DEVICES.name,
-                exceptUserSessionId = currentSessionId,
-            )
             authAuditService.emit(
                 action = "SIGN_OUT",
                 outcome = "SUCCESS",
@@ -62,7 +68,11 @@ class SignOutService @Inject constructor(
         val sessionId = currentSessionIdFromToken()
 
         sessionId?.let {
-            userSessionService.revokeSession(it, RevocationReasonCode.LOGOUT_DEVICE)
+            // notifyRevoked=false: the client initiated this sign-out and will navigate to /sign-in
+            // itself. Sending EXCHANGE_REVOKED would race with that navigation and redirect the user
+            // to /app-session-expired instead. The socket is still closed (with code 4001) so the
+            // client stops reconnecting.
+            userSessionService.revokeSession(it, RevocationReasonCode.LOGOUT_DEVICE, notifyRevoked = false)
             // Tell other tabs of the same user this device just signed out.
             realtimeEventService.notifySignedOutOtherDevice(appUser.id, exceptUserSessionId = it)
         }
@@ -86,8 +96,10 @@ class SignOutService @Inject constructor(
     fun signOutByUserId(appUserId: UUID, reason: RevocationReasonCode, requestId: String? = null)
     {
         logger.info("signOutByUserId user={} reason={}", appUserId, reason)
+        // Notify all sockets BEFORE revocation for the same reason as signOut(outOfAllDevices=true).
+        realtimeEventService.notifyAllSessionsRevoked(appUserId, reason.name)
         authenticationService.deleteAllRefreshTokensForUser(appUserId, reason)
-        userSessionService.revokeAllUserSessions(appUserId, reason)
+        userSessionService.revokeAllUserSessions(appUserId, reason, sendNotifications = false)
         if (configurationService.isAuthSessionVersionEnabled())
         {
             val user = appUserRepository.findById(appUserId)
@@ -97,7 +109,6 @@ class SignOutService @Inject constructor(
                 appUserRepository.update(user)
             }
         }
-        realtimeEventService.notifyAllSessionsRevoked(appUserId, reason.name)
         authAuditService.emit(
             action = "SIGN_OUT",
             outcome = "SUCCESS",
