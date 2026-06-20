@@ -109,9 +109,32 @@ const ExchangeInitiation: React.FC = () =>
         );
     };
 
+    const applyModeDefaults = (isRequesting: boolean) =>
+    {
+        if (isRequesting)
+        {
+            // Request mode: recipient uploads the requested docs; they don't need download access
+            setAllowDocumentUpload(true);
+            setAllowDocumentAdditions(true);
+            setAllowDocumentDownload(false);
+            setAllowDocumentUpdate(false);
+            setAllowDocumentDeletions(false);
+        }
+        else
+        {
+            // Send mode: recipient downloads the sent docs; they shouldn't modify the exchange
+            setAllowDocumentDownload(true);
+            setAllowDocumentUpload(false);
+            setAllowDocumentAdditions(false);
+            setAllowDocumentUpdate(false);
+            setAllowDocumentDeletions(false);
+        }
+    };
+
     const handleRequestingDocumentsChange = (isRequesting: boolean) =>
     {
         setRequestingDocuments(isRequesting);
+        applyModeDefaults(isRequesting);
     };
 
     const buildRecipientLabel = (): string =>
