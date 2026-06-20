@@ -508,7 +508,7 @@ const helpDocSections: HelpDocSectionInput[] = [
                                 workflow does and when it applies. Shown in the template library.
                             </li>
                             <li>
-                                <b>Industry tags</b> - optional free-text labels (Legal, Finance,
+                                <b>Tags</b> - optional free-text labels (Legal, Finance,
                                 Healthcare, HR, Logistics, etc.) that help teams filter templates.
                                 Any tag value is valid.
                             </li>
@@ -1038,7 +1038,7 @@ const helpDocSections: HelpDocSectionInput[] = [
                                 organization's workflows.
                             </li>
                             <li>
-                                Browse by name, description, or industry tags. Examples of
+                                Browse by name, description, or tags. Examples of
                                 available tags: Legal, Finance, Healthcare, HR, Logistics.
                             </li>
                         </ol>
@@ -1111,7 +1111,7 @@ const helpDocSections: HelpDocSectionInput[] = [
                             without affecting the original.
                         </p>
 
-                        <h3>Industry tags</h3>
+                        <h3>Tagsags</h3>
                         <p>
                             Tags are free-form strings, not a fixed list. You can add any tag when
                             creating or editing a workflow definition, which means new industries

@@ -10,6 +10,7 @@ export const useWorkflowInstanceDashboardStyles = makeStyles({
     filterBar: {
         display: "flex",
         gap: "0.75rem",
+        justifyContent: "end",
         alignItems: "center",
         flexWrap: "wrap",
     },
@@ -44,6 +45,7 @@ export const useWorkflowInstanceDashboardStyles = makeStyles({
 
     pagination: {
         display: "flex",
+        alignItems: "center",
         justifyContent: "flex-end",
         gap: "0.5rem",
         paddingTop: "0.75rem",

@@ -42,11 +42,19 @@ const WorkflowInstanceDashboard = ({onSelectInstance}: Props) =>
             });
             setInstances(data);
         }
-        catch { /* ignore */ }
-        finally { setLoading(false); }
+        catch
+        { /* ignore */
+        }
+        finally
+        {
+            setLoading(false);
+        }
     }, [statusFilter, page]);
 
-    useEffect(() => { load(); }, [load]);
+    useEffect(() =>
+    {
+        load();
+    }, [load]);
 
     const formatDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, {
         year: "numeric", month: "short", day: "numeric",
@@ -58,7 +66,11 @@ const WorkflowInstanceDashboard = ({onSelectInstance}: Props) =>
                 <Text weight="semibold">Filter by status:</Text>
                 <Select
                     value={statusFilter}
-                    onChange={(_, d) => { setStatusFilter(d.value as InstanceStatus); setPage(0); }}
+                    onChange={(_, d) =>
+                    {
+                        setStatusFilter(d.value as InstanceStatus);
+                        setPage(0);
+                    }}
                     size="small"
                     style={{minWidth: "10rem"}}
                 >
@@ -69,7 +81,10 @@ const WorkflowInstanceDashboard = ({onSelectInstance}: Props) =>
                     <option value="CANCELLED">Cancelled</option>
                     <option value="ESCALATED">Escalated</option>
                 </Select>
-                <Button size="small" appearance="subtle" onClick={load}>Refresh</Button>
+                <Button size="small"
+                        shape={"circular"}
+                        appearance="outline"
+                        onClick={load}>Refresh</Button>
             </div>
 
             {loading && <Spinner size="small" label="Loading instances..."/>}

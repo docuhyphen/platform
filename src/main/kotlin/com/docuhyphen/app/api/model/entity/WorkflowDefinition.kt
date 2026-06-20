@@ -60,8 +60,8 @@ class WorkflowDefinition
     var isActive: Boolean = true
 
     /** JSON array of free-form industry tag strings, e.g. `["legal","hr"]`. */
-    @Column(name = "industry_tags", nullable = false, columnDefinition = "text")
-    var industryTags: String = "[]"
+    @Column(name = "general_tags", nullable = false, columnDefinition = "text")
+    var generalTags: String = "[]"
 
     @Column(name = "summary", nullable = true, length = 512)
     var summary: String? = null

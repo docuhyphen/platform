@@ -21,7 +21,7 @@ data class WorkflowDefinitionDto(
     val scope: String,
     val isActive: Boolean,
     val isTemplate: Boolean,
-    val industryTags: List<String>,
+    val generalTags: List<String>,
     @Serializable(with = UUIDSerializer::class)
     val organizationId: UUID?,
     @Serializable(with = UUIDSerializer::class)
@@ -45,7 +45,7 @@ data class WorkflowDefinitionListItemDto(
     val scope: String,
     val isActive: Boolean,
     val isTemplate: Boolean,
-    val industryTags: List<String>,
+    val generalTags: List<String>,
     @Serializable(with = UUIDSerializer::class)
     val organizationId: UUID?,
     @Serializable(with = UUIDSerializer::class)

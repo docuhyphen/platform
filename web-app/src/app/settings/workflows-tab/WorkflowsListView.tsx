@@ -121,7 +121,7 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                             <Text weight="semibold">{def.name}</Text>
                             {def.summary && <Text size={200} block>{def.summary}</Text>}
                             <div className={styles.tagRow}>
-                                {def.industryTags.map(t => <Tag key={t} size="extra-small">{t}</Tag>)}
+                                {def.generalTags.map(t => <Tag key={t} size="extra-small">{t}</Tag>)}
                             </div>
                         </div>
                         <Text className={styles.rowTrigger} size={200}>{formatTriggerName(def.triggerEvent)}</Text>
@@ -170,7 +170,7 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                                 Runs when: {formatTriggerName(def.triggerEvent)}
                             </Text>
                             <div className={styles.tagRow}>
-                                {def.industryTags.map(t => <Tag key={t} size="extra-small">{t}</Tag>)}
+                                {def.generalTags.map(t => <Tag key={t} size="extra-small">{t}</Tag>)}
                             </div>
                         </div>
                         <Button size="small" appearance="outline" onClick={() => clone(def)}>

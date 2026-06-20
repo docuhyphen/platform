@@ -994,7 +994,7 @@ const Exchanges: React.FC = () =>
                                 {' '}and <Text
                                 weight={"semibold"}>{getExchangeCountLabel(tabCounts.archive, 'archived')}</Text>.
                                 Open <Text weight={"semibold"}>Active</Text> or <Text weight={"semibold"}>Archive</Text>,
-                                or start a new <Text weight={"semibold"}>Request or Send</Text> from Start Exchanging.
+                                or start a new <Text weight={"semibold"}>Request or Send</Text> from Start Exchange.
                             </Text>
                             <div className={styles.inboxEmptyActions}>
                                 <Button
@@ -1025,7 +1025,7 @@ const Exchanges: React.FC = () =>
                                 {' '}and <Text
                                 weight={"semibold"}>{getExchangeCountLabel(tabCounts.archive, 'archived')}</Text>.
                                 Open <Text weight={"semibold"}>Active</Text> or <Text weight={"semibold"}>Archive</Text>,
-                                or start a new <Text weight={"semibold"}>Request or Send</Text> from Start Exchanging.
+                                or start a new <Text weight={"semibold"}>Request or Send</Text> from Start Exchange.
                             </Text>
                             <div className={styles.inboxEmptyActions}>
                                 <Button
@@ -1124,7 +1124,7 @@ const Exchanges: React.FC = () =>
                     </Text>
                     <Text size={300} align={"center"}>
                         Send or receive documents securely to anyone,  your exchanges will appear here.
-                        Tap <Text italic weight={"semibold"}>Start Exchanging</Text> in the main menu to begin.
+                        Tap <Text italic weight={"semibold"}>Start Exchange</Text> in the main menu to begin.
                     </Text>
                 </div>
             }

@@ -31,8 +31,15 @@ collaboration on documents, and ending/completion.
 
 Organizations can configure workflows that gate each lifecycle stage - approvals, notifications,
 conditions, and actions. A visual workflow designer in Settings lets org admins build and manage
-these workflows. Platform-bundled workflow templates (categorized by industry tags) can be cloned
+these workflows. Platform-bundled workflow templates (categorized by tags) can be cloned
 into an org.
+
+---
+## FRONT-END
+- All HTML tags, react tags, etc attributes bust be on a new line like example
+<Button appearance="primary"
+        shape={"circular"}
+- All Buttons must be circular shape
 
 ---
 

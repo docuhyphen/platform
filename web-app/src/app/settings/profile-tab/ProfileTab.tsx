@@ -9,6 +9,7 @@ import BasicDetailsEditDialog from "./basic-details-edit-dialog/BasicDetailsEdit
 import PhoneManagementDialog, {PhoneManagementMode} from "../../components/phone-management/PhoneManagementDialog.tsx";
 import AppUserEmailUpdateDialog from "../../components/app-user-email-update-dialog/AppUserEmailUpdateDialog.tsx";
 import PasswordResetDialog from "./password-reset-dialog/PasswordResetDialog.tsx";
+import {PasswordRegular, PhoneDismissRegular} from "@fluentui/react-icons";
 
 const ProfileTab = () =>
 {
@@ -113,7 +114,7 @@ const ProfileTab = () =>
                     ) : (
                         <Button appearance={"outline"}
                                 shape={"circular"}
-                                size={"small"}
+                                icon={<PhoneDismissRegular></PhoneDismissRegular>}
                                 onClick={onAddOrEditPhone}>
                             Add phone number
                         </Button>
@@ -128,8 +129,10 @@ const ProfileTab = () =>
             <div>
                 <Button appearance={"outline"}
                         shape={"circular"}
-                        onClick={() => setIsPasswordResetDialogOpen(true)}
-                        size={"medium"}> Change password</Button>
+                        icon={<PasswordRegular/>}
+                        onClick={() => setIsPasswordResetDialogOpen(true)}>
+                    Change password
+                </Button>
             </div>
         </div>
 

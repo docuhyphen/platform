@@ -413,7 +413,7 @@ const SignIn: React.FC = () =>
                                             appearance="primary"
                                             className={globalStyles.buttonWithLoading}
                                             shape={"circular"}>
-                                        {lookingUp && <><Spinner size={"tiny"}/> Checking...</>}
+                                        {lookingUp && <><Spinner size={"tiny"}/> Continue...</>}
                                         {!lookingUp && "Continue"}
                                     </Button>
                                 </>

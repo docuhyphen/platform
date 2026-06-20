@@ -25,7 +25,7 @@ export interface CreateWorkflowDefinitionRequest
     summary?: string;
     triggerEvent: string;
     stepsJson: string;
-    industryTags?: string[];
+    generalTags?: string[];
     isActive?: boolean;
     isTemplate?: boolean;
 }
@@ -35,7 +35,7 @@ export interface UpdateWorkflowDefinitionRequest
     name?: string;
     summary?: string;
     stepsJson?: string;
-    industryTags?: string[];
+    generalTags?: string[];
     isActive?: boolean;
 }
 

@@ -26,7 +26,7 @@ Files modified:
 
 | File | Change |
 |---|---|
-| `model/entity/WorkflowDefinition.kt` | Added `industryTags`, `summary`, `isTemplate`, `sourceTemplateId` |
+| `model/entity/WorkflowDefinition.kt` | Added `generalTags`, `summary`, `isTemplate`, `sourceTemplateId` |
 | `model/entity/OrganizationSettings.kt` | Added `requireRecipientAcceptance: Boolean = true` |
 | `service/workflow/WorkflowSpec.kt` | Added `messageTemplateKey`, `predicateExpression`, `onTrue`, `onFalse`, `addons` to `WorkflowStepSpec`; added `StepAddonSpec` sealed class (`ReminderBeforeDue`, `ReminderIfNoDecision`) |
 | `web-app/src/app/models/models.tsx` | Added `requireRecipientAcceptance` to `OrganizationSettingsDto`; added `WorkflowDefinitionSummaryDto`, `WorkflowTriggerEventDto`, `WorkflowSubjectFieldDto`, `WorkflowInstanceSummaryDto`, `WorkflowStepInstanceDto`, `WorkflowPrincipalRefDto`, `WorkflowDecisionEntryDto` |
@@ -162,7 +162,7 @@ Key tasks in order:
    - "Add to my workflows" button on template rows calls `cloneWorkflowDefinition`.
 
 3. **`WorkflowDesigner.tsx`** + **`WorkflowDesignerStyles.tsx`** (new)
-   - Header fields: name, summary, triggerEvent dropdown (from `listWorkflowTriggers`), industryTags multi-select, isActive toggle.
+   - Header fields: name, summary, triggerEvent dropdown (from `listWorkflowTriggers`), generalTags multi-select, isActive toggle.
    - MVP: linear step list using collapsible Fluent UI `Card` components.
    - Save bar: serializes state to `WorkflowSpec` JSON, calls POST (new) or PUT (edit).
 
@@ -188,7 +188,7 @@ Key tasks in order:
    - Fields: `eventName`, `description`, `subjectFieldsJson`, `isActive`, `createdAt`.
 
 3. **DTO models** (in `model/dto/` or inline in the resource)
-   - `WorkflowDefinitionDto` (full: id, name, summary, triggerEvent, version, scope, industryTags, isTemplate, sourceTemplateId, isActive, stepsJson as raw string)
+   - `WorkflowDefinitionDto` (full: id, name, summary, triggerEvent, version, scope, generalTags, isTemplate, sourceTemplateId, isActive, stepsJson as raw string)
    - `WorkflowInstanceDetailDto` (instance + decoded step timeline)
    - `WorkflowTriggerEventDto` (eventName, description, subjectFields)
    - `CreateWorkflowDefinitionRequest` / `UpdateWorkflowDefinitionRequest`
@@ -412,7 +412,7 @@ the engine.
 | Step addons (reminders, conditional reminders) | `WorkflowStepSpec` has no addon concept. |
 | Workflow CRUD API | No endpoints exist to create/edit/list definitions. |
 | Visual designer | Does not exist. `TemplatesTab` in Settings is a disabled placeholder. |
-| Workflow portability | `WorkflowDefinition` has no `industryTags`, `summary`, `isTemplate`, `sourceTemplateId` fields. |
+| Workflow portability | `WorkflowDefinition` has no `generalTags`, `summary`, `isTemplate`, `sourceTemplateId` fields. |
 | Trigger event registry | No registry table - trigger events are magic strings with no schema description. |
 | Bypass gap | `ExchangeUpdateService` writes status directly, bypassing the engine. Any caller with Share access can skip workflows. |
 | `session.activated` does not set `exchange.status` | `ExchangeApprovalEventHandler` activates shares but does not set `exchange.status = ACCEPTED_STARTED`. |
@@ -479,7 +479,7 @@ File: `src/main/kotlin/com/docuhyphen/app/api/model/entity/WorkflowDefinition.kt
 Add:
 ```kotlin
 @Column(name = "industry_tags", nullable = false, columnDefinition = "text")
-var industryTags: String = "[]"         // JSON array of strings e.g. ["legal","hr"]
+var generalTags: String = "[]"         // JSON array of strings e.g. ["legal","hr"]
 
 @Column(name = "summary", nullable = true, length = 512)
 var summary: String? = null
@@ -847,7 +847,7 @@ File: `web-app/src/app/settings/workflows-tab/WorkflowDesigner.tsx` (new)
 **Designer header fields:**
 - `TriggerSelector` - Dropdown populated from `GET /workflows/triggers`. Shows trigger name +
   description. On change, updates available `$subject.*` auto-complete options.
-- `name` field, `summary` field, `industryTags` multi-select (free-text entry + curated list).
+- `name` field, `summary` field, `generalTags` multi-select (free-text entry + curated list).
 - `isActive` toggle.
 
 **Step card sections (`StepCard.tsx`):**
@@ -884,7 +884,7 @@ interface WorkflowDesignerState {
   id?: string;
   name: string;
   summary: string;
-  industryTags: string[];
+  generalTags: string[];
   triggerEvent: string;
   isActive: boolean;
   steps: WorkflowStepSpecDraft[];  // mirrors WorkflowStepSpec JSON shape
@@ -915,7 +915,7 @@ export interface WorkflowDefinitionSummaryDto {
   isActive: boolean;
   isTemplate: boolean;
   scope: 'APP' | 'ORG';
-  industryTags: string[];
+  generalTags: string[];
   sourceTemplateId?: string;
   createdAt: string;
 }
@@ -986,7 +986,7 @@ Wraps all `/workflows/*` Axios calls with typed request/response shapes.
 
 | File | Phase | Change | Status |
 |---|---|---|---|
-| `model/entity/WorkflowDefinition.kt` | 1 | Add `industryTags`, `summary`, `isTemplate`, `sourceTemplateId` | **Done** |
+| `model/entity/WorkflowDefinition.kt` | 1 | Add `generalTags`, `summary`, `isTemplate`, `sourceTemplateId` | **Done** |
 | `model/entity/OrganizationSettings.kt` | 1 | Add `requireRecipientAcceptance` | **Done** |
 | `model/entity/WorkflowStepInstance.kt` | 2 | Add `addonsStateJson` field (column already in DB via V5) | **Done** |
 | `service/workflow/WorkflowSpec.kt` | 1, 2 | Add `StepAddonSpec`, `messageTemplateKey`, `predicateExpression`, `onTrue`, `onFalse`, `addons` to `WorkflowStepSpec` | **Done** |

@@ -118,7 +118,7 @@
     AddFilled, AddRegular,
     ArrowLeftFilled, ArrowLeftRegular,
     CheckmarkFilled, CheckmarkRegular,
-    DismissFilled, DismissRegular,
+    DismissFilled, DismissRegular, DocumentFlowchartFilled, DocumentFlowchartRegular,
 } from "@fluentui/react-icons";
 
 export const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
@@ -128,7 +128,7 @@ export const ParedOrganizationsTabIcon = bundleIcon(LinkMultipleFilled, LinkMult
 export const OrganizationParingRequestsTabIcon = bundleIcon(LinkAddFilled, LinkAddRegular)
 export const SettingsProfileTabIcon = bundleIcon(PersonSettingsFilled, PersonSettingsRegular)
 export const SettingsOrganizationTabIcon = bundleIcon(BuildingFilled, BuildingRegular)
-export const SettingsExchangeTemplatesTabIcon = bundleIcon(ImageSplitFilled, ImageSplitRegular)
+export const SettingsExchangeTemplatesTabIcon = bundleIcon(BookTemplateFilled, BookTemplateRegular)
 export const SettingsOrganizationPeopleTabIcon = bundleIcon(BuildingPeopleFilled, BuildingPeopleRegular)
 export const SettingsLinkedAccountsTabIcon = bundleIcon(ShieldPersonFilled, ShieldPersonRegular)
 export const SettingsDeviceSessionsTabIcon = bundleIcon(PhoneLaptopFilled, PhoneLaptopRegular)
@@ -139,7 +139,7 @@ export const OrganizationPairingTabIcon = bundleIcon(BuildingBankLinkFilled, Bui
 export const SettingsTemplatesTabIcon = bundleIcon(BookTemplateFilled, BookTemplateRegular)
 export const TemplateAddIcon = bundleIcon(BookAddFilled, BookAddRegular)
 export const SettingsAppAdminsIcon = bundleIcon(PersonShieldFilled, PersonShieldRegular)
-export const SettingsWorkflowsTabIcon = bundleIcon(TaskListSquareLtrFilled, TaskListSquareLtrRegular)
+export const SettingsWorkflowsTabIcon = bundleIcon(DocumentFlowchartFilled, DocumentFlowchartRegular)
 export const AddIcon = bundleIcon(AddFilled, AddRegular)
 export const BackIcon = bundleIcon(ArrowLeftFilled, ArrowLeftRegular)
 export const CheckmarkIcon = bundleIcon(CheckmarkFilled, CheckmarkRegular)
@@ -151,6 +151,7 @@ export const SortDownIcon = bundleIcon(ArrowSortDownLinesFilled, ArrowSortDownLi
 export const SortUpIcon = bundleIcon(ArrowSortUpLinesFilled, ArrowSortUpLinesRegular);
 export const ReceiveDocumentsIcon = bundleIcon(DocumentArrowLeftFilled, DocumentArrowLeftRegular)
 export const SendDocumentsIcon = bundleIcon(DocumentArrowRightFilled, DocumentArrowRightRegular)
+export const InitiateFromTemplateIcon = bundleIcon(BookTemplateFilled, BookTemplateRegular)
 export const ExchangeIcon = bundleIcon(ChannelShareFilled, ChannelShareRegular);
 export const NotificationsIcon = bundleIcon(AlertFilled, AlertRegular);
 export const SignOutButtonIcon = bundleIcon(ArrowExitFilled, ArrowExitRegular);

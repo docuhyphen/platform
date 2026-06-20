@@ -38,7 +38,7 @@ const defaultStep = (): WorkflowStepSpecDraft => ({
 });
 
 const defaultState = (): WorkflowDesignerState => ({
-    name: "", summary: "", industryTags: [], triggerEvent: "", isActive: false, steps: [],
+    name: "", summary: "", generalTags: [], triggerEvent: "", isActive: false, steps: [],
 });
 
 const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
@@ -78,7 +78,7 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
                     id: def.id,
                     name: def.name,
                     summary: def.summary ?? "",
-                    industryTags: def.industryTags ?? [],
+                    generalTags: def.generalTags ?? [],
                     triggerEvent: def.triggerEvent,
                     isActive: def.isActive,
                     steps: parsed.steps ?? [],
@@ -100,13 +100,13 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
     const addTag = () =>
     {
         const tag = tagInput.trim();
-        if (tag && !state.industryTags.includes(tag))
-            patch({industryTags: [...state.industryTags, tag]});
+        if (tag && !state.generalTags.includes(tag))
+            patch({generalTags: [...state.generalTags, tag]});
         setTagInput("");
     };
 
     const removeTag = (tag: string) =>
-        patch({industryTags: state.industryTags.filter(t => t !== tag)});
+        patch({generalTags: state.generalTags.filter(t => t !== tag)});
 
     const updateStep = (index: number, step: WorkflowStepSpecDraft) =>
         patch({steps: state.steps.map((s, i) => (i === index ? step : s))});
@@ -130,14 +130,14 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
             {
                 await updateWorkflowDefinition(definitionId, {
                     name: state.name, summary: state.summary || undefined,
-                    industryTags: state.industryTags, isActive: state.isActive, stepsJson,
+                    generalTags: state.generalTags, isActive: state.isActive, stepsJson,
                 });
             }
             else
             {
                 await createWorkflowDefinition({
                     name: state.name, summary: state.summary || undefined,
-                    triggerEvent: state.triggerEvent, industryTags: state.industryTags,
+                    triggerEvent: state.triggerEvent, generalTags: state.generalTags,
                     isActive: state.isActive, stepsJson,
                 });
             }
@@ -158,7 +158,12 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
     return (
         <div className={styles.container}>
             <div className={styles.topBar}>
-                <Button appearance="subtle" icon={<BackIcon/>} onClick={onBack}>Back</Button>
+                <Button appearance="subtle"
+                        icon={<BackIcon/>}
+                        shape={"circular"}
+                        onClick={onBack}>
+                    Back
+                </Button>
                 <Text size={500} weight="semibold">{definitionId ? "Edit Workflow" : "New Workflow"}</Text>
             </div>
 
@@ -204,9 +209,9 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
                 </div>
 
                 <div className={`${styles.formField} ${styles.fullWidth}`}>
-                    <Text size={200} weight="semibold">Industry Tags</Text>
+                    <Text size={200} weight="semibold">Tags</Text>
                     <div className={styles.tagInput}>
-                        {state.industryTags.map(tag => (
+                        {state.generalTags.map(tag => (
                             <Tag key={tag} size="small" dismissible
                                  onClick={() => removeTag(tag)}>{tag}</Tag>
                         ))}
@@ -234,7 +239,10 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
             <div className={styles.stepList}>
                 <div className={styles.stepListHeader}>
                     <Text weight="semibold">Steps ({state.steps.length})</Text>
-                    <Button size="small" appearance="outline" icon={<AddIcon/>}
+                    <Button size="small"
+                            appearance="subtle"
+                            shape={"circular"}
+                            icon={<AddIcon/>}
                             onClick={() => patch({steps: [...state.steps, defaultStep()]})}>
                         Add Step
                     </Button>
@@ -266,8 +274,15 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
                         Warning: one or more steps use hardcoded Principal UUIDs. These are not portable across organizations.
                     </Text>
                 )}
-                <Button appearance="secondary" onClick={onBack}>Cancel</Button>
-                <Button appearance="primary" onClick={save} disabled={saving}>
+                <Button appearance="secondary"
+                        shape={"circular"}
+                        onClick={onBack}>
+                    Cancel
+                </Button>
+                <Button appearance="primary"
+                        shape={"circular"}
+                        onClick={save}
+                        disabled={saving}>
                     {saving ? "Saving..." : "Save Workflow"}
                 </Button>
             </div>

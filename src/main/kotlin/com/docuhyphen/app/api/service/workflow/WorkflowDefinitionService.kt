@@ -65,7 +65,7 @@ class WorkflowDefinitionService @Inject constructor(
     {
         return definitionRepository.findAllAccessibleForOrg(callerOrgId)
             .asSequence()
-            .filter { tag == null || decodeTags(it.industryTags).contains(tag) }
+            .filter { tag == null || decodeTags(it.generalTags).contains(tag) }
             .filter { triggerEvent == null || it.triggerEvent == triggerEvent }
             .filter { isTemplate == null || it.isTemplate == isTemplate }
             .map { it.toListItemDto() }
@@ -107,7 +107,7 @@ class WorkflowDefinitionService @Inject constructor(
             summary = request.summary?.trim()
             triggerEvent = request.triggerEvent.trim()
             stepsJson = request.stepsJson
-            industryTags = encodeTags(request.industryTags)
+            generalTags = encodeTags(request.generalTags)
             isActive = request.isActive
             scope = WorkflowScope.ORG
             organizationId = callerOrgId
@@ -147,7 +147,7 @@ class WorkflowDefinitionService @Inject constructor(
             validateStepsJson(it)
             def.stepsJson = it
         }
-        request.industryTags?.let { def.industryTags = encodeTags(it) }
+        request.generalTags?.let { def.generalTags = encodeTags(it) }
         request.isActive?.let { def.isActive = it }
 
         return definitionRepository.update(def).toDto()
@@ -221,7 +221,7 @@ class WorkflowDefinitionService @Inject constructor(
             summary = source.summary
             triggerEvent = source.triggerEvent
             stepsJson = scrubbedStepsJson
-            industryTags = source.industryTags
+            generalTags = source.generalTags
             isActive = false
             scope = WorkflowScope.ORG
             organizationId = callerOrgId
@@ -412,7 +412,7 @@ class WorkflowDefinitionService @Inject constructor(
         scope = scope.name,
         isActive = isActive,
         isTemplate = isTemplate,
-        industryTags = decodeTags(industryTags),
+        generalTags = decodeTags(generalTags),
         organizationId = organizationId,
         sourceTemplateId = sourceTemplateId,
         createdByAppUserId = createdByAppUserId,
@@ -429,7 +429,7 @@ class WorkflowDefinitionService @Inject constructor(
         scope = scope.name,
         isActive = isActive,
         isTemplate = isTemplate,
-        industryTags = decodeTags(industryTags),
+        generalTags = decodeTags(generalTags),
         organizationId = organizationId,
         sourceTemplateId = sourceTemplateId,
         createdAt = createdAt,
@@ -514,7 +514,7 @@ data class CreateWorkflowDefinitionRequest(
     val summary: String? = null,
     val triggerEvent: String,
     val stepsJson: String,
-    val industryTags: List<String> = emptyList(),
+    val generalTags: List<String> = emptyList(),
     val isActive: Boolean = true,
     val isTemplate: Boolean = false,
 )
@@ -524,7 +524,7 @@ data class UpdateWorkflowDefinitionRequest(
     val name: String? = null,
     val summary: String? = null,
     val stepsJson: String? = null,
-    val industryTags: List<String>? = null,
+    val generalTags: List<String>? = null,
     val isActive: Boolean? = null,
 )
 

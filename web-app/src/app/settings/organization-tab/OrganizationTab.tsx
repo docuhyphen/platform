@@ -295,8 +295,7 @@ const OrganizationTab = () =>
         {!organization && !fetchingOrganization && <>
             <section className={styles.orgOnboardingContainer}>
                 <Text>
-                    You are not part of an organization. You can onboard your organization to use the full
-                    potential of DocHyphen.
+                    You are not part of an organization. You can onboard your organization to use the full potential of the platform.
                 </Text>
                 <div>
                     <Button shape={"circular"}

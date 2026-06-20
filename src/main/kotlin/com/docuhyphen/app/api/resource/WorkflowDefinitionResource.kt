@@ -252,6 +252,8 @@ class WorkflowDefinitionResource @Inject constructor(
     @Path("/definitions/{id}")
     fun deleteDefinition(@PathParam("id") id: String): Response
     {
+        //ToDo: trigger step up auth flow
+
         val actor = authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 

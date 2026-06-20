@@ -809,7 +809,7 @@ CREATE TABLE workflow_definition (
     steps_json text NOT NULL,
     description VARCHAR(1024),
     summary VARCHAR(512),
-    industry_tags text NOT NULL DEFAULT '[]',
+    general_tags text NOT NULL DEFAULT '[]',
     is_template boolean NOT NULL DEFAULT false,
     source_template_id uuid,
     is_active boolean DEFAULT true NOT NULL,

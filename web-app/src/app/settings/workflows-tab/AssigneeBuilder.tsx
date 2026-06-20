@@ -207,7 +207,11 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
             ))}
 
             <div className={styles.addRow}>
-                <Button size="small" appearance="outline" icon={<AddIcon/>} onClick={add}>
+                <Button size="small"
+                        shape={"circular"}
+                        appearance="outline"
+                        icon={<AddIcon/>}
+                        onClick={add}>
                     Add Assignee
                 </Button>
             </div>

@@ -784,7 +784,7 @@ export interface WorkflowDefinitionSummaryDto
     isActive: boolean;
     isTemplate: boolean;
     scope: 'APP' | 'ORG';
-    industryTags: string[];
+    generalTags: string[];
     organizationId?: string;
     sourceTemplateId?: string;
     createdAt: string;
@@ -933,7 +933,7 @@ export interface WorkflowDesignerState
     id?: string;
     name: string;
     summary: string;
-    industryTags: string[];
+    generalTags: string[];
     triggerEvent: string;
     isActive: boolean;
     steps: WorkflowStepSpecDraft[];
