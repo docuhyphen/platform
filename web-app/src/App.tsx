@@ -1,9 +1,8 @@
 ﻿import React from 'react';
-import {BrowserRouter, Route, Routes} from 'react-router-dom';
+import {BrowserRouter, Navigate, Route, Routes} from 'react-router-dom';
 import {AuthProvider} from './context/AuthContext';
 import Exchanges from "./app/exchanges/Exchanges.tsx";
 import RedirectIfNotAuthenticated from "./app/components/RedirectIfAuthenticated.tsx";
-import NotFound from './app/NotFound.tsx';
 import IndividualOnboarding from "./app/onboarding/individual-onboarding/IndividualOnboarding.tsx";
 import Settings from "./app/settings/Settings.tsx";
 import NoAuthExchange from "./app/no-auth-exchange/NoAuthExchange.tsx";
@@ -105,9 +104,7 @@ const App: React.FC = () =>
                                element={<StepUpCompletion/>}/>
 
                         <Route path="*"
-                               element={
-                                   <NotFound/>
-                               }/>
+                               element={<Navigate to="/" replace/>}/>
                     </Routes>
                     <StepUpModal/>
                 </NotificationProvider>
