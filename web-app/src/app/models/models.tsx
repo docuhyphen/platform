@@ -874,7 +874,7 @@ export type WorkflowScopeType = 'APP' | 'ORG';
 export interface AssigneeSpecDraft
 {
     kind: AssigneeKind;
-    principalKind?: string;   // PRINCIPAL: APP_USER | GROUP
+    principalKind?: string;   // PRINCIPAL: USER | PARTICIPANT | PRINCIPAL_GROUP
     principalId?: string;     // PRINCIPAL
     groupIdRef?: string;      // GROUP_ROLE: UUID or $subject.<field>
     groupRole?: string;       // GROUP_ROLE: OWNER | MANAGER | MEMBER | OBSERVER
@@ -913,6 +913,7 @@ export interface AddonSpecDraft
 
 export interface WorkflowStepSpecDraft
 {
+    name?: string;
     type: WorkflowStepType;
     assignees: AssigneeSpecDraft[];
     quorum: QuorumSpecDraft;

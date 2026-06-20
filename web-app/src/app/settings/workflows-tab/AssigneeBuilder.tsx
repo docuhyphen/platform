@@ -160,7 +160,7 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
                             <Select
                                 className={styles.fieldInput}
                                 value={a.principalId ?? ""}
-                                onChange={(_, d) => update(i, {principalId: d.value, principalKind: "APP_USER"})}
+                                onChange={(_, d) => update(i, {principalId: d.value, principalKind: "USER"})}
                                 size="small"
                             >
                                 <option value="">Select user...</option>

@@ -1,5 +1,5 @@
 import React from "react";
-import {Badge, Button, Input, Select, Text} from "@fluentui/react-components";
+import {Badge, Button, Combobox, Input, Option, Select, Text} from "@fluentui/react-components";
 import {
     AssigneeSpecDraft,
     EscalationAction,
@@ -20,6 +20,15 @@ const STEP_TYPE_LABELS: Record<WorkflowStepType, string> = {
 };
 
 const BUILT_IN_ACTION_KEYS = ["exchange.auto-accept", "exchange.send-reminder", "exchange.revoke-access"];
+
+const KNOWN_TEMPLATE_KEYS = [
+    "exchange.reminder",
+    "exchange.status-accepted",
+    "exchange.status-rejected",
+    "exchange.status-ended",
+    "exchange.document-uploaded",
+    "exchange.no-auth-otp",
+];
 
 interface Props
 {
@@ -84,7 +93,9 @@ const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subject
     return (
         <div className={styles.card}>
             <div className={styles.cardHeader} onClick={() => setExpanded(e => !e)}>
-                <Text className={styles.stepNumber} size={200}>Step {index + 1}</Text>
+                <Text className={styles.stepNumber} size={200}>
+                    Step {index + 1} ({step.name || STEP_TYPE_LABELS[step.type]})
+                </Text>
                 <Badge appearance="outline" color="informative" className={styles.headerTitle}>
                     {STEP_TYPE_LABELS[step.type]}
                 </Badge>
@@ -97,6 +108,13 @@ const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subject
             {expanded && (
                 <div className={styles.cardBody}>
                     <div className={styles.fieldGroup}>
+                        <div className={`${styles.field} ${styles.fullWidth}`}>
+                            <Text size={200} weight="semibold">Step Name</Text>
+                            <Input size="small" placeholder="e.g. Manager Approval"
+                                   value={step.name ?? ""}
+                                   onChange={(_, d) => patch({name: d.value || undefined})}/>
+                        </div>
+
                         <div className={styles.field}>
                             <Text size={200} weight="semibold">Step Type</Text>
                             <Select value={step.type}
@@ -141,9 +159,19 @@ const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subject
                                         ))}
                                     </Select>
                                 ) : (
-                                    <Input size="small" placeholder="e.g. exchange.reminder"
-                                           value={step.messageTemplateKey ?? ""}
-                                           onChange={(_, d) => patch({messageTemplateKey: d.value || undefined})}/>
+                                    <Combobox
+                                        size="small"
+                                        freeform
+                                        placeholder="Select or type a template key"
+                                        value={step.messageTemplateKey ?? ""}
+                                        selectedOptions={step.messageTemplateKey ? [step.messageTemplateKey] : []}
+                                        onOptionSelect={(_, d) => patch({messageTemplateKey: d.optionValue || undefined})}
+                                        onChange={e => patch({messageTemplateKey: e.target.value || undefined})}
+                                    >
+                                        {KNOWN_TEMPLATE_KEYS.map(k => (
+                                            <Option key={k} value={k}>{formatTriggerName(k)}</Option>
+                                        ))}
+                                    </Combobox>
                                 )}
                             </div>
                         )}

@@ -60,38 +60,44 @@ const WorkflowInstanceDashboard = ({onSelectInstance}: Props) =>
         year: "numeric", month: "short", day: "numeric",
     });
 
+    const hasResults = instances.length > 0;
+    const isFiltered = statusFilter !== "";
+    const showControls = hasResults || isFiltered;
+
     return (
         <div className={styles.container}>
-            <div className={styles.filterBar}>
-                <Text weight="semibold">Filter by status:</Text>
-                <Select
-                    value={statusFilter}
-                    onChange={(_, d) =>
-                    {
-                        setStatusFilter(d.value as InstanceStatus);
-                        setPage(0);
-                    }}
-                    size="small"
-                    style={{minWidth: "10rem"}}
-                >
-                    <option value="">All</option>
-                    <option value="RUNNING">In Progress</option>
-                    <option value="COMPLETED">Completed</option>
-                    <option value="REJECTED">Rejected</option>
-                    <option value="CANCELLED">Cancelled</option>
-                    <option value="ESCALATED">Escalated</option>
-                </Select>
-                <Button size="small"
-                        shape={"circular"}
-                        appearance="outline"
-                        onClick={load}>Refresh</Button>
-            </div>
+            {showControls && (
+                <div className={styles.filterBar}>
+                    <Text weight="semibold">Filter by status:</Text>
+                    <Select
+                        value={statusFilter}
+                        onChange={(_, d) =>
+                        {
+                            setStatusFilter(d.value as InstanceStatus);
+                            setPage(0);
+                        }}
+                        size="small"
+                        style={{minWidth: "10rem"}}
+                    >
+                        <option value="">All</option>
+                        <option value="RUNNING">In Progress</option>
+                        <option value="COMPLETED">Completed</option>
+                        <option value="REJECTED">Rejected</option>
+                        <option value="CANCELLED">Cancelled</option>
+                        <option value="ESCALATED">Escalated</option>
+                    </Select>
+                    <Button size="small"
+                            shape={"circular"}
+                            appearance="outline"
+                            onClick={load}>Refresh</Button>
+                </div>
+            )}
 
             {loading && <Spinner size="small" label="Loading instances..."/>}
 
             {!loading && instances.length === 0 && (
                 <div className={styles.emptyState}>
-                    <Text>No workflow instances found.</Text>
+                    <Text>{isFiltered ? "No instances match the selected filter." : "No workflow instances found."}</Text>
                 </div>
             )}
 
@@ -114,7 +120,7 @@ const WorkflowInstanceDashboard = ({onSelectInstance}: Props) =>
                 </div>
             ))}
 
-            {!loading && (
+            {!loading && hasResults && (
                 <div className={styles.pagination}>
                     <Button size="small" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
                         Previous

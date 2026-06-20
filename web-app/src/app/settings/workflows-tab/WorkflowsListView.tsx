@@ -1,5 +1,19 @@
 import {useCallback, useEffect, useState} from "react";
-import {Badge, Button, MessageBar, MessageBarBody, Spinner, Tag, Text, Tooltip} from "@fluentui/react-components";
+import {
+    Badge,
+    Button,
+    Menu,
+    MenuItem,
+    MenuList,
+    MenuPopover,
+    MenuTrigger,
+    MessageBar,
+    MessageBarBody,
+    Spinner,
+    Tag,
+    Text,
+} from "@fluentui/react-components";
+import {MoreVerticalRegular} from "@fluentui/react-icons";
 import {WorkflowDefinitionSummaryDto} from "../../models/models.tsx";
 import {
     cloneWorkflowDefinition,
@@ -128,23 +142,27 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                         <Badge color={statusColor(def.isActive)} appearance="filled" size="small">
                             {def.isActive ? "Active" : "Inactive"}
                         </Badge>
-                        <div className={styles.rowActions}>
-                            <Tooltip content="Edit" relationship="label">
-                                <Button size="small" appearance="subtle" icon={<EditIcon/>}
-                                        onClick={() => onEdit(def)}/>
-                            </Tooltip>
-                            <Button size="small" appearance="subtle"
-                                    onClick={() => toggleActive(def)}>
-                                {def.isActive ? "Deactivate" : "Activate"}
-                            </Button>
-                            <Button size="small" appearance="subtle" onClick={() => clone(def)}>
-                                Duplicate
-                            </Button>
-                            <Tooltip content="Delete" relationship="label">
-                                <Button size="small" appearance="subtle" icon={<DeleteIcon/>}
-                                        onClick={() => remove(def)}/>
-                            </Tooltip>
-                        </div>
+                        <Menu>
+                            <MenuTrigger disableButtonEnhancement>
+                                <Button size="small" appearance="subtle"
+                                        icon={<MoreVerticalRegular/>}
+                                        aria-label="More actions"/>
+                            </MenuTrigger>
+                            <MenuPopover>
+                                <MenuList>
+                                    <MenuItem icon={<EditIcon/>} onClick={() => onEdit(def)}>
+                                        Edit
+                                    </MenuItem>
+                                    <MenuItem onClick={() => toggleActive(def)}>
+                                        {def.isActive ? "Deactivate" : "Activate"}
+                                    </MenuItem>
+                                    <MenuItem onClick={() => clone(def)}>Duplicate</MenuItem>
+                                    <MenuItem icon={<DeleteIcon/>} onClick={() => remove(def)}>
+                                        Delete
+                                    </MenuItem>
+                                </MenuList>
+                            </MenuPopover>
+                        </Menu>
                     </div>
                 ))}
             </section>

@@ -10,6 +10,7 @@ import {
     Tag,
     Text,
     Textarea,
+    tokens,
 } from "@fluentui/react-components";
 import {WorkflowDesignerState, WorkflowStepSpecDraft, WorkflowTriggerEventDto} from "../../models/models.tsx";
 import {
@@ -46,6 +47,7 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
     const styles = useWorkflowDesignerStyles();
     const [state, setState] = useState<WorkflowDesignerState>(defaultState());
     const [triggers, setTriggers] = useState<WorkflowTriggerEventDto[]>([]);
+    const [triggersError, setTriggersError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -62,10 +64,14 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
 
     const load = useCallback(async () =>
     {
-        const [triggerList] = await Promise.all([
-            listWorkflowTriggers().catch(() => [] as WorkflowTriggerEventDto[]),
-        ]);
-        setTriggers(triggerList);
+        try
+        {
+            setTriggers(await listWorkflowTriggers());
+        }
+        catch
+        {
+            setTriggersError("Could not load trigger events. Check your connection and reload.");
+        }
 
         if (definitionId)
         {
@@ -116,9 +122,14 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
 
     const save = async () =>
     {
-        if (!state.name.trim() || !state.triggerEvent)
+        if (!state.name.trim())
         {
-            setError("Name and trigger event are required.");
+            setError("Workflow name is required.");
+            return;
+        }
+        if (!state.triggerEvent)
+        {
+            setError("Please select a trigger event.");
             return;
         }
         setSaving(true);
@@ -168,7 +179,7 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
             </div>
 
             {error && (
-                <MessageBar intent="error" className={styles.saveBar}>
+                <MessageBar intent="error">
                     <MessageBarBody>{error}</MessageBarBody>
                 </MessageBar>
             )}
@@ -181,16 +192,22 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
 
                 <div className={styles.formField}>
                     <Text size={200} weight="semibold">Trigger Event *</Text>
-                    <Select value={state.triggerEvent}
-                            onChange={(_, d) => patch({triggerEvent: d.value})}
-                            disabled={!!definitionId}>
-                        <option value="">When does this workflow run?</option>
-                        {triggers.filter(t => t.isActive).map(t => (
-                            <option key={t.eventName} value={t.eventName}>
-                                {formatTriggerName(t.eventName)}
-                            </option>
-                        ))}
-                    </Select>
+                    {triggersError ? (
+                        <Text size={200} style={{color: tokens.colorStatusDangerForeground1}}>
+                            {triggersError}
+                        </Text>
+                    ) : (
+                        <Select value={state.triggerEvent}
+                                onChange={(_, d) => patch({triggerEvent: d.value})}
+                                disabled={!!definitionId}>
+                            <option value="">When does this workflow run?</option>
+                            {triggers.filter(t => t.isActive).map(t => (
+                                <option key={t.eventName} value={t.eventName}>
+                                    {formatTriggerName(t.eventName)}
+                                </option>
+                            ))}
+                        </Select>
+                    )}
                     {selectedTrigger?.description && (
                         <Text size={200} style={{color: "var(--colorNeutralForeground3)"}}>
                             {selectedTrigger.description}
