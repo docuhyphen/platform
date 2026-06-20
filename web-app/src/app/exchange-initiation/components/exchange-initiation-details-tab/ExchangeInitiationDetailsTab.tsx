@@ -40,7 +40,7 @@ const ExchangeInitiationDetailsTab: React.FC<ExchangeDetailsTabProps> = (
                     value={name}
                     required
                     onChange={handleExchangeNameChange}
-                    placeholder="Required"
+                    placeholder="e.g., Q4 Budget Review"
                 />
             </Field>
             {/*<Button onClick={ () => {}}> Generate from sequence</Button>*/}
@@ -48,14 +48,14 @@ const ExchangeInitiationDetailsTab: React.FC<ExchangeDetailsTabProps> = (
                 <Textarea
                     onChange={onDescriptionChange}
                     value={description}
-                    placeholder="Optional"
+                    placeholder="Add context about this exchange (optional)"
                 />
             </Field>
-            <Field label="Custom message">
+            <Field label="Message to Recipients">
                 <Textarea
                     onChange={onInitialShareMessageChange}
                     value={initialShareMessage}
-                    placeholder="Optional"
+                    placeholder="Include any instructions or details recipients should know (optional)"
                 />
             </Field>
         </div>
