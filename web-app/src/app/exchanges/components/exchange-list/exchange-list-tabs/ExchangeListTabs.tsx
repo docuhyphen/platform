@@ -6,7 +6,7 @@ import {
     ClipboardTaskListLtr20Filled,
     ClipboardTaskListLtr20Regular,
     Folder20Filled,
-    Folder20Regular,
+    Folder20Regular, Live20Filled, Live20Regular, LiveFilled, LiveRegular,
 } from "@fluentui/react-icons";
 
 export type ExchangeListTab = 'inbox' | 'active' | 'archive';
@@ -54,8 +54,8 @@ const ExchangeListTabs: React.FC<ExchangeListTabsProps> = ({activeTab, inboxCoun
             <Tab id="exchange-list-tab-active" value="active">
                 <span style={tabContentStyle}>
                     {activeTab === 'active'
-                        ? <Folder20Filled style={collapsedIconStyle} primaryFill={tokens.colorBrandForeground1}/>
-                        : <Folder20Regular style={collapsedIconStyle}/>
+                        ? <Live20Filled style={collapsedIconStyle} primaryFill={tokens.colorBrandForeground1}/>
+                        : <Live20Regular style={collapsedIconStyle}/>
                     }
                     {!collapsed && 'Active'}
                 </span>
