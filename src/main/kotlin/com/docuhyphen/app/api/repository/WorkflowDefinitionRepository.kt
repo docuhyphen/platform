@@ -58,36 +58,65 @@ class WorkflowDefinitionRepository :
             .resultList
             .firstOrNull()
 
+    fun findByNameVersionAndCreator(name: String, version: Int, creatorId: UUID): WorkflowDefinition? =
+        entityManager.createQuery(
+            """SELECT d FROM WorkflowDefinition d
+               WHERE d.name = :n AND d.version = :v AND d.createdByAppUserId = :uid AND d.isDeleted = false""",
+            WorkflowDefinition::class.java,
+        )
+            .setParameter("n", name)
+            .setParameter("v", version)
+            .setParameter("uid", creatorId)
+            .resultList
+            .firstOrNull()
+
     /**
-     * All definitions accessible to [organizationId]: platform templates (isTemplate=true)
-     * plus any ORG-scoped definitions owned by that org. When [organizationId] is null,
-     * only platform templates are returned (caller has no org context).
+     * All definitions accessible to the caller:
+     *   - Platform templates (isTemplate = true, any scope)
+     *   - ORG-scoped definitions owned by [organizationId] (when present)
+     *   - PERSONAL definitions owned by [callerUserId] (when present)
      */
-    fun findAllAccessibleForOrg(organizationId: UUID?): List<WorkflowDefinition>
+    fun findAllAccessibleForCaller(callerUserId: UUID?, organizationId: UUID?): List<WorkflowDefinition>
     {
-        return if (organizationId != null)
+        return when
         {
-            entityManager.createQuery(
-                """SELECT d FROM WorkflowDefinition d
-                   WHERE d.isDeleted = false
-                     AND (d.isTemplate = true
-                          OR (d.scope = com.docuhyphen.app.api.model.entity.WorkflowScope.ORG
-                              AND d.organizationId = :oid))
-                   ORDER BY d.createdAt DESC""",
-                WorkflowDefinition::class.java,
-            )
-                .setParameter("oid", organizationId)
-                .resultList
-        }
-        else
-        {
-            entityManager.createQuery(
-                """SELECT d FROM WorkflowDefinition d
-                   WHERE d.isDeleted = false
-                     AND d.isTemplate = true
-                   ORDER BY d.createdAt DESC""",
-                WorkflowDefinition::class.java,
-            ).resultList
+            callerUserId != null && organizationId != null ->
+                entityManager.createQuery(
+                    """SELECT d FROM WorkflowDefinition d
+                       WHERE d.isDeleted = false
+                         AND (d.isTemplate = true
+                              OR (d.scope = com.docuhyphen.app.api.model.entity.WorkflowScope.ORG
+                                  AND d.organizationId = :oid)
+                              OR (d.scope = com.docuhyphen.app.api.model.entity.WorkflowScope.PERSONAL
+                                  AND d.createdByAppUserId = :uid))
+                       ORDER BY d.createdAt DESC""",
+                    WorkflowDefinition::class.java,
+                )
+                    .setParameter("oid", organizationId)
+                    .setParameter("uid", callerUserId)
+                    .resultList
+
+            callerUserId != null ->
+                entityManager.createQuery(
+                    """SELECT d FROM WorkflowDefinition d
+                       WHERE d.isDeleted = false
+                         AND (d.isTemplate = true
+                              OR (d.scope = com.docuhyphen.app.api.model.entity.WorkflowScope.PERSONAL
+                                  AND d.createdByAppUserId = :uid))
+                       ORDER BY d.createdAt DESC""",
+                    WorkflowDefinition::class.java,
+                )
+                    .setParameter("uid", callerUserId)
+                    .resultList
+
+            else ->
+                entityManager.createQuery(
+                    """SELECT d FROM WorkflowDefinition d
+                       WHERE d.isDeleted = false
+                         AND d.isTemplate = true
+                       ORDER BY d.createdAt DESC""",
+                    WorkflowDefinition::class.java,
+                ).resultList
         }
     }
 }

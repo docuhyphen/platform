@@ -61,25 +61,29 @@ class WorkflowDefinitionService @Inject constructor(
     // -------------------------------------------------------------------------
 
     /**
-     * Returns definitions accessible to the caller: platform templates plus the org's own
-     * definitions. Supports optional server-side filtering by [tag], [triggerEvent], and
-     * [isTemplate].
+     * Returns definitions accessible to the caller: platform templates, the org's own
+     * ORG-scoped definitions, and the caller's PERSONAL definitions. Supports optional
+     * server-side filtering by [scope], [tag], [triggerEvent], and [isTemplate].
      *
      * When [showUnpublished] is false (the default for regular org members), ORG-scoped
      * definitions that have not yet been published are hidden. Org admins and app admins
-     * pass [showUnpublished] = true to see all drafts.
+     * pass [showUnpublished] = true to see all drafts. PERSONAL definitions are always
+     * visible to their creator regardless of published state.
      */
     fun listDefinitions(
+        callerUserId: UUID?,
         callerOrgId: UUID?,
+        scope: String?,
         tag: String?,
         triggerEvent: String?,
         isTemplate: Boolean?,
         showUnpublished: Boolean = false,
     ): List<WorkflowDefinitionListItemDto>
     {
-        return definitionRepository.findAllAccessibleForOrg(callerOrgId)
+        return definitionRepository.findAllAccessibleForCaller(callerUserId, callerOrgId)
             .asSequence()
-            .filter { showUnpublished || it.isTemplate || it.isPublished }
+            .filter { showUnpublished || it.isTemplate || it.isPublished || it.scope == WorkflowScope.PERSONAL }
+            .filter { scope == null || it.scope.name == scope.uppercase() }
             .filter { tag == null || decodeTags(it.generalTags).contains(tag) }
             .filter { triggerEvent == null || it.triggerEvent == triggerEvent }
             .filter { isTemplate == null || it.isTemplate == isTemplate }
@@ -88,16 +92,17 @@ class WorkflowDefinitionService @Inject constructor(
     }
 
     /**
-     * Returns the full definition (including stepsJson) for [id]. The caller must belong
-     * to the definition's org, or the definition must be a platform template.
+     * Returns the full definition (including stepsJson) for [id]. The caller must be the
+     * creator (PERSONAL), belong to the definition's org (ORG), or the definition must be
+     * a platform template (APP).
      *
-     * Non-admin callers are blocked from accessing unpublished definitions.
+     * Non-admin callers are blocked from accessing unpublished ORG definitions.
      */
-    fun getDefinition(id: UUID, callerOrgId: UUID?, isAppAdmin: Boolean, showUnpublished: Boolean = false): WorkflowDefinitionDto
+    fun getDefinition(id: UUID, callerUserId: UUID?, callerOrgId: UUID?, isAppAdmin: Boolean, showUnpublished: Boolean = false): WorkflowDefinitionDto
     {
         val def = definitionRepository.findById(id)
             ?: throw IllegalArgumentException("Workflow definition not found: $id")
-        checkReadAccess(def, callerOrgId, isAppAdmin, showUnpublished)
+        checkReadAccess(def, callerUserId, callerOrgId, isAppAdmin, showUnpublished)
         return def.toDto()
     }
 
@@ -106,19 +111,22 @@ class WorkflowDefinitionService @Inject constructor(
     // -------------------------------------------------------------------------
 
     /**
-     * Creates a new ORG-scoped workflow definition. The scope is always forced to ORG for
-     * non-APP_ADMIN callers. APP_ADMIN callers may create platform templates by passing
-     * [CreateWorkflowDefinitionRequest.isTemplate] = true.
+     * Creates a new workflow definition. Scope is resolved server-side:
+     *   - APP_ADMIN defaults to APP (may pass scope=ORG/PERSONAL explicitly)
+     *   - ORG_ADMIN defaults to ORG (may pass scope=PERSONAL explicitly)
+     *   - Regular user defaults to PERSONAL
      */
     @Transactional
     fun createDefinition(
         request: CreateWorkflowDefinitionRequest,
-        callerOrgId: UUID,
+        callerOrgId: UUID?,
         callerUserId: UUID,
+        isOrgAdmin: Boolean,
         isAppAdmin: Boolean,
     ): WorkflowDefinitionDto
     {
         validateStepsJson(request.stepsJson)
+        val resolvedScope = resolveScope(request.scope, callerOrgId, isOrgAdmin, isAppAdmin)
         val def = WorkflowDefinition().apply {
             name = request.name.trim()
             summary = request.summary?.trim()
@@ -126,8 +134,8 @@ class WorkflowDefinitionService @Inject constructor(
             stepsJson = request.stepsJson
             generalTags = encodeTags(request.generalTags)
             isActive = request.isActive
-            scope = WorkflowScope.ORG
-            organizationId = callerOrgId
+            scope = resolvedScope
+            organizationId = if (resolvedScope == WorkflowScope.ORG) callerOrgId else null
             isTemplate = if (isAppAdmin) request.isTemplate else false
             createdByAppUserId = callerUserId
         }
@@ -136,19 +144,20 @@ class WorkflowDefinitionService @Inject constructor(
 
     /**
      * Updates a workflow definition. Blocked when RUNNING instances reference this definition.
-     * Only the owning org's admin (or APP_ADMIN for platform templates) may call this.
+     * Only the creator (PERSONAL), owning org's admin (ORG), or APP_ADMIN may call this.
      */
     @Transactional
     fun updateDefinition(
         id: UUID,
         request: UpdateWorkflowDefinitionRequest,
+        callerUserId: UUID?,
         callerOrgId: UUID?,
         isAppAdmin: Boolean,
     ): WorkflowDefinitionDto
     {
         val def = definitionRepository.findById(id)
             ?: throw IllegalArgumentException("Workflow definition not found: $id")
-        checkWriteAccess(def, callerOrgId, isAppAdmin)
+        checkWriteAccess(def, callerUserId, callerOrgId, isAppAdmin)
 
         val running = instanceRepository.findRunningForDefinition(id)
         if (running.isNotEmpty())
@@ -175,13 +184,14 @@ class WorkflowDefinitionService @Inject constructor(
     fun patchPublished(
         id: UUID,
         isPublished: Boolean,
+        callerUserId: UUID?,
         callerOrgId: UUID?,
         isAppAdmin: Boolean,
     ): WorkflowDefinitionDto
     {
         val def = definitionRepository.findById(id)
             ?: throw IllegalArgumentException("Workflow definition not found: $id")
-        checkWriteAccess(def, callerOrgId, isAppAdmin)
+        checkWriteAccess(def, callerUserId, callerOrgId, isAppAdmin)
         def.isPublished = isPublished
         return definitionRepository.update(def).toDto()
     }
@@ -191,13 +201,14 @@ class WorkflowDefinitionService @Inject constructor(
     fun patchStatus(
         id: UUID,
         isActive: Boolean,
+        callerUserId: UUID?,
         callerOrgId: UUID?,
         isAppAdmin: Boolean,
     ): WorkflowDefinitionDto
     {
         val def = definitionRepository.findById(id)
             ?: throw IllegalArgumentException("Workflow definition not found: $id")
-        checkWriteAccess(def, callerOrgId, isAppAdmin)
+        checkWriteAccess(def, callerUserId, callerOrgId, isAppAdmin)
         def.isActive = isActive
         return definitionRepository.update(def).toDto()
     }
@@ -207,7 +218,7 @@ class WorkflowDefinitionService @Inject constructor(
      * Blocked when RUNNING instances reference this definition.
      */
     @Transactional
-    fun deleteDefinition(id: UUID, callerOrgId: UUID?, isAppAdmin: Boolean, context: AdminApprovalContext)
+    fun deleteDefinition(id: UUID, callerUserId: UUID?, callerOrgId: UUID?, isAppAdmin: Boolean, context: AdminApprovalContext)
     {
         adminActionGuardService.enforce(
             action = "ORG_WORKFLOW_DEFINITION_DELETE",
@@ -217,7 +228,7 @@ class WorkflowDefinitionService @Inject constructor(
 
         val def = definitionRepository.findById(id)
             ?: throw IllegalArgumentException("Workflow definition not found: $id")
-        checkWriteAccess(def, callerOrgId, isAppAdmin)
+        checkWriteAccess(def, callerUserId, callerOrgId, isAppAdmin)
 
         val running = instanceRepository.findRunningForDefinition(id)
         if (running.isNotEmpty())
@@ -234,15 +245,15 @@ class WorkflowDefinitionService @Inject constructor(
     }
 
     /**
-     * Copies a definition into the caller's org. Scrubs all [AssigneeSpec.Principal]
+     * Copies a definition into the caller's PERSONAL scope. Scrubs all [AssigneeSpec.Principal]
      * entries (hardcoded UUIDs) with ROLE placeholders to preserve portability.
-     * The clone starts as inactive so the admin can review before enabling.
+     * The clone starts as inactive so the user can review before enabling.
      * Sets [WorkflowDefinition.sourceTemplateId] to track provenance.
      */
     @Transactional
     fun cloneDefinition(
         id: UUID,
-        callerOrgId: UUID,
+        callerOrgId: UUID?,
         callerUserId: UUID,
         newName: String?,
     ): WorkflowDefinitionDto
@@ -250,21 +261,25 @@ class WorkflowDefinitionService @Inject constructor(
         val source = definitionRepository.findById(id)
             ?: throw IllegalArgumentException("Workflow definition not found: $id")
 
-        if (!source.isTemplate && source.organizationId != callerOrgId)
+        val canClone = source.isTemplate
+            || (source.scope == WorkflowScope.PERSONAL && source.createdByAppUserId == callerUserId)
+            || (source.scope == WorkflowScope.ORG && source.organizationId == callerOrgId)
+        if (!canClone)
         {
-            throw ForbiddenException("Cannot clone a definition that belongs to another organization")
+            throw ForbiddenException("Cannot clone a definition that belongs to another user or organization")
         }
 
         val scrubbedStepsJson = scrubPrincipalUuids(source.stepsJson)
+        val baseName = newName?.trim()?.ifBlank { null } ?: "${source.name} (copy)"
         val clone = WorkflowDefinition().apply {
-            name = uniqueCloneName(newName?.trim()?.ifBlank { null } ?: "${source.name} (copy)")
+            name = uniqueCloneName(baseName, callerUserId)
             summary = source.summary
             triggerEvent = source.triggerEvent
             stepsJson = scrubbedStepsJson
             generalTags = source.generalTags
             isActive = false
-            scope = WorkflowScope.ORG
-            organizationId = callerOrgId
+            scope = WorkflowScope.PERSONAL
+            organizationId = null
             isTemplate = false
             sourceTemplateId = source.id
             createdByAppUserId = callerUserId
@@ -323,9 +338,20 @@ class WorkflowDefinitionService @Inject constructor(
     // Access control
     // -------------------------------------------------------------------------
 
-    private fun checkReadAccess(def: WorkflowDefinition, callerOrgId: UUID?, isAppAdmin: Boolean, showUnpublished: Boolean = false)
+    private fun checkReadAccess(
+        def: WorkflowDefinition,
+        callerUserId: UUID?,
+        callerOrgId: UUID?,
+        isAppAdmin: Boolean,
+        showUnpublished: Boolean = false,
+    )
     {
         if (isAppAdmin || def.isTemplate) return
+        if (def.scope == WorkflowScope.PERSONAL)
+        {
+            if (callerUserId != null && def.createdByAppUserId == callerUserId) return
+            throw ForbiddenException("Access denied to workflow definition ${def.id}")
+        }
         if (callerOrgId != null && def.organizationId == callerOrgId)
         {
             if (showUnpublished || def.isPublished) return
@@ -334,13 +360,52 @@ class WorkflowDefinitionService @Inject constructor(
         throw ForbiddenException("Access denied to workflow definition ${def.id}")
     }
 
-    private fun checkWriteAccess(def: WorkflowDefinition, callerOrgId: UUID?, isAppAdmin: Boolean)
+    private fun checkWriteAccess(
+        def: WorkflowDefinition,
+        callerUserId: UUID?,
+        callerOrgId: UUID?,
+        isAppAdmin: Boolean,
+    )
     {
         if (isAppAdmin) return
         if (def.isTemplate) throw ForbiddenException("Platform templates cannot be modified directly; clone them instead")
+        if (def.scope == WorkflowScope.PERSONAL)
+        {
+            if (callerUserId != null && def.createdByAppUserId == callerUserId) return
+            throw ForbiddenException("Access denied to workflow definition ${def.id}")
+        }
         if (callerOrgId == null || def.organizationId != callerOrgId)
         {
             throw ForbiddenException("Access denied to workflow definition ${def.id}")
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Scope resolution
+    // -------------------------------------------------------------------------
+
+    private fun resolveScope(
+        requestedScope: String?,
+        callerOrgId: UUID?,
+        isOrgAdmin: Boolean,
+        isAppAdmin: Boolean,
+    ): WorkflowScope
+    {
+        if (requestedScope != null)
+        {
+            val parsed = runCatching { WorkflowScope.valueOf(requestedScope.uppercase()) }
+                .getOrElse { throw IllegalArgumentException("Invalid scope: $requestedScope") }
+            if (parsed == WorkflowScope.APP && !isAppAdmin)
+                throw ForbiddenException("App admin role required to create APP-scoped workflows")
+            if (parsed == WorkflowScope.ORG && !isOrgAdmin && !isAppAdmin)
+                throw ForbiddenException("Org admin role required to create ORG-scoped workflows")
+            return parsed
+        }
+        return when
+        {
+            isAppAdmin -> WorkflowScope.APP
+            isOrgAdmin && callerOrgId != null -> WorkflowScope.ORG
+            else -> WorkflowScope.PERSONAL
         }
     }
 
@@ -349,18 +414,17 @@ class WorkflowDefinitionService @Inject constructor(
     // -------------------------------------------------------------------------
 
     /**
-     * Returns [base] if no definition with that name already exists at version 1,
-     * otherwise appends " 2", " 3", … until a free slot is found.
-     * Clones always start at version 1, so the uniqueness check is scoped to that version.
+     * Returns [base] if no PERSONAL definition with that name already exists for [creatorId]
+     * at version 1, otherwise appends " 2", " 3", … until a free slot is found.
      */
-    private fun uniqueCloneName(base: String): String
+    private fun uniqueCloneName(base: String, creatorId: UUID): String
     {
-        if (definitionRepository.findByNameAndVersion(base, 1) == null) return base
+        if (definitionRepository.findByNameVersionAndCreator(base, 1, creatorId) == null) return base
         var suffix = 2
         while (true)
         {
             val candidate = "$base $suffix"
-            if (definitionRepository.findByNameAndVersion(candidate, 1) == null) return candidate
+            if (definitionRepository.findByNameVersionAndCreator(candidate, 1, creatorId) == null) return candidate
             suffix++
         }
     }
@@ -616,6 +680,7 @@ data class CreateWorkflowDefinitionRequest(
     val generalTags: List<String> = emptyList(),
     val isActive: Boolean = true,
     val isTemplate: Boolean = false,
+    val scope: String? = null,
 )
 
 @Serializable

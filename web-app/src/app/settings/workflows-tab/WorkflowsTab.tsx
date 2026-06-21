@@ -12,6 +12,7 @@ type SubTab = "workflows" | "activity";
 interface DesignerTarget
 {
     definitionId?: string;
+    scope?: 'PERSONAL' | 'ORG' | 'APP';
 }
 
 const WorkflowsTab = () =>
@@ -27,8 +28,8 @@ const WorkflowsTab = () =>
         setDesignerTarget(null);
     };
 
-    const openDesigner = (definition?: WorkflowDefinitionSummaryDto) =>
-        setDesignerTarget({definitionId: definition?.id});
+    const openDesigner = (definition?: WorkflowDefinitionSummaryDto, scope?: 'PERSONAL' | 'ORG' | 'APP') =>
+        setDesignerTarget({definitionId: definition?.id, scope});
 
     const closeDesigner = () => setDesignerTarget(null);
 
@@ -37,6 +38,7 @@ const WorkflowsTab = () =>
         return (
             <WorkflowDesigner
                 definitionId={designerTarget.definitionId}
+                scope={designerTarget.scope}
                 onBack={closeDesigner}
                 onSaved={closeDesigner}
             />
@@ -55,8 +57,8 @@ const WorkflowsTab = () =>
             <div className={styles.content}>
                 {subTab === "workflows" && (
                     <WorkflowsListView
-                        onEdit={openDesigner}
-                        onNew={() => openDesigner()}
+                        onEdit={(def) => openDesigner(def, def.scope as 'PERSONAL' | 'ORG' | 'APP')}
+                        onNew={(scope) => openDesigner(undefined, scope)}
                     />
                 )}
 

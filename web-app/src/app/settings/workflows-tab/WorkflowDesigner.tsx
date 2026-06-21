@@ -35,6 +35,7 @@ import {formatTriggerName} from "./workflowUtils.ts";
 interface Props
 {
     definitionId?: string;
+    scope?: 'PERSONAL' | 'ORG' | 'APP';
     onBack: () => void;
     onSaved: () => void;
 }
@@ -50,7 +51,7 @@ const defaultState = (): WorkflowDesignerState => ({
     name: "", summary: "", generalTags: [], triggerEvent: "", isActive: false, steps: [],
 });
 
-const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
+const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
 {
     const styles = useWorkflowDesignerStyles();
     const {openHelpArticle} = useHelpSidebar();
@@ -172,7 +173,7 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
                 await createWorkflowDefinition({
                     name: state.name, summary: state.summary || undefined,
                     triggerEvent: state.triggerEvent, generalTags: state.generalTags,
-                    isActive: state.isActive, stepsJson,
+                    isActive: state.isActive, stepsJson, scope,
                 });
             }
             onSaved();

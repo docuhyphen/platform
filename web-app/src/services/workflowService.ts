@@ -29,6 +29,7 @@ export interface CreateWorkflowDefinitionRequest
     generalTags?: string[];
     isActive?: boolean;
     isTemplate?: boolean;
+    scope?: 'PERSONAL' | 'ORG' | 'APP';
 }
 
 export interface UpdateWorkflowDefinitionRequest
@@ -57,6 +58,7 @@ export interface CloneWorkflowRequest
 
 export interface ListDefinitionsParams
 {
+    scope?: 'APP' | 'ORG' | 'PERSONAL';
     tag?: string;
     triggerEvent?: string;
     isTemplate?: boolean;

@@ -879,7 +879,7 @@ export type AssigneeKind = 'PRINCIPAL' | 'GROUP_ROLE' | 'ROLE';
 export type QuorumKind = 'ANY' | 'ALL' | 'N_OF_M';
 export type EscalationAction = 'ESCALATE' | 'AUTO_REJECT' | 'AUTO_APPROVE';
 export type AddonKind = 'REMINDER_BEFORE_DUE' | 'REMINDER_IF_NO_DECISION';
-export type WorkflowScopeType = 'APP' | 'ORG';
+export type WorkflowScopeType = 'APP' | 'ORG' | 'PERSONAL';
 
 export interface AssigneeSpecDraft
 {

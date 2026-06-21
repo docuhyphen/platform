@@ -8,11 +8,12 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/** Whether a workflow definition is system-wide or owned by a single org. */
+/** Whether a workflow definition is system-wide, owned by a single org, or private to a user. */
 enum class WorkflowScope
 {
     APP,
     ORG,
+    PERSONAL,
 }
 
 /**
