@@ -599,7 +599,7 @@ class ExchangeInitiationService @Inject constructor(
             else -> recipientAppUser?.email ?: "Recipient"
         }
 
-        val requireSignInForRecipient = recipientType != GROUP && exchange.requireRecipientSignIn
+        val requireSignInForRecipient = recipientType == EMAIL && exchange.requireRecipientSignIn
 
         recipientEmails.forEach { (email, _) ->
             try
