@@ -91,6 +91,7 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
     const [noAuthAccessValidityDays, setNoAuthAccessValidityDays] = useState<string>('7');
     const [selectedTab, setSelectedTab] = useState<TabValue>(tabIds.people);
     const [showHelpGuide, setShowHelpGuide] = useState(false);
+    const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
 
     const styles = useAccessManagementDialogStyles();
 
@@ -111,6 +112,7 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
             setResendCooldownRemaining(0);
             setSelectedTab(tabIds.people);
             setShowHelpGuide(false);
+            setDialogErrorMessage(null);
         }
     }, [exchange]);
 
@@ -234,7 +236,7 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
         }
         catch (error)
         {
-            alert("Error updating access settings");
+            setDialogErrorMessage("Error updating access settings");
             console.error("Error updating access settings:", error);
         }
         finally
@@ -292,6 +294,13 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
                             <ManageAccessHelpGuide/>
                         ) : (
                             <>
+                        {dialogErrorMessage && (
+                            <MessageBar intent="error">
+                                <MessageBarBody>
+                                    <Text size={200}>{dialogErrorMessage}</Text>
+                                </MessageBarBody>
+                            </MessageBar>
+                        )}
                         <TabList selectedValue={selectedTab} onTabSelect={onTabSelect} className={styles.tabList}>
                             <Tab value={tabIds.people}>Summary</Tab>
                             <Tab value={tabIds.access}>Access &amp; permissions</Tab>

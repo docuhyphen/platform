@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useEffect, useState} from "react";
 import {WorkflowDefinitionSummaryDto} from "../../models/models.tsx";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 import {
@@ -10,7 +10,10 @@ import {
     DialogSurface,
     DialogTitle,
     DialogTrigger,
+    MessageBar,
+    MessageBarBody,
     Spinner,
+    Text,
 } from "@fluentui/react-components";
 import {deleteWorkflowDefinition} from "../../../services/workflowService.ts";
 
@@ -35,6 +38,12 @@ const WorkflowDeleteDialog: React.FC<WorkflowDeleteDialogProps> = (
     const [deleteStarted, setDeleteStarted] = React.useState(false);
     const [countdown, setCountdown] = React.useState(10);
     const timerRef = React.useRef<NodeJS.Timeout | null>(null);
+    const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
+
+    useEffect(() =>
+    {
+        if (isOpen) setDialogErrorMessage(null);
+    }, [isOpen]);
 
     const onDelete = () =>
     {
@@ -77,7 +86,7 @@ const WorkflowDeleteDialog: React.FC<WorkflowDeleteDialogProps> = (
         }
         catch (error)
         {
-            alert("Error deleting workflow");
+            setDialogErrorMessage("Error deleting workflow");
             console.error("Error deleting workflow:", error);
         }
         finally
@@ -93,6 +102,13 @@ const WorkflowDeleteDialog: React.FC<WorkflowDeleteDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Deleting {definition?.name}</DialogTitle>
                     <DialogContent>
+                        {dialogErrorMessage && (
+                            <MessageBar intent="error">
+                                <MessageBarBody>
+                                    <Text size={200}>{dialogErrorMessage}</Text>
+                                </MessageBarBody>
+                            </MessageBar>
+                        )}
                         {deleteStarted ? (
                             <div>Deleting in {countdown} seconds...</div>
                         ) : (

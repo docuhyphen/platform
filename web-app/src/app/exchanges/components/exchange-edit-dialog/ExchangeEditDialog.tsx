@@ -1,5 +1,5 @@
 ﻿import {ExchangeDetailedDto, UpdateExchangeRequest} from "../../../models/models.tsx";
-import React, {useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {
     Button,
@@ -13,7 +13,10 @@ import {
     Field,
     Input,
     InputOnChangeData,
+    MessageBar,
+    MessageBarBody,
     Spinner,
+    Text,
     Textarea
 } from "@fluentui/react-components";
 import {fetchSignedInUserAppUserExchange, updateExchange} from "../../../../services/exchangeApi.ts";
@@ -41,6 +44,7 @@ const ExchangeEditDialog: React.FC<ExchangeDeleteDialogProps> = (
     const [name, setExchangeName] = React.useState('')
     const [description, setDescription] = React.useState('')
     const globalStyles = useGlobalStyles()
+    const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
 
     useEffect(() =>
     {
@@ -48,6 +52,7 @@ const ExchangeEditDialog: React.FC<ExchangeDeleteDialogProps> = (
         {
             setExchangeName(exchange.name)
             setDescription(exchange.description)
+            setDialogErrorMessage(null);
         }
     }, [exchange]);
 
@@ -71,7 +76,7 @@ const ExchangeEditDialog: React.FC<ExchangeDeleteDialogProps> = (
         }
         catch (error)
         {
-            alert("Error updating exchange");
+            setDialogErrorMessage("Error updating exchange");
             console.error("Error updating exchange", error);
         }
         finally
@@ -103,6 +108,13 @@ const ExchangeEditDialog: React.FC<ExchangeDeleteDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Edit {exchange && exchange.name}</DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
+                        {dialogErrorMessage && (
+                            <MessageBar intent="error">
+                                <MessageBarBody>
+                                    <Text size={200}>{dialogErrorMessage}</Text>
+                                </MessageBarBody>
+                            </MessageBar>
+                        )}
                         <Field label={"Exchange name"}>
                             <Input type={"text"}
                                    value={name}

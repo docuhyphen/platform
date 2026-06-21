@@ -1,9 +1,11 @@
-﻿import React from "react";
+﻿import React, {useState} from "react";
 import {
     Button,
     Card,
     Checkbox,
     Field,
+    MessageBar,
+    MessageBarBody,
     Spinner,
     Text,
     Textarea
@@ -46,6 +48,7 @@ const ExchangeAcceptanceDialog: React.FC<ExchangeAcceptanceDialogProps> = (
     const [updatingExchange, setUpdatingExchange] = React.useState(false);
     const [rejectingExchange, setRejectingExchange] = React.useState(false);
     const [rejectReason, setRejectReason] = React.useState<string>('');
+    const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
     const globalStyles = useGlobalStyles();
     const styles = useExchangeAcceptanceDialogStyles();
 
@@ -76,7 +79,7 @@ const ExchangeAcceptanceDialog: React.FC<ExchangeAcceptanceDialogProps> = (
         }
         catch (error)
         {
-            alert("Error updating exchange");
+            setDialogErrorMessage("Error updating exchange");
             console.error("Error updating exchange", error);
         }
         finally
@@ -157,6 +160,14 @@ const ExchangeAcceptanceDialog: React.FC<ExchangeAcceptanceDialogProps> = (
                     </Field>
                     <Checkbox label="Report"/>
                 </div>
+            )}
+
+            {dialogErrorMessage && (
+                <MessageBar intent="error">
+                    <MessageBarBody>
+                        <Text size={200}>{dialogErrorMessage}</Text>
+                    </MessageBarBody>
+                </MessageBar>
             )}
 
             <div className={styles.actions}>

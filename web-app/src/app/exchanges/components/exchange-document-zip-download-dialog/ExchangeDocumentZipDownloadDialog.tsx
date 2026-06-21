@@ -1,5 +1,5 @@
 ﻿import {ExchangeDetailedDto} from "../../../models/models.tsx";
-import React, {useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import useToken from "../../../../context/useToken.tsx";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {downloadExchangeDocumentZip} from "../../../../services/exchangeApi.ts";
@@ -15,6 +15,8 @@ import {
     DialogTrigger,
     Field,
     Input,
+    MessageBar,
+    MessageBarBody,
     Spinner,
     Text
 } from "@fluentui/react-components";
@@ -40,6 +42,7 @@ const ExchangeDocumentZipDownloadDialog: React.FC<DownloadDocumentDialogProps> =
     const [selectedDocuments, setSelectedDocuments] = React.useState<string[]>([]);
     const globalStyles = useGlobalStyles();
     const styles = useExchangeDocumentZipDownloadDialogStyles();
+    const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
 
     useEffect(() =>
     {
@@ -66,7 +69,7 @@ const ExchangeDocumentZipDownloadDialog: React.FC<DownloadDocumentDialogProps> =
         }
         catch (error)
         {
-            alert("Download failed");
+            setDialogErrorMessage("Download failed");
             console.error("Error downloading document:", error);
         }
         finally
@@ -96,6 +99,13 @@ const ExchangeDocumentZipDownloadDialog: React.FC<DownloadDocumentDialogProps> =
                 <DialogBody>
                     <DialogTitle>Download Compressed Documents</DialogTitle>
                     <DialogContent>
+                        {dialogErrorMessage && (
+                            <MessageBar intent="error">
+                                <MessageBarBody>
+                                    <Text size={200}>{dialogErrorMessage}</Text>
+                                </MessageBarBody>
+                            </MessageBar>
+                        )}
                         <div className={styles.downloadContainer}>
                             <Field className={styles.downloadNameField}>
                                 <Input

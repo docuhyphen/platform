@@ -1,5 +1,5 @@
 ﻿import {ExchangeDetailedDto} from "../../../models/models.tsx";
-import React from "react";
+import React, {useEffect, useState} from "react";
 import useToken from "../../../../context/useToken.tsx";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {
@@ -11,7 +11,10 @@ import {
     DialogSurface,
     DialogTitle,
     DialogTrigger,
-    Spinner
+    MessageBar,
+    MessageBarBody,
+    Spinner,
+    Text
 } from "@fluentui/react-components";
 import {deleteExchange} from "../../../../services/exchangeApi.ts";
 import {publishExchangeDelete} from "../../../observable/exchangeObservables.ts";
@@ -39,6 +42,12 @@ const ExchangeDeleteDialog: React.FC<ExchangeDeleteDialogProps> = (
     const [deleteStarted, setDeleteStarted] = React.useState(false);
     const [countdown, setCountdown] = React.useState(10);
     const timerRef = React.useRef<NodeJS.Timeout | null>(null);
+    const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
+
+    useEffect(() =>
+    {
+        if (isOpen) setDialogErrorMessage(null);
+    }, [isOpen]);
 
     const onDelete = () =>
     {
@@ -84,7 +93,7 @@ const ExchangeDeleteDialog: React.FC<ExchangeDeleteDialogProps> = (
         }
         catch (error)
         {
-            alert("Error deleting document");
+            setDialogErrorMessage("Error deleting exchange");
             console.error("Error deleting document:", error);
         }
         finally
@@ -100,6 +109,13 @@ const ExchangeDeleteDialog: React.FC<ExchangeDeleteDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Deleting {exchange && exchange.name}</DialogTitle>
                     <DialogContent>
+                        {dialogErrorMessage && (
+                            <MessageBar intent="error">
+                                <MessageBarBody>
+                                    <Text size={200}>{dialogErrorMessage}</Text>
+                                </MessageBarBody>
+                            </MessageBar>
+                        )}
                         {deleteStarted ? (
                             <div>
                                 Deleting in {countdown} seconds...

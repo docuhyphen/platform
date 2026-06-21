@@ -1,5 +1,5 @@
 ﻿import {DocumentDetailedDto, ExchangeDetailedDto} from "../../../models/models.tsx";
-import React, {useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import useToken from "../../../../context/useToken.tsx";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {downloadExchangeDocument} from "../../../../services/exchangeApi.ts";
@@ -14,6 +14,8 @@ import {
     DialogTrigger,
     Field,
     Input,
+    MessageBar,
+    MessageBarBody,
     Spinner,
     Text
 } from "@fluentui/react-components";
@@ -39,6 +41,7 @@ const ExchangeDocumentDownloadDialog: React.FC<DownloadDocumentDialogProps> = (
     const [downloadName, setDownloadName] = React.useState('');
     const [downloadingDocument, setDownloadingDocument] = React.useState(false);
     const globalStyles = useGlobalStyles()
+    const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
 
     const styles = useExchangeDocumentDownloadDialogStyles();
 
@@ -69,8 +72,8 @@ const ExchangeDocumentDownloadDialog: React.FC<DownloadDocumentDialogProps> = (
         }
         catch (error)
         {
-            alert("Download failed");
-            console.error("Error deleting document:", error);
+            setDialogErrorMessage("Download failed");
+            console.error("Error downloading document:", error);
         }
         finally
         {
@@ -90,6 +93,13 @@ const ExchangeDocumentDownloadDialog: React.FC<DownloadDocumentDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Downloading {exchangeDocument && exchangeDocument.title}</DialogTitle>
                     <DialogContent>
+                        {dialogErrorMessage && (
+                            <MessageBar intent="error">
+                                <MessageBarBody>
+                                    <Text size={200}>{dialogErrorMessage}</Text>
+                                </MessageBarBody>
+                            </MessageBar>
+                        )}
                         <Field className={styles.downloadNameField}>
                             <Input
                                 type="text"

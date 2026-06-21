@@ -1,5 +1,5 @@
 ﻿import {ExchangeDetailedDto, ExchangeStatus, UpdateExchangeRequest} from "../../../models/models.tsx";
-import React from "react";
+import React, {useEffect, useState} from "react";
 import useToken from "../../../../context/useToken.tsx";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {
@@ -12,7 +12,10 @@ import {
     DialogTitle,
     DialogTrigger,
     Field,
+    MessageBar,
+    MessageBarBody,
     Spinner,
+    Text,
     Textarea
 } from "@fluentui/react-components";
 import {useExchangeEndDialogStyles} from "./ExchangeEndDialogStyles.tsx";
@@ -40,6 +43,12 @@ const ExchangeEndDialog: React.FC<ExchangeEndDialogProps> = (
     const [exchangeEndNote, setExchangeEndNote] = React.useState('');
     const [endingExchange, setEndingExchange] = React.useState(false);
     const globalStyles = useGlobalStyles()
+    const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
+
+    useEffect(() =>
+    {
+        if (isOpen) setDialogErrorMessage(null);
+    }, [isOpen]);
 
     const onExchangeEnd = async () =>
     {
@@ -60,7 +69,7 @@ const ExchangeEndDialog: React.FC<ExchangeEndDialogProps> = (
         }
         catch (error)
         {
-            alert("Error ending exchange");
+            setDialogErrorMessage("Error ending exchange");
             console.error("Error ending exchange", error);
         }
         finally
@@ -87,6 +96,13 @@ const ExchangeEndDialog: React.FC<ExchangeEndDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Ending Exchange: {exchange && exchange.name}</DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
+                        {dialogErrorMessage && (
+                            <MessageBar intent="error">
+                                <MessageBarBody>
+                                    <Text size={200}>{dialogErrorMessage}</Text>
+                                </MessageBarBody>
+                            </MessageBar>
+                        )}
                         <Field label={"Notes"} className={styles.endNoteField}>
                             <Textarea value={exchangeEndNote}
                                       onChange={onEndNoteChange}/>

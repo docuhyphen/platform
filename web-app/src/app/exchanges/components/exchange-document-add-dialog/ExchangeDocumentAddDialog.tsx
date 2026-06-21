@@ -1,5 +1,5 @@
 ﻿import {DocumentDetailedDto, DocumentType, ImageType} from "../../../models/models.tsx";
-import React from "react";
+import React, {useState} from "react";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {
     Button,
@@ -13,10 +13,13 @@ import {
     Dropdown,
     Field,
     Input,
+    MessageBar,
+    MessageBarBody,
     Option,
     OptionGroup,
     Spinner,
-    Switch
+    Switch,
+    Text
 } from "@fluentui/react-components";
 import {useExchangeDocumentAddDialogStyles} from "./ExchangeDocumentAddDialogStyles.tsx";
 import {addExchangeDocument} from "../../../../services/exchangeApi.ts";
@@ -45,12 +48,14 @@ const AddDocumentDialog: React.FC<AddDocumentDialogProps> = (
     const [addingDocument, setAddingDocument] = React.useState<boolean>(false);
     const globalStyles = useGlobalStyles();
     const styles = useExchangeDocumentAddDialogStyles();
+    const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
 
     const resetState = () =>
     {
         setDocumentTitle('');
         setRestrictType(false);
         setRestrictedType(undefined);
+        setDialogErrorMessage(null);
     }
 
     React.useEffect(() =>
@@ -92,7 +97,7 @@ const AddDocumentDialog: React.FC<AddDocumentDialogProps> = (
         }
         catch (error: any)
         {
-            alert("Error adding document")
+            setDialogErrorMessage("Error adding document");
             console.error(error);
         }
         finally
@@ -113,6 +118,13 @@ const AddDocumentDialog: React.FC<AddDocumentDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Add exchange document</DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
+                        {dialogErrorMessage && (
+                            <MessageBar intent="error">
+                                <MessageBarBody>
+                                    <Text size={200}>{dialogErrorMessage}</Text>
+                                </MessageBarBody>
+                            </MessageBar>
+                        )}
                         <Field className={styles.documentTitleField}>
                             <Input
                                 type="text"

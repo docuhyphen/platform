@@ -18,10 +18,13 @@ import {
     Dropdown,
     Field,
     Input,
+    MessageBar,
+    MessageBarBody,
     Option,
     OptionGroup,
     Spinner,
     Switch,
+    Text,
 } from "@fluentui/react-components";
 import {updateExchangeDocument} from "../../../../services/exchangeApi.ts";
 import useToken from "../../../../context/useToken.tsx";
@@ -50,6 +53,7 @@ const ExchangeDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
     const [isRestrictionEnabled, setIsRestrictionEnabled] = useState<boolean>(false);
     const [updatingDocument, setUpdatingDocument] = useState<boolean>(false);
     const [selectedRestrictionType, setSelectedRestrictionType] = useState<DocumentType | ImageType | string>("PDF");
+    const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
 
     const globalStyles = useGlobalStyles();
     const styles = useExchangeDocumentAddDialogStyles();
@@ -85,6 +89,7 @@ const ExchangeDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
         setDocumentTitle("");
         setIsRestrictionEnabled(false);
         setSelectedRestrictionType("PDF");
+        setDialogErrorMessage(null);
     }, []);
 
     const handleDismiss = useCallback(() =>
@@ -119,7 +124,7 @@ const ExchangeDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
         catch (error: any)
         {
             console.error("Error updating document", error);
-            alert("Error updating document");
+            setDialogErrorMessage("Error updating document");
         }
         finally
         {
@@ -141,6 +146,13 @@ const ExchangeDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Update exchange document</DialogTitle>
                     <DialogContent>
+                        {dialogErrorMessage && (
+                            <MessageBar intent="error">
+                                <MessageBarBody>
+                                    <Text size={200}>{dialogErrorMessage}</Text>
+                                </MessageBarBody>
+                            </MessageBar>
+                        )}
                         <Field className={styles.documentTitleField}
                                label="New document name">
                             <Input

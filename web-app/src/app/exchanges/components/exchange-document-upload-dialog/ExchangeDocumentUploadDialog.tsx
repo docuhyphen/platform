@@ -181,7 +181,7 @@ const ExchangeDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
         }
         catch (error)
         {
-            alert("Error uploading document");
+            setFileError("Error uploading document");
             console.error(error);
         }
         finally
