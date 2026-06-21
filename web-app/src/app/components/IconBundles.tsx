@@ -118,7 +118,9 @@
     AddFilled, AddRegular,
     ArrowLeftFilled, ArrowLeftRegular,
     CheckmarkFilled, CheckmarkRegular,
-    DismissFilled, DismissRegular, DocumentFlowchartFilled, DocumentFlowchartRegular,
+    DismissFilled, DismissRegular, DocumentFlowchartFilled, DocumentFlowchartRegular, CopyRegular, CopyFilled,
+    EyeFilled, EyeRegular, EyeOffFilled, EyeOffRegular,
+    ToggleRightFilled, ToggleRightRegular, ToggleLeftFilled, ToggleLeftRegular,
 } from "@fluentui/react-icons";
 
 export const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
@@ -168,7 +170,12 @@ export const ZoomOutIcon = bundleIcon(ZoomOutFilled, ZoomOutRegular)
 export const ResetZoomIcon = bundleIcon(ZoomFitFilled, ZoomFitRegular)
 export const ExchangeEndIcon = bundleIcon(CheckmarkNoteFilled, CheckmarkNoteRegular);
 export const ExchangeDetailedViewIcon = bundleIcon(ContentViewFilled, ContentViewRegular);
+export const CopyIcon = bundleIcon(CopyFilled, CopyRegular);
 export const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular);
+export const PublishIcon = bundleIcon(EyeFilled, EyeRegular);
+export const UnpublishIcon = bundleIcon(EyeOffFilled, EyeOffRegular);
+export const ActivateIcon = bundleIcon(ToggleRightFilled, ToggleRightRegular);
+export const DeactivateIcon = bundleIcon(ToggleLeftFilled, ToggleLeftRegular);
 export const RegenerateOTPIcon = bundleIcon(CalculatorArrowClockwiseFilled, CalculatorArrowClockwiseRegular);
 export const EditExchangeIcon = bundleIcon(WindowEditFilled, WindowEditRegular);
 export const ManageAccessIcon = bundleIcon(PeopleLockFilled, PeopleLockRegular);

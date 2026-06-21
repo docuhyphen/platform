@@ -144,13 +144,20 @@ function clampPanelWidth(width: number): number
 type HelpDocumentationSidebarProps = {
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
+    requestedArticleId?: string;
 };
 
-const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOpen, onOpenChange}) =>
+const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOpen, onOpenChange, requestedArticleId}) =>
 {
     const styles = useStyles();
     const sections = useMemo(() => getHelpDocSections(), []);
     const [activeArticleId, setActiveArticleId] = useState(getDefaultHelpDocArticle().id);
+
+    React.useEffect(() =>
+    {
+        if (requestedArticleId && getHelpDocArticleById(requestedArticleId))
+            setActiveArticleId(requestedArticleId);
+    }, [requestedArticleId]);
     const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
     const dragStartRef = useRef<{ startX: number; startWidth: number } | null>(null);
 

@@ -362,8 +362,8 @@ const helpDocSections: HelpDocSectionInput[] = [
                         </p>
                         <p><b>Available subject fields:</b></p>
                         <ul>
-                            <li><b>initiatorId</b> - the user who created the Exchange.</li>
-                            <li><b>orgId</b> - the organization the initiator belongs to.</li>
+                            <li><b>Initiator</b> - the user who created the Exchange.</li>
+                            <li><b>Org</b> - the organization the initiator belongs to.</li>
                         </ul>
 
                         <h3>exchange.acceptance_pending</h3>
@@ -375,29 +375,29 @@ const helpDocSections: HelpDocSectionInput[] = [
                         </p>
                         <p><b>Available subject fields:</b></p>
                         <ul>
-                            <li><b>recipientId</b> - the primary recipient user ID.</li>
+                            <li><b>Recipient</b> - the primary recipient user (searchable by name).</li>
                             <li>
-                                <b>recipientGroupId</b> - the recipient group ID (GROUP recipient
-                                type only).
+                                <b>Recipient Group</b> - the recipient group (GROUP recipient
+                                type only, searchable by group name).
                             </li>
-                            <li><b>initiatorId</b> - the initiator user ID.</li>
-                            <li><b>orgId</b> - the initiator organization ID.</li>
+                            <li><b>Initiator</b> - the user who created the Exchange (searchable by name).</li>
+                            <li><b>Org</b> - the initiator organization.</li>
                             <li>
-                                <b>recipientType</b> - one of: <code>EMAIL</code>,{" "}
-                                <code>APP_USER</code>, or <code>GROUP</code>.
+                                <b>Recipient Type</b> - one of: <b>Email</b>,{" "}
+                                <b>App User</b>, or <b>Group</b>.
                             </li>
                         </ul>
 
                         <h3>exchange.activated</h3>
                         <p>
-                            Fires when an Exchange transitions to Active (ACCEPTED_STARTED). Use
+                            Fires when an Exchange transitions to Active. Use
                             this for post-activation notifications, automatic actions, or secondary
                             approvals that must happen once the Exchange becomes Active.
                         </p>
                         <p><b>Available subject fields:</b></p>
                         <ul>
-                            <li><b>initiatorId</b> - the initiator user ID.</li>
-                            <li><b>orgId</b> - the initiator organization ID.</li>
+                            <li><b>Initiator</b> - the user who created the Exchange (searchable by name).</li>
+                            <li><b>Org</b> - the initiator organization.</li>
                         </ul>
 
                         <h3>exchange.ending</h3>
@@ -409,30 +409,18 @@ const helpDocSections: HelpDocSectionInput[] = [
                         </p>
                         <p><b>Available subject fields:</b></p>
                         <ul>
-                            <li><b>initiatorId</b> - the initiator user ID.</li>
-                            <li><b>orgId</b> - the initiator organization ID.</li>
+                            <li><b>Initiator</b> - the user who created the Exchange (searchable by name).</li>
+                            <li><b>Org</b> - the initiator organization.</li>
                         </ul>
 
-                        <h3>session.approval_requested (legacy)</h3>
+                        <h3>Tip: subject field placeholders in assignees</h3>
                         <p>
-                            The original group-session approval gate used before the workflow
-                            redesign. It is preserved for backward compatibility with existing
-                            workflow definitions that reference it. New workflows should use{" "}
-                            <code>exchange.acceptance_pending</code> instead.
-                        </p>
-                        <p><b>Available subject fields:</b></p>
-                        <ul>
-                            <li><b>recipientGroupId</b> - the recipient group ID.</li>
-                            <li><b>initiatorId</b> - the initiator user ID.</li>
-                            <li><b>orgId</b> - the initiator organization ID.</li>
-                        </ul>
-
-                        <h3>Tip: subject field placeholders</h3>
-                        <p>
-                            When configuring assignees, you can reference subject fields using the
-                            syntax <code>$subject.fieldName</code> (for example,{" "}
+                            When configuring <b>assignees</b>, you can reference subject fields
+                            using the syntax <code>$subject.fieldName</code> (for example,{" "}
                             <code>$subject.orgId</code>). This keeps the definition portable across
-                            organizations instead of hardcoding specific user or group IDs.
+                            organizations instead of hardcoding specific user or group IDs. In
+                            the condition builder, fields are selected by name from a dropdown —
+                            no manual syntax required.
                         </p>
 
                         <h3>Learn more</h3>
@@ -529,7 +517,25 @@ const helpDocSections: HelpDocSectionInput[] = [
                                 </a>{" "}
                                 from the dropdown: APPROVAL, NOTIFICATION, CONDITION, or ACTION.
                             </li>
-                            <li>Configure the step fields for that type (see step types guide).</li>
+                            <li>
+                                Configure the step fields for that type:
+                                <ul>
+                                    <li>
+                                        For <b>CONDITION</b> steps, use the visual condition
+                                        builder to select a field, an operator, and a value. User
+                                        and group fields include a searchable picker. A plain-language
+                                        summary confirms your selection.
+                                    </li>
+                                    <li>
+                                        For <b>APPROVAL</b> steps, configure assignees, quorum,
+                                        optional SLA, and escalation action.
+                                    </li>
+                                    <li>
+                                        For <b>NOTIFICATION</b> and <b>ACTION</b> steps, select
+                                        the template or action key and configure recipients.
+                                    </li>
+                                </ul>
+                            </li>
                             <li>
                                 Set the <b>outcome connectors</b> (On Approve / On Reject, or On
                                 True / On False for CONDITION steps) to point to the next step
@@ -654,36 +660,55 @@ const helpDocSections: HelpDocSectionInput[] = [
 
                         <h3>CONDITION</h3>
                         <p>
-                            A CONDITION step evaluates an expression against the Exchange subject
+                            A CONDITION step evaluates a condition against the Exchange subject
                             data and branches the workflow based on the result. It advances
                             automatically without human input.
                         </p>
                         <p><b>Key fields:</b></p>
                         <ul>
                             <li>
-                                <b>Predicate expression</b> - a simple boolean expression in the
-                                format <code>$subject.fieldName operator 'value'</code>. Supported
-                                operators:
+                                <b>Condition</b> - built using the visual condition builder. Select
+                                a field, an operator, and a value:
                                 <ul>
-                                    <li><code>==</code> - exact match.</li>
-                                    <li><code>!=</code> - not equal.</li>
-                                    <li><code>contains</code> - substring check.</li>
-                                    <li><code>startsWith</code> - prefix check.</li>
+                                    <li>
+                                        <b>Field</b> - a searchable dropdown of the subject fields
+                                        available for the selected trigger event (for example,
+                                        Recipient Type, Initiator, Recipient Group).
+                                    </li>
+                                    <li>
+                                        <b>Operator</b> - the comparison to apply. Available
+                                        operators depend on the field type:
+                                        <ul>
+                                            <li>Text, enum, UUID, and boolean fields: <b>is equal to</b>, <b>is not equal to</b>.</li>
+                                            <li>Numeric fields: additionally <b>is greater than</b>, <b>is less than</b>, <b>is greater than or equal to</b>, <b>is less than or equal to</b>.</li>
+                                        </ul>
+                                    </li>
+                                    <li>
+                                        <b>Value</b> - how you enter the value depends on the field type:
+                                        <ul>
+                                            <li><b>Enum fields</b> (e.g. Recipient Type) - a dropdown of the valid options.</li>
+                                            <li><b>Boolean fields</b> - a Yes/No dropdown.</li>
+                                            <li><b>User fields</b> (e.g. Initiator, Recipient) - a searchable picker that looks up users from your contacts.</li>
+                                            <li><b>Group fields</b> (e.g. Recipient Group) - a searchable picker that looks up your personal groups.</li>
+                                            <li><b>Text and numeric fields</b> - a free-text or number input.</li>
+                                        </ul>
+                                    </li>
                                 </ul>
-                                Example: <code>$subject.recipientType == 'GROUP'</code>
                             </li>
                             <li>
-                                <b>On True</b> - the next step when the predicate evaluates to
+                                <b>On True</b> - the next step when the condition evaluates to
                                 true.
                             </li>
                             <li>
-                                <b>On False</b> - the next step when the predicate evaluates to
+                                <b>On False</b> - the next step when the condition evaluates to
                                 false.
                             </li>
                         </ul>
                         <p>
-                            Available field names come from the trigger event's subject fields. The
-                            designer shows which fields are available based on the selected trigger.
+                            The available fields update automatically when you change the trigger
+                            event. A plain-language summary of the condition (for example,
+                            "Recipient Type is equal to Group") is shown below the builder to
+                            confirm your selection before saving.
                         </p>
 
                         <h3>ACTION</h3>
@@ -847,14 +872,16 @@ const helpDocSections: HelpDocSectionInput[] = [
                             <code>exchange.acceptance_pending</code> can use:
                         </p>
                         <ul>
-                            <li><code>$subject.recipientId</code> - the recipient user.</li>
-                            <li><code>$subject.recipientGroupId</code> - the recipient group.</li>
-                            <li><code>$subject.initiatorId</code> - the Exchange initiator.</li>
+                            <li><code>$subject.recipientId</code> - the Recipient user (shown as "Recipient" in the designer).</li>
+                            <li><code>$subject.recipientGroupId</code> - the Recipient Group (shown as "Recipient Group" in the designer).</li>
+                            <li><code>$subject.initiatorId</code> - the Exchange Initiator (shown as "Initiator" in the designer).</li>
                             <li><code>$subject.orgId</code> - the initiator's organization.</li>
                         </ul>
                         <p>
                             The trigger event dropdown in the designer updates the available
-                            placeholder auto-complete list automatically.
+                            placeholder auto-complete list automatically. Note that the designer
+                            displays friendly names (e.g. "Initiator") rather than raw field
+                            names.
                         </p>
 
                         <h3>Best practices</h3>
@@ -1111,7 +1138,7 @@ const helpDocSections: HelpDocSectionInput[] = [
                             without affecting the original.
                         </p>
 
-                        <h3>Tagsags</h3>
+                        <h3>Tags</h3>
                         <p>
                             Tags are free-form strings, not a fixed list. You can add any tag when
                             creating or editing a workflow definition, which means new industries

@@ -125,7 +125,16 @@
       "Bash(Select-Object Name)",
       "Bash(xargs grep -l -i \"sharing\")",
       "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\web-app\\\\src\\\\app\\\\sharing-sessions\" -Recurse | Where-Object { !$_.PSIsContainer } | Select-Object -ExpandProperty Name | Sort-Object | head -60)",
-      "mcp__visualize__read_me"
+      "mcp__visualize__read_me",
+      "Bash(xargs grep -l \"countdown\\\\|Countdown\")",
+      "Bash(xargs grep -l \"workflow.*delete\\\\|delete.*workflow\" -i)",
+      "Bash(xargs grep -l \"DELETE.*workflow\\\\|workflow.*DELETE\" -i)",
+      "Bash(xargs grep -l \"/workflows.*definitions\")",
+      "Bash(xargs grep -l \"StepUp\")",
+      "Bash(xargs grep -l \"Workflow\")",
+      "WebFetch(domain:storybooks.fluentui.dev)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:www.npmjs.com)"
     ]
   }
 }

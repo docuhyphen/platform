@@ -5,6 +5,7 @@ import {useAuth} from '../../context/AuthContext';
 import MainMenu from "./MainMenu.tsx";
 import AuthBootstrapSplash from "./AuthBootstrapSplash.tsx";
 import HelpDocumentationSidebar from "./help-docs/HelpDocumentationSidebar.tsx";
+import {HelpSidebarContext} from "../../context/HelpSidebarContext.tsx";
 
 const useStyles = makeStyles({
     appLayout: {
@@ -31,6 +32,13 @@ const ProtectedRoute: React.FC<{ element: React.ReactElement, path: string }> = 
     const styles = useStyles();
     const {token, isBootstrapping} = useAuth();
     const [isHelpSidebarOpen, setIsHelpSidebarOpen] = React.useState(false);
+    const [requestedArticleId, setRequestedArticleId] = React.useState<string | undefined>();
+
+    const openHelpArticle = React.useCallback((articleId: string) =>
+    {
+        setRequestedArticleId(articleId);
+        setIsHelpSidebarOpen(true);
+    }, []);
 
     // Wait for the cookie-based refresh probe to finish before deciding whether
     // to redirect,  otherwise we flash /sign-in for a frame on cold reopen.
@@ -40,15 +48,18 @@ const ProtectedRoute: React.FC<{ element: React.ReactElement, path: string }> = 
     }
 
     return token ? (
-        <div className={styles.appLayout}>
-            <div className={styles.appPane}>
-                <MainMenu onToggleHelpSidebar={() => setIsHelpSidebarOpen((open) => !open)}/>
-                {/*<TourCoach/>*/}
-                <div className={styles.pageContent}>{element}</div>
+        <HelpSidebarContext.Provider value={{openHelpArticle}}>
+            <div className={styles.appLayout}>
+                <div className={styles.appPane}>
+                    <MainMenu onToggleHelpSidebar={() => setIsHelpSidebarOpen((open) => !open)}/>
+                    {/*<TourCoach/>*/}
+                    <div className={styles.pageContent}>{element}</div>
+                </div>
+                <HelpDocumentationSidebar isOpen={isHelpSidebarOpen}
+                                          onOpenChange={setIsHelpSidebarOpen}
+                                          requestedArticleId={requestedArticleId}/>
             </div>
-            <HelpDocumentationSidebar isOpen={isHelpSidebarOpen}
-                                      onOpenChange={setIsHelpSidebarOpen}/>
-        </div>
+        </HelpSidebarContext.Provider>
     ) : (
         <Navigate to={path}/>
     );

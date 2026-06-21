@@ -3,22 +3,28 @@ package com.docuhyphen.app.api.service.workflow
 import com.docuhyphen.app.api.model.dto.WorkflowDecisionResponseDto
 import com.docuhyphen.app.api.model.dto.WorkflowDefinitionDto
 import com.docuhyphen.app.api.model.dto.WorkflowDefinitionListItemDto
+import com.docuhyphen.app.api.model.dto.WorkflowEntityRefDto
 import com.docuhyphen.app.api.model.dto.WorkflowInstanceDetailResponseDto
 import com.docuhyphen.app.api.model.dto.WorkflowInstanceListItemDto
 import com.docuhyphen.app.api.model.dto.WorkflowPrincipalRefResponseDto
 import com.docuhyphen.app.api.model.dto.WorkflowStepInstanceResponseDto
 import com.docuhyphen.app.api.model.dto.WorkflowSubjectFieldResponseDto
 import com.docuhyphen.app.api.model.dto.WorkflowTriggerEventResponseDto
+import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.WorkflowDefinition
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
 import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
 import com.docuhyphen.app.api.model.entity.WorkflowScope
 import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
 import com.docuhyphen.app.api.model.entity.RoleScopeType
+import com.docuhyphen.app.api.repository.PrincipalGroupRepository
 import com.docuhyphen.app.api.repository.WorkflowDefinitionRepository
 import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
 import com.docuhyphen.app.api.repository.WorkflowStepInstanceRepository
 import com.docuhyphen.app.api.repository.WorkflowTriggerEventRepository
+import com.docuhyphen.app.api.service.UserContactService
+import com.docuhyphen.app.api.service.auth.AdminActionGuardService
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -42,6 +48,9 @@ class WorkflowDefinitionService @Inject constructor(
     private val instanceRepository: WorkflowInstanceRepository,
     private val stepRepository: WorkflowStepInstanceRepository,
     private val triggerEventRepository: WorkflowTriggerEventRepository,
+    private val adminActionGuardService: AdminActionGuardService,
+    private val userContactService: UserContactService,
+    private val principalGroupRepository: PrincipalGroupRepository,
 )
 {
     private val logger = LoggerFactory.getLogger(WorkflowDefinitionService::class.java)
@@ -55,16 +64,22 @@ class WorkflowDefinitionService @Inject constructor(
      * Returns definitions accessible to the caller: platform templates plus the org's own
      * definitions. Supports optional server-side filtering by [tag], [triggerEvent], and
      * [isTemplate].
+     *
+     * When [showUnpublished] is false (the default for regular org members), ORG-scoped
+     * definitions that have not yet been published are hidden. Org admins and app admins
+     * pass [showUnpublished] = true to see all drafts.
      */
     fun listDefinitions(
         callerOrgId: UUID?,
         tag: String?,
         triggerEvent: String?,
         isTemplate: Boolean?,
+        showUnpublished: Boolean = false,
     ): List<WorkflowDefinitionListItemDto>
     {
         return definitionRepository.findAllAccessibleForOrg(callerOrgId)
             .asSequence()
+            .filter { showUnpublished || it.isTemplate || it.isPublished }
             .filter { tag == null || decodeTags(it.generalTags).contains(tag) }
             .filter { triggerEvent == null || it.triggerEvent == triggerEvent }
             .filter { isTemplate == null || it.isTemplate == isTemplate }
@@ -75,12 +90,14 @@ class WorkflowDefinitionService @Inject constructor(
     /**
      * Returns the full definition (including stepsJson) for [id]. The caller must belong
      * to the definition's org, or the definition must be a platform template.
+     *
+     * Non-admin callers are blocked from accessing unpublished definitions.
      */
-    fun getDefinition(id: UUID, callerOrgId: UUID?, isAppAdmin: Boolean): WorkflowDefinitionDto
+    fun getDefinition(id: UUID, callerOrgId: UUID?, isAppAdmin: Boolean, showUnpublished: Boolean = false): WorkflowDefinitionDto
     {
         val def = definitionRepository.findById(id)
             ?: throw IllegalArgumentException("Workflow definition not found: $id")
-        checkReadAccess(def, callerOrgId, isAppAdmin)
+        checkReadAccess(def, callerOrgId, isAppAdmin, showUnpublished)
         return def.toDto()
     }
 
@@ -153,6 +170,22 @@ class WorkflowDefinitionService @Inject constructor(
         return definitionRepository.update(def).toDto()
     }
 
+    /** Publishes or unpublishes a definition, controlling visibility to non-admin org members. */
+    @Transactional
+    fun patchPublished(
+        id: UUID,
+        isPublished: Boolean,
+        callerOrgId: UUID?,
+        isAppAdmin: Boolean,
+    ): WorkflowDefinitionDto
+    {
+        val def = definitionRepository.findById(id)
+            ?: throw IllegalArgumentException("Workflow definition not found: $id")
+        checkWriteAccess(def, callerOrgId, isAppAdmin)
+        def.isPublished = isPublished
+        return definitionRepository.update(def).toDto()
+    }
+
     /** Activates or deactivates a definition without a full PUT body. */
     @Transactional
     fun patchStatus(
@@ -174,8 +207,14 @@ class WorkflowDefinitionService @Inject constructor(
      * Blocked when RUNNING instances reference this definition.
      */
     @Transactional
-    fun deleteDefinition(id: UUID, callerOrgId: UUID?, isAppAdmin: Boolean)
+    fun deleteDefinition(id: UUID, callerOrgId: UUID?, isAppAdmin: Boolean, context: AdminApprovalContext)
     {
+        adminActionGuardService.enforce(
+            action = "ORG_WORKFLOW_DEFINITION_DELETE",
+            actorId = null,
+            context = context,
+        )
+
         val def = definitionRepository.findById(id)
             ?: throw IllegalArgumentException("Workflow definition not found: $id")
         checkWriteAccess(def, callerOrgId, isAppAdmin)
@@ -188,6 +227,7 @@ class WorkflowDefinitionService @Inject constructor(
             )
         }
 
+        def.isDeleted = true
         def.isActive = false
         definitionRepository.update(def)
         logger.info("Workflow definition {} soft-deleted", id)
@@ -217,7 +257,7 @@ class WorkflowDefinitionService @Inject constructor(
 
         val scrubbedStepsJson = scrubPrincipalUuids(source.stepsJson)
         val clone = WorkflowDefinition().apply {
-            name = newName?.trim()?.ifBlank { null } ?: "${source.name} (copy)"
+            name = uniqueCloneName(newName?.trim()?.ifBlank { null } ?: "${source.name} (copy)")
             summary = source.summary
             triggerEvent = source.triggerEvent
             stepsJson = scrubbedStepsJson
@@ -283,10 +323,14 @@ class WorkflowDefinitionService @Inject constructor(
     // Access control
     // -------------------------------------------------------------------------
 
-    private fun checkReadAccess(def: WorkflowDefinition, callerOrgId: UUID?, isAppAdmin: Boolean)
+    private fun checkReadAccess(def: WorkflowDefinition, callerOrgId: UUID?, isAppAdmin: Boolean, showUnpublished: Boolean = false)
     {
         if (isAppAdmin || def.isTemplate) return
-        if (callerOrgId != null && def.organizationId == callerOrgId) return
+        if (callerOrgId != null && def.organizationId == callerOrgId)
+        {
+            if (showUnpublished || def.isPublished) return
+            throw ForbiddenException("Access denied to workflow definition ${def.id}")
+        }
         throw ForbiddenException("Access denied to workflow definition ${def.id}")
     }
 
@@ -297,6 +341,27 @@ class WorkflowDefinitionService @Inject constructor(
         if (callerOrgId == null || def.organizationId != callerOrgId)
         {
             throw ForbiddenException("Access denied to workflow definition ${def.id}")
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Clone name deduplication
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns [base] if no definition with that name already exists at version 1,
+     * otherwise appends " 2", " 3", … until a free slot is found.
+     * Clones always start at version 1, so the uniqueness check is scoped to that version.
+     */
+    private fun uniqueCloneName(base: String): String
+    {
+        if (definitionRepository.findByNameAndVersion(base, 1) == null) return base
+        var suffix = 2
+        while (true)
+        {
+            val candidate = "$base $suffix"
+            if (definitionRepository.findByNameAndVersion(candidate, 1) == null) return candidate
+            suffix++
         }
     }
 
@@ -378,6 +443,7 @@ class WorkflowDefinitionService @Inject constructor(
         val name: String,
         val type: String,
         val description: String? = null,
+        val lookupType: String? = null,
     )
 
     private fun decodeAssignees(jsonStr: String?): List<PrincipalRefEntry>
@@ -411,6 +477,7 @@ class WorkflowDefinitionService @Inject constructor(
         version = version,
         scope = scope.name,
         isActive = isActive,
+        isPublished = isPublished,
         isTemplate = isTemplate,
         generalTags = decodeTags(generalTags),
         organizationId = organizationId,
@@ -428,6 +495,7 @@ class WorkflowDefinitionService @Inject constructor(
         version = version,
         scope = scope.name,
         isActive = isActive,
+        isPublished = isPublished,
         isTemplate = isTemplate,
         generalTags = decodeTags(generalTags),
         organizationId = organizationId,
@@ -490,10 +558,41 @@ class WorkflowDefinitionService @Inject constructor(
             eventName = eventName,
             description = description,
             subjectFields = decodeSubjectFields(subjectFieldsJson).map {
-                WorkflowSubjectFieldResponseDto(it.name, it.type, it.description)
+                WorkflowSubjectFieldResponseDto(it.name, it.type, it.description, it.lookupType)
             },
             isActive = isActive,
         )
+
+    fun entityLookup(actor: AppUser, lookupType: String, query: String?): List<WorkflowEntityRefDto>
+    {
+        val q = query?.trim()?.takeIf { it.isNotEmpty() } ?: return emptyList()
+        return when (lookupType)
+        {
+            "APP_USER" ->
+                userContactService.searchContacts(actor.id, q, 20)
+                    .filter { it.contactAppUserId != null }
+                    .map {
+                        val label = listOfNotNull(it.contactFirstName, it.contactLastName)
+                            .joinToString(" ").ifBlank { it.contactEmail }
+                        WorkflowEntityRefDto(
+                            id = it.contactAppUserId.toString(),
+                            label = label,
+                            sublabel = it.contactEmail,
+                        )
+                    }
+            "GROUP" ->
+                principalGroupRepository.findByOwnerUser(actor.id)
+                    .filter { it.name.contains(q, ignoreCase = true) }
+                    .map {
+                        WorkflowEntityRefDto(
+                            id = it.id.toString(),
+                            label = it.name,
+                            sublabel = it.description,
+                        )
+                    }
+            else -> emptyList()
+        }
+    }
 
     // -------------------------------------------------------------------------
     // Validation
@@ -531,6 +630,11 @@ data class UpdateWorkflowDefinitionRequest(
 @Serializable
 data class PatchWorkflowStatusRequest(
     val isActive: Boolean,
+)
+
+@Serializable
+data class PatchWorkflowPublishedRequest(
+    val isPublished: Boolean,
 )
 
 @Serializable

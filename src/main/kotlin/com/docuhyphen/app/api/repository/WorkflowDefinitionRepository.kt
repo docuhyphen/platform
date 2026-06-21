@@ -69,9 +69,10 @@ class WorkflowDefinitionRepository :
         {
             entityManager.createQuery(
                 """SELECT d FROM WorkflowDefinition d
-                   WHERE d.isTemplate = true
-                      OR (d.scope = com.docuhyphen.app.api.model.entity.WorkflowScope.ORG
-                          AND d.organizationId = :oid)
+                   WHERE d.isDeleted = false
+                     AND (d.isTemplate = true
+                          OR (d.scope = com.docuhyphen.app.api.model.entity.WorkflowScope.ORG
+                              AND d.organizationId = :oid))
                    ORDER BY d.createdAt DESC""",
                 WorkflowDefinition::class.java,
             )
@@ -82,7 +83,8 @@ class WorkflowDefinitionRepository :
         {
             entityManager.createQuery(
                 """SELECT d FROM WorkflowDefinition d
-                   WHERE d.isTemplate = true
+                   WHERE d.isDeleted = false
+                     AND d.isTemplate = true
                    ORDER BY d.createdAt DESC""",
                 WorkflowDefinition::class.java,
             ).resultList

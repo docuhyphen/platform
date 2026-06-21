@@ -40,7 +40,7 @@ const ExchangeInitiationDetailsTab: React.FC<ExchangeDetailsTabProps> = (
                     value={name}
                     required
                     onChange={handleExchangeNameChange}
-                    placeholder="e.g"
+                    placeholder=""
                 />
             </Field>
             {/*<Button onClick={ () => {}}> Generate from sequence</Button>*/}

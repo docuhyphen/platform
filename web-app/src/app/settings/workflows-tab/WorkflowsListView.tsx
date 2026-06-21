@@ -17,13 +17,14 @@ import {MoreVerticalRegular} from "@fluentui/react-icons";
 import {WorkflowDefinitionSummaryDto} from "../../models/models.tsx";
 import {
     cloneWorkflowDefinition,
-    deleteWorkflowDefinition,
     listWorkflowDefinitions,
+    patchWorkflowDefinitionPublished,
     patchWorkflowDefinitionStatus,
 } from "../../../services/workflowService.ts";
 import {useWorkflowsListViewStyles} from "./WorkflowsListViewStyles.tsx";
-import {AddIcon, DeleteIcon, EditIcon} from "../../components/IconBundles.tsx";
+import {ActivateIcon, AddIcon, CopyIcon, DeactivateIcon, DeleteIcon, EditIcon, PublishIcon, UnpublishIcon} from "../../components/IconBundles.tsx";
 import {formatTriggerName} from "./workflowUtils.ts";
+import WorkflowDeleteDialog from "./WorkflowDeleteDialog.tsx";
 
 interface Props
 {
@@ -39,6 +40,7 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
     const [definitions, setDefinitions] = useState<WorkflowDefinitionSummaryDto[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [deletingDef, setDeletingDef] = useState<WorkflowDefinitionSummaryDto | null>(null);
 
     const load = useCallback(async () =>
     {
@@ -75,11 +77,12 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
         }
     };
 
-    const remove = async (def: WorkflowDefinitionSummaryDto) =>
+
+    const togglePublished = async (def: WorkflowDefinitionSummaryDto) =>
     {
         try
         {
-            await deleteWorkflowDefinition(def.id);
+            await patchWorkflowDefinitionPublished(def.id, {isPublished: !def.isPublished});
             await load();
         }
         catch
@@ -105,99 +108,127 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
     if (loading) return <Spinner size="small" label="Loading workflows..."/>;
 
     return (
-        <div>
-            {error && (
-                <MessageBar intent="error" className={styles.errorBar}>
-                    <MessageBarBody>{error}</MessageBarBody>
-                </MessageBar>
-            )}
-
-            {/* My Workflows section */}
-            <section className={styles.section}>
-                <div className={styles.sectionHeader}>
-                    <span></span>
-                    <Button appearance="secondary"
-                            icon={<AddIcon/>} onClick={onNew}
-                            shape={"circular"}>
-                        New Workflow
-                    </Button>
-                </div>
-
-                {myWorkflows.length === 0 && (
-                    <div className={styles.emptyState}>
-                        <Text>No workflows yet. Create one to get started.</Text>
-                    </div>
+        <>
+            <div>
+                {error && (
+                    <MessageBar intent="error" className={styles.errorBar}>
+                        <MessageBarBody>{error}</MessageBarBody>
+                    </MessageBar>
                 )}
 
-                {myWorkflows.map(def => (
-                    <div key={def.id} className={styles.row}>
-                        <div className={styles.rowName}>
-                            <Text weight="semibold">{def.name}</Text>
-                            {def.summary && <Text size={200} block>{def.summary}</Text>}
-                            <div className={styles.tagRow}>
-                                {def.generalTags.map(t => <Tag key={t} size="extra-small">{t}</Tag>)}
-                            </div>
-                        </div>
-                        <Text className={styles.rowTrigger} size={200}>{formatTriggerName(def.triggerEvent)}</Text>
-                        <Badge color={statusColor(def.isActive)} appearance="filled" size="small">
-                            {def.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                        <Menu>
-                            <MenuTrigger disableButtonEnhancement>
-                                <Button size="small" appearance="subtle"
-                                        icon={<MoreVerticalRegular/>}
-                                        aria-label="More actions"/>
-                            </MenuTrigger>
-                            <MenuPopover>
-                                <MenuList>
-                                    <MenuItem icon={<EditIcon/>} onClick={() => onEdit(def)}>
-                                        Edit
-                                    </MenuItem>
-                                    <MenuItem onClick={() => toggleActive(def)}>
-                                        {def.isActive ? "Deactivate" : "Activate"}
-                                    </MenuItem>
-                                    <MenuItem onClick={() => clone(def)}>Duplicate</MenuItem>
-                                    <MenuItem icon={<DeleteIcon/>} onClick={() => remove(def)}>
-                                        Delete
-                                    </MenuItem>
-                                </MenuList>
-                            </MenuPopover>
-                        </Menu>
-                    </div>
-                ))}
-            </section>
-
-            {/* Platform Templates section */}
-            <section className={styles.section}>
-                <div className={styles.sectionHeader}>
-                    <Text size={400} weight="semibold">Platform Templates</Text>
-                </div>
-
-                {templates.length === 0 && (
-                    <div className={styles.emptyState}>
-                        <Text>No platform templates available.</Text>
-                    </div>
-                )}
-
-                {templates.map(def => (
-                    <div key={def.id} className={styles.templateCard}>
-                        <div className={styles.templateCardInfo}>
-                            <Text weight="semibold">{def.name}</Text>
-                            {def.summary && <Text size={200} block>{def.summary}</Text>}
-                            <Text size={200} block style={{marginTop: "2px"}}>
-                                Runs when: {formatTriggerName(def.triggerEvent)}
-                            </Text>
-                            <div className={styles.tagRow}>
-                                {def.generalTags.map(t => <Tag key={t} size="extra-small">{t}</Tag>)}
-                            </div>
-                        </div>
-                        <Button size="small" appearance="outline" onClick={() => clone(def)}>
-                            Add to my workflows
+                {/* My Workflows section */}
+                <section className={styles.section}>
+                    <div className={styles.sectionHeader}>
+                        <span></span>
+                        <Button appearance="secondary"
+                                icon={<AddIcon/>} onClick={onNew}
+                                shape={"circular"}>
+                            New Workflow
                         </Button>
                     </div>
-                ))}
-            </section>
-        </div>
+
+                    {myWorkflows.length === 0 && (
+                        <div className={styles.emptyState}>
+                            <Text>No workflows yet. Create one to get started.</Text>
+                        </div>
+                    )}
+
+                    {myWorkflows.map(def => (
+                        <div key={def.id} className={styles.row}>
+                            <div className={styles.rowName}>
+                                <Text weight="semibold">{def.name}</Text>
+                                {def.summary && <Text size={200} block>{def.summary}</Text>}
+                                <div className={styles.tagRow}>
+                                    {def.generalTags.map(t => <Tag key={t} size="extra-small">{t}</Tag>)}
+                                </div>
+                            </div>
+                            <Text className={styles.rowTrigger} size={200}>{formatTriggerName(def.triggerEvent)}</Text>
+                            <Badge
+                                color={def.isPublished ? "brand" : "subtle"}
+                                appearance={def.isPublished ? "filled" : "outline"}
+                                size="small">
+                                {def.isPublished ? "Published" : "Draft"}
+                            </Badge>
+                            <Badge color={statusColor(def.isActive)} appearance="filled" size="small">
+                                {def.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                            <Menu>
+                                <MenuTrigger disableButtonEnhancement>
+                                    <Button size="small" appearance="subtle"
+                                            icon={<MoreVerticalRegular/>}
+                                            aria-label="More actions"/>
+                                </MenuTrigger>
+                                <MenuPopover>
+                                    <MenuList>
+                                        <MenuItem icon={<EditIcon/>} onClick={() => onEdit(def)}>
+                                            Edit
+                                        </MenuItem>
+                                        <MenuItem
+                                            icon={def.isPublished ? <UnpublishIcon/> : <PublishIcon/>}
+                                            onClick={() => togglePublished(def)}>
+                                            {def.isPublished ? "Unpublish" : "Publish"}
+                                        </MenuItem>
+                                        <MenuItem
+                                            icon={def.isActive ? <DeactivateIcon/> : <ActivateIcon/>}
+                                            onClick={() => toggleActive(def)}>
+                                            {def.isActive ? "Deactivate" : "Activate"}
+                                        </MenuItem>
+                                        <MenuItem onClick={() => clone(def)}
+                                                  icon={<CopyIcon/>}>Duplicate</MenuItem>
+                                        <MenuItem icon={<DeleteIcon/>} onClick={() => setDeletingDef(def)}>
+                                            Delete
+                                        </MenuItem>
+                                    </MenuList>
+                                </MenuPopover>
+                            </Menu>
+                        </div>
+                    ))}
+                </section>
+
+                {/* Platform Templates section */}
+                <section className={styles.section}>
+                    <div className={styles.sectionHeader}>
+                        <Text size={400} weight="semibold">Platform Templates</Text>
+                    </div>
+
+                    {templates.length === 0 && (
+                        <div className={styles.emptyState}>
+                            <Text>No platform templates available.</Text>
+                        </div>
+                    )}
+
+                    {templates.map(def => (
+                        <div key={def.id} className={styles.templateCard}>
+                            <div className={styles.templateCardInfo}>
+                                <Text weight="semibold">{def.name}</Text>
+                                {def.summary && <Text size={200} block>{def.summary}</Text>}
+                                <Text size={200} block style={{marginTop: "2px"}}>
+                                    Runs when: {formatTriggerName(def.triggerEvent)}
+                                </Text>
+                                <div className={styles.tagRow}>
+                                    {def.generalTags.map(t => <Tag key={t} size="extra-small">{t}</Tag>)}
+                                </div>
+                            </div>
+                            <Button size="small" appearance="outline" onClick={() => clone(def)}>
+                                Add to my workflows
+                            </Button>
+                        </div>
+                    ))}
+                </section>
+            </div>
+            {deletingDef && (
+                <WorkflowDeleteDialog
+                    isOpen={true}
+                    definition={deletingDef}
+                    onDismiss={() => setDeletingDef(null)}
+                    onDeleted={() =>
+                    {
+                        setDeletingDef(null);
+                        load();
+                    }}
+                />
+            )}
+        </>
     );
 };
 

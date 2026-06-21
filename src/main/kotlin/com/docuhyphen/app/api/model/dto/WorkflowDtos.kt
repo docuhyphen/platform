@@ -20,6 +20,7 @@ data class WorkflowDefinitionDto(
     val version: Int,
     val scope: String,
     val isActive: Boolean,
+    val isPublished: Boolean,
     val isTemplate: Boolean,
     val generalTags: List<String>,
     @Serializable(with = UUIDSerializer::class)
@@ -44,6 +45,7 @@ data class WorkflowDefinitionListItemDto(
     val version: Int,
     val scope: String,
     val isActive: Boolean,
+    val isPublished: Boolean,
     val isTemplate: Boolean,
     val generalTags: List<String>,
     @Serializable(with = UUIDSerializer::class)
@@ -69,6 +71,15 @@ data class WorkflowSubjectFieldResponseDto(
     val name: String,
     val type: String,
     val description: String?,
+    val lookupType: String? = null,
+)
+
+/** Returned by GET /workflows/entity-lookup — a resolved entity ref for the entity picker. */
+@Serializable
+data class WorkflowEntityRefDto(
+    val id: String,
+    val label: String,
+    val sublabel: String? = null,
 )
 
 // ── Instance DTOs ─────────────────────────────────────────────────────────────

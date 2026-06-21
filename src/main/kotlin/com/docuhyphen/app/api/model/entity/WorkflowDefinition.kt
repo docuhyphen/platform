@@ -59,12 +59,23 @@ class WorkflowDefinition
     @Column(name = "is_active", nullable = false)
     var isActive: Boolean = true
 
+    @Column(name = "is_deleted", nullable = false)
+    var isDeleted: Boolean = false
+
     /** JSON array of free-form industry tag strings, e.g. `["legal","hr"]`. */
     @Column(name = "general_tags", nullable = false, columnDefinition = "text")
     var generalTags: String = "[]"
 
     @Column(name = "summary", nullable = true, length = 512)
     var summary: String? = null
+
+    /**
+     * True once an org admin explicitly publishes the definition.
+     * Non-admin org members can only see definitions where isPublished = true.
+     * Has no effect on APP-scoped templates (managed by app admins directly).
+     */
+    @Column(name = "is_published", nullable = false)
+    var isPublished: Boolean = false
 
     /** True for platform-bundled templates seeded via Flyway; false for org-created definitions. */
     @Column(name = "is_template", nullable = false)

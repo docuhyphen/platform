@@ -782,6 +782,7 @@ export interface WorkflowDefinitionSummaryDto
     triggerEvent: string;
     version: number;
     isActive: boolean;
+    isPublished: boolean;
     isTemplate: boolean;
     scope: 'APP' | 'ORG';
     generalTags: string[];
@@ -811,6 +812,14 @@ export interface WorkflowSubjectFieldDto
     name: string;
     type: string;
     description?: string;
+    lookupType?: string;
+}
+
+export interface WorkflowEntityRefDto
+{
+    id: string;
+    label: string;
+    sublabel?: string;
 }
 
 export interface WorkflowInstanceSummaryDto

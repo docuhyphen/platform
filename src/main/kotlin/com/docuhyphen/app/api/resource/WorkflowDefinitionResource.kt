@@ -2,10 +2,12 @@ package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.workflow.CloneWorkflowRequest
 import com.docuhyphen.app.api.service.workflow.CreateWorkflowDefinitionRequest
+import com.docuhyphen.app.api.service.workflow.PatchWorkflowPublishedRequest
 import com.docuhyphen.app.api.service.workflow.PatchWorkflowStatusRequest
 import com.docuhyphen.app.api.service.workflow.UpdateWorkflowDefinitionRequest
 import com.docuhyphen.app.api.service.workflow.WorkflowDefinitionService
@@ -15,6 +17,7 @@ import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.DELETE
 import jakarta.ws.rs.DefaultValue
 import jakarta.ws.rs.GET
+import jakarta.ws.rs.HeaderParam
 import jakarta.ws.rs.PATCH
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.PUT
@@ -44,6 +47,7 @@ import java.util.UUID
  *   GET    /workflows/definitions/{id}              - get full definition
  *   PUT    /workflows/definitions/{id}              - update definition
  *   PATCH  /workflows/definitions/{id}/status       - activate / deactivate
+ *   PATCH  /workflows/definitions/{id}/published    - publish / unpublish
  *   DELETE /workflows/definitions/{id}              - soft-delete
  *   POST   /workflows/definitions/{id}/clone        - clone to caller's org
  *   GET    /workflows/triggers                      - list trigger event registry
@@ -79,9 +83,14 @@ class WorkflowDefinitionResource @Inject constructor(
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
+        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
+        val isOrgAdmin = callerOrgId != null && userRoleService.isOrgAdminIn(actor.id, callerOrgId)
         return try
         {
-            val items = workflowDefinitionService.listDefinitions(callerOrgId, tag, triggerEvent, isTemplate)
+            val items = workflowDefinitionService.listDefinitions(
+                callerOrgId, tag, triggerEvent, isTemplate,
+                showUnpublished = isAppAdmin || isOrgAdmin,
+            )
             Response.ok(items.toTypedArray()).build()
         }
         catch (e: Exception)
@@ -148,10 +157,14 @@ class WorkflowDefinitionResource @Inject constructor(
 
         val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
         val isAppAdmin = userRoleService.isAppAdmin(actor.id)
+        val isOrgAdmin = callerOrgId != null && userRoleService.isOrgAdminIn(actor.id, callerOrgId)
 
         return try
         {
-            val dto = workflowDefinitionService.getDefinition(definitionId, callerOrgId, isAppAdmin)
+            val dto = workflowDefinitionService.getDefinition(
+                definitionId, callerOrgId, isAppAdmin,
+                showUnpublished = isAppAdmin || isOrgAdmin,
+            )
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -248,12 +261,13 @@ class WorkflowDefinitionResource @Inject constructor(
         }
     }
 
-    @DELETE
-    @Path("/definitions/{id}")
-    fun deleteDefinition(@PathParam("id") id: String): Response
+    @PATCH
+    @Path("/definitions/{id}/published")
+    fun patchPublished(
+        @PathParam("id") id: String,
+        request: PatchWorkflowPublishedRequest,
+    ): Response
     {
-        //ToDo: trigger step up auth flow
-
         val actor = authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
@@ -265,16 +279,12 @@ class WorkflowDefinitionResource @Inject constructor(
 
         return try
         {
-            workflowDefinitionService.deleteDefinition(definitionId, callerOrgId, isAppAdmin)
-            Response.noContent().build()
+            val dto = workflowDefinitionService.patchPublished(definitionId, request.isPublished, callerOrgId, isAppAdmin)
+            Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
         {
             Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
-        }
-        catch (e: IllegalStateException)
-        {
-            Response.status(CONFLICT).entity(ResponseError(e.message)).build()
         }
         catch (e: ForbiddenException)
         {
@@ -282,9 +292,50 @@ class WorkflowDefinitionResource @Inject constructor(
         }
         catch (e: Exception)
         {
-            logger.error("Failed to delete workflow definition {}", id, e)
+            logger.error("Failed to patch published for workflow definition {}", id, e)
             Response.status(INTERNAL_SERVER_ERROR)
-                .entity(ResponseError("Failed to delete workflow definition")).build()
+                .entity(ResponseError("Failed to update workflow definition")).build()
+        }
+    }
+
+    @DELETE
+    @Path("/definitions/{id}")
+    fun deleteDefinition(
+        @PathParam("id") id: String,
+        @HeaderParam("X-Request-Id") requestId: String?,
+    ): Response
+    {
+        val actor = authTokenContext.authToken.appUser
+            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
+
+        val definitionId = parseUuid(id)
+            ?: return Response.status(BAD_REQUEST).entity(ResponseError("Invalid definition id")).build()
+
+        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
+        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
+
+        return try
+        {
+            workflowDefinitionService.deleteDefinition(
+                definitionId,
+                callerOrgId,
+                isAppAdmin,
+                AdminApprovalContext(requestId = requestId),
+            )
+            Response.noContent().build()
+        }
+        catch (e: Exception)
+        {
+            if (e is jakarta.ws.rs.WebApplicationException) throw e
+            logger.error("Failed to delete workflow definition {}", id, e)
+            when (e)
+            {
+                is IllegalArgumentException -> Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
+                is IllegalStateException    -> Response.status(CONFLICT).entity(ResponseError(e.message)).build()
+                is ForbiddenException       -> Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
+                else                        -> Response.status(INTERNAL_SERVER_ERROR)
+                    .entity(ResponseError("Failed to delete workflow definition")).build()
+            }
         }
     }
 
@@ -345,6 +396,32 @@ class WorkflowDefinitionResource @Inject constructor(
             logger.error("Failed to list workflow triggers", e)
             Response.status(INTERNAL_SERVER_ERROR)
                 .entity(ResponseError("Failed to list workflow triggers")).build()
+        }
+    }
+
+    @GET
+    @Path("/entity-lookup")
+    fun entityLookup(
+        @QueryParam("lookupType") lookupType: String?,
+        @QueryParam("q") q: String?,
+    ): Response
+    {
+        val actor = authTokenContext.authToken.appUser
+            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
+
+        if (lookupType.isNullOrBlank())
+            return Response.status(BAD_REQUEST).entity(ResponseError("lookupType is required")).build()
+
+        return try
+        {
+            val results = workflowDefinitionService.entityLookup(actor, lookupType, q)
+            Response.ok(results.toTypedArray()).build()
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to perform entity lookup for type {}", lookupType, e)
+            Response.status(INTERNAL_SERVER_ERROR)
+                .entity(ResponseError("Entity lookup failed")).build()
         }
     }
 

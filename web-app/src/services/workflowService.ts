@@ -12,6 +12,7 @@ import apiClient from './apiClient';
 import {
     WorkflowDefinitionDto,
     WorkflowDefinitionSummaryDto,
+    WorkflowEntityRefDto,
     WorkflowInstanceDetailDto,
     WorkflowInstanceSummaryDto,
     WorkflowTriggerEventDto,
@@ -42,6 +43,11 @@ export interface UpdateWorkflowDefinitionRequest
 export interface PatchWorkflowStatusRequest
 {
     isActive: boolean;
+}
+
+export interface PatchWorkflowPublishedRequest
+{
+    isPublished: boolean;
 }
 
 export interface CloneWorkflowRequest
@@ -127,6 +133,16 @@ export const patchWorkflowDefinitionStatus = (
     executeRequest(() => apiClient.patch(`/workflows/definitions/${id}/status`, request));
 
 /**
+ * Publish or unpublish a definition.
+ * Unpublished definitions are only visible to org admins and app admins.
+ */
+export const patchWorkflowDefinitionPublished = (
+    id: string,
+    request: PatchWorkflowPublishedRequest,
+): Promise<WorkflowDefinitionDto> =>
+    executeRequest(() => apiClient.patch(`/workflows/definitions/${id}/published`, request));
+
+/**
  * Soft-delete a definition (sets isActive=false).
  * Blocked by the server while RUNNING instances reference it.
  */
@@ -152,6 +168,16 @@ export const cloneWorkflowDefinition = (
  */
 export const listWorkflowTriggers = (): Promise<WorkflowTriggerEventDto[]> =>
     executeRequest(() => apiClient.get('/workflows/triggers'));
+
+/**
+ * Search for entities of a given lookupType to populate the condition value picker.
+ * Scoping is enforced server-side (contacts for APP_USER, personal groups for GROUP).
+ */
+export const lookupWorkflowEntities = (
+    lookupType: string,
+    q: string,
+): Promise<WorkflowEntityRefDto[]> =>
+    executeRequest(() => apiClient.get('/workflows/entity-lookup', {params: {lookupType, q}}));
 
 // ── Instances ─────────────────────────────────────────────────────────────────
 

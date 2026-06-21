@@ -1,6 +1,12 @@
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {
     Button,
+    Dialog,
+    DialogActions,
+    DialogBody,
+    DialogContent,
+    DialogSurface,
+    DialogTitle,
     Input,
     MessageBar,
     MessageBarBody,
@@ -10,6 +16,7 @@ import {
     Tag,
     Text,
     Textarea,
+    Tooltip,
     tokens,
 } from "@fluentui/react-components";
 import {WorkflowDesignerState, WorkflowStepSpecDraft, WorkflowTriggerEventDto} from "../../models/models.tsx";
@@ -20,7 +27,8 @@ import {
     updateWorkflowDefinition,
 } from "../../../services/workflowService.ts";
 import {useWorkflowDesignerStyles} from "./WorkflowDesignerStyles.tsx";
-import {AddIcon, BackIcon} from "../../components/IconBundles.tsx";
+import {AddIcon, BackIcon, InfoIcon} from "../../components/IconBundles.tsx";
+import {useHelpSidebar} from "../../../context/HelpSidebarContext.tsx";
 import StepCard from "./StepCard.tsx";
 import {formatTriggerName} from "./workflowUtils.ts";
 
@@ -45,6 +53,7 @@ const defaultState = (): WorkflowDesignerState => ({
 const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
 {
     const styles = useWorkflowDesignerStyles();
+    const {openHelpArticle} = useHelpSidebar();
     const [state, setState] = useState<WorkflowDesignerState>(defaultState());
     const [triggers, setTriggers] = useState<WorkflowTriggerEventDto[]>([]);
     const [triggersError, setTriggersError] = useState<string | null>(null);
@@ -52,6 +61,12 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [tagInput, setTagInput] = useState("");
+    const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+    const initialStateRef = useRef<string | null>(null);
+
+    const isDirty = () =>
+        initialStateRef.current !== null &&
+        initialStateRef.current !== JSON.stringify(state);
 
     const patch = (p: Partial<WorkflowDesignerState>) => setState(s => ({...s, ...p}));
 
@@ -80,7 +95,7 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
             {
                 const def = await getWorkflowDefinition(definitionId);
                 const parsed = JSON.parse(def.stepsJson || '{"steps":[]}');
-                setState({
+                const loaded: WorkflowDesignerState = {
                     id: def.id,
                     name: def.name,
                     summary: def.summary ?? "",
@@ -88,7 +103,9 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
                     triggerEvent: def.triggerEvent,
                     isActive: def.isActive,
                     steps: parsed.steps ?? [],
-                });
+                };
+                setState(loaded);
+                initialStateRef.current = JSON.stringify(loaded);
             }
             catch (e: unknown)
             {
@@ -98,6 +115,12 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
             {
                 setLoading(false);
             }
+        }
+        else
+        {
+            const fresh = defaultState();
+            setState(fresh);
+            initialStateRef.current = JSON.stringify(fresh);
         }
     }, [definitionId]);
 
@@ -172,10 +195,19 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
                 <Button appearance="subtle"
                         icon={<BackIcon/>}
                         shape={"circular"}
-                        onClick={onBack}>
+                        onClick={() => isDirty() ? setShowDiscardDialog(true) : onBack()}>
                     Back
                 </Button>
                 <Text size={500} weight="semibold">{definitionId ? "Edit Workflow" : "New Workflow"}</Text>
+                <Tooltip content="Workflow help" relationship="label">
+                    <Button appearance="subtle"
+                            shape="circular"
+                            size="small"
+                            icon={<InfoIcon/>}
+                            style={{marginLeft: "auto"}}
+                            onClick={() => openHelpArticle("building-a-workflow")}
+                            aria-label="Open workflow help"/>
+                </Tooltip>
             </div>
 
             {error && (
@@ -293,7 +325,7 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
                 )}
                 <Button appearance="secondary"
                         shape={"circular"}
-                        onClick={onBack}>
+                        onClick={() => isDirty() ? setShowDiscardDialog(true) : onBack()}>
                     Cancel
                 </Button>
                 <Button appearance="primary"
@@ -303,6 +335,25 @@ const WorkflowDesigner = ({definitionId, onBack, onSaved}: Props) =>
                     {saving ? "Saving..." : "Save Workflow"}
                 </Button>
             </div>
+
+            <Dialog open={showDiscardDialog} onOpenChange={(_, d) => setShowDiscardDialog(d.open)}>
+                <DialogSurface>
+                    <DialogBody>
+                        <DialogTitle>Discard changes?</DialogTitle>
+                        <DialogContent>
+                            You have unsaved changes. If you leave now they will be lost.
+                        </DialogContent>
+                        <DialogActions>
+                            <Button appearance="secondary" onClick={() => setShowDiscardDialog(false)}>
+                                Keep editing
+                            </Button>
+                            <Button appearance="primary" onClick={onBack}>
+                                Discard changes
+                            </Button>
+                        </DialogActions>
+                    </DialogBody>
+                </DialogSurface>
+            </Dialog>
         </div>
     );
 };
