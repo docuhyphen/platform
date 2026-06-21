@@ -8,11 +8,13 @@ import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
 interface ExchangeDialogTriggerProps
 {
     onRequestingDocumentsChange: (isRequesting: boolean) => void;
+    onChooseBlueprint: () => void;
 }
 
 const ExchangeInitiationDialogTrigger = React.forwardRef<HTMLButtonElement, ExchangeDialogTriggerProps>((
     {
         onRequestingDocumentsChange,
+        onChooseBlueprint,
         ...props
     }, ref) =>
 {
@@ -55,7 +57,7 @@ const ExchangeInitiationDialogTrigger = React.forwardRef<HTMLButtonElement, Exch
                             Send Documents
                         </Button>
                     </MenuItem>
-                     <MenuItem onClick={() => onRequestingDocumentsChange(false)}>
+                     <MenuItem onClick={() => onChooseBlueprint()}>
                          <Button size="small" ref={ref} {...props} appearance="transparent"
                                  className={styles.sharingDetailsInput}
                                  icon={<InitiateFromBlueprintIcon/>}>

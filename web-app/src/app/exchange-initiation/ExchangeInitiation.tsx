@@ -38,9 +38,13 @@ import ExchangeInitiationRecipientsTab, {
 import {publishNewExchangeAddition} from '../observable/exchangeObservables.ts';
 import {useExchangeInitiationStyles} from "./ExchangeInitiationStyles.tsx";
 import {
+    BlueprintConfig,
+    BlueprintDefinitionSummaryDto,
     ExchangeInitiationRequest, ExchangeParticipantRole, ExchangeParticipantType,
     ExchangeRequestDocumentRequest
 } from "../models/models.tsx";
+import BlueprintPicker from "./components/blueprint-picker/BlueprintPicker.tsx";
+import SaveBlueprintDialog from "./components/save-blueprint-dialog/SaveBlueprintDialog.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {recreateRejectedExchangeObservable} from "../observable/exchangeObservables.ts";
 import {useNavigate} from "react-router-dom";
@@ -91,6 +95,7 @@ const ExchangeInitiation: React.FC = () =>
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [createdExchangeSummary, setCreatedExchangeSummary] = React.useState<CreatedExchangeSummary | null>(null);
     const [copyLinkStatus, setCopyLinkStatus] = React.useState<'idle' | 'copied' | 'failed'>('idle');
+    const [saveBlueprintDialogOpen, setSaveBlueprintDialogOpen] = React.useState(false);
 
     const {dispatchToast} = useToastController(toasterId);
 
@@ -135,6 +140,68 @@ const ExchangeInitiation: React.FC = () =>
     {
         setRequestingDocuments(isRequesting);
         applyModeDefaults(isRequesting);
+    };
+
+    const handleBlueprintSelect = (blueprint: BlueprintDefinitionSummaryDto) =>
+    {
+        try
+        {
+            const config: BlueprintConfig = JSON.parse(blueprint.configJson);
+            if (config.name) setExchangeName(config.name);
+            if (config.description) setDescription(config.description);
+            if (config.initialShareMessage) setInitialShareMessage(config.initialShareMessage);
+            if (config.requestRecipientSignIn !== undefined) setRequireSignIn(config.requestRecipientSignIn);
+            if (config.allowDocumentAddition !== undefined) setAllowDocumentAdditions(config.allowDocumentAddition);
+            if (config.allowDocumentDeletion !== undefined) setAllowDocumentDeletions(config.allowDocumentDeletion);
+            if (config.allowDocumentDownload !== undefined) setAllowDocumentDownload(config.allowDocumentDownload);
+            if (config.allowDocumentUpdate !== undefined) setAllowDocumentUpdate(config.allowDocumentUpdate);
+            if (config.allowDocumentUpload !== undefined) setAllowDocumentUpload(config.allowDocumentUpload);
+            if (config.allowedDownloadFormats !== undefined) setAllowedDownloadFormats(config.allowedDownloadFormats);
+            if (config.exchangeDocuments && config.exchangeDocuments.length > 0)
+            {
+                const docs: ExchangeRequestDocumentRequest[] = config.exchangeDocuments.map(d => ({
+                    title: d.title,
+                    restrictedType: d.restrictedType as any,
+                    restrictType: d.restrictType ?? false,
+                    required: d.required ?? false,
+                }));
+                setDocuments(docs);
+            }
+            if (config.participants && config.participants.length > 0)
+            {
+                setInternalParticipants(config.participants);
+            }
+        }
+        catch (e)
+        {
+            // Invalid configJson — apply what we can, ignore the rest
+        }
+        setChoosingBlueprint(false);
+        setSelectedTab('recipients-tab');
+    };
+
+    const buildBlueprintConfigJson = (): string =>
+    {
+        const config: BlueprintConfig = {
+            name,
+            description,
+            initialShareMessage,
+            requestRecipientSignIn: requireSignIn,
+            allowDocumentAddition: allowDocumentAdditions,
+            allowDocumentDeletion: allowDocumentDeletions,
+            allowDocumentDownload: allowDocumentDownload,
+            allowDocumentUpdate: allowDocumentUpdate,
+            allowDocumentUpload: allowDocumentUpload,
+            allowedDownloadFormats: allowedDownloadFormats,
+            exchangeDocuments: documents.map(d => ({
+                title: d.title,
+                restrictedType: d.restrictedType as string | undefined,
+                restrictType: d.restrictType,
+                required: d.required,
+            })),
+            participants: internalParticipants ?? [],
+        };
+        return JSON.stringify(config);
     };
 
     const buildRecipientLabel = (): string =>
@@ -603,6 +670,11 @@ const ExchangeInitiation: React.FC = () =>
                     setMessageGroupMessages([]);
                     handleDocumentChange(documents, setDocuments)(index, 'restrictType', ev.target.checked);
                 }}
+                onRequiredChange={(index, value) =>
+                {
+                    setMessageGroupMessages([]);
+                    handleDocumentChange(documents, setDocuments)(index, 'required', value);
+                }}
                 onDeleteDocument={(index) =>
                 {
                     setMessageGroupMessages([]);
@@ -720,7 +792,10 @@ const ExchangeInitiation: React.FC = () =>
             ) : (
                 <div className={styles.dialogContentContainer}>
                     {choosingBlueprint ? (
-                        <div>Choosing Blueprint</div>
+                        <BlueprintPicker
+                            onSelect={handleBlueprintSelect}
+                            onCancel={() => setChoosingBlueprint(false)}
+                        />
                     ) : renderTabs()}
                 </div>
             )}
@@ -730,7 +805,10 @@ const ExchangeInitiation: React.FC = () =>
     return (
         <Dialog modalType="alert" open={isDialogOpen} onOpenChange={onDialogOpenChange}>
             <DialogTrigger disableButtonEnhancement>
-                <ExchangeInitiationDialogTrigger onRequestingDocumentsChange={handleRequestingDocumentsChange}/>
+                <ExchangeInitiationDialogTrigger
+                    onRequestingDocumentsChange={handleRequestingDocumentsChange}
+                    onChooseBlueprint={() => { setChoosingBlueprint(true); }}
+                />
             </DialogTrigger>
             <DialogSurface>
                 <DialogBody>
@@ -746,6 +824,7 @@ const ExchangeInitiation: React.FC = () =>
                                 setMessageGroupMessages([]);
                                 setSelectedTab(data.value);
                             }}
+                            onSaveAsBlueprint={() => setSaveBlueprintDialogOpen(true)}
                         />
                         {renderErrorMessageBar()}
                     </DialogTitle>
@@ -764,6 +843,13 @@ const ExchangeInitiation: React.FC = () =>
                         />
                     </DialogActions>
                     <Toaster inline toasterId={toasterId} position="bottom"/>
+                    <SaveBlueprintDialog
+                        open={saveBlueprintDialogOpen}
+                        onClose={() => setSaveBlueprintDialogOpen(false)}
+                        onSaved={() => setSaveBlueprintDialogOpen(false)}
+                        initialName={name}
+                        configJson={buildBlueprintConfigJson()}
+                    />
                 </DialogBody>
             </DialogSurface>
         </Dialog>

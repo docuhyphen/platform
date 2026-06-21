@@ -263,6 +263,7 @@ export interface ExchangeRequestDocumentRequest
     restrictedType?: DocumentType | ImageType;
     type?: DocumentType;
     restrictType?: boolean;
+    required?: boolean;
 }
 
 export interface DownloadDocumentsZipRequest
@@ -947,4 +948,91 @@ export interface WorkflowDesignerState
     triggerEvent: string;
     isActive: boolean;
     steps: WorkflowStepSpecDraft[];
+}
+
+// ── Blueprint types ───────────────────────────────────────────────────────────
+
+export type BlueprintScope = 'APP' | 'ORG' | 'PERSONAL';
+
+export interface BlueprintDocumentConfig
+{
+    title: string;
+    restrictedType?: string;
+    restrictType?: boolean;
+    required?: boolean;
+}
+
+export interface BlueprintRecipientConfiguration
+{
+    recipientRoleName?: string;
+    recipientConstraintsJson?: string;
+    defaultRecipientOrgGroupId?: string;
+}
+
+export interface BlueprintParticipantConfig
+{
+    principalId: string;
+    principalKind: 'APP_USER' | 'PRINCIPAL_GROUP';
+    roleName: string;
+}
+
+export interface BlueprintConfig
+{
+    name?: string;
+    description?: string;
+    initialShareMessage?: string;
+    requestRecipientSignIn?: boolean;
+    allowDocumentAddition?: boolean;
+    allowDocumentDeletion?: boolean;
+    allowDocumentDownload?: boolean;
+    allowDocumentUpdate?: boolean;
+    allowDocumentUpload?: boolean;
+    allowedDownloadFormats?: string[];
+    exchangeDocuments?: BlueprintDocumentConfig[];
+    recipientConfiguration?: BlueprintRecipientConfiguration;
+    participants?: BlueprintParticipantConfig[];
+}
+
+export interface BlueprintDefinitionSummaryDto
+{
+    id: string;
+    name: string;
+    summary?: string;
+    scope: BlueprintScope;
+    organizationId?: string;
+    createdByAppUserId?: string;
+    isActive: boolean;
+    isPublished: boolean;
+    isTemplate: boolean;
+    generalTags: string[];
+    sourceTemplateId?: string;
+    configJson: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface BlueprintDefinitionDto extends BlueprintDefinitionSummaryDto
+{
+    description?: string;
+}
+
+export interface CreateBlueprintRequest
+{
+    name: string;
+    summary?: string;
+    description?: string;
+    configJson: string;
+    generalTags?: string[];
+    isActive?: boolean;
+    scope?: BlueprintScope;
+    isTemplate?: boolean;
+}
+
+export interface UpdateBlueprintRequest
+{
+    name?: string;
+    summary?: string;
+    description?: string;
+    configJson?: string;
+    generalTags?: string[];
 }

@@ -21,7 +21,7 @@ const ExchangeInitiationDialogActions: React.FC<ExchangeInitiationDialogActionsP
         choosingBlueprint,
         onResetInitiation,
         onCloseDialog,
-        onInitiateExchange
+        onInitiateExchange,
     }) =>
 {
 

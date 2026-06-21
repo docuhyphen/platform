@@ -125,6 +125,7 @@ export const useExchangeInitiationStyles = makeStyles({
     addDocumentButtonContainer: {
         display: "flex",
         justifyContent: "center",
+        marginBottom: "1rem"
     },
     dialogContentContainer: {
         minHeight: "460px",

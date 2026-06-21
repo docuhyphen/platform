@@ -48,7 +48,7 @@ const Settings = () =>
         people: "PeopleTab",
         groups: "GroupsTab",
         organizationPairing: "OrganizationPairingTab",
-        templates: "TemplatesTab",
+        blueprints: "BlueprintsTab",
         myGroups: "MyGroupsTab",
         appAdmins: "AppAdminsTab",
         workflows: "WorkflowsTab",
@@ -61,7 +61,7 @@ const Settings = () =>
         [tabIds.organization]: "Organization",
         [tabIds.appSettings]: "App Preferences",
         [tabIds.myGroups]: "My Groups",
-        [tabIds.templates]: "Blueprints",
+        [tabIds.blueprints]: "Blueprints",
     };
 
     const {appUser, appUserPersonOrganization} = useAuth();
@@ -109,7 +109,7 @@ const Settings = () =>
             <Tab id="OrganizationTab" icon={<SettingsOrganizationTabIcon/>} value={tabIds.organization}>
                 Organization
             </Tab>
-            <Tab id="TemplatesTab" icon={<SettingsExchangeBlueprintsTabIcon/>} value={tabIds.templates}>
+            <Tab id="BlueprintsTab" icon={<SettingsExchangeBlueprintsTabIcon/>} value={tabIds.blueprints}>
                 Blueprints
             </Tab>
             {canManageOrganization && (
@@ -165,7 +165,7 @@ const Settings = () =>
                         <OrganizationGroupsTab appUserPersonOrganization={appUserPersonOrganization}/>}
                     {selectedValue === tabIds.organizationPairing && <OrganizationPairingTab/>}
                     {selectedValue === tabIds.appAdmins && <AppAdminsTab/>}
-                    {selectedValue === tabIds.templates && <BlueprintsTab/>}
+                    {selectedValue === tabIds.blueprints && <BlueprintsTab/>}
                     {selectedValue === tabIds.workflows && <WorkflowsTab/>}
                 </div>
 

@@ -12,6 +12,7 @@ interface DocumentCardProps
     onDocumentTypeChange: (index: number, newType: DocumentType | ImageType) => void;
     onRestrictDocumentTypeChange: (index: number, ev: React.ChangeEvent<HTMLInputElement>) => void;
     onDeleteDocument: (index: number) => void;
+    onRequiredChange: (index: number, required: boolean) => void;
 }
 
 const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
@@ -21,7 +22,8 @@ const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
         onDocumentNameChange,
         onDocumentTypeChange,
         onRestrictDocumentTypeChange,
-        onDeleteDocument
+        onDeleteDocument,
+        onRequiredChange
     }) =>
 {
     const styles = useExchangeInitiationStyles();
@@ -80,7 +82,11 @@ const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
                         </OptionGroup>
                     </Dropdown>
                     </div>
-                    <Checkbox label={"Required"}/>
+                    <Checkbox
+                        label="Required"
+                        checked={document.required ?? false}
+                        onChange={(_, d) => onRequiredChange(index, !!d.checked)}
+                    />
                 </div>
             </div>
         </Card>

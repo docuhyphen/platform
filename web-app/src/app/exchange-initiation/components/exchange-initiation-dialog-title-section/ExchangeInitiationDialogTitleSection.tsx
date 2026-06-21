@@ -13,6 +13,7 @@ interface DialogTitleSectionProps
     setChoosingBlueprint: (value: boolean) => void;
     selectedTab: TabValue;
     onTabSelect: (event: any, data: any) => void;
+    onSaveAsBlueprint?: () => void;
 }
 
 /**
@@ -37,7 +38,8 @@ const ExchangeInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = 
         requestingDocuments,
         setChoosingBlueprint,
         selectedTab,
-        onTabSelect
+        onTabSelect,
+        onSaveAsBlueprint,
     }) =>
 {
     const styles = useExchangeInitiationStyles();
@@ -79,8 +81,20 @@ const ExchangeInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = 
                         Cancel blueprint selection
                     </Button>
                 }
+                {(!choosingBlueprint && !exchangeInitiatedSuccessfully && onSaveAsBlueprint) &&
+                    <Button appearance={"outline"}
+                            shape={"circular"}
+                            size={"small"}
+                            onClick={onSaveAsBlueprint}>
+                        Save as Blueprint
+                    </Button>
+                }
             </div>
-            {choosingBlueprint && <div>Choosing Blueprint</div>}
+            {choosingBlueprint && (
+                <Text size={300} style={{color: 'var(--colorNeutralForeground3)'}}>
+                    Select a blueprint to pre-fill the exchange form
+                </Text>
+            )}
             {(!choosingBlueprint && !exchangeInitiatedSuccessfully) &&
                 <>
                     <TabList selectedValue={selectedTab} onTabSelect={onTabSelect}>

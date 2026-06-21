@@ -12,6 +12,7 @@ interface ExchangeDocumentsTabProps
     onDocumentTypeChange: (index: number, newType: string) => void;
     onRestrictDocumentTypeChange: (index: number, ev: React.ChangeEvent<HTMLInputElement>) => void;
     onDeleteDocument: (index: number) => void;
+    onRequiredChange: (index: number, required: boolean) => void;
     addNewDocument: () => void;
 }
 
@@ -22,6 +23,7 @@ const ExchangeInitiationDocumentsTab: React.FC<ExchangeDocumentsTabProps> = (
         onDocumentTypeChange,
         onRestrictDocumentTypeChange,
         onDeleteDocument,
+        onRequiredChange,
         addNewDocument
     }) =>
 {
@@ -39,13 +41,14 @@ const ExchangeInitiationDocumentsTab: React.FC<ExchangeDocumentsTabProps> = (
                     onDocumentTypeChange={onDocumentTypeChange}
                     onRestrictDocumentTypeChange={onRestrictDocumentTypeChange}
                     onDeleteDocument={onDeleteDocument}
+                    onRequiredChange={onRequiredChange}
                 />
             ))}
             <div className={styles.addDocumentButtonContainer}>
                 <Button onClick={addNewDocument}
                         shape={"circular"}
                         icon={<DocumentAddIcon/>}
-                        appearance="subtle">
+                        appearance="outline">
                     Add Document
                 </Button>
             </div>
