@@ -111,6 +111,33 @@ web-app/src/
 
 ---
 
+## Help Docs Maintenance
+
+After every feature implementation or change, the help docs must be reviewed and updated
+before the task is considered complete.
+
+The help docs live in:
+`web-app/src/app/components/help-docs/sections/` (section files and per-article files)
+
+Steps required after any feature change:
+
+1. Identify which articles describe the feature area that changed. Search by keyword:
+   `grep -r "your-feature-keyword" web-app/src/app/components/help-docs/sections/`
+2. Read each affected article and verify every statement is still accurate for the new
+   behaviour. Pay attention to: UI navigation paths, field names, permission rules,
+   step counts, and any listed values (e.g. token lists, status names).
+3. Update any article that is no longer accurate. Add a new article if the feature
+   introduces a concept that has no existing coverage.
+4. If a new section is needed, add an article file under `sections/articles/`, register it
+   in the relevant section file, and add a quick link in `startHereSection.tsx` if the
+   feature warrants it.
+5. Keep all files within the size limits: section files under 300 lines, article files
+   under 150 lines of JSX (extract to `sections/articles/` if over), root registry under
+   60 lines.
+6. Run `npx tsc --noEmit` inside `web-app/` after any edits to confirm no type errors.
+
+---
+
 ## Active Feature Plan
 
 See `WORKFLOW_REDESIGN_PLAN.md` in the project root for the full phased plan covering:
