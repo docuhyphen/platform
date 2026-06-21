@@ -135,7 +135,8 @@
       "WebFetch(domain:storybooks.fluentui.dev)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:www.npmjs.com)",
-      "Bash(grep -E \"^[a-z-]+$\")"
+      "Bash(grep -E \"^[a-z-]+$\")",
+      "Bash(xargs grep -l \"Accordion\")"
     ]
   }
 }

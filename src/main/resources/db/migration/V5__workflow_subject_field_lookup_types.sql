@@ -1,9 +1,9 @@
 --
--- V5: add lookupType to UUID subject fields in the workflow trigger event registry.
+-- V5 — add lookupType to UUID subject fields in the workflow trigger event registry.
 --
 -- APP_USER: searched via the caller's personal contacts (/me/contacts).
 -- GROUP:    searched via the caller's personal groups (/me/groups).
--- orgId fields intentionally have no lookupType; org UUID is not user-searchable.
+-- orgId fields intentionally have no lookupType — org UUID is not user-searchable.
 --
 
 UPDATE workflow_trigger_event_registry

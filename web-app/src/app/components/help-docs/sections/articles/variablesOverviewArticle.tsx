@@ -9,7 +9,12 @@ export const variablesOverviewArticle = (
             change from exchange to exchange.
         </p>
 
-        <h3>Three variable types</h3>
+        <h3>Four variable types</h3>
+        <p>
+            Variables fall into four categories. System variables and sequences are
+            built in or org-managed. Org variables and personal variables are
+            user-defined key/value pairs.
+        </p>
 
         <h3>System variables</h3>
         <p>
@@ -43,7 +48,7 @@ export const variablesOverviewArticle = (
             Personal variables use the same <code>{"{{KEY}}"}</code> syntax as org variables but
             are private to the user who created them. Only that user can see, create, or
             modify their personal variables. If a key exists in both org variables and
-            personal variables, the personal variable takes precedence at resolution time.
+            personal variables, the org variable takes precedence at resolution time.
         </p>
 
         <h3>Sequences</h3>

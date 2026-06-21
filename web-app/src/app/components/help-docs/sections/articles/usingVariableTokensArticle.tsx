@@ -1,4 +1,3 @@
-import React from "react";
 
 export const usingVariableTokensArticle = (
     <>
@@ -18,7 +17,7 @@ export const usingVariableTokensArticle = (
 
         <h3>Inserting a token</h3>
         <p>
-            Type <code>{"{{"}}</code> in any supported field to open the token picker
+            Type <code>{"{{"}</code> in any supported field to open the token picker
             popover. The picker is grouped into four sections:
         </p>
         <ul>

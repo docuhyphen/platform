@@ -40,8 +40,9 @@ export const managingPersonalVariablesArticle = (
         </p>
         <p>
             If the same key exists in both org variables and personal variables, the
-            personal variable takes precedence at resolution time. The org variable
-            default is ignored for that token.
+            org variable takes precedence at resolution time. To avoid ambiguity, use
+            distinct key names for personal variables that do not overlap with any org
+            variable keys.
         </p>
     </>
 );

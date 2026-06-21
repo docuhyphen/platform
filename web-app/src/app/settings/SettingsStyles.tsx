@@ -39,6 +39,8 @@ export const useSettingsStyles = makeStyles({
         alignSelf: "flex-start",
         flexShrink: 0,
         width: "13.125rem",
+        maxHeight: `calc(100vh - ${SETTINGS_HEADER_HEIGHT})`,
+        overflowY: "auto",
         "@media (max-width: 768px)": {
             display: "none",
         },
