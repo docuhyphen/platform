@@ -38,11 +38,13 @@ import ExchangeInitiationRecipientsTab, {
 import {publishNewExchangeAddition} from '../observable/exchangeObservables.ts';
 import {useExchangeInitiationStyles} from "./ExchangeInitiationStyles.tsx";
 import {
+    AvailableVariablesDto,
     BlueprintConfig,
     BlueprintDefinitionSummaryDto,
     ExchangeInitiationRequest, ExchangeParticipantRole, ExchangeParticipantType,
     ExchangeRequestDocumentRequest
 } from "../models/models.tsx";
+import {getAvailableVariables} from "../../services/variableService.ts";
 import BlueprintPicker from "./components/blueprint-picker/BlueprintPicker.tsx";
 import SaveBlueprintDialog from "./components/save-blueprint-dialog/SaveBlueprintDialog.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
@@ -96,6 +98,9 @@ const ExchangeInitiation: React.FC = () =>
     const [createdExchangeSummary, setCreatedExchangeSummary] = React.useState<CreatedExchangeSummary | null>(null);
     const [copyLinkStatus, setCopyLinkStatus] = React.useState<'idle' | 'copied' | 'failed'>('idle');
     const [saveBlueprintDialogOpen, setSaveBlueprintDialogOpen] = React.useState(false);
+    const [availableVariables, setAvailableVariables] = React.useState<AvailableVariablesDto | null>(null);
+    const [variableOverrides, setVariableOverrides] = React.useState<Record<string, string>>({});
+    const [pendingVariableTokens, setPendingVariableTokens] = React.useState<string[]>([]);
 
     const {dispatchToast} = useToastController(toasterId);
 
@@ -174,10 +179,46 @@ const ExchangeInitiation: React.FC = () =>
         }
         catch (e)
         {
-            // Invalid configJson — apply what we can, ignore the rest
+            // Invalid configJson; apply what we can, ignore the rest
         }
         setChoosingBlueprint(false);
         setSelectedTab('recipients-tab');
+
+        // Scan applied strings for non-system, non-SEQ tokens (org/personal vars needing override)
+        if (availableVariables)
+        {
+            const systemTokenSet = new Set(availableVariables.system.map(s => s.token));
+            const seqTokenSet = new Set(availableVariables.sequences.map(s => `SEQ:${s.key}`));
+            const allStrings = [
+                config.name ?? '',
+                config.description ?? '',
+                config.initialShareMessage ?? '',
+                ...(config.exchangeDocuments ?? []).map(d => d.title),
+            ];
+            const found = new Set<string>();
+            for (const s of allStrings)
+            {
+                const matches = s.matchAll(/\{\{([^}]+)}}/g);
+                for (const m of matches)
+                {
+                    const t = m[1].trim();
+                    if (!systemTokenSet.has(t) && !seqTokenSet.has(t)) found.add(t);
+                }
+            }
+            const tokens = Array.from(found);
+            if (tokens.length > 0)
+            {
+                const defaults: Record<string, string> = {};
+                for (const t of tokens)
+                {
+                    const orgVar = availableVariables.org.find(v => v.key === t);
+                    const persVar = availableVariables.personal.find(v => v.key === t);
+                    defaults[t] = orgVar?.defaultValue ?? persVar?.defaultValue ?? '';
+                }
+                setVariableOverrides(defaults);
+                setPendingVariableTokens(tokens);
+            }
+        }
     };
 
     const buildBlueprintConfigJson = (): string =>
@@ -461,7 +502,8 @@ const ExchangeInitiation: React.FC = () =>
                     ?.filter(p => !appUser || p.id !== appUser.id)
                     ?.map(p => {
                         return {id: p.id, participantType: ExchangeParticipantType.APP_USER}
-                    })
+                    }),
+                variableOverrides: Object.keys(variableOverrides).length > 0 ? variableOverrides : undefined,
             } as ExchangeInitiationRequest;
 
             const createdExchange = await initiateExchange(exchange);
@@ -552,9 +594,15 @@ const ExchangeInitiation: React.FC = () =>
 
     const onDialogOpenChange = (_: unknown, data: { open: boolean }) =>
     {
-        if (!data.open)
+        if (data.open)
+        {
+            getAvailableVariables().then(setAvailableVariables).catch(() => null);
+        }
+        else
         {
             resetInitiationForm();
+            setVariableOverrides({});
+            setPendingVariableTokens([]);
         }
         setIsDialogOpen(data.open);
     };
@@ -646,6 +694,10 @@ const ExchangeInitiation: React.FC = () =>
                 onDescriptionChange={handleInputChange(setDescription)}
                 onInitialShareMessageChange={handleInputChange(setInitialShareMessage)}
                 setMessageGroupMessages={setMessageGroupMessages}
+                availableVariables={availableVariables ?? undefined}
+                onNameChange={setExchangeName}
+                onDescChange={setDescription}
+                onMessageChange={setInitialShareMessage}
             />
         )
     }
@@ -685,6 +737,7 @@ const ExchangeInitiation: React.FC = () =>
                     });
                 }}
                 addNewDocument={addNewDocument}
+                availableVariables={availableVariables ?? undefined}
             />
         )
     }
@@ -711,10 +764,44 @@ const ExchangeInitiation: React.FC = () =>
         )
     }
 
+    const renderVariableOverridesPanel = () =>
+    {
+        if (pendingVariableTokens.length === 0) return null;
+        return (
+            <div style={{
+                padding: '12px 16px',
+                border: '1px solid var(--colorBrandStroke2)',
+                borderRadius: '8px',
+                background: 'var(--colorNeutralBackground2)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                marginBottom: '12px',
+            }}>
+                <Text weight="semibold" size={300}>Fill in variables</Text>
+                <Text size={200} style={{color: 'var(--colorNeutralForeground3)'}}>
+                    Override the default values for this exchange.
+                </Text>
+                {pendingVariableTokens.map(token => (
+                    <div key={token} style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+                        <Text size={200} style={{minWidth: '120px', fontFamily: 'monospace'}}>{`{{${token}}}`}</Text>
+                        <input
+                            style={{flex: 1, padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--colorNeutralStroke1)', background: 'var(--colorNeutralBackground1)', color: 'inherit'}}
+                            value={variableOverrides[token] ?? ''}
+                            onChange={e => setVariableOverrides(prev => ({...prev, [token]: e.target.value}))}
+                            placeholder={`Value for ${token}`}
+                        />
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
     const renderTabs = () =>
     {
         return (
             <div className={styles.exchangeInitiationTaps}>
+                {pendingVariableTokens.length > 0 && renderVariableOverridesPanel()}
                 {selectedTab === "recipients-tab" && renderRecipientsTab()}
                 {selectedTab === "details-tab" && renderDetailsTab()}
                 {selectedTab === "documents-tab" && renderDocumentsTab()}

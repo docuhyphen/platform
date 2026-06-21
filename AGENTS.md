@@ -2,7 +2,9 @@
 
 ## Coding Rules
 
-- Never use em dashes
+- Never use —
+- never use →
+- never use emojis
 - All backend endpoints must follow REST conventions (resource-based URLs, correct HTTP verbs,
   plural nouns, no verbs in paths except sub-resource actions). Examples:
   - `GET /workflows/definitions` not `GET /getWorkflowDefinitions`

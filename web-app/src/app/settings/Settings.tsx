@@ -19,6 +19,8 @@ import {
     SettingsExchangeBlueprintsTabIcon, SettingsLinkedAccountsTabIcon, SettingsMyGroupsTabIcon,
     SettingsOrganizationTabIcon,
     SettingsProfileTabIcon,
+    SettingsSequencesTabIcon,
+    SettingsVariablesTabIcon,
     SettingsWorkflowsTabIcon,
 } from "../components/IconBundles.tsx";
 import BlueprintsTab from "./templates-tab/TemplatesTab.tsx";
@@ -34,6 +36,8 @@ import SessionsTab from "./sessions-tab/SessionsTab.tsx";
 import MyGroupsTab from "./my-groups-tab/MyGroupsTab.tsx";
 import AppAdminsTab from "./app-admins-tab/AppAdminsTab.tsx";
 import OrganizationTab from "./organization-tab/OrganizationTab.tsx";
+import OrganizationSequencesTab from "./organization-sequences-tab/OrganizationSequencesTab.tsx";
+import VariablesTab from "./variables-tab/VariablesTab.tsx";
 import {useIsMobile} from "../../utils/useMediaQuery.ts";
 import {AppUserRole} from "../models/models.tsx";
 
@@ -52,6 +56,8 @@ const Settings = () =>
         myGroups: "MyGroupsTab",
         appAdmins: "AppAdminsTab",
         workflows: "WorkflowsTab",
+        sequences: "SequencesTab",
+        variables: "VariablesTab",
     }
 
     const tabLabels: Record<string, string> = {
@@ -62,6 +68,8 @@ const Settings = () =>
         [tabIds.appSettings]: "App Preferences",
         [tabIds.myGroups]: "My Groups",
         [tabIds.blueprints]: "Blueprints",
+        [tabIds.sequences]: "Sequences",
+        [tabIds.variables]: "Variables",
     };
 
     const {appUser, appUserPersonOrganization} = useAuth();
@@ -115,6 +123,12 @@ const Settings = () =>
             <Tab id="WorkflowsTab" icon={<SettingsWorkflowsTabIcon/>} value={tabIds.workflows}>
                 Workflows
             </Tab>
+            <Tab id="SequencesTab" icon={<SettingsSequencesTabIcon/>} value={tabIds.sequences}>
+                Sequences
+            </Tab>
+            <Tab id="VariablesTab" icon={<SettingsVariablesTabIcon/>} value={tabIds.variables}>
+                Variables
+            </Tab>
         </TabList>
     );
 
@@ -165,6 +179,8 @@ const Settings = () =>
                     {selectedValue === tabIds.appAdmins && <AppAdminsTab/>}
                     {selectedValue === tabIds.blueprints && <BlueprintsTab/>}
                     {selectedValue === tabIds.workflows && <WorkflowsTab/>}
+                    {selectedValue === tabIds.sequences && <OrganizationSequencesTab/>}
+                    {selectedValue === tabIds.variables && <VariablesTab/>}
                 </div>
 
             </div>

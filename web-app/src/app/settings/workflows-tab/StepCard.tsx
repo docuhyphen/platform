@@ -444,7 +444,7 @@ const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subject
                 <DialogSurface>
                     <DialogBody>
                         <DialogTitle>
-                            Delete Step {index + 1} — {step.name || STEP_TYPE_LABELS[step.type]}
+                            Delete Step {index + 1}: {step.name || STEP_TYPE_LABELS[step.type]}
                         </DialogTitle>
                         <DialogContent>
                             {deleteStarted ? (

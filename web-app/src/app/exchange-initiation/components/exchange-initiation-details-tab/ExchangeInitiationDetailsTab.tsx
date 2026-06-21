@@ -1,6 +1,8 @@
 ﻿import React, {ChangeEvent} from 'react';
-import {Button, Field, Input, InputOnChangeData, Textarea} from "@fluentui/react-components";
+import {Field, Input, InputOnChangeData, Textarea} from "@fluentui/react-components";
 import {useExchangeInitiationStyles} from "../../ExchangeInitiationStyles.tsx";
+import {AvailableVariablesDto} from "../../../models/models.tsx";
+import VariableTokenInput from "../../../../components/variable-token-input/VariableTokenInput.tsx";
 
 interface ExchangeDetailsTabProps
 {
@@ -11,6 +13,11 @@ interface ExchangeDetailsTabProps
     onExchangeNameChange: (e: ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) => void;
     onDescriptionChange: (e: ChangeEvent<HTMLTextAreaElement>, newValue: InputOnChangeData) => void;
     onInitialShareMessageChange: (e: ChangeEvent<HTMLTextAreaElement>, newValue: InputOnChangeData) => void;
+    availableVariables?: AvailableVariablesDto;
+    onNameChange?: (value: string) => void;
+    onDescChange?: (value: string) => void;
+    onMessageChange?: (value: string) => void;
+    resolvedPreview?: Record<string, string>;
 }
 
 const ExchangeInitiationDetailsTab: React.FC<ExchangeDetailsTabProps> = (
@@ -21,7 +28,12 @@ const ExchangeInitiationDetailsTab: React.FC<ExchangeDetailsTabProps> = (
         onExchangeNameChange,
         onDescriptionChange,
         onInitialShareMessageChange,
-        setMessageGroupMessages
+        setMessageGroupMessages,
+        availableVariables,
+        onNameChange,
+        onDescChange,
+        onMessageChange,
+        resolvedPreview,
     }) =>
 {
     const handleExchangeNameChange = (e: ChangeEvent<HTMLInputElement>, data: InputOnChangeData) =>
@@ -35,28 +47,59 @@ const ExchangeInitiationDetailsTab: React.FC<ExchangeDetailsTabProps> = (
     return (
         <div className={styles.exchangeDetailsTap}>
             <Field label="Exchange Name" required>
-                <Input
-                    type="text"
-                    value={name}
-                    required
-                    onChange={handleExchangeNameChange}
-                    placeholder=""
-                />
+                {availableVariables && onNameChange ? (
+                    <VariableTokenInput
+                        value={name}
+                        onChange={v => { onNameChange(v); setMessageGroupMessages([]); }}
+                        availableVariables={availableVariables}
+                        resolvedPreview={resolvedPreview}
+                        placeholder="Exchange name, type {{ to insert a variable"
+                    />
+                ) : (
+                    <Input
+                        type="text"
+                        value={name}
+                        required
+                        onChange={handleExchangeNameChange}
+                        placeholder=""
+                    />
+                )}
             </Field>
-            {/*<Button onClick={ () => {}}> Generate from sequence</Button>*/}
             <Field label="Description">
-                <Textarea
-                    onChange={onDescriptionChange}
-                    value={description}
-                    placeholder="Add context about this exchange (optional)"
-                />
+                {availableVariables && onDescChange ? (
+                    <VariableTokenInput
+                        value={description}
+                        onChange={onDescChange}
+                        availableVariables={availableVariables}
+                        resolvedPreview={resolvedPreview}
+                        multiline
+                        placeholder="Add context about this exchange (optional)"
+                    />
+                ) : (
+                    <Textarea
+                        onChange={onDescriptionChange}
+                        value={description}
+                        placeholder="Add context about this exchange (optional)"
+                    />
+                )}
             </Field>
             <Field label="Message to Recipients">
-                <Textarea
-                    onChange={onInitialShareMessageChange}
-                    value={initialShareMessage}
-                    placeholder="Include any instructions or details recipients should know (optional)"
-                />
+                {availableVariables && onMessageChange ? (
+                    <VariableTokenInput
+                        value={initialShareMessage}
+                        onChange={onMessageChange}
+                        availableVariables={availableVariables}
+                        resolvedPreview={resolvedPreview}
+                        multiline
+                        placeholder="Include any instructions or details recipients should know (optional)"
+                    />
+                ) : (
+                    <Textarea
+                        onChange={onInitialShareMessageChange}
+                        value={initialShareMessage}
+                        placeholder="Include any instructions or details recipients should know (optional)"
+                    />
+                )}
             </Field>
         </div>
     );

@@ -37,7 +37,7 @@ class SignOutService @Inject constructor(
             // Notify peer devices BEFORE writing the revocation. Writing first caused a race:
             // once the session is in the Redis revocation cache, any in-flight request from a
             // peer device gets 401, the apiClient fires auth-session-expired, NotificationContext
-            // cleanup runs disconnect() — and the peer's socket is gone from the registry before
+            // cleanup runs disconnect(); the peer's socket is gone from the registry before
             // notifySessionRevoked can reach it. Sending first guarantees every socket is open.
             realtimeEventService.notifyAllSessionsRevoked(
                 appUser.id,

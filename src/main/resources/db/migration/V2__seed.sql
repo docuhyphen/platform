@@ -1,4 +1,4 @@
--- V2 — Seed data.
+-- V2: Seed data.
 --
 -- The application-scope workflow definition + notification rules the engine relies on
 -- out of the box. Carried over verbatim from the pre-squash V9/V10 migrations (fixed

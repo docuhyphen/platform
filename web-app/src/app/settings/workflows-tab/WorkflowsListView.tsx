@@ -125,7 +125,7 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
         {
             await cloneWorkflowDefinition(cloningDef.id, {newName: cloneNameInput.trim() || undefined});
             setCloningDef(null);
-            // Clones land in PERSONAL — switch there so the user sees the new item.
+            // Clones land in PERSONAL; switch there so the user sees the new item.
             setActiveTab('PERSONAL');
         }
         catch

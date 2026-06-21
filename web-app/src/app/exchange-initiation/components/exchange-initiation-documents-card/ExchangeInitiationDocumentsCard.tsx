@@ -1,8 +1,9 @@
 ﻿import React from 'react';
 import {Button, Card, Checkbox, Dropdown, Field, Input, Option, OptionGroup, Switch} from "@fluentui/react-components";
-import {DocumentType, ImageType, ExchangeRequestDocumentRequest} from "../../../models/models.tsx";
+import {AvailableVariablesDto, DocumentType, ExchangeRequestDocumentRequest, ImageType} from "../../../models/models.tsx";
 import {useExchangeInitiationStyles} from "../../ExchangeInitiationStyles.tsx";
 import {DeleteIcon} from "../../../components/IconBundles.tsx";
+import VariableTokenInput from "../../../../components/variable-token-input/VariableTokenInput.tsx";
 
 interface DocumentCardProps
 {
@@ -13,6 +14,7 @@ interface DocumentCardProps
     onRestrictDocumentTypeChange: (index: number, ev: React.ChangeEvent<HTMLInputElement>) => void;
     onDeleteDocument: (index: number) => void;
     onRequiredChange: (index: number, required: boolean) => void;
+    availableVariables?: AvailableVariablesDto;
 }
 
 const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
@@ -23,7 +25,8 @@ const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
         onDocumentTypeChange,
         onRestrictDocumentTypeChange,
         onDeleteDocument,
-        onRequiredChange
+        onRequiredChange,
+        availableVariables,
     }) =>
 {
     const styles = useExchangeInitiationStyles();
@@ -33,14 +36,23 @@ const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
             <div>
                 <div className={styles.dialogTitle1}>
                     <Field className={styles.sharingDetailsInput}>
-                        <Input
-                            type="text"
-                            size="small"
-                            value={document.title || ''}
-                            required
-                            onChange={(e) => onDocumentNameChange(index, e.target.value)}
-                            placeholder="Document name"
-                        />
+                        {availableVariables ? (
+                            <VariableTokenInput
+                                value={document.title || ''}
+                                onChange={v => onDocumentNameChange(index, v)}
+                                availableVariables={availableVariables}
+                                placeholder="Document name, type {{ to insert a variable"
+                            />
+                        ) : (
+                            <Input
+                                type="text"
+                                size="small"
+                                value={document.title || ''}
+                                required
+                                onChange={(e) => onDocumentNameChange(index, e.target.value)}
+                                placeholder="Document name"
+                            />
+                        )}
                     </Field>
                     <Button
                         icon={<DeleteIcon className={styles.iconDeleteFilled}/>}

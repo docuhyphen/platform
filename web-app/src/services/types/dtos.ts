@@ -76,7 +76,7 @@ export interface PendingWorkflowStep
     /**
      * Server returns epoch millis. Older client paths (the realtime push
      * fallback) populate `createdAt` with an ISO string when the notification payload
-     * carries `timestamp` — kept here for back-compat. Prefer `createdAtEpochMillis`.
+     * carries `timestamp`, kept here for back-compat. Prefer `createdAtEpochMillis`.
      */
     createdAt?: string;
     createdAtEpochMillis?: number;
@@ -158,5 +158,5 @@ export interface AppUserSearchResult
 }
 
 // ── Org Settings ──
-// NB: OrganizationSettingsV2Dto was removed — it was never consumed.
+// NB: OrganizationSettingsV2Dto was removed; it was never consumed.
 // OrganizationDetailsTab uses the legacy `OrganizationSettingsDto` from models.tsx.

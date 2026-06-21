@@ -67,7 +67,7 @@ class UserContactService @Inject constructor(
 
         if (effectiveRecipient.isTemporary)
         {
-            // Still a temp user (no real account found yet) — recipient-side entry
+            // Still a temp user (no real account found yet); recipient-side entry
             // deferred until they sign up via seedContactsAfterSignup.
             return
         }

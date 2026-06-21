@@ -222,6 +222,7 @@ export interface ExchangeInitiationRequest
     recipientRoleName?: string;
     recipientConstraintsJson?: string;
     allowedDownloadFormats?: string[];
+    variableOverrides?: Record<string, string>;
 }
 
 export enum ExchangeStatus
@@ -1035,4 +1036,87 @@ export interface UpdateBlueprintRequest
     description?: string;
     configJson?: string;
     generalTags?: string[];
+}
+
+// ── Variable / Sequence types ─────────────────────────────────────────────────
+
+export type VariableScope = 'ORG' | 'PERSONAL';
+export type SequenceResetPeriod = 'NEVER' | 'YEARLY' | 'MONTHLY';
+
+export interface SystemVariableDto
+{
+    token: string;
+    description: string;
+    example: string;
+}
+
+export interface SequenceDefinitionDto
+{
+    id: string;
+    organizationId: string;
+    name: string;
+    key: string;
+    currentValue: number;
+    padWidth: number;
+    prefix?: string;
+    suffix?: string;
+    resetPeriod: SequenceResetPeriod;
+    lastResetAt?: string;
+    isActive: boolean;
+    createdByAppUserId?: string;
+    createdAt: string;
+    previewValue: string;
+}
+
+export interface VariableDefinitionDto
+{
+    id: string;
+    key: string;
+    defaultValue?: string;
+    scope: VariableScope;
+    organizationId?: string;
+    createdByAppUserId: string;
+    isActive: boolean;
+    createdAt: string;
+}
+
+export interface AvailableVariablesDto
+{
+    system: SystemVariableDto[];
+    sequences: SequenceDefinitionDto[];
+    org: VariableDefinitionDto[];
+    personal: VariableDefinitionDto[];
+}
+
+export interface CreateSequenceRequest
+{
+    name: string;
+    key: string;
+    padWidth?: number;
+    prefix?: string;
+    suffix?: string;
+    resetPeriod?: SequenceResetPeriod;
+}
+
+export interface UpdateSequenceRequest
+{
+    name?: string;
+    padWidth?: number;
+    prefix?: string;
+    suffix?: string;
+    resetPeriod?: SequenceResetPeriod;
+    isActive?: boolean;
+}
+
+export interface CreateVariableRequest
+{
+    key: string;
+    defaultValue?: string;
+    scope: VariableScope;
+}
+
+export interface UpdateVariableRequest
+{
+    defaultValue?: string;
+    isActive?: boolean;
 }

@@ -83,7 +83,7 @@ class UserSessionService @Inject constructor(
 
     /**
      * @param notifyRevoked When true (default) the revoked device receives EXCHANGE_REVOKED and
-     * its socket is closed — appropriate for server-initiated revocations (idle timeout, admin
+     * its socket is closed; appropriate for server-initiated revocations (idle timeout, admin
      * kick, password change). Pass false for voluntary sign-out: the socket is closed silently so
      * the client's own navigation to /sign-in is not overridden by auth-session-expired.
      */
@@ -135,7 +135,7 @@ class UserSessionService @Inject constructor(
     /**
      * @param sendNotifications When true (default, used by SCIM/deprovision callers) this method
      * also sends EXCHANGE_REVOKED to every affected socket. Pass false when the caller (SignOutService)
-     * sends notifications itself BEFORE calling this method — that ordering ensures the WS messages
+     * sends notifications itself BEFORE calling this method; that ordering ensures the WS messages
      * are dispatched while all sockets are still open, avoiding the race where a concurrent 401 from
      * the revocation cache causes Device B to tear down its socket before the notification arrives.
      */

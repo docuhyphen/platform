@@ -2,7 +2,7 @@
 import {Button} from "@fluentui/react-components";
 import {useExchangeInitiationStyles} from "../../ExchangeInitiationStyles.tsx";
 import ExchangeInitiationDocumentsCard from "../exchange-initiation-documents-card/ExchangeInitiationDocumentsCard.tsx";
-import {ExchangeRequestDocumentRequest} from "../../../models/models.tsx";
+import {AvailableVariablesDto, ExchangeRequestDocumentRequest} from "../../../models/models.tsx";
 import {DocumentAddIcon} from "../../../components/IconBundles.tsx";
 
 interface ExchangeDocumentsTabProps
@@ -14,6 +14,7 @@ interface ExchangeDocumentsTabProps
     onDeleteDocument: (index: number) => void;
     onRequiredChange: (index: number, required: boolean) => void;
     addNewDocument: () => void;
+    availableVariables?: AvailableVariablesDto;
 }
 
 const ExchangeInitiationDocumentsTab: React.FC<ExchangeDocumentsTabProps> = (
@@ -24,7 +25,8 @@ const ExchangeInitiationDocumentsTab: React.FC<ExchangeDocumentsTabProps> = (
         onRestrictDocumentTypeChange,
         onDeleteDocument,
         onRequiredChange,
-        addNewDocument
+        addNewDocument,
+        availableVariables,
     }) =>
 {
     const styles = useExchangeInitiationStyles();
@@ -42,6 +44,7 @@ const ExchangeInitiationDocumentsTab: React.FC<ExchangeDocumentsTabProps> = (
                     onRestrictDocumentTypeChange={onRestrictDocumentTypeChange}
                     onDeleteDocument={onDeleteDocument}
                     onRequiredChange={onRequiredChange}
+                    availableVariables={availableVariables}
                 />
             ))}
             <div className={styles.addDocumentButtonContainer}>

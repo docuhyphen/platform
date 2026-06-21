@@ -23,6 +23,8 @@ import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import com.docuhyphen.app.api.service.variable.TemplateVariableInterpolator
+import com.docuhyphen.app.api.service.variable.VariableResolutionContext
 import com.docuhyphen.app.api.service.workflow.TriggerRequest
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -54,6 +56,7 @@ class ExchangeInitiationService @Inject constructor(
     private val workflowEngineService: com.docuhyphen.app.api.service.workflow.WorkflowEngineService,
     private val organizationMembershipService: OrganizationMembershipService,
     private val organizationRepository: OrganizationRepository,
+    private val templateVariableInterpolator: TemplateVariableInterpolator,
 )
 {
     @PersistenceContext
@@ -137,20 +140,47 @@ class ExchangeInitiationService @Inject constructor(
 
         val appUserRecipient = resolvedRecipient?.let { entityManager.merge(it) }
 
+        // Interpolate template variables in all string fields before entity creation.
+        val orgId0 = when (sessionInitiationDto.recipientType)
+        {
+            GROUP -> recipientGroupId?.let { principalGroupRepository.findById(it) }?.ownerOrganizationId
+            else -> organizationMembershipService.primaryOrganizationId(initiator.id)
+        }
+        val orgForInterpolation = orgId0?.let { organizationRepository.findById(it) }
+        val interpolationContext = VariableResolutionContext(
+            user = initiator,
+            organization = orgForInterpolation,
+            timestamp = java.time.Instant.now(),
+            overrides = sessionInitiationDto.variableOverrides ?: emptyMap(),
+        )
+        val resolvedName = sessionInitiationDto.name?.let {
+            templateVariableInterpolator.interpolateWithSequences(it, interpolationContext).resolved
+        }
+        val resolvedDescription = sessionInitiationDto.description?.let {
+            templateVariableInterpolator.interpolate(it, interpolationContext).resolved
+        }
+        val resolvedShareMessage = sessionInitiationDto.initialShareMessage?.let {
+            templateVariableInterpolator.interpolate(it, interpolationContext).resolved
+        }
+        val resolvedDocTitles: Map<Int, String> = sessionInitiationDto.exchangeDocuments
+            ?.mapIndexed { i, doc ->
+                i to templateVariableInterpolator.interpolate(doc.title, interpolationContext).resolved
+            }?.toMap() ?: emptyMap()
+
         val exchange = Exchange().apply {
             this.initiator = entityManager.merge(initiator)
-            this.name = sessionInitiationDto.name!!.trim()
-            this.initialShareMessage = sessionInitiationDto.initialShareMessage?.trim()
-            this.description = sessionInitiationDto.description?.trim()
+            this.name = (resolvedName ?: sessionInitiationDto.name)!!.trim()
+            this.initialShareMessage = resolvedShareMessage?.trim()
+            this.description = resolvedDescription?.trim()
             this.status = ExchangeStatus.INITIATED
             this.createdDate = Timestamp.from(Instant.now())
             this.lastActivity = Timestamp.from(Instant.now())
             this.requireRecipientSignIn = sessionInitiationDto.requestRecipientSignIn == true
         }
 
-        sessionInitiationDto.exchangeDocuments?.forEach { doc ->
+        sessionInitiationDto.exchangeDocuments?.forEachIndexed { index, doc ->
             val document = Document().apply {
-                this.title = doc.title
+                this.title = resolvedDocTitles[index] ?: doc.title
                 this.createdDate = Timestamp.from(Instant.now())
                 this.updateDate = Timestamp.from(Instant.now())
                 this.uploadDate = null

@@ -1,0 +1,189 @@
+package com.docuhyphen.app.api.resource
+
+import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.dto.AvailableVariablesDto
+import com.docuhyphen.app.api.model.dto.CreateVariableRequest
+import com.docuhyphen.app.api.model.dto.UpdateVariableRequest
+import com.docuhyphen.app.api.model.entity.VariableScope
+import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.service.auth.UserRoleService
+import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import com.docuhyphen.app.api.service.variable.AvailableVariablesService
+import com.docuhyphen.app.api.service.variable.VariableDefinitionService
+import io.quarkus.security.ForbiddenException
+import jakarta.inject.Inject
+import jakarta.ws.rs.*
+import jakarta.ws.rs.core.MediaType
+import jakarta.ws.rs.core.Response
+import jakarta.ws.rs.core.Response.Status.*
+import org.slf4j.LoggerFactory
+import java.util.*
+
+@Path("/variables")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+class VariableDefinitionResource @Inject constructor(
+    private val authTokenContext: AuthTokenContext,
+    private val variableService: VariableDefinitionService,
+    private val availableVariablesService: AvailableVariablesService,
+    private val userRoleService: UserRoleService,
+    private val organizationMembershipService: OrganizationMembershipService,
+)
+{
+    companion object
+    {
+        private val logger = LoggerFactory.getLogger(VariableDefinitionResource::class.java)
+    }
+
+    @GET
+    @Path("/available")
+    fun getAvailableVariables(): Response
+    {
+        val actor = authTokenContext.authToken.appUser
+            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
+
+        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
+
+        return try
+        {
+            val dto = availableVariablesService.getAvailableVariables(actor.id, callerOrgId)
+            Response.ok(dto).build()
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to get available variables", e)
+            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to get available variables")).build()
+        }
+    }
+
+    @GET
+    fun listVariables(@QueryParam("scope") scopeParam: String?): Response
+    {
+        val actor = authTokenContext.authToken.appUser
+            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
+
+        val scope = scopeParam?.let {
+            runCatching { VariableScope.valueOf(it.uppercase()) }.getOrElse {
+                return Response.status(BAD_REQUEST).entity(ResponseError("Invalid scope '$scopeParam'")).build()
+            }
+        } ?: VariableScope.PERSONAL
+
+        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
+        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
+        val isOrgAdmin = callerOrgId?.let { userRoleService.isOrgAdminIn(actor.id, it) } ?: false
+
+        return try
+        {
+            val items = variableService.listVariables(scope, callerOrgId, actor.id, isOrgAdmin, isAppAdmin)
+            Response.ok(items.toTypedArray()).build()
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to list variables", e)
+            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to list variables")).build()
+        }
+    }
+
+    @POST
+    fun createVariable(request: CreateVariableRequest): Response
+    {
+        val actor = authTokenContext.authToken.appUser
+            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
+
+        if (request.key.isBlank())
+            return Response.status(BAD_REQUEST).entity(ResponseError("key is required")).build()
+
+        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
+        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
+        val isOrgAdmin = callerOrgId?.let { userRoleService.isOrgAdminIn(actor.id, it) } ?: false
+
+        return try
+        {
+            val dto = variableService.createVariable(request, actor.id, callerOrgId, isOrgAdmin, isAppAdmin)
+            Response.status(CREATED).entity(dto).build()
+        }
+        catch (e: IllegalArgumentException)
+        {
+            Response.status(BAD_REQUEST).entity(ResponseError(e.message)).build()
+        }
+        catch (e: ForbiddenException)
+        {
+            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to create variable", e)
+            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to create variable")).build()
+        }
+    }
+
+    @PUT
+    @Path("/{id}")
+    fun updateVariable(@PathParam("id") id: String, request: UpdateVariableRequest): Response
+    {
+        val actor = authTokenContext.authToken.appUser
+            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
+
+        val varId = runCatching { UUID.fromString(id) }.getOrElse {
+            return Response.status(BAD_REQUEST).entity(ResponseError("Invalid variable id")).build()
+        }
+
+        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
+        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
+        val isOrgAdmin = callerOrgId?.let { userRoleService.isOrgAdminIn(actor.id, it) } ?: false
+
+        return try
+        {
+            val dto = variableService.updateVariable(varId, request, actor.id, callerOrgId, isOrgAdmin, isAppAdmin)
+            Response.ok(dto).build()
+        }
+        catch (e: IllegalArgumentException)
+        {
+            Response.status(BAD_REQUEST).entity(ResponseError(e.message)).build()
+        }
+        catch (e: ForbiddenException)
+        {
+            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to update variable {}", id, e)
+            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to update variable")).build()
+        }
+    }
+
+    @DELETE
+    @Path("/{id}")
+    fun deleteVariable(@PathParam("id") id: String): Response
+    {
+        val actor = authTokenContext.authToken.appUser
+            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
+
+        val varId = runCatching { UUID.fromString(id) }.getOrElse {
+            return Response.status(BAD_REQUEST).entity(ResponseError("Invalid variable id")).build()
+        }
+
+        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
+        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
+        val isOrgAdmin = callerOrgId?.let { userRoleService.isOrgAdminIn(actor.id, it) } ?: false
+
+        return try
+        {
+            variableService.deleteVariable(varId, actor.id, callerOrgId, isOrgAdmin, isAppAdmin)
+            Response.noContent().build()
+        }
+        catch (e: IllegalArgumentException)
+        {
+            Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
+        }
+        catch (e: ForbiddenException)
+        {
+            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
+        }
+        catch (e: Exception)
+        {
+            logger.error("Failed to delete variable {}", id, e)
+            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to delete variable")).build()
+        }
+    }
+}

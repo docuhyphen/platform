@@ -187,7 +187,7 @@ function TourCoach() {
                     <Text size={200}>{step.description}</Text>
                 </TeachingPopoverBody>
                 <TeachingPopoverFooter
-                    primary={{ children: isLast ? 'Got it 🎉' : 'Next →', onClick: handleNext }}
+                    primary={{ children: isLast ? 'Got it' : 'Next →', onClick: handleNext }}
                     secondary={currentStep === 0
                         ? { children: 'Skip tour', onClick: completeTour }
                         : undefined}

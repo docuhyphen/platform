@@ -134,7 +134,8 @@
       "Bash(xargs grep -l \"Workflow\")",
       "WebFetch(domain:storybooks.fluentui.dev)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "WebFetch(domain:www.npmjs.com)"
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(grep -E \"^[a-z-]+$\")"
     ]
   }
 }

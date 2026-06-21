@@ -1,5 +1,5 @@
 /**
- * Personal groups API — calls /me/groups endpoints.
+ * Personal groups API: calls /me/groups endpoints.
  */
 import apiClient from './apiClient';
 import {

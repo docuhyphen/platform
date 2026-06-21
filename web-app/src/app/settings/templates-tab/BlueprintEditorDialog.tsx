@@ -23,6 +23,7 @@ import {
     Textarea,
 } from '@fluentui/react-components';
 import {
+    AvailableVariablesDto,
     BlueprintConfig,
     BlueprintDefinitionSummaryDto,
     BlueprintDocumentConfig,
@@ -35,6 +36,8 @@ import {
 import {createBlueprint, updateBlueprint} from '../../../services/blueprintService.ts';
 import {DeleteIcon, DocumentAddIcon} from '../../components/IconBundles.tsx';
 import {useExchangeInitiationStyles} from '../../exchange-initiation/ExchangeInitiationStyles.tsx';
+import VariableTokenInput from '../../../components/variable-token-input/VariableTokenInput.tsx';
+import {getAvailableVariables} from '../../../services/variableService.ts';
 
 interface BlueprintEditorDialogProps
 {
@@ -76,11 +79,13 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
     const [config, setConfig] = useState<BlueprintConfig>(emptyConfig());
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [availableVariables, setAvailableVariables] = useState<AvailableVariablesDto | null>(null);
     const styles = useExchangeInitiationStyles();
 
     useEffect(() =>
     {
         if (!open) return;
+        getAvailableVariables().then(setAvailableVariables).catch(() => null);
         if (blueprint)
         {
             setName(blueprint.name);
@@ -199,13 +204,50 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                         {activeTab === 'details' && (
                             <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
                                 <Field label="Name" required>
-                                    <Input value={name} onChange={(_, d) => setName(d.value)} placeholder="Blueprint name"/>
+                                    {availableVariables ? (
+                                        <VariableTokenInput
+                                            value={name}
+                                            onChange={setName}
+                                            availableVariables={availableVariables}
+                                            placeholder="Blueprint name, type {{ to insert a variable"
+                                        />
+                                    ) : (
+                                        <Input value={name} onChange={(_, d) => setName(d.value)} placeholder="Blueprint name"/>
+                                    )}
                                 </Field>
                                 <Field label="Summary">
                                     <Textarea value={summary} onChange={(_, d) => setSummary(d.value)} rows={2} placeholder="Short description"/>
                                 </Field>
                                 <Field label="Description">
-                                    <Textarea value={description} onChange={(_, d) => setDescription(d.value)} rows={3} placeholder="Detailed description"/>
+                                    {availableVariables ? (
+                                        <VariableTokenInput
+                                            value={description}
+                                            onChange={setDescription}
+                                            availableVariables={availableVariables}
+                                            multiline
+                                            placeholder="Detailed description"
+                                        />
+                                    ) : (
+                                        <Textarea value={description} onChange={(_, d) => setDescription(d.value)} rows={3} placeholder="Detailed description"/>
+                                    )}
+                                </Field>
+                                <Field label="Initial Share Message">
+                                    {availableVariables ? (
+                                        <VariableTokenInput
+                                            value={config.initialShareMessage ?? ''}
+                                            onChange={v => setConfig(prev => ({...prev, initialShareMessage: v}))}
+                                            availableVariables={availableVariables}
+                                            multiline
+                                            placeholder="Message shown to recipient when they open the exchange"
+                                        />
+                                    ) : (
+                                        <Textarea
+                                            value={config.initialShareMessage ?? ''}
+                                            onChange={(_, d) => setConfig(prev => ({...prev, initialShareMessage: d.value}))}
+                                            rows={2}
+                                            placeholder="Message shown to recipient"
+                                        />
+                                    )}
                                 </Field>
                                 <Field label="Tags">
                                     <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
@@ -235,13 +277,22 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                         <div>
                                             <div className={styles.dialogTitle1}>
                                                 <Field className={styles.sharingDetailsInput}>
-                                                    <Input
-                                                        type="text"
-                                                        size="small"
-                                                        value={doc.title}
-                                                        onChange={(_, d) => updateDoc(i, {title: d.value})}
-                                                        placeholder="Document name"
-                                                    />
+                                                    {availableVariables ? (
+                                                        <VariableTokenInput
+                                                            value={doc.title}
+                                                            onChange={v => updateDoc(i, {title: v})}
+                                                            availableVariables={availableVariables}
+                                                            placeholder="Document name, type {{ to insert a variable"
+                                                        />
+                                                    ) : (
+                                                        <Input
+                                                            type="text"
+                                                            size="small"
+                                                            value={doc.title}
+                                                            onChange={(_, d) => updateDoc(i, {title: d.value})}
+                                                            placeholder="Document name"
+                                                        />
+                                                    )}
                                                 </Field>
                                                 <Button
                                                     icon={<DeleteIcon className={styles.iconDeleteFilled}/>}

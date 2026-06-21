@@ -300,6 +300,7 @@ data class ExchangeInitiationDto(
     var recipientRoleName: String? = null,
     var recipientConstraintsJson: String? = null,
     var allowedDownloadFormats: List<String>? = null,
+    var variableOverrides: Map<String, String>? = null,
     //ToDo: add accepted by, rejected by, ended by
 )
 

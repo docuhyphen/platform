@@ -30,7 +30,7 @@ export function FloatingDocuments()
     return (
         <div className={styles.container} aria-hidden="true">
 
-            {/* Sender hub — left side */}
+            {/* Sender hub - left side */}
             <div className={`${styles.hub} ${styles.hubLeft}`}>
                 <svg viewBox="0 0 72 92" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <rect x="1" y="1" width="70" height="90" rx="7"
@@ -70,7 +70,7 @@ export function FloatingDocuments()
                 </svg>
             </div>
 
-            {/* Recipient hub — right side */}
+            {/* Recipient hub - right side */}
             <div className={`${styles.hub} ${styles.hubRight}`}>
                 <svg viewBox="0 0 72 92" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <rect x="1" y="1" width="70" height="90" rx="7"

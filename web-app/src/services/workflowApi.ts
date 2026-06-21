@@ -1,6 +1,6 @@
 /**
- * Workflow decision API — calls POST /workflows/steps/{stepInstanceId}/decision and
- * GET /workflows/steps/pending. Decider identity comes from the auth session — never the body.
+ * Workflow decision API: calls POST /workflows/steps/{stepInstanceId}/decision and
+ * GET /workflows/steps/pending. Decider identity comes from the auth session, never the body.
  */
 import apiClient from './apiClient';
 import {PendingWorkflowStep, WorkflowDecisionRequest, WorkflowDecisionResponse} from './types/dtos';
@@ -20,7 +20,7 @@ const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
 
 /**
  * Record an APPROVE or REJECT decision on a pending workflow step.
- * The decider identity comes from the auth session — never the body.
+ * The decider identity comes from the auth session, never the body.
  */
 export const recordWorkflowDecision = (
     stepInstanceId: string,

@@ -1,5 +1,5 @@
 /**
- * App Admin role management API — calls /admin/roles/app-admins and
+ * App Admin role management API: calls /admin/roles/app-admins and
  * /admin/roles/app-admin-candidates (global user search for the picker).
  */
 import apiClient from './apiClient';
