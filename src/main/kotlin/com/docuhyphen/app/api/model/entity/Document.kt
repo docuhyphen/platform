@@ -53,15 +53,18 @@ class Document
     @Column(name = "restricted_type", nullable = true)
     var restrictedType: DocumentType? = null
 
+    @Column(name = "restrict_type", nullable = false)
+    var restrictType: Boolean = false
+
+    @Column(name = "required", nullable = false)
+    var required: Boolean = false
+
     @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.EAGER)
     @JoinColumn(name = "document_id")
     var auditLogs: MutableList<DocumentAuditLog> = mutableListOf()
 
     @Transient
     var documentContent: ByteArray? = null
-
-    @Transient
-    var required: Boolean = false
 
     @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.EAGER)
     @JoinColumn(name = "document_id")

@@ -157,6 +157,8 @@ class ExchangeInitiationService @Inject constructor(
                 this.isDeleted = false
                 this.type = null // Type is set on the document upload method
                 this.restrictedType = doc.restrictedType
+                this.restrictType = doc.restrictType
+                this.required = doc.required
             }
             exchange.documents.add(document)
         }

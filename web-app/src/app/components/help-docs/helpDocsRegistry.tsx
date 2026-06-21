@@ -75,6 +75,22 @@ const helpDocSections: HelpDocSectionInput[] = [
                                 <a href="#" data-help-article="workflow-activity-monitoring"><b>Workflow activity and monitoring</b></a> - track running instances and review audit timelines.
                             </li>
                         </ul>
+
+                        <h3>Blueprints quick links</h3>
+                        <ul>
+                            <li>
+                                <a href="#" data-help-article="blueprint-overview"><b>Blueprints overview</b></a> - what blueprints are and when to use them.
+                            </li>
+                            <li>
+                                <a href="#" data-help-article="using-blueprints"><b>Starting an exchange from a blueprint</b></a> - pick a blueprint and pre-fill an exchange in seconds.
+                            </li>
+                            <li>
+                                <a href="#" data-help-article="managing-blueprints"><b>Creating and managing blueprints</b></a> - build, edit, and organise your personal blueprints.
+                            </li>
+                            <li>
+                                <a href="#" data-help-article="org-blueprints"><b>Organization blueprints</b></a> - publish shared blueprints across your team.
+                            </li>
+                        </ul>
                     </>
                 ),
             },
@@ -381,7 +397,7 @@ const helpDocSections: HelpDocSectionInput[] = [
                                 type only). In the condition builder, searchable from your personal groups.
                             </li>
                             <li><b>Initiator</b> - the user who created the Exchange. In the condition builder, searchable from your contacts.</li>
-                            <li><b>Org</b> - the initiator organization. No searchable picker — used as a scope reference in assignee configuration.</li>
+                            <li><b>Org</b> - the initiator organization. No searchable picker  - used as a scope reference in assignee configuration.</li>
                             <li>
                                 <b>Recipient Type</b> - one of: <b>Email</b>,{" "}
                                 <b>App User</b>, or <b>Group</b>.
@@ -397,7 +413,7 @@ const helpDocSections: HelpDocSectionInput[] = [
                         <p><b>Available subject fields:</b></p>
                         <ul>
                             <li><b>Initiator</b> - the user who created the Exchange. In the condition builder, searchable from your contacts.</li>
-                            <li><b>Org</b> - the initiator organization. No searchable picker — used as a scope reference in assignee configuration.</li>
+                            <li><b>Org</b> - the initiator organization. No searchable picker  - used as a scope reference in assignee configuration.</li>
                         </ul>
 
                         <h3>exchange.ending</h3>
@@ -410,7 +426,7 @@ const helpDocSections: HelpDocSectionInput[] = [
                         <p><b>Available subject fields:</b></p>
                         <ul>
                             <li><b>Initiator</b> - the user who created the Exchange. In the condition builder, searchable from your contacts.</li>
-                            <li><b>Org</b> - the initiator organization. No searchable picker — used as a scope reference in assignee configuration.</li>
+                            <li><b>Org</b> - the initiator organization. No searchable picker  - used as a scope reference in assignee configuration.</li>
                         </ul>
 
                         <h3>Tip: subject field placeholders in assignees</h3>
@@ -419,7 +435,7 @@ const helpDocSections: HelpDocSectionInput[] = [
                             using the syntax <code>$subject.fieldName</code> (for example,{" "}
                             <code>$subject.orgId</code>). This keeps the definition portable across
                             organizations instead of hardcoding specific user or group IDs. In
-                            the condition builder, fields are selected by name from a dropdown —
+                            the condition builder, fields are selected by name from a dropdown  -
                             no manual syntax required.
                         </p>
 
@@ -540,7 +556,7 @@ const helpDocSections: HelpDocSectionInput[] = [
                                     </li>
                                     <li>
                                         For <b>ACTION</b> steps, select the action key. No
-                                        assignees are needed — the action runs automatically.
+                                        assignees are needed  - the action runs automatically.
                                     </li>
                                 </ul>
                             </li>
@@ -973,7 +989,7 @@ const helpDocSections: HelpDocSectionInput[] = [
                             The escalation scheduler runs automatically in the background every
                             60 seconds. For each pending APPROVAL step it checks whether the SLA
                             deadline has passed and applies the configured escalation action if so.
-                            No manual action is required — it runs for all active workflow instances
+                            No manual action is required  - it runs for all active workflow instances
                             across your organization.
                         </p>
 
@@ -1312,6 +1328,372 @@ const helpDocSections: HelpDocSectionInput[] = [
                                     <b>Workflow overview</b>
                                 </a>{" "}
                                 - the full Exchange lifecycle with workflows.
+                            </li>
+                        </ul>
+                    </>
+                ),
+            },
+        ],
+    },
+    {
+        id: "blueprints",
+        title: "Blueprints",
+        articles: [
+            {
+                id: "blueprint-overview",
+                title: "Blueprints overview",
+                content: (
+                    <>
+                        <p>
+                            Blueprints are saved exchange configurations. Instead of filling in
+                            documents, permissions, recipient settings, and participants from scratch
+                            every time, you save a blueprint once and reuse it whenever you start a
+                            new exchange.
+                        </p>
+
+                        <h3>What a blueprint stores</h3>
+                        <ul>
+                            <li><b>Exchange name and description</b>  - a pre-filled name and description for the exchange.</li>
+                            <li><b>Initial message</b>  - the message shown to the recipient when the exchange is sent.</li>
+                            <li><b>Documents</b>  - a list of document slots, each with a title, an optional upload-type restriction, and an optional required flag.</li>
+                            <li><b>Permissions</b>  - the full set of permission toggles: allow document addition, deletion, download, update, and upload.</li>
+                            <li><b>Recipient sign-in requirement</b>  - whether recipients must sign in to access the exchange.</li>
+                            <li><b>Participants</b>  - internal participants added to the exchange, each with a role.</li>
+                        </ul>
+                        <p>
+                            Blueprints do <b>not</b> store the recipient's identity (email, name, or
+                            account). You always choose who to send the exchange to at initiation time.
+                        </p>
+
+                        <h3>Three blueprint scopes</h3>
+                        <ul>
+                            <li>
+                                <b>My Blueprints (Personal)</b>  - visible only to you. Any user can
+                                create personal blueprints. Use these for your own recurring workflows.
+                            </li>
+                            <li>
+                                <b>Organization</b>  - shared across your organization. Only
+                                Organization Admins can create and publish them. A blueprint must be
+                                both Active and Published before it appears in the picker for other
+                                members.
+                            </li>
+                            <li>
+                                <b>Platform</b>  - provided by DocuHyphen. Available to all users
+                                across all organizations. Only App Admins can create platform
+                                blueprints. Any user can clone a platform blueprint into their own
+                                personal blueprints.
+                            </li>
+                        </ul>
+
+                        <h3>Where blueprints appear</h3>
+                        <ul>
+                            <li>
+                                <b>Exchange initiation picker</b>  - when starting a new exchange,
+                                click <b>From Blueprint</b> in the start menu to open the three-tab
+                                picker and select a blueprint.
+                            </li>
+                            <li>
+                                <b>Settings → Blueprints</b>  - manage all your blueprints across
+                                the three scopes (My Blueprints, Organization, Platform) from a
+                                single settings page.
+                            </li>
+                        </ul>
+
+                        <h3>Learn more</h3>
+                        <ul>
+                            <li>
+                                <a href="#" data-help-article="using-blueprints"><b>Starting an exchange from a blueprint</b></a>  - how to use the picker.
+                            </li>
+                            <li>
+                                <a href="#" data-help-article="managing-blueprints"><b>Creating and managing blueprints</b></a>  - build and edit your personal blueprints.
+                            </li>
+                            <li>
+                                <a href="#" data-help-article="org-blueprints"><b>Organization blueprints</b></a>  - sharing blueprints across your team.
+                            </li>
+                            <li>
+                                <a href="#" data-help-article="blueprint-platform"><b>Platform blueprints</b></a>  - ready-made blueprints you can clone.
+                            </li>
+                        </ul>
+                    </>
+                ),
+            },
+            {
+                id: "using-blueprints",
+                title: "Starting an exchange from a blueprint",
+                content: (
+                    <>
+                        <p>
+                            The blueprint picker pre-fills a new exchange with a saved configuration
+                            so you can go straight to choosing a recipient rather than rebuilding
+                            the exchange from scratch.
+                        </p>
+
+                        <h3>Opening the picker</h3>
+                        <ol>
+                            <li>Click <b>Start Exchange</b> from the main navigation or exchanges list.</li>
+                            <li>In the start menu, click <b>From Blueprint</b>.</li>
+                            <li>The blueprint picker opens inside the exchange initiation dialog.</li>
+                        </ol>
+
+                        <h3>Choosing a blueprint</h3>
+                        <p>
+                            The picker has three tabs:
+                        </p>
+                        <ul>
+                            <li><b>My Blueprints</b>  - your personal saved blueprints.</li>
+                            <li><b>Organization</b>  - blueprints published by your organization's admins.</li>
+                            <li><b>Platform</b>  - ready-made blueprints provided by DocuHyphen.</li>
+                        </ul>
+                        <p>
+                            Click <b>Use Blueprint</b> on the card you want. The picker closes and
+                            the exchange form is pre-filled with all the saved settings.
+                        </p>
+
+                        <h3>What gets pre-filled</h3>
+                        <ul>
+                            <li>Exchange name, description, and initial message.</li>
+                            <li>Document slots  - titles, upload-type restrictions, and required flags.</li>
+                            <li>Permission toggles  - document addition, deletion, download, update, and upload.</li>
+                            <li>Recipient sign-in requirement.</li>
+                            <li>Internal participants with their assigned roles.</li>
+                        </ul>
+                        <p>
+                            You can edit any pre-filled value before sending. The blueprint is a
+                            starting point, not a locked template.
+                        </p>
+
+                        <h3>After selecting a blueprint</h3>
+                        <p>
+                            The dialog moves to the <b>Recipients</b> tab automatically. Add your
+                            recipient there, review the pre-filled details on the other tabs, and
+                            initiate the exchange when ready.
+                        </p>
+
+                        <h3>Saving the current form as a blueprint</h3>
+                        <p>
+                            If you have filled out the exchange form and want to save the
+                            configuration for future reuse, click <b>Save as Blueprint</b> in the
+                            dialog title bar. You will be prompted to give the blueprint a name and
+                            optional summary and tags before saving.
+                        </p>
+                    </>
+                ),
+            },
+            {
+                id: "managing-blueprints",
+                title: "Creating and managing blueprints",
+                content: (
+                    <>
+                        <p>
+                            Personal blueprints are blueprints you create and manage yourself. They
+                            are visible only to you and can be used any time you start an exchange.
+                        </p>
+
+                        <h3>Creating a blueprint from the settings page</h3>
+                        <ol>
+                            <li>Open Settings and go to the <b>Blueprints</b> tab.</li>
+                            <li>Make sure the <b>My Blueprints</b> inner tab is selected.</li>
+                            <li>Click <b>Create</b> in the top-right corner.</li>
+                            <li>Fill in the blueprint editor (see below) and click <b>Create Blueprint</b>.</li>
+                        </ol>
+
+                        <h3>Creating a blueprint while initiating an exchange</h3>
+                        <ol>
+                            <li>Fill out an exchange form as you normally would.</li>
+                            <li>Click <b>Save as Blueprint</b> in the dialog title bar.</li>
+                            <li>Give the blueprint a name, optional summary, and tags, then click <b>Save Blueprint</b>.</li>
+                        </ol>
+                        <p>
+                            This captures the current state of the form  - documents, permissions,
+                            participants, and settings  - into a new personal blueprint.
+                        </p>
+
+                        <h3>The blueprint editor</h3>
+                        <p>The editor has three tabs:</p>
+
+                        <h3>Details tab</h3>
+                        <ul>
+                            <li><b>Name</b> (required)  - shown in the picker and the settings list.</li>
+                            <li><b>Summary</b>  - a short description shown on the blueprint card in the picker.</li>
+                            <li><b>Description</b>  - a longer explanation for internal reference.</li>
+                            <li><b>Tags</b>  - free-text labels for filtering. Type a tag and click Add or press Enter.</li>
+                        </ul>
+
+                        <h3>Documents tab</h3>
+                        <ul>
+                            <li>Click <b>Add Document</b> to add a new document slot.</li>
+                            <li>Edit the <b>document name</b> directly in the title input on each card.</li>
+                            <li>
+                                Toggle <b>Restrict upload type</b> to limit what file types recipients
+                                can upload. Choose the allowed type from the dropdown (document
+                                formats or image formats).
+                            </li>
+                            <li>
+                                Check <b>Required</b> to mark the document as mandatory. Required
+                                documents must be uploaded before the exchange can be completed.
+                            </li>
+                            <li>Click the red delete icon to remove a document slot.</li>
+                        </ul>
+
+                        <h3>Permissions tab</h3>
+                        <ul>
+                            <li><b>Require recipient sign-in</b>  - recipients must authenticate before accessing the exchange.</li>
+                            <li><b>Allow document addition</b>  - recipients can upload additional documents beyond the pre-defined slots.</li>
+                            <li><b>Allow document deletion</b>  - recipients can remove documents from the exchange.</li>
+                            <li><b>Allow document download</b>  - recipients can download documents.</li>
+                            <li><b>Allow document update</b>  - recipients can replace uploaded documents.</li>
+                            <li><b>Allow document upload</b>  - recipients can upload files to the defined document slots.</li>
+                        </ul>
+
+                        <h3>Managing existing blueprints</h3>
+                        <p>
+                            Each blueprint in the My Blueprints list has a three-dot menu with the
+                            following actions:
+                        </p>
+                        <ul>
+                            <li><b>Edit</b>  - open the blueprint editor to modify any field.</li>
+                            <li><b>Activate / Deactivate</b>  - inactive blueprints are hidden from the picker. Use this to temporarily remove a blueprint without deleting it.</li>
+                            <li><b>Duplicate</b>  - creates a copy with "(copy)" appended to the name. The duplicate starts inactive.</li>
+                            <li><b>Delete</b>  - permanently removes the blueprint.</li>
+                        </ul>
+                    </>
+                ),
+            },
+            {
+                id: "org-blueprints",
+                title: "Organization blueprints",
+                content: (
+                    <>
+                        <p>
+                            Organization blueprints are shared configurations that Organization
+                            Admins create and publish for all members of the organization. Members
+                            see them in the <b>Organization</b> tab of the blueprint picker when
+                            starting an exchange.
+                        </p>
+
+                        <h3>Who can manage organization blueprints</h3>
+                        <p>
+                            Only Organization Admins (and App Admins) can create, edit, publish,
+                            and delete organization blueprints. Regular members can view and use
+                            published blueprints but cannot manage them.
+                        </p>
+
+                        <h3>Creating an organization blueprint</h3>
+                        <ol>
+                            <li>Open Settings and go to the <b>Blueprints</b> tab.</li>
+                            <li>Click the <b>Organization</b> inner tab.</li>
+                            <li>Click <b>Create</b> in the top-right corner.</li>
+                            <li>Fill in the blueprint editor  - the same Details, Documents, and Permissions tabs as personal blueprints.</li>
+                            <li>Click <b>Create Blueprint</b>.</li>
+                        </ol>
+                        <p>
+                            Newly created organization blueprints start as <b>Draft</b> and are
+                            not yet visible to other members.
+                        </p>
+
+                        <h3>Publishing and unpublishing</h3>
+                        <p>
+                            A blueprint must be <b>Published</b> and <b>Active</b> to appear in
+                            the Organization tab of the picker for regular members.
+                        </p>
+                        <ul>
+                            <li>
+                                Open the three-dot menu on a blueprint and click <b>Publish</b> to
+                                make it available to all members.
+                            </li>
+                            <li>
+                                Click <b>Unpublish</b> to revert it to Draft status. It will no
+                                longer appear in the picker for regular members, but Admins can
+                                still see and edit it.
+                            </li>
+                        </ul>
+
+                        <h3>Draft vs Published</h3>
+                        <ul>
+                            <li><b>Draft</b>  - visible only to Organization Admins in Settings. Not shown in the picker to regular members.</li>
+                            <li><b>Published</b>  - visible to all active members in the Organization picker tab, provided the blueprint is also Active.</li>
+                        </ul>
+
+                        <h3>Active vs Inactive</h3>
+                        <p>
+                            Both Published and Active must be true for a blueprint to appear in the
+                            picker. Deactivating a blueprint hides it from the picker without
+                            unpublishing it  - useful for temporarily suspending a blueprint while
+                            keeping it in a published state.
+                        </p>
+
+                        <h3>Managing organization blueprints</h3>
+                        <p>
+                            Each blueprint in the Organization tab has a three-dot menu with:
+                        </p>
+                        <ul>
+                            <li><b>Edit</b>  - modify any field in the blueprint editor.</li>
+                            <li><b>Publish / Unpublish</b>  - toggle visibility for org members.</li>
+                            <li><b>Activate / Deactivate</b>  - toggle whether the blueprint is usable.</li>
+                            <li><b>Duplicate</b>  - creates a copy in your personal blueprints (My Blueprints scope), starting inactive.</li>
+                            <li><b>Delete</b>  - permanently removes the blueprint.</li>
+                        </ul>
+
+                        <h3>Org admin visibility</h3>
+                        <p>
+                            Admins see all organization blueprints in Settings regardless of their
+                            Published or Active state. Regular members only see blueprints that are
+                            both Published and Active in the picker. Admins have zero visibility
+                            into other users' personal blueprints.
+                        </p>
+                    </>
+                ),
+            },
+            {
+                id: "blueprint-platform",
+                title: "Platform blueprints",
+                content: (
+                    <>
+                        <p>
+                            Platform blueprints are ready-made exchange configurations provided by
+                            DocuHyphen. They are available to all users across all organizations
+                            and cover common document exchange patterns.
+                        </p>
+
+                        <h3>Browsing platform blueprints</h3>
+                        <ol>
+                            <li>Click <b>Start Exchange</b> and choose <b>From Blueprint</b>.</li>
+                            <li>In the picker, click the <b>Platform</b> tab.</li>
+                            <li>Browse the available blueprints by name, summary, or tags.</li>
+                            <li>Click <b>Use Blueprint</b> on any card to pre-fill your exchange immediately.</li>
+                        </ol>
+                        <p>
+                            Platform blueprints can also be viewed in Settings under the{" "}
+                            <b>Blueprints → Platform</b> tab.
+                        </p>
+
+                        <h3>Cloning a platform blueprint</h3>
+                        <p>
+                            If you want to customise a platform blueprint and save it as your own,
+                            use the <b>Duplicate</b> action in the three-dot menu on the Platform
+                            tab in Settings. The clone:
+                        </p>
+                        <ul>
+                            <li>Lands in your <b>My Blueprints</b> scope.</li>
+                            <li>Starts <b>inactive</b> so you can review and adjust it before use.</li>
+                            <li>Records the source platform blueprint ID for traceability.</li>
+                            <li>Is fully independent  - changes to the original platform blueprint do not affect your clone.</li>
+                        </ul>
+
+                        <h3>Who manages platform blueprints</h3>
+                        <p>
+                            Only App Admins can create, edit, activate, deactivate, publish, and
+                            delete platform blueprints. Regular users and Organization Admins can
+                            view and clone them but cannot modify the originals.
+                        </p>
+
+                        <h3>Related articles</h3>
+                        <ul>
+                            <li>
+                                <a href="#" data-help-article="using-blueprints"><b>Starting an exchange from a blueprint</b></a>  - how to use any blueprint in the picker.
+                            </li>
+                            <li>
+                                <a href="#" data-help-article="managing-blueprints"><b>Creating and managing blueprints</b></a>  - personalise a cloned blueprint in the editor.
                             </li>
                         </ul>
                     </>

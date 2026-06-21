@@ -1,21 +1,19 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {
+    Accordion,
+    AccordionHeader,
+    AccordionItem,
+    AccordionPanel,
     Button,
-    Menu,
-    MenuItem,
-    MenuList,
-    MenuPopover,
-    MenuTrigger,
     Text,
     makeStyles,
     tokens,
 } from "@fluentui/react-components";
 import {
-    DismissCircleFilled,
-    DismissCircleRegular,
+    ArrowLeftRegular,
     DismissFilled,
     Navigation24Regular,
-    ReOrderDotsVertical20Regular
+    ReOrderDotsVertical20Regular,
 } from "@fluentui/react-icons";
 import {
     getDefaultHelpDocArticle,
@@ -100,6 +98,14 @@ const useStyles = makeStyles({
     },
     titleText: {
         fontWeight: tokens.fontWeightSemibold,
+        flex: 1,
+        minWidth: 0,
+    },
+    headerActions: {
+        display: "flex",
+        alignItems: "center",
+        gap: "2px",
+        flexShrink: 0,
     },
     content: {
         flex: 1,
@@ -124,14 +130,31 @@ const useStyles = makeStyles({
             cursor: "pointer",
         },
     },
-    sectionLabel: {
-        fontSize: tokens.fontSizeBase200,
-        color: tokens.colorNeutralForeground3,
-        textTransform: "uppercase",
-        letterSpacing: "0.04em",
+    nav: {
+        flex: 1,
+        overflowY: "auto",
+        display: "flex",
+        flexDirection: "column",
     },
-    articleMenuItem: {
-        paddingLeft: "18px",
+    navArticleItem: {
+        display: "block",
+        width: "100%",
+        textAlign: "left",
+        padding: "6px 16px 6px 32px",
+        border: "none",
+        background: "none",
+        cursor: "pointer",
+        fontSize: tokens.fontSizeBase300,
+        color: tokens.colorNeutralForeground2,
+        lineHeight: tokens.lineHeightBase300,
+        ":hover": {
+            backgroundColor: tokens.colorNeutralBackground1Hover,
+            color: tokens.colorNeutralForeground1,
+        },
+    },
+    navArticleItemActive: {
+        color: tokens.colorBrandForeground1,
+        fontWeight: tokens.fontWeightSemibold,
     },
 });
 
@@ -152,42 +175,49 @@ const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOp
     const styles = useStyles();
     const sections = useMemo(() => getHelpDocSections(), []);
     const [activeArticleId, setActiveArticleId] = useState(getDefaultHelpDocArticle().id);
+    const [showNav, setShowNav] = useState(false);
+    const [openSection, setOpenSection] = useState<string>(sections[0]?.id ?? '');
+    const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
+    const dragStartRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
     React.useEffect(() =>
     {
         if (requestedArticleId && getHelpDocArticleById(requestedArticleId))
             setActiveArticleId(requestedArticleId);
     }, [requestedArticleId]);
-    const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
-    const dragStartRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
     const activeArticle = getHelpDocArticleById(activeArticleId) ?? getDefaultHelpDocArticle();
+
+    const handleNavToggle = () =>
+    {
+        if (!showNav)
+        {
+            const currentSection = sections.find(s => s.articles.some(a => a.id === activeArticleId));
+            if (currentSection) setOpenSection(currentSection.id);
+        }
+        setShowNav(prev => !prev);
+    };
+
+    const selectArticle = (articleId: string) =>
+    {
+        setActiveArticleId(articleId);
+        setShowNav(false);
+    };
 
     const onContentClick = useCallback((event: React.MouseEvent<HTMLDivElement>) =>
     {
         const target = event.target as HTMLElement | null;
         const articleLink = target?.closest?.("[data-help-article]") as HTMLElement | null;
         const articleId = articleLink?.getAttribute("data-help-article");
-        if (!articleId)
-        {
-            return;
-        }
-
+        if (!articleId) return;
         event.preventDefault();
         const article = getHelpDocArticleById(articleId);
-        if (article)
-        {
-            setActiveArticleId(article.id);
-        }
+        if (article) setActiveArticleId(article.id);
     }, []);
 
     const onResizePointerMove = useCallback((event: PointerEvent) =>
     {
-        if (!dragStartRef.current)
-        {
-            return;
-        }
-
+        if (!dragStartRef.current) return;
         const deltaX = dragStartRef.current.startX - event.clientX;
         setPanelWidth(clampPanelWidth(dragStartRef.current.startWidth + deltaX));
     }, []);
@@ -202,11 +232,7 @@ const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOp
     const onResizePointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) =>
     {
         event.preventDefault();
-        dragStartRef.current = {
-            startX: event.clientX,
-            startWidth: panelWidth,
-        };
-
+        dragStartRef.current = {startX: event.clientX, startWidth: panelWidth};
         window.addEventListener("pointermove", onResizePointerMove);
         window.addEventListener("pointerup", stopResize);
     }, [onResizePointerMove, panelWidth, stopResize]);
@@ -215,7 +241,6 @@ const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOp
     {
         const onWindowResize = () => setPanelWidth((width) => clampPanelWidth(width));
         window.addEventListener("resize", onWindowResize);
-
         return () =>
         {
             window.removeEventListener("resize", onWindowResize);
@@ -223,16 +248,14 @@ const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOp
         };
     }, [stopResize]);
 
-    if (!isOpen)
-    {
-        return null;
-    }
+    if (!isOpen) return null;
 
     return (
         <aside className={styles.panel}
                role="dialog"
                aria-label="Help documentation"
                style={{width: `${panelWidth}px`}}>
+
             <div className={styles.resizeHandle}
                  onPointerDown={onResizePointerDown}
                  aria-label="Drag to resize help panel"
@@ -247,56 +270,73 @@ const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOp
                     <Text size={200}>Help</Text>
                     <Text size={200} className={styles.crumbSeparator}>/</Text>
                     <Text size={200}>{activeArticle.sectionTitle}</Text>
-                    <Text size={200} className={styles.crumbSeparator}>/</Text>
-                    <Text size={200}>{activeArticle.title}</Text>
+                    {!showNav && (
+                        <>
+                            <Text size={200} className={styles.crumbSeparator}>/</Text>
+                            <Text size={200}>{activeArticle.title}</Text>
+                        </>
+                    )}
                 </div>
 
                 <div className={styles.titleRow}>
-                    <Text className={styles.titleText}>{activeArticle.title}</Text>
-                    <Menu>
-                        <MenuTrigger disableButtonEnhancement>
-                            <Button appearance="subtle"
-                                    shape="circular"
-                                    icon={<Navigation24Regular/>}
-                                    aria-label="Open documentation menu"/>
-                        </MenuTrigger>
-                        <MenuPopover>
-                            <MenuList>
-                                {sections.map((section) => (
-                                    <React.Fragment key={section.id}>
-                                        <MenuItem disabled className={styles.sectionLabel}>{section.title}</MenuItem>
-                                        {section.articles.map((article) => (
-                                            <MenuItem key={article.id}
-                                                      onClick={() => setActiveArticleId(article.id)}
-                                                      className={styles.articleMenuItem}>
-                                                {article.title}
-                                            </MenuItem>
-                                        ))}
-                                    </React.Fragment>
-                                ))}
-                                <MenuItem onClick={() => onOpenChange(false)}
-                                          icon={<DismissCircleFilled></DismissCircleFilled>}>
-                                    Close help panel
-                                </MenuItem>
-                            </MenuList>
-                        </MenuPopover>
-                    </Menu>
+                    <Text className={styles.titleText}>
+                        {showNav ? "Contents" : activeArticle.title}
+                    </Text>
+                    <div className={styles.headerActions}>
+                        <Button
+                            appearance="subtle"
+                            shape="circular"
+                            icon={showNav ? <ArrowLeftRegular/> : <Navigation24Regular/>}
+                            aria-label={showNav ? "Back to article" : "Open documentation menu"}
+                            onClick={handleNavToggle}
+                        />
+                        <Button
+                            appearance="subtle"
+                            shape="circular"
+                            icon={<DismissFilled/>}
+                            aria-label="Close help panel"
+                            onClick={() => onOpenChange(false)}
+                        />
+                    </div>
                 </div>
             </div>
 
-            <div className={styles.content}
-                 onClick={onContentClick}>
-                {activeArticle.content}
-            </div>
+            {showNav ? (
+                <div className={styles.nav}>
+                    <Accordion
+                        collapsible
+                        openItems={openSection ? [openSection] : []}
+                        onToggle={(_, data) =>
+                            setOpenSection(prev => prev === data.value ? '' : data.value as string)
+                        }
+                    >
+                        {sections.map(section => (
+                            <AccordionItem key={section.id} value={section.id}>
+                                <AccordionHeader>{section.title}</AccordionHeader>
+                                <AccordionPanel>
+                                    <div style={{display: 'flex', flexDirection: 'column', paddingBottom: '4px'}}>
+                                        {section.articles.map(article => (
+                                            <button
+                                                key={article.id}
+                                                className={`${styles.navArticleItem}${article.id === activeArticleId ? ` ${styles.navArticleItemActive}` : ''}`}
+                                                onClick={() => selectArticle(article.id)}
+                                            >
+                                                {article.title}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </AccordionPanel>
+                            </AccordionItem>
+                        ))}
+                    </Accordion>
+                </div>
+            ) : (
+                <div className={styles.content} onClick={onContentClick}>
+                    {activeArticle.content}
+                </div>
+            )}
         </aside>
     );
 };
 
 export default HelpDocumentationSidebar;
-
-
-
-
-
-
-

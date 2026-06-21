@@ -349,6 +349,7 @@ class ExchangeRequestDocumentRequest
     var restrictedType: DocumentType? = null
     var type: DocumentType? = null
     var restrictType: Boolean = false
+    var required: Boolean = false
 }
 
 @Serializable

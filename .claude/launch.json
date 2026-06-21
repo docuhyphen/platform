@@ -8,6 +8,14 @@
       "cwd": "${workspaceFolder}/website",
       "port": 4173,
       "autoPort": true
+    },
+    {
+      "name": "web-app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "${workspaceFolder}/web-app",
+      "port": 5173,
+      "autoPort": true
     }
   ]
 }
