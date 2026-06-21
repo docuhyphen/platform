@@ -6,21 +6,63 @@
     z-index: 0;
 }
 
+/* ===== Hub panels (sender / recipient) ===== */
+
+.hub {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 72px;
+    opacity: 0.18;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.hubLeft  { left: 4%; }
+.hubRight { right: 4%; }
+
+.hubLabel {
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(78, 109, 150, 0.9);
+    font-weight: 700;
+}
+
+/* ===== Center shield checkpoint ===== */
+
+.shieldWrap {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.shield {
+    width: 52px;
+    height: 60px;
+    display: block;
+    animation: shieldPulse 7s ease-in-out infinite;
+}
+
+/* ===== Document cards ===== */
+
 .card {
     position: absolute;
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.92);
     box-shadow: 0 4px 14px rgba(32, 52, 77, 0.14), 0 2px 6px rgba(32, 52, 77, 0.08);
     border: 1px solid rgba(78, 109, 150, 0.18);
-    will-change: transform;
-    animation-timing-function: linear;
+    will-change: transform, opacity;
+    animation-timing-function: ease-in-out;
     animation-iteration-count: infinite;
     animation-fill-mode: both;
 }
 
-.pathA { animation-name: floatA; }
-.pathB { animation-name: floatB; }
-.pathC { animation-name: floatC; }
+.arcUp   { animation-name: exchangeArcUp; }
+.arcDown { animation-name: exchangeArcDown; }
 
 .accent {
     width: 100%;
@@ -44,33 +86,91 @@
 .lineShort {
     height: 4px;
     border-radius: 2px;
-    background: rgba(32, 52, 77, 0.12);
-    width: 55%;
+    background: rgba(32, 52, 77, 0.10);
 }
 
-@keyframes floatA {
-    0%   { transform: translateX(-160px) translateY(0px)   rotate(-1.5deg); }
-    50%  { transform: translateX(50vw)   translateY(-20px) rotate(0.8deg);  }
-    100% { transform: translateX(calc(100vw + 160px)) translateY(0px) rotate(-0.5deg); }
+/* ===== Keyframes ===== */
+
+@keyframes exchangeArcUp {
+    0%   {
+        opacity: 0;
+        transform: translateX(0) translateY(0) scale(0.82);
+    }
+    3%   {
+        opacity: var(--card-opacity);
+        transform: translateX(0) translateY(0) scale(1);
+        animation-timing-function: cubic-bezier(0.4, 0, 0.55, 1);
+    }
+    45%  {
+        opacity: var(--card-opacity);
+        transform: translateX(38vw) translateY(-22px) rotate(-0.6deg);
+        animation-timing-function: linear;
+    }
+    55%  {
+        opacity: var(--card-opacity);
+        transform: translateX(38vw) translateY(-22px) rotate(0.6deg);
+        animation-timing-function: cubic-bezier(0.45, 0, 0.6, 1);
+    }
+    97%  {
+        opacity: var(--card-opacity);
+        transform: translateX(76vw) translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(76vw) translateY(0) scale(0.82);
+    }
 }
 
-@keyframes floatB {
-    0%   { transform: translateX(-160px) translateY(0px)  rotate(1deg);   }
-    50%  { transform: translateX(50vw)   translateY(24px) rotate(-1.5deg);}
-    100% { transform: translateX(calc(100vw + 160px)) translateY(10px) rotate(0.5deg); }
+@keyframes exchangeArcDown {
+    0%   {
+        opacity: 0;
+        transform: translateX(0) translateY(0) scale(0.82);
+    }
+    3%   {
+        opacity: var(--card-opacity);
+        transform: translateX(0) translateY(0) scale(1);
+        animation-timing-function: cubic-bezier(0.4, 0, 0.55, 1);
+    }
+    45%  {
+        opacity: var(--card-opacity);
+        transform: translateX(38vw) translateY(22px) rotate(0.6deg);
+        animation-timing-function: linear;
+    }
+    55%  {
+        opacity: var(--card-opacity);
+        transform: translateX(38vw) translateY(22px) rotate(-0.6deg);
+        animation-timing-function: cubic-bezier(0.45, 0, 0.6, 1);
+    }
+    97%  {
+        opacity: var(--card-opacity);
+        transform: translateX(76vw) translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(76vw) translateY(0) scale(0.82);
+    }
 }
 
-@keyframes floatC {
-    0%   { transform: translateX(-160px) translateY(6px)   rotate(0.5deg);  }
-    30%  { transform: translateX(30vw)   translateY(-14px) rotate(-1deg);   }
-    70%  { transform: translateX(70vw)   translateY(20px)  rotate(1.5deg);  }
-    100% { transform: translateX(calc(100vw + 160px)) translateY(4px) rotate(-0.5deg); }
+@keyframes shieldPulse {
+    0%, 100% { transform: scale(1.0);  opacity: 1;   }
+    50%       { transform: scale(1.1); opacity: 0.75; }
 }
+
+/* ===== Responsive ===== */
 
 @media (max-width: 48em) {
+    .hub {
+        display: none;
+    }
+
     .card {
-        transform: scale(0.86);
-        transform-origin: center;
+        width: 64px !important;
+        height: 80px !important;
+    }
+
+    .shield {
+        width: 38px;
+        height: 44px;
     }
 
     .accent {
@@ -86,4 +186,3 @@
 @media (prefers-reduced-motion: reduce) {
     .container { display: none; }
 }
-
