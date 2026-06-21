@@ -305,8 +305,8 @@ const helpDocSections: HelpDocSectionInput[] = [
 
                         <h3>Who can manage workflows</h3>
                         <p>
-                            Only Organization Admins can create, edit, activate, deactivate, clone,
-                            or delete workflow definitions. The Workflows tab in Settings is only
+                            Only Organization Admins can create, edit, activate, deactivate, publish,
+                            clone, or delete workflow definitions. The Workflows tab in Settings is only
                             visible to users with the admin role.
                         </p>
 
@@ -375,13 +375,13 @@ const helpDocSections: HelpDocSectionInput[] = [
                         </p>
                         <p><b>Available subject fields:</b></p>
                         <ul>
-                            <li><b>Recipient</b> - the primary recipient user (searchable by name).</li>
+                            <li><b>Recipient</b> - the primary recipient user. In the condition builder, searchable from your contacts.</li>
                             <li>
                                 <b>Recipient Group</b> - the recipient group (GROUP recipient
-                                type only, searchable by group name).
+                                type only). In the condition builder, searchable from your personal groups.
                             </li>
-                            <li><b>Initiator</b> - the user who created the Exchange (searchable by name).</li>
-                            <li><b>Org</b> - the initiator organization.</li>
+                            <li><b>Initiator</b> - the user who created the Exchange. In the condition builder, searchable from your contacts.</li>
+                            <li><b>Org</b> - the initiator organization. No searchable picker — used as a scope reference in assignee configuration.</li>
                             <li>
                                 <b>Recipient Type</b> - one of: <b>Email</b>,{" "}
                                 <b>App User</b>, or <b>Group</b>.
@@ -396,8 +396,8 @@ const helpDocSections: HelpDocSectionInput[] = [
                         </p>
                         <p><b>Available subject fields:</b></p>
                         <ul>
-                            <li><b>Initiator</b> - the user who created the Exchange (searchable by name).</li>
-                            <li><b>Org</b> - the initiator organization.</li>
+                            <li><b>Initiator</b> - the user who created the Exchange. In the condition builder, searchable from your contacts.</li>
+                            <li><b>Org</b> - the initiator organization. No searchable picker — used as a scope reference in assignee configuration.</li>
                         </ul>
 
                         <h3>exchange.ending</h3>
@@ -409,8 +409,8 @@ const helpDocSections: HelpDocSectionInput[] = [
                         </p>
                         <p><b>Available subject fields:</b></p>
                         <ul>
-                            <li><b>Initiator</b> - the user who created the Exchange (searchable by name).</li>
-                            <li><b>Org</b> - the initiator organization.</li>
+                            <li><b>Initiator</b> - the user who created the Exchange. In the condition builder, searchable from your contacts.</li>
+                            <li><b>Org</b> - the initiator organization. No searchable picker — used as a scope reference in assignee configuration.</li>
                         </ul>
 
                         <h3>Tip: subject field placeholders in assignees</h3>
@@ -478,6 +478,10 @@ const helpDocSections: HelpDocSectionInput[] = [
                                 <b>Edit</b> on an existing workflow definition row to modify it.
                             </li>
                         </ol>
+                        <p>
+                            Once in the designer, the info button (ⓘ) in the top-right corner of
+                            the title bar opens this help article at any time.
+                        </p>
 
                         <h3>Step 2: fill in the header fields</h3>
                         <ul>
@@ -531,8 +535,12 @@ const helpDocSections: HelpDocSectionInput[] = [
                                         optional SLA, and escalation action.
                                     </li>
                                     <li>
-                                        For <b>NOTIFICATION</b> and <b>ACTION</b> steps, select
-                                        the template or action key and configure recipients.
+                                        For <b>NOTIFICATION</b> steps, select a message template
+                                        key and add assignees who will receive the notification.
+                                    </li>
+                                    <li>
+                                        For <b>ACTION</b> steps, select the action key. No
+                                        assignees are needed — the action runs automatically.
                                     </li>
                                 </ul>
                             </li>
@@ -649,14 +657,17 @@ const helpDocSections: HelpDocSectionInput[] = [
                             </li>
                             <li>
                                 <b>Message template key</b> - identifies which email and in-app
-                                message template to use. Contact your platform admin for the
-                                available template keys.
-                            </li>
-                            <li>
-                                <b>On Approve</b> - the next step after the notification is sent.
-                                (There is no "reject" outcome for a notification step.)
+                                message template to render. A combobox suggests the built-in
+                                templates (exchange.reminder, exchange.status-accepted,
+                                exchange.status-rejected, exchange.status-ended,
+                                exchange.document-uploaded, exchange.no-auth-otp), or you can
+                                type a custom key.
                             </li>
                         </ul>
+                        <p>
+                            A NOTIFICATION step has no routing configuration. After the message
+                            is sent the workflow moves automatically to the next step in the list.
+                        </p>
 
                         <h3>CONDITION</h3>
                         <p>
@@ -717,34 +728,29 @@ const helpDocSections: HelpDocSectionInput[] = [
                             automatically. Use it to trigger system operations as part of the
                             workflow.
                         </p>
+                        <p>
+                            ACTION steps have no assignees and no routing configuration. After the
+                            action completes the workflow moves automatically to the next step in
+                            the list.
+                        </p>
                         <p><b>Key fields:</b></p>
                         <ul>
                             <li>
-                                <b>Action handler key</b> - selects which registered action to
-                                run. Built-in action keys:
+                                <b>Action</b> - selects which built-in action to run:
                                 <ul>
                                     <li>
-                                        <b>exchange.auto-accept</b> - sets the Exchange to Active
-                                        (ACCEPTED_STARTED) and fires the <code>exchange.activated</code>{" "}
-                                        event.
+                                        <b>exchange.auto-accept</b> - activates the Exchange,
+                                        setting it to Active.
                                     </li>
                                     <li>
-                                        <b>exchange.send-reminder</b> - sends a reminder email and
-                                        in-app notification to the recipient.
+                                        <b>exchange.send-reminder</b> - sends a reminder
+                                        notification to the Exchange's recipient.
                                     </li>
                                     <li>
                                         <b>exchange.revoke-access</b> - revokes all active shares
                                         on the Exchange.
                                     </li>
                                 </ul>
-                            </li>
-                            <li>
-                                <b>Message template key</b> - used by action handlers that send
-                                messages.
-                            </li>
-                            <li>
-                                <b>On Approve</b> - the next step after the action completes
-                                successfully.
                             </li>
                         </ul>
 
@@ -759,6 +765,13 @@ const helpDocSections: HelpDocSectionInput[] = [
 
                         <h3>Learn more</h3>
                         <ul>
+                            <li>
+                                <a href="#" data-help-article="building-a-workflow">
+                                    <b>Building a workflow</b>
+                                </a>{" "}
+                                - step-by-step guide, including how to add and configure steps in
+                                the designer.
+                            </li>
                             <li>
                                 <a href="#" data-help-article="sla-escalations-reminders">
                                     <b>SLA, escalations, and reminders</b>
@@ -796,17 +809,19 @@ const helpDocSections: HelpDocSectionInput[] = [
                         <p><b>Fields:</b></p>
                         <ul>
                             <li>
-                                <b>Role name</b> - the role to target (for example, OWNER, EDITOR,
-                                REVIEWER, SIGNER).
+                                <b>Role name</b> - the role to target. Within-organization scope:
+                                Organization Admin, Organization Member, Group Admin.
+                                Platform-wide scope: App Admin, App User.
                             </li>
                             <li>
-                                <b>Scope type</b> - either APP (platform-wide) or ORG
-                                (organization-scoped).
+                                <b>Scope type</b> - either <b>Platform-wide</b> (APP) or{" "}
+                                <b>Within organization</b> (ORG).
                             </li>
                             <li>
-                                <b>Scope ID ref</b> - the ID of the scope target. Use{" "}
-                                <code>$subject.orgId</code> to reference the initiator's
-                                organization dynamically instead of hardcoding an org ID.
+                                <b>Scope ID ref</b> - the organization to resolve roles against.
+                                Defaults to <b>Caller's organization</b> (<code>$subject.orgId</code>),
+                                which keeps the definition portable. Other subject fields from the
+                                trigger event appear as additional options.
                             </li>
                         </ul>
 
@@ -830,17 +845,17 @@ const helpDocSections: HelpDocSectionInput[] = [
 
                         <h3>PRINCIPAL</h3>
                         <p>
-                            Resolves to a specific user or group by their UUID. This is convenient
-                            for one-off customizations but makes the definition non-portable because
+                            Resolves to a specific user by their UUID. This is convenient for
+                            one-off customizations but makes the definition non-portable because
                             the UUID is only valid in your organization.
                         </p>
                         <p><b>Fields:</b></p>
                         <ul>
                             <li>
-                                <b>Principal kind</b> - APP_USER or GROUP.
-                            </li>
-                            <li>
-                                <b>Principal ID</b> - the exact UUID of the user or group.
+                                <b>User</b> - a dropdown of users in your organization. Selecting
+                                a user stores their UUID in the definition. Any workflow that
+                                contains a PRINCIPAL assignee will show a portability warning in
+                                the save bar.
                             </li>
                         </ul>
 
@@ -853,9 +868,10 @@ const helpDocSections: HelpDocSectionInput[] = [
                         </p>
                         <ul>
                             <li>
-                                If the definition is cloned by another organization, the hardcoded
-                                UUID is automatically replaced with a ROLE placeholder pointing to
-                                the REVIEWER role in the receiving org.
+                                If the definition is cloned by another organization, hardcoded
+                                UUIDs are automatically replaced with portable ROLE placeholders.
+                                The receiving org should review and adjust those entries after
+                                cloning.
                             </li>
                             <li>
                                 If you plan to publish this definition as a platform template,
@@ -935,10 +951,10 @@ const helpDocSections: HelpDocSectionInput[] = [
                         </p>
                         <ul>
                             <li>
-                                <b>Escalate</b> - the step is reassigned to a different set of
-                                assignees (the "escalate to" assignee list). The original assignees
-                                no longer hold pending tasks. Use this to route stalled approvals
-                                to a manager or admin.
+                                <b>Escalate</b> - the workflow instance transitions to ESCALATED
+                                status, flagging it for administrative review. Use this when a
+                                stalled approval should be surfaced rather than silently approved
+                                or rejected.
                             </li>
                             <li>
                                 <b>Auto-approve</b> - the step is automatically approved and the
@@ -952,94 +968,31 @@ const helpDocSections: HelpDocSectionInput[] = [
                             </li>
                         </ul>
 
-                        <h3>Reminder addons</h3>
-                        <p>
-                            Reminder addons send notifications to pending assignees before or
-                            after certain time thresholds, independently of the SLA escalation.
-                            They are configured per step.
-                        </p>
-                        <p>
-                            There are two reminder types:
-                        </p>
-
-                        <h3>Reminder before due</h3>
-                        <p>
-                            Sends a reminder a specified number of minutes before the SLA
-                            deadline. For example, set 60 minutes to warn assignees one hour
-                            before the step expires.
-                        </p>
-                        <p><b>Fields:</b></p>
-                        <ul>
-                            <li>
-                                <b>Minutes before due</b> - how far in advance to send the
-                                reminder.
-                            </li>
-                            <li>
-                                <b>Recipient ref</b> - who receives the reminder (uses the same
-                                assignee builder as the main step).
-                            </li>
-                            <li>
-                                <b>Message template key</b> - optional custom message template.
-                            </li>
-                        </ul>
-                        <p>
-                            This reminder fires once. The engine tracks whether it has already
-                            been sent to prevent duplicate messages.
-                        </p>
-
-                        <h3>Reminder if no decision</h3>
-                        <p>
-                            Sends a reminder if the step has been pending for a set number of
-                            minutes with no decision recorded. Optionally repeats on a cadence
-                            until a decision is made.
-                        </p>
-                        <p><b>Fields:</b></p>
-                        <ul>
-                            <li>
-                                <b>After minutes</b> - how many minutes of inactivity before the
-                                first reminder.
-                            </li>
-                            <li>
-                                <b>Repeat every (minutes)</b> - optional. When set, the reminder
-                                repeats on this interval after the first send, until a decision is
-                                made.
-                            </li>
-                            <li>
-                                <b>Recipient ref</b> - who receives the reminder.
-                            </li>
-                            <li>
-                                <b>Message template key</b> - optional custom message template.
-                            </li>
-                        </ul>
-
                         <h3>How the scheduler works</h3>
                         <p>
                             The escalation scheduler runs automatically in the background every
-                            60 seconds. For each pending step it:
-                        </p>
-                        <ol>
-                            <li>Checks whether the SLA deadline has passed and applies the escalation action if so.</li>
-                            <li>Evaluates each reminder addon against current step state.</li>
-                            <li>Sends any reminders that are due and marks them as sent to prevent repetition.</li>
-                        </ol>
-                        <p>
-                            No manual action is required to activate this behavior. It runs for all
-                            active workflow instances across your organization.
+                            60 seconds. For each pending APPROVAL step it checks whether the SLA
+                            deadline has passed and applies the configured escalation action if so.
+                            No manual action is required — it runs for all active workflow instances
+                            across your organization.
                         </p>
 
                         <h3>Recommendations</h3>
                         <ul>
                             <li>
-                                Set a "Reminder if no decision" addon before using "Auto-reject"
-                                escalation so assignees have a chance to act before the step
-                                auto-rejects.
+                                Use <b>Auto-reject</b> escalation for strict compliance scenarios
+                                where inaction should block the Exchange.
                             </li>
                             <li>
-                                Use "Reminder before due" to give assignees advance warning when
-                                the SLA is tight.
+                                Use <b>Auto-approve</b> escalation for low-risk gates where
+                                silence implies consent.
                             </li>
                             <li>
-                                Combine both reminder types for high-stakes approval steps.
+                                Use <b>Escalate</b> when a stalled approval needs an administrator
+                                to step in rather than resolving automatically.
+                            </li>
+                            <li>
+                                Leave the SLA field empty on steps where no deadline is appropriate.
                             </li>
                         </ul>
                     </>
@@ -1093,8 +1046,8 @@ const helpDocSections: HelpDocSectionInput[] = [
                         <ul>
                             <li>
                                 All hardcoded principal UUIDs in assignee entries are replaced with
-                                a portable ROLE placeholder pointing to the REVIEWER role in your
-                                organization. Review and adjust these after cloning.
+                                portable ROLE placeholders. Review and adjust these after cloning
+                                to ensure they target the correct roles for your organization.
                             </li>
                             <li>
                                 The cloned definition records the source template ID so you can
@@ -1167,32 +1120,32 @@ const helpDocSections: HelpDocSectionInput[] = [
 
                         <h3>Reading the instance list</h3>
                         <p>
-                            Each row represents one workflow instance. The columns show:
+                            Each row represents one workflow instance and shows:
                         </p>
                         <ul>
                             <li><b>Workflow name</b> - the definition that created this instance.</li>
                             <li>
-                                <b>Exchange</b> - the Exchange this instance is running against.
-                                Click the exchange name to navigate to that Exchange.
-                            </li>
-                            <li><b>Trigger</b> - the event that started the instance.</li>
-                            <li>
-                                <b>Status</b> - one of: RUNNING, COMPLETED, REJECTED, CANCELLED,
-                                or ESCALATED.
+                                <b>Exchange</b> - the Exchange this instance is running against
+                                (shown when available).
                             </li>
                             <li>
-                                <b>Current step</b> - the index of the active step within the
-                                instance.
+                                <b>Step and started date</b> - the current step number and when
+                                the instance was created (for example, "Step 2 · Started Jun 21,
+                                2026").
                             </li>
-                            <li><b>Started</b> - when the instance was created.</li>
-                            <li><b>Completed</b> - when the instance finished (if applicable).</li>
+                            <li>
+                                <b>Status badge</b> - the instance status: In Progress, Completed,
+                                Rejected, Cancelled, or Escalated.
+                            </li>
                         </ul>
 
                         <h3>Filtering instances</h3>
                         <p>
-                            Use the <b>Status</b> dropdown to filter by instance status. For
-                            example, select RUNNING to see all instances currently waiting for
-                            human decisions.
+                            Use the <b>Filter by status</b> dropdown to narrow the list. Options
+                            are: All, In Progress, Completed, Rejected, Cancelled, and Escalated.
+                            For example, select <b>In Progress</b> to see all instances currently
+                            waiting for human decisions. Use the <b>Refresh</b> button to reload
+                            the list after filtering.
                         </p>
 
                         <h3>Viewing the step timeline</h3>
@@ -1202,8 +1155,9 @@ const helpDocSections: HelpDocSectionInput[] = [
                         </p>
                         <ul>
                             <li>
-                                <b>Step type and status</b> - the type (APPROVAL, NOTIFICATION,
-                                etc.) and current status (PENDING, COMPLETED, REJECTED, SKIPPED).
+                                <b>Step type and status</b> - the step type (Approval, Notification,
+                                Condition, Action) and its status: Waiting, Completed, Rejected,
+                                Escalated, or Skipped.
                             </li>
                             <li>
                                 <b>Assignees</b> - who was assigned to this step.
@@ -1229,26 +1183,26 @@ const helpDocSections: HelpDocSectionInput[] = [
                         <h3>Instance statuses explained</h3>
                         <ul>
                             <li>
-                                <b>RUNNING</b> - at least one step is still PENDING. The workflow
-                                has not yet reached a terminal state.
+                                <b>In Progress</b> - at least one step is still waiting for a
+                                decision. The workflow has not yet reached a terminal state.
                             </li>
                             <li>
-                                <b>COMPLETED</b> - all steps finished on the approval/true path.
+                                <b>Completed</b> - all steps finished on the approval/true path.
                                 The Exchange lifecycle transition was unblocked.
                             </li>
                             <li>
-                                <b>REJECTED</b> - a step was rejected (either by an assignee or
-                                by an AUTO_REJECT escalation), causing the workflow to terminate
+                                <b>Rejected</b> - a step was rejected (either by an assignee or
+                                by an Auto-reject escalation), causing the workflow to terminate
                                 early.
                             </li>
                             <li>
-                                <b>CANCELLED</b> - the instance was cancelled before completion,
+                                <b>Cancelled</b> - the instance was cancelled before completion,
                                 typically because the underlying Exchange was cancelled or the
                                 definition was deactivated.
                             </li>
                             <li>
-                                <b>ESCALATED</b> - an SLA breach triggered the Escalate action
-                                and the instance is now assigned to escalation targets.
+                                <b>Escalated</b> - an SLA breach triggered the Escalate action
+                                and the instance has been flagged for administrative review.
                             </li>
                         </ul>
 

@@ -50,7 +50,7 @@ class WorkflowDefinitionRepository :
 
     fun findByNameAndVersion(name: String, version: Int): WorkflowDefinition? =
         entityManager.createQuery(
-            "SELECT d FROM WorkflowDefinition d WHERE d.name = :n AND d.version = :v",
+            "SELECT d FROM WorkflowDefinition d WHERE d.name = :n AND d.version = :v AND d.isDeleted = false",
             WorkflowDefinition::class.java,
         )
             .setParameter("n", name)

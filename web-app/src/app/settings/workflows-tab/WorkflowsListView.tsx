@@ -2,6 +2,14 @@ import {useCallback, useEffect, useState} from "react";
 import {
     Badge,
     Button,
+    Dialog,
+    DialogActions,
+    DialogBody,
+    DialogContent,
+    DialogSurface,
+    DialogTitle,
+    Input,
+    Label,
     Menu,
     MenuItem,
     MenuList,
@@ -41,6 +49,9 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [deletingDef, setDeletingDef] = useState<WorkflowDefinitionSummaryDto | null>(null);
+    const [cloningDef, setCloningDef] = useState<WorkflowDefinitionSummaryDto | null>(null);
+    const [cloneNameInput, setCloneNameInput] = useState("");
+    const [cloning, setCloning] = useState(false);
 
     const load = useCallback(async () =>
     {
@@ -90,15 +101,28 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
         }
     };
 
-    const clone = async (def: WorkflowDefinitionSummaryDto) =>
+    const openCloneDialog = (def: WorkflowDefinitionSummaryDto) =>
     {
+        setCloningDef(def);
+        setCloneNameInput(`${def.name} (copy)`);
+    };
+
+    const confirmClone = async () =>
+    {
+        if (!cloningDef) return;
+        setCloning(true);
         try
         {
-            await cloneWorkflowDefinition(def.id, {});
+            await cloneWorkflowDefinition(cloningDef.id, {newName: cloneNameInput.trim() || undefined});
             await load();
+            setCloningDef(null);
         }
         catch
         { /* ignore */
+        }
+        finally
+        {
+            setCloning(false);
         }
     };
 
@@ -173,7 +197,7 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                                             onClick={() => toggleActive(def)}>
                                             {def.isActive ? "Deactivate" : "Activate"}
                                         </MenuItem>
-                                        <MenuItem onClick={() => clone(def)}
+                                        <MenuItem onClick={() => openCloneDialog(def)}
                                                   icon={<CopyIcon/>}>Duplicate</MenuItem>
                                         <MenuItem icon={<DeleteIcon/>} onClick={() => setDeletingDef(def)}>
                                             Delete
@@ -209,7 +233,7 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                                     {def.generalTags.map(t => <Tag key={t} size="extra-small">{t}</Tag>)}
                                 </div>
                             </div>
-                            <Button size="small" appearance="outline" onClick={() => clone(def)}>
+                            <Button size="small" appearance="outline" onClick={() => openCloneDialog(def)}>
                                 Add to my workflows
                             </Button>
                         </div>
@@ -228,6 +252,38 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                     }}
                 />
             )}
+
+            <Dialog open={!!cloningDef} onOpenChange={(_, d) => { if (!d.open) setCloningDef(null); }}>
+                <DialogSurface>
+                    <DialogBody>
+                        <DialogTitle>Clone workflow</DialogTitle>
+                        <DialogContent>
+                            <Label htmlFor="clone-name-input" style={{display: "block", marginBottom: "0.25rem"}}>
+                                Name
+                            </Label>
+                            <Input
+                                id="clone-name-input"
+                                value={cloneNameInput}
+                                onChange={(_, d) => setCloneNameInput(d.value)}
+                                onKeyDown={e => { if (e.key === "Enter") confirmClone(); }}
+                                style={{width: "100%"}}
+                                autoFocus
+                            />
+                        </DialogContent>
+                        <DialogActions>
+                            <Button appearance="secondary" shape="circular"
+                                    onClick={() => setCloningDef(null)}>
+                                Cancel
+                            </Button>
+                            <Button appearance="primary" shape="circular"
+                                    onClick={confirmClone}
+                                    disabled={cloning || !cloneNameInput.trim()}>
+                                {cloning ? "Cloning…" : "Clone"}
+                            </Button>
+                        </DialogActions>
+                    </DialogBody>
+                </DialogSurface>
+            </Dialog>
         </>
     );
 };
