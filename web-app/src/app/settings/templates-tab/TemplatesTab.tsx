@@ -134,20 +134,20 @@ const BlueprintsTab = () =>
     return (
         <>
             <div style={{display: 'flex', flexDirection: 'column', gap: '16px', width: '100%'}}>
-                <TabList
-                    selectedValue={activeTab}
-                    onTabSelect={(_, d) =>
-                    {
-                        setActiveTab(d.value as ActiveTab);
-                        setBlueprints([]);
-                    }}
-                >
-                    <Tab value="PERSONAL">{tabLabels.PERSONAL}</Tab>
-                    <Tab value="ORG">{tabLabels.ORG}</Tab>
-                    <Tab value="APP">{tabLabels.APP}</Tab>
-                </TabList>
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                    <TabList
+                        selectedValue={activeTab}
+                        onTabSelect={(_, d) =>
+                        {
+                            setActiveTab(d.value as ActiveTab);
+                            setBlueprints([]);
+                        }}
+                    >
+                        <Tab value="PERSONAL">{tabLabels.PERSONAL}</Tab>
+                        <Tab value="ORG">{tabLabels.ORG}</Tab>
+                        <Tab value="APP">{tabLabels.APP}</Tab>
+                    </TabList>
 
-                <div className={styles.header} style={{justifyContent: 'flex-end'}}>
                     {canCreate && (
                         <Button
                             icon={<BlueprintAddIcon/>}

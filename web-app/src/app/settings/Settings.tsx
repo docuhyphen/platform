@@ -112,11 +112,9 @@ const Settings = () =>
             <Tab id="BlueprintsTab" icon={<SettingsExchangeBlueprintsTabIcon/>} value={tabIds.blueprints}>
                 Blueprints
             </Tab>
-            {canManageOrganization && (
-                <Tab id="WorkflowsTab" icon={<SettingsWorkflowsTabIcon/>} value={tabIds.workflows}>
-                    Workflows
-                </Tab>
-            )}
+            <Tab id="WorkflowsTab" icon={<SettingsWorkflowsTabIcon/>} value={tabIds.workflows}>
+                Workflows
+            </Tab>
         </TabList>
     );
 
