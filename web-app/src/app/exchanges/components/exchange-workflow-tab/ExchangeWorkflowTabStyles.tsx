@@ -11,6 +11,7 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: tokens.spacingVerticalM,
+        padding: "1rem"
     },
     sectionHeading: {
         paddingBottom: tokens.spacingVerticalXS,
