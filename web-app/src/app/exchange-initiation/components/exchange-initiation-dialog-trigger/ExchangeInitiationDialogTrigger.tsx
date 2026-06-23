@@ -43,27 +43,25 @@ const ExchangeInitiationDialogTrigger = React.forwardRef<HTMLButtonElement, Exch
             </MenuTrigger>
             <MenuPopover>
                 <MenuList>
-                    <MenuItem onClick={() => onRequestingDocumentsChange(true)}>
-                        <Button size="small" ref={ref} {...props} appearance="transparent"
-                                className={styles.sharingDetailsInput}
-                                icon={<ReceiveDocumentsIcon/>}>
+                    <MenuItem onClick={() => onRequestingDocumentsChange(true)}
+                              {...props}
+                              appearance="transparent"
+                              className={styles.sharingDetailsInput}
+                              icon={<ReceiveDocumentsIcon/>}>
                             Request Documents
-                        </Button>
                     </MenuItem>
-                    <MenuItem onClick={() => onRequestingDocumentsChange(false)}>
-                        <Button size="small" ref={ref} {...props} appearance="transparent"
-                                className={styles.sharingDetailsInput}
-                                icon={<SendDocumentsIcon/>}>
-                            Send Documents
-                        </Button>
+                    <MenuItem onClick={() => onRequestingDocumentsChange(false)}
+                              {...props}
+                              className={styles.sharingDetailsInput}
+                              icon={<SendDocumentsIcon/>}>
+                        Send Documents
                     </MenuItem>
-                     <MenuItem onClick={() => onChooseBlueprint()}>
-                         <Button size="small" ref={ref} {...props} appearance="transparent"
-                                 className={styles.sharingDetailsInput}
-                                 icon={<InitiateFromBlueprintIcon/>}>
-                             From Blueprint
-                         </Button>
-                     </MenuItem>
+                    <MenuItem onClick={() => onChooseBlueprint()}
+                              icon={<InitiateFromBlueprintIcon/>}
+                              {...props}
+                              className={styles.sharingDetailsInput}>
+                        From Blueprint
+                    </MenuItem>
                 </MenuList>
             </MenuPopover>
         </Menu>

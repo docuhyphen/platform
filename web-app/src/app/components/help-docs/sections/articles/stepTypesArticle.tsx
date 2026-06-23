@@ -65,12 +65,16 @@ export const stepTypesArticle = (
                 <b>Assignees</b> - who receives the notification.
             </li>
             <li>
-                <b>Message template key</b> - identifies which email and in-app
-                message template to render. A combobox suggests the built-in
-                templates (exchange.reminder, exchange.status-accepted,
-                exchange.status-rejected, exchange.status-ended,
-                exchange.document-uploaded, exchange.no-auth-otp), or you can
-                type a custom key.
+                <b>Communication</b> - selects which communication to render for
+                the notification. Click <b>Select communication...</b> to open
+                the picker and browse Personal, Organization, and Platform
+                communications. Leave blank to use the default system message.
+                See{" "}
+                <a href="#"
+                   data-help-article="communications-in-workflows">
+                    Using communications in workflows
+                </a>
+                .
             </li>
         </ul>
         <p>

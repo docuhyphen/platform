@@ -64,11 +64,18 @@ class InAppChannel : NotificationChannel
             "session.approval_requested" -> "A exchange is awaiting your approval"
             "workflow.step_assigned"   -> "You have a new task awaiting your decision"
             "workflow.escalated"       -> "A workflow step has been escalated to you"
+            "workflow.notification"    ->
+                task.event.payload["renderedSubject"]?.takeIf { it.isNotBlank() }
+                    ?: "Workflow Notification"
             else                       -> task.event.type
         }.take(255)
 
     private fun bodyFor(task: DeliveryTask): String?
     {
+        if (task.event.type == "workflow.notification")
+        {
+            return task.event.payload["renderedBody"]?.takeIf { it.isNotBlank() }?.take(2048)
+        }
         val subject = task.event.subject ?: return null
         return "Subject: ${subject.type} ${subject.id}".take(2048)
     }

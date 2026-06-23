@@ -16,7 +16,8 @@ import {Navigation24Regular} from "@fluentui/react-icons";
 import {useSettingsStyles} from "./SettingsStyles.tsx";
 import {
     SettingsAppSettingsTabIcon, SettingsDeviceSessionsTabIcon,
-    SettingsExchangeBlueprintsTabIcon, SettingsLinkedAccountsTabIcon, SettingsMyGroupsTabIcon,
+    SettingsExchangeBlueprintsTabIcon, SettingsLinkedAccountsTabIcon, SettingsCommunicationsTabIcon,
+    SettingsMyGroupsTabIcon,
     SettingsOrganizationTabIcon,
     SettingsProfileTabIcon,
     SettingsSequencesTabIcon,
@@ -38,6 +39,7 @@ import AppAdminsTab from "./app-admins-tab/AppAdminsTab.tsx";
 import OrganizationTab from "./organization-tab/OrganizationTab.tsx";
 import OrganizationSequencesTab from "./organization-sequences-tab/OrganizationSequencesTab.tsx";
 import VariablesTab from "./variables-tab/VariablesTab.tsx";
+import CommunicationsTab from "./communications-tab/CommunicationsTab.tsx";
 import {useIsMobile} from "../../utils/useMediaQuery.ts";
 import {AppUserRole} from "../models/models.tsx";
 
@@ -58,6 +60,7 @@ const Settings = () =>
         workflows: "WorkflowsTab",
         sequences: "SequencesTab",
         variables: "VariablesTab",
+        communications: "CommunicationsTab",
     }
 
     const tabLabels: Record<string, string> = {
@@ -70,6 +73,7 @@ const Settings = () =>
         [tabIds.blueprints]: "Blueprints",
         [tabIds.sequences]: "Sequences",
         [tabIds.variables]: "Variables",
+        [tabIds.communications]: "Communications",
     };
 
     const {appUser, appUserPersonOrganization} = useAuth();
@@ -129,6 +133,9 @@ const Settings = () =>
             <Tab id="VariablesTab" icon={<SettingsVariablesTabIcon/>} value={tabIds.variables}>
                 Variables
             </Tab>
+            <Tab id="CommunicationsTab" icon={<SettingsCommunicationsTabIcon/>} value={tabIds.communications}>
+                Communications
+            </Tab>
         </TabList>
     );
 
@@ -181,6 +188,7 @@ const Settings = () =>
                     {selectedValue === tabIds.workflows && <WorkflowsTab/>}
                     {selectedValue === tabIds.sequences && <OrganizationSequencesTab/>}
                     {selectedValue === tabIds.variables && <VariablesTab/>}
+                    {selectedValue === tabIds.communications && <CommunicationsTab/>}
                 </div>
 
             </div>

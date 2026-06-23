@@ -36,8 +36,8 @@ data class WorkflowStepSpec(
     val onReject: StepOutcomeSpec? = null,
     /** For ACTION steps: key of the registered WorkflowActionHandler bean to invoke (see Phase 2). */
     val actionHandlerKey: String? = null,
-    /** For NOTIFICATION steps: key into the email/in-app template registry. */
-    val messageTemplateKey: String? = null,
+    /** For NOTIFICATION steps: ID of the Communication to use for subject/body. */
+    val communicationId: String? = null,
     /**
      * For CONDITION steps: simple predicate evaluated against `subjectDataJson` fields.
      * Syntax: `"$subject.<key> <op> '<value>'"` where op is one of ==, !=, contains, startsWith.
@@ -146,7 +146,7 @@ sealed class StepAddonSpec
     data class ReminderBeforeDue(
         val minutesBeforeDue: Int,
         val recipientRef: AssigneeSpec,
-        val messageTemplateKey: String? = null,
+        val communicationId: String? = null,
     ) : StepAddonSpec()
 
     /** Send a reminder if no decision has been recorded after [afterMinutes]. */
@@ -155,7 +155,7 @@ sealed class StepAddonSpec
     data class ReminderIfNoDecision(
         val afterMinutes: Int,
         val recipientRef: AssigneeSpec,
-        val messageTemplateKey: String? = null,
+        val communicationId: String? = null,
         /** When set, repeat the reminder every [repeatEveryMinutes] after the first fire. Null = send once. */
         val repeatEveryMinutes: Int? = null,
     ) : StepAddonSpec()

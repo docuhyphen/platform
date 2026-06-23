@@ -12,8 +12,13 @@ import com.docuhyphen.app.api.repository.WorkflowStepInstanceRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.communication.AppNotificationService
 import com.docuhyphen.app.api.service.communication.EmailService
+import com.docuhyphen.app.api.service.communication.MarkdownRenderer
+import com.docuhyphen.app.api.service.communication.templates.EmailTemplateRenderer
 import com.docuhyphen.app.api.service.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventPublisher
+import com.docuhyphen.app.api.service.communication.CommunicationResolver
+import com.docuhyphen.app.api.service.variable.VariableResolutionContext
+import org.eclipse.microprofile.config.inject.ConfigProperty
 import jakarta.annotation.PostConstruct
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.inject.Instance
@@ -57,6 +62,16 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     @Inject private lateinit var appUserRepository: com.docuhyphen.app.api.repository.AppUserRepository
     @Inject private lateinit var appNotificationService: AppNotificationService
     @Inject private lateinit var emailService: EmailService
+    @Inject private lateinit var communicationResolver: CommunicationResolver
+    @Inject private lateinit var organizationRepository: com.docuhyphen.app.api.repository.OrganizationRepository
+    @Inject private lateinit var markdownRenderer: MarkdownRenderer
+    @Inject private lateinit var emailTemplateRenderer: EmailTemplateRenderer
+
+    @ConfigProperty(name = "app.url", defaultValue = "https://app.docuhyphen.com")
+    private lateinit var appUrl: String
+
+    @ConfigProperty(name = "app.name", defaultValue = "DocuHyphen")
+    private lateinit var appName: String
 
     /** CDI programmatic lookup of all registered [WorkflowActionHandler] beans. */
     @Inject private lateinit var actionHandlerBeans: Instance<WorkflowActionHandler>
@@ -414,6 +429,11 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     /**
      * Sends in-app and email notifications to every USER assignee in the step's snapshot,
      * then marks the step COMPLETED and follows the `onApprove` outcome.
+     *
+     * When [WorkflowStepSpec.communicationId] is set, the referenced [Communication]
+     * is resolved and interpolated. The rendered subject and body are used for delivery.
+     * Falls back to generic strings when the communication is missing, inactive, or fails to
+     * resolve.
      */
     private fun executeNotificationStep(
         instance: WorkflowInstance,
@@ -423,9 +443,32 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     {
         val now = Timestamp.from(Instant.now())
         val assignees = decodePrincipalList(step.assigneesSnapshotJson)
-        val notificationSubject = "Workflow Notification"
-        val notificationBody = spec.messageTemplateKey
-            ?: "You have a notification from a workflow on DocuHyphen."
+        val subjectData = decodeSubjectData(instance.subjectDataJson)
+
+        var renderedSubject: String? = null
+        var renderedBody: String? = null
+
+        if (spec.communicationId != null)
+        {
+            val contextUser = instance.initiatedByAppUserId?.let { appUserRepository.findById(it) }
+            val contextOrg = instance.organizationId?.let { organizationRepository.findById(it) }
+            if (contextUser != null)
+            {
+                val ctx = VariableResolutionContext(
+                    user = contextUser,
+                    organization = contextOrg,
+                    timestamp = now.toInstant(),
+                )
+                val rendered = runCatching {
+                    communicationResolver.resolve(spec.communicationId, subjectData, ctx)
+                }.getOrNull()
+                renderedSubject = rendered?.subject
+                renderedBody = rendered?.body
+            }
+        }
+
+        val subject = renderedSubject ?: "Workflow Notification"
+        val plainBody = renderedBody ?: "You have a notification from a workflow on DocuHyphen."
 
         for (a in assignees)
         {
@@ -435,9 +478,34 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                     val user = appUserRepository.findById(uid)
                     if (user != null)
                     {
-                        appNotificationService.sendNotification(uid.toString(), notificationSubject, notificationBody)
-                        try { emailService.sendEmail(user.email, notificationSubject, notificationBody) }
-                        catch (e: Exception) { logger.warn("Email notification failed for {}: {}", user.email, e.message) }
+                        appNotificationService.sendNotification(uid.toString(), subject, plainBody)
+                        try
+                        {
+                            if (renderedBody != null)
+                            {
+                                val html = markdownRenderer.toHtml(renderedBody)
+                                val wrappedHtml = runCatching {
+                                    emailTemplateRenderer.render(
+                                        "communication-wrapper.ftl",
+                                        mapOf(
+                                            "appName" to appName,
+                                            "appUrl" to appUrl,
+                                            "htmlBody" to html,
+                                            "emailTitle" to subject,
+                                        )
+                                    )
+                                }.getOrElse { html }
+                                emailService.sendEmail(user.email, subject, wrappedHtml, useHtml = true)
+                            }
+                            else
+                            {
+                                emailService.sendEmail(user.email, subject, plainBody)
+                            }
+                        }
+                        catch (e: Exception)
+                        {
+                            logger.warn("Email notification failed for {}: {}", user.email, e.message)
+                        }
                     }
                 }
             }
@@ -571,7 +639,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                     val minutesRemaining = (dueAt.time - now.time) / 60_000L
                     if (minutesRemaining <= addon.minutesBeforeDue)
                     {
-                        dispatchAddonReminder(addon.recipientRef, addon.messageTemplateKey, subjectFields)
+                        dispatchAddonReminder(addon.recipientRef, addon.communicationId, subjectFields)
                         addonState["fired"] = "true"
                         addonState["firedAt"] = now.time.toString()
                         addonState["fireCount"] = "1"
@@ -602,7 +670,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
 
                     if (shouldFire)
                     {
-                        dispatchAddonReminder(addon.recipientRef, addon.messageTemplateKey, subjectFields)
+                        dispatchAddonReminder(addon.recipientRef, addon.communicationId, subjectFields)
                         addonState["fired"] = "true"
                         addonState["firedAt"] = addonState["firedAt"] ?: now.time.toString()
                         addonState["fireCount"] = (fireCount + 1).toString()
@@ -624,13 +692,13 @@ class DefaultWorkflowEngineService : WorkflowEngineService
 
     private fun dispatchAddonReminder(
         recipientRef: AssigneeSpec,
-        messageTemplateKey: String?,
+        communicationId: String?,
         subjectFields: Map<String, String>,
     )
     {
         val resolved = assigneeResolver.resolveOne(recipientRef, subjectFields)
         val subject = "Reminder: Action Required"
-        val body = messageTemplateKey ?: "A reminder: your decision is still pending on a workflow step."
+        val body = communicationId ?: "A reminder: your decision is still pending on a workflow step."
         for (p in resolved)
         {
             if (p.kind == PrincipalKind.USER)

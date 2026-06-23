@@ -121,7 +121,7 @@
     DismissFilled, DismissRegular, DocumentFlowchartFilled, DocumentFlowchartRegular, CopyRegular, CopyFilled,
     EyeFilled, EyeRegular, EyeOffFilled, EyeOffRegular,
     ToggleRightFilled, ToggleRightRegular, ToggleLeftFilled, ToggleLeftRegular, FlowFilled, FlowRegular, BranchRegular,
-    BranchFilled,
+    BranchFilled, ChatMailFilled, ChatMailRegular,
 } from "@fluentui/react-icons";
 
 export const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
@@ -161,6 +161,7 @@ export const NotificationsIcon = bundleIcon(AlertFilled, AlertRegular);
 export const SignOutButtonIcon = bundleIcon(ArrowExitFilled, ArrowExitRegular);
 export const SettingsSequencesTabIcon = bundleIcon(CalculatorArrowClockwiseFilled, CalculatorArrowClockwiseRegular);
 export const SettingsVariablesTabIcon = bundleIcon(NotepadEditFilled, NotepadEditRegular);
+export const SettingsCommunicationsTabIcon = bundleIcon(ChatMailFilled, ChatMailRegular);
 export const InfoIcon = bundleIcon(InfoFilled, InfoRegular)
 export const SettingsIcon = bundleIcon(SettingsFilled, SettingsRegular)
 export const LastPageIcon = bundleIcon(ArrowNextFilled, ArrowNextRegular)

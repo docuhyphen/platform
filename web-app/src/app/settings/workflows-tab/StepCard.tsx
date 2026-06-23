@@ -6,6 +6,7 @@ import {
 import {
     AssigneeSpecDraft,
     EscalationAction,
+    CommunicationSummaryDto,
     QuorumKind,
     StepOutcomeSpecDraft,
     WorkflowEntityRefDto,
@@ -19,6 +20,8 @@ import {useStepCardStyles} from "./StepCardStyles.tsx";
 import {DeleteIcon, ToggleHeaderDownIcon, ToggleHeaderUpIcon} from "../../components/IconBundles.tsx";
 import AssigneeBuilder from "./AssigneeBuilder.tsx";
 import {formatTriggerName} from "./workflowUtils.ts";
+import CommunicationPickerDialog from "../../components/communication-picker/CommunicationPickerDialog.tsx";
+import {getCommunication} from "../../../services/communicationService.ts";
 
 const STEP_TYPE_LABELS: Record<WorkflowStepType, string> = {
     APPROVAL: "Approval", NOTIFICATION: "Notification", CONDITION: "Condition", ACTION: "Action",
@@ -309,15 +312,6 @@ const ConditionExpressionBuilder = ({expression, subjectFields, onChange}: {
 
 const BUILT_IN_ACTION_KEYS = ["exchange.auto-accept", "exchange.send-reminder", "exchange.revoke-access"];
 
-const KNOWN_TEMPLATE_KEYS = [
-    "exchange.reminder",
-    "exchange.status-accepted",
-    "exchange.status-rejected",
-    "exchange.status-ended",
-    "exchange.document-uploaded",
-    "exchange.no-auth-otp",
-];
-
 interface Props
 {
     index: number;
@@ -380,6 +374,22 @@ const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subject
     const [deleteStarted, setDeleteStarted] = useState(false);
     const [countdown, setCountdown] = useState(DELETE_COUNTDOWN);
     const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+    const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+    const [selectedCommunicationName, setSelectedCommunicationName] = useState<string | null>(null);
+
+    useEffect(() =>
+    {
+        if (step.communicationId && step.type === 'NOTIFICATION')
+        {
+            getCommunication(step.communicationId)
+                .then(t => setSelectedCommunicationName(t.name))
+                .catch(() => setSelectedCommunicationName(step.communicationId ?? null));
+        }
+        else
+        {
+            setSelectedCommunicationName(null);
+        }
+    }, [step.communicationId, step.type]);
 
     const onDeleteConfirm = () =>
     {
@@ -527,19 +537,31 @@ const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subject
                                         ))}
                                     </Select>
                                 ) : (
-                                    <Combobox
-                                        size="small"
-                                        freeform
-                                        placeholder="Select or type a template key"
-                                        value={step.messageTemplateKey ?? ""}
-                                        selectedOptions={step.messageTemplateKey ? [step.messageTemplateKey] : []}
-                                        onOptionSelect={(_, d) => patch({messageTemplateKey: d.optionValue || undefined})}
-                                        onChange={e => patch({messageTemplateKey: e.target.value || undefined})}
-                                    >
-                                        {KNOWN_TEMPLATE_KEYS.map(k => (
-                                            <Option key={k} value={k}>{formatTriggerName(k)}</Option>
-                                        ))}
-                                    </Combobox>
+                                    <div style={{display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap'}}>
+                                        <Button
+                                            size="small"
+                                            appearance="secondary"
+                                            shape="circular"
+                                            onClick={() => setTemplatePickerOpen(true)}
+                                        >
+                                            {selectedCommunicationName ?? 'Select communication…'}
+                                        </Button>
+                                        {step.communicationId && (
+                                            <Button
+                                                size="small"
+                                                appearance="subtle"
+                                                shape="circular"
+                                                onClick={() => { patch({communicationId: undefined}); setSelectedCommunicationName(null); }}
+                                            >
+                                                Clear
+                                            </Button>
+                                        )}
+                                        {!step.communicationId && (
+                                            <Text size={200} style={{color: 'var(--colorNeutralForeground3)'}}>
+                                                Leave blank to use the default system notification.
+                                            </Text>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         )}
@@ -614,6 +636,18 @@ const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subject
                     )}
                 </div>
             )}
+
+            <CommunicationPickerDialog
+                open={templatePickerOpen}
+                onClose={() => setTemplatePickerOpen(false)}
+                onSelect={(t: CommunicationSummaryDto) =>
+                {
+                    patch({communicationId: t.id});
+                    setSelectedCommunicationName(t.name);
+                    setTemplatePickerOpen(false);
+                }}
+                selectedId={step.communicationId}
+            />
         </div>
     );
 };

@@ -922,7 +922,7 @@ export interface AddonSpecDraft
     minutesBeforeDue?: number;
     afterMinutes?: number;
     recipientRef: AssigneeSpecDraft;
-    messageTemplateKey?: string;
+    communicationId?: string;
     repeatEveryMinutes?: number;
 }
 
@@ -937,7 +937,7 @@ export interface WorkflowStepSpecDraft
     onApprove?: StepOutcomeSpecDraft;
     onReject?: StepOutcomeSpecDraft;
     actionHandlerKey?: string;
-    messageTemplateKey?: string;
+    communicationId?: string;
     predicateExpression?: string;
     onTrue?: StepOutcomeSpecDraft;
     onFalse?: StepOutcomeSpecDraft;
@@ -1100,6 +1100,62 @@ export interface CreateSequenceRequest
     prefix?: string;
     suffix?: string;
     resetPeriod?: SequenceResetPeriod;
+}
+
+// ── Communication types ───────────────────────────────────────────────────────
+
+export type CommunicationScope = 'PLATFORM' | 'ORG' | 'PERSONAL';
+
+export interface CommunicationSummaryDto
+{
+    id: string;
+    name: string;
+    summary?: string;
+    scope: CommunicationScope;
+    organizationId?: string;
+    createdByAppUserId?: string;
+    subject: string;
+    isActive: boolean;
+    isPublished: boolean;
+    isTemplate: boolean;
+    generalTags: string[];
+    sourceTemplateId?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CommunicationDto extends CommunicationSummaryDto
+{
+    description?: string;
+    body: string;
+}
+
+export interface CreateCommunicationRequest
+{
+    name: string;
+    summary?: string;
+    description?: string;
+    subject: string;
+    body: string;
+    generalTags?: string[];
+    scope: CommunicationScope;
+    isActive?: boolean;
+}
+
+export interface UpdateCommunicationRequest
+{
+    name?: string;
+    summary?: string;
+    description?: string;
+    subject?: string;
+    body?: string;
+    generalTags?: string[];
+}
+
+export interface RenderedCommunication
+{
+    subject: string;
+    body: string;
 }
 
 export interface UpdateSequenceRequest

@@ -82,6 +82,28 @@ export const startHereSection: HelpDocSectionInput = {
                         </li>
                     </ul>
 
+                    <h3>Communications quick links</h3>
+                    <ul>
+                        <li>
+                            <a href="#"
+                               data-help-article="communications-overview">
+                                <b>Communications overview</b>
+                            </a> - reusable message definitions with variable tokens for workflow notifications.
+                        </li>
+                        <li>
+                            <a href="#"
+                               data-help-article="managing-communications">
+                                <b>Managing communications</b>
+                            </a> - create, edit, publish, and organise communications.
+                        </li>
+                        <li>
+                            <a href="#"
+                               data-help-article="communications-in-workflows">
+                                <b>Using communications in workflows</b>
+                            </a> - attach a communication to a NOTIFICATION step.
+                        </li>
+                    </ul>
+
                     <h3>Variables & Sequences quick links</h3>
                     <ul>
                         <li>

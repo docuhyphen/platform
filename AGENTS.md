@@ -114,27 +114,46 @@ web-app/src/
 
 ## Help Docs Maintenance
 
-After every feature implementation or change, the help docs must be reviewed and updated
-before the task is considered complete.
+**This step is mandatory and non-optional.** Every feature implementation, rename, or
+behavioural change MUST include a help docs update before the task is considered complete.
+Do not summarise the work as done until the help docs have been reviewed and updated.
 
 The help docs live in:
 `web-app/src/app/components/help-docs/sections/` (section files and per-article files)
 
-Steps required after any feature change:
+### Required steps after any feature change
 
-1. Identify which articles describe the feature area that changed. Search by keyword:
+1. Search for existing coverage of the changed feature area:
    `grep -r "your-feature-keyword" web-app/src/app/components/help-docs/sections/`
-2. Read each affected article and verify every statement is still accurate for the new
-   behaviour. Pay attention to: UI navigation paths, field names, permission rules,
-   step counts, and any listed values (e.g. token lists, status names).
-3. Update any article that is no longer accurate. Add a new article if the feature
-   introduces a concept that has no existing coverage.
-4. If a new section is needed, add an article file under `sections/articles/`, register it
-   in the relevant section file, and add a quick link in `startHereSection.tsx` if the
-   feature warrants it.
-5. Keep all files within the size limits: section files under 300 lines, article files
-   under 150 lines of JSX (extract to `sections/articles/` if over), root registry under
-   60 lines.
-6. Run `npx tsc --noEmit` inside `web-app/` after any edits to confirm no type errors.
+2. Read every matched article in full. Verify that every statement is still accurate
+   for the new behaviour. Check: UI navigation paths, field names, permission rules,
+   step counts, listed values (token lists, status names, endpoint paths).
+3. Update any article that is inaccurate or out of date.
+4. If the feature introduces a concept with no existing article, create one:
+   - Add an article file under `sections/articles/` (e.g. `myFeatureArticle.tsx`).
+   - Register it in the relevant section file (e.g. `mySection.tsx`).
+   - If the section is entirely new, create a section file and register it in
+     `helpDocsRegistry.tsx`.
+   - Add quick links to `startHereSection.tsx` if the feature is prominent enough
+     to warrant it.
+5. Size limits (enforce strictly):
+   - Article files: under 150 lines of JSX.
+   - Section files: under 300 lines.
+   - `helpDocsRegistry.tsx`: under 60 lines.
+6. Run `npx tsc --noEmit` inside `web-app/` after any edits to confirm zero type errors.
+
+### What counts as a feature change requiring a docs update
+
+- New entity, endpoint, or UI tab added.
+- Existing feature renamed (field names, UI labels, menu paths).
+- Permission model changed (who can do what).
+- Workflow or lifecycle behaviour changed.
+- A settings tab added, removed, or relabelled.
+
+### What does NOT require a docs update
+
+- Pure refactoring with no user-visible change.
+- Bug fix that restores the documented behaviour (no behaviour change).
+- Infrastructure changes (CI, Flyway migrations, CloudFormation) with no UI impact.
 
 ---

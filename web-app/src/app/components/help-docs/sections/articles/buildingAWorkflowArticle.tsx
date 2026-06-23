@@ -93,8 +93,9 @@ export const buildingAWorkflowArticle = (
                         optional SLA, and escalation action.
                     </li>
                     <li>
-                        For <b>NOTIFICATION</b> steps, select a message template
-                        key and add assignees who will receive the notification.
+                        For <b>NOTIFICATION</b> steps, optionally select a
+                        communication (via the picker) and add assignees who
+                        will receive the notification.
                     </li>
                     <li>
                         For <b>ACTION</b> steps, select the action key. No

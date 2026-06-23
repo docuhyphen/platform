@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.service.notification.channels
 import com.docuhyphen.app.api.model.entity.NotificationChannelType
 import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.service.communication.EmailService
+import com.docuhyphen.app.api.service.communication.MarkdownRenderer
 import com.docuhyphen.app.api.service.communication.templates.EmailTemplateRenderer
 import com.docuhyphen.app.api.service.notification.ChannelSendResult
 import com.docuhyphen.app.api.service.notification.DeliveryTask
@@ -26,6 +27,7 @@ class EmailChannel : NotificationChannel
     @Inject private lateinit var appUserRepository: AppUserRepository
     @Inject private lateinit var emailService: EmailService
     @Inject private lateinit var templateRenderer: EmailTemplateRenderer
+    @Inject private lateinit var markdownRenderer: MarkdownRenderer
 
     @ConfigProperty(name = "app.url", defaultValue = "https://app.docuhyphen.com")
     private lateinit var appUrl: String
@@ -48,6 +50,7 @@ class EmailChannel : NotificationChannel
         val (subject, body, useHtml) = when (task.event.type)
         {
             "workflow.step_assigned" -> renderStepAssigned(task)
+            "workflow.notification"  -> renderWorkflowNotification(task)
             else -> Triple(
                 "[${appName}] ${task.event.type}",
                 buildString {
@@ -75,6 +78,38 @@ class EmailChannel : NotificationChannel
             logger.warn("EmailChannel send failed for event {} to {}: {}", task.event.id, to, t.message)
             ChannelSendResult.Failed(t.message ?: t.javaClass.simpleName)
         }
+    }
+
+    private fun renderWorkflowNotification(task: DeliveryTask): Triple<String, String, Boolean>
+    {
+        val renderedSubject = task.event.payload["renderedSubject"]
+        val renderedBody = task.event.payload["renderedBody"]
+
+        if (renderedSubject != null && renderedBody != null)
+        {
+            val html = markdownRenderer.toHtml(renderedBody)
+            val wrappedHtml = runCatching {
+                templateRenderer.render(
+                    "communication-wrapper.ftl",
+                    mapOf(
+                        "appName" to appName,
+                        "appUrl" to appUrl,
+                        "htmlBody" to html,
+                        "emailTitle" to renderedSubject,
+                    )
+                )
+            }.getOrElse { t ->
+                logger.warn("Failed to render communication-wrapper: {}", t.message)
+                html
+            }
+            return Triple(renderedSubject, wrappedHtml, true)
+        }
+
+        return Triple(
+            "[${appName}] Workflow Notification",
+            "You have a workflow notification in ${appName}. Please sign in to view it.",
+            false,
+        )
     }
 
     private fun renderStepAssigned(task: DeliveryTask): Triple<String, String, Boolean>
