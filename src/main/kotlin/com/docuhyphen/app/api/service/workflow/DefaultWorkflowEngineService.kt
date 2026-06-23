@@ -210,6 +210,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             instance.status = WorkflowInstanceStatus.REJECTED
             instance.completedAt = now
             spec.onReject?.emit?.let { emitted += it }
+            emitDefinitionTerminalEvent(instance, success = false)
         }
         else if (quorumMet(updated, spec.quorum, assigneeTotal = assignees.size))
         {
@@ -276,6 +277,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                     instance.status = WorkflowInstanceStatus.REJECTED
                     instance.completedAt = now
                     spec.onReject?.emit?.let { publishOutcomeEvent(instance, it) }
+                    emitDefinitionTerminalEvent(instance, success = false)
                 }
                 EscalationAction.AUTO_APPROVE ->
                 {
@@ -583,6 +585,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             instance.completedAt = now
             val emitted = mutableListOf<String>()
             spec.onReject?.emit?.let { emitted += it }
+            emitDefinitionTerminalEvent(instance, success = false)
             return emitted
         }
 
@@ -607,6 +610,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             instance.status = WorkflowInstanceStatus.REJECTED
             instance.completedAt = now
             spec.onReject?.emit?.let { emitted += it }
+            emitDefinitionTerminalEvent(instance, success = false)
         }
         return emitted
     }
@@ -729,6 +733,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         {
             instance.status = WorkflowInstanceStatus.COMPLETED
             instance.completedAt = now
+            emitDefinitionTerminalEvent(instance, success = true)
         }
         else
         {
@@ -738,6 +743,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                 logger.warn("Step {} has invalid nextStep='{}'; completing instance", currentStepId, nextRef)
                 instance.status = WorkflowInstanceStatus.COMPLETED
                 instance.completedAt = now
+                emitDefinitionTerminalEvent(instance, success = true)
             }
             else
             {
@@ -755,6 +761,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         {
             instance.status = WorkflowInstanceStatus.COMPLETED
             instance.completedAt = Timestamp.from(Instant.now())
+            spec.onComplete?.let { publishOutcomeEvent(instance, it) }
             return
         }
         instance.currentStepIndex = nextIndex
@@ -769,6 +776,22 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             stepRepository.update(newStep)
             autoEvents.forEach { publishOutcomeEvent(instance, it) }
         }
+    }
+
+    /**
+     * Emits the definition-level terminal event ([WorkflowSpec.onComplete] or [WorkflowSpec.onReject])
+     * when the instance reaches a terminal state. This fires unconditionally so the correct
+     * outcome event is always published regardless of how individual steps are configured —
+     * the handlers are idempotent so a step-level emit on the same event name is harmless.
+     */
+    private fun emitDefinitionTerminalEvent(instance: WorkflowInstance, success: Boolean)
+    {
+        val event = runCatching {
+            definitionRepository.findById(instance.definitionId)
+                ?.let { WorkflowSpecJson.decode(it.stepsJson) }
+                ?.let { if (success) it.onComplete else it.onReject }
+        }.getOrNull() ?: return
+        event?.let { publishOutcomeEvent(instance, it) }
     }
 
     private fun decodeSubjectData(jsonStr: String?): Map<String, String>

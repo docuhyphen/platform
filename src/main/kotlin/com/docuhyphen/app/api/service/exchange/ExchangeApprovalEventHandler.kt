@@ -33,6 +33,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
     private val workflowEngineService: WorkflowEngineService,
     private val organizationMembershipService: OrganizationMembershipService,
     private val organizationRepository: OrganizationRepository,
+    private val exchangeInitiationService: ExchangeInitiationService,
 )
 {
     companion object
@@ -87,6 +88,8 @@ class ExchangeApprovalEventHandler @Inject constructor(
                         exchangeRepository.update(session)
                     }
                 }
+                // Shares are now ACTIVE; send the invite email that was deferred during approval.
+                exchangeInitiationService.notifyRecipientOnActivation(exchangeId)
                 logger.info(
                     "Exchange {} approved (legacy): activated {} pending share(s), status -> ACCEPTED_STARTED",
                     exchangeId, activated,
@@ -118,6 +121,8 @@ class ExchangeApprovalEventHandler @Inject constructor(
                         exchangeRepository.update(session)
                     }
                 }
+                // Shares are now ACTIVE; send the invite email that was deferred during approval.
+                exchangeInitiationService.notifyRecipientOnActivation(exchangeId)
                 logger.info(
                     "Exchange {} activated: activated {} pending share(s), status -> ACCEPTED_STARTED",
                     exchangeId, activated,

@@ -23,6 +23,18 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 @Serializable
 data class WorkflowSpec(
     val steps: List<WorkflowStepSpec> = emptyList(),
+    /**
+     * Event emitted when the workflow instance reaches COMPLETED (all steps succeeded).
+     * Fires regardless of whether individual steps also have [StepOutcomeSpec.emit] set,
+     * guaranteeing the correct terminal event fires no matter how many steps the workflow has.
+     * Example: `"exchange.activated"` on an `exchange.acceptance_pending` workflow.
+     */
+    val onComplete: String? = null,
+    /**
+     * Event emitted when the workflow instance reaches REJECTED (any step or escalation fails).
+     * Example: `"session.rejected"` on an `exchange.acceptance_pending` workflow.
+     */
+    val onReject: String? = null,
 )
 
 @Serializable

@@ -17,7 +17,7 @@ import {
     Text,
     Textarea,
     Tooltip,
-    tokens,
+    tokens, Divider,
 } from "@fluentui/react-components";
 import {WorkflowDesignerState, WorkflowStepSpecDraft, WorkflowTriggerEventDto} from "../../models/models.tsx";
 import {
@@ -285,7 +285,7 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
                     />
                 </div>
             </div>
-
+            <Divider/>
             <div className={styles.stepList}>
                 <div className={styles.stepListHeader}>
                     <Text weight="semibold">Steps ({state.steps.length})</Text>

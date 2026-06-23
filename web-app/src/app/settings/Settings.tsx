@@ -1,6 +1,6 @@
 import {useState} from "react";
 import {
-    Button,
+    Button, Divider,
     DrawerBody,
     DrawerHeader,
     DrawerHeaderTitle,
@@ -118,6 +118,7 @@ const Settings = () =>
             <Tab id="MyGroupsTab" icon={<SettingsMyGroupsTabIcon/>} value={tabIds.myGroups}>
                 My Groups
             </Tab>
+            <Divider/>
             <Tab id="OrganizationTab" icon={<SettingsOrganizationTabIcon/>} value={tabIds.organization}>
                 Organization
             </Tab>

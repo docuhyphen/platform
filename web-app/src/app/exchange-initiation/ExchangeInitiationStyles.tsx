@@ -113,6 +113,7 @@ export const useExchangeInitiationStyles = makeStyles({
         display: "flex",
         gap: "8px",
         alignItems: "center",
+        marginBottom: "1rem"
     },
     errorMessagesGroup: {
         display: "flex",

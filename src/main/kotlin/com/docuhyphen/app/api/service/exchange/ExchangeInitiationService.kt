@@ -205,7 +205,12 @@ class ExchangeInitiationService @Inject constructor(
         val orgSettings = orgId?.let { organizationRepository.findById(it) }?.settings
 
         // 1. Fire exchange.draft_submitted (optional pre-send internal-approval gate).
-        workflowEngineService.trigger(
+        //    If an active workflow picks this up, the recipient share must be held until
+        //    EVENT_DRAFT_APPROVED fires (which then progresses to the acceptance phase).
+        //    Capturing the result here prevents the acceptance_pending trigger from firing
+        //    prematurely at creation time, and avoids the duplicate workflow that would
+        //    otherwise occur when both a draft and an acceptance workflow are configured.
+        val draftResult = workflowEngineService.trigger(
             TriggerRequest(
                 triggerEvent = "exchange.draft_submitted",
                 subjectResourceType = ResourceType.EXCHANGE.name,
@@ -218,16 +223,27 @@ class ExchangeInitiationService @Inject constructor(
                 initiatedByAppUserId = initiator.id,
             )
         )
+        val draftApprovalPending = draftResult != null
 
         // 2. Determine whether the recipient's share must be held PENDING_APPROVAL.
-        //    When requireRecipientAcceptance = true, fire exchange.acceptance_pending;
-        //    a matching active WorkflowDefinition will start an approval workflow whose
-        //    completion emits "exchange.activated" to unlock the share.
-        //    When requireRecipientAcceptance = false, auto-advance immediately.
+        //
+        //    • Draft approval pending: hold share unconditionally; acceptance_pending is deferred
+        //      to EVENT_DRAFT_APPROVED (ExchangeApprovalEventHandler), which already handles it.
+        //    • No draft approval, requireRecipientAcceptance = true: fire acceptance_pending now;
+        //      a matching WorkflowDefinition holds the share until "exchange.activated" is emitted.
+        //    • No draft approval, requireRecipientAcceptance = false: auto-advance immediately.
         val requireAcceptance = orgSettings?.requireRecipientAcceptance ?: true
         val recipientNeedsApproval: Boolean
 
-        if (requireAcceptance)
+        if (draftApprovalPending)
+        {
+            recipientNeedsApproval = true
+            logger.info(
+                "Exchange {} has draft approval pending (workflow instance {}); share held PENDING_APPROVAL",
+                savedExchange.id, draftResult!!.instanceId,
+            )
+        }
+        else if (requireAcceptance)
         {
             val subjectData = buildMap<String, String> {
                 put("initiatorId", initiator.id.toString())
@@ -316,6 +332,7 @@ class ExchangeInitiationService @Inject constructor(
             recipientAppUser = appUserRecipient,
             recipientGroupId = recipientGroupId,
             exchange = savedExchange,
+            pendingApproval = recipientNeedsApproval,
         )
 
         logger.info("Sharing Exchange Initiated ID: ${exchange.id}")
@@ -607,6 +624,7 @@ class ExchangeInitiationService @Inject constructor(
         recipientAppUser: AppUser?,
         recipientGroupId: UUID?,
         exchange: Exchange,
+        pendingApproval: Boolean = false,
     )
     {
         val initiatorName = initiator.person?.let { "${it.firstName} ${it.lastName}" } ?: initiator.email
@@ -640,28 +658,33 @@ class ExchangeInitiationService @Inject constructor(
 
         val requireSignInForRecipient = recipientType == EMAIL && exchange.requireRecipientSignIn
 
-        recipientEmails.forEach { (email, _) ->
-            try
-            {
-                val body = emailTemplateService.renderExchangeCreatedRecipientEmail(
-                    exchangeId = exchangeIdStr,
-                    name = exchange.name.orEmpty(),
-                    initiatorName = initiatorName,
-                    initiatorOrganization = null,
-                    sessionMessage = exchange.initialShareMessage,
-                    documents = documentTitles,
-                    requireSignIn = requireSignInForRecipient,
-                )
-                emailService.sendEmail(
-                    to = email,
-                    subject = "$subjectTitle | Document request from $initiatorName",
-                    body = body,
-                    useHtml = true,
-                )
-            }
-            catch (e: Exception)
-            {
-                logger.error("Failed to send exchange recipient email to {}", email, e)
+        // Do not notify the recipient while the exchange is awaiting approval — the approval
+        // workflow's own NOTIFICATION step (or a post-approval trigger) should deliver that.
+        if (!pendingApproval)
+        {
+            recipientEmails.forEach { (email, _) ->
+                try
+                {
+                    val body = emailTemplateService.renderExchangeCreatedRecipientEmail(
+                        exchangeId = exchangeIdStr,
+                        name = exchange.name.orEmpty(),
+                        initiatorName = initiatorName,
+                        initiatorOrganization = null,
+                        sessionMessage = exchange.initialShareMessage,
+                        documents = documentTitles,
+                        requireSignIn = requireSignInForRecipient,
+                    )
+                    emailService.sendEmail(
+                        to = email,
+                        subject = "$subjectTitle | Document request from $initiatorName",
+                        body = body,
+                        useHtml = true,
+                    )
+                }
+                catch (e: Exception)
+                {
+                    logger.error("Failed to send exchange recipient email to {}", email, e)
+                }
             }
         }
 
@@ -685,6 +708,70 @@ class ExchangeInitiationService @Inject constructor(
             catch (e: Exception)
             {
                 logger.error("Failed to send exchange initiator email to {}", initiator.email, e)
+            }
+        }
+    }
+
+    /**
+     * Sends the initial "document request" invite email to the recipient(s) after the exchange
+     * has been activated (i.e. after any approval workflows have completed). The initiator email
+     * is intentionally omitted here because it was already sent at creation time.
+     *
+     * Resolves the recipient from the now-active Share rows so there is no dependency on the
+     * original initiation call-site context.
+     */
+    fun notifyRecipientOnActivation(exchangeId: UUID)
+    {
+        val exchange = exchangeRepository.findById(exchangeId) ?: return
+        val initiator = exchange.initiator ?: return
+        val initiatorName = initiator.person?.let { "${it.firstName} ${it.lastName}" } ?: initiator.email
+        val documentTitles = exchange.documents.map { it.title }
+        val subjectTitle = configurationService.emailSubjectTitle
+
+        val recipientGroupId = shareService.primaryRecipientGroupId(exchangeId)
+        val recipientUserId = if (recipientGroupId == null) shareService.primaryRecipientUserId(exchangeId) else null
+
+        val emails: List<String> = when
+        {
+            recipientGroupId != null ->
+                principalGroupMemberRepository.findActiveMembers(recipientGroupId)
+                    .filter { it.principalKind == PrincipalKind.USER }
+                    .mapNotNull { appUserService.getById(it.principalId) }
+                    .filter { it.id != initiator.id && it.settings?.notifyShareStart != false }
+                    .mapNotNull { it.email }
+
+            recipientUserId != null ->
+                appUserService.getById(recipientUserId)
+                    ?.takeIf { it.settings?.notifyShareStart != false }
+                    ?.email
+                    ?.let { listOf(it) }
+                    ?: emptyList()
+
+            else -> emptyList()
+        }
+
+        emails.forEach { email ->
+            try
+            {
+                val body = emailTemplateService.renderExchangeCreatedRecipientEmail(
+                    exchangeId = exchangeId.toString(),
+                    name = exchange.name.orEmpty(),
+                    initiatorName = initiatorName,
+                    initiatorOrganization = null,
+                    sessionMessage = exchange.initialShareMessage,
+                    documents = documentTitles,
+                    requireSignIn = false,
+                )
+                emailService.sendEmail(
+                    to = email,
+                    subject = "$subjectTitle | Document request from $initiatorName",
+                    body = body,
+                    useHtml = true,
+                )
+            }
+            catch (e: Exception)
+            {
+                logger.error("Failed to send post-activation invite email to {}", email, e)
             }
         }
     }
