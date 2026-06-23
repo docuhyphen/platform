@@ -319,11 +319,11 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
             </div>
 
             <div className={styles.saveBar}>
-                {hasHardcodedUUIDs && (
-                    <Text className={styles.portabilityWarning} size={200}>
-                        Warning: one or more steps use hardcoded Principal UUIDs. These are not portable across organizations.
-                    </Text>
-                )}
+                {/*{hasHardcodedUUIDs && (*/}
+                {/*    <Text className={styles.portabilityWarning} size={200}>*/}
+                {/*        Warning: one or more steps use hardcoded Principal UUIDs. These are not portable across organizations.*/}
+                {/*    </Text>*/}
+                {/*)}*/}
                 <Button appearance="secondary"
                         shape={"circular"}
                         onClick={() => isDirty() ? setShowDiscardDialog(true) : onBack()}>

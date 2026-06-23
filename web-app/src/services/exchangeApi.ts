@@ -7,7 +7,8 @@ import {
     ExchangeInitiationRequest,
     ExchangeRequestDocumentRequest,
     UpdateNoAuthExchangeRequest,
-    UpdateExchangeRequest
+    UpdateExchangeRequest,
+    WorkflowInstanceSummaryDto,
 } from "../app/models/models.tsx";
 import {AxiosRequestConfig} from "axios";
 import {
@@ -275,4 +276,11 @@ export const revokeExchangeAccess = (
 ): Promise<ExchangeAccessEntryDto[]> =>
     executeRequest(() =>
         apiClient.delete(`/exchanges/${exchangeId}/access/${shareId}`),
+    );
+
+export const fetchExchangeWorkflowInstances = (
+    exchangeId: string,
+): Promise<WorkflowInstanceSummaryDto[]> =>
+    executeRequest(() =>
+        apiClient.get(`/exchanges/${exchangeId}/workflow-instances`),
     );

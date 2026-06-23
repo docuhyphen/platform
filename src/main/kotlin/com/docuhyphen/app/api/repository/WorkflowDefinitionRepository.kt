@@ -9,12 +9,12 @@ class WorkflowDefinitionRepository :
     BaseRepository<WorkflowDefinition>(WorkflowDefinition::class.java)
 {
     /**
-     * Latest-active definition for a given trigger. Resolution order:
-     *   1. Org-scoped definition for [organizationId] (most specific).
-     *   2. App-scoped definition (fallback).
-     * Within each tier, highest version wins.
+     * All active definitions that should fire for a given trigger event. Resolution order:
+     *   1. All ORG-scoped definitions for [organizationId] (if any exist, APP tier is skipped).
+     *   2. All APP-scoped definitions (fallback when no ORG definitions match).
+     * Within each tier all matching definitions are returned so every configured workflow fires.
      */
-    fun findActiveForTrigger(triggerEvent: String, organizationId: UUID?): WorkflowDefinition?
+    fun findAllActiveForTrigger(triggerEvent: String, organizationId: UUID?): List<WorkflowDefinition>
     {
         if (organizationId != null)
         {
@@ -29,10 +29,8 @@ class WorkflowDefinitionRepository :
             )
                 .setParameter("ev", triggerEvent)
                 .setParameter("oid", organizationId)
-                .setMaxResults(1)
                 .resultList
-                .firstOrNull()
-            if (orgScoped != null) return orgScoped
+            if (orgScoped.isNotEmpty()) return orgScoped
         }
         return entityManager.createQuery(
             """SELECT d FROM WorkflowDefinition d
@@ -43,9 +41,7 @@ class WorkflowDefinitionRepository :
             WorkflowDefinition::class.java,
         )
             .setParameter("ev", triggerEvent)
-            .setMaxResults(1)
             .resultList
-            .firstOrNull()
     }
 
     fun findByNameAndVersion(name: String, version: Int): WorkflowDefinition? =

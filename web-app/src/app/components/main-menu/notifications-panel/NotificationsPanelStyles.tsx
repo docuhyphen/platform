@@ -1,4 +1,4 @@
-import {makeStyles, shorthands, tokens} from '@fluentui/react-components';
+import {makeStyles, shorthands} from '@fluentui/react-components';
 
 export const useNotificationsPanelStyles = makeStyles({
     triggerContainer: {
@@ -42,19 +42,19 @@ export const useNotificationsPanelStyles = makeStyles({
         maxHeight: '400px',
         overflowY: 'auto',
     },
-    card: {
+    accordionHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+        ...shorthands.gap('8px'),
+        paddingRight: '8px',
+    },
+    panelContent: {
         display: 'flex',
         flexDirection: 'column',
-        ...shorthands.gap('6px'),
-        ...shorthands.padding('12px'),
-        ...shorthands.borderRadius('8px'),
-        backgroundColor: tokens.colorNeutralBackground1,
-        boxShadow: tokens.shadow2,
-    },
-    cardHeader: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        ...shorthands.gap('8px'),
+        paddingBottom: '8px',
     },
     actions: {
         display: 'flex',

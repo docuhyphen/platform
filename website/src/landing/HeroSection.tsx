@@ -193,10 +193,10 @@ export function HeroSection()
             <FloatingDocuments/>
             <section className={styles.container}>
                 <LargeTitle className={styles.title}>
-                    Modernize your document exchange process
+                    Streamline your document exchange process
                 </LargeTitle>
                 <Text className={styles.supportingText}>
-                    Exchange and collaborate on documents with clients, teams, and other organizations.
+                    Exchange and collaborate on your most important documents with clients, teams, and other organizations.
                 </Text>
 
                 <div className={styles.actions}>

@@ -22,6 +22,7 @@ import com.docuhyphen.app.api.repository.WorkflowDefinitionRepository
 import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
 import com.docuhyphen.app.api.repository.WorkflowStepInstanceRepository
 import com.docuhyphen.app.api.repository.WorkflowTriggerEventRepository
+import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.UserContactService
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
@@ -51,6 +52,7 @@ class WorkflowDefinitionService @Inject constructor(
     private val adminActionGuardService: AdminActionGuardService,
     private val userContactService: UserContactService,
     private val principalGroupRepository: PrincipalGroupRepository,
+    private val appUserService: AppUserService,
 )
 {
     private val logger = LoggerFactory.getLogger(WorkflowDefinitionService::class.java)
@@ -318,6 +320,13 @@ class WorkflowDefinitionService @Inject constructor(
             }
     }
 
+    fun listInstancesForSubject(resourceType: String, resourceId: UUID): List<WorkflowInstanceListItemDto> =
+        instanceRepository.findForSubject(resourceType, resourceId)
+            .map { instance ->
+                val defName = runCatching { definitionRepository.findById(instance.definitionId)?.name }.getOrNull()
+                instance.toListItemDto(defName)
+            }
+
     fun getInstanceDetail(id: UUID, callerOrgId: UUID?, isAppAdmin: Boolean): WorkflowInstanceDetailResponseDto
     {
         val instance = instanceRepository.findById(id)
@@ -529,6 +538,24 @@ class WorkflowDefinitionService @Inject constructor(
         }.getOrDefault(emptyList())
 
     // -------------------------------------------------------------------------
+    // Principal display-info resolution
+    // -------------------------------------------------------------------------
+
+    /** Returns (displayName, email) for a principal, or (null, null) when the id is not a user UUID. */
+    private fun resolveDisplayInfo(kind: String, id: String): Pair<String?, String?>
+    {
+        // Engine stores PrincipalKind.name values; USER is the only kind whose id is an AppUser UUID.
+        if (kind != "USER" && kind != "APP_USER" && kind != "PRINCIPAL") return Pair(null, null)
+        return runCatching {
+            val uuid = UUID.fromString(id)
+            val user = appUserService.getById(uuid) ?: return Pair(null, null)
+            val name = listOfNotNull(user.person?.firstName, user.person?.lastName)
+                .joinToString(" ").ifBlank { null }
+            Pair(name, user.email)
+        }.getOrDefault(Pair(null, null))
+    }
+
+    // -------------------------------------------------------------------------
     // Entity-to-DTO mapping
     // -------------------------------------------------------------------------
 
@@ -601,14 +628,20 @@ class WorkflowDefinitionService @Inject constructor(
         stepType = stepType.name,
         status = status.name,
         assignees = decodeAssignees(assigneesSnapshotJson)
-            .map { WorkflowPrincipalRefResponseDto(it.kind, it.id) },
+            .map { a ->
+                val (displayName, email) = resolveDisplayInfo(a.kind, a.id)
+                WorkflowPrincipalRefResponseDto(a.kind, a.id, displayName, email)
+            },
         decisions = decodeDecisions(decisionsJson).map {
+            val (displayName, email) = resolveDisplayInfo(it.principalKind, it.principalId)
             WorkflowDecisionResponseDto(
                 principalKind = it.principalKind,
                 principalId = it.principalId,
                 decision = it.decision,
                 reason = it.reason,
                 atEpochMillis = it.atEpochMillis,
+                displayName = displayName,
+                email = email,
             )
         },
         dueAt = dueAt,

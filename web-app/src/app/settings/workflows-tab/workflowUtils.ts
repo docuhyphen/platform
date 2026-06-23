@@ -45,8 +45,11 @@ export const DECISION_LABELS: Record<string, string> = {
 };
 
 export const PRINCIPAL_KIND_LABELS: Record<string, string> = {
+    USER: "User",
     APP_USER: "User",
     PRINCIPAL: "User",
+    PARTICIPANT: "Participant",
+    PRINCIPAL_GROUP: "Group",
     ROLE: "Role",
     GROUP_ROLE: "Group member",
 };

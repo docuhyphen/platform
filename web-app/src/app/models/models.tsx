@@ -862,6 +862,8 @@ export interface WorkflowPrincipalRefDto
 {
     kind: string;
     id: string;
+    displayName?: string;
+    email?: string;
 }
 
 export interface WorkflowDecisionEntryDto
@@ -871,6 +873,8 @@ export interface WorkflowDecisionEntryDto
     decision: 'APPROVE' | 'REJECT';
     reason?: string;
     atEpochMillis: number;
+    displayName?: string;
+    email?: string;
 }
 
 // ── Workflow Designer DSL types (mirror of WorkflowSpec Kotlin DSL) ────────────

@@ -20,6 +20,7 @@ import com.docuhyphen.app.api.resource.model.UpdateSessionShareRoleRequest
 import com.docuhyphen.app.api.resource.model.UpdateExchangeRequest
 import com.docuhyphen.app.api.service.exchange.*
 import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.workflow.WorkflowDefinitionService
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
 import io.quarkus.security.ForbiddenException
@@ -46,6 +47,7 @@ class ExchangeResource @Inject constructor(
     private val fileStorageService: FileStorageService,
     private val appUserService: AppUserService,
     private val principalGroupRepository: PrincipalGroupRepository,
+    private val workflowDefinitionService: WorkflowDefinitionService,
     )
 {
     companion object
@@ -583,6 +585,41 @@ class ExchangeResource @Inject constructor(
                     logger.error("Error searching exchanges", exception)
                     val responseError = ResponseError("An error occurred while searching exchanges")
                     Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
+        }
+    }
+
+    @GET
+    @Path("/{exchangeId}/workflow-instances")
+    fun getExchangeWorkflowInstances(@PathParam("exchangeId") exchangeId: String): Response
+    {
+        return try
+        {
+            val id = java.util.UUID.fromString(exchangeId)
+            // Gate on exchange membership; throws ExchangeNotFoundException for non-members.
+            exchangeRetrievalService.getExchange(exchangeId)
+            val instances = workflowDefinitionService.listInstancesForSubject("EXCHANGE", id)
+            Response.ok(instances.toTypedArray()).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is ExchangeNotFoundException ->
+                    Response.status(Response.Status.NOT_FOUND)
+                        .entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(Response.Status.BAD_REQUEST)
+                        .entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error getting workflow instances for exchange {}", exchangeId, exception)
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while getting workflow instances"))
+                        .build()
                 }
             }
         }

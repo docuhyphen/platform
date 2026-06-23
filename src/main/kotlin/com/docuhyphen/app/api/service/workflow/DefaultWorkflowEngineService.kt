@@ -80,13 +80,24 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     @Transactional
     override fun trigger(request: TriggerRequest): TriggerResult?
     {
-        val definition = definitionRepository.findActiveForTrigger(request.triggerEvent, request.organizationId)
-        if (definition == null)
+        val definitions = definitionRepository.findAllActiveForTrigger(request.triggerEvent, request.organizationId)
+        if (definitions.isEmpty())
         {
             logger.debug("No active workflow definition for trigger={} org={}", request.triggerEvent, request.organizationId)
             return null
         }
 
+        var firstResult: TriggerResult? = null
+        for (definition in definitions)
+        {
+            val result = triggerOne(definition, request)
+            if (firstResult == null) firstResult = result
+        }
+        return firstResult
+    }
+
+    private fun triggerOne(definition: com.docuhyphen.app.api.model.entity.WorkflowDefinition, request: TriggerRequest): TriggerResult?
+    {
         val spec = WorkflowSpecJson.decode(definition.stepsJson)
         if (spec.steps.isEmpty())
         {
@@ -834,12 +845,23 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     )
     {
         if (assignees.isEmpty()) return
-        val payload = mapOf(
-            "instanceId" to instance.id.toString(),
-            "stepInstanceId" to step.id.toString(),
-            "stepIndex" to step.stepIndex.toString(),
-            "assignees" to assignees.joinToString(",") { "${it.kind.name}:${it.id}" },
-        )
+        val subjectFields = runCatching {
+            instance.subjectDataJson?.let {
+                json.decodeFromString(MapSerializer(String.serializer(), String.serializer()), it)
+            }
+        }.getOrNull() ?: emptyMap()
+        val workflowName = runCatching {
+            definitionRepository.findById(instance.definitionId)?.name
+        }.getOrNull()
+        val payload = buildMap {
+            put("instanceId", instance.id.toString())
+            put("stepInstanceId", step.id.toString())
+            put("stepIndex", step.stepIndex.toString())
+            put("assignees", assignees.joinToString(",") { "${it.kind.name}:${it.id}" })
+            subjectFields["exchangeName"]?.takeIf { it.isNotBlank() }?.let { put("exchangeName", it) }
+            subjectFields["initiatorName"]?.takeIf { it.isNotBlank() }?.let { put("initiatorName", it) }
+            workflowName?.let { put("workflowName", it) }
+        }
         eventPublisher.publish(
             DomainEvent(
                 type = "workflow.step_assigned",

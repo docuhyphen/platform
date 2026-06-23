@@ -232,6 +232,13 @@ class ExchangeInitiationService @Inject constructor(
             val subjectData = buildMap<String, String> {
                 put("initiatorId", initiator.id.toString())
                 put("recipientType", sessionInitiationDto.recipientType!!.name)
+                put("exchangeName", savedExchange.name ?: "")
+                initiator.person?.let { p ->
+                    listOfNotNull(p.firstName, p.lastName)
+                        .joinToString(" ")
+                        .takeIf { it.isNotBlank() }
+                        ?.let { put("initiatorName", it) }
+                }
                 orgId?.let { put("orgId", it.toString()) }
                 when (sessionInitiationDto.recipientType)
                 {

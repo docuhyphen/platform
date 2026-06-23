@@ -1,5 +1,9 @@
 ﻿import React, {useCallback, useEffect, useState} from 'react';
 import {
+    Accordion,
+    AccordionHeader,
+    AccordionItem,
+    AccordionPanel,
     Badge,
     Button,
     CounterBadge,
@@ -23,8 +27,9 @@ import {PendingWorkflowStep} from '../../../../services/types/dtos';
 import {realtimeService} from '../../../../services/NotificationService';
 
 /**
- * Pending approvals popover exch- surfaces workflow.step_assigned items so an assignee can
- * approve/reject directly from the top bar. New items arrive via realtime push.
+ * Pending approvals popover — surfaces workflow.step_assigned items so an assignee can
+ * approve/reject directly from the top bar. Items are shown as a single-open accordion
+ * to keep the list compact when there are many pending steps.
  */
 const PendingApprovals: React.FC = () =>
 {
@@ -33,10 +38,10 @@ const PendingApprovals: React.FC = () =>
     const [deciding, setDeciding] = useState<string | null>(null);
     const [comments, setComments] = useState<Record<string, string>>({});
     const [decisionError, setDecisionError] = useState<string | null>(null);
+    const [open, setOpen] = React.useState(false);
+    const [openItemId, setOpenItemId] = useState<string | null>(null);
 
-    // Initial fetch so a page refresh doesn't drop missed realtime pushes.
-    // The realtime listener below prepends new items on top of whatever this returned.
-    useEffect(() =>
+    const fetchPending = useCallback(() =>
     {
         let cancelled = false;
         getMyPendingDecisions()
@@ -47,7 +52,6 @@ const PendingApprovals: React.FC = () =>
             })
             .catch((err) =>
             {
-                // Silent on 401/403 (user just doesn't have the role yet) exch- only log others.
                 console.warn('Failed to load pending approvals', err);
             });
         return () =>
@@ -55,6 +59,14 @@ const PendingApprovals: React.FC = () =>
             cancelled = true;
         };
     }, []);
+
+    // Fetch on mount and every time the popover is opened so the list is always current
+    // (the WS push channel is not yet wired, so we rely on polling-on-open instead).
+    useEffect(() => fetchPending(), []);
+    useEffect(() =>
+    {
+        if (open) fetchPending();
+    }, [open]);
 
     // Listen for realtime workflow events
     useEffect(() =>
@@ -116,6 +128,7 @@ const PendingApprovals: React.FC = () =>
                     reason: comments[step.stepInstanceId]?.trim() || undefined,
                 });
                 setItems((prev) => prev.filter((p) => p.stepInstanceId !== step.stepInstanceId));
+                setOpenItemId((prev) => prev === step.stepInstanceId ? null : prev);
             }
             catch (err: any)
             {
@@ -135,8 +148,13 @@ const PendingApprovals: React.FC = () =>
         setComments((prev) => ({...prev, [stepId]: value}));
     };
 
+    const handleToggle = (_: unknown, data: { openItems: string[] }) =>
+    {
+        setOpenItemId(data.openItems[0] ?? null);
+    };
+
     return (
-        <Popover withArrow>
+        <Popover withArrow open={open} onOpenChange={(_, d) => setOpen(d.open)}>
             <PopoverTrigger disableButtonEnhancement>
                 <div className={styles.triggerContainer}>
                     <Button
@@ -166,60 +184,68 @@ const PendingApprovals: React.FC = () =>
                             <Text>No pending approvals</Text>
                         </div>
                     ) : (
-                        items.map((step) => (
-                            <div key={step.stepInstanceId} className={styles.card}>
-                                <div className={styles.cardHeader}>
-                                    <Text weight="semibold">
-                                        {step.name || 'Exchange'}
-                                    </Text>
-                                    <Badge appearance="outline" color="warning">
-                                        Pending
-                                    </Badge>
-                                </div>
-                                {step.requestedByName && (
-                                    <Text size={200}>
-                                        Requested by {step.requestedByName}
-                                        {step.requestedByEmail ? ` (${step.requestedByEmail})` : ''}
-                                    </Text>
-                                )}
-                                {step.groupName && (
-                                    <Text size={200}>Group: {step.groupName}</Text>
-                                )}
-                                <Textarea
-                                    className={styles.commentField}
-                                    placeholder="Optional comment..."
-                                    size="small"
-                                    value={comments[step.stepInstanceId] || ''}
-                                    onChange={(_e, d) => updateComment(step.stepInstanceId, d.value)}
-                                />
-                                <div className={styles.actions}>
-                                    <Button
-                                        appearance="primary"
-                                        size="small"
-                                        shape="circular"
-                                        icon={<CheckmarkCircleRegular/>}
-                                        disabled={deciding === step.stepInstanceId}
-                                        onClick={() => handleDecision(step, 'APPROVE')}
-                                    >
-                                        {deciding === step.stepInstanceId ? (
-                                            <Spinner size="tiny"/>
-                                        ) : (
-                                            'Approve'
-                                        )}
-                                    </Button>
-                                    <Button
-                                        appearance="secondary"
-                                        size="small"
-                                        shape="circular"
-                                        icon={<DismissCircleRegular/>}
-                                        disabled={deciding === step.stepInstanceId}
-                                        onClick={() => handleDecision(step, 'REJECT')}
-                                    >
-                                        Reject
-                                    </Button>
-                                </div>
-                            </div>
-                        ))
+                        <Accordion
+                            collapsible
+                            openItems={openItemId ? [openItemId] : []}
+                            onToggle={handleToggle}
+                        >
+                            {items.map((step) => (
+                                <AccordionItem key={step.stepInstanceId} value={step.stepInstanceId}>
+                                    <AccordionHeader>
+                                        <div className={styles.accordionHeader}>
+                                            <Text weight="semibold">{step.name || 'Exchange'}</Text>
+                                            <Badge appearance="outline" color="warning">Pending</Badge>
+                                        </div>
+                                    </AccordionHeader>
+                                    <AccordionPanel>
+                                        <div className={styles.panelContent}>
+                                            {step.requestedByName && (
+                                                <Text size={200}>
+                                                    Requested by {step.requestedByName}
+                                                    {step.requestedByEmail ? ` (${step.requestedByEmail})` : ''}
+                                                </Text>
+                                            )}
+                                            {step.groupName && (
+                                                <Text size={200}>Group: {step.groupName}</Text>
+                                            )}
+                                            <Textarea
+                                                className={styles.commentField}
+                                                placeholder="Optional comment..."
+                                                size="small"
+                                                value={comments[step.stepInstanceId] || ''}
+                                                onChange={(_e, d) => updateComment(step.stepInstanceId, d.value)}
+                                            />
+                                            <div className={styles.actions}>
+                                                <Button
+                                                    appearance="primary"
+                                                    size="small"
+                                                    shape="circular"
+                                                    icon={<CheckmarkCircleRegular/>}
+                                                    disabled={deciding === step.stepInstanceId}
+                                                    onClick={() => handleDecision(step, 'APPROVE')}
+                                                >
+                                                    {deciding === step.stepInstanceId ? (
+                                                        <Spinner size="tiny"/>
+                                                    ) : (
+                                                        'Approve'
+                                                    )}
+                                                </Button>
+                                                <Button
+                                                    appearance="secondary"
+                                                    size="small"
+                                                    shape="circular"
+                                                    icon={<DismissCircleRegular/>}
+                                                    disabled={deciding === step.stepInstanceId}
+                                                    onClick={() => handleDecision(step, 'REJECT')}
+                                                >
+                                                    Reject
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </AccordionPanel>
+                                </AccordionItem>
+                            ))}
+                        </Accordion>
                     )}
                 </div>
             </PopoverSurface>

@@ -68,6 +68,19 @@ class WorkflowInstanceRepository :
             .setParameter("status", WorkflowInstanceStatus.RUNNING)
             .resultList
 
+    /** All instances (any status) for a given subject resource, newest first. */
+    fun findForSubject(resourceType: String, resourceId: UUID): List<WorkflowInstance> =
+        entityManager.createQuery(
+            """SELECT i FROM WorkflowInstance i
+               WHERE i.subjectResourceType = :rt
+                 AND i.subjectResourceId = :rid
+               ORDER BY i.createdAt DESC""",
+            WorkflowInstance::class.java,
+        )
+            .setParameter("rt", resourceType)
+            .setParameter("rid", resourceId)
+            .resultList
+
     /**
      * Paginated instances for [organizationId]. Optionally filtered by [status] and
      * [subjectResourceType]. Results are ordered newest first.

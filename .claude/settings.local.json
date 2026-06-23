@@ -136,7 +136,12 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:www.npmjs.com)",
       "Bash(grep -E \"^[a-z-]+$\")",
-      "Bash(xargs grep -l \"Accordion\")"
+      "Bash(xargs grep -l \"Accordion\")",
+      "Bash(PGPASSWORD=admin psql -h localhost -U postgres -d docu-hyphen-postgres-db -c ' *)",
+      "PowerShell($env:PGPASSWORD = \"admin\"; & \"psql\" -h localhost -U postgres -d \"docu-hyphen-postgres-db\" -c \"SELECT id, name, scope, trigger_event, is_active, is_published, organization_id, created_by_app_user_id FROM workflow_definition WHERE name ILIKE '%Approval%' ORDER BY created_at DESC;\" 2>&1)",
+      "PowerShell(Get-Command psql -ErrorAction SilentlyContinue)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(xargs grep -l \"workflow\")"
     ]
   }
 }

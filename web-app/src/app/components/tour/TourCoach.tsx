@@ -34,7 +34,7 @@ interface TourStep {
 const TOUR_STEPS: TourStep[] = [
     {
         targetId: 'tour-start-exchanging',
-        title: 'Start Sharing',
+        title: 'Start Exchange',
         description:
             'This is your primary action. Click "Start Exchanging" to request documents from someone or send documents to a colleague. Use the dropdown arrow to choose between requesting and sending.',
         position: 'below',

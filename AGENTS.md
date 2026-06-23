@@ -42,7 +42,8 @@ into an org.
 <Button appearance="primary"
         shape={"circular"}
 - All Buttons must be circular shape
-
+- Do not use inline styling
+- Add html/react ids to all components, for example <Button id={....
 ---
 
 ## Tech Stack
@@ -137,10 +138,3 @@ Steps required after any feature change:
 6. Run `npx tsc --noEmit` inside `web-app/` after any edits to confirm no type errors.
 
 ---
-
-## Active Feature Plan
-
-See `WORKFLOW_REDESIGN_PLAN.md` in the project root for the full phased plan covering:
-- Workflow-driven Exchange lifecycle (Phase 1-3)
-- Workflow CRUD API (Phase 4)
-- Visual Workflow Designer UI in Settings (Phase 5)

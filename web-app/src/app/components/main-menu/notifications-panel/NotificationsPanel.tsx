@@ -1,6 +1,10 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {
+    Accordion,
+    AccordionHeader,
+    AccordionItem,
+    AccordionPanel,
     Badge,
     Button,
     CounterBadge,
@@ -30,7 +34,6 @@ import NotificationListItem from '../notification/notification-item/Notification
 import {getMyPendingDecisions, recordWorkflowDecision} from '../../../../services/workflowApi';
 import {PendingWorkflowStep} from '../../../../services/types/dtos';
 import {realtimeService} from '../../../../services/NotificationService';
-
 const WORKFLOW_NOTIFICATION_TYPES = [
     'workflow.step_assigned', 'WORKFLOW_STEP_ASSIGNED',
     'workflow.escalated', 'WORKFLOW_ESCALATED',
@@ -58,6 +61,12 @@ const NotificationsPanel: React.FC = () =>
     const [decisionError, setDecisionError] = useState<string | null>(null);
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('notifications');
+    const [openItemId, setOpenItemId] = useState<string | null>(null);
+
+    const handleToggle = (_: unknown, data: { openItems: string[] }) =>
+    {
+        setOpenItemId(data.openItems[0] ?? null);
+    };
 
     // Initial fetch for pending approvals
     useEffect(() =>
@@ -281,60 +290,68 @@ const NotificationsPanel: React.FC = () =>
                                         <Text>No pending approvals</Text>
                                     </div>
                                 ) : (
-                                    items.map((step) => (
-                                        <div key={step.stepInstanceId} className={styles.card}>
-                                            <div className={styles.cardHeader}>
-                                                <Text weight="semibold">
-                                                    {step.name || 'Exchange'}
-                                                </Text>
-                                                <Badge appearance="outline" color="warning">
-                                                    Pending
-                                                </Badge>
-                                            </div>
-                                            {step.requestedByName && (
-                                                <Text size={200}>
-                                                    Requested by {step.requestedByName}
-                                                    {step.requestedByEmail ? ` (${step.requestedByEmail})` : ''}
-                                                </Text>
-                                            )}
-                                            {step.groupName && (
-                                                <Text size={200}>Group: {step.groupName}</Text>
-                                            )}
-                                            <Textarea
-                                                className={styles.commentField}
-                                                placeholder="Optional comment..."
-                                                size="small"
-                                                value={comments[step.stepInstanceId] || ''}
-                                                onChange={(_e, d) => updateComment(step.stepInstanceId, d.value)}
-                                            />
-                                            <div className={styles.actions}>
-                                                <Button
-                                                    appearance="primary"
-                                                    size="small"
-                                                    shape="circular"
-                                                    icon={<CheckmarkCircleRegular/>}
-                                                    disabled={deciding === step.stepInstanceId}
-                                                    onClick={() => handleDecision(step, 'APPROVE')}
-                                                >
-                                                    {deciding === step.stepInstanceId ? (
-                                                        <Spinner size="tiny"/>
-                                                    ) : (
-                                                        'Approve'
-                                                    )}
-                                                </Button>
-                                                <Button
-                                                    appearance="secondary"
-                                                    size="small"
-                                                    shape="circular"
-                                                    icon={<DismissCircleRegular/>}
-                                                    disabled={deciding === step.stepInstanceId}
-                                                    onClick={() => handleDecision(step, 'REJECT')}
-                                                >
-                                                    Reject
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ))
+                                    <Accordion
+                                        collapsible
+                                        openItems={openItemId ? [openItemId] : []}
+                                        onToggle={handleToggle}
+                                    >
+                                        {items.map((step) => (
+                                            <AccordionItem key={step.stepInstanceId} value={step.stepInstanceId}>
+                                                <AccordionHeader>
+                                                    <div className={styles.accordionHeader}>
+                                                        <Text weight="semibold">{step.name || 'Exchange'}</Text>
+                                                        <Badge appearance="outline" color="warning">Pending</Badge>
+                                                    </div>
+                                                </AccordionHeader>
+                                                <AccordionPanel>
+                                                    <div className={styles.panelContent}>
+                                                        {step.requestedByName && (
+                                                            <Text size={200}>
+                                                                Requested by {step.requestedByName}
+                                                                {step.requestedByEmail ? ` (${step.requestedByEmail})` : ''}
+                                                            </Text>
+                                                        )}
+                                                        {step.groupName && (
+                                                            <Text size={200}>Group: {step.groupName}</Text>
+                                                        )}
+                                                        <Textarea
+                                                            className={styles.commentField}
+                                                            placeholder="Optional comment..."
+                                                            size="small"
+                                                            value={comments[step.stepInstanceId] || ''}
+                                                            onChange={(_e, d) => updateComment(step.stepInstanceId, d.value)}
+                                                        />
+                                                        <div className={styles.actions}>
+                                                            <Button
+                                                                appearance="primary"
+                                                                size="small"
+                                                                shape="circular"
+                                                                icon={<CheckmarkCircleRegular/>}
+                                                                disabled={deciding === step.stepInstanceId}
+                                                                onClick={() => handleDecision(step, 'APPROVE')}
+                                                            >
+                                                                {deciding === step.stepInstanceId ? (
+                                                                    <Spinner size="tiny"/>
+                                                                ) : (
+                                                                    'Approve'
+                                                                )}
+                                                            </Button>
+                                                            <Button
+                                                                appearance="secondary"
+                                                                size="small"
+                                                                shape="circular"
+                                                                icon={<DismissCircleRegular/>}
+                                                                disabled={deciding === step.stepInstanceId}
+                                                                onClick={() => handleDecision(step, 'REJECT')}
+                                                            >
+                                                                Reject
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </AccordionPanel>
+                                            </AccordionItem>
+                                        ))}
+                                    </Accordion>
                                 )}
                             </div>
                         )}

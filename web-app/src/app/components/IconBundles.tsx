@@ -120,7 +120,8 @@
     CheckmarkFilled, CheckmarkRegular,
     DismissFilled, DismissRegular, DocumentFlowchartFilled, DocumentFlowchartRegular, CopyRegular, CopyFilled,
     EyeFilled, EyeRegular, EyeOffFilled, EyeOffRegular,
-    ToggleRightFilled, ToggleRightRegular, ToggleLeftFilled, ToggleLeftRegular,
+    ToggleRightFilled, ToggleRightRegular, ToggleLeftFilled, ToggleLeftRegular, FlowFilled, FlowRegular, BranchRegular,
+    BranchFilled,
 } from "@fluentui/react-icons";
 
 export const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
@@ -141,7 +142,8 @@ export const OrganizationPairingTabIcon = bundleIcon(BuildingBankLinkFilled, Bui
 export const SettingsBlueprintsTabIcon = bundleIcon(BookTemplateFilled, BookTemplateRegular)
 export const BlueprintAddIcon = bundleIcon(BookAddFilled, BookAddRegular)
 export const SettingsAppAdminsIcon = bundleIcon(PersonShieldFilled, PersonShieldRegular)
-export const SettingsWorkflowsTabIcon = bundleIcon(DocumentFlowchartFilled, DocumentFlowchartRegular)
+export const SettingsWorkflowsTabIcon = bundleIcon(BranchRegular, BranchRegular)
+export const ExchangeWorkflowsTabIcon = bundleIcon(BranchRegular, BranchRegular)
 export const AddIcon = bundleIcon(AddFilled, AddRegular)
 export const BackIcon = bundleIcon(ArrowLeftFilled, ArrowLeftRegular)
 export const CheckmarkIcon = bundleIcon(CheckmarkFilled, CheckmarkRegular)

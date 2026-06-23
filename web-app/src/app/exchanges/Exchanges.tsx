@@ -46,7 +46,14 @@ import {InboxRole, ExchangeTabCounts} from "./components/exchange-list/ExchangeL
 import {useIsMobile} from "../../utils/useMediaQuery.ts";
 import ExchangeDetailsTab from "./components/exchange-details-tab/ExchangeDetailsTab.tsx";
 import ExchangeAuditTab from "./components/exchange-audit-tab/ExchangeAuditTab.tsx";
-import {AuditIcon, DetailsIcon, DocumentsIcon} from "../components/IconBundles.tsx";
+import {
+    AuditIcon,
+    DetailsIcon,
+    DocumentsIcon,
+    ExchangeWorkflowsTabIcon,
+    SettingsWorkflowsTabIcon
+} from "../components/IconBundles.tsx";
+import ExchangeWorkflowTab from "./components/exchange-workflow-tab/ExchangeWorkflowTab.tsx";
 
 const ACTIVE_TAB_STORAGE_KEY = 'exchanges.mainTab.active';
 const LAST_ROUTE_QUERY_STORAGE_KEY = 'exchanges.lastRoute.query';
@@ -884,6 +891,7 @@ const Exchanges: React.FC = () =>
                             <Tab value="documents" icon={<DocumentsIcon/>}>Documents</Tab>
                             <Tab value="details" icon={<DetailsIcon/>}>Details</Tab>
                             <Tab value="audit" icon={<AuditIcon/>}>Audit</Tab>
+                            <Tab value="workflow" icon={<ExchangeWorkflowsTabIcon/>}>Workflow</Tab>
                         </TabList>
 
                         {detailsActiveTab === 'documents' && (
@@ -952,6 +960,14 @@ const Exchanges: React.FC = () =>
                             <div className={styles.documentsSectionContainer}>
                                 <div className={styles.documentsSection}>
                                     <ExchangeAuditTab exchange={exchangeDetails}/>
+                                </div>
+                            </div>
+                        )}
+
+                        {detailsActiveTab === 'workflow' && (
+                            <div className={styles.documentsSectionContainer}>
+                                <div className={styles.documentsSection}>
+                                    <ExchangeWorkflowTab exchange={exchangeDetails}/>
                                 </div>
                             </div>
                         )}

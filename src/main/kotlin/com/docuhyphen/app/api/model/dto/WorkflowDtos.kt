@@ -143,7 +143,12 @@ data class WorkflowStepInstanceResponseDto(
 )
 
 @Serializable
-data class WorkflowPrincipalRefResponseDto(val kind: String, val id: String)
+data class WorkflowPrincipalRefResponseDto(
+    val kind: String,
+    val id: String,
+    val displayName: String? = null,
+    val email: String? = null,
+)
 
 @Serializable
 data class WorkflowDecisionResponseDto(
@@ -152,5 +157,7 @@ data class WorkflowDecisionResponseDto(
     val decision: String,
     val reason: String?,
     val atEpochMillis: Long,
+    val displayName: String? = null,
+    val email: String? = null,
 )
 
