@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {
+    Badge,
     Button,
     Card,
     Checkbox,
@@ -29,15 +30,17 @@ import {
     BlueprintDocumentConfig,
     BlueprintScope,
     CreateBlueprintRequest,
+    DocumentLibraryEntrySummaryDto,
     DocumentType,
     ImageType,
     UpdateBlueprintRequest,
 } from '../../models/models.tsx';
 import {createBlueprint, updateBlueprint} from '../../../services/blueprintService.ts';
-import {DeleteIcon, DocumentAddIcon} from '../../components/IconBundles.tsx';
+import {DeleteIcon, DocumentAddIcon, PickFromLibraryIcon} from '../../components/IconBundles.tsx';
 import {useExchangeInitiationStyles} from '../../exchange-initiation/ExchangeInitiationStyles.tsx';
 import VariableTokenInput from '../../../components/variable-token-input/VariableTokenInput.tsx';
 import {getAvailableVariables} from '../../../services/variableService.ts';
+import DocumentLibraryPicker from '../../../app/exchange-initiation/components/document-library-picker/DocumentLibraryPicker.tsx';
 
 interface BlueprintEditorDialogProps
 {
@@ -80,6 +83,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [availableVariables, setAvailableVariables] = useState<AvailableVariablesDto | null>(null);
+    const [pickerOpen, setPickerOpen] = useState(false);
     const styles = useExchangeInitiationStyles();
 
     useEffect(() =>
@@ -104,6 +108,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
             setConfig(emptyConfig());
         }
         setActiveTab('details');
+        setPickerOpen(false);
         setError(null);
     }, [open, blueprint]);
 
@@ -270,10 +275,13 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                             </div>
                         )}
 
-                        {activeTab === 'documents' && (
+                        {activeTab === 'documents' && !pickerOpen && (
                             <div className={styles.exchangeDocumentsTabContent}>
                                 {(config.exchangeDocuments ?? []).map((doc, i) => (
-                                    <Card key={i} className={styles.shadingExchangeDocumentCard}>
+                                    <Card
+                                        key={i}
+                                        className={styles.shadingExchangeDocumentCard}
+                                    >
                                         <div>
                                             <div className={styles.dialogTitle1}>
                                                 <Field className={styles.sharingDetailsInput}>
@@ -283,35 +291,62 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                                             onChange={v => updateDoc(i, {title: v})}
                                                             availableVariables={availableVariables}
                                                             placeholder="Document name, type {{ to insert a variable"
+                                                            disabled={!!doc.libraryDocumentId}
                                                         />
                                                     ) : (
                                                         <Input
+                                                            id={`bp-doc-title-${i}`}
                                                             type="text"
                                                             size="small"
                                                             value={doc.title}
                                                             onChange={(_, d) => updateDoc(i, {title: d.value})}
                                                             placeholder="Document name"
+                                                            disabled={!!doc.libraryDocumentId}
                                                         />
                                                     )}
                                                 </Field>
                                                 <Button
+                                                    id={`bp-doc-delete-${i}`}
                                                     icon={<DeleteIcon className={styles.iconDeleteFilled}/>}
                                                     appearance="subtle"
+                                                    shape="circular"
                                                     onClick={() => removeDocument(i)}
                                                 />
                                             </div>
+                                            {doc.libraryDocumentId && (
+                                                <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px'}}>
+                                                    <Badge
+                                                        id={`bp-doc-linked-badge-${i}`}
+                                                        appearance="tint"
+                                                        color="success"
+                                                        size="small"
+                                                    >
+                                                        Linked from library
+                                                    </Badge>
+                                                    <Button
+                                                        id={`bp-doc-unlink-${i}`}
+                                                        size="small"
+                                                        appearance="subtle"
+                                                        shape="circular"
+                                                        onClick={() => updateDoc(i, {libraryDocumentId: undefined})}
+                                                    >
+                                                        Unlink
+                                                    </Button>
+                                                </div>
+                                            )}
                                             <div className={styles.exchangeDocumentsRestriction}>
                                                 <div className={styles.exchangeDocumentsRestrictionField}>
                                                     <Field label="">
                                                         <Switch
                                                             label="Restrict upload type"
                                                             checked={doc.restrictType ?? false}
+                                                            disabled={!!doc.libraryDocumentId}
                                                             onChange={(_, d) => updateDoc(i, {restrictType: d.checked, restrictedType: d.checked ? doc.restrictedType : undefined})}
                                                         />
                                                     </Field>
                                                     <Dropdown
                                                         className={styles.exchangeDocumentsDropdown}
-                                                        disabled={!doc.restrictType}
+                                                        disabled={!doc.restrictType || !!doc.libraryDocumentId}
                                                         appearance="underline"
                                                         value={doc.restrictedType ?? ''}
                                                         size="small"
@@ -320,12 +355,22 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                                     >
                                                         <OptionGroup label="Documents">
                                                             {Object.values(DocumentType).map(opt => (
-                                                                <Option key={opt} value={opt}>{opt}</Option>
+                                                                <Option
+                                                                    key={opt}
+                                                                    value={opt}
+                                                                >
+                                                                    {opt}
+                                                                </Option>
                                                             ))}
                                                         </OptionGroup>
                                                         <OptionGroup label="Images">
                                                             {Object.values(ImageType).map(opt => (
-                                                                <Option key={opt} value={opt}>{opt}</Option>
+                                                                <Option
+                                                                    key={opt}
+                                                                    value={opt}
+                                                                >
+                                                                    {opt}
+                                                                </Option>
                                                             ))}
                                                         </OptionGroup>
                                                     </Dropdown>
@@ -333,6 +378,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                                 <Checkbox
                                                     label="Required"
                                                     checked={doc.required ?? false}
+                                                    disabled={!!doc.libraryDocumentId}
                                                     onChange={(_, d) => updateDoc(i, {required: !!d.checked})}
                                                 />
                                             </div>
@@ -341,6 +387,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                 ))}
                                 <div className={styles.addDocumentButtonContainer}>
                                     <Button
+                                        id="bp-doc-add-btn"
                                         onClick={addDocument}
                                         shape="circular"
                                         icon={<DocumentAddIcon/>}
@@ -348,8 +395,40 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                     >
                                         Add Document
                                     </Button>
+                                    <Button
+                                        id="bp-doc-pick-library-btn"
+                                        onClick={() => setPickerOpen(true)}
+                                        shape="circular"
+                                        icon={<PickFromLibraryIcon/>}
+                                        appearance="subtle"
+                                    >
+                                        Pick from Library
+                                    </Button>
                                 </div>
                             </div>
+                        )}
+
+                        {activeTab === 'documents' && pickerOpen && (
+                            <DocumentLibraryPicker
+                                onSelect={(entry: DocumentLibraryEntrySummaryDto) =>
+                                {
+                                    setConfig(prev => ({
+                                        ...prev,
+                                        exchangeDocuments: [
+                                            ...(prev.exchangeDocuments ?? []),
+                                            {
+                                                title: entry.title,
+                                                libraryDocumentId: entry.id,
+                                                restrictType: entry.restrictType ?? false,
+                                                restrictedType: entry.restrictedType,
+                                                required: entry.required ?? false,
+                                            },
+                                        ],
+                                    }));
+                                    setPickerOpen(false);
+                                }}
+                                onCancel={() => setPickerOpen(false)}
+                            />
                         )}
 
                         {activeTab === 'permissions' && (

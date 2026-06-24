@@ -265,6 +265,7 @@ export interface ExchangeRequestDocumentRequest
     type?: DocumentType;
     restrictType?: boolean;
     required?: boolean;
+    libraryDocumentId?: string;
 }
 
 export interface DownloadDocumentsZipRequest
@@ -980,6 +981,7 @@ export interface BlueprintDocumentConfig
     restrictedType?: string;
     restrictType?: boolean;
     required?: boolean;
+    libraryDocumentId?: string;
 }
 
 export interface BlueprintRecipientConfiguration
@@ -1194,4 +1196,57 @@ export interface UpdateVariableRequest
 {
     defaultValue?: string;
     isActive?: boolean;
+}
+
+// ── Document Library types ─────────────────────────────────────────────────────
+
+export type DocumentLibraryScope = 'APP' | 'ORG' | 'PERSONAL';
+
+export interface DocumentLibraryEntrySummaryDto
+{
+    id: string;
+    title: string;
+    description?: string;
+    scope: DocumentLibraryScope;
+    organizationId?: string;
+    createdByAppUserId?: string;
+    documentType?: string;
+    fileName?: string;
+    fileSizeBytes?: number;
+    isPublished: boolean;
+    isActive: boolean;
+    hasFile: boolean;
+    restrictType?: boolean;
+    restrictedType?: string;
+    required?: boolean;
+    generalTags: string[];
+    sourceDocumentId?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface DocumentLibraryEntryDto extends DocumentLibraryEntrySummaryDto
+{
+    contentHash?: string;
+}
+
+export interface CreateDocumentLibraryEntryRequest
+{
+    title: string;
+    description?: string;
+    generalTags?: string[];
+    scope?: DocumentLibraryScope;
+    restrictType?: boolean;
+    restrictedType?: string;
+    required?: boolean;
+}
+
+export interface UpdateDocumentLibraryEntryRequest
+{
+    title?: string;
+    description?: string;
+    generalTags?: string[];
+    restrictType?: boolean;
+    restrictedType?: string;
+    required?: boolean;
 }

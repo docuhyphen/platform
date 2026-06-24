@@ -66,6 +66,8 @@
     DocumentBulletListClockRegular,
     DocumentBulletListMultipleFilled,
     DocumentBulletListMultipleRegular,
+    DocumentDatabaseFilled,
+    DocumentDatabaseRegular,
     DocumentFolderFilled,
     DocumentFolderRegular,
     DocumentOnePageFilled,
@@ -162,6 +164,7 @@ export const SignOutButtonIcon = bundleIcon(ArrowExitFilled, ArrowExitRegular);
 export const SettingsSequencesTabIcon = bundleIcon(BookNumberFilled, BookNumberRegular);
 export const SettingsVariablesTabIcon = bundleIcon(NotepadEditFilled, NotepadEditRegular);
 export const SettingsCommunicationsTabIcon = bundleIcon(ChatMailFilled, ChatMailRegular);
+export const SettingsDocumentsTabIcon = bundleIcon(DocumentDatabaseFilled, DocumentDatabaseRegular);
 export const InfoIcon = bundleIcon(InfoFilled, InfoRegular)
 export const SettingsIcon = bundleIcon(SettingsFilled, SettingsRegular)
 export const LastPageIcon = bundleIcon(ArrowNextFilled, ArrowNextRegular)
@@ -196,6 +199,7 @@ export const CommentIcon = bundleIcon(CommentFilled, CommentRegular);
 export const SendCommentIcon = bundleIcon(SendFilled, SendRegular);
 export const AuditIcon = bundleIcon(DocumentBulletListClockFilled, DocumentBulletListClockRegular);
 export const DocumentVersionsIcon = bundleIcon(DocumentFolderFilled, DocumentFolderRegular);
+export const PickFromLibraryIcon = bundleIcon(DocumentFolderFilled, DocumentFolderRegular);
 export const RecipientsIcon = bundleIcon(PeopleCommunityAddFilled, PeopleCommunityAddRegular)
 export const DetailsIcon = bundleIcon(DocumentOnePageFilled, DocumentOnePageRegular)
 export const DocumentsIcon = bundleIcon(DocumentBulletListMultipleFilled, DocumentBulletListMultipleRegular)

@@ -7,6 +7,7 @@ import {workflowsSection}       from "./sections/workflowsSection";
 import {blueprintsSection}      from "./sections/blueprintsSection";
 import {variablesSection}       from "./sections/variablesSection";
 import {communicationsSection}  from "./sections/communicationsSection";
+import {documentLibrarySection}  from "./sections/documentLibrarySection";
 
 export type HelpDocArticle = {
     id: string;
@@ -34,6 +35,7 @@ const helpDocSections: HelpDocSectionInput[] = [
     blueprintsSection,
     variablesSection,
     communicationsSection,
+    documentLibrarySection,
 ];
 
 export const HELP_DOC_ARTICLES: HelpDocArticle[] = helpDocSections.flatMap((section) =>

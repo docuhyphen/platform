@@ -1,7 +1,9 @@
 ﻿package com.docuhyphen.app.api.resource.model
 
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
+import java.util.UUID
 
 @Serializable
 data class ResponseError(
@@ -351,6 +353,8 @@ class ExchangeRequestDocumentRequest
     var type: DocumentType? = null
     var restrictType: Boolean = false
     var required: Boolean = false
+    @Serializable(with = UUIDSerializer::class)
+    var libraryDocumentId: UUID? = null
 }
 
 @Serializable

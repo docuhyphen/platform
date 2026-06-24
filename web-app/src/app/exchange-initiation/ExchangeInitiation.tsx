@@ -41,6 +41,7 @@ import {
     AvailableVariablesDto,
     BlueprintConfig,
     BlueprintDefinitionSummaryDto,
+    DocumentLibraryEntrySummaryDto,
     ExchangeInitiationRequest, ExchangeParticipantRole, ExchangeParticipantType,
     ExchangeRequestDocumentRequest
 } from "../models/models.tsx";
@@ -169,6 +170,7 @@ const ExchangeInitiation: React.FC = () =>
                     restrictedType: d.restrictedType as any,
                     restrictType: d.restrictType ?? false,
                     required: d.required ?? false,
+                    libraryDocumentId: d.libraryDocumentId,
                 }));
                 setDocuments(docs);
             }
@@ -552,6 +554,18 @@ const ExchangeInitiation: React.FC = () =>
         } as any]);
     };
 
+    const addLibraryDocument = (entry: DocumentLibraryEntrySummaryDto) =>
+    {
+        setMessageGroupMessages([]);
+        setDocuments(prev => [...prev, {
+            title: entry.title,
+            libraryDocumentId: entry.id,
+            restrictType: entry.restrictType ?? false,
+            restrictedType: entry.restrictedType,
+            required: entry.required ?? false,
+        } as ExchangeRequestDocumentRequest]);
+    };
+
     const resetInitiationForm = () =>
     {
         setChoosingBlueprint(false);
@@ -736,7 +750,13 @@ const ExchangeInitiation: React.FC = () =>
                         return updatedDocuments;
                     });
                 }}
+                onUnlink={(index) =>
+                {
+                    setMessageGroupMessages([]);
+                    handleDocumentChange(documents, setDocuments)(index, 'libraryDocumentId', undefined);
+                }}
                 addNewDocument={addNewDocument}
+                addLibraryDocument={addLibraryDocument}
                 availableVariables={availableVariables ?? undefined}
             />
         )

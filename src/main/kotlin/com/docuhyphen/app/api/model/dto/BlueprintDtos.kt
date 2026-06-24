@@ -14,6 +14,8 @@ data class BlueprintDocumentConfig(
     val restrictedType: String? = null,
     val restrictType: Boolean = false,
     val required: Boolean = false,
+    @Serializable(with = UUIDSerializer::class)
+    val libraryDocumentId: UUID? = null,
 )
 
 @Serializable

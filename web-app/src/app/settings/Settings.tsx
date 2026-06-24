@@ -16,6 +16,7 @@ import {Navigation24Regular} from "@fluentui/react-icons";
 import {useSettingsStyles} from "./SettingsStyles.tsx";
 import {
     SettingsAppSettingsTabIcon, SettingsDeviceSessionsTabIcon,
+    SettingsDocumentsTabIcon,
     SettingsExchangeBlueprintsTabIcon, SettingsLinkedAccountsTabIcon, SettingsCommunicationsTabIcon,
     SettingsMyGroupsTabIcon,
     SettingsOrganizationTabIcon,
@@ -40,6 +41,7 @@ import OrganizationTab from "./organization-tab/OrganizationTab.tsx";
 import OrganizationSequencesTab from "./organization-sequences-tab/OrganizationSequencesTab.tsx";
 import VariablesTab from "./variables-tab/VariablesTab.tsx";
 import CommunicationsTab from "./communications-tab/CommunicationsTab.tsx";
+import DocumentsTab from "./documents-tab/DocumentsTab.tsx";
 import {useIsMobile} from "../../utils/useMediaQuery.ts";
 import {AppUserRole} from "../models/models.tsx";
 
@@ -61,6 +63,7 @@ const Settings = () =>
         sequences: "SequencesTab",
         variables: "VariablesTab",
         communications: "CommunicationsTab",
+        documents: "DocumentsTab",
     }
 
     const tabLabels: Record<string, string> = {
@@ -74,6 +77,7 @@ const Settings = () =>
         [tabIds.sequences]: "Sequences",
         [tabIds.variables]: "Variables",
         [tabIds.communications]: "Communications",
+        [tabIds.documents]: "Document Library",
     };
 
     const {appUser, appUserPersonOrganization} = useAuth();
@@ -137,6 +141,9 @@ const Settings = () =>
             <Tab id="CommunicationsTab" icon={<SettingsCommunicationsTabIcon/>} value={tabIds.communications}>
                 Communications
             </Tab>
+            <Tab id="DocumentsTab" icon={<SettingsDocumentsTabIcon/>} value={tabIds.documents}>
+                Document Library
+            </Tab>
         </TabList>
     );
 
@@ -190,6 +197,7 @@ const Settings = () =>
                     {selectedValue === tabIds.sequences && <OrganizationSequencesTab/>}
                     {selectedValue === tabIds.variables && <VariablesTab/>}
                     {selectedValue === tabIds.communications && <CommunicationsTab/>}
+                    {selectedValue === tabIds.documents && <DocumentsTab/>}
                 </div>
 
             </div>

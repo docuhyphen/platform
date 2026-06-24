@@ -23,6 +23,8 @@ import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import com.docuhyphen.app.api.service.documentlibrary.DocumentLibraryService
+import com.docuhyphen.app.api.service.storage.FileStorageService
 import com.docuhyphen.app.api.service.variable.TemplateVariableInterpolator
 import com.docuhyphen.app.api.service.variable.VariableResolutionContext
 import com.docuhyphen.app.api.service.workflow.TriggerRequest
@@ -57,6 +59,8 @@ class ExchangeInitiationService @Inject constructor(
     private val organizationMembershipService: OrganizationMembershipService,
     private val organizationRepository: OrganizationRepository,
     private val templateVariableInterpolator: TemplateVariableInterpolator,
+    private val documentLibraryService: DocumentLibraryService,
+    private val fileStorageService: FileStorageService,
 )
 {
     @PersistenceContext
@@ -178,6 +182,8 @@ class ExchangeInitiationService @Inject constructor(
             this.requireRecipientSignIn = sessionInitiationDto.requestRecipientSignIn == true
         }
 
+        val libraryFilesToCopy: MutableList<Pair<Document, UUID>> = mutableListOf()
+
         sessionInitiationDto.exchangeDocuments?.forEachIndexed { index, doc ->
             val document = Document().apply {
                 this.title = resolvedDocTitles[index] ?: doc.title
@@ -191,9 +197,31 @@ class ExchangeInitiationService @Inject constructor(
                 this.required = doc.required
             }
             exchange.documents.add(document)
+            doc.libraryDocumentId?.let { libId -> libraryFilesToCopy.add(document to libId) }
         }
 
         val savedExchange = exchangeRepository.save(exchange)
+
+        libraryFilesToCopy.forEach { (document, libId) ->
+            try
+            {
+                val libFile = documentLibraryService.resolveLibraryFileForBlueprintDocument(libId)
+                if (libFile != null)
+                {
+                    val ext = libFile.name.substringAfterLast('.', "")
+                    val storageKey = "${document.id}.$ext"
+                    fileStorageService.uploadDocument(libFile, storageKey)
+                    document.type = DocumentType.fromFileExtension(".$ext")
+                    document.uploadDate = Timestamp.from(Instant.now())
+                    document.hash = "hash"
+                    exchangeRepository.update(savedExchange)
+                }
+            }
+            catch (e: Exception)
+            {
+                logger.warn("Failed to pre-populate exchange document {} from library entry {}: {}", document.id, libId, e.message)
+            }
+        }
 
         // Resolve the initiator's org context once; used for both workflow triggers
         // and the group-specific manager access grant below.
