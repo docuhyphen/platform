@@ -125,6 +125,14 @@ const ExchangeList: React.FC<ExchangeListProps> = (
     const selectedItemsRef = useRef(selectedItems);
     const inboxRoleRef = useRef(inboxRole);
 
+    // Guards for the debounced search/initiator effect. It must skip its own first run and any
+    // run triggered purely by a tab / inbox-role switch (those are handled by the immediate
+    // navigation effect). Without these, a second debounced fetch fires ~500ms later, flipping
+    // loadingExchanges off->on->off and making the empty-state message flash twice.
+    const isFirstSearchEffectRef = useRef(true);
+    const searchEffectTabRef = useRef(activeTab);
+    const searchEffectRoleRef = useRef(inboxRole);
+
     useEffect(() =>
     {
         activeTabRef.current = activeTab;
@@ -484,10 +492,28 @@ const ExchangeList: React.FC<ExchangeListProps> = (
         fetchExchanges();
     }, [activeTab, inboxRole, currentPage, sortBy, sortDirection]);
 
-    // Debounced re-fetch on search / initiator-filter changes
+    // Debounced re-fetch on search / initiator-filter changes only. Tab and inbox-role changes
+    // are already handled immediately by the navigation effect above; they remain in this
+    // effect's deps solely so it can detect them, resync, and skip — otherwise a second
+    // debounced fetch would flash the empty state. This effect must NOT share the navigation
+    // effect's first-render ref (the navigation effect flips it before this one reads it).
     useEffect(() =>
     {
-        if (isFirstRenderRef.current) return;
+        if (isFirstSearchEffectRef.current)
+        {
+            isFirstSearchEffectRef.current = false;
+            searchEffectTabRef.current = activeTab;
+            searchEffectRoleRef.current = inboxRole;
+            return;
+        }
+
+        if (searchEffectTabRef.current !== activeTab || searchEffectRoleRef.current !== inboxRole)
+        {
+            // Tab / inbox-role switch: the navigation effect already refetched. Just resync.
+            searchEffectTabRef.current = activeTab;
+            searchEffectRoleRef.current = inboxRole;
+            return;
+        }
 
         const handler = setTimeout(() =>
         {
