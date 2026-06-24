@@ -50,6 +50,8 @@ class WorkflowDefinitionService @Inject constructor(
     private val definitionRepository: WorkflowDefinitionRepository,
     private val instanceRepository: WorkflowInstanceRepository,
     private val stepRepository: WorkflowStepInstanceRepository,
+    private val assigneeRepository: com.docuhyphen.app.api.repository.WorkflowStepAssigneeRepository,
+    private val decisionRepository: com.docuhyphen.app.api.repository.WorkflowStepDecisionRepository,
     private val triggerEventRepository: WorkflowTriggerEventRepository,
     private val adminActionGuardService: AdminActionGuardService,
     private val userContactService: UserContactService,
@@ -553,19 +555,7 @@ class WorkflowDefinitionService @Inject constructor(
     private fun encodeTags(tags: List<String>): String =
         json.encodeToString(ListSerializer(String.serializer()), tags)
 
-    // Private data classes that mirror the snapshot JSON shapes written by DefaultWorkflowEngineService.
-    @Serializable
-    private data class PrincipalRefEntry(val kind: String, val id: String)
-
-    @Serializable
-    private data class DecisionEntry(
-        val principalKind: String,
-        val principalId: String,
-        val decision: String,
-        val reason: String? = null,
-        val atEpochMillis: Long,
-    )
-
+    // Private data class mirroring the trigger-event registry subject-field JSON shape.
     @Serializable
     private data class SubjectFieldEntry(
         val name: String,
@@ -573,19 +563,6 @@ class WorkflowDefinitionService @Inject constructor(
         val description: String? = null,
         val lookupType: String? = null,
     )
-
-    private fun decodeAssignees(jsonStr: String?): List<PrincipalRefEntry>
-    {
-        if (jsonStr.isNullOrBlank()) return emptyList()
-        return runCatching {
-            json.decodeFromString(ListSerializer(PrincipalRefEntry.serializer()), jsonStr)
-        }.getOrDefault(emptyList())
-    }
-
-    private fun decodeDecisions(jsonStr: String): List<DecisionEntry> =
-        runCatching {
-            json.decodeFromString(ListSerializer(DecisionEntry.serializer()), jsonStr)
-        }.getOrDefault(emptyList())
 
     private fun decodeSubjectFields(jsonStr: String): List<SubjectFieldEntry> =
         runCatching {
@@ -682,19 +659,23 @@ class WorkflowDefinitionService @Inject constructor(
         stepIndex = stepIndex,
         stepType = stepType.name,
         status = status.name,
-        assignees = decodeAssignees(assigneesSnapshotJson)
+        assignees = assigneeRepository.findAllByStepInstanceId(id)
             .map { a ->
-                val (displayName, email) = resolveDisplayInfo(a.kind, a.id)
-                WorkflowPrincipalRefResponseDto(a.kind, a.id, displayName, email)
+                val kind = a.principalKind.name
+                val pid = a.principalId.toString()
+                val (displayName, email) = resolveDisplayInfo(kind, pid)
+                WorkflowPrincipalRefResponseDto(kind, pid, displayName, email)
             },
-        decisions = decodeDecisions(decisionsJson).map {
-            val (displayName, email) = resolveDisplayInfo(it.principalKind, it.principalId)
+        decisions = decisionRepository.findAllByStepInstanceId(id).map {
+            val kind = it.principalKind.name
+            val pid = it.principalId.toString()
+            val (displayName, email) = resolveDisplayInfo(kind, pid)
             WorkflowDecisionResponseDto(
-                principalKind = it.principalKind,
-                principalId = it.principalId,
+                principalKind = kind,
+                principalId = pid,
                 decision = it.decision,
                 reason = it.reason,
-                atEpochMillis = it.atEpochMillis,
+                atEpochMillis = it.decidedAt.time,
                 displayName = displayName,
                 email = email,
             )

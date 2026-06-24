@@ -998,6 +998,8 @@ export interface BlueprintParticipantConfig
     roleName: string;
 }
 
+// Scalar form-prefill settings only. Document and participant defaults are typed arrays
+// on BlueprintDefinitionSummaryDto / the request types, not embedded in this JSON.
 export interface BlueprintConfig
 {
     name?: string;
@@ -1010,9 +1012,7 @@ export interface BlueprintConfig
     allowDocumentUpdate?: boolean;
     allowDocumentUpload?: boolean;
     allowedDownloadFormats?: string[];
-    exchangeDocuments?: BlueprintDocumentConfig[];
     recipientConfiguration?: BlueprintRecipientConfiguration;
-    participants?: BlueprintParticipantConfig[];
 }
 
 export interface BlueprintDefinitionSummaryDto
@@ -1029,6 +1029,8 @@ export interface BlueprintDefinitionSummaryDto
     generalTags: string[];
     sourceTemplateId?: string;
     configJson: string;
+    exchangeDocuments: BlueprintDocumentConfig[];
+    participants: BlueprintParticipantConfig[];
     createdAt: string;
     updatedAt: string;
 }
@@ -1044,6 +1046,8 @@ export interface CreateBlueprintRequest
     summary?: string;
     description?: string;
     configJson: string;
+    exchangeDocuments?: BlueprintDocumentConfig[];
+    participants?: BlueprintParticipantConfig[];
     generalTags?: string[];
     isActive?: boolean;
     scope?: BlueprintScope;
@@ -1056,6 +1060,9 @@ export interface UpdateBlueprintRequest
     summary?: string;
     description?: string;
     configJson?: string;
+    // null/undefined = leave child collection unchanged; a list (incl. empty) replaces it.
+    exchangeDocuments?: BlueprintDocumentConfig[];
+    participants?: BlueprintParticipantConfig[];
     generalTags?: string[];
 }
 

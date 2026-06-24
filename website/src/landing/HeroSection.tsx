@@ -39,7 +39,7 @@ const useStyles = makeStyles({
         zIndex: 1,
 
         [BREAKPOINT_MOBILE]: {
-            padding: `8rem 0`,
+            padding: `3rem 0`,
         },
     },
 

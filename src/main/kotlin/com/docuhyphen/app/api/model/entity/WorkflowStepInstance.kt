@@ -32,11 +32,12 @@ enum class WorkflowStepStatus
 /**
  * Concrete execution of one step inside a [WorkflowInstance].
  *
- * - `specSnapshotJson`      : the step's spec at instance start (replay-safe).
- * - `assigneesSnapshotJson` : resolved principals at instance start; subsequent group
- *                             membership changes don't move the targets mid-run.
- * - `decisionsJson`         : append-only list of `{principalKind, principalId, decision,
- *                             reason, at}` entries. Quorum is computed by counting.
+ * - `specSnapshotJson` : the step's spec at instance start (replay-safe).
+ *
+ * Resolved assignees live in `workflow_step_assignee` (snapshotted at step start so
+ * subsequent group membership changes don't move the targets mid-run) and recorded
+ * decisions live in `workflow_step_decision` (one row per principal vote, counted for
+ * quorum). Both are queried via their repositories rather than embedded JSON.
  */
 @Entity
 @Serializable
@@ -64,12 +65,6 @@ class WorkflowStepInstance
 
     @Column(name = "spec_snapshot_json", nullable = false, columnDefinition = "text")
     lateinit var specSnapshotJson: String
-
-    @Column(name = "assignees_snapshot_json", nullable = true, columnDefinition = "text")
-    var assigneesSnapshotJson: String? = null
-
-    @Column(name = "decisions_json", nullable = false, columnDefinition = "text")
-    var decisionsJson: String = "[]"
 
     /**
      * Tracks per-addon fire state so the scheduler never double-sends a reminder.

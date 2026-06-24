@@ -34,8 +34,10 @@ const WorkflowSummaryCard = ({ instance }: Props) =>
         s => s.stepIndex === instance.currentStepIndex && s.status === "PENDING",
     );
 
+    // A step counts as resolved once it has moved past its pending state: APPROVAL steps
+    // land on APPROVED, other step types on COMPLETED, and skipped steps on SKIPPED.
     const stepsCompleted = instance.steps.filter(
-        s => s.status === "COMPLETED" || s.status === "SKIPPED",
+        s => s.status === "APPROVED" || s.status === "COMPLETED" || s.status === "SKIPPED",
     ).length;
     const totalSteps = instance.steps.length;
 

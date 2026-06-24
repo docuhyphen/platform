@@ -2,14 +2,20 @@ package com.docuhyphen.app.api.service.blueprint
 
 import com.docuhyphen.app.api.model.dto.BlueprintConfigJson
 import com.docuhyphen.app.api.model.dto.BlueprintDefinitionDto
+import com.docuhyphen.app.api.model.dto.BlueprintDocumentConfig
+import com.docuhyphen.app.api.model.dto.BlueprintParticipantConfig
 import com.docuhyphen.app.api.model.dto.CloneBlueprintRequest
 import com.docuhyphen.app.api.model.dto.CreateBlueprintRequest
 import com.docuhyphen.app.api.model.dto.PatchBlueprintPublishedRequest
 import com.docuhyphen.app.api.model.dto.PatchBlueprintStatusRequest
 import com.docuhyphen.app.api.model.dto.UpdateBlueprintRequest
 import com.docuhyphen.app.api.model.entity.BlueprintDefinition
+import com.docuhyphen.app.api.model.entity.BlueprintDocumentDefault
+import com.docuhyphen.app.api.model.entity.BlueprintParticipantDefault
 import com.docuhyphen.app.api.model.entity.BlueprintScope
 import com.docuhyphen.app.api.repository.BlueprintDefinitionRepository
+import com.docuhyphen.app.api.repository.BlueprintDocumentDefaultRepository
+import com.docuhyphen.app.api.repository.BlueprintParticipantDefaultRepository
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -25,10 +31,15 @@ import java.util.UUID
 @ApplicationScoped
 class BlueprintDefinitionService @Inject constructor(
     private val repository: BlueprintDefinitionRepository,
+    private val documentDefaultRepository: BlueprintDocumentDefaultRepository,
+    private val participantDefaultRepository: BlueprintParticipantDefaultRepository,
 )
 {
     private val logger = LoggerFactory.getLogger(BlueprintDefinitionService::class.java)
-    private val json = Json { ignoreUnknownKeys = true }
+
+    // encodeDefaults = true so the reconstructed config_json carries the same explicit
+    // scalar fields the client sends, keeping the GET response byte-compatible.
+    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
     // ── Read ──────────────────────────────────────────────────────────────────
 
@@ -70,13 +81,12 @@ class BlueprintDefinitionService @Inject constructor(
         isAppAdmin: Boolean,
     ): BlueprintDefinitionDto
     {
-        validateConfigJson(request.configJson)
         val resolvedScope = resolveScope(request.scope, callerOrgId, isOrgAdmin, isAppAdmin)
         val bp = BlueprintDefinition().apply {
             name = request.name.trim()
             summary = request.summary?.trim()
             description = request.description?.trim()
-            configJson = request.configJson
+            configJson = encodeConfig(parseConfig(request.configJson))
             generalTags = encodeTags(request.generalTags)
             isActive = request.isActive
             scope = resolvedScope
@@ -84,7 +94,10 @@ class BlueprintDefinitionService @Inject constructor(
             isTemplate = if (isAppAdmin && resolvedScope == BlueprintScope.APP) request.isTemplate else false
             createdByAppUserId = callerUserId
         }
-        return repository.save(bp).toDto()
+        repository.save(bp)
+        persistDocuments(bp.id, request.exchangeDocuments)
+        persistParticipants(bp.id, request.participants)
+        return bp.toDto()
     }
 
     @Transactional
@@ -103,10 +116,9 @@ class BlueprintDefinitionService @Inject constructor(
         request.name?.trim()?.let { if (it.isNotBlank()) bp.name = it }
         request.summary?.let { bp.summary = it.trim().ifBlank { null } }
         request.description?.let { bp.description = it.trim().ifBlank { null } }
-        request.configJson?.let {
-            validateConfigJson(it)
-            bp.configJson = it
-        }
+        request.configJson?.let { bp.configJson = encodeConfig(parseConfig(it)) }
+        request.exchangeDocuments?.let { persistDocuments(bp.id, it) }
+        request.participants?.let { persistParticipants(bp.id, it) }
         request.generalTags?.let { bp.generalTags = encodeTags(it) }
         bp.updatedAt = Timestamp.from(Instant.now())
 
@@ -190,7 +202,9 @@ class BlueprintDefinitionService @Inject constructor(
             sourceTemplateId = source.id
             createdByAppUserId = callerUserId
         }
-        return repository.save(clone).toDto()
+        repository.save(clone)
+        copyChildren(source.id, clone.id)
+        return clone.toDto()
     }
 
     // ── Access control ────────────────────────────────────────────────────────
@@ -261,11 +275,97 @@ class BlueprintDefinitionService @Inject constructor(
         }
     }
 
-    private fun validateConfigJson(configJson: String)
-    {
+    private fun parseConfig(configJson: String): BlueprintConfigJson =
         runCatching { json.decodeFromString(BlueprintConfigJson.serializer(), configJson) }
             .getOrElse { throw IllegalArgumentException("Invalid configJson: ${it.message}") }
+
+    private fun encodeConfig(config: BlueprintConfigJson): String =
+        json.encodeToString(BlueprintConfigJson.serializer(), config)
+
+    /** Deletes and re-inserts the document default rows for [blueprintId]. */
+    private fun persistDocuments(blueprintId: UUID, docs: List<BlueprintDocumentConfig>)
+    {
+        documentDefaultRepository.deleteAllByBlueprintDefinitionId(blueprintId)
+        docs.forEachIndexed { idx, doc ->
+            documentDefaultRepository.save(
+                BlueprintDocumentDefault().apply {
+                    this.blueprintDefinitionId = blueprintId
+                    this.title = doc.title
+                    this.restrictedType = doc.restrictedType
+                    this.restrictType = doc.restrictType
+                    this.required = doc.required
+                    this.libraryDocumentId = doc.libraryDocumentId
+                    this.displayOrder = idx
+                }
+            )
+        }
     }
+
+    /** Deletes and re-inserts the participant default rows for [blueprintId]. */
+    private fun persistParticipants(blueprintId: UUID, participants: List<BlueprintParticipantConfig>)
+    {
+        participantDefaultRepository.deleteAllByBlueprintDefinitionId(blueprintId)
+        participants.forEachIndexed { idx, p ->
+            participantDefaultRepository.save(
+                BlueprintParticipantDefault().apply {
+                    this.blueprintDefinitionId = blueprintId
+                    this.principalKind = p.principalKind
+                    this.principalId = p.principalId
+                    this.roleName = p.roleName
+                    this.displayOrder = idx
+                }
+            )
+        }
+    }
+
+    /** Copies the child rows from [sourceId] onto [targetId] (used by clone). */
+    private fun copyChildren(sourceId: UUID, targetId: UUID)
+    {
+        documentDefaultRepository.findAllByBlueprintDefinitionId(sourceId).forEach { src ->
+            documentDefaultRepository.save(
+                BlueprintDocumentDefault().apply {
+                    this.blueprintDefinitionId = targetId
+                    this.title = src.title
+                    this.restrictedType = src.restrictedType
+                    this.restrictType = src.restrictType
+                    this.required = src.required
+                    this.libraryDocumentId = src.libraryDocumentId
+                    this.displayOrder = src.displayOrder
+                }
+            )
+        }
+        participantDefaultRepository.findAllByBlueprintDefinitionId(sourceId).forEach { src ->
+            participantDefaultRepository.save(
+                BlueprintParticipantDefault().apply {
+                    this.blueprintDefinitionId = targetId
+                    this.principalKind = src.principalKind
+                    this.principalId = src.principalId
+                    this.roleName = src.roleName
+                    this.displayOrder = src.displayOrder
+                }
+            )
+        }
+    }
+
+    private fun loadDocuments(blueprintId: UUID): List<BlueprintDocumentConfig> =
+        documentDefaultRepository.findAllByBlueprintDefinitionId(blueprintId).map {
+            BlueprintDocumentConfig(
+                title = it.title,
+                restrictedType = it.restrictedType,
+                restrictType = it.restrictType,
+                required = it.required,
+                libraryDocumentId = it.libraryDocumentId,
+            )
+        }
+
+    private fun loadParticipants(blueprintId: UUID): List<BlueprintParticipantConfig> =
+        participantDefaultRepository.findAllByBlueprintDefinitionId(blueprintId).map {
+            BlueprintParticipantConfig(
+                principalId = it.principalId,
+                principalKind = it.principalKind,
+                roleName = it.roleName,
+            )
+        }
 
     private fun decodeTags(tagsJson: String): List<String> =
         runCatching {
@@ -289,6 +389,8 @@ class BlueprintDefinitionService @Inject constructor(
         generalTags = decodeTags(generalTags),
         sourceTemplateId = sourceTemplateId,
         configJson = configJson,
+        exchangeDocuments = loadDocuments(id),
+        participants = loadParticipants(id),
         createdAt = createdAt,
         updatedAt = updatedAt,
     )

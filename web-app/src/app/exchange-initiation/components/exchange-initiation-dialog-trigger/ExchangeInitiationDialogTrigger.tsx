@@ -21,6 +21,20 @@ const ExchangeInitiationDialogTrigger = React.forwardRef<HTMLButtonElement, Exch
     const styles = useExchangeInitiationStyles();
     const isMobile = useIsMobile();
 
+    // DialogTrigger injects an onClick (which opens the dialog) into props. Spreading
+    // {...props} after each MenuItem's own onClick was overriding it, so the mode-selecting
+    // handlers never ran and the dialog always opened in the default "Request Documents"
+    // state. Pull that handler out and compose both: set the mode, then open the dialog.
+    const {onClick: openDialog, ...triggerProps} = props as React.HTMLAttributes<HTMLElement>;
+
+    const handleMenuItemClick =
+        (action: () => void) =>
+        (event: React.MouseEvent<HTMLDivElement>) =>
+        {
+            action();
+            openDialog?.(event);
+        };
+
     return (
         <Menu>
             <MenuTrigger disableButtonEnhancement>
@@ -43,22 +57,21 @@ const ExchangeInitiationDialogTrigger = React.forwardRef<HTMLButtonElement, Exch
             </MenuTrigger>
             <MenuPopover>
                 <MenuList>
-                    <MenuItem onClick={() => onRequestingDocumentsChange(true)}
-                              {...props}
-                              appearance="transparent"
+                    <MenuItem {...triggerProps}
+                              onClick={handleMenuItemClick(() => onRequestingDocumentsChange(true))}
                               className={styles.sharingDetailsInput}
                               icon={<ReceiveDocumentsIcon/>}>
                             Request Documents
                     </MenuItem>
-                    <MenuItem onClick={() => onRequestingDocumentsChange(false)}
-                              {...props}
+                    <MenuItem {...triggerProps}
+                              onClick={handleMenuItemClick(() => onRequestingDocumentsChange(false))}
                               className={styles.sharingDetailsInput}
                               icon={<SendDocumentsIcon/>}>
                         Send Documents
                     </MenuItem>
-                    <MenuItem onClick={() => onChooseBlueprint()}
+                    <MenuItem {...triggerProps}
+                              onClick={handleMenuItemClick(() => onChooseBlueprint())}
                               icon={<InitiateFromBlueprintIcon/>}
-                              {...props}
                               className={styles.sharingDetailsInput}>
                         From Blueprint
                     </MenuItem>

@@ -45,9 +45,6 @@ class Communication
     @Column(name = "body", nullable = false, columnDefinition = "text")
     lateinit var body: String
 
-    @Column(name = "channel_overrides_json", nullable = true, columnDefinition = "text")
-    var channelOverridesJson: String? = null
-
     @Column(name = "summary", nullable = true, length = 512)
     var summary: String? = null
 

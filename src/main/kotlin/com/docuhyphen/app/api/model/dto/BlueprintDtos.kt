@@ -32,6 +32,11 @@ data class BlueprintParticipantConfig(
     val roleName: String,
 )
 
+/**
+ * The scalar form-prefill settings stored in `blueprint_definition.config_json`. Document and
+ * participant defaults are NOT here; they are normalized into `blueprint_document_default` /
+ * `blueprint_participant_default` and exposed as typed arrays on [BlueprintDefinitionDto].
+ */
 @Serializable
 data class BlueprintConfigJson(
     val name: String? = null,
@@ -44,9 +49,7 @@ data class BlueprintConfigJson(
     val allowDocumentUpdate: Boolean = false,
     val allowDocumentUpload: Boolean = false,
     val allowedDownloadFormats: List<String>? = null,
-    val exchangeDocuments: List<BlueprintDocumentConfig> = emptyList(),
     val recipientConfiguration: BlueprintRecipientConfiguration? = null,
-    val participants: List<BlueprintParticipantConfig> = emptyList(),
 )
 
 // ── Response DTOs ─────────────────────────────────────────────────────────────
@@ -70,6 +73,8 @@ data class BlueprintDefinitionDto(
     @Serializable(with = UUIDSerializer::class)
     val sourceTemplateId: UUID?,
     val configJson: String,
+    val exchangeDocuments: List<BlueprintDocumentConfig>,
+    val participants: List<BlueprintParticipantConfig>,
     @Serializable(with = TimestampSerializer::class)
     val createdAt: Timestamp,
     @Serializable(with = TimestampSerializer::class)
@@ -84,6 +89,8 @@ data class CreateBlueprintRequest(
     val summary: String? = null,
     val description: String? = null,
     val configJson: String,
+    val exchangeDocuments: List<BlueprintDocumentConfig> = emptyList(),
+    val participants: List<BlueprintParticipantConfig> = emptyList(),
     val generalTags: List<String> = emptyList(),
     val isActive: Boolean = true,
     val scope: String? = null,
@@ -96,6 +103,9 @@ data class UpdateBlueprintRequest(
     val summary: String? = null,
     val description: String? = null,
     val configJson: String? = null,
+    // null = leave child collection unchanged; a list (incl. empty) replaces it.
+    val exchangeDocuments: List<BlueprintDocumentConfig>? = null,
+    val participants: List<BlueprintParticipantConfig>? = null,
     val generalTags: List<String>? = null,
 )
 

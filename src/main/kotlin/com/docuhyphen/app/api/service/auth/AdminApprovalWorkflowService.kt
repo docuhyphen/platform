@@ -1,14 +1,17 @@
 package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.WorkflowDefinition
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
 import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
 import com.docuhyphen.app.api.model.entity.WorkflowScope
+import com.docuhyphen.app.api.model.entity.WorkflowStepDecision
 import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
 import com.docuhyphen.app.api.model.entity.WorkflowStepStatus
 import com.docuhyphen.app.api.model.entity.WorkflowStepType
 import com.docuhyphen.app.api.repository.WorkflowDefinitionRepository
 import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
+import com.docuhyphen.app.api.repository.WorkflowStepDecisionRepository
 import com.docuhyphen.app.api.repository.WorkflowStepInstanceRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -29,6 +32,7 @@ class AdminApprovalWorkflowService @Inject constructor(
     private val workflowDefinitionRepository: WorkflowDefinitionRepository,
     private val workflowInstanceRepository: WorkflowInstanceRepository,
     private val workflowStepInstanceRepository: WorkflowStepInstanceRepository,
+    private val workflowStepDecisionRepository: WorkflowStepDecisionRepository,
     private val authAuditService: AuthAuditService,
 )
 {
@@ -107,8 +111,16 @@ class AdminApprovalWorkflowService @Inject constructor(
 
         step.status = WorkflowStepStatus.APPROVED
         step.completedAt = now
-        step.decisionsJson = appendDecision(step.decisionsJson, approverId, now)
         workflowStepInstanceRepository.update(step)
+        workflowStepDecisionRepository.save(
+            WorkflowStepDecision().apply {
+                this.stepInstanceId = step.id
+                this.principalKind = PrincipalKind.USER
+                this.principalId = approverId
+                this.decision = "APPROVED"
+                this.decidedAt = now
+            }
+        )
 
         instance.status = WorkflowInstanceStatus.COMPLETED
         instance.completedAt = now
@@ -166,14 +178,6 @@ class AdminApprovalWorkflowService @Inject constructor(
     {
         val reasonPart = reason?.trim()?.take(1024)?.let { ""","reason":"${jsonEscape(it)}"""" } ?: ""
         return """{"action":"${jsonEscape(action)}"$reasonPart}"""
-    }
-
-    private fun appendDecision(decisionsJson: String, approverId: UUID, at: Timestamp): String
-    {
-        val entry = """{"principalKind":"USER","principalId":"$approverId","decision":"APPROVED","at":"${at.toInstant()}"}"""
-        val trimmed = decisionsJson.trim()
-        return if (trimmed == "[]" || trimmed.isEmpty()) "[$entry]"
-        else trimmed.removeSuffix("]") + ",$entry]"
     }
 
     private fun parseAction(subjectDataJson: String?): String? =

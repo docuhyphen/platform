@@ -14,6 +14,7 @@ import {useWorkflowInstanceDetailStyles} from "./WorkflowInstanceDetailStyles.ts
 import {DECISION_LABELS, INSTANCE_STATUS_LABELS, PRINCIPAL_KIND_LABELS, STEP_STATUS_LABELS, STEP_TYPE_LABELS} from "./workflowUtils.ts";
 
 const STEP_STATUS_COLORS: Record<string, "success" | "warning" | "danger" | "informative" | "subtle"> = {
+    APPROVED: "success",
     COMPLETED: "success",
     PENDING: "informative",
     REJECTED: "danger",

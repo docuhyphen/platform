@@ -151,7 +151,11 @@
       "PowerShell($env:PGPASSWORD = \"admin\"; & \"psql\" -h localhost -U postgres -d \"docu-hyphen-postgres-db\" -c \"SELECT id, status, name, initiator_id FROM exchange WHERE id = 'd34bd29c-38e1-4293-b14e-de2bc25ed3ff';\" 2>&1)",
       "PowerShell($psql = \"C:\\\\Program Files\\\\PostgreSQL\\\\12\\\\bin\\\\psql.exe\"; $env:PGPASSWORD = \"admin\"; & $psql -h localhost -U postgres -d \"docu-hyphen-postgres-db\" -c \"SELECT id, status, name, initiator_id FROM exchange WHERE id = 'd34bd29c-38e1-4293-b14e-de2bc25ed3ff';\" 2>&1)",
       "PowerShell(docker exec doc-hyphen-postgres-db psql -U postgres -d docu-hyphen-postgres-db -c \"SELECT id, status, name, initiator_id FROM exchange WHERE id = 'd34bd29c-38e1-4293-b14e-de2bc25ed3ff';\" 2>&1)",
-      "Bash(xargs grep -l \"libraryDocumentId\\\\|BlueprintDocumentConfig\\\\|exchangeDocuments\")"
+      "Bash(xargs grep -l \"libraryDocumentId\\\\|BlueprintDocumentConfig\\\\|exchangeDocuments\")",
+      "PowerShell(.\\\\mvnw.cmd -q -o compile -DskipTests 2>&1)",
+      "Bash(docker --version)",
+      "Bash(docker rm *)",
+      "PowerShell(cd web-app; npx tsc --noEmit 2>&1 | Select-Object -First 60; Write-Output \"===TSC_EXIT=$LASTEXITCODE===\")"
     ]
   }
 }

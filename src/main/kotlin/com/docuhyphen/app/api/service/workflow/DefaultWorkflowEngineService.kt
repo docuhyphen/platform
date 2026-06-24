@@ -24,8 +24,6 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.inject.Instance
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import org.slf4j.LoggerFactory
@@ -54,6 +52,8 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     @Inject private lateinit var definitionRepository: WorkflowDefinitionRepository
     @Inject private lateinit var instanceRepository: WorkflowInstanceRepository
     @Inject private lateinit var stepRepository: WorkflowStepInstanceRepository
+    @Inject private lateinit var assigneeRepository: com.docuhyphen.app.api.repository.WorkflowStepAssigneeRepository
+    @Inject private lateinit var decisionRepository: com.docuhyphen.app.api.repository.WorkflowStepDecisionRepository
     @Inject private lateinit var assigneeResolver: WorkflowAssigneeResolver
     @Inject private lateinit var eventPublisher: DomainEventPublisher
     @Inject private lateinit var principalGroupMemberRepository: com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
@@ -137,8 +137,9 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         // Materialise the first step.
         val firstSpec = spec.steps[0]
         val resolved = assigneeResolver.resolveAll(firstSpec.assignees, instance.subjectDataJson)
-        val stepInstance = createStepInstance(instance, 0, firstSpec, resolved)
+        val stepInstance = createStepInstance(instance, 0, firstSpec)
         stepRepository.save(stepInstance)
+        replaceAssignees(stepInstance.id, resolved)
 
         // Activate the step: APPROVAL steps wait for human decisions; all other types
         // execute immediately and may advance through subsequent steps in the same call.
@@ -181,27 +182,41 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             ?: throw IllegalStateException("Workflow instance ${step.instanceId} missing")
 
         // Authorise: decider must be one of the snapshotted assignees.
-        val assignees = decodePrincipalList(step.assigneesSnapshotJson)
-        if (assignees.none { it.kind == decider.kind.name && it.id == decider.id.toString() })
+        val assignees = assigneeRepository.findAllByStepInstanceId(step.id)
+        if (assignees.none { it.principalKind == decider.kind && it.principalId == decider.id })
         {
             throw IllegalStateException("Decider ${decider.kind}/${decider.id} is not an assignee of step $stepInstanceId")
         }
 
-        // Append the decision (idempotency: same decider voting twice replaces their vote).
-        val existing = decodeDecisions(step.decisionsJson)
-            .filterNot { it.principalKind == decider.kind.name && it.principalId == decider.id.toString() }
-        val updated = existing + DecisionEntry(
-            principalKind = decider.kind.name,
-            principalId = decider.id.toString(),
-            decision = decision.name,
-            reason = reason,
-            atEpochMillis = System.currentTimeMillis(),
-        )
-        step.decisionsJson = encodeDecisions(updated)
+        val now = Timestamp.from(Instant.now())
+
+        // Record the decision (idempotency: same decider voting twice replaces their vote).
+        val priorDecision = decisionRepository.findByStepAndPrincipal(step.id, decider.kind, decider.id)
+        if (priorDecision != null)
+        {
+            priorDecision.decision = decision.name
+            priorDecision.reason = reason
+            priorDecision.decidedAt = now
+            decisionRepository.update(priorDecision)
+        }
+        else
+        {
+            decisionRepository.save(
+                com.docuhyphen.app.api.model.entity.WorkflowStepDecision().apply {
+                    this.stepInstanceId = step.id
+                    this.principalKind = decider.kind
+                    this.principalId = decider.id
+                    this.decision = decision.name
+                    this.reason = reason
+                    this.decidedAt = now
+                }
+            )
+        }
+        val approvals = decisionRepository.findAllByStepInstanceId(step.id)
+            .count { it.decision == Decision.APPROVE.name }
 
         val spec = WorkflowSpecJson.decodeStep(step.specSnapshotJson)
         val emitted = mutableListOf<String>()
-        val now = Timestamp.from(Instant.now())
 
         if (decision == Decision.REJECT)
         {
@@ -212,7 +227,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             spec.onReject?.emit?.let { emitted += it }
             emitDefinitionTerminalEvent(instance, success = false)
         }
-        else if (quorumMet(updated, spec.quorum, assigneeTotal = assignees.size))
+        else if (quorumMet(approvals, spec.quorum, assigneeTotal = assignees.size))
         {
             step.status = WorkflowStepStatus.APPROVED
             step.completedAt = now
@@ -294,9 +309,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                         ?: emptyList()
                     if (targets.isNotEmpty())
                     {
-                        step.assigneesSnapshotJson = encodePrincipalList(
-                            targets.map { PrincipalRefDto(it.kind.name, it.id.toString()) }
-                        )
+                        replaceAssignees(step.id, targets)
                         // Reset SLA so the new assignees get a fresh window.
                         step.dueAt = spec.slaMinutes?.let { Timestamp.from(now.toInstant().plusSeconds(it * 60L)) }
                     }
@@ -348,27 +361,15 @@ class DefaultWorkflowEngineService : WorkflowEngineService
      */
     override fun listPendingForUser(appUserId: UUID): List<PendingWorkflowStepDto>
     {
-        val userIdStr = appUserId.toString()
-        val userGroupIds: Set<String> = principalGroupMemberRepository
+        val userGroupIds: Set<UUID> = principalGroupMemberRepository
             .findGroupsForPrincipal(PrincipalKind.USER, appUserId)
-            .map { it.principalGroupId.toString() }
+            .map { it.principalGroupId }
             .toSet()
 
-        return stepRepository.findAllPending().mapNotNull { step ->
-            val assignees = decodePrincipalList(step.assigneesSnapshotJson)
-            val isAssigned = assignees.any { a ->
-                when (a.kind)
-                {
-                    PrincipalKind.USER.name -> a.id == userIdStr
-                    PrincipalKind.PRINCIPAL_GROUP.name -> a.id in userGroupIds
-                    else -> false
-                }
-            }
-            if (!isAssigned) return@mapNotNull null
-
+        return stepRepository.findPendingForAssignee(appUserId, userGroupIds).mapNotNull { step ->
             // Skip if the user already voted on this step (any decision, APPROVE or REJECT).
-            val alreadyVoted = decodeDecisions(step.decisionsJson)
-                .any { it.principalKind == PrincipalKind.USER.name && it.principalId == userIdStr }
+            val alreadyVoted = decisionRepository
+                .findByStepAndPrincipal(step.id, PrincipalKind.USER, appUserId) != null
             if (alreadyVoted) return@mapNotNull null
 
             val instance = instanceRepository.findById(step.instanceId) ?: return@mapNotNull null
@@ -445,7 +446,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     ): List<String>
     {
         val now = Timestamp.from(Instant.now())
-        val assignees = decodePrincipalList(step.assigneesSnapshotJson)
+        val assignees = assigneeRepository.findAllByStepInstanceId(step.id)
         val subjectData = decodeSubjectData(instance.subjectDataJson)
 
         var renderedSubject: String? = null
@@ -475,40 +476,39 @@ class DefaultWorkflowEngineService : WorkflowEngineService
 
         for (a in assignees)
         {
-            if (a.kind == PrincipalKind.USER.name)
+            if (a.principalKind == PrincipalKind.USER)
             {
-                runCatching { UUID.fromString(a.id) }.getOrNull()?.let { uid ->
-                    val user = appUserRepository.findById(uid)
-                    if (user != null)
+                val uid = a.principalId
+                val user = appUserRepository.findById(uid)
+                if (user != null)
+                {
+                    appNotificationService.sendNotification(uid.toString(), subject, plainBody)
+                    try
                     {
-                        appNotificationService.sendNotification(uid.toString(), subject, plainBody)
-                        try
+                        if (renderedBody != null)
                         {
-                            if (renderedBody != null)
-                            {
-                                val html = markdownRenderer.toHtml(renderedBody)
-                                val wrappedHtml = runCatching {
-                                    emailTemplateRenderer.render(
-                                        "communication-wrapper.ftl",
-                                        mapOf(
-                                            "appName" to appName,
-                                            "appUrl" to appUrl,
-                                            "htmlBody" to html,
-                                            "emailTitle" to subject,
-                                        )
+                            val html = markdownRenderer.toHtml(renderedBody)
+                            val wrappedHtml = runCatching {
+                                emailTemplateRenderer.render(
+                                    "communication-wrapper.ftl",
+                                    mapOf(
+                                        "appName" to appName,
+                                        "appUrl" to appUrl,
+                                        "htmlBody" to html,
+                                        "emailTitle" to subject,
                                     )
-                                }.getOrElse { html }
-                                emailService.sendEmail(user.email, subject, wrappedHtml, useHtml = true)
-                            }
-                            else
-                            {
-                                emailService.sendEmail(user.email, subject, plainBody)
-                            }
+                                )
+                            }.getOrElse { html }
+                            emailService.sendEmail(user.email, subject, wrappedHtml, useHtml = true)
                         }
-                        catch (e: Exception)
+                        else
                         {
-                            logger.warn("Email notification failed for {}: {}", user.email, e.message)
+                            emailService.sendEmail(user.email, subject, plainBody)
                         }
+                    }
+                    catch (e: Exception)
+                    {
+                        logger.warn("Email notification failed for {}: {}", user.email, e.message)
                     }
                 }
             }
@@ -741,8 +741,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
 
                 is StepAddonSpec.ReminderIfNoDecision ->
                 {
-                    val decisions = decodeDecisions(step.decisionsJson)
-                    if (decisions.isNotEmpty()) return@forEachIndexed
+                    if (decisionRepository.countByStepInstanceId(step.id) > 0) return@forEachIndexed
                     val minutesPending = (now.time - step.createdAt.time) / 60_000L
                     if (minutesPending < addon.afterMinutes) return@forEachIndexed
 
@@ -852,8 +851,9 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         instance.currentStepIndex = nextIndex
         val nextSpec = spec.steps[nextIndex]
         val resolved = assigneeResolver.resolveAll(nextSpec.assignees, instance.subjectDataJson)
-        val newStep = createStepInstance(instance, nextIndex, nextSpec, resolved)
+        val newStep = createStepInstance(instance, nextIndex, nextSpec)
         stepRepository.save(newStep)
+        replaceAssignees(newStep.id, resolved)
 
         val autoEvents = activateStep(instance, newStep, nextSpec, resolved)
         if (newStep.status != WorkflowStepStatus.PENDING)
@@ -936,7 +936,6 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         instance: WorkflowInstance,
         index: Int,
         spec: WorkflowStepSpec,
-        resolvedAssignees: List<PrincipalRef>,
     ): WorkflowStepInstance
     {
         val now = Timestamp.from(Instant.now())
@@ -946,23 +945,36 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             stepType = spec.type
             status = WorkflowStepStatus.PENDING
             specSnapshotJson = WorkflowSpecJson.encodeStep(spec)
-            assigneesSnapshotJson = encodePrincipalList(
-                resolvedAssignees.map { PrincipalRefDto(it.kind.name, it.id.toString()) }
-            )
-            decisionsJson = "[]"
             addonsStateJson = "{}"
             dueAt = spec.slaMinutes?.let { Timestamp.from(now.toInstant().plusSeconds(it * 60L)) }
             createdAt = now
         }
     }
 
+    /**
+     * Replaces the persisted assignee rows for [stepInstanceId] with [resolved]. Used both
+     * when a step is first materialised and when SLA escalation reassigns the step.
+     */
+    private fun replaceAssignees(stepInstanceId: UUID, resolved: List<PrincipalRef>)
+    {
+        assigneeRepository.deleteAllByStepInstanceId(stepInstanceId)
+        resolved.forEach { p ->
+            assigneeRepository.save(
+                com.docuhyphen.app.api.model.entity.WorkflowStepAssignee().apply {
+                    this.stepInstanceId = stepInstanceId
+                    this.principalKind = p.kind
+                    this.principalId = p.id
+                }
+            )
+        }
+    }
+
     private fun quorumMet(
-        decisions: List<DecisionEntry>,
+        approvals: Int,
         quorum: QuorumSpec,
         assigneeTotal: Int,
     ): Boolean
     {
-        val approvals = decisions.count { it.decision == Decision.APPROVE.name }
         return when (quorum)
         {
             is QuorumSpec.Any -> approvals >= 1
@@ -975,25 +987,6 @@ class DefaultWorkflowEngineService : WorkflowEngineService
 
     private fun encodeStringMap(map: Map<String, String>): String =
         json.encodeToString(MapSerializer(String.serializer(), String.serializer()), map)
-
-    private fun encodePrincipalList(list: List<PrincipalRefDto>): String =
-        json.encodeToString(ListSerializer(PrincipalRefDto.serializer()), list)
-
-    private fun decodePrincipalList(jsonStr: String?): List<PrincipalRefDto>
-    {
-        if (jsonStr.isNullOrBlank()) return emptyList()
-        return runCatching {
-            json.decodeFromString(ListSerializer(PrincipalRefDto.serializer()), jsonStr)
-        }.getOrDefault(emptyList())
-    }
-
-    private fun encodeDecisions(list: List<DecisionEntry>): String =
-        json.encodeToString(ListSerializer(DecisionEntry.serializer()), list)
-
-    private fun decodeDecisions(jsonStr: String): List<DecisionEntry> =
-        runCatching {
-            json.decodeFromString(ListSerializer(DecisionEntry.serializer()), jsonStr)
-        }.getOrDefault(emptyList())
 
     private fun decodeAddonsState(jsonStr: String): Map<String, Map<String, String>>
     {
@@ -1011,18 +1004,6 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             MapSerializer(String.serializer(), MapSerializer(String.serializer(), String.serializer())),
             state,
         )
-
-    @Serializable
-    private data class PrincipalRefDto(val kind: String, val id: String)
-
-    @Serializable
-    private data class DecisionEntry(
-        val principalKind: String,
-        val principalId: String,
-        val decision: String,
-        val reason: String? = null,
-        val atEpochMillis: Long,
-    )
 
     // ---- event publishing ---------------------------------------------------
 

@@ -99,9 +99,10 @@ class WorkflowInstanceRepository :
 
     /**
      * Own-org instances for [organizationId] PLUS any RUNNING instances from other orgs where
-     * [callerId] appears in an active PENDING step's `assigneesSnapshotJson`. This preserves
-     * org sovereignty while still surfacing cross-org acceptance workflows where the calling
-     * user is the designated approver (e.g. exchange.acceptance_pending using $subject.recipientId).
+     * [callerId] is an assignee on an active PENDING step (via the indexed workflow_step_assignee
+     * table). This preserves org sovereignty while still surfacing cross-org acceptance workflows
+     * where the calling user is the designated approver (e.g. exchange.acceptance_pending using
+     * $subject.recipientId).
      */
     fun findForSubjectIncludingCrossOrgPendingAssignee(
         resourceType: String,
@@ -113,14 +114,16 @@ class WorkflowInstanceRepository :
         val ownOrg = findForSubject(resourceType, resourceId, organizationId)
 
         val crossOrg = entityManager.createQuery(
-            """SELECT DISTINCT i FROM WorkflowInstance i, WorkflowStepInstance s
+            """SELECT DISTINCT i FROM WorkflowInstance i, WorkflowStepInstance s, WorkflowStepAssignee a
                WHERE s.instanceId = i.id
+                 AND a.stepInstanceId = s.id
                  AND i.subjectResourceType = :rt
                  AND i.subjectResourceId = :rid
                  AND i.organizationId <> :oid
                  AND i.status = :running
                  AND s.status = :pending
-                 AND s.assigneesSnapshotJson LIKE :pattern""",
+                 AND a.principalKind = :userKind
+                 AND a.principalId = :callerId""",
             WorkflowInstance::class.java,
         )
             .setParameter("rt", resourceType)
@@ -128,7 +131,8 @@ class WorkflowInstanceRepository :
             .setParameter("oid", organizationId)
             .setParameter("running", WorkflowInstanceStatus.RUNNING)
             .setParameter("pending", WorkflowStepStatus.PENDING)
-            .setParameter("pattern", "%\"id\":\"${callerId}\"%")
+            .setParameter("userKind", com.docuhyphen.app.api.model.entity.PrincipalKind.USER)
+            .setParameter("callerId", callerId)
             .resultList
 
         val seen = mutableSetOf<UUID>()

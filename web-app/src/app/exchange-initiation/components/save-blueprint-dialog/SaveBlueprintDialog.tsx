@@ -16,7 +16,13 @@ import {
     TagGroup,
     Textarea,
 } from '@fluentui/react-components';
-import {AppUserRole, BlueprintScope, CreateBlueprintRequest} from '../../../models/models.tsx';
+import {
+    AppUserRole,
+    BlueprintDocumentConfig,
+    BlueprintParticipantConfig,
+    BlueprintScope,
+    CreateBlueprintRequest,
+} from '../../../models/models.tsx';
 import {createBlueprint, patchBlueprintPublished} from '../../../../services/blueprintService.ts';
 import {useAuth} from '../../../../context/AuthContext.tsx';
 
@@ -27,6 +33,8 @@ interface SaveBlueprintDialogProps
     onSaved: () => void;
     initialName: string;
     configJson: string;
+    exchangeDocuments: BlueprintDocumentConfig[];
+    participants: BlueprintParticipantConfig[];
 }
 
 type SaveTarget = 'PERSONAL' | 'ORG';
@@ -38,6 +46,8 @@ const SaveBlueprintDialog: React.FC<SaveBlueprintDialogProps> = (
         onSaved,
         initialName,
         configJson,
+        exchangeDocuments,
+        participants,
     }) =>
 {
     const {appUser, appUserPersonOrganization} = useAuth();
@@ -82,6 +92,8 @@ const SaveBlueprintDialog: React.FC<SaveBlueprintDialogProps> = (
                 name: name.trim(),
                 summary: summary.trim() || undefined,
                 configJson,
+                exchangeDocuments,
+                participants,
                 generalTags: tags,
                 scope,
                 isActive: true,

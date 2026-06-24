@@ -60,8 +60,6 @@ const emptyConfig = (): BlueprintConfig => ({
     allowDocumentDownload: false,
     allowDocumentUpdate: false,
     allowDocumentUpload: false,
-    exchangeDocuments: [],
-    participants: [],
 });
 
 const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
@@ -80,6 +78,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
     const [tagInput, setTagInput] = useState('');
     const [tags, setTags] = useState<string[]>([]);
     const [config, setConfig] = useState<BlueprintConfig>(emptyConfig());
+    const [documents, setDocuments] = useState<BlueprintDocumentConfig[]>([]);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [availableVariables, setAvailableVariables] = useState<AvailableVariablesDto | null>(null);
@@ -98,6 +97,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
             setTags(blueprint.generalTags);
             try { setConfig(JSON.parse(blueprint.configJson)); }
             catch { setConfig(emptyConfig()); }
+            setDocuments(blueprint.exchangeDocuments ?? []);
         }
         else
         {
@@ -106,6 +106,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
             setDescription('');
             setTags([]);
             setConfig(emptyConfig());
+            setDocuments([]);
         }
         setActiveTab('details');
         setPickerOpen(false);
@@ -120,24 +121,13 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
     };
 
     const addDocument = () =>
-        setConfig(prev => ({
-            ...prev,
-            exchangeDocuments: [...(prev.exchangeDocuments ?? []), {title: ''}],
-        }));
+        setDocuments(prev => [...prev, {title: ''}]);
 
     const removeDocument = (index: number) =>
-        setConfig(prev => ({
-            ...prev,
-            exchangeDocuments: (prev.exchangeDocuments ?? []).filter((_, i) => i !== index),
-        }));
+        setDocuments(prev => prev.filter((_, i) => i !== index));
 
     const updateDoc = (index: number, patch: Partial<BlueprintDocumentConfig>) =>
-        setConfig(prev => ({
-            ...prev,
-            exchangeDocuments: (prev.exchangeDocuments ?? []).map((d, i) =>
-                i === index ? {...d, ...patch} : d
-            ),
-        }));
+        setDocuments(prev => prev.map((d, i) => i === index ? {...d, ...patch} : d));
 
     const setBoolConfig = (key: keyof BlueprintConfig, value: boolean) =>
         setConfig(prev => ({...prev, [key]: value}));
@@ -161,6 +151,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                     summary: summary.trim() || undefined,
                     description: description.trim() || undefined,
                     configJson,
+                    exchangeDocuments: documents,
                     generalTags: tags,
                 };
                 await updateBlueprint(blueprint.id, req);
@@ -172,6 +163,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                     summary: summary.trim() || undefined,
                     description: description.trim() || undefined,
                     configJson,
+                    exchangeDocuments: documents,
                     generalTags: tags,
                     scope,
                     isActive: true,
@@ -277,7 +269,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
 
                         {activeTab === 'documents' && !pickerOpen && (
                             <div className={styles.exchangeDocumentsTabContent}>
-                                {(config.exchangeDocuments ?? []).map((doc, i) => (
+                                {documents.map((doc, i) => (
                                     <Card
                                         key={i}
                                         className={styles.shadingExchangeDocumentCard}
@@ -412,19 +404,16 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                             <DocumentLibraryPicker
                                 onSelect={(entry: DocumentLibraryEntrySummaryDto) =>
                                 {
-                                    setConfig(prev => ({
+                                    setDocuments(prev => [
                                         ...prev,
-                                        exchangeDocuments: [
-                                            ...(prev.exchangeDocuments ?? []),
-                                            {
-                                                title: entry.title,
-                                                libraryDocumentId: entry.id,
-                                                restrictType: entry.restrictType ?? false,
-                                                restrictedType: entry.restrictedType,
-                                                required: entry.required ?? false,
-                                            },
-                                        ],
-                                    }));
+                                        {
+                                            title: entry.title,
+                                            libraryDocumentId: entry.id,
+                                            restrictType: entry.restrictType ?? false,
+                                            restrictedType: entry.restrictedType,
+                                            required: entry.required ?? false,
+                                        },
+                                    ]);
                                     setPickerOpen(false);
                                 }}
                                 onCancel={() => setPickerOpen(false)}

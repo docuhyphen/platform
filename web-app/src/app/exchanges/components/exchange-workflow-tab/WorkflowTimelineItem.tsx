@@ -17,6 +17,7 @@ import {
 } from "../../../settings/workflows-tab/workflowUtils.ts";
 
 const STEP_STATUS_COLORS: Record<string, "success" | "warning" | "danger" | "informative" | "subtle"> = {
+    APPROVED: "success",
     COMPLETED: "success",
     PENDING: "informative",
     REJECTED: "danger",
@@ -37,7 +38,7 @@ const formatEpoch = (ms: number) =>
 
 const StepIcon = ({ step, isActivePending }: { step: WorkflowStepInstanceDto; isActivePending: boolean }) =>
 {
-    if (step.status === "COMPLETED")
+    if (step.status === "COMPLETED" || step.status === "APPROVED")
         return <CheckmarkCircleFilled style={{ color: "var(--colorStatusSuccessForeground1)", flexShrink: 0 }} />;
     if (step.status === "REJECTED")
         return <DismissCircleFilled style={{ color: "var(--colorStatusDangerForeground1)", flexShrink: 0 }} />;

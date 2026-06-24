@@ -44,9 +44,8 @@ class WorkflowStepInstanceRepository :
             .firstOrNull()
 
     /**
-     * Every PENDING step instance. Caller filters by assignee in app code
-     * (assignees are stored as a JSON snapshot, not an indexable column). Capped at 1000
-     * since the per-user inbox is meant to be small.
+     * Every PENDING step instance. Used by the scheduler for addon (reminder) processing,
+     * which must visit all pending steps. Capped at 1000.
      */
     fun findAllPending(): List<WorkflowStepInstance> =
         entityManager.createQuery(
@@ -58,6 +57,36 @@ class WorkflowStepInstanceRepository :
             .setParameter("status", WorkflowStepStatus.PENDING)
             .setMaxResults(1000)
             .resultList
+
+    /**
+     * PENDING step instances on which [userId] can act: either a direct USER assignee or a
+     * member of an assignee PRINCIPAL_GROUP (passed in as [groupIds]). Backed by the indexed
+     * workflow_step_assignee table, replacing the former scan-all-pending + in-memory filter.
+     */
+    fun findPendingForAssignee(userId: UUID, groupIds: Collection<UUID>): List<WorkflowStepInstance>
+    {
+        val groupClause =
+            if (groupIds.isEmpty()) ""
+            else " OR (a.principalKind = :groupKind AND a.principalId IN :gids)"
+
+        val query = entityManager.createQuery(
+            """SELECT DISTINCT s FROM WorkflowStepInstance s, WorkflowStepAssignee a
+               WHERE s.status = :status
+                 AND a.stepInstanceId = s.id
+                 AND ( (a.principalKind = :userKind AND a.principalId = :uid)$groupClause )
+               ORDER BY s.createdAt DESC""",
+            WorkflowStepInstance::class.java,
+        )
+            .setParameter("status", WorkflowStepStatus.PENDING)
+            .setParameter("userKind", com.docuhyphen.app.api.model.entity.PrincipalKind.USER)
+            .setParameter("uid", userId)
+        if (groupIds.isNotEmpty())
+        {
+            query.setParameter("groupKind", com.docuhyphen.app.api.model.entity.PrincipalKind.PRINCIPAL_GROUP)
+            query.setParameter("gids", groupIds)
+        }
+        return query.setMaxResults(1000).resultList
+    }
 
     /**
      * All AWAITING_COUNTERPARTY step instances whose parent instance targets the given subject.

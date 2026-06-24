@@ -41,6 +41,7 @@ import {
     AvailableVariablesDto,
     BlueprintConfig,
     BlueprintDefinitionSummaryDto,
+    BlueprintDocumentConfig,
     DocumentLibraryEntrySummaryDto,
     ExchangeInitiationRequest, ExchangeParticipantRole, ExchangeParticipantType,
     ExchangeRequestDocumentRequest
@@ -163,9 +164,9 @@ const ExchangeInitiation: React.FC = () =>
             if (config.allowDocumentUpdate !== undefined) setAllowDocumentUpdate(config.allowDocumentUpdate);
             if (config.allowDocumentUpload !== undefined) setAllowDocumentUpload(config.allowDocumentUpload);
             if (config.allowedDownloadFormats !== undefined) setAllowedDownloadFormats(config.allowedDownloadFormats);
-            if (config.exchangeDocuments && config.exchangeDocuments.length > 0)
+            if (blueprint.exchangeDocuments && blueprint.exchangeDocuments.length > 0)
             {
-                const docs: ExchangeRequestDocumentRequest[] = config.exchangeDocuments.map(d => ({
+                const docs: ExchangeRequestDocumentRequest[] = blueprint.exchangeDocuments.map(d => ({
                     title: d.title,
                     restrictedType: d.restrictedType as any,
                     restrictType: d.restrictType ?? false,
@@ -174,9 +175,9 @@ const ExchangeInitiation: React.FC = () =>
                 }));
                 setDocuments(docs);
             }
-            if (config.participants && config.participants.length > 0)
+            if (blueprint.participants && blueprint.participants.length > 0)
             {
-                setInternalParticipants(config.participants);
+                setInternalParticipants(blueprint.participants);
             }
         }
         catch (e)
@@ -195,7 +196,7 @@ const ExchangeInitiation: React.FC = () =>
                 config.name ?? '',
                 config.description ?? '',
                 config.initialShareMessage ?? '',
-                ...(config.exchangeDocuments ?? []).map(d => d.title),
+                ...(blueprint.exchangeDocuments ?? []).map(d => d.title),
             ];
             const found = new Set<string>();
             for (const s of allStrings)
@@ -236,16 +237,18 @@ const ExchangeInitiation: React.FC = () =>
             allowDocumentUpdate: allowDocumentUpdate,
             allowDocumentUpload: allowDocumentUpload,
             allowedDownloadFormats: allowedDownloadFormats,
-            exchangeDocuments: documents.map(d => ({
-                title: d.title,
-                restrictedType: d.restrictedType as string | undefined,
-                restrictType: d.restrictType,
-                required: d.required,
-            })),
-            participants: internalParticipants ?? [],
         };
         return JSON.stringify(config);
     };
+
+    const buildBlueprintDocuments = (): BlueprintDocumentConfig[] =>
+        documents.map(d => ({
+            title: d.title,
+            restrictedType: d.restrictedType as string | undefined,
+            restrictType: d.restrictType,
+            required: d.required,
+            libraryDocumentId: d.libraryDocumentId,
+        }));
 
     const buildRecipientLabel = (): string =>
     {
@@ -956,6 +959,8 @@ const ExchangeInitiation: React.FC = () =>
                         onSaved={() => setSaveBlueprintDialogOpen(false)}
                         initialName={name}
                         configJson={buildBlueprintConfigJson()}
+                        exchangeDocuments={buildBlueprintDocuments()}
+                        participants={internalParticipants ?? []}
                     />
                 </DialogBody>
             </DialogSurface>
