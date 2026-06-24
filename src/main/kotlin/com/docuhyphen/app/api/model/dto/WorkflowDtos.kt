@@ -161,3 +161,23 @@ data class WorkflowDecisionResponseDto(
     val email: String? = null,
 )
 
+// ── Exchange clearance status DTOs ────────────────────────────────────────────
+
+/** Aggregate clearance status for one party (my org or a counterparty). */
+@Serializable
+data class PartyClearanceDto(
+    /** NONE | RUNNING | CLEARED | BLOCKED */
+    val status: String,
+)
+
+/**
+ * Response for GET /exchanges/{id}/workflow-clearance-status.
+ * Exposes aggregate workflow progress per party without leaking internal step details.
+ */
+@Serializable
+data class ExchangeClearanceStatusDto(
+    val myOrg: PartyClearanceDto,
+    /** One entry per counterparty org — no org name or internal detail. */
+    val counterparties: List<PartyClearanceDto>,
+)
+

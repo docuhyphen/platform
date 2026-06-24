@@ -1,6 +1,7 @@
 ﻿import apiClient, {addBearerToHeaderToken} from './apiClient';
 import {
     DownloadDocumentsZipRequest,
+    ExchangeClearanceStatusDto,
     NoAuthExchangeBasicDto,
     ResponseError,
     ExchangeBasicDto,
@@ -283,4 +284,11 @@ export const fetchExchangeWorkflowInstances = (
 ): Promise<WorkflowInstanceSummaryDto[]> =>
     executeRequest(() =>
         apiClient.get(`/exchanges/${exchangeId}/workflow-instances`),
+    );
+
+export const fetchExchangeWorkflowClearanceStatus = (
+    exchangeId: string,
+): Promise<ExchangeClearanceStatusDto> =>
+    executeRequest(() =>
+        apiClient.get(`/exchanges/${exchangeId}/workflow-clearance-status`),
     );

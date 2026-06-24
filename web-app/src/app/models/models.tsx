@@ -877,9 +877,24 @@ export interface WorkflowDecisionEntryDto
     email?: string;
 }
 
+// ── Exchange clearance status ─────────────────────────────────────────────────
+
+export type ClearanceStatus = 'NONE' | 'RUNNING' | 'CLEARED' | 'BLOCKED';
+
+export interface PartyClearanceDto
+{
+    status: ClearanceStatus;
+}
+
+export interface ExchangeClearanceStatusDto
+{
+    myOrg: PartyClearanceDto;
+    counterparties: PartyClearanceDto[];
+}
+
 // ── Workflow Designer DSL types (mirror of WorkflowSpec Kotlin DSL) ────────────
 
-export type WorkflowStepType = 'APPROVAL' | 'NOTIFICATION' | 'CONDITION' | 'ACTION';
+export type WorkflowStepType = 'APPROVAL' | 'NOTIFICATION' | 'CONDITION' | 'ACTION' | 'WAIT_FOR_COUNTERPARTY_CLEARANCE';
 export type AssigneeKind = 'PRINCIPAL' | 'GROUP_ROLE' | 'ROLE';
 export type QuorumKind = 'ANY' | 'ALL' | 'N_OF_M';
 export type EscalationAction = 'ESCALATE' | 'AUTO_REJECT' | 'AUTO_APPROVE';

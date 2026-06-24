@@ -24,7 +24,11 @@ import CommunicationPickerDialog from "../../components/communication-picker/Com
 import {getCommunication} from "../../../services/communicationService.ts";
 
 const STEP_TYPE_LABELS: Record<WorkflowStepType, string> = {
-    APPROVAL: "Approval", NOTIFICATION: "Notification", CONDITION: "Condition", ACTION: "Action",
+    APPROVAL: "Approval",
+    NOTIFICATION: "Notification",
+    CONDITION: "Condition",
+    ACTION: "Action",
+    WAIT_FOR_COUNTERPARTY_CLEARANCE: "Wait for Counterparty Clearance",
 };
 
 const CONDITION_OPERATORS = [
@@ -612,6 +616,19 @@ const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subject
                                 onChange={patchAssignees}
                                 subjectFields={subjectFields}
                             />
+                        </>
+                    )}
+
+                    {step.type === "WAIT_FOR_COUNTERPARTY_CLEARANCE" && (
+                        <>
+                            <Divider/>
+                            <Text size={200} style={{color: "var(--colorNeutralForeground3)"}}>
+                                Pauses this workflow until all workflows on the other party's side of this exchange have completed.
+                            </Text>
+                            <div className={styles.outcomeRow}>
+                                <OutcomeField label="When unblocked" value={step.onApprove} stepCount={stepCount}
+                                              triggers={triggers} onChange={v => patch({onApprove: v})}/>
+                            </div>
                         </>
                     )}
 

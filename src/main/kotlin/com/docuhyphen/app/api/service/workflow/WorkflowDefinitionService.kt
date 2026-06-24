@@ -1,5 +1,7 @@
 package com.docuhyphen.app.api.service.workflow
 
+import com.docuhyphen.app.api.model.dto.ExchangeClearanceStatusDto
+import com.docuhyphen.app.api.model.dto.PartyClearanceDto
 import com.docuhyphen.app.api.model.dto.WorkflowDecisionResponseDto
 import com.docuhyphen.app.api.model.dto.WorkflowDefinitionDto
 import com.docuhyphen.app.api.model.dto.WorkflowDefinitionListItemDto
@@ -327,15 +329,68 @@ class WorkflowDefinitionService @Inject constructor(
                 instance.toListItemDto(defName)
             }
 
+    fun listInstancesForSubject(resourceType: String, resourceId: UUID, organizationId: UUID): List<WorkflowInstanceListItemDto> =
+        instanceRepository.findForSubject(resourceType, resourceId, organizationId)
+            .map { instance ->
+                val defName = runCatching { definitionRepository.findById(instance.definitionId)?.name }.getOrNull()
+                instance.toListItemDto(defName)
+            }
+
+    fun listInstancesForSubject(
+        resourceType: String,
+        resourceId: UUID,
+        organizationId: UUID,
+        callerId: UUID,
+    ): List<WorkflowInstanceListItemDto> =
+        instanceRepository.findForSubjectIncludingCrossOrgPendingAssignee(resourceType, resourceId, organizationId, callerId)
+            .map { instance ->
+                val defName = runCatching { definitionRepository.findById(instance.definitionId)?.name }.getOrNull()
+                instance.toListItemDto(defName)
+            }
+
+    fun getExchangeClearanceStatus(exchangeId: UUID, callerOrgId: UUID): ExchangeClearanceStatusDto
+    {
+        val myInstances = instanceRepository.findForSubject("EXCHANGE", exchangeId, callerOrgId)
+        val counterpartyInstances = instanceRepository.findForSubjectExcludingOrg("EXCHANGE", exchangeId, callerOrgId)
+
+        return ExchangeClearanceStatusDto(
+            myOrg = aggregateClearance(myInstances),
+            counterparties = counterpartyInstances
+                .groupBy { it.organizationId }
+                .values
+                .map { aggregateClearance(it) },
+        )
+    }
+
+    private fun aggregateClearance(instances: List<WorkflowInstance>): PartyClearanceDto
+    {
+        if (instances.isEmpty()) return PartyClearanceDto("NONE")
+        val statuses = instances.map { it.status }
+        return when
+        {
+            statuses.any { it == WorkflowInstanceStatus.RUNNING || it == WorkflowInstanceStatus.ESCALATED } -> PartyClearanceDto("RUNNING")
+            statuses.any { it == WorkflowInstanceStatus.REJECTED || it == WorkflowInstanceStatus.CANCELLED } -> PartyClearanceDto("BLOCKED")
+            statuses.all { it == WorkflowInstanceStatus.COMPLETED } -> PartyClearanceDto("CLEARED")
+            else -> PartyClearanceDto("NONE")
+        }
+    }
+
     fun getInstanceDetail(id: UUID, callerOrgId: UUID?, isAppAdmin: Boolean): WorkflowInstanceDetailResponseDto
     {
         val instance = instanceRepository.findById(id)
             ?: throw IllegalArgumentException("Workflow instance not found: $id")
 
-        if (!isAppAdmin && callerOrgId != null && instance.organizationId != null
-            && instance.organizationId != callerOrgId)
+        if (!isAppAdmin)
         {
-            throw ForbiddenException("Access denied to workflow instance $id")
+            if (callerOrgId == null)
+            {
+                // No org membership → no workflow visibility.
+                throw ForbiddenException("Access denied to workflow instance $id")
+            }
+            if (instance.organizationId != null && instance.organizationId != callerOrgId)
+            {
+                throw ForbiddenException("Access denied to workflow instance $id")
+            }
         }
 
         val steps = stepRepository.findByInstance(instance.id)

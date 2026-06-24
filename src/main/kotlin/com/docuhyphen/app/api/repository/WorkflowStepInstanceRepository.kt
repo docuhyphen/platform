@@ -58,5 +58,23 @@ class WorkflowStepInstanceRepository :
             .setParameter("status", WorkflowStepStatus.PENDING)
             .setMaxResults(1000)
             .resultList
+
+    /**
+     * All AWAITING_COUNTERPARTY step instances whose parent instance targets the given subject.
+     * Used by the counterparty-clearance unblock sweep after any instance on the subject terminates.
+     */
+    fun findAwaitingCounterpartyForSubject(resourceType: String, resourceId: UUID): List<WorkflowStepInstance> =
+        entityManager.createQuery(
+            """SELECT s FROM WorkflowStepInstance s, WorkflowInstance i
+               WHERE s.instanceId = i.id
+                 AND s.status = :status
+                 AND i.subjectResourceType = :rt
+                 AND i.subjectResourceId = :rid""",
+            WorkflowStepInstance::class.java,
+        )
+            .setParameter("status", WorkflowStepStatus.AWAITING_COUNTERPARTY)
+            .setParameter("rt", resourceType)
+            .setParameter("rid", resourceId)
+            .resultList
 }
 

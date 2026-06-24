@@ -8,6 +8,7 @@ import {slaEscalationsArticle} from "./articles/slaEscalationsArticle";
 import {platformTemplatesArticle} from "./articles/platformTemplatesArticle";
 import {workflowActivityMonitoringArticle} from "./articles/workflowActivityMonitoringArticle";
 import {workflowOrgSettingsArticle} from "./articles/workflowOrgSettingsArticle";
+import {recipientWorkflowsArticle} from "./articles/recipientWorkflowsArticle";
 
 export const workflowsSection: HelpDocSectionInput = {
     id: "workflows",
@@ -22,5 +23,6 @@ export const workflowsSection: HelpDocSectionInput = {
         {id: "platform-templates",          title: "Platform templates",                 content: platformTemplatesArticle},
         {id: "workflow-activity-monitoring", title: "Workflow activity and monitoring",   content: workflowActivityMonitoringArticle},
         {id: "workflow-org-settings",       title: "Organization workflow settings",      content: workflowOrgSettingsArticle},
+        {id: "recipient-workflows",         title: "Recipient-side workflows",           content: recipientWorkflowsArticle},
     ],
 };

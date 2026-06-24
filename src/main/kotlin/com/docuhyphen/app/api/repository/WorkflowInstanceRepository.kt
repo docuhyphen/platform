@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.repository
 import com.docuhyphen.app.api.model.entity.WorkflowDefinition
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
 import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
+import com.docuhyphen.app.api.model.entity.WorkflowStepStatus
 import jakarta.enterprise.context.ApplicationScoped
 import java.util.UUID
 
@@ -79,6 +80,77 @@ class WorkflowInstanceRepository :
         )
             .setParameter("rt", resourceType)
             .setParameter("rid", resourceId)
+            .resultList
+
+    /** All instances for a given subject resource owned by [organizationId], newest first. */
+    fun findForSubject(resourceType: String, resourceId: UUID, organizationId: UUID): List<WorkflowInstance> =
+        entityManager.createQuery(
+            """SELECT i FROM WorkflowInstance i
+               WHERE i.subjectResourceType = :rt
+                 AND i.subjectResourceId = :rid
+                 AND i.organizationId = :oid
+               ORDER BY i.createdAt DESC""",
+            WorkflowInstance::class.java,
+        )
+            .setParameter("rt", resourceType)
+            .setParameter("rid", resourceId)
+            .setParameter("oid", organizationId)
+            .resultList
+
+    /**
+     * Own-org instances for [organizationId] PLUS any RUNNING instances from other orgs where
+     * [callerId] appears in an active PENDING step's `assigneesSnapshotJson`. This preserves
+     * org sovereignty while still surfacing cross-org acceptance workflows where the calling
+     * user is the designated approver (e.g. exchange.acceptance_pending using $subject.recipientId).
+     */
+    fun findForSubjectIncludingCrossOrgPendingAssignee(
+        resourceType: String,
+        resourceId: UUID,
+        organizationId: UUID,
+        callerId: UUID,
+    ): List<WorkflowInstance>
+    {
+        val ownOrg = findForSubject(resourceType, resourceId, organizationId)
+
+        val crossOrg = entityManager.createQuery(
+            """SELECT DISTINCT i FROM WorkflowInstance i, WorkflowStepInstance s
+               WHERE s.instanceId = i.id
+                 AND i.subjectResourceType = :rt
+                 AND i.subjectResourceId = :rid
+                 AND i.organizationId <> :oid
+                 AND i.status = :running
+                 AND s.status = :pending
+                 AND s.assigneesSnapshotJson LIKE :pattern""",
+            WorkflowInstance::class.java,
+        )
+            .setParameter("rt", resourceType)
+            .setParameter("rid", resourceId)
+            .setParameter("oid", organizationId)
+            .setParameter("running", WorkflowInstanceStatus.RUNNING)
+            .setParameter("pending", WorkflowStepStatus.PENDING)
+            .setParameter("pattern", "%\"id\":\"${callerId}\"%")
+            .resultList
+
+        val seen = mutableSetOf<UUID>()
+        val merged = mutableListOf<WorkflowInstance>()
+        for (i in ownOrg) { if (seen.add(i.id)) merged.add(i) }
+        for (i in crossOrg) { if (seen.add(i.id)) merged.add(i) }
+        return merged
+    }
+
+    /** All instances for a given subject resource NOT owned by [excludeOrgId], newest first. Used for counterparty clearance checks. */
+    fun findForSubjectExcludingOrg(resourceType: String, resourceId: UUID, excludeOrgId: UUID): List<WorkflowInstance> =
+        entityManager.createQuery(
+            """SELECT i FROM WorkflowInstance i
+               WHERE i.subjectResourceType = :rt
+                 AND i.subjectResourceId = :rid
+                 AND i.organizationId <> :oid
+               ORDER BY i.createdAt DESC""",
+            WorkflowInstance::class.java,
+        )
+            .setParameter("rt", resourceType)
+            .setParameter("rid", resourceId)
+            .setParameter("oid", excludeOrgId)
             .resultList
 
     /**

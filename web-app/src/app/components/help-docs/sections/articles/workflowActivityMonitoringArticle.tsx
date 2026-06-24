@@ -52,7 +52,8 @@ export const workflowActivityMonitoringArticle = (
         <ul>
             <li>
                 <b>Step type and status</b> - the step type (Approval, Notification,
-                Condition, Action) and its status: Waiting, Completed, Rejected,
+                Condition, Action, Wait for Counterparty Clearance) and its
+                status: Waiting, Awaiting Counterparty, Completed, Rejected,
                 Escalated, or Skipped.
             </li>
             <li>

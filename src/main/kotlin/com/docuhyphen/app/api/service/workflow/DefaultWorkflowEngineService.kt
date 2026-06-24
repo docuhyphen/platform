@@ -425,6 +425,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             WorkflowStepType.NOTIFICATION -> executeNotificationStep(instance, step, spec)
             WorkflowStepType.CONDITION -> executeConditionStep(instance, step, spec)
             WorkflowStepType.ACTION -> executeActionStep(instance, step, spec)
+            WorkflowStepType.WAIT_FOR_COUNTERPARTY_CLEARANCE -> executeWaitForCounterpartyStep(instance, step, spec)
         }
     }
 
@@ -616,6 +617,90 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     }
 
     // -------------------------------------------------------------------------
+    // WAIT_FOR_COUNTERPARTY_CLEARANCE step
+    // -------------------------------------------------------------------------
+
+    /**
+     * Evaluates whether any counterparty workflow instances on the same exchange subject are
+     * still running. If yes, parks the step as AWAITING_COUNTERPARTY; if no (or no counterparty
+     * instances exist), completes the step immediately and advances.
+     */
+    private fun executeWaitForCounterpartyStep(
+        instance: WorkflowInstance,
+        step: WorkflowStepInstance,
+        spec: WorkflowStepSpec,
+    ): List<String>
+    {
+        val rt = instance.subjectResourceType ?: return emptyList()
+        val rid = instance.subjectResourceId ?: return emptyList()
+        val myOrgId = instance.organizationId
+
+        val counterpartyRunning = if (myOrgId != null)
+            instanceRepository.findForSubjectExcludingOrg(rt, rid, myOrgId)
+                .any { it.status == WorkflowInstanceStatus.RUNNING || it.status == WorkflowInstanceStatus.ESCALATED }
+        else
+            false
+
+        if (counterpartyRunning)
+        {
+            step.status = WorkflowStepStatus.AWAITING_COUNTERPARTY
+            logger.info("Step {} parked AWAITING_COUNTERPARTY for exchange {}", step.id, rid)
+            return emptyList()
+        }
+
+        val now = java.sql.Timestamp.from(java.time.Instant.now())
+        step.status = WorkflowStepStatus.COMPLETED
+        step.completedAt = now
+        val emitted = mutableListOf<String>()
+        spec.onApprove?.emit?.let { emitted += it }
+        advanceOrComplete(instance, spec.onApprove?.nextStep ?: "END", now, step.id)
+        return emitted
+    }
+
+    /**
+     * After any instance on the given subject reaches a terminal state, re-evaluates all
+     * AWAITING_COUNTERPARTY steps for the same subject. Steps whose counterparties are now all
+     * terminal are unblocked and the workflow advances.
+     *
+     * Called by [emitDefinitionTerminalEvent] so the sweep happens on every terminal transition.
+     */
+    @Transactional
+    fun unblockWaitingCounterpartySteps(resourceType: String, resourceId: java.util.UUID)
+    {
+        val waiting = stepRepository.findAwaitingCounterpartyForSubject(resourceType, resourceId)
+        if (waiting.isEmpty()) return
+
+        for (step in waiting)
+        {
+            val parentInstance = instanceRepository.findById(step.instanceId) ?: continue
+            if (parentInstance.status != WorkflowInstanceStatus.RUNNING) continue
+
+            val myOrgId = parentInstance.organizationId
+            val counterpartyRunning = if (myOrgId != null)
+                instanceRepository.findForSubjectExcludingOrg(resourceType, resourceId, myOrgId)
+                    .any { it.status == WorkflowInstanceStatus.RUNNING || it.status == WorkflowInstanceStatus.ESCALATED }
+            else
+                false
+
+            if (!counterpartyRunning)
+            {
+                val now = java.sql.Timestamp.from(java.time.Instant.now())
+                val spec = WorkflowSpecJson.decodeStep(step.specSnapshotJson)
+                step.status = WorkflowStepStatus.COMPLETED
+                step.completedAt = now
+                stepRepository.update(step)
+
+                val emitted = mutableListOf<String>()
+                spec.onApprove?.emit?.let { emitted += it }
+                advanceOrComplete(parentInstance, spec.onApprove?.nextStep ?: "END", now, step.id)
+                instanceRepository.update(parentInstance)
+                emitted.forEach { publishOutcomeEvent(parentInstance, it) }
+                logger.info("Unblocked AWAITING_COUNTERPARTY step {} for instance {}", step.id, parentInstance.id)
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Addon processing (reminders)
     // -------------------------------------------------------------------------
 
@@ -783,6 +868,9 @@ class DefaultWorkflowEngineService : WorkflowEngineService
      * when the instance reaches a terminal state. This fires unconditionally so the correct
      * outcome event is always published regardless of how individual steps are configured —
      * the handlers are idempotent so a step-level emit on the same event name is harmless.
+     *
+     * Also triggers the counterparty-clearance unblock sweep so any AWAITING_COUNTERPARTY steps
+     * on the same exchange subject are re-evaluated.
      */
     private fun emitDefinitionTerminalEvent(instance: WorkflowInstance, success: Boolean)
     {
@@ -792,6 +880,15 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                 ?.let { if (success) it.onComplete else it.onReject }
         }.getOrNull() ?: return
         event?.let { publishOutcomeEvent(instance, it) }
+
+        // Re-evaluate any AWAITING_COUNTERPARTY steps for the same exchange subject.
+        val rt = instance.subjectResourceType
+        val rid = instance.subjectResourceId
+        if (rt != null && rid != null)
+        {
+            runCatching { unblockWaitingCounterpartySteps(rt, rid) }
+                .onFailure { e -> logger.warn("Counterparty unblock sweep failed for subject {}/{}: {}", rt, rid, e.message) }
+        }
     }
 
     private fun decodeSubjectData(jsonStr: String?): Map<String, String>

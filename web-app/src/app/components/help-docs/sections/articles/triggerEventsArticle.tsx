@@ -70,6 +70,46 @@ export const triggerEventsArticle = (
             <li><b>Org</b> - the initiator organization. No searchable picker - used as a scope reference in assignee configuration.</li>
         </ul>
 
+        <h3>exchange.received</h3>
+        <p>
+            Fires in a <b>recipient organization's</b> context when an Exchange is
+            sent to them and is waiting for their acceptance. Use this to run
+            internal approval workflows on the recipient side before the Exchange
+            becomes active.
+        </p>
+        <p><b>Available subject fields:</b></p>
+        <ul>
+            <li><b>Initiator</b> - the user who created the Exchange.</li>
+            <li><b>Org</b> - the initiator's organization.</li>
+            <li><b>Recipient Org</b> - the recipient organization this instance was triggered for.</li>
+        </ul>
+
+        <h3>exchange.received_activated</h3>
+        <p>
+            Fires in a <b>recipient organization's</b> context when an Exchange they
+            are part of transitions to Active. Use this for post-activation
+            notifications or actions on the recipient side.
+        </p>
+        <p><b>Available subject fields:</b></p>
+        <ul>
+            <li><b>Initiator</b> - the user who created the Exchange.</li>
+            <li><b>Org</b> - the initiator's organization.</li>
+            <li><b>Recipient Org</b> - the recipient organization this instance was triggered for.</li>
+        </ul>
+
+        <h3>exchange.received_ending</h3>
+        <p>
+            Fires in a <b>recipient organization's</b> context when an Exchange they
+            are part of is being closed. Use this for recipient-side completion
+            checklists or sign-off steps.
+        </p>
+        <p><b>Available subject fields:</b></p>
+        <ul>
+            <li><b>Initiator</b> - the user who created the Exchange.</li>
+            <li><b>Org</b> - the initiator's organization.</li>
+            <li><b>Recipient Org</b> - the recipient organization this instance was triggered for.</li>
+        </ul>
+
         <h3>Tip: subject field placeholders in assignees</h3>
         <p>
             When configuring <b>assignees</b>, you can reference subject fields

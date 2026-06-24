@@ -34,6 +34,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
     private val organizationMembershipService: OrganizationMembershipService,
     private val organizationRepository: OrganizationRepository,
     private val exchangeInitiationService: ExchangeInitiationService,
+    private val exchangeParticipantOrgService: ExchangeParticipantOrgService,
 )
 {
     companion object
@@ -49,6 +50,11 @@ class ExchangeApprovalEventHandler @Inject constructor(
         const val EVENT_DRAFT_APPROVED = "exchange.draft_approved"
         const val EVENT_ENDING = "exchange.ending"
         const val EVENT_ENDED_CONFIRMED = "exchange.ended_confirmed"
+
+        // Recipient-side lifecycle events (Phase 2)
+        const val EVENT_RECEIVED = "exchange.received"
+        const val EVENT_RECEIVED_ACTIVATED = "exchange.received_activated"
+        const val EVENT_RECEIVED_ENDING = "exchange.received_ending"
     }
 
     /** True for the event types this handler acts on. */
@@ -114,19 +120,51 @@ class ExchangeApprovalEventHandler @Inject constructor(
             {
                 // Fired when the acceptance_pending workflow completes (or auto-acceptance).
                 val activated = shareService.activatePendingForResource(ResourceType.EXCHANGE, exchangeId)
-                exchangeRepository.findById(exchangeId)?.let { session ->
+                val exchange = exchangeRepository.findById(exchangeId)
+                val orgId = exchange?.initiator?.id?.let { organizationMembershipService.primaryOrganizationId(it) }
+                val requireRecipientAcceptance = orgId
+                    ?.let { organizationRepository.findById(it) }?.settings?.requireRecipientAcceptance
+                    ?: true
+
+                exchange?.let { session ->
                     if (session.status != ExchangeStatus.ACCEPTED_STARTED)
                     {
-                        session.status = ExchangeStatus.ACCEPTED_STARTED
-                        exchangeRepository.update(session)
+                        if (!requireRecipientAcceptance)
+                        {
+                            // Acceptance is not required: auto-advance straight to active.
+                            session.status = ExchangeStatus.ACCEPTED_STARTED
+                            exchangeRepository.update(session)
+                            logger.info(
+                                "Exchange {} activated: {} pending share(s) activated, status -> ACCEPTED_STARTED",
+                                exchangeId, activated,
+                            )
+                        }
+                        else
+                        {
+                            // Acceptance is required: shares are now ACTIVE so the recipient can load
+                            // the exchange by direct URL, but status stays INITIATED so the acceptance
+                            // dialog is presented. The recipient's explicit accept/reject advances status.
+                            logger.info(
+                                "Exchange {} activated: {} pending share(s) activated; requireRecipientAcceptance=true, keeping INITIATED for recipient dialog",
+                                exchangeId, activated,
+                            )
+                        }
+                    }
+                    else
+                    {
+                        logger.info(
+                            "Exchange {} activated: {} pending share(s) activated; already ACCEPTED_STARTED",
+                            exchangeId, activated,
+                        )
                     }
                 }
-                // Shares are now ACTIVE; send the invite email that was deferred during approval.
+                // Send the invite email now that the recipient's share is ACTIVE.
                 exchangeInitiationService.notifyRecipientOnActivation(exchangeId)
-                logger.info(
-                    "Exchange {} activated: activated {} pending share(s), status -> ACCEPTED_STARTED",
-                    exchangeId, activated,
-                )
+                val subjectData = buildMap<String, String> {
+                    exchange?.initiator?.id?.let { put("initiatorId", it.toString()) }
+                    orgId?.let { put("orgId", it.toString()) }
+                }
+                fireRecipientTriggers(exchangeId, EVENT_RECEIVED_ACTIVATED, subjectData, exchange?.initiator?.id)
             }
 
             EVENT_DRAFT_APPROVED ->
@@ -161,6 +199,8 @@ class ExchangeApprovalEventHandler @Inject constructor(
                         )
                     )
                     logger.info("Exchange {}: fired acceptance_pending after draft_approved", exchangeId)
+                    // Fire exchange.received in each recipient org's context
+                    fireRecipientTriggers(exchangeId, EVENT_RECEIVED, subjectData, exchange.initiator?.id)
                 }
                 else
                 {
@@ -178,13 +218,15 @@ class ExchangeApprovalEventHandler @Inject constructor(
                         )
                     )
                     logger.info("Exchange {}: auto-advanced to ACCEPTED_STARTED after draft_approved", exchangeId)
+                    fireRecipientTriggers(exchangeId, EVENT_RECEIVED_ACTIVATED, subjectData, exchange.initiator?.id)
                 }
             }
 
             // exchange.ending is emitted by a workflow step to signal the ending workflow completed.
             EVENT_ENDING ->
             {
-                exchangeRepository.findById(exchangeId)?.let { session ->
+                val exchange = exchangeRepository.findById(exchangeId)
+                exchange?.let { session ->
                     if (session.status != ExchangeStatus.ENDED)
                     {
                         session.status = ExchangeStatus.ENDED
@@ -193,12 +235,19 @@ class ExchangeApprovalEventHandler @Inject constructor(
                     }
                 }
                 logger.info("Exchange {} ended (via exchange.ending event from workflow step)", exchangeId)
+                val orgId = exchange?.initiator?.id?.let { organizationMembershipService.primaryOrganizationId(it) }
+                val subjectData = buildMap<String, String> {
+                    exchange?.initiator?.id?.let { put("initiatorId", it.toString()) }
+                    orgId?.let { put("orgId", it.toString()) }
+                }
+                fireRecipientTriggers(exchangeId, EVENT_RECEIVED_ENDING, subjectData, exchange?.initiator?.id)
             }
 
             EVENT_ENDED_CONFIRMED ->
             {
                 // Canonical terminal event from an ending workflow (step onApprove.emit).
-                exchangeRepository.findById(exchangeId)?.let { session ->
+                val exchange = exchangeRepository.findById(exchangeId)
+                exchange?.let { session ->
                     if (session.status != ExchangeStatus.ENDED)
                     {
                         session.status = ExchangeStatus.ENDED
@@ -207,7 +256,46 @@ class ExchangeApprovalEventHandler @Inject constructor(
                     }
                 }
                 logger.info("Exchange {} ended (confirmed by workflow outcome)", exchangeId)
+                val orgId = exchange?.initiator?.id?.let { organizationMembershipService.primaryOrganizationId(it) }
+                val subjectData = buildMap<String, String> {
+                    exchange?.initiator?.id?.let { put("initiatorId", it.toString()) }
+                    orgId?.let { put("orgId", it.toString()) }
+                }
+                fireRecipientTriggers(exchangeId, EVENT_RECEIVED_ENDING, subjectData, exchange?.initiator?.id)
             }
+        }
+    }
+
+    /**
+     * Fires [recipientEvent] in the context of each recipient org for [exchangeId].
+     * Adds `recipientOrgId` to the subject data so recipient workflow definitions can reference it.
+     */
+    private fun fireRecipientTriggers(
+        exchangeId: UUID,
+        recipientEvent: String,
+        baseSubjectData: Map<String, String>,
+        initiatedByAppUserId: UUID?,
+    )
+    {
+        val recipientOrgIds = runCatching { exchangeParticipantOrgService.findRecipientOrgIds(exchangeId) }
+            .getOrElse { e ->
+                logger.warn("Could not resolve recipient orgs for exchange {}: {}", exchangeId, e.message)
+                emptyList()
+            }
+        for (recipientOrgId in recipientOrgIds)
+        {
+            val subjectData = baseSubjectData + mapOf("recipientOrgId" to recipientOrgId.toString())
+            workflowEngineService.trigger(
+                TriggerRequest(
+                    triggerEvent = recipientEvent,
+                    subjectResourceType = ResourceType.EXCHANGE.name,
+                    subjectResourceId = exchangeId,
+                    organizationId = recipientOrgId,
+                    subjectData = subjectData,
+                    initiatedByAppUserId = initiatedByAppUserId,
+                )
+            )
+            logger.info("Exchange {}: fired {} for recipient org {}", exchangeId, recipientEvent, recipientOrgId)
         }
     }
 }

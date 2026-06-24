@@ -20,6 +20,7 @@ import com.docuhyphen.app.api.resource.model.UpdateSessionShareRoleRequest
 import com.docuhyphen.app.api.resource.model.UpdateExchangeRequest
 import com.docuhyphen.app.api.service.exchange.*
 import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.workflow.WorkflowDefinitionService
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
@@ -48,6 +49,7 @@ class ExchangeResource @Inject constructor(
     private val appUserService: AppUserService,
     private val principalGroupRepository: PrincipalGroupRepository,
     private val workflowDefinitionService: WorkflowDefinitionService,
+    private val organizationMembershipService: OrganizationMembershipService,
     )
 {
     companion object
@@ -599,7 +601,14 @@ class ExchangeResource @Inject constructor(
             val id = java.util.UUID.fromString(exchangeId)
             // Gate on exchange membership; throws ExchangeNotFoundException for non-members.
             exchangeRetrievalService.getExchange(exchangeId)
-            val instances = workflowDefinitionService.listInstancesForSubject("EXCHANGE", id)
+            val callerId = authTokenContext.authToken.appUser?.id
+            val callerOrgId = callerId?.let { organizationMembershipService.primaryOrganizationId(it) }
+            // Users with no org membership have no workflow context — return empty rather than
+            // falling back to the no-filter query which would leak other orgs' instances.
+            val instances = if (callerOrgId != null && callerId != null)
+                workflowDefinitionService.listInstancesForSubject("EXCHANGE", id, callerOrgId, callerId)
+            else
+                emptyList()
             Response.ok(instances.toTypedArray()).build()
         }
         catch (exception: Exception)
@@ -619,6 +628,44 @@ class ExchangeResource @Inject constructor(
                     logger.error("Error getting workflow instances for exchange {}", exchangeId, exception)
                     Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                         .entity(ResponseError("An error occurred while getting workflow instances"))
+                        .build()
+                }
+            }
+        }
+    }
+
+    @GET
+    @Path("/{exchangeId}/workflow-clearance-status")
+    fun getExchangeWorkflowClearanceStatus(@PathParam("exchangeId") exchangeId: String): Response
+    {
+        return try
+        {
+            val id = java.util.UUID.fromString(exchangeId)
+            exchangeRetrievalService.getExchange(exchangeId)
+            val callerOrgId = authTokenContext.authToken.appUser?.id
+                ?.let { organizationMembershipService.primaryOrganizationId(it) }
+                ?: return Response.status(Response.Status.FORBIDDEN)
+                    .entity(ResponseError("Organisation context required")).build()
+            val status = workflowDefinitionService.getExchangeClearanceStatus(id, callerOrgId)
+            Response.ok(status).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is ExchangeNotFoundException ->
+                    Response.status(Response.Status.NOT_FOUND)
+                        .entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(Response.Status.BAD_REQUEST)
+                        .entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error getting workflow clearance status for exchange {}", exchangeId, exception)
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while getting clearance status"))
                         .build()
                 }
             }

@@ -127,6 +127,15 @@ class ExchangeUpdateService @Inject constructor(
                         decision = decision,
                         reason = request.rejectionReason,
                     )
+                    // Write the status directly: EVENT_EXCHANGE_ACTIVATED intentionally does not
+                    // advance status when requireRecipientAcceptance=true (to let the acceptance
+                    // dialog fire first). When the recipient explicitly accepts/rejects via the
+                    // dialog and routing lands here, this path owns the status transition.
+                    exchangeRepository.updateStatus(sessionUUID, newStatus)
+                    if (newStatus == ExchangeStatus.REJECTED)
+                    {
+                        shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID)
+                    }
                     request.rejectionReason?.let { exchangeRepository.updateRejectionReason(sessionUUID, it) }
                     exchangeRepository.updateLastActivity(sessionUUID, Timestamp.from(Instant.now()))
                     val updatedSession = exchangeRepository.findById(sessionUUID)!!
@@ -411,6 +420,13 @@ class ExchangeUpdateService @Inject constructor(
                         decision = decision,
                         reason = rejectReason,
                     )
+                    // Write status directly — EVENT_EXCHANGE_ACTIVATED does not advance status
+                    // when requireRecipientAcceptance=true, so this path owns the transition.
+                    exchangeRepository.updateStatus(sessionUUID, requestedStatus)
+                    if (requestedStatus == ExchangeStatus.REJECTED)
+                    {
+                        shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID)
+                    }
                     if (requestedStatus == ExchangeStatus.ACCEPTED_STARTED)
                     {
                         exchangeRepository.updateNoAuthAccessVerifiedAt(sessionUUID, Timestamp.from(Instant.now()))

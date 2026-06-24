@@ -129,4 +129,19 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         paddingTop: tokens.spacingVerticalXXL,
         gap: tokens.spacingVerticalM,
     },
+    clearanceCard: {
+        display: "flex",
+        flexDirection: "column",
+        gap: tokens.spacingVerticalXS,
+        padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
+        backgroundColor: tokens.colorNeutralBackground2,
+        borderRadius: tokens.borderRadiusMedium,
+        marginBottom: tokens.spacingVerticalM,
+    },
+    clearanceBadgeRow: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: tokens.spacingHorizontalS,
+        alignItems: "center",
+    },
 });

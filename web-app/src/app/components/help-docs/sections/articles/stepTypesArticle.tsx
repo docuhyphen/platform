@@ -4,8 +4,8 @@ export const stepTypesArticle = (
     <>
         <p>
             Each step in a workflow has a type that determines how the engine
-            processes it. There are four types: APPROVAL, NOTIFICATION, CONDITION,
-            and ACTION.
+            processes it. There are five types: APPROVAL, NOTIFICATION, CONDITION,
+            ACTION, and WAIT_FOR_COUNTERPARTY_CLEARANCE.
         </p>
 
         <h3>APPROVAL</h3>
@@ -166,6 +166,20 @@ export const stepTypesArticle = (
                 </ul>
             </li>
         </ul>
+
+        <h3>WAIT_FOR_COUNTERPARTY_CLEARANCE</h3>
+        <p>
+            A WAIT_FOR_COUNTERPARTY_CLEARANCE step pauses the workflow until all
+            workflow instances on the other party's side of the Exchange have
+            finished. While waiting the step carries the status{" "}
+            <b>Awaiting Counterparty</b>. It unblocks automatically with no human
+            input required. See{" "}
+            <a href="#"
+               data-help-article="recipient-workflows">
+                Recipient-side workflows
+            </a>
+            {" "}for full details.
+        </p>
 
         <h3>Step ordering and branching</h3>
         <p>
