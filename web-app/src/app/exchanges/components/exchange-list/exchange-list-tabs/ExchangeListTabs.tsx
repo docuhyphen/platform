@@ -44,11 +44,11 @@ const ExchangeListTabs: React.FC<ExchangeListTabsProps> = ({activeTab, inboxCoun
                             }
                             {inboxCount > 0 && (
                                 <CounterBadge
-                                    count={inboxCount}
-                                    size="small"
+                                    dot
+                                    size="medium"
                                     appearance="filled"
                                     color="danger"
-                                    style={{position: 'absolute', top: '-6px', right: '-8px'}}
+                                    style={{position: 'absolute', top: '2px', right: '2px'}}
                                 />
                             )}
                         </span>

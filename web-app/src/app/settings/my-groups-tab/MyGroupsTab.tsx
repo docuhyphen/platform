@@ -299,7 +299,9 @@ const MyGroupsTab: React.FC = () =>
             <TagPickerControl>
                 <TagPickerGroup>
                     {selectedContacts.map(c => (
-                        <Tag key={c.contactAppUserId!} value={c.contactAppUserId!} dismissible>
+                        <Tag key={c.contactAppUserId!}
+                             shape={"circular"}
+                             value={c.contactAppUserId!} dismissible>
                             {[c.firstName, c.lastName].filter(Boolean).join(' ') || c.email}
                         </Tag>
                     ))}

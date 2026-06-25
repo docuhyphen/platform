@@ -279,7 +279,10 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
                                 <Field label="Tags">
                                     <div className={styles.tagInput}>
                                         {tags.map(tag => (
-                                            <Tag key={tag} size="small" dismissible
+                                            <Tag key={tag}
+                                                 size="small"
+                                                 shape={"circular"}
+                                                 dismissible
                                                  onClick={() => setTags(prev => prev.filter(t => t !== tag))}>{tag}</Tag>
                                         ))}
                                         <Input

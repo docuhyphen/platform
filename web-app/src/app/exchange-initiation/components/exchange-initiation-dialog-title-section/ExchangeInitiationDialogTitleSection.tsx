@@ -2,7 +2,14 @@
 import {Button, Tab, TabList, TabValue, Text, Tooltip} from "@fluentui/react-components";
 import {DismissRegular} from "@fluentui/react-icons";
 import {useExchangeInitiationStyles} from "../../ExchangeInitiationStyles.tsx";
-import {BackIcon, DetailsIcon, DocumentsIcon, OptionsIcon, RecipientsIcon} from "../../../components/IconBundles.tsx";
+import {
+    BackIcon,
+    BlueprintAddIcon,
+    DetailsIcon,
+    DocumentsIcon,
+    OptionsIcon,
+    RecipientsIcon
+} from "../../../components/IconBundles.tsx";
 import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
 
 interface DialogTitleSectionProps
@@ -85,6 +92,7 @@ const ExchangeInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = 
                     <Button appearance={"outline"}
                             shape={"circular"}
                             size={"small"}
+                            icon={<BlueprintAddIcon/>}
                             onClick={onSaveAsBlueprint}>
                         Save as Blueprint
                     </Button>

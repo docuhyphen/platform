@@ -355,7 +355,7 @@ const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId}) =
                 <Button
                     size="small"
                     shape={"circular"}
-                    appearance="primary"
+                    appearance="outline"
                     icon={isAddFormOpen ? <DeleteRegular/> : <PersonAddRegular/>}
                     onClick={() => setIsAddFormOpen((open) => !open)}>
                     {isAddFormOpen ? 'Cancel' : 'Add person'}
@@ -399,8 +399,9 @@ const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId}) =
                                         <TagPickerControl>
                                             <TagPickerGroup aria-label="Selected constraint tags">
                                                 {newConstraintTags.map((tag) => (
-                                                    <Tag key={tag} value={tag}
-                                                         shape="rounded">{labelsForTags([tag])[0]}</Tag>
+                                                    <Tag key={tag}
+                                                         shape={"circular"}
+                                                         value={tag}>{labelsForTags([tag])[0]}</Tag>
                                                 ))}
                                             </TagPickerGroup>
                                             <TagPickerInput aria-label="Constraint tags"
@@ -543,8 +544,9 @@ const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId}) =
                                                     <TagPickerControl>
                                                         <TagPickerGroup aria-label="Selected constraint tags">
                                                             {tags.map((tag) => (
-                                                                <Tag key={tag} value={tag}
-                                                                     shape="rounded">{labelsForTags([tag])[0]}</Tag>
+                                                                <Tag key={tag}
+                                                                     shape={"circular"}
+                                                                     value={tag}>{labelsForTags([tag])[0]}</Tag>
                                                             ))}
                                                         </TagPickerGroup>
                                                         <TagPickerInput aria-label="Constraint tags"/>

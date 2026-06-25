@@ -42,7 +42,7 @@ const ClearanceStatusCard = ({ clearance }: Props) =>
                     <Badge id="clearance-badge-my-org"
                            appearance={BADGE_APPEARANCE[myStatus] ?? "ghost"}
                            color={BADGE_COLOR[myStatus] ?? "neutral"}>
-                        My Org: {myStatus}
+                        My Organization: {myStatus}
                     </Badge>
                 )}
                 {clearance.counterparties.map((cp, i) =>

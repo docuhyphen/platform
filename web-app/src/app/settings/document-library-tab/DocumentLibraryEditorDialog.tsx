@@ -219,7 +219,10 @@ const DocumentLibraryEditorDialog = ({open, onClose, onSaved, entry, scope}: Pro
                             <Field label="Tags">
                                 <div className={styles.tagInput}>
                                     {tags.map(tag => (
-                                        <Tag key={tag} size="small" dismissible
+                                        <Tag key={tag}
+                                             size="small"
+                                             dismissible
+                                             shape={"circular"}
                                              onClick={() => setTags(prev => prev.filter(t => t !== tag))}>{tag}</Tag>
                                     ))}
                                     <Input

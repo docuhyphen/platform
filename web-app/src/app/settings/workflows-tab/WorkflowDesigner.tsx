@@ -262,7 +262,10 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
                     <Text size={200} weight="semibold">Tags</Text>
                     <div className={styles.tagInput}>
                         {state.generalTags.map(tag => (
-                            <Tag key={tag} size="small" dismissible
+                            <Tag key={tag}
+                                 size="small"
+                                 shape={"circular"}
+                                 dismissible
                                  onClick={() => removeTag(tag)}>{tag}</Tag>
                         ))}
                         <Input

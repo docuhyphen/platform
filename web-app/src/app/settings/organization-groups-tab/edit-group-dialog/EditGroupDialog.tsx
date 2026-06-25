@@ -332,7 +332,9 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                                                 {
                                                     const u = users.find(x => String(x.id) === uid);
                                                     return (
-                                                        <Tag key={uid} value={uid} dismissible>
+                                                        <Tag key={uid}
+                                                             shape={"circular"}
+                                                             value={uid} dismissible>
                                                             {u ? displayName(u) : uid}
                                                         </Tag>
                                                     );
