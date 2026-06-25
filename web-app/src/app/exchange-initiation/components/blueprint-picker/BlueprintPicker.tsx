@@ -9,6 +9,7 @@ import {
 } from '@fluentui/react-components';
 import {BlueprintDefinitionSummaryDto} from '../../../models/models.tsx';
 import {listBlueprints} from '../../../../services/blueprintService.ts';
+import {AddIcon} from "../../../components/IconBundles.tsx";
 
 interface BlueprintPickerProps
 {
@@ -96,6 +97,7 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
                                     appearance="primary"
                                     shape="circular"
                                     size="small"
+                                    icon={<AddIcon/>}
                                     onClick={() => onSelect(bp)}
                                 >
                                     Use Blueprint

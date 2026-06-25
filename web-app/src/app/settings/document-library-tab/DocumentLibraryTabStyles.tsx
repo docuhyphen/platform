@@ -15,7 +15,7 @@ export const useDocumentsTabStyles = makeStyles({
         gap: "8px",
     },
     card: {
-        width: "100%",
+        minWidth: "0",
         border: "1px solid var(--colorNeutralStroke1)",
         borderRadius: "8px",
         padding: "12px 16px",
@@ -54,6 +54,14 @@ export const useDocumentsTabStyles = makeStyles({
         justifyContent: "flex-end",
         gap: "8px",
         marginTop: "8px",
+    },
+    cardGrid: {
+        display: "grid",
+        gridTemplateColumns: "repeat(2, 1fr)",
+        gap: "12px",
+        "@media screen and (max-width: 768px)": {
+            gridTemplateColumns: "1fr",
+        },
     },
     tagInput: {
         display: "flex",

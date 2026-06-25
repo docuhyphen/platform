@@ -104,7 +104,18 @@ const DocumentLibraryUploadDialog = ({open, entryId, entryTitle, onClose, onUplo
                                 accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.png,.jpg"
                                 onChange={handleFileChange}
                                 disabled={uploading}
+                                style={{display: 'none'}}
                             />
+                            <Button
+                                id="doc-upload-browse-btn"
+                                appearance="secondary"
+                                shape="circular"
+                                size="small"
+                                disabled={uploading}
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                Choose file
+                            </Button>
                             {selectedFile && (
                                 <Text
                                     id="doc-upload-selected-file"

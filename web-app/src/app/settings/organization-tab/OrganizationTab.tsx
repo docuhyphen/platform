@@ -259,19 +259,19 @@ const OrganizationTab = () =>
                     </Tab>
                     <Tab id="GroupsTab"
                          value={tabIds.groups}>
-                        Groups
+                        Groups/Teams
                     </Tab>
                     <Tab id="OrganiationPairingTab"
                          value={tabIds.organizationPairing}>
-                        Pairing
+                        Org Pairing
                     </Tab>
                     <Tab id="AppAdminsTab"
                          value={tabIds.appAdmins}>
-                        App Admins
+                        Administrators
                     </Tab>
                     <Tab id="AuthTab"
                          value={tabIds.auth}>
-                        Auth
+                        Authentication
                     </Tab>
                 </TabList>
                 </div>

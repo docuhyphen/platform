@@ -249,10 +249,14 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                     </div>
                 )}
 
-                {!loading && !error && definitions.map(def =>
-                    activeTab === 'APP'
-                        ? renderPlatformCard(def)
-                        : renderRow(def, activeTab === 'PERSONAL'),
+                {!loading && !error && definitions.length > 0 && (
+                    <div className={styles.cardGrid}>
+                        {definitions.map(def =>
+                            activeTab === 'APP'
+                                ? renderPlatformCard(def)
+                                : renderRow(def, activeTab === 'PERSONAL'),
+                        )}
+                    </div>
                 )}
             </div>
 

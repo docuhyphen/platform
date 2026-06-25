@@ -223,7 +223,7 @@ const OrganizationDetailsTab = () =>
                 <Divider alignContent="start"
                          appearance="brand"
                          className={styles.mainDivider}>
-                    Contact
+                    Contact Details
                 </Divider>
 
                 <div>

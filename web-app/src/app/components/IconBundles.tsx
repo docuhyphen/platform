@@ -1,5 +1,7 @@
 ﻿import {
     AlertFilled,
+    ReceiptRegular,
+    ReceiptFilled,
     AlertRegular,
     ArrowDownloadFilled,
     ArrowDownloadRegular,
@@ -133,6 +135,7 @@ export const ParedOrganizationsTabIcon = bundleIcon(LinkMultipleFilled, LinkMult
 export const OrganizationParingRequestsTabIcon = bundleIcon(LinkAddFilled, LinkAddRegular)
 export const SettingsProfileTabIcon = bundleIcon(PersonSettingsFilled, PersonSettingsRegular)
 export const SettingsOrganizationTabIcon = bundleIcon(BuildingFilled, BuildingRegular)
+export const SettingsOrganizationBillingTabIcon = bundleIcon(ReceiptFilled, ReceiptRegular)
 export const SettingsExchangeBlueprintsTabIcon = bundleIcon(BookTemplateFilled, BookTemplateRegular)
 export const SettingsOrganizationPeopleTabIcon = bundleIcon(BuildingPeopleFilled, BuildingPeopleRegular)
 export const SettingsLinkedAccountsTabIcon = bundleIcon(ShieldPersonFilled, ShieldPersonRegular)

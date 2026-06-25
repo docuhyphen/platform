@@ -13,7 +13,6 @@ import {
     RadioGroup,
     Spinner,
     Tag,
-    TagGroup,
     Textarea,
 } from '@fluentui/react-components';
 import {
@@ -25,6 +24,8 @@ import {
 } from '../../../models/models.tsx';
 import {createBlueprint, patchBlueprintPublished} from '../../../../services/blueprintService.ts';
 import {useAuth} from '../../../../context/AuthContext.tsx';
+import {useDocumentsTabStyles} from '../../../settings/document-library-tab/DocumentLibraryTabStyles.tsx';
+import {AddIcon} from '../../../components/IconBundles.tsx';
 
 interface SaveBlueprintDialogProps
 {
@@ -51,6 +52,7 @@ const SaveBlueprintDialog: React.FC<SaveBlueprintDialogProps> = (
     }) =>
 {
     const {appUser, appUserPersonOrganization} = useAuth();
+    const docStyles = useDocumentsTabStyles();
     const roleValue = `${appUser?.role ?? ''}`;
     const isAdmin =
         appUserPersonOrganization?.isActive &&
@@ -151,24 +153,34 @@ const SaveBlueprintDialog: React.FC<SaveBlueprintDialogProps> = (
                                 />
                             </Field>
                             <Field label="Tags">
-                                <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+                                <div className={docStyles.tagInput}>
+                                    {tags.map(tag => (
+                                        <Tag
+                                            key={tag}
+                                            size="small"
+                                            dismissible
+                                            onClick={() => removeTag(tag)}
+                                        >
+                                            {tag}
+                                        </Tag>
+                                    ))}
                                     <Input
+                                        size="small"
+                                        appearance="underline"
+                                        placeholder="Add tag, press Enter"
                                         value={tagInput}
                                         onChange={(_, d) => setTagInput(d.value)}
-                                        placeholder="Add tag"
                                         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+                                        style={{border: 'none', flexGrow: 1, minWidth: '8rem'}}
                                     />
-                                    <Button appearance="secondary" shape="circular" size="small" onClick={addTag}>
-                                        Add
-                                    </Button>
+                                    <Button
+                                        shape="circular"
+                                        appearance="subtle"
+                                        size="medium"
+                                        icon={<AddIcon/>}
+                                        onClick={addTag}
+                                    />
                                 </div>
-                                {tags.length > 0 && (
-                                    <TagGroup onDismiss={(_, {value}) => removeTag(value)} style={{marginTop: '8px'}}>
-                                        {tags.map(tag => (
-                                            <Tag key={tag} value={tag} dismissible>{tag}</Tag>
-                                        ))}
-                                    </TagGroup>
-                                )}
                             </Field>
                             {error && (
                                 <span style={{color: 'var(--colorPaletteRedForeground1)', fontSize: '12px'}}>

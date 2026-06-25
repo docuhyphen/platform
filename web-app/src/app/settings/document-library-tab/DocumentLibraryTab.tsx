@@ -207,21 +207,25 @@ const DocumentLibraryTab = () =>
                         {emptyMessage[activeTab]}
                     </Text>
                 )}
-                {!loading && !error && entries.map(entry => (
-                    <DocumentLibraryEntryCard
-                        key={entry.id}
-                        entry={entry}
-                        canManage={canManageItem(entry)}
-                        showPublishToggle={activeTab !== 'PERSONAL'}
-                        onEdit={() => openEdit(entry)}
-                        onUpload={() => openUpload(entry)}
-                        onDownload={() => handleDownload(entry)}
-                        onPublish={() => handlePublish(entry)}
-                        onActivate={() => handleActivate(entry)}
-                        onClone={() => handleClone(entry)}
-                        onDelete={() => setConfirmDeleteId(entry.id)}
-                    />
-                ))}
+                {!loading && !error && entries.length > 0 && (
+                    <div className={styles.cardGrid}>
+                        {entries.map(entry => (
+                            <DocumentLibraryEntryCard
+                                key={entry.id}
+                                entry={entry}
+                                canManage={canManageItem(entry)}
+                                showPublishToggle={activeTab !== 'PERSONAL'}
+                                onEdit={() => openEdit(entry)}
+                                onUpload={() => openUpload(entry)}
+                                onDownload={() => handleDownload(entry)}
+                                onPublish={() => handlePublish(entry)}
+                                onActivate={() => handleActivate(entry)}
+                                onClone={() => handleClone(entry)}
+                                onDelete={() => setConfirmDeleteId(entry.id)}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
 
             <DocumentLibraryEditorDialog

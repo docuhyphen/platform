@@ -34,6 +34,7 @@ import {
 } from '../../../services/blueprintService.ts';
 import BlueprintEditorDialog from './BlueprintEditorDialog.tsx';
 import {useAuth} from '../../../context/AuthContext.tsx';
+import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 
 type ActiveTab = 'PERSONAL' | 'ORG' | 'APP';
 
@@ -57,6 +58,7 @@ const createLabel: Record<ActiveTab, string> = {
 
 const BlueprintsTab = () =>
 {
+    const globalStyles = useGlobalStyles();
     const styles = useTemplatesTabStyles();
     const {appUser, appUserPersonOrganization} = useAuth();
 
@@ -150,6 +152,7 @@ const BlueprintsTab = () =>
 
                     {canCreate && (
                         <Button
+                            className={globalStyles.buttonWithLoading}
                             icon={<BlueprintAddIcon/>}
                             appearance="secondary"
                             shape="circular"
@@ -167,84 +170,87 @@ const BlueprintsTab = () =>
                 {!loading && !error && blueprints.length === 0 && (
                     <Text style={{color: 'var(--colorNeutralForeground3)'}}>{emptyMessage[activeTab]}</Text>
                 )}
-                {!loading && !error && blueprints.map(bp => (
-                    <div
-                        key={bp.id}
-                        style={{
-                            width: '100%',
-                            border: '1px solid var(--colorNeutralStroke1)',
-                            borderRadius: '8px',
-                            padding: '12px 16px',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'flex-start',
-                            gap: '8px',
-                        }}
-                    >
-                        <div style={{display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0}}>
-                            <Text weight="semibold" size={400}>{bp.name}</Text>
-                            {bp.summary && (
-                                <Text size={200} style={{color: 'var(--colorNeutralForeground2)'}}>
-                                    {bp.summary}
-                                </Text>
-                            )}
-                            <div style={{display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center'}}>
-                                {activeTab !== 'PERSONAL' && (
-                                    <Badge
-                                        appearance="tint"
-                                        color={bp.isPublished ? 'success' : 'warning'}
-                                        size="small"
-                                    >
-                                        {bp.isPublished ? 'Published' : 'Draft'}
-                                    </Badge>
-                                )}
-                                <Badge
-                                    appearance="tint"
-                                    color={bp.isActive ? 'success' : 'warning'}
-                                    size="small"
-                                >
-                                    {bp.isActive ? 'Active' : 'Inactive'}
-                                </Badge>
-                                {bp.generalTags.map(tag => (
-                                    <Badge key={tag} appearance="tint" size="small">{tag}</Badge>
-                                ))}
-                            </div>
-                        </div>
-                        {canManageItem(bp) && (
-                            <Menu>
-                                <MenuTrigger disableButtonEnhancement>
-                                    <Button
-                                        size="small"
-                                        appearance="subtle"
-                                        icon={<MoreVerticalRegular/>}
-                                        aria-label="More actions"
-                                    />
-                                </MenuTrigger>
-                                <MenuPopover>
-                                    <MenuList>
-                                        <MenuItem icon={<EditIcon/>} onClick={() => openEdit(bp)}>Edit</MenuItem>
+                {!loading && !error && blueprints.length > 0 && (
+                    <div className={styles.cardGrid}>
+                        {blueprints.map(bp => (
+                            <div
+                                key={bp.id}
+                                style={{
+                                    border: '1px solid var(--colorNeutralStroke1)',
+                                    borderRadius: '8px',
+                                    padding: '12px 16px',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'flex-start',
+                                    gap: '8px',
+                                }}
+                            >
+                                <div style={{display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0}}>
+                                    <Text weight="semibold" size={400}>{bp.name}</Text>
+                                    {bp.summary && (
+                                        <Text size={200} style={{color: 'var(--colorNeutralForeground2)'}}>
+                                            {bp.summary}
+                                        </Text>
+                                    )}
+                                    <div style={{display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center'}}>
                                         {activeTab !== 'PERSONAL' && (
-                                            <MenuItem
-                                                icon={bp.isPublished ? <UnpublishIcon/> : <PublishIcon/>}
-                                                onClick={() => handlePublish(bp)}
+                                            <Badge
+                                                appearance="tint"
+                                                color={bp.isPublished ? 'success' : 'warning'}
+                                                size="small"
                                             >
-                                                {bp.isPublished ? 'Unpublish' : 'Publish'}
-                                            </MenuItem>
+                                                {bp.isPublished ? 'Published' : 'Draft'}
+                                            </Badge>
                                         )}
-                                        <MenuItem
-                                            icon={bp.isActive ? <DeactivateIcon/> : <ActivateIcon/>}
-                                            onClick={() => handleActivate(bp)}
+                                        <Badge
+                                            appearance="tint"
+                                            color={bp.isActive ? 'success' : 'warning'}
+                                            size="small"
                                         >
-                                            {bp.isActive ? 'Deactivate' : 'Activate'}
-                                        </MenuItem>
-                                        <MenuItem icon={<CopyIcon/>} onClick={() => handleDuplicate(bp)}>Duplicate</MenuItem>
-                                        <MenuItem icon={<DeleteIcon/>} onClick={() => handleDelete(bp)}>Delete</MenuItem>
-                                    </MenuList>
-                                </MenuPopover>
-                            </Menu>
-                        )}
+                                            {bp.isActive ? 'Active' : 'Inactive'}
+                                        </Badge>
+                                        {bp.generalTags.map(tag => (
+                                            <Badge key={tag} appearance="tint" size="small">{tag}</Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                                {canManageItem(bp) && (
+                                    <Menu>
+                                        <MenuTrigger disableButtonEnhancement>
+                                            <Button
+                                                size="small"
+                                                appearance="subtle"
+                                                icon={<MoreVerticalRegular/>}
+                                                aria-label="More actions"
+                                            />
+                                        </MenuTrigger>
+                                        <MenuPopover>
+                                            <MenuList>
+                                                <MenuItem icon={<EditIcon/>} onClick={() => openEdit(bp)}>Edit</MenuItem>
+                                                {activeTab !== 'PERSONAL' && (
+                                                    <MenuItem
+                                                        icon={bp.isPublished ? <UnpublishIcon/> : <PublishIcon/>}
+                                                        onClick={() => handlePublish(bp)}
+                                                    >
+                                                        {bp.isPublished ? 'Unpublish' : 'Publish'}
+                                                    </MenuItem>
+                                                )}
+                                                <MenuItem
+                                                    icon={bp.isActive ? <DeactivateIcon/> : <ActivateIcon/>}
+                                                    onClick={() => handleActivate(bp)}
+                                                >
+                                                    {bp.isActive ? 'Deactivate' : 'Activate'}
+                                                </MenuItem>
+                                                <MenuItem icon={<CopyIcon/>} onClick={() => handleDuplicate(bp)}>Duplicate</MenuItem>
+                                                <MenuItem icon={<DeleteIcon/>} onClick={() => handleDelete(bp)}>Delete</MenuItem>
+                                            </MenuList>
+                                        </MenuPopover>
+                                    </Menu>
+                                )}
+                            </div>
+                        ))}
                     </div>
-                ))}
+                )}
             </div>
 
             <BlueprintEditorDialog

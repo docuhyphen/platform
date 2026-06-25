@@ -2,7 +2,7 @@
 import {Button, Tab, TabList, TabValue, Text, Tooltip} from "@fluentui/react-components";
 import {DismissRegular} from "@fluentui/react-icons";
 import {useExchangeInitiationStyles} from "../../ExchangeInitiationStyles.tsx";
-import {DetailsIcon, DocumentsIcon, OptionsIcon, RecipientsIcon} from "../../../components/IconBundles.tsx";
+import {BackIcon, DetailsIcon, DocumentsIcon, OptionsIcon, RecipientsIcon} from "../../../components/IconBundles.tsx";
 import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
 
 interface DialogTitleSectionProps
@@ -74,9 +74,9 @@ const ExchangeInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = 
                     </Text>
                 }
                 {choosingBlueprint &&
-                    <Button appearance={"primary"}
+                    <Button appearance={"outline"}
                             shape={"circular"}
-                            icon={<DismissRegular/>}
+                            icon={<BackIcon/>}
                             size={"small"} onClick={() => setChoosingBlueprint(false)}>
                         Cancel blueprint selection
                     </Button>

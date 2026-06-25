@@ -36,18 +36,38 @@ const ExchangeListTabs: React.FC<ExchangeListTabsProps> = ({activeTab, inboxCoun
             style={{padding: collapsed ? '8px 4px' : '0 8px', width: '100%'}}>
             <Tab id="exchange-list-tab-requests" value="inbox">
                 <span style={tabContentStyle}>
-                    {activeTab === 'inbox'
-                        ? <ClipboardTaskListLtr20Filled style={collapsedIconStyle} primaryFill={tokens.colorBrandForeground1}/>
-                        : <ClipboardTaskListLtr20Regular style={collapsedIconStyle}/>
-                    }
-                    {!collapsed && 'Requests'}
-                    {inboxCount > 0 && (
-                        <CounterBadge
-                            count={inboxCount}
-                            size="small"
-                            appearance="filled"
-                            color="danger"
-                        />
+                    {collapsed ? (
+                        <span style={{position: 'relative', display: 'inline-flex'}}>
+                            {activeTab === 'inbox'
+                                ? <ClipboardTaskListLtr20Filled style={collapsedIconStyle} primaryFill={tokens.colorBrandForeground1}/>
+                                : <ClipboardTaskListLtr20Regular style={collapsedIconStyle}/>
+                            }
+                            {inboxCount > 0 && (
+                                <CounterBadge
+                                    count={inboxCount}
+                                    size="small"
+                                    appearance="filled"
+                                    color="danger"
+                                    style={{position: 'absolute', top: '-6px', right: '-8px'}}
+                                />
+                            )}
+                        </span>
+                    ) : (
+                        <>
+                            {activeTab === 'inbox'
+                                ? <ClipboardTaskListLtr20Filled primaryFill={tokens.colorBrandForeground1}/>
+                                : <ClipboardTaskListLtr20Regular/>
+                            }
+                            Requests
+                            {inboxCount > 0 && (
+                                <CounterBadge
+                                    count={inboxCount}
+                                    size="small"
+                                    appearance="filled"
+                                    color="danger"
+                                />
+                            )}
+                        </>
                     )}
                 </span>
             </Tab>

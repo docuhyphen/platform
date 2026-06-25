@@ -1,6 +1,14 @@
 import {makeStyles} from "@fluentui/react-components";
 
 export const useTemplatesTabStyles = makeStyles({
+    cardGrid: {
+        display: "grid",
+        gridTemplateColumns: "repeat(2, 1fr)",
+        gap: "12px",
+        "@media screen and (max-width: 768px)": {
+            gridTemplateColumns: "1fr",
+        },
+    },
     tabContainer: {
         display: "flex",
         flexDirection: "row",

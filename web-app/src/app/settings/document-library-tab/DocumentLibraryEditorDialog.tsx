@@ -19,6 +19,7 @@ import {
     Textarea,
 } from '@fluentui/react-components';
 import {useDocumentsTabStyles} from './DocumentLibraryTabStyles.tsx';
+import {useExchangeInitiationStyles} from '../../exchange-initiation/ExchangeInitiationStyles.tsx';
 import {
     AvailableVariablesDto,
     CreateDocumentLibraryEntryRequest,
@@ -45,6 +46,7 @@ interface Props
 const DocumentLibraryEditorDialog = ({open, onClose, onSaved, entry, scope}: Props) =>
 {
     const styles = useDocumentsTabStyles();
+    const exchangeStyles = useExchangeInitiationStyles();
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [tagInput, setTagInput] = useState('');
@@ -161,49 +163,59 @@ const DocumentLibraryEditorDialog = ({open, onClose, onSaved, entry, scope}: Pro
                                     />
                                 )}
                             </Field>
-                            <Field label="Description">
+                            <Field
+                                label="Description"
+                                hint="For library reference only, not shown during exchange creation"
+                            >
                                 <Textarea
                                     id="doc-editor-description"
                                     value={description}
                                     onChange={(_, d) => setDescription(d.value)}
-                                    placeholder="Optional description"
+                                    placeholder="Describe this document entry for library purposes"
                                     rows={3}
                                 />
                             </Field>
-                            <Switch
-                                id="doc-lib-restrict-type-switch"
-                                checked={restrictType}
-                                label="Restrict upload type"
-                                onChange={(_, d) => { setRestrictType(d.checked); if (!d.checked) setRestrictedType(undefined); }}
-                            />
-                            <Dropdown
-                                id="doc-lib-restricted-type-dropdown"
-                                disabled={!restrictType}
-                                value={restrictedType ?? ''}
-                                selectedOptions={restrictedType ? [restrictedType] : []}
-                                onOptionSelect={(_, d) => setRestrictedType(d.optionValue as string)}
-                                placeholder="Select allowed type..."
-                            >
-                                <OptionGroup label="Documents">
-                                    <Option value="PDF">PDF</Option>
-                                    <Option value="DOCX">DOCX</Option>
-                                    <Option value="DOC">DOC</Option>
-                                    <Option value="XLSX">XLSX</Option>
-                                    <Option value="XLS">XLS</Option>
-                                    <Option value="PPTX">PPTX</Option>
-                                    <Option value="PPT">PPT</Option>
-                                </OptionGroup>
-                                <OptionGroup label="Images">
-                                    <Option value="PNG">PNG</Option>
-                                    <Option value="JPG">JPG</Option>
-                                </OptionGroup>
-                            </Dropdown>
-                            <Checkbox
-                                id="doc-lib-required-checkbox"
-                                checked={required}
-                                onChange={(_, d) => setRequired(!!d.checked)}
-                                label="Required"
-                            />
+                            <div className={exchangeStyles.exchangeDocumentsRestriction}>
+                                <div className={exchangeStyles.exchangeDocumentsRestrictionField}>
+                                    <Field label="">
+                                        <Switch
+                                            id="doc-lib-restrict-type-switch"
+                                            checked={restrictType}
+                                            label="Restrict upload type"
+                                            onChange={(_, d) => { setRestrictType(d.checked); if (!d.checked) setRestrictedType(undefined); }}
+                                        />
+                                    </Field>
+                                    <Dropdown
+                                        id="doc-lib-restricted-type-dropdown"
+                                        className={exchangeStyles.exchangeDocumentsDropdown}
+                                        disabled={!restrictType}
+                                        value={restrictedType ?? ''}
+                                        selectedOptions={restrictedType ? [restrictedType] : []}
+                                        onOptionSelect={(_, d) => setRestrictedType(d.optionValue as string)}
+                                        placeholder="Select allowed type..."
+                                    >
+                                        <OptionGroup label="Documents">
+                                            <Option value="PDF">PDF</Option>
+                                            <Option value="DOCX">DOCX</Option>
+                                            <Option value="DOC">DOC</Option>
+                                            <Option value="XLSX">XLSX</Option>
+                                            <Option value="XLS">XLS</Option>
+                                            <Option value="PPTX">PPTX</Option>
+                                            <Option value="PPT">PPT</Option>
+                                        </OptionGroup>
+                                        <OptionGroup label="Images">
+                                            <Option value="PNG">PNG</Option>
+                                            <Option value="JPG">JPG</Option>
+                                        </OptionGroup>
+                                    </Dropdown>
+                                </div>
+                                <Checkbox
+                                    id="doc-lib-required-checkbox"
+                                    checked={required}
+                                    onChange={(_, d) => setRequired(!!d.checked)}
+                                    label="Required"
+                                />
+                            </div>
                             <Field label="Tags">
                                 <div className={styles.tagInput}>
                                     {tags.map(tag => (

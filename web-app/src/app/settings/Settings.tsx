@@ -23,7 +23,7 @@ import {
     SettingsProfileTabIcon,
     SettingsSequencesTabIcon,
     SettingsVariablesTabIcon,
-    SettingsWorkflowsTabIcon,
+    SettingsWorkflowsTabIcon, SettingsOrganizationBillingTabIcon,
 } from "../components/IconBundles.tsx";
 import BlueprintsTab from "./blueprints-tab/BlueprintsTab.tsx";
 import WorkflowsTab from "./workflows-tab/WorkflowsTab.tsx";
@@ -42,6 +42,7 @@ import OrganizationSequencesTab from "./organization-sequences-tab/OrganizationS
 import VariablesTab from "./variables-tab/VariablesTab.tsx";
 import CommunicationsTab from "./communications-tab/CommunicationsTab.tsx";
 import DocumentLibraryTab from "./document-library-tab/DocumentLibraryTab.tsx";
+import BillingTab from "./billing-tab/BillingTab.tsx";
 import {useIsMobile} from "../../utils/useMediaQuery.ts";
 import {AppUserRole} from "../models/models.tsx";
 
@@ -52,6 +53,7 @@ const Settings = () =>
         linkedAccounts: "LinkedAccountsTab",
         sessions: "SessionsTab",
         organization: "OrganizationDetailsTab",
+        organizationBilling: "OrganizationBillingTab",
         appSettings: "AppSettingsTab",
         people: "PeopleTab",
         groups: "GroupsTab",
@@ -107,11 +109,12 @@ const Settings = () =>
             vertical
             size="medium"
         >
+            <Divider appearance={"brand"} alignContent={"start"}>Personal</Divider>
             <Tab id="ProfileTab" icon={<SettingsProfileTabIcon/>} value={tabIds.profile}>
                 Profile
             </Tab>
-            <Tab id="AppSettingsTab" icon={<SettingsAppSettingsTabIcon/>} value={tabIds.appSettings}>
-                App Preferences
+            <Tab id="MyGroupsTab" icon={<SettingsMyGroupsTabIcon/>} value={tabIds.myGroups}>
+                Groups
             </Tab>
             <Tab id="LinkedAccountsTab" icon={<SettingsLinkedAccountsTabIcon/>} value={tabIds.linkedAccounts}>
                 Linked Accounts
@@ -119,16 +122,10 @@ const Settings = () =>
             <Tab id="SessionsTab" icon={<SettingsDeviceSessionsTabIcon/>} value={tabIds.sessions}>
                 Device Sessions
             </Tab>
-            <Tab id="MyGroupsTab" icon={<SettingsMyGroupsTabIcon/>} value={tabIds.myGroups}>
-                My Groups
+            <Tab id="AppSettingsTab" icon={<SettingsAppSettingsTabIcon/>} value={tabIds.appSettings}>
+                Preferences
             </Tab>
-            <Divider/>
-            <Tab id="OrganizationTab" icon={<SettingsOrganizationTabIcon/>} value={tabIds.organization}>
-                Organization
-            </Tab>
-            <Tab id="BlueprintsTab" icon={<SettingsExchangeBlueprintsTabIcon/>} value={tabIds.blueprints}>
-                Blueprints
-            </Tab>
+            <Divider appearance={"brand"} alignContent={"start"}>Automation</Divider>
             <Tab id="WorkflowsTab" icon={<SettingsWorkflowsTabIcon/>} value={tabIds.workflows}>
                 Workflows
             </Tab>
@@ -141,8 +138,19 @@ const Settings = () =>
             <Tab id="CommunicationsTab" icon={<SettingsCommunicationsTabIcon/>} value={tabIds.communications}>
                 Communications
             </Tab>
+            <Divider appearance={"brand"} alignContent={"start"}>Organization</Divider>
+            <Tab id="OrganizationTab" icon={<SettingsOrganizationTabIcon/>} value={tabIds.organization}>
+                Administration
+            </Tab>
+            <Tab id="OrganizationBillingTab" icon={<SettingsOrganizationBillingTabIcon/>} value={tabIds.organizationBilling}>
+                Billing
+            </Tab>
+            <Divider appearance={"brand"} alignContent={"start"}>Content</Divider>
             <Tab id="DocumentsTab" icon={<SettingsDocumentsTabIcon/>} value={tabIds.documents}>
                 Document Library
+            </Tab>
+            <Tab id="BlueprintsTab" icon={<SettingsExchangeBlueprintsTabIcon/>} value={tabIds.blueprints}>
+                Blueprints
             </Tab>
         </TabList>
     );
@@ -185,6 +193,7 @@ const Settings = () =>
                     {selectedValue === tabIds.linkedAccounts && <LinkedAccountsTab/>}
                     {selectedValue === tabIds.sessions && <SessionsTab/>}
                     {selectedValue === tabIds.organization && <OrganizationTab/>}
+                    {selectedValue === tabIds.organizationBilling && <BillingTab/>}
                     {selectedValue === tabIds.appSettings && <AppSettingsTab/>}
                     {selectedValue === tabIds.myGroups && <MyGroupsTab/>}
                     {selectedValue === tabIds.people && <OrganizationPeopleTab/>}

@@ -24,8 +24,9 @@ export const useWorkflowsListViewStyles = makeStyles({
         display: "flex",
         alignItems: "center",
         gap: "0.75rem",
-        padding: "0.75rem 0",
-        borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+        padding: "0.75rem 1rem",
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderRadius: tokens.borderRadiusMedium,
     },
 
     rowName: {
@@ -49,7 +50,6 @@ export const useWorkflowsListViewStyles = makeStyles({
         padding: "1rem",
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         borderRadius: tokens.borderRadiusMedium,
-        marginBottom: "0.5rem",
         display: "flex",
         alignItems: "flex-start",
         gap: "1rem",
@@ -69,6 +69,15 @@ export const useWorkflowsListViewStyles = makeStyles({
 
     errorBar: {
         marginBottom: "0.75rem",
+    },
+
+    cardGrid: {
+        display: "grid",
+        gridTemplateColumns: "repeat(2, 1fr)",
+        gap: "12px",
+        "@media screen and (max-width: 768px)": {
+            gridTemplateColumns: "1fr",
+        },
     },
 });
 
