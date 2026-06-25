@@ -10,7 +10,7 @@ import {
     Spinner,
     Text,
 } from '@fluentui/react-components';
-import {useDocumentsTabStyles} from './DocumentsTabStyles.tsx';
+import {useDocumentsTabStyles} from './DocumentLibraryTabStyles.tsx';
 import {uploadDocumentLibraryFile} from '../../../services/documentLibraryService.ts';
 
 interface Props

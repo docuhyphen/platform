@@ -13,8 +13,8 @@ import {
     TabList,
     Text,
 } from '@fluentui/react-components';
-import {DocumentAddIcon} from '../../components/IconBundles.tsx';
-import {useDocumentsTabStyles} from './DocumentsTabStyles.tsx';
+import {AddIcon, DocumentAddIcon} from '../../components/IconBundles.tsx';
+import {useDocumentsTabStyles} from './DocumentLibraryTabStyles.tsx';
 import {AppUserRole, DocumentLibraryEntrySummaryDto, DocumentLibraryScope} from '../../models/models.tsx';
 import {
     cloneDocumentLibraryEntry,
@@ -43,7 +43,7 @@ const emptyMessage: Record<ActiveTab, string> = {
     APP: 'No platform documents yet.',
 };
 
-const DocumentsTab = () =>
+const DocumentLibraryTab = () =>
 {
     const styles = useDocumentsTabStyles();
     const {appUser, appUserPersonOrganization} = useAuth();
@@ -174,12 +174,12 @@ const DocumentsTab = () =>
                     {canCreate && (
                         <Button
                             id="doc-create-btn"
-                            icon={<DocumentAddIcon/>}
+                            icon={<AddIcon/>}
                             appearance="secondary"
                             shape="circular"
                             onClick={openCreate}
                         >
-                            Add Document
+                            Create Document
                         </Button>
                     )}
                 </div>
@@ -280,4 +280,4 @@ const DocumentsTab = () =>
     );
 };
 
-export default DocumentsTab;
+export default DocumentLibraryTab;

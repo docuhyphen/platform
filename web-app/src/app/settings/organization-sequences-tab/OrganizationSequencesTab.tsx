@@ -161,7 +161,7 @@ const OrganizationSequencesTab = () =>
                     <Text size={500} weight="semibold">Sequences</Text>
                     {canManage && (
                         <Button appearance="secondary" shape="circular" icon={<AddRegular/>} onClick={openCreate}>
-                            New Sequence
+                            Create Sequence
                         </Button>
                     )}
                 </div>

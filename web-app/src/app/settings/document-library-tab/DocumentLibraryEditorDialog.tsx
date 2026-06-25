@@ -19,7 +19,7 @@ import {
     TagGroup,
     Textarea,
 } from '@fluentui/react-components';
-import {useDocumentsTabStyles} from './DocumentsTabStyles.tsx';
+import {useDocumentsTabStyles} from './DocumentLibraryTabStyles.tsx';
 import {
     AvailableVariablesDto,
     CreateDocumentLibraryEntryRequest,
@@ -32,6 +32,7 @@ import {
 } from '../../../services/documentLibraryService.ts';
 import VariableTokenInput from '../../../components/variable-token-input/VariableTokenInput.tsx';
 import {getAvailableVariables} from '../../../services/variableService.ts';
+import {AddIcon} from "../../components/IconBundles.tsx";
 
 interface Props
 {
@@ -209,6 +210,7 @@ const DocumentLibraryEditorDialog = ({open, onClose, onSaved, entry, scope}: Pro
                                     <Input
                                         id="doc-lib-tag-input"
                                         value={tagInput}
+                                        appearance={"underline"}
                                         onChange={(_, d) => setTagInput(d.value)}
                                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
                                         placeholder="Add tag..."
@@ -216,11 +218,11 @@ const DocumentLibraryEditorDialog = ({open, onClose, onSaved, entry, scope}: Pro
                                     <Button
                                         id="doc-lib-add-tag-btn"
                                         shape="circular"
-                                        appearance="secondary"
+                                        appearance="subtle"
+                                        size={"medium"}
+                                        icon={<AddIcon/>}
                                         onClick={addTag}
-                                    >
-                                        Add
-                                    </Button>
+                                    />
                                 </div>
                                 {tags.length > 0 && (
                                     <TagGroup

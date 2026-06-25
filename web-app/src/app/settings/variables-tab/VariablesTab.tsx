@@ -122,7 +122,7 @@ const VariablesTab = () =>
                         shape="circular"
                         onClick={handleAdd}
                     >
-                        Add Variable
+                        Create Variable
                     </Button>
                 )}
             </div>

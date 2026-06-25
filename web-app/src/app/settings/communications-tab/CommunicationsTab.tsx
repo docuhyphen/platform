@@ -14,7 +14,7 @@ import {
 } from '@fluentui/react-components';
 import {MoreVerticalRegular} from '@fluentui/react-icons';
 import {
-    ActivateIcon,
+    ActivateIcon, AddIcon,
     CopyIcon,
     DeactivateIcon,
     DeleteIcon,
@@ -143,9 +143,10 @@ const CommunicationsTab = () =>
                         <Button
                             appearance="secondary"
                             shape="circular"
+                            icon={<AddIcon/>}
                             onClick={openCreate}
                         >
-                            Create
+                            Create Communication
                         </Button>
                     )}
                 </div>

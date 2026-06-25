@@ -41,7 +41,7 @@ import OrganizationTab from "./organization-tab/OrganizationTab.tsx";
 import OrganizationSequencesTab from "./organization-sequences-tab/OrganizationSequencesTab.tsx";
 import VariablesTab from "./variables-tab/VariablesTab.tsx";
 import CommunicationsTab from "./communications-tab/CommunicationsTab.tsx";
-import DocumentsTab from "./documents-tab/DocumentsTab.tsx";
+import DocumentLibraryTab from "./document-library-tab/DocumentLibraryTab.tsx";
 import {useIsMobile} from "../../utils/useMediaQuery.ts";
 import {AppUserRole} from "../models/models.tsx";
 
@@ -197,7 +197,7 @@ const Settings = () =>
                     {selectedValue === tabIds.sequences && <OrganizationSequencesTab/>}
                     {selectedValue === tabIds.variables && <VariablesTab/>}
                     {selectedValue === tabIds.communications && <CommunicationsTab/>}
-                    {selectedValue === tabIds.documents && <DocumentsTab/>}
+                    {selectedValue === tabIds.documents && <DocumentLibraryTab/>}
                 </div>
 
             </div>

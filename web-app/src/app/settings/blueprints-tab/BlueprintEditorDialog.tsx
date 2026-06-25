@@ -36,7 +36,7 @@ import {
     UpdateBlueprintRequest,
 } from '../../models/models.tsx';
 import {createBlueprint, updateBlueprint} from '../../../services/blueprintService.ts';
-import {DeleteIcon, DocumentAddIcon, PickFromLibraryIcon} from '../../components/IconBundles.tsx';
+import {AddIcon, DeleteIcon, DocumentAddIcon, PickFromLibraryIcon} from '../../components/IconBundles.tsx';
 import {useExchangeInitiationStyles} from '../../exchange-initiation/ExchangeInitiationStyles.tsx';
 import VariableTokenInput from '../../../components/variable-token-input/VariableTokenInput.tsx';
 import {getAvailableVariables} from '../../../services/variableService.ts';
@@ -254,7 +254,15 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                             placeholder="Add tag"
                                             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
                                         />
-                                        <Button appearance="secondary" shape="circular" size="small" onClick={addTag}>Add</Button>
+
+                                        <Button
+                                            id="doc-lib-add-tag-btn"
+                                            shape="circular"
+                                            appearance="subtle"
+                                            size={"medium"}
+                                            icon={<AddIcon/>}
+                                            onClick={addTag}
+                                        />
                                     </div>
                                     {tags.length > 0 && (
                                         <TagGroup onDismiss={(_, {value}) => setTags(prev => prev.filter(t => t !== value))} style={{marginTop: '8px'}}>

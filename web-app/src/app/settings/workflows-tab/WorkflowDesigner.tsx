@@ -274,6 +274,13 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
                             onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
                             style={{border: "none", flexGrow: 1, minWidth: "8rem"}}
                         />
+                        <Button
+                            shape="circular"
+                            appearance="subtle"
+                            size={"medium"}
+                            icon={<AddIcon/>}
+                            onClick={addTag}
+                        />
                     </div>
                 </div>
 

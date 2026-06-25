@@ -50,7 +50,7 @@ const emptyMessage: Record<ActiveTab, string> = {
 };
 
 const createLabel: Record<ActiveTab, string> = {
-    PERSONAL: 'Create',
+    PERSONAL: 'Create ',
     ORG: 'Create',
     APP: 'Create',
 };
@@ -155,7 +155,7 @@ const BlueprintsTab = () =>
                             shape="circular"
                             onClick={openCreate}
                         >
-                            {createLabel[activeTab]}
+                            Create Blueprint
                         </Button>
                     )}
                 </div>

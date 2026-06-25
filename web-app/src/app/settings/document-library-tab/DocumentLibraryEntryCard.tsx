@@ -21,7 +21,7 @@ import {
     UnpublishIcon,
     UploadIcon,
 } from '../../components/IconBundles.tsx';
-import {useDocumentsTabStyles} from './DocumentsTabStyles.tsx';
+import {useDocumentsTabStyles} from './DocumentLibraryTabStyles.tsx';
 import {DocumentLibraryEntrySummaryDto} from '../../models/models.tsx';
 
 interface Props

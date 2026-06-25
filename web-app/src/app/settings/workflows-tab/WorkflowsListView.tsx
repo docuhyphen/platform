@@ -226,7 +226,7 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                         <Button appearance="secondary" icon={<AddIcon/>}
                                 onClick={() => onNew(activeTab)}
                                 shape="circular">
-                            New Workflow
+                            Create Workflow
                         </Button>
                     )}
                 </div>

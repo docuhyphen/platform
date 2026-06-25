@@ -34,6 +34,7 @@ import {
 import VariableTokenInput from '../../../components/variable-token-input/VariableTokenInput';
 import {getAvailableVariables} from '../../../services/variableService';
 import {AvailableVariablesDto} from '../../models/models';
+import {AddIcon} from "../../components/IconBundles.tsx";
 
 interface Props
 {
@@ -282,7 +283,15 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
                                             placeholder="Add tag"
                                             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
                                         />
-                                        <Button appearance="secondary" shape="circular" size="small" onClick={addTag}>Add</Button>
+
+                                        <Button
+                                            id="doc-lib-add-tag-btn"
+                                            shape="circular"
+                                            appearance="subtle"
+                                            size={"medium"}
+                                            icon={<AddIcon/>}
+                                            onClick={addTag}
+                                        />
                                     </div>
                                     {tags.length > 0 && (
                                         <TagGroup
