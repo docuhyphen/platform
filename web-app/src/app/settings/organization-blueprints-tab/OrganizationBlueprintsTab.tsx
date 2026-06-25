@@ -20,8 +20,8 @@ import {
     patchBlueprintPublished,
     patchBlueprintStatus,
 } from '../../../services/blueprintService.ts';
-import BlueprintEditorDialog from '../templates-tab/BlueprintEditorDialog.tsx';
-import {useTemplatesTabStyles} from '../templates-tab/TemplatesTabStyles.tsx';
+import BlueprintEditorDialog from '../blueprints-tab/BlueprintEditorDialog.tsx';
+import {useTemplatesTabStyles} from '../blueprints-tab/BlueprintsTabStyles.tsx';
 
 const OrganizationBlueprintsTab = () =>
 {

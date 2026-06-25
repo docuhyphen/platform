@@ -40,7 +40,7 @@ import OrganizationPeopleTab from "../organization-people-tab/OrganizationPeople
 import OrganizationGroupsTab from "../organization-groups-tab/OrganizationGroupsTab.tsx";
 import OrganizationPairingTab from "../organization-pairing-tab/OrganizationPairingTab.tsx";
 import AppAdminsTab from "../app-admins-tab/AppAdminsTab.tsx";
-import TemplatesTab from "../templates-tab/TemplatesTab.tsx";
+import TemplatesTab from "../blueprints-tab/BlueprintsTab.tsx";
 import OrganizationDetailsTab from "../organization-details-tab/OrganizationDetailsTab.tsx";
 
 

@@ -25,7 +25,7 @@ import {
     SettingsVariablesTabIcon,
     SettingsWorkflowsTabIcon,
 } from "../components/IconBundles.tsx";
-import BlueprintsTab from "./templates-tab/TemplatesTab.tsx";
+import BlueprintsTab from "./blueprints-tab/BlueprintsTab.tsx";
 import WorkflowsTab from "./workflows-tab/WorkflowsTab.tsx";
 import AppSettingsTab from "./app-settings-tab/AppSettingsTab.tsx";
 import ProfileTab from "./profile-tab/ProfileTab.tsx";

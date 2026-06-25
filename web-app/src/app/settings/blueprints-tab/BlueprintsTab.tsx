@@ -23,7 +23,7 @@ import {
     PublishIcon,
     UnpublishIcon,
 } from '../../components/IconBundles.tsx';
-import {useTemplatesTabStyles} from './TemplatesTabStyles.tsx';
+import {useTemplatesTabStyles} from './BlueprintsTabStyles.tsx';
 import {AppUserRole, BlueprintDefinitionSummaryDto, BlueprintScope} from '../../models/models.tsx';
 import {
     cloneBlueprint,
