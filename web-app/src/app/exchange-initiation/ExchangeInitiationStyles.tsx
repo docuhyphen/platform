@@ -150,4 +150,15 @@ export const useExchangeInitiationStyles = makeStyles({
         display: "block",
         marginTop: "4px",
     },
+    tagInput: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "4px",
+        alignItems: "center",
+        border: `1px solid ${tokens.colorNeutralStroke1}`,
+        borderRadius: tokens.borderRadiusMedium,
+        padding: "4px 8px",
+        minHeight: "32px",
+        cursor: "text",
+    },
 });

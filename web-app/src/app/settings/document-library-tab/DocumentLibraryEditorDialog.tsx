@@ -16,7 +16,6 @@ import {
     Spinner,
     Switch,
     Tag,
-    TagGroup,
     Textarea,
 } from '@fluentui/react-components';
 import {useDocumentsTabStyles} from './DocumentLibraryTabStyles.tsx';
@@ -206,41 +205,28 @@ const DocumentLibraryEditorDialog = ({open, onClose, onSaved, entry, scope}: Pro
                                 label="Required"
                             />
                             <Field label="Tags">
-                                <div style={{display: 'flex', gap: '4px'}}>
+                                <div className={styles.tagInput}>
+                                    {tags.map(tag => (
+                                        <Tag key={tag} size="small" dismissible
+                                             onClick={() => setTags(prev => prev.filter(t => t !== tag))}>{tag}</Tag>
+                                    ))}
                                     <Input
-                                        id="doc-lib-tag-input"
+                                        size="small"
+                                        appearance="underline"
+                                        placeholder="Add tag, press Enter"
                                         value={tagInput}
-                                        appearance={"underline"}
                                         onChange={(_, d) => setTagInput(d.value)}
                                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
-                                        placeholder="Add tag..."
+                                        style={{border: 'none', flexGrow: 1, minWidth: '8rem'}}
                                     />
                                     <Button
-                                        id="doc-lib-add-tag-btn"
                                         shape="circular"
                                         appearance="subtle"
-                                        size={"medium"}
+                                        size="medium"
                                         icon={<AddIcon/>}
                                         onClick={addTag}
                                     />
                                 </div>
-                                {tags.length > 0 && (
-                                    <TagGroup
-                                        onDismiss={(_, {value}) => setTags(prev => prev.filter(t => t !== value))}
-                                        style={{marginTop: '8px'}}
-                                    >
-                                        {tags.map(tag => (
-                                            <Tag
-                                                key={tag}
-                                                value={tag}
-                                                dismissible
-                                                shape="circular"
-                                            >
-                                                {tag}
-                                            </Tag>
-                                        ))}
-                                    </TagGroup>
-                                )}
                             </Field>
                             {error && title.trim() && (
                                 <span

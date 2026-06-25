@@ -14,7 +14,6 @@ import {
     Tab,
     TabList,
     Tag,
-    TagGroup,
     Text,
     Textarea,
 } from '@fluentui/react-components';
@@ -35,6 +34,7 @@ import VariableTokenInput from '../../../components/variable-token-input/Variabl
 import {getAvailableVariables} from '../../../services/variableService';
 import {AvailableVariablesDto} from '../../models/models';
 import {AddIcon} from "../../components/IconBundles.tsx";
+import {useCommunicationEditorStyles} from './CommunicationsTabStyles.tsx';
 
 interface Props
 {
@@ -49,6 +49,7 @@ type EditorTab = 'details' | 'preview';
 
 const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, communication, scope}) =>
 {
+    const styles = useCommunicationEditorStyles();
     const [activeTab, setActiveTab] = useState<EditorTab>('details');
     const [name, setName] = useState('');
     const [summary, setSummary] = useState('');
@@ -276,33 +277,28 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
                                     </div>
                                 )}
                                 <Field label="Tags">
-                                    <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+                                    <div className={styles.tagInput}>
+                                        {tags.map(tag => (
+                                            <Tag key={tag} size="small" dismissible
+                                                 onClick={() => setTags(prev => prev.filter(t => t !== tag))}>{tag}</Tag>
+                                        ))}
                                         <Input
+                                            size="small"
+                                            appearance="underline"
+                                            placeholder="Add tag, press Enter"
                                             value={tagInput}
                                             onChange={(_, d) => setTagInput(d.value)}
-                                            placeholder="Add tag"
                                             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+                                            style={{border: 'none', flexGrow: 1, minWidth: '8rem'}}
                                         />
-
                                         <Button
-                                            id="doc-lib-add-tag-btn"
                                             shape="circular"
                                             appearance="subtle"
-                                            size={"medium"}
+                                            size="medium"
                                             icon={<AddIcon/>}
                                             onClick={addTag}
                                         />
                                     </div>
-                                    {tags.length > 0 && (
-                                        <TagGroup
-                                            onDismiss={(_, {value}) => setTags(prev => prev.filter(t => t !== value))}
-                                            style={{marginTop: '8px'}}
-                                        >
-                                            {tags.map(tag => (
-                                                <Tag key={tag} value={tag} dismissible>{tag}</Tag>
-                                            ))}
-                                        </TagGroup>
-                                    )}
                                 </Field>
                             </div>
                         )}
