@@ -149,7 +149,7 @@ const OrganizationPeopleTab = () =>
                     {/*<SearchBox className={styles.searchBox}/>*/}
                     <Button
                         icon={<PersonAddIcon/>}
-                        appearance="secondary"
+                        appearance="subtle"
                         shape="circular"
                         onClick={handleAddUser}>
                         Add Person

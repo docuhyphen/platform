@@ -118,7 +118,7 @@ const PersonalVariablesTab = forwardRef<PersonalVariablesTabHandle>((_, ref) =>
                     Private key-value pairs only you can see and use. Override them when creating an exchange.
                 </Text>
 
-                {loading && <Spinner size="medium" label="Loading…"/>}
+                {loading && <Spinner size="small" label="Loading…"/>}
                 {!loading && error && <Text style={{color: 'var(--colorPaletteRedForeground1)'}}>{error}</Text>}
                 {!loading && !error && variables.length === 0 && (
                     <Text style={{color: 'var(--colorNeutralForeground3)'}}>No personal variables yet.</Text>

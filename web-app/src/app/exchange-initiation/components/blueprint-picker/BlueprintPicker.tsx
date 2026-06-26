@@ -63,7 +63,7 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
 
             {loading && (
                 <div style={{display: 'flex', justifyContent: 'center', padding: '24px'}}>
-                    <Spinner size="medium" label="Loading blueprints…"/>
+                    <Spinner size="small" label="Loading blueprints…"/>
                 </div>
             )}
 

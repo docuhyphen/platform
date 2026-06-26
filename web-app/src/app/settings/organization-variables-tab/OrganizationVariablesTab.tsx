@@ -125,7 +125,7 @@ const OrganizationVariablesTab = forwardRef<OrganizationVariablesTabHandle>((_, 
                     Reusable key-value pairs shared across your organization. Users can override them per exchange.
                 </Text>
 
-                {loading && <Spinner size="medium" label="Loading…"/>}
+                {loading && <Spinner size="small" label="Loading…"/>}
                 {!loading && error && <Text style={{color: 'var(--colorPaletteRedForeground1)'}}>{error}</Text>}
                 {!loading && !error && variables.length === 0 && (
                     <Text style={{color: 'var(--colorNeutralForeground3)'}}>No org variables yet.</Text>

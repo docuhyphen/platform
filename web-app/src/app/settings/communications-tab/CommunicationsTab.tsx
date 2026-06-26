@@ -153,7 +153,7 @@ const CommunicationsTab = () =>
                     )}
                 </div>
 
-                {loading && <Spinner size="medium" label="Loading communications…"/>}
+                {loading && <Spinner size="small" label="Loading communications…"/>}
                 {!loading && error && (
                     <Text style={{color: 'var(--colorPaletteRedForeground1)'}}>{error}</Text>
                 )}

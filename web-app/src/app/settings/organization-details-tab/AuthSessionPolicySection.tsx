@@ -374,7 +374,7 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                                         {draft.saving ? "Saving…" : "Save"}
                                     </Button>
                                     <Button
-                                        appearance="subtle"
+                                        appearance="secondary"
                                         size="small"
                                         disabled={disabled}
                                         onClick={() => onReset(row.configId)}

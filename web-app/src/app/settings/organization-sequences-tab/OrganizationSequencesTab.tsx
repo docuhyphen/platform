@@ -169,7 +169,7 @@ const OrganizationSequencesTab = () =>
                     Auto-incrementing counters. Use <code style={{fontFamily: 'monospace'}}>{'{{SEQ:KEY}}'}</code> in blueprint and exchange names.
                 </Text>
 
-                {loading && <Spinner size="medium" label="Loading…"/>}
+                {loading && <Spinner size="small" label="Loading…"/>}
                 {!loading && error && <Text style={{color: 'var(--colorPaletteRedForeground1)'}}>{error}</Text>}
                 {!loading && !error && sequences.length === 0 && (
                     <Text style={{color: 'var(--colorNeutralForeground3)'}}>No sequences yet.</Text>

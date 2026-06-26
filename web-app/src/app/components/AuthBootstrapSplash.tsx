@@ -17,7 +17,7 @@ const AuthBootstrapSplash: React.FC = () => (
             justifyContent: 'center',
         }}
     >
-        <Spinner size="large"/>
+        <Spinner size="small"/>
     </div>
 );
 

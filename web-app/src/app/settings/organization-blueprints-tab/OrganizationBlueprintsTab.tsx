@@ -93,7 +93,7 @@ const OrganizationBlueprintsTab = () =>
                     </Button>
                 </div>
 
-                {loading && <Spinner size="medium" label="Loading blueprints…"/>}
+                {loading && <Spinner size="small" label="Loading blueprints…"/>}
                 {!loading && error && (
                     <Text style={{color: 'var(--colorPaletteRedForeground1)'}}>{error}</Text>
                 )}
