@@ -187,7 +187,7 @@ const DocumentLibraryTab = () =>
                 {loading && (
                     <Spinner
                         id="doc-loading-spinner"
-                        size="medium"
+                        size="small"
                         label="Loading documents..."
                     />
                 )}

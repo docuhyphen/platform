@@ -106,16 +106,18 @@ const DocumentLibraryUploadDialog = ({open, entryId, entryTitle, onClose, onUplo
                                 disabled={uploading}
                                 style={{display: 'none'}}
                             />
-                            <Button
-                                id="doc-upload-browse-btn"
-                                appearance="secondary"
-                                shape="circular"
-                                size="small"
-                                disabled={uploading}
-                                onClick={() => fileInputRef.current?.click()}
-                            >
-                                Choose file
-                            </Button>
+                            <span>
+                                <Button
+                                    id="doc-upload-browse-btn"
+                                    appearance="secondary"
+                                    shape="circular"
+                                    size="small"
+                                    disabled={uploading}
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    Choose file
+                                </Button>
+                            </span>
                             {selectedFile && (
                                 <Text
                                     id="doc-upload-selected-file"
@@ -124,13 +126,6 @@ const DocumentLibraryUploadDialog = ({open, entryId, entryTitle, onClose, onUplo
                                 >
                                     Selected: {selectedFile.name}
                                 </Text>
-                            )}
-                            {uploading && (
-                                <Spinner
-                                    id="doc-upload-spinner"
-                                    size="medium"
-                                    label="Uploading..."
-                                />
                             )}
                             {error && (
                                 <span

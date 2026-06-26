@@ -22,28 +22,56 @@ export const useWorkflowsListViewStyles = makeStyles({
 
     row: {
         display: "flex",
-        alignItems: "center",
-        gap: "0.75rem",
+        flexDirection: "column",
+        gap: "6px",
         padding: "0.75rem 1rem",
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         borderRadius: tokens.borderRadiusMedium,
+        minWidth: 0,
+        overflow: "hidden",
     },
 
-    rowName: {
-        flex: 1,
+    topRow: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: "8px",
         minWidth: 0,
     },
 
-    rowTrigger: {
-        width: "14rem",
+    triggerText: {
         flexShrink: 0,
         color: tokens.colorNeutralForeground3,
     },
 
-    rowActions: {
+    middleRow: {
         display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        minWidth: 0,
+    },
+
+    description: {
+        flex: 1,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+        minWidth: 0,
+        color: tokens.colorNeutralForeground2,
+    },
+
+    middleActions: {
+        display: "flex",
+        alignItems: "center",
         gap: "4px",
         flexShrink: 0,
+    },
+
+    tagsContainer: {
+        display: "flex",
+        overflow: "hidden",
+        gap: "4px",
+        minWidth: 0,
     },
 
     templateCard: {
@@ -80,4 +108,3 @@ export const useWorkflowsListViewStyles = makeStyles({
         },
     },
 });
-

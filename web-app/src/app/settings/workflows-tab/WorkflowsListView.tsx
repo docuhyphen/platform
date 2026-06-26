@@ -17,11 +17,15 @@ import {
     MenuTrigger,
     MessageBar,
     MessageBarBody,
+    Overflow,
+    OverflowItem,
     Spinner,
     Tab,
     TabList,
     Tag,
     Text,
+    useIsOverflowItemVisible,
+    useOverflowMenu,
 } from "@fluentui/react-components";
 import {MoreVerticalRegular} from "@fluentui/react-icons";
 import {WorkflowDefinitionSummaryDto} from "../../models/models.tsx";
@@ -51,6 +55,148 @@ interface Props
 }
 
 const statusColor = (isActive: boolean): "success" | "subtle" => (isActive ? "success" : "subtle");
+
+// ── Overflow tags ────────────────────────────────────────────────────────────
+
+const OverflowTagMenuItem = ({id, tag}: {id: string; tag: string}) =>
+{
+    const isVisible = useIsOverflowItemVisible(id);
+    if (isVisible) return null;
+    return (
+        <MenuItem>
+            <Tag shape="circular" size="extra-small">{tag}</Tag>
+        </MenuItem>
+    );
+};
+
+const OverflowTagsMenu = ({tags}: {tags: string[]}) =>
+{
+    const {ref, overflowCount, isOverflowing} = useOverflowMenu<HTMLButtonElement>();
+    return (
+        <Menu>
+            <MenuTrigger disableButtonEnhancement>
+                <Button
+                    ref={ref}
+                    appearance="subtle"
+                    size="small"
+                    shape="circular"
+                    style={{
+                        padding: '0 6px',
+                        minWidth: 0,
+                        visibility: isOverflowing ? 'visible' : 'hidden',
+                        pointerEvents: isOverflowing ? undefined : 'none',
+                    }}
+                >
+                    +{overflowCount}
+                </Button>
+            </MenuTrigger>
+            {isOverflowing && (
+                <MenuPopover>
+                    <MenuList>
+                        {tags.map(tag => (
+                            <OverflowTagMenuItem key={tag} id={tag} tag={tag}/>
+                        ))}
+                    </MenuList>
+                </MenuPopover>
+            )}
+        </Menu>
+    );
+};
+
+const WorkflowTagsRow = ({tags}: {tags: string[]}) =>
+{
+    const styles = useWorkflowsListViewStyles();
+    if (!tags.length) return null;
+    return (
+        <Overflow>
+            <div className={styles.tagsContainer}>
+                {tags.map(tag => (
+                    <OverflowItem key={tag} id={tag}>
+                        <Tag shape="circular" size="extra-small">{tag}</Tag>
+                    </OverflowItem>
+                ))}
+                <OverflowTagsMenu tags={tags}/>
+            </div>
+        </Overflow>
+    );
+};
+
+// ── Workflow card ────────────────────────────────────────────────────────────
+
+interface WorkflowCardProps
+{
+    def: WorkflowDefinitionSummaryDto;
+    isPersonal: boolean;
+    onEdit: () => void;
+    onToggleActive: () => void;
+    onTogglePublished: () => void;
+    onClone: () => void;
+    onDelete: () => void;
+}
+
+const WorkflowCard = ({def, isPersonal, onEdit, onToggleActive, onTogglePublished, onClone, onDelete}: WorkflowCardProps) =>
+{
+    const styles = useWorkflowsListViewStyles();
+    return (
+        <div className={styles.row}>
+            {/* Row 1: name + trigger */}
+            <div className={styles.topRow}>
+                <Text weight="semibold">{def.name}</Text>
+                <Text size={200} className={styles.triggerText}>{formatTriggerName(def.triggerEvent)}</Text>
+            </div>
+
+            {/* Row 2: description + badges + actions */}
+            <div className={styles.middleRow}>
+                <Text size={200} className={styles.description}>{def.summary ?? ''}</Text>
+                <div className={styles.middleActions}>
+                    {!isPersonal && (
+                        <Badge
+                            color={def.isPublished ? "brand" : "subtle"}
+                            appearance={def.isPublished ? "filled" : "outline"}
+                            size="small"
+                        >
+                            {def.isPublished ? "Published" : "Draft"}
+                        </Badge>
+                    )}
+                    <Badge color={statusColor(def.isActive)} appearance="filled" size="small">
+                        {def.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                    <Menu>
+                        <MenuTrigger disableButtonEnhancement>
+                            <Button size="small" appearance="subtle" icon={<MoreVerticalRegular/>} aria-label="More actions"/>
+                        </MenuTrigger>
+                        <MenuPopover>
+                            <MenuList>
+                                <MenuItem icon={<EditIcon/>} onClick={onEdit}>Edit</MenuItem>
+                                {!isPersonal && (
+                                    <MenuItem
+                                        icon={def.isPublished ? <UnpublishIcon/> : <PublishIcon/>}
+                                        onClick={onTogglePublished}
+                                    >
+                                        {def.isPublished ? "Unpublish" : "Publish"}
+                                    </MenuItem>
+                                )}
+                                <MenuItem
+                                    icon={def.isActive ? <DeactivateIcon/> : <ActivateIcon/>}
+                                    onClick={onToggleActive}
+                                >
+                                    {def.isActive ? "Deactivate" : "Activate"}
+                                </MenuItem>
+                                <MenuItem icon={<CopyIcon/>} onClick={onClone}>Duplicate</MenuItem>
+                                <MenuItem icon={<DeleteIcon/>} onClick={onDelete}>Delete</MenuItem>
+                            </MenuList>
+                        </MenuPopover>
+                    </Menu>
+                </div>
+            </div>
+
+            {/* Row 3: tags with overflow */}
+            <WorkflowTagsRow tags={def.generalTags}/>
+        </div>
+    );
+};
+
+// ── Main list view ────────────────────────────────────────────────────────────
 
 const WorkflowsListView = ({onEdit, onNew}: Props) =>
 {
@@ -94,9 +240,7 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
             await patchWorkflowDefinitionStatus(def.id, {isActive: !def.isActive});
             await load(activeTab);
         }
-        catch
-        { /* ignore */
-        }
+        catch { /* ignore */ }
     };
 
     const togglePublished = async (def: WorkflowDefinitionSummaryDto) =>
@@ -106,9 +250,7 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
             await patchWorkflowDefinitionPublished(def.id, {isPublished: !def.isPublished});
             await load(activeTab);
         }
-        catch
-        { /* ignore */
-        }
+        catch { /* ignore */ }
     };
 
     const openCloneDialog = (def: WorkflowDefinitionSummaryDto) =>
@@ -125,76 +267,14 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
         {
             await cloneWorkflowDefinition(cloningDef.id, {newName: cloneNameInput.trim() || undefined});
             setCloningDef(null);
-            // Clones land in PERSONAL; switch there so the user sees the new item.
             setActiveTab('PERSONAL');
         }
-        catch
-        { /* ignore */
-        }
+        catch { /* ignore */ }
         finally
         {
             setCloning(false);
         }
     };
-
-    const renderRow = (def: WorkflowDefinitionSummaryDto, isPersonal: boolean) => (
-        <div key={def.id} className={styles.row}>
-            <div className={styles.rowName}>
-                <Text weight="semibold">{def.name}</Text>
-                {def.summary && <Text size={200} block>{def.summary}</Text>}
-                <div className={styles.tagRow}>
-                    {def.generalTags.map(t =>
-                        <Tag key={t}
-                             shape={"circular"}
-                             size="extra-small">
-                            {t}
-                        </Tag>)}
-                </div>
-            </div>
-            <Text className={styles.rowTrigger} size={200}>{formatTriggerName(def.triggerEvent)}</Text>
-            {!isPersonal && (
-                <Badge
-                    color={def.isPublished ? "brand" : "subtle"}
-                    appearance={def.isPublished ? "filled" : "outline"}
-                    size="small">
-                    {def.isPublished ? "Published" : "Draft"}
-                </Badge>
-            )}
-            <Badge color={statusColor(def.isActive)} appearance="filled" size="small">
-                {def.isActive ? "Active" : "Inactive"}
-            </Badge>
-            <Menu>
-                <MenuTrigger disableButtonEnhancement>
-                    <Button size="small" appearance="subtle"
-                            icon={<MoreVerticalRegular/>}
-                            aria-label="More actions"/>
-                </MenuTrigger>
-                <MenuPopover>
-                    <MenuList>
-                        <MenuItem icon={<EditIcon/>} onClick={() => onEdit(def)}>
-                            Edit
-                        </MenuItem>
-                        {!isPersonal && (
-                            <MenuItem
-                                icon={def.isPublished ? <UnpublishIcon/> : <PublishIcon/>}
-                                onClick={() => togglePublished(def)}>
-                                {def.isPublished ? "Unpublish" : "Publish"}
-                            </MenuItem>
-                        )}
-                        <MenuItem
-                            icon={def.isActive ? <DeactivateIcon/> : <ActivateIcon/>}
-                            onClick={() => toggleActive(def)}>
-                            {def.isActive ? "Deactivate" : "Activate"}
-                        </MenuItem>
-                        <MenuItem onClick={() => openCloneDialog(def)} icon={<CopyIcon/>}>Duplicate</MenuItem>
-                        <MenuItem icon={<DeleteIcon/>} onClick={() => setDeletingDef(def)}>
-                            Delete
-                        </MenuItem>
-                    </MenuList>
-                </MenuPopover>
-            </Menu>
-        </div>
-    );
 
     const renderPlatformCard = (def: WorkflowDefinitionSummaryDto) => (
         <div key={def.id} className={styles.templateCard}>
@@ -205,13 +285,9 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                     Runs when: {formatTriggerName(def.triggerEvent)}
                 </Text>
                 <div className={styles.tagRow}>
-                    {def.generalTags.map(t =>
-                        <Tag key={t}
-                             shape={"circular"}
-                             size="extra-small">
-                            {t}
-                        </Tag>)
-                    }
+                    {def.generalTags.map(t => (
+                        <Tag key={t} shape="circular" size="extra-small">{t}</Tag>
+                    ))}
                 </div>
             </div>
             <Button size="small" appearance="outline" onClick={() => openCloneDialog(def)}>
@@ -234,9 +310,7 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                     </TabList>
 
                     {activeTab !== 'APP' && (
-                        <Button appearance="subtle" icon={<AddIcon/>}
-                                onClick={() => onNew(activeTab)}
-                                shape="circular">
+                        <Button appearance="subtle" icon={<AddIcon/>} onClick={() => onNew(activeTab)} shape="circular">
                             Create Workflow
                         </Button>
                     )}
@@ -265,7 +339,18 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                         {definitions.map(def =>
                             activeTab === 'APP'
                                 ? renderPlatformCard(def)
-                                : renderRow(def, activeTab === 'PERSONAL'),
+                                : (
+                                    <WorkflowCard
+                                        key={def.id}
+                                        def={def}
+                                        isPersonal={activeTab === 'PERSONAL'}
+                                        onEdit={() => onEdit(def)}
+                                        onToggleActive={() => toggleActive(def)}
+                                        onTogglePublished={() => togglePublished(def)}
+                                        onClone={() => openCloneDialog(def)}
+                                        onDelete={() => setDeletingDef(def)}
+                                    />
+                                ),
                         )}
                     </div>
                 )}
@@ -302,13 +387,15 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                             />
                         </DialogContent>
                         <DialogActions>
-                            <Button appearance="secondary" shape="circular"
-                                    onClick={() => setCloningDef(null)}>
+                            <Button appearance="secondary" shape="circular" onClick={() => setCloningDef(null)}>
                                 Cancel
                             </Button>
-                            <Button appearance="primary" shape="circular"
-                                    onClick={confirmClone}
-                                    disabled={cloning || !cloneNameInput.trim()}>
+                            <Button
+                                appearance="primary"
+                                shape="circular"
+                                onClick={confirmClone}
+                                disabled={cloning || !cloneNameInput.trim()}
+                            >
                                 {cloning ? "Cloning…" : "Clone"}
                             </Button>
                         </DialogActions>

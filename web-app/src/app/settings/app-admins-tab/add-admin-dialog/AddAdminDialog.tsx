@@ -150,7 +150,7 @@ const AddAdminDialog: React.FC<AddAdminDialogProps> = ({isOpen, onDismiss, exist
             <DialogSurface style={{minWidth: '480px', maxWidth: '600px'}}>
                 <DialogBody>
                     <DialogTitle>Add App Admins</DialogTitle>
-                    <DialogContent style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
+                    <DialogContent style={{display: 'flex', flexDirection: 'column', gap: '16px', marginTop: "1rem", marginBottom: "1rem"}}>
 
                         {error && (
                             <div style={{color: tokens.colorStatusDangerForeground1}}>
