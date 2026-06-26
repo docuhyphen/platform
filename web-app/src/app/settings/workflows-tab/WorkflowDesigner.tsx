@@ -7,6 +7,7 @@ import {
     DialogContent,
     DialogSurface,
     DialogTitle,
+    Divider,
     Input,
     MessageBar,
     MessageBarBody,
@@ -17,7 +18,7 @@ import {
     Text,
     Textarea,
     Tooltip,
-    tokens, Divider,
+    tokens,
 } from "@fluentui/react-components";
 import {WorkflowDesignerState, WorkflowStepSpecDraft, WorkflowTriggerEventDto} from "../../models/models.tsx";
 import {
@@ -31,6 +32,7 @@ import {AddIcon, BackIcon, InfoIcon} from "../../components/IconBundles.tsx";
 import {useHelpSidebar} from "../../../context/HelpSidebarContext.tsx";
 import StepCard from "./StepCard.tsx";
 import {formatTriggerName} from "./workflowUtils.ts";
+import SaveWorkflowDialog from "./SaveWorkflowDialog.tsx";
 
 interface Props
 {
@@ -59,10 +61,10 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
     const [triggers, setTriggers] = useState<WorkflowTriggerEventDto[]>([]);
     const [triggersError, setTriggersError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [tagInput, setTagInput] = useState("");
     const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+    const [showSaveDialog, setShowSaveDialog] = useState(false);
     const initialStateRef = useRef<string | null>(null);
 
     const isDirty = () =>
@@ -144,7 +146,7 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
     const removeStep = (index: number) =>
         patch({steps: state.steps.filter((_, i) => i !== index)});
 
-    const save = async () =>
+    const requestSave = () =>
     {
         if (!state.name.trim())
         {
@@ -156,36 +158,29 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
             setError("Please select a trigger event.");
             return;
         }
-        setSaving(true);
         setError(null);
+        setShowSaveDialog(true);
+    };
+
+    const performSave = async () =>
+    {
         const stepsJson = JSON.stringify({steps: state.steps});
-        try
+        if (definitionId)
         {
-            if (definitionId)
-            {
-                await updateWorkflowDefinition(definitionId, {
-                    name: state.name, summary: state.summary || undefined,
-                    generalTags: state.generalTags, isActive: state.isActive, stepsJson,
-                });
-            }
-            else
-            {
-                await createWorkflowDefinition({
-                    name: state.name, summary: state.summary || undefined,
-                    triggerEvent: state.triggerEvent, generalTags: state.generalTags,
-                    isActive: state.isActive, stepsJson, scope,
-                });
-            }
-            onSaved();
+            await updateWorkflowDefinition(definitionId, {
+                name: state.name, summary: state.summary || undefined,
+                generalTags: state.generalTags, isActive: state.isActive, stepsJson,
+            });
         }
-        catch (e: unknown)
+        else
         {
-            setError(typeof e === "string" ? e : "Failed to save workflow");
+            await createWorkflowDefinition({
+                name: state.name, summary: state.summary || undefined,
+                triggerEvent: state.triggerEvent, generalTags: state.generalTags,
+                isActive: state.isActive, stepsJson, scope,
+            });
         }
-        finally
-        {
-            setSaving(false);
-        }
+        onSaved();
     };
 
     if (loading) return <Spinner label="Loading workflow..." size="small"/>;
@@ -341,11 +336,19 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
                 </Button>
                 <Button appearance="primary"
                         shape={"circular"}
-                        onClick={save}
-                        disabled={saving}>
-                    {saving ? "Saving..." : "Save Workflow"}
+                        onClick={requestSave}>
+                    Save Workflow
                 </Button>
             </div>
+
+            <SaveWorkflowDialog
+                open={showSaveDialog}
+                onClose={() => setShowSaveDialog(false)}
+                onConfirm={performSave}
+                isEdit={!!definitionId}
+                state={state}
+                triggers={triggers}
+            />
 
             <Dialog open={showDiscardDialog} onOpenChange={(_, d) => setShowDiscardDialog(d.open)}>
                 <DialogSurface>

@@ -39,6 +39,7 @@ import {useAccessManagementDialogStyles} from "./ExchangeAccessManagementDialogS
 import {InfoIcon, RegenerateOTPIcon} from "../../../components/IconBundles.tsx";
 import {getOtpFriendlyMessage, normalizeApiError} from "../../../../utils/apiErrorUtils.ts";
 import ExchangeAccessPanel from "./ExchangeAccessPanel.tsx";
+import AddPersonPanel from "./AddPersonPanel.tsx";
 import {useHelpSidebar} from "../../../../context/HelpSidebarContext.tsx";
 import DownloadFormatRestriction from "../../../components/share-constraints/DownloadFormatRestriction.tsx";
 
@@ -89,6 +90,7 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
     const [allowedDownloadFormats, setAllowedDownloadFormats] = useState<string[] | undefined>(undefined);
     const [noAuthAccessValidityDays, setNoAuthAccessValidityDays] = useState<string>('7');
     const [selectedTab, setSelectedTab] = useState<TabValue>(tabIds.people);
+    const [accessView, setAccessView] = useState<'list' | 'add-person'>('list');
     const {openHelpArticle} = useHelpSidebar();
     const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
 
@@ -110,6 +112,7 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
             setAccessCodeStatus('');
             setResendCooldownRemaining(0);
             setSelectedTab(tabIds.people);
+            setAccessView('list');
             setDialogErrorMessage(null);
         }
     }, [exchange]);
@@ -117,6 +120,7 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
     const onTabSelect = (_event: SelectTabEvent, data: SelectTabData) =>
     {
         setSelectedTab(data.value);
+        setAccessView('list');
     }
 
     useEffect(() =>
@@ -358,13 +362,26 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
                                 </section>
                             )}
 
-                            {selectedTab === tabIds.access && (
+                            {selectedTab === tabIds.access && accessView === 'add-person' && (
+                                <section>
+                                    <AddPersonPanel
+                                        exchangeId={exchange.id}
+                                        onBack={() => setAccessView('list')}
+                                        onPersonAdded={() => setAccessView('list')}
+                                    />
+                                </section>
+                            )}
+
+                            {selectedTab === tabIds.access && accessView === 'list' && (
                                 <section>
                                     <Accordion collapsible defaultOpenItems={["access-management"]}>
                                         <AccordionItem value="access-management">
                                             <AccordionHeader>Access Management</AccordionHeader>
                                             <AccordionPanel>
-                                                <ExchangeAccessPanel exchangeId={exchange.id}/>
+                                                <ExchangeAccessPanel
+                                                    exchangeId={exchange.id}
+                                                    onAddPerson={() => setAccessView('add-person')}
+                                                />
                                             </AccordionPanel>
                                         </AccordionItem>
                                         <AccordionItem value="document-permissions">

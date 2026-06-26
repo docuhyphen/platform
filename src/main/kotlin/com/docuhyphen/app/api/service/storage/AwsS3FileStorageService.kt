@@ -33,7 +33,7 @@ class AwsS3FileStorageService : FileStorageService
 
         private const val BUCKET_NAME = "docuhyphen-demo-documents"
 
-        // ⚠️ Hardcoded for now
+        // Hardcoded for now
         private const val AWS_ACCESS_KEY = \"REDACTED_AWS_ACCESS_KEY\"
         private const val AWS_SECRET_KEY = \"REDACTED_AWS_SECRET_KEY\"
         private const val AWS_REGION = "us-east-1"

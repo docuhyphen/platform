@@ -1,4 +1,4 @@
-﻿import React, {useCallback, useEffect, useMemo, useState} from 'react';
+﻿import React, {useCallback, useEffect, useState} from 'react';
 import {
     Button, Card,
     Combobox,
@@ -23,7 +23,6 @@ import {useExchangeAccessPanelStyles} from './ExchangeAccessPanelStyles';
 import {useAuth} from '../../../../context/AuthContext';
 import {
     changeExchangeAccessRole,
-    grantExchangeAccess,
     listExchangeAccess,
     revokeExchangeAccess,
 } from '../../../../services/exchangeApi';
@@ -38,6 +37,7 @@ import {
 interface ExchangeAccessPanelProps
 {
     exchangeId: string;
+    onAddPerson: () => void;
 }
 
 type AccessEntryDraft = {
@@ -169,7 +169,7 @@ function isOwnerEntry(entry: ExchangeAccessEntryDto): boolean
     return entry.roleName === 'OWNER';
 }
 
-const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId}) =>
+const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId, onAddPerson}) =>
 {
     const styles = useExchangeAccessPanelStyles();
     const {appUser} = useAuth();
@@ -179,12 +179,7 @@ const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId}) =
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
 
-    const [isAddFormOpen, setIsAddFormOpen] = useState(false);
     const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
-
-    const [newPersonEmail, setNewPersonEmail] = useState('');
-    const [newRole, setNewRole] = useState<string>(ExchangeShareRole.VIEWER);
-    const [newConstraintTags, setNewConstraintTags] = useState<ConstraintTag[]>([]);
 
     const loadAccess = useCallback(async () =>
     {
@@ -212,8 +207,6 @@ const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId}) =
         loadAccess();
     }, [loadAccess]);
 
-    const canAddConstrainedTags = useMemo(() => isConstrainedRole(newRole), [newRole]);
-
     const updateDraft = (shareId: string, updater: (prev: AccessEntryDraft) => AccessEntryDraft) =>
     {
         setDrafts((prev) =>
@@ -231,41 +224,6 @@ const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId}) =
     {
         setEntries(updated);
         setDrafts(buildDrafts(updated));
-    };
-
-    const handleAddPerson = async () =>
-    {
-        if (!newPersonEmail.trim()) return;
-        setBusy(true);
-        setError(null);
-        try
-        {
-            const constraintsJson = canAddConstrainedTags
-                ? JSON.stringify(constraintsFromTags(newConstraintTags))
-                : undefined;
-
-            const result = await grantExchangeAccess(exchangeId, {
-                principalKind: 'USER',
-                principalId: newPersonEmail.trim(),
-                roleName: newRole,
-                constraintsJson,
-            });
-            persistEntries(result);
-            setNewPersonEmail('');
-            setNewRole(ExchangeShareRole.VIEWER);
-            setNewConstraintTags([]);
-            setIsAddFormOpen(false);
-        }
-        catch (err: unknown)
-        {
-            const apiError = err as Record<string, unknown> | undefined;
-            const message = apiError?.message || apiError?.error || (err instanceof Error ? err.message : 'Failed to grant access');
-            setError(String(message));
-        }
-        finally
-        {
-            setBusy(false);
-        }
     };
 
     const handleSaveEntry = async (entry: ExchangeAccessEntryDto) =>
@@ -354,85 +312,15 @@ const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId}) =
                 <Text size={200}>Manage who has access and what they can do.</Text>
                 <Button
                     size="small"
-                    shape={"circular"}
+                    shape="circular"
                     appearance="secondary"
-                    icon={isAddFormOpen ? <DeleteRegular/> : <PersonAddRegular/>}
-                    onClick={() => setIsAddFormOpen((open) => !open)}>
-                    {isAddFormOpen ? 'Cancel' : 'Add person'}
+                    icon={<PersonAddRegular/>}
+                    onClick={onAddPerson}>
+                    Add person
                 </Button>
             </div>
 
             <div className={styles.entries}>
-
-                {isAddFormOpen && (
-                    <div className={styles.addForm}>
-                        <div  className={styles.addFormRow1}>
-                            <Field label="Person email"
-                                   className={styles.addFormPersonField}>
-                                <Combobox
-                                    placeholder="name@company.com"
-                                    value={newPersonEmail}
-                                    freeform
-                                    onChange={(event) => setNewPersonEmail(event.target.value)}
-                                />
-                            </Field>
-                            <Field label="Access role">
-                            <Combobox
-                                className={styles.roleField}
-                                value={AssignableRoleDisplayNames[newRole] || ExchangeShareRoleDisplayNames[newRole as ExchangeShareRole] || newRole}
-                                selectedOptions={[newRole]}
-                                onOptionSelect={(_e, d) => setNewRole(d.optionValue || ExchangeShareRole.VIEWER)}
-                            >
-                                {Object.entries(AssignableRoleDisplayNames).map(([k, v]) => (
-                                    <Option key={k} value={k}>{v}</Option>
-                                ))}
-                            </Combobox>
-                        </Field>
-                        </div>
-                        {canAddConstrainedTags && (
-                            <div className={`${styles.constraintsEditor} ${styles.addConstraintSection}`}>
-                                <Field label="Access constraints">
-                                    <TagPicker
-                                        selectedOptions={newConstraintTags}
-                                        onOptionSelect={(_e, data) => setNewConstraintTags(parseTagPickerSelection(data.selectedOptions))}
-                                    >
-                                        <TagPickerControl>
-                                            <TagPickerGroup aria-label="Selected constraint tags">
-                                                {newConstraintTags.map((tag) => (
-                                                    <Tag key={tag}
-                                                         shape={"circular"}
-                                                         value={tag}>{labelsForTags([tag])[0]}</Tag>
-                                                ))}
-                                            </TagPickerGroup>
-                                            <TagPickerInput aria-label="Constraint tags"
-                                                            placeholder="Add constraints"/>
-                                        </TagPickerControl>
-                                        <TagPickerList>
-                                            {CONSTRAINT_OPTIONS
-                                                .filter((option) => !newConstraintTags.includes(option.value))
-                                                .map((option) => (
-                                                    <TagPickerOption key={option.value} value={option.value}>
-                                                        {option.label}
-                                                    </TagPickerOption>
-                                                ))}
-                                        </TagPickerList>
-                                    </TagPicker>
-                                </Field>
-                            </div>
-                        )}
-
-                        <div className={styles.accessSave}>
-                            <Button
-                                size="small"
-                                appearance="primary"
-                                disabled={busy || !newPersonEmail.trim()}
-                                onClick={handleAddPerson}
-                            >
-                                Add
-                            </Button>
-                        </div>
-                    </div>
-                )}
 
                 {entries.map((entry) =>
                 {

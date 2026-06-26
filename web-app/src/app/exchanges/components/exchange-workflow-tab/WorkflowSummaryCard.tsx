@@ -105,7 +105,7 @@ const WorkflowSummaryCard = ({ instance }: Props) =>
             {isOverdue && (
                 <div className={styles.slaRow}>
                     <Badge color="warning" appearance="outline" size="small">
-                        ⚠ Approval overdue by {overdueDays} {overdueDays === 1 ? "day" : "days"}
+                        Approval overdue by {overdueDays} {overdueDays === 1 ? "day" : "days"}
                     </Badge>
                 </div>
             )}
@@ -113,7 +113,7 @@ const WorkflowSummaryCard = ({ instance }: Props) =>
             {!isOverdue && activeStep?.escalatedAt && (
                 <div className={styles.slaRow}>
                     <Badge color="warning" appearance="outline" size="small">
-                        ⚠ Escalated · {formatDateTime(activeStep.escalatedAt)}
+                        Escalated · {formatDateTime(activeStep.escalatedAt)}
                     </Badge>
                 </div>
             )}

@@ -44,6 +44,7 @@ into an org.
 - All Buttons must be circular shape
 - Do not use inline styling
 - Add html/react ids to all components, for example <Button id={....
+- Do not add any emojis or characters such as ⚠
 ---
 
 ## Tech Stack
