@@ -154,7 +154,7 @@ const AppAdminsTab: React.FC = () =>
                                 <span/>
                                 <Button
                                     icon={<PersonAddRegular/>}
-                                    appearance="secondary"
+                                    appearance="subtle"
                                     shape="circular"
                                     onClick={() => setIsAddDialogOpen(true)}
                                 >

@@ -186,7 +186,7 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
                 <span></span>
                 <Button
                     icon={<GroupAddIcon/>}
-                    appearance="secondary"
+                    appearance="subtle"
                     shape="circular"
                     onClick={onAddGroup}>
                     Create Group
