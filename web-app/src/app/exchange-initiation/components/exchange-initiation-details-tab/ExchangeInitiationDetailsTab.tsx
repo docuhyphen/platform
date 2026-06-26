@@ -18,6 +18,7 @@ interface ExchangeDetailsTabProps
     onDescChange?: (value: string) => void;
     onMessageChange?: (value: string) => void;
     resolvedPreview?: Record<string, string>;
+    locked?: boolean;
 }
 
 const ExchangeInitiationDetailsTab: React.FC<ExchangeDetailsTabProps> = (
@@ -34,6 +35,7 @@ const ExchangeInitiationDetailsTab: React.FC<ExchangeDetailsTabProps> = (
         onDescChange,
         onMessageChange,
         resolvedPreview,
+        locked,
     }) =>
 {
     const handleExchangeNameChange = (e: ChangeEvent<HTMLInputElement>, data: InputOnChangeData) =>
@@ -54,6 +56,7 @@ const ExchangeInitiationDetailsTab: React.FC<ExchangeDetailsTabProps> = (
                         availableVariables={availableVariables}
                         resolvedPreview={resolvedPreview}
                         placeholder="Exchange name, type {{ to insert a variable"
+                        disabled={locked}
                     />
                 ) : (
                     <Input
@@ -62,6 +65,7 @@ const ExchangeInitiationDetailsTab: React.FC<ExchangeDetailsTabProps> = (
                         required
                         onChange={handleExchangeNameChange}
                         placeholder=""
+                        disabled={locked}
                     />
                 )}
             </Field>
@@ -74,12 +78,14 @@ const ExchangeInitiationDetailsTab: React.FC<ExchangeDetailsTabProps> = (
                         resolvedPreview={resolvedPreview}
                         multiline
                         placeholder="Add context about this exchange (optional)"
+                        disabled={locked}
                     />
                 ) : (
                     <Textarea
                         onChange={onDescriptionChange}
                         value={description}
                         placeholder="Add context about this exchange (optional)"
+                        disabled={locked}
                     />
                 )}
             </Field>
@@ -92,12 +98,14 @@ const ExchangeInitiationDetailsTab: React.FC<ExchangeDetailsTabProps> = (
                         resolvedPreview={resolvedPreview}
                         multiline
                         placeholder="Include any instructions or details recipients should know (optional)"
+                        disabled={locked}
                     />
                 ) : (
                     <Textarea
                         onChange={onInitialShareMessageChange}
                         value={initialShareMessage}
                         placeholder="Include any instructions or details recipients should know (optional)"
+                        disabled={locked}
                     />
                 )}
             </Field>

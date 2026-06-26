@@ -1,9 +1,7 @@
 ﻿import React from 'react';
 import {Button, Tab, TabList, TabValue, Text, Tooltip} from "@fluentui/react-components";
-import {DismissRegular} from "@fluentui/react-icons";
 import {useExchangeInitiationStyles} from "../../ExchangeInitiationStyles.tsx";
 import {
-    BackIcon,
     BlueprintAddIcon,
     DetailsIcon,
     DocumentsIcon,
@@ -17,7 +15,7 @@ interface DialogTitleSectionProps
     exchangeInitiatedSuccessfully: boolean;
     choosingBlueprint: boolean;
     requestingDocuments: boolean;
-    setChoosingBlueprint: (value: boolean) => void;
+    selectedBlueprintName?: string | null;
     selectedTab: TabValue;
     onTabSelect: (event: any, data: any) => void;
     onSaveAsBlueprint?: () => void;
@@ -43,7 +41,7 @@ const ExchangeInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = 
         exchangeInitiatedSuccessfully,
         choosingBlueprint,
         requestingDocuments,
-        setChoosingBlueprint,
+        selectedBlueprintName,
         selectedTab,
         onTabSelect,
         onSaveAsBlueprint,
@@ -77,19 +75,16 @@ const ExchangeInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = 
             <div className={styles.dialogTitle1}>
                 {!exchangeInitiatedSuccessfully &&
                     <Text size={500}>
-                        {(requestingDocuments) ? "Request" : "Send "} Documents
+                        {choosingBlueprint
+                            ? 'Choose a Blueprint'
+                            : selectedBlueprintName
+                                ? selectedBlueprintName
+                                : (requestingDocuments ? 'Request Documents' : 'Send Documents')
+                        }
                     </Text>
                 }
-                {choosingBlueprint &&
-                    <Button appearance={"outline"}
-                            shape={"circular"}
-                            icon={<BackIcon/>}
-                            size={"small"} onClick={() => setChoosingBlueprint(false)}>
-                        Cancel blueprint selection
-                    </Button>
-                }
                 {(!choosingBlueprint && !exchangeInitiatedSuccessfully && onSaveAsBlueprint) &&
-                    <Button appearance={"outline"}
+                    <Button appearance={"subtle"}
                             shape={"circular"}
                             size={"small"}
                             icon={<BlueprintAddIcon/>}

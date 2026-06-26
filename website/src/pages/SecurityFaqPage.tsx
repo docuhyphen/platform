@@ -117,7 +117,7 @@ export function SecurityFaqPage()
             </div>
 
             <div className={styles.buttonRow}>
-                <LinkButton to="/resources" appearance="outline" shape="circular">
+                <LinkButton to="/resources" appearance="secondary" shape="circular">
                     Back to Resources
                 </LinkButton>
             </div>

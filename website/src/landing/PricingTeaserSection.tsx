@@ -302,7 +302,7 @@ export function PricingTeaserSection()
                             </ul>
                             <LinkButton
                                 to="/pricing"
-                                appearance={tier.featured ? "primary" : "outline"}
+                                appearance={tier.featured ? "primary" : "secondary"}
                                 shape="circular"
                                 className={styles.cta}
                             >

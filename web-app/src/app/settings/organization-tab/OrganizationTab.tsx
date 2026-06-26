@@ -299,7 +299,7 @@ const OrganizationTab = () =>
                 </Text>
                 <div>
                     <Button shape={"circular"}
-                            appearance={"outline"}
+                            appearance={"secondary"}
                             onClick={() => setOnboardingDialogOpen(true)}
                             icon={<></>}>
                         Register your organization

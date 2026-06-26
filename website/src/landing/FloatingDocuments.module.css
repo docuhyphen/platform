@@ -4,6 +4,7 @@
     overflow: hidden;
     pointer-events: none;
     z-index: 0;
+    opacity: 0.6;
 }
 
 /* ===== Hub panels (sender / recipient) ===== */

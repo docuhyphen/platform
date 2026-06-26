@@ -196,7 +196,7 @@ export function HeroSection()
                     Streamline your document exchange process
                 </LargeTitle>
                 <Text className={styles.supportingText}>
-                    Exchange and collaborate on your most important documents with clients, teams, and other organizations.
+                    Exchange documents, automate approvals, and streamline collaboration across teams and organizations.
                 </Text>
 
                 <div className={styles.actions}>
@@ -216,7 +216,7 @@ export function HeroSection()
                     <SpeakToSalesDialog
                         trigger={
                             <Button
-                                appearance="outline"
+                                appearance="secondary"
                                 size="medium"
                                 className={mergeClasses(styles.buttonBase, styles.secondaryCta)}
                                 shape="circular"

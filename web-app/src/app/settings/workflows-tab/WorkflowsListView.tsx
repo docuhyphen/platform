@@ -234,7 +234,7 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                     </TabList>
 
                     {activeTab !== 'APP' && (
-                        <Button appearance="secondary" icon={<AddIcon/>}
+                        <Button appearance="subtle" icon={<AddIcon/>}
                                 onClick={() => onNew(activeTab)}
                                 shape="circular">
                             Create Workflow

@@ -300,7 +300,7 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
                 <div className={styles.stepListHeader}>
                     <Text weight="semibold">Steps ({state.steps.length})</Text>
                     <Button size="small"
-                            appearance="outline"
+                            appearance="secondary"
                             shape={"circular"}
                             icon={<AddIcon/>}
                             onClick={() => patch({steps: [...state.steps, defaultStep()]})}>

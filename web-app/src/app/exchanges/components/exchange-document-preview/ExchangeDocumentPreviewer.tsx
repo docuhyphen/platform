@@ -989,7 +989,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                                                 id="exchange-document-preview-zoom-reset-inline"
                                                 icon={<ResetZoomIcon/>}
                                                 shape={"circular"}
-                                                appearance="outline">
+                                                appearance="secondary">
                                             {Math.round(scale * 100)}%
                                         </Button>
                                     </Tooltip>
@@ -1080,7 +1080,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                                                 id="exchange-document-preview-zoom-reset-enlarged"
                                                 icon={<ResetZoomIcon/>}
                                                 shape={"circular"}
-                                                appearance="outline">
+                                                appearance="secondary">
                                             {Math.round(scale * 100)}%
                                         </Button>
                                     </Tooltip>

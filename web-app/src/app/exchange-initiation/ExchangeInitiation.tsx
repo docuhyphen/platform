@@ -31,7 +31,7 @@ import ExchangeInitiationDialogTrigger
     from "./components/exchange-initiation-dialog-trigger/ExchangeInitiationDialogTrigger.tsx";
 import ExchangeInitiationDialogTitleSection
     from "./components/exchange-initiation-dialog-title-section/ExchangeInitiationDialogTitleSection.tsx";
-import {DismissRegular} from "@fluentui/react-icons";
+import {ArrowLeftRegular, DismissRegular} from "@fluentui/react-icons";
 import ExchangeInitiationRecipientsTab, {
     ExchangeInitiationRecipientMode
 } from "./components/exchange-initiation-recipients-tab/ExchangeInitiationRecipientsTab.tsx";
@@ -48,7 +48,7 @@ import {
 } from "../models/models.tsx";
 import {getAvailableVariables} from "../../services/variableService.ts";
 import BlueprintPicker from "./components/blueprint-picker/BlueprintPicker.tsx";
-import SaveBlueprintDialog from "./components/save-blueprint-dialog/SaveBlueprintDialog.tsx";
+import SaveBlueprintPanel from "./components/save-blueprint-dialog/SaveBlueprintDialog.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {recreateRejectedExchangeObservable} from "../observable/exchangeObservables.ts";
 import {useNavigate} from "react-router-dom";
@@ -97,6 +97,8 @@ const ExchangeInitiation: React.FC = () =>
 
     const toasterId = useId("exchange-initiation-toaster");
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+    const [selectedBlueprintName, setSelectedBlueprintName] = React.useState<string | null>(null);
+    const [blueprintLocked, setBlueprintLocked] = React.useState(false);
     const [createdExchangeSummary, setCreatedExchangeSummary] = React.useState<CreatedExchangeSummary | null>(null);
     const [copyLinkStatus, setCopyLinkStatus] = React.useState<'idle' | 'copied' | 'failed'>('idle');
     const [saveBlueprintDialogOpen, setSaveBlueprintDialogOpen] = React.useState(false);
@@ -154,8 +156,8 @@ const ExchangeInitiation: React.FC = () =>
         try
         {
             const config: BlueprintConfig = JSON.parse(blueprint.configJson);
-            if (config.name) setExchangeName(config.name);
-            if (config.description) setDescription(config.description);
+            setExchangeName(config.name || blueprint.name);
+            setDescription(config.description || blueprint.summary || '');
             if (config.initialShareMessage) setInitialShareMessage(config.initialShareMessage);
             if (config.requestRecipientSignIn !== undefined) setRequireSignIn(config.requestRecipientSignIn);
             if (config.allowDocumentAddition !== undefined) setAllowDocumentAdditions(config.allowDocumentAddition);
@@ -179,11 +181,13 @@ const ExchangeInitiation: React.FC = () =>
             {
                 setInternalParticipants(blueprint.participants);
             }
+            setBlueprintLocked(blueprint.scope !== 'PERSONAL' && !(config.allowEditOnExchangeStart === true));
         }
         catch (e)
         {
             // Invalid configJson; apply what we can, ignore the rest
         }
+        setSelectedBlueprintName(blueprint.name);
         setChoosingBlueprint(false);
         setSelectedTab('recipients-tab');
 
@@ -572,6 +576,8 @@ const ExchangeInitiation: React.FC = () =>
     const resetInitiationForm = () =>
     {
         setChoosingBlueprint(false);
+        setSelectedBlueprintName(null);
+        setBlueprintLocked(false);
         setMessageGroupMessages([]);
         setInitiatingExchange(false);
         setExchangeInitiatedSuccessfully(false);
@@ -715,6 +721,7 @@ const ExchangeInitiation: React.FC = () =>
                 onNameChange={setExchangeName}
                 onDescChange={setDescription}
                 onMessageChange={setInitialShareMessage}
+                locked={blueprintLocked}
             />
         )
     }
@@ -761,6 +768,7 @@ const ExchangeInitiation: React.FC = () =>
                 addNewDocument={addNewDocument}
                 addLibraryDocument={addLibraryDocument}
                 availableVariables={availableVariables ?? undefined}
+                locked={blueprintLocked}
             />
         )
     }
@@ -783,6 +791,7 @@ const ExchangeInitiation: React.FC = () =>
                 onAllowDocumentUploadChange={handleCheckboxChange(setAllowDocumentUpload)}
                 allowedDownloadFormats={allowedDownloadFormats}
                 onAllowedDownloadFormatsChange={setAllowedDownloadFormats}
+                locked={blueprintLocked}
             />
         )
     }
@@ -923,45 +932,63 @@ const ExchangeInitiation: React.FC = () =>
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle className={styles.dialogTitle}>
-                        <ExchangeInitiationDialogTitleSection
-                            exchangeInitiatedSuccessfully={exchangeInitiatedSuccessfully}
-                            requestingDocuments={requestingDocuments}
-                            choosingBlueprint={choosingBlueprint}
-                            setChoosingBlueprint={setChoosingBlueprint}
-                            selectedTab={selectedTab}
-                            onTabSelect={(_, data) =>
-                            {
-                                setMessageGroupMessages([]);
-                                setSelectedTab(data.value);
-                            }}
-                            onSaveAsBlueprint={() => setSaveBlueprintDialogOpen(true)}
-                        />
-                        {renderErrorMessageBar()}
+                        {saveBlueprintDialogOpen ? (
+                            <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                <Button
+                                    appearance="subtle"
+                                    shape="circular"
+                                    size="small"
+                                    icon={<ArrowLeftRegular/>}
+                                    onClick={() => setSaveBlueprintDialogOpen(false)}
+                                    aria-label="Back to exchange"
+                                />
+                                <Text weight="semibold" size={500}>Save as Blueprint</Text>
+                            </div>
+                        ) : (
+                            <>
+                                <ExchangeInitiationDialogTitleSection
+                                    exchangeInitiatedSuccessfully={exchangeInitiatedSuccessfully}
+                                    requestingDocuments={requestingDocuments}
+                                    choosingBlueprint={choosingBlueprint}
+                                    selectedBlueprintName={selectedBlueprintName}
+                                    selectedTab={selectedTab}
+                                    onTabSelect={(_, data) =>
+                                    {
+                                        setMessageGroupMessages([]);
+                                        setSelectedTab(data.value);
+                                    }}
+                                    onSaveAsBlueprint={() => setSaveBlueprintDialogOpen(true)}
+                                />
+                                {renderErrorMessageBar()}
+                            </>
+                        )}
                     </DialogTitle>
                     <DialogContent>
-                        {renderDialogContent()}
+                        {saveBlueprintDialogOpen ? (
+                            <SaveBlueprintPanel
+                                onBack={() => setSaveBlueprintDialogOpen(false)}
+                                onSaved={() => setSaveBlueprintDialogOpen(false)}
+                                initialName={name}
+                                configJson={buildBlueprintConfigJson()}
+                                exchangeDocuments={buildBlueprintDocuments()}
+                                participants={internalParticipants ?? []}
+                            />
+                        ) : renderDialogContent()}
                     </DialogContent>
-                    <DialogActions>
-                        <ExchangeInitiationDialogActions
-                            requestingDocuments={requestingDocuments}
-                            initiatingExchange={initiatingExchange}
-                            exchangeInitiatedSuccessfully={exchangeInitiatedSuccessfully}
-                            choosingBlueprint={choosingBlueprint}
-                            onResetInitiation={resetInitiationForm}
-                            onCloseDialog={onCancelInitiation}
-                            onInitiateExchange={() => onInitiateExchange()}
-                        />
-                    </DialogActions>
+                    {!saveBlueprintDialogOpen && (
+                        <DialogActions>
+                            <ExchangeInitiationDialogActions
+                                requestingDocuments={requestingDocuments}
+                                initiatingExchange={initiatingExchange}
+                                exchangeInitiatedSuccessfully={exchangeInitiatedSuccessfully}
+                                choosingBlueprint={choosingBlueprint}
+                                onResetInitiation={resetInitiationForm}
+                                onCloseDialog={onCancelInitiation}
+                                onInitiateExchange={() => onInitiateExchange()}
+                            />
+                        </DialogActions>
+                    )}
                     <Toaster inline toasterId={toasterId} position="bottom"/>
-                    <SaveBlueprintDialog
-                        open={saveBlueprintDialogOpen}
-                        onClose={() => setSaveBlueprintDialogOpen(false)}
-                        onSaved={() => setSaveBlueprintDialogOpen(false)}
-                        initialName={name}
-                        configJson={buildBlueprintConfigJson()}
-                        exchangeDocuments={buildBlueprintDocuments()}
-                        participants={internalParticipants ?? []}
-                    />
                 </DialogBody>
             </DialogSurface>
         </Dialog>

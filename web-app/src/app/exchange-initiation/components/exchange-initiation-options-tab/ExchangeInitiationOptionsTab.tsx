@@ -19,6 +19,7 @@ interface SharingOptionsTabProps
     onAllowDocumentUpdateChange: (ev: ChangeEvent<HTMLInputElement>) => void;
     onAllowDocumentUploadChange: (ev: ChangeEvent<HTMLInputElement>) => void;
     onAllowedDownloadFormatsChange: (formats: string[] | undefined) => void;
+    locked?: boolean;
 }
 
 const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
@@ -37,6 +38,7 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
         onAllowDocumentUpdateChange,
         onAllowDocumentUploadChange,
         onAllowedDownloadFormatsChange,
+        locked,
     }) =>
 {
     const styles = useExchangeInitiationStyles();
@@ -49,6 +51,7 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
                     label="Require recipient sign in"
                     checked={requireSignIn}
                     onChange={onRequireSignInChange}
+                    disabled={locked}
                 />
             </Field>
             <Divider alignContent="start">Document options</Divider>
@@ -57,6 +60,7 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
                     label="Allow document additions"
                     checked={allowDocumentAdditions}
                     onChange={onAllowDocumentAdditionsChange}
+                    disabled={locked}
                 />
             </Field>
             <Field>
@@ -64,6 +68,7 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
                     label="Allow document deletions"
                     checked={allowDocumentDeletions}
                     onChange={onAllowDocumentDeletionsChange}
+                    disabled={locked}
                 />
             </Field>
             <Field>
@@ -71,12 +76,14 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
                     label="Allow document download"
                     checked={allowDocumentDownload}
                     onChange={onAllowDocumentDownloadChange}
+                    disabled={locked}
                 />
             </Field>
             {allowDocumentDownload && (
                 <DownloadFormatRestriction
                     allowedDownloadFormats={allowedDownloadFormats}
                     onChange={onAllowedDownloadFormatsChange}
+                    disabled={locked}
                 />
             )}
             <Field>
@@ -84,6 +91,7 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
                     label="Allow document update"
                     checked={allowDocumentUpdate}
                     onChange={onAllowDocumentUpdateChange}
+                    disabled={locked}
                 />
             </Field>
             <Field>
@@ -91,6 +99,7 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
                     label="Allow document upload"
                     checked={allowDocumentUpload}
                     onChange={onAllowDocumentUploadChange}
+                    disabled={locked}
                 />
             </Field>
         </div>

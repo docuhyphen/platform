@@ -237,7 +237,7 @@ export function IndustryCarouselSection()
 
             <div className={styles.controls}>
                 <Button
-                    appearance="outline"
+                    appearance="secondary"
                     icon={<ChevronLeft20Regular/>}
                     shape="circular"
                     onClick={goToPreviousIndustrySlide}
@@ -247,7 +247,7 @@ export function IndustryCarouselSection()
                     {activeIndustrySlide + 1}/{industrySlides.length}
                 </Text>
                 <Button
-                    appearance="outline"
+                    appearance="secondary"
                     icon={<ChevronRight20Regular/>}
                     shape="circular"
                     onClick={goToNextIndustrySlide}

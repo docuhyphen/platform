@@ -124,10 +124,9 @@ const BillingTab = () =>
                 <Text as="h2" size={700} weight="semibold">
                     Billing &amp; Subscription
                 </Text>
-                <Text size={300} className={styles.tagline}>
+                <Text size={300} className={styles.tagline} align={"center"}>
                     Comprehensive financial visibility and control for your organisation
-                    is on the horizon. Manage plans, track usage, and maintain a full
-                    audit trail — all in one place.
+                    is on the horizon.
                 </Text>
             </div>
 

@@ -155,7 +155,10 @@
       "PowerShell(.\\\\mvnw.cmd -q -o compile -DskipTests 2>&1)",
       "Bash(docker --version)",
       "Bash(docker rm *)",
-      "PowerShell(cd web-app; npx tsc --noEmit 2>&1 | Select-Object -First 60; Write-Output \"===TSC_EXIT=$LASTEXITCODE===\")"
+      "PowerShell(cd web-app; npx tsc --noEmit 2>&1 | Select-Object -First 60; Write-Output \"===TSC_EXIT=$LASTEXITCODE===\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\web-app\\\\src\" -Recurse -Directory)",
+      "Bash(Select-Object -First 20)",
+      "Bash(Format-Table FullName)"
     ]
   }
 }

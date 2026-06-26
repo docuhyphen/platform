@@ -3,9 +3,10 @@ import {CounterBadge, Tab, TabList, tokens} from "@fluentui/react-components";
 import {
     Archive20Filled,
     Archive20Regular,
-    ClipboardTaskListLtr20Filled,
-    ClipboardTaskListLtr20Regular,
-    Folder20Filled,
+    MailInbox20Regular,
+    MailInbox20Filled,
+    Share20Regular,
+    Share20Filled,
     Folder20Regular, Live20Filled, Live20Regular, LiveFilled, LiveRegular,
 } from "@fluentui/react-icons";
 
@@ -39,8 +40,8 @@ const ExchangeListTabs: React.FC<ExchangeListTabsProps> = ({activeTab, inboxCoun
                     {collapsed ? (
                         <span style={{position: 'relative', display: 'inline-flex'}}>
                             {activeTab === 'inbox'
-                                ? <ClipboardTaskListLtr20Filled style={collapsedIconStyle} primaryFill={tokens.colorBrandForeground1}/>
-                                : <ClipboardTaskListLtr20Regular style={collapsedIconStyle}/>
+                                ? <MailInbox20Filled style={collapsedIconStyle} primaryFill={tokens.colorBrandForeground1}/>
+                                : <MailInbox20Regular style={collapsedIconStyle}/>
                             }
                             {inboxCount > 0 && (
                                 <CounterBadge
@@ -55,8 +56,8 @@ const ExchangeListTabs: React.FC<ExchangeListTabsProps> = ({activeTab, inboxCoun
                     ) : (
                         <>
                             {activeTab === 'inbox'
-                                ? <ClipboardTaskListLtr20Filled primaryFill={tokens.colorBrandForeground1}/>
-                                : <ClipboardTaskListLtr20Regular/>
+                                ? <MailInbox20Filled primaryFill={tokens.colorBrandForeground1}/>
+                                : <MailInbox20Regular/>
                             }
                             Requests
                             {inboxCount > 0 && (

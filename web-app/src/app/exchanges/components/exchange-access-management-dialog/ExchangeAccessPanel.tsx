@@ -355,7 +355,7 @@ const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId}) =
                 <Button
                     size="small"
                     shape={"circular"}
-                    appearance="outline"
+                    appearance="secondary"
                     icon={isAddFormOpen ? <DeleteRegular/> : <PersonAddRegular/>}
                     onClick={() => setIsAddFormOpen((open) => !open)}>
                     {isAddFormOpen ? 'Cancel' : 'Add person'}

@@ -125,6 +125,13 @@ const Settings = () =>
             <Tab id="AppSettingsTab" icon={<SettingsAppSettingsTabIcon/>} value={tabIds.appSettings}>
                 Preferences
             </Tab>
+            <Divider appearance={"brand"} alignContent={"start"}>Content</Divider>
+            <Tab id="DocumentsTab" icon={<SettingsDocumentsTabIcon/>} value={tabIds.documents}>
+                Document Library
+            </Tab>
+            <Tab id="BlueprintsTab" icon={<SettingsExchangeBlueprintsTabIcon/>} value={tabIds.blueprints}>
+                Blueprints
+            </Tab>
             <Divider appearance={"brand"} alignContent={"start"}>Automation</Divider>
             <Tab id="WorkflowsTab" icon={<SettingsWorkflowsTabIcon/>} value={tabIds.workflows}>
                 Workflows
@@ -144,13 +151,6 @@ const Settings = () =>
             </Tab>
             <Tab id="OrganizationBillingTab" icon={<SettingsOrganizationBillingTabIcon/>} value={tabIds.organizationBilling}>
                 Billing
-            </Tab>
-            <Divider appearance={"brand"} alignContent={"start"}>Content</Divider>
-            <Tab id="DocumentsTab" icon={<SettingsDocumentsTabIcon/>} value={tabIds.documents}>
-                Document Library
-            </Tab>
-            <Tab id="BlueprintsTab" icon={<SettingsExchangeBlueprintsTabIcon/>} value={tabIds.blueprints}>
-                Blueprints
             </Tab>
         </TabList>
     );

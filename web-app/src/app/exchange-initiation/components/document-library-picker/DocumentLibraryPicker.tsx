@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {
     Badge,
     Button,
+    Checkbox,
     Spinner,
     Tab,
     TabList,
@@ -9,11 +10,12 @@ import {
 } from '@fluentui/react-components';
 import {DocumentLibraryEntrySummaryDto} from '../../../models/models.tsx';
 import {listDocumentLibraryEntries} from '../../../../services/documentLibraryService.ts';
+import {BackIcon} from '../../../components/IconBundles.tsx';
 
 interface DocumentLibraryPickerProps
 {
-    onSelect: (entry: DocumentLibraryEntrySummaryDto) => void;
-    onCancel: () => void;
+    onSelect: (entries: DocumentLibraryEntrySummaryDto[]) => void;
+    onBack: () => void;
 }
 
 type PickerTab = 'PERSONAL' | 'ORG' | 'APP';
@@ -24,15 +26,17 @@ const tabLabel: Record<PickerTab, string> = {
     APP: 'Platform',
 };
 
-const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, onCancel}) =>
+const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, onBack}) =>
 {
     const [activeTab, setActiveTab] = useState<PickerTab>('PERSONAL');
     const [entries, setEntries] = useState<DocumentLibraryEntrySummaryDto[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
     useEffect(() =>
     {
+        setSelectedIds(new Set());
         setLoading(true);
         setError(null);
         listDocumentLibraryEntries({scope: activeTab})
@@ -47,11 +51,51 @@ const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, 
             .finally(() => setLoading(false));
     }, [activeTab]);
 
+    const toggleEntry = (id: string) =>
+    {
+        setSelectedIds(prev =>
+        {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const handleConfirm = () =>
+    {
+        const selected = entries.filter(e => selectedIds.has(e.id));
+        onSelect(selected);
+    };
+
+    const count = selectedIds.size;
+
     return (
         <div
             id="doc-library-picker"
             style={{display: 'flex', flexDirection: 'column', gap: '12px', minHeight: '300px'}}
         >
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <Button
+                    id="doc-picker-back-btn"
+                    appearance="subtle"
+                    shape="circular"
+                    icon={<BackIcon/>}
+                    onClick={onBack}
+                >
+                    Back to Documents
+                </Button>
+                <Button
+                    id="doc-picker-confirm-btn"
+                    appearance="primary"
+                    shape="circular"
+                    disabled={count === 0}
+                    onClick={handleConfirm}
+                >
+                    {count > 0 ? `Add ${count} document${count === 1 ? '' : 's'}` : 'Add documents'}
+                </Button>
+            </div>
+
             <TabList
                 selectedValue={activeTab}
                 onTabSelect={(_, data) => setActiveTab(data.value as PickerTab)}
@@ -110,13 +154,16 @@ const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, 
                         <div
                             key={entry.id}
                             id={`doc-picker-item-${entry.id}`}
+                            onClick={() => toggleEntry(entry.id)}
                             style={{
-                                border: '1px solid var(--colorNeutralStroke1)',
+                                border: `1px solid ${selectedIds.has(entry.id) ? 'var(--colorBrandStroke1)' : 'var(--colorNeutralStroke1)'}`,
                                 borderRadius: '8px',
                                 padding: '12px 16px',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 gap: '6px',
+                                cursor: 'pointer',
+                                backgroundColor: selectedIds.has(entry.id) ? 'var(--colorBrandBackground2)' : undefined,
                             }}
                         >
                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
@@ -126,15 +173,12 @@ const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, 
                                 >
                                     {entry.title}
                                 </Text>
-                                <Button
-                                    id={`doc-picker-select-${entry.id}`}
-                                    appearance="primary"
-                                    shape="circular"
-                                    size="small"
-                                    onClick={() => onSelect(entry)}
-                                >
-                                    Select
-                                </Button>
+                                <Checkbox
+                                    id={`doc-picker-check-${entry.id}`}
+                                    checked={selectedIds.has(entry.id)}
+                                    onChange={() => toggleEntry(entry.id)}
+                                    onClick={e => e.stopPropagation()}
+                                />
                             </div>
                             {entry.description && (
                                 <Text
@@ -169,16 +213,6 @@ const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, 
                 </div>
             )}
 
-            <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: '8px'}}>
-                <Button
-                    id="doc-picker-cancel-btn"
-                    appearance="secondary"
-                    shape="circular"
-                    onClick={onCancel}
-                >
-                    Cancel
-                </Button>
-            </div>
         </div>
     );
 };

@@ -133,7 +133,7 @@ export function ContactPage()
                             </Button>
                         }
                     />
-                    <Button as="a" href={SALES_EMAIL_URL} appearance="outline" shape="circular">
+                    <Button as="a" href={SALES_EMAIL_URL} appearance="secondary" shape="circular">
                         Email us directly
                     </Button>
                 </div>

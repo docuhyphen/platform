@@ -1,10 +1,16 @@
 import React from "react";
 import {HelpDocSectionInput} from "../helpDocsRegistry";
+import {manageAccessArticle} from "./articles/manageAccessArticle";
 
 export const exchangesSection: HelpDocSectionInput = {
     id: "exchanges",
     title: "Exchanges",
     articles: [
+        {
+            id: "manage-access",
+            title: "Managing access & permissions",
+            content: manageAccessArticle,
+        },
         {
             id: "exchange-lifecycle",
             title: "Exchange Lifecycle",

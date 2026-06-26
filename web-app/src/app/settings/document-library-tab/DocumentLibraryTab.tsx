@@ -175,7 +175,7 @@ const DocumentLibraryTab = () =>
                         <Button
                             id="doc-create-btn"
                             icon={<AddIcon/>}
-                            appearance="secondary"
+                            appearance="subtle"
                             shape="circular"
                             onClick={openCreate}
                         >

@@ -597,9 +597,7 @@ export enum DocumentType
     XLSX = "XLSX",
     XLS = "XLS",
     PPTX = "PPTX",
-    PPT = "PPT",
-    PNG = "PNG",
-    JPG = "JPG"
+    PPT = "PPT"
 }
 
 export enum ImageType
@@ -1013,6 +1011,7 @@ export interface BlueprintConfig
     allowDocumentUpload?: boolean;
     allowedDownloadFormats?: string[];
     recipientConfiguration?: BlueprintRecipientConfiguration;
+    allowEditOnExchangeStart?: boolean;
 }
 
 export interface BlueprintDefinitionSummaryDto

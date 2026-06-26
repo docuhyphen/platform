@@ -307,7 +307,7 @@ export function IndustriesPage()
                 >
                     See pricing
                 </LinkButton>
-                <LinkButton to="/security" appearance="outline" shape="circular">
+                <LinkButton to="/security" appearance="secondary" shape="circular">
                     Read about security
                 </LinkButton>
             </section>

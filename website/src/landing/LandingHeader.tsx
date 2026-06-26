@@ -230,7 +230,7 @@ export function LandingHeader()
                         Start Free
                     </Button>
                     <Button
-                        appearance="outline"
+                        appearance="subtle"
                         as="a"
                         className={styles.signInButton}
                         target="_blank"

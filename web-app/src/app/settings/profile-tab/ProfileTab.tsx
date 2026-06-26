@@ -112,7 +112,7 @@ const ProfileTab = () =>
                             {appUser.person.contactDetails.phoneNumber}
                         </>
                     ) : (
-                        <Button appearance={"outline"}
+                        <Button appearance={"secondary"}
                                 shape={"circular"}
                                 icon={<PhoneDismissRegular></PhoneDismissRegular>}
                                 onClick={onAddOrEditPhone}>
@@ -127,7 +127,7 @@ const ProfileTab = () =>
                 Security
             </Divider>
             <div>
-                <Button appearance={"outline"}
+                <Button appearance={"secondary"}
                         shape={"circular"}
                         icon={<PasswordRegular/>}
                         onClick={() => setIsPasswordResetDialogOpen(true)}>

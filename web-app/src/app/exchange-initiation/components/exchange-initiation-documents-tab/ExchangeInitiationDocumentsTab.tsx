@@ -1,12 +1,5 @@
-﻿import React, {useState} from 'react';
-import {
-    Button,
-    Dialog,
-    DialogBody,
-    DialogContent,
-    DialogSurface,
-    DialogTitle,
-} from "@fluentui/react-components";
+import React, {useState} from 'react';
+import {Button} from "@fluentui/react-components";
 import {useExchangeInitiationStyles} from "../../ExchangeInitiationStyles.tsx";
 import ExchangeInitiationDocumentsCard from "../exchange-initiation-documents-card/ExchangeInitiationDocumentsCard.tsx";
 import {AvailableVariablesDto, DocumentLibraryEntrySummaryDto, ExchangeRequestDocumentRequest} from "../../../models/models.tsx";
@@ -25,6 +18,7 @@ interface ExchangeDocumentsTabProps
     addNewDocument: () => void;
     addLibraryDocument: (entry: DocumentLibraryEntrySummaryDto) => void;
     availableVariables?: AvailableVariablesDto;
+    locked?: boolean;
 }
 
 const ExchangeInitiationDocumentsTab: React.FC<ExchangeDocumentsTabProps> = (
@@ -39,37 +33,49 @@ const ExchangeInitiationDocumentsTab: React.FC<ExchangeDocumentsTabProps> = (
         addNewDocument,
         addLibraryDocument,
         availableVariables,
+        locked,
     }) =>
 {
     const styles = useExchangeInitiationStyles();
     const [pickerOpen, setPickerOpen] = useState(false);
 
-    const handleLibrarySelect = (entry: DocumentLibraryEntrySummaryDto) =>
+    const handleLibrarySelect = (entries: DocumentLibraryEntrySummaryDto[]) =>
     {
-        addLibraryDocument(entry);
+        entries.forEach(entry => addLibraryDocument(entry));
         setPickerOpen(false);
     };
 
+    if (pickerOpen)
+    {
+        return (
+            <DocumentLibraryPicker
+                onSelect={handleLibrarySelect}
+                onBack={() => setPickerOpen(false)}
+            />
+        );
+    }
+
     return (
-        <>
-            <div
-                id="exchange-documents-tab"
-                className={styles.exchangeDocumentsTabContent}
-            >
-                {documents.map((document, index) => (
-                    <ExchangeInitiationDocumentsCard
-                        key={index}
-                        document={document}
-                        index={index}
-                        onDocumentNameChange={onDocumentNameChange}
-                        onDocumentTypeChange={onDocumentTypeChange}
-                        onRestrictDocumentTypeChange={onRestrictDocumentTypeChange}
-                        onDeleteDocument={onDeleteDocument}
-                        onRequiredChange={onRequiredChange}
-                        onUnlink={onUnlink}
-                        availableVariables={availableVariables}
-                    />
-                ))}
+        <div
+            id="exchange-documents-tab"
+            className={styles.exchangeDocumentsTabContent}
+        >
+            {documents.map((document, index) => (
+                <ExchangeInitiationDocumentsCard
+                    key={index}
+                    document={document}
+                    index={index}
+                    onDocumentNameChange={onDocumentNameChange}
+                    onDocumentTypeChange={onDocumentTypeChange}
+                    onRestrictDocumentTypeChange={onRestrictDocumentTypeChange}
+                    onDeleteDocument={onDeleteDocument}
+                    onRequiredChange={onRequiredChange}
+                    onUnlink={onUnlink}
+                    availableVariables={availableVariables}
+                    locked={locked}
+                />
+            ))}
+            {!locked && (
                 <div
                     id="exchange-documents-actions"
                     className={styles.addDocumentButtonContainer}
@@ -79,7 +85,7 @@ const ExchangeInitiationDocumentsTab: React.FC<ExchangeDocumentsTabProps> = (
                         onClick={addNewDocument}
                         shape="circular"
                         icon={<DocumentAddIcon/>}
-                        appearance="outline"
+                        appearance="subtle"
                     >
                         Add Document
                     </Button>
@@ -88,30 +94,13 @@ const ExchangeInitiationDocumentsTab: React.FC<ExchangeDocumentsTabProps> = (
                         onClick={() => setPickerOpen(true)}
                         shape="circular"
                         icon={<PickFromLibraryIcon/>}
-                        appearance="outline"
+                        appearance="subtle"
                     >
                         Pick from Library
                     </Button>
                 </div>
-            </div>
-
-            <Dialog
-                open={pickerOpen}
-                onOpenChange={(_, d) => { if (!d.open) setPickerOpen(false); }}
-            >
-                <DialogSurface style={{maxWidth: '560px', width: '100%'}}>
-                    <DialogBody>
-                        <DialogTitle>Pick from Document Library</DialogTitle>
-                        <DialogContent>
-                            <DocumentLibraryPicker
-                                onSelect={handleLibrarySelect}
-                                onCancel={() => setPickerOpen(false)}
-                            />
-                        </DialogContent>
-                    </DialogBody>
-                </DialogSurface>
-            </Dialog>
-        </>
+            )}
+        </div>
     );
 };
 

@@ -1067,7 +1067,7 @@ export function FeaturesSection({initialIndustrySlug}: FeaturesSectionProps)
 
                 <div className={styles.carouselControls}>
                     <Button
-                        appearance="outline"
+                        appearance="secondary"
                         icon={<ChevronLeft20Regular/>}
                         shape="circular"
                         onClick={goToPreviousIndustrySlide}
@@ -1077,7 +1077,7 @@ export function FeaturesSection({initialIndustrySlug}: FeaturesSectionProps)
                         {activeIndustrySlide + 1}/{industrySlides.length}
                     </Text>
                     <Button
-                        appearance="outline"
+                        appearance="secondary"
                         icon={<ChevronRight20Regular/>}
                         shape="circular"
                         onClick={goToNextIndustrySlide}

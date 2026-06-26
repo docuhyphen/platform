@@ -2,7 +2,7 @@ import React from 'react';
 import {Badge, Button, Card, Checkbox, Dropdown, Field, Input, Option, OptionGroup, Switch} from "@fluentui/react-components";
 import {AvailableVariablesDto, DocumentType, ExchangeRequestDocumentRequest, ImageType} from "../../../models/models.tsx";
 import {useExchangeInitiationStyles} from "../../ExchangeInitiationStyles.tsx";
-import {DeleteIcon} from "../../../components/IconBundles.tsx";
+import {DeleteIcon, LinkDismissIcon} from "../../../components/IconBundles.tsx";
 import VariableTokenInput from "../../../../components/variable-token-input/VariableTokenInput.tsx";
 
 interface DocumentCardProps
@@ -16,6 +16,7 @@ interface DocumentCardProps
     onRequiredChange: (index: number, required: boolean) => void;
     onUnlink?: (index: number) => void;
     availableVariables?: AvailableVariablesDto;
+    locked?: boolean;
 }
 
 const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
@@ -29,6 +30,7 @@ const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
         onRequiredChange,
         onUnlink,
         availableVariables,
+        locked,
     }) =>
 {
     const styles = useExchangeInitiationStyles();
@@ -45,7 +47,7 @@ const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
                                 onChange={v => onDocumentNameChange(index, v)}
                                 availableVariables={availableVariables}
                                 placeholder="Document name, type {{ to insert a variable"
-                                disabled={isLinked}
+                                disabled={isLinked || locked}
                             />
                         ) : (
                             <Input
@@ -55,15 +57,17 @@ const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
                                 required
                                 onChange={(e) => onDocumentNameChange(index, e.target.value)}
                                 placeholder="Document name"
-                                disabled={isLinked}
+                                disabled={isLinked || locked}
                             />
                         )}
                     </Field>
-                    <Button
-                        icon={<DeleteIcon className={styles.iconDeleteFilled}/>}
-                        appearance="subtle"
-                        onClick={() => onDeleteDocument(index)}
-                    />
+                    {!locked && (
+                        <Button
+                            icon={<DeleteIcon className={styles.iconDeleteFilled}/>}
+                            appearance="transparent"
+                            onClick={() => onDeleteDocument(index)}
+                        />
+                    )}
                 </div>
                 {isLinked && (
                     <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px'}}>
@@ -73,8 +77,9 @@ const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
                         {onUnlink && (
                             <Button
                                 size="small"
-                                appearance="subtle"
+                                appearance="outline"
                                 shape="circular"
+                                icon={<LinkDismissIcon/>}
                                 onClick={() => onUnlink(index)}
                             >
                                 Unlink
@@ -88,13 +93,13 @@ const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
                             <Switch
                                 label="Restrict upload type"
                                 checked={document.restrictType ?? false}
-                                disabled={isLinked}
+                                disabled={isLinked || locked}
                                 onChange={(ev) => onRestrictDocumentTypeChange(index, ev)}
                             />
                         </Field>
                         <Dropdown
                             className={styles.exchangeDocumentsDropdown}
-                            disabled={!document.restrictType || isLinked}
+                            disabled={!document.restrictType || isLinked || locked}
                             appearance="underline"
                             value={document.restrictedType ?? ''}
                             size="small"
@@ -120,7 +125,7 @@ const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
                     <Checkbox
                         label="Required"
                         checked={document.required ?? false}
-                        disabled={isLinked}
+                        disabled={isLinked || locked}
                         onChange={(_, d) => onRequiredChange(index, !!d.checked)}
                     />
                 </div>

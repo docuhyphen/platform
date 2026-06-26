@@ -160,7 +160,7 @@ const OrganizationSequencesTab = () =>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                     <Text size={500} weight="semibold">Sequences</Text>
                     {canManage && (
-                        <Button appearance="secondary" shape="circular" icon={<AddRegular/>} onClick={openCreate}>
+                        <Button appearance="subtle" shape="circular" icon={<AddRegular/>} onClick={openCreate}>
                             Create Sequence
                         </Button>
                     )}

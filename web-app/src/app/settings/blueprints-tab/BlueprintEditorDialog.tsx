@@ -1,5 +1,9 @@
 import React, {useEffect, useState} from 'react';
 import {
+    Accordion,
+    AccordionHeader,
+    AccordionItem,
+    AccordionPanel,
     Badge,
     Button,
     Card,
@@ -35,7 +39,13 @@ import {
     UpdateBlueprintRequest,
 } from '../../models/models.tsx';
 import {createBlueprint, updateBlueprint} from '../../../services/blueprintService.ts';
-import {AddIcon, DeleteIcon, DocumentAddIcon, PickFromLibraryIcon} from '../../components/IconBundles.tsx';
+import {
+    AddIcon,
+    DeleteIcon,
+    DocumentAddIcon,
+    LinkDismissIcon,
+    PickFromLibraryIcon
+} from '../../components/IconBundles.tsx';
 import {useExchangeInitiationStyles} from '../../exchange-initiation/ExchangeInitiationStyles.tsx';
 import VariableTokenInput from '../../../components/variable-token-input/VariableTokenInput.tsx';
 import {getAvailableVariables} from '../../../services/variableService.ts';
@@ -185,7 +195,17 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
         <Dialog open={open} onOpenChange={(_, {open: isOpen}) => { if (!isOpen) onClose(); }}>
             <DialogSurface style={{maxWidth: '600px', width: '100%'}}>
                 <DialogBody>
-                    <DialogTitle>{blueprint ? 'Edit Blueprint' : 'Create Blueprint'}</DialogTitle>
+                    <DialogTitle
+                        action={scope !== 'PERSONAL' ? (
+                            <Checkbox
+                                label="Allow edit on Exchange start"
+                                checked={config.allowEditOnExchangeStart ?? false}
+                                onChange={(_, d) => setBoolConfig('allowEditOnExchangeStart', !!d.checked)}
+                            />
+                        ) : undefined}
+                    >
+                        {blueprint ? 'Edit Blueprint' : 'Create Blueprint'}
+                    </DialogTitle>
                     <DialogContent>
                         <TabList
                             selectedValue={activeTab}
@@ -198,81 +218,108 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                         </TabList>
 
                         {activeTab === 'details' && (
-                            <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
-                                <Field label="Name" required>
-                                    {availableVariables ? (
-                                        <VariableTokenInput
-                                            value={name}
-                                            onChange={setName}
-                                            availableVariables={availableVariables}
-                                            placeholder="Blueprint name, type {{ to insert a variable"
-                                        />
-                                    ) : (
-                                        <Input value={name} onChange={(_, d) => setName(d.value)} placeholder="Blueprint name"/>
-                                    )}
-                                </Field>
-                                <Field label="Summary">
-                                    <Textarea value={summary} onChange={(_, d) => setSummary(d.value)} rows={2} placeholder="Short description"/>
-                                </Field>
-                                <Field label="Description">
-                                    {availableVariables ? (
-                                        <VariableTokenInput
-                                            value={description}
-                                            onChange={setDescription}
-                                            availableVariables={availableVariables}
-                                            multiline
-                                            placeholder="Detailed description"
-                                        />
-                                    ) : (
-                                        <Textarea value={description} onChange={(_, d) => setDescription(d.value)} rows={3} placeholder="Detailed description"/>
-                                    )}
-                                </Field>
-                                <Field label="Initial Share Message">
-                                    {availableVariables ? (
-                                        <VariableTokenInput
-                                            value={config.initialShareMessage ?? ''}
-                                            onChange={v => setConfig(prev => ({...prev, initialShareMessage: v}))}
-                                            availableVariables={availableVariables}
-                                            multiline
-                                            placeholder="Message shown to recipient when they open the exchange"
-                                        />
-                                    ) : (
-                                        <Textarea
-                                            value={config.initialShareMessage ?? ''}
-                                            onChange={(_, d) => setConfig(prev => ({...prev, initialShareMessage: d.value}))}
-                                            rows={2}
-                                            placeholder="Message shown to recipient"
-                                        />
-                                    )}
-                                </Field>
-                                <Field label="Tags">
-                                    <div className={styles.tagInput}>
-                                        {tags.map(tag => (
-                                            <Tag key={tag}
-                                                 size="small"
-                                                 dismissible
-                                                 shape={"circular"}
-                                                 onClick={() => setTags(prev => prev.filter(t => t !== tag))}>{tag}</Tag>
-                                        ))}
-                                        <Input
-                                            size="small"
-                                            appearance="underline"
-                                            placeholder="Add tag, press Enter"
-                                            value={tagInput}
-                                            onChange={(_, d) => setTagInput(d.value)}
-                                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
-                                            style={{border: 'none', flexGrow: 1, minWidth: '8rem'}}
-                                        />
-                                        <Button
-                                            shape="circular"
-                                            appearance="subtle"
-                                            size="medium"
-                                            icon={<AddIcon/>}
-                                            onClick={addTag}
-                                        />
-                                    </div>
-                                </Field>
-                            </div>
+                            <Accordion multiple defaultOpenItems={['blueprint']}>
+                                <AccordionItem value="blueprint">
+                                    <AccordionHeader>Blueprint Details</AccordionHeader>
+                                    <AccordionPanel>
+                                        <div style={{display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '8px'}}>
+                                            <Field label="Blueprint Name" required>
+                                                <Input value={name} onChange={(_, d) => setName(d.value)} placeholder="Name shown in the blueprint list"/>
+                                            </Field>
+                                            <Field label="Blueprint Summary">
+                                                <Textarea value={summary} onChange={(_, d) => setSummary(d.value)} rows={2} placeholder="Short description shown in the blueprint list"/>
+                                            </Field>
+                                            <Field label="Tags">
+                                                <div className={styles.tagInput}>
+                                                    {tags.map(tag => (
+                                                        <Tag key={tag}
+                                                             size="small"
+                                                             dismissible
+                                                             shape={"circular"}
+                                                             onClick={() => setTags(prev => prev.filter(t => t !== tag))}>{tag}</Tag>
+                                                    ))}
+                                                    <Input
+                                                        size="small"
+                                                        appearance="underline"
+                                                        placeholder="Add tag, press Enter"
+                                                        value={tagInput}
+                                                        onChange={(_, d) => setTagInput(d.value)}
+                                                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+                                                        style={{border: 'none', flexGrow: 1, minWidth: '8rem'}}
+                                                    />
+                                                    <Button
+                                                        shape="circular"
+                                                        appearance="subtle"
+                                                        size="medium"
+                                                        icon={<AddIcon/>}
+                                                        onClick={addTag}
+                                                    />
+                                                </div>
+                                            </Field>
+                                        </div>
+                                    </AccordionPanel>
+                                </AccordionItem>
+
+                                <AccordionItem value="exchange">
+                                    <AccordionHeader>Exchange Details</AccordionHeader>
+                                    <AccordionPanel>
+                                        <div style={{display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '8px'}}>
+                                            <Field label="Exchange Name" hint="Pre-fills the exchange name on initiation">
+                                                {availableVariables ? (
+                                                    <VariableTokenInput
+                                                        value={config.name ?? ''}
+                                                        onChange={v => setConfig(prev => ({...prev, name: v}))}
+                                                        availableVariables={availableVariables}
+                                                        placeholder="Exchange name, type {{ to insert a variable"
+                                                    />
+                                                ) : (
+                                                    <Input
+                                                        value={config.name ?? ''}
+                                                        onChange={(_, d) => setConfig(prev => ({...prev, name: d.value}))}
+                                                        placeholder="Exchange name"
+                                                    />
+                                                )}
+                                            </Field>
+                                            <Field label="Exchange Description" hint="Pre-fills the exchange description on initiation">
+                                                {availableVariables ? (
+                                                    <VariableTokenInput
+                                                        value={config.description ?? ''}
+                                                        onChange={v => setConfig(prev => ({...prev, description: v}))}
+                                                        availableVariables={availableVariables}
+                                                        multiline
+                                                        placeholder="Exchange description, type {{ to insert a variable"
+                                                    />
+                                                ) : (
+                                                    <Textarea
+                                                        value={config.description ?? ''}
+                                                        onChange={(_, d) => setConfig(prev => ({...prev, description: d.value}))}
+                                                        rows={3}
+                                                        placeholder="Exchange description"
+                                                    />
+                                                )}
+                                            </Field>
+                                            <Field label="Initial Share Message" hint="Message shown to recipients when they open the exchange">
+                                                {availableVariables ? (
+                                                    <VariableTokenInput
+                                                        value={config.initialShareMessage ?? ''}
+                                                        onChange={v => setConfig(prev => ({...prev, initialShareMessage: v}))}
+                                                        availableVariables={availableVariables}
+                                                        multiline
+                                                        placeholder="Message shown to recipient when they open the exchange"
+                                                    />
+                                                ) : (
+                                                    <Textarea
+                                                        value={config.initialShareMessage ?? ''}
+                                                        onChange={(_, d) => setConfig(prev => ({...prev, initialShareMessage: d.value}))}
+                                                        rows={2}
+                                                        placeholder="Message shown to recipient"
+                                                    />
+                                                )}
+                                            </Field>
+                                        </div>
+                                    </AccordionPanel>
+                                </AccordionItem>
+                            </Accordion>
                         )}
 
                         {activeTab === 'documents' && !pickerOpen && (
@@ -308,7 +355,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                                 <Button
                                                     id={`bp-doc-delete-${i}`}
                                                     icon={<DeleteIcon className={styles.iconDeleteFilled}/>}
-                                                    appearance="subtle"
+                                                    appearance="transparent"
                                                     shape="circular"
                                                     onClick={() => removeDocument(i)}
                                                 />
@@ -327,6 +374,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                                         id={`bp-doc-unlink-${i}`}
                                                         size="small"
                                                         appearance="subtle"
+                                                        icon={<LinkDismissIcon/>}
                                                         shape="circular"
                                                         onClick={() => updateDoc(i, {libraryDocumentId: undefined})}
                                                     >
@@ -410,21 +458,21 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
 
                         {activeTab === 'documents' && pickerOpen && (
                             <DocumentLibraryPicker
-                                onSelect={(entry: DocumentLibraryEntrySummaryDto) =>
+                                onSelect={(entries: DocumentLibraryEntrySummaryDto[]) =>
                                 {
                                     setDocuments(prev => [
                                         ...prev,
-                                        {
+                                        ...entries.map(entry => ({
                                             title: entry.title,
                                             libraryDocumentId: entry.id,
                                             restrictType: entry.restrictType ?? false,
                                             restrictedType: entry.restrictedType,
                                             required: entry.required ?? false,
-                                        },
+                                        })),
                                     ]);
                                     setPickerOpen(false);
                                 }}
-                                onCancel={() => setPickerOpen(false)}
+                                onBack={() => setPickerOpen(false)}
                             />
                         )}
 

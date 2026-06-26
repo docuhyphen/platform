@@ -60,6 +60,8 @@
     DeleteRegular,
     DocumentAddFilled,
     DocumentAddRegular,
+    LinkDismissRegular,
+    LinkDismissFilled,
     DocumentArrowLeftFilled,
     DocumentArrowLeftRegular,
     DocumentArrowRightFilled,
@@ -130,6 +132,7 @@
 
 export const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
 export const DocumentAddIcon = bundleIcon(DocumentAddFilled, DocumentAddRegular)
+export const LinkDismissIcon = bundleIcon(LinkDismissFilled, LinkDismissRegular)
 export const GroupAddIcon = bundleIcon(PeopleTeamAddFilled, PeopleTeamAddRegular)
 export const ParedOrganizationsTabIcon = bundleIcon(LinkMultipleFilled, LinkMultipleRegular)
 export const OrganizationParingRequestsTabIcon = bundleIcon(LinkAddFilled, LinkAddRegular)

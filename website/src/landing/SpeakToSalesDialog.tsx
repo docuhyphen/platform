@@ -220,7 +220,7 @@ export function SpeakToSalesDialog({trigger}: SpeakToSalesDialogProps)
                                 <Text size={500} weight="semibold">Something went wrong</Text>
                                 <Text>{errorMessage}</Text>
                                 <Button
-                                    appearance="outline"
+                                    appearance="secondary"
                                     shape="circular"
                                     onClick={() => setSubmitStatus("idle")}
                                 >
@@ -347,7 +347,7 @@ export function SpeakToSalesDialog({trigger}: SpeakToSalesDialogProps)
                         ) : submitStatus !== "error" && (
                             <>
                                 <DialogTrigger action="close">
-                                    <Button appearance="outline" shape="circular" disabled={isSubmitting}>
+                                    <Button appearance="secondary" shape="circular" disabled={isSubmitting}>
                                         Cancel
                                     </Button>
                                 </DialogTrigger>

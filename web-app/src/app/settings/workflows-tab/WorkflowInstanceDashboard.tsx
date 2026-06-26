@@ -4,6 +4,7 @@ import {WorkflowInstanceSummaryDto} from "../../models/models.tsx";
 import {listWorkflowInstances} from "../../../services/workflowService.ts";
 import {useWorkflowInstanceDashboardStyles} from "./WorkflowInstanceDashboardStyles.tsx";
 import {INSTANCE_STATUS_LABELS} from "./workflowUtils.ts";
+import {ArrowSyncRegular} from "@fluentui/react-icons";
 
 type InstanceStatus = WorkflowInstanceSummaryDto["status"] | "";
 
@@ -88,7 +89,8 @@ const WorkflowInstanceDashboard = ({onSelectInstance}: Props) =>
                     </Select>
                     <Button size="small"
                             shape={"circular"}
-                            appearance="outline"
+                            icon={<ArrowSyncRegular/>}
+                            appearance="secondary"
                             onClick={load}>Refresh</Button>
                 </div>
             )}

@@ -54,7 +54,7 @@ export function NotFoundPage()
                     <LinkButton to="/" appearance="primary" shape="circular">
                         Back home
                     </LinkButton>
-                    <LinkButton to="/resources" appearance="outline" shape="circular">
+                    <LinkButton to="/resources" appearance="secondary" shape="circular">
                         Browse resources
                     </LinkButton>
                 </div>

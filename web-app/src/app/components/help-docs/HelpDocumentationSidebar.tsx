@@ -5,6 +5,7 @@ import {
     AccordionItem,
     AccordionPanel,
     Button,
+    Portal,
     Text,
     makeStyles,
     tokens,
@@ -26,9 +27,16 @@ const MIN_PANEL_WIDTH = 320;
 const WINDOW_PADDING = 80;
 
 const useStyles = makeStyles({
-    panel: {
-        position: "relative",
+    spacer: {
+        flexShrink: 0,
         height: "100%",
+    },
+    panel: {
+        position: "fixed",
+        top: "0",
+        right: "0",
+        height: "100vh",
+        zIndex: 1000010,
         backgroundColor: tokens.colorNeutralBackground1,
         borderLeft: `1px solid ${tokens.colorNeutralStroke2}`,
         display: "flex",
@@ -251,6 +259,12 @@ const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOp
     if (!isOpen) return null;
 
     return (
+        <>
+            {/* In-place flex spacer — reserves the same width in the layout so content is pushed left */}
+            <div className={styles.spacer} style={{width: `${panelWidth}px`}} aria-hidden/>
+
+            {/* Portal renders the actual panel above any dialog overlay */}
+            <Portal>
         <aside className={styles.panel}
                role="dialog"
                aria-label="Help documentation"
@@ -336,6 +350,8 @@ const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOp
                 </div>
             )}
         </aside>
+            </Portal>
+        </>
     );
 };
 

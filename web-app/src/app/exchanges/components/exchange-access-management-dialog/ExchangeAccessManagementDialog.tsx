@@ -29,7 +29,6 @@ import {
     Text,
     Tooltip,
 } from "@fluentui/react-components";
-import {ArrowLeftRegular} from "@fluentui/react-icons";
 import {
     fetchSignedInUserAppUserExchange,
     requestExchangeRecipientOtp,
@@ -40,7 +39,7 @@ import {useAccessManagementDialogStyles} from "./ExchangeAccessManagementDialogS
 import {InfoIcon, RegenerateOTPIcon} from "../../../components/IconBundles.tsx";
 import {getOtpFriendlyMessage, normalizeApiError} from "../../../../utils/apiErrorUtils.ts";
 import ExchangeAccessPanel from "./ExchangeAccessPanel.tsx";
-import ManageAccessHelpGuide from "./ManageAccessHelpGuide.tsx";
+import {useHelpSidebar} from "../../../../context/HelpSidebarContext.tsx";
 import DownloadFormatRestriction from "../../../components/share-constraints/DownloadFormatRestriction.tsx";
 
 interface ExchangeAccessManagementDialogProps
@@ -90,7 +89,7 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
     const [allowedDownloadFormats, setAllowedDownloadFormats] = useState<string[] | undefined>(undefined);
     const [noAuthAccessValidityDays, setNoAuthAccessValidityDays] = useState<string>('7');
     const [selectedTab, setSelectedTab] = useState<TabValue>(tabIds.people);
-    const [showHelpGuide, setShowHelpGuide] = useState(false);
+    const {openHelpArticle} = useHelpSidebar();
     const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
 
     const styles = useAccessManagementDialogStyles();
@@ -111,7 +110,6 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
             setAccessCodeStatus('');
             setResendCooldownRemaining(0);
             setSelectedTab(tabIds.people);
-            setShowHelpGuide(false);
             setDialogErrorMessage(null);
         }
     }, [exchange]);
@@ -275,25 +273,9 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
         {<Dialog modalType="alert" open={isOpen}>
             <DialogSurface>
                 <DialogBody>
-                    <DialogTitle>
-                        {showHelpGuide ? (
-                            <span style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                                <Button
-                                    icon={<ArrowLeftRegular/>}
-                                    appearance="subtle"
-                                    size="small"
-                                    onClick={() => setShowHelpGuide(false)}
-                                    aria-label="Back to manage access"
-                                />
-                                How access works
-                            </span>
-                        ) : 'Manage access'}
-                    </DialogTitle>
+                    <DialogTitle>Manage access</DialogTitle>
                     <DialogContent>
-                        {showHelpGuide ? (
-                            <ManageAccessHelpGuide/>
-                        ) : (
-                            <>
+                        <>
                         {dialogErrorMessage && (
                             <MessageBar intent="error">
                                 <MessageBarBody>
@@ -488,31 +470,21 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
                                 </section>
                             )}
                         </div>
-                            </>
-                        )}
+                        </>
                     </DialogContent>
                     <DialogActions position="start">
-                        {!showHelpGuide && (
-                            <Tooltip content="Learn how access works" relationship="label">
-                                <Button
-                                    icon={<InfoIcon/>}
-                                    appearance="subtle"
-                                    shape="circular"
-                                    size="medium"
-                                    onClick={() => setShowHelpGuide(true)}
-                                    aria-label="How access works"
-                                />
-                            </Tooltip>
-                        )}
+                        <Tooltip content="Learn how access works" relationship="label">
+                            <Button
+                                icon={<InfoIcon/>}
+                                appearance="subtle"
+                                shape="circular"
+                                size="medium"
+                                onClick={() => openHelpArticle('manage-access')}
+                                aria-label="How access works"
+                            />
+                        </Tooltip>
                     </DialogActions>
                     <DialogActions>
-                        {showHelpGuide ? (
-                            <Button appearance="secondary"
-                                    shape="circular"
-                                    onClick={() => setShowHelpGuide(false)}>
-                                Back
-                            </Button>
-                        ) : (
                         <>
                             <Button appearance="primary"
                                     className={globalStyles.buttonWithLoading}
@@ -528,7 +500,6 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
                                 Cancel
                             </Button>
                         </>
-                        )}
                     </DialogActions>
                 </DialogBody>
             </DialogSurface>

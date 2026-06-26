@@ -156,7 +156,7 @@ export function AboutPage()
 
             <div className={styles.cta}>
                 <LinkButton to="/contact" appearance="primary" shape="circular">Get in touch</LinkButton>
-                <LinkButton to="/security" appearance="outline" shape="circular">Read about our security</LinkButton>
+                <LinkButton to="/security" appearance="secondary" shape="circular">Read about our security</LinkButton>
             </div>
         </PageShell>
     );

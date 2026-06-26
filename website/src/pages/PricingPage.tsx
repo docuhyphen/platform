@@ -382,7 +382,7 @@ export function PricingPage()
                             </ul>
                             {tier.ctaHref ? (
                                 <Button
-                                    appearance={tier.featured ? "primary" : "outline"}
+                                    appearance={tier.featured ? "primary" : "secondary"}
                                     as="a"
                                     href={tier.ctaHref}
                                     target="_blank"
@@ -395,7 +395,7 @@ export function PricingPage()
                             ) : (
                                 <SpeakToSalesDialog
                                     trigger={
-                                        <Button appearance="outline" shape="circular" className={styles.cta}>
+                                        <Button appearance="secondary" shape="circular" className={styles.cta}>
                                             {tier.ctaLabel}
                                         </Button>
                                     }

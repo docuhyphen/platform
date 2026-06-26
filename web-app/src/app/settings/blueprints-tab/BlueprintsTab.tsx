@@ -14,7 +14,7 @@ import {
 } from '@fluentui/react-components';
 import {MoreVerticalRegular} from '@fluentui/react-icons';
 import {
-    ActivateIcon,
+    ActivateIcon, AddIcon,
     BlueprintAddIcon,
     CopyIcon,
     DeactivateIcon,
@@ -153,8 +153,8 @@ const BlueprintsTab = () =>
                     {canCreate && (
                         <Button
                             className={globalStyles.buttonWithLoading}
-                            icon={<BlueprintAddIcon/>}
-                            appearance="secondary"
+                            icon={<AddIcon/>}
+                            appearance="subtle"
                             shape="circular"
                             onClick={openCreate}
                         >

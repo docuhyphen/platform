@@ -118,7 +118,7 @@ const VariablesTab = () =>
                 {canAdd && (
                     <Button
                         icon={<AddRegular/>}
-                        appearance="secondary"
+                        appearance="subtle"
                         shape="circular"
                         onClick={handleAdd}
                     >

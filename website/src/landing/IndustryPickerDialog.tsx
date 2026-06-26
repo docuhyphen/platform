@@ -153,7 +153,7 @@ export function IndustryPickerDialog({onSelect}: IndustryPickerDialogProps)
                             {INDUSTRY_OPTIONS.map((option) => (
                                 <Button
                                     key={option.slug}
-                                    appearance={selected === option.slug ? "primary" : "outline"}
+                                    appearance={selected === option.slug ? "primary" : "secondary"}
                                     className={styles.option}
                                     onClick={() => setSelected(option.slug)}
                                 >

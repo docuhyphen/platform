@@ -257,7 +257,7 @@ const OrganizationDetailsTab = () =>
                         ) : (
                             canManageOrganization ? (
                                 <Button
-                                    appearance="outline"
+                                    appearance="secondary"
                                     shape="circular"
                                     size="small"
                                     onClick={onAddOrEditPhone}

@@ -213,7 +213,7 @@ export function SecurityPage()
                 <LinkButton to="/help/security-faq" appearance="primary" shape="circular">
                     Read the Security FAQ
                 </LinkButton>
-                <LinkButton to="/contact" appearance="outline" shape="circular">
+                <LinkButton to="/contact" appearance="secondary" shape="circular">
                     Request SOC 2 report
                 </LinkButton>
             </section>

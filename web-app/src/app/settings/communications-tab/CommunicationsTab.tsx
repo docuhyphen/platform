@@ -143,7 +143,7 @@ const CommunicationsTab = () =>
 
                     {canCreate && (
                         <Button
-                            appearance="secondary"
+                            appearance="subtle"
                             shape="circular"
                             icon={<AddIcon/>}
                             onClick={openCreate}
