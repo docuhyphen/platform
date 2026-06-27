@@ -959,7 +959,7 @@ const ExchangeInitiation: React.FC = () =>
                             </>
                         )}
                     </DialogTitle>
-                    <DialogContent>
+                    <DialogContent className={styles.dialogContent}>
                         {saveBlueprintDialogOpen ? (
                             <SaveBlueprintPanel
                                 onBack={() => setSaveBlueprintDialogOpen(false)}

@@ -76,6 +76,9 @@ export const useExchangeInitiationStyles = makeStyles({
         gap: "16px",
         flexDirection: "column",
     },
+    dialogContent: {
+        paddingTop: "0"
+    },
     dialogTitle1: {
         display: "flex",
         justifyContent: "space-between",
