@@ -68,7 +68,7 @@ const DocumentLibraryEntryCard = ({
                 {entry.description && (
                     <Text
                         size={200}
-                        style={{color: 'var(--colorNeutralForeground2)'}}
+                        className={styles.descriptionText}
                     >
                         {entry.description}
                     </Text>

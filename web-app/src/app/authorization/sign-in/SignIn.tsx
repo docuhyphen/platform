@@ -336,6 +336,8 @@ const SignIn: React.FC = () =>
                 <MessageBarActions
                     containerAction={
                         <Button
+                            id={"sign-in-error-dismiss-btn"}
+                            shape={"circular"}
                             onClick={() => setResponseErrorMessage(undefined)}
                             appearance="transparent"
                             icon={<DismissRegular/>}
@@ -386,9 +388,12 @@ const SignIn: React.FC = () =>
 
                             <Subtitle1 align={"center"}>
                                 {step !== 'EMAIL_ENTRY' &&
-                                    <Button icon={<ArrowLeftRegular/>}
-                                            appearance={"transparent"}
-                                            onClick={() => onResetSignIn()}/>
+                                    <Button
+                                        id={"sign-in-back-btn"}
+                                        shape={"circular"}
+                                        icon={<ArrowLeftRegular/>}
+                                        appearance={"transparent"}
+                                        onClick={() => onResetSignIn()}/>
                                 }
                                 Sign in
                             </Subtitle1>
@@ -400,17 +405,21 @@ const SignIn: React.FC = () =>
                                     <Field label={"Email"}
                                            validationState={"none"}
                                            validationMessage={""}>
-                                        <Input value={email}
+                                        <Input
+                                               id={"sign-in-email-input"}
+                                               value={email}
                                                type="email"
                                                maxLength={254}
                                                onChange={onEmailChange}
                                                onKeyDown={(e) => handleKeyDown(e, onLookupEmail)}/>
                                     </Field>
 
-                                    <Button onClick={onLookupEmail}
-                                            appearance="primary"
-                                            className={globalStyles.buttonWithLoading}
-                                            shape={"circular"}>
+                                    <Button
+                                        id={"sign-in-continue-btn"}
+                                        onClick={onLookupEmail}
+                                        appearance="primary"
+                                        className={globalStyles.buttonWithLoading}
+                                        shape={"circular"}>
                                         {lookingUp && <><Spinner size={"tiny"}/> Continue...</>}
                                         {!lookingUp && "Continue"}
                                     </Button>
@@ -420,15 +429,16 @@ const SignIn: React.FC = () =>
                             {step === 'ORG_PICKER' && (
                                 <>
                                     <Text size={300}>Multiple organizations are associated with <strong>{email}</strong>. Select yours to continue.</Text>
-                                    <div style={{display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px'}}>
+                                    <div className={signInStyles.orgPickerList}>
                                         {orgOptions.map(org => (
                                             <Button
+                                                id={`sign-in-org-picker-${org.id}`}
                                                 key={org.id}
                                                 appearance="outline"
-                                                shape="circular"
+                                                shape={"circular"}
                                                 disabled={lookingUp}
                                                 onClick={() => onSelectOrg(org.id)}
-                                                style={{justifyContent: 'flex-start'}}
+                                                className={signInStyles.orgPickerButton}
                                             >
                                                 {lookingUp ? <Spinner size="tiny"/> : null}
                                                 {org.name}
@@ -441,23 +451,31 @@ const SignIn: React.FC = () =>
                             {step === 'PASSWORD_ENTRY' && (
                                 <>
                                     <Field label={"Email"}>
-                                        <Input value={email} type="email" disabled/>
+                                        <Input
+                                            id={"sign-in-email-readonly-input"}
+                                            value={email}
+                                            type="email"
+                                            disabled/>
                                     </Field>
 
                                     <Field label={"Password"}
                                            validationState={"none"}
                                            validationMessage={""}>
-                                        <Input type="password"
+                                        <Input
+                                               id={"sign-in-password-input"}
+                                               type="password"
                                                value={password}
                                                maxLength={30}
                                                onChange={onPasswordChange}
                                                onKeyDown={(e) => handleKeyDown(e, onInitiateSignIn)}/>
                                     </Field>
 
-                                    <Button onClick={onInitiateSignIn}
-                                            appearance="primary"
-                                            className={globalStyles.buttonWithLoading}
-                                            shape={"circular"}>
+                                    <Button
+                                        id={"sign-in-submit-btn"}
+                                        onClick={onInitiateSignIn}
+                                        appearance="primary"
+                                        className={globalStyles.buttonWithLoading}
+                                        shape={"circular"}>
                                         {signInInitiating && <><Spinner size={"tiny"}/> Signing in</>}
                                         {!signInInitiating && "Sign In"}
                                     </Button>
@@ -480,7 +498,9 @@ const SignIn: React.FC = () =>
                                            validationState={resetOtpResponseMessage ? "success" : "none"}
                                            validationMessage={resetOtpResponseMessage}
                                            hint={resetOtpResponseMessage ? undefined : "A verification code has been sent to your email"}>
-                                        <Input value={otp}
+                                        <Input
+                                               id={"sign-in-otp-input"}
+                                               value={otp}
                                                maxLength={6}
                                                autoComplete="false"
                                                disabled={resendingOtp || signInCompleting || sessionExpired}
@@ -488,12 +508,14 @@ const SignIn: React.FC = () =>
                                                onKeyDown={(e) => handleKeyDown(e, onCompleteSignIn)}/>
                                     </Field>
 
-                                    <Button appearance="transparent"
-                                            size={"small"}
-                                            disabled={resendingOtp || signInCompleting || sessionExpired || resendCooldownRemaining > 0}
-                                            shape={"circular"}
-                                            onClick={onResendOtp}
-                                            className={globalStyles.buttonWithLoading}>
+                                    <Button
+                                        id={"sign-in-resend-otp-btn"}
+                                        appearance="transparent"
+                                        size={"small"}
+                                        disabled={resendingOtp || signInCompleting || sessionExpired || resendCooldownRemaining > 0}
+                                        shape={"circular"}
+                                        onClick={onResendOtp}
+                                        className={globalStyles.buttonWithLoading}>
                                         <>
                                             {resendingOtp && <Spinner size={"tiny"}/>}
                                             {resendCooldownRemaining > 0
@@ -503,20 +525,24 @@ const SignIn: React.FC = () =>
                                     </Button>
 
                                     {!sessionExpired && (
-                                        <Button onClick={onCompleteSignIn}
-                                                disabled={resendingOtp}
-                                                appearance="primary"
-                                                className={globalStyles.buttonWithLoading}
-                                                shape={"circular"}>
+                                        <Button
+                                            id={"sign-in-verify-code-btn"}
+                                            onClick={onCompleteSignIn}
+                                            disabled={resendingOtp}
+                                            appearance="primary"
+                                            className={globalStyles.buttonWithLoading}
+                                            shape={"circular"}>
                                             {signInCompleting && <><Spinner size={"tiny"}/> Verifying Code</>}
                                             {!signInCompleting && "Verify Code"}
                                         </Button>
                                     )}
 
                                     {sessionExpired && (
-                                        <Button onClick={onResetSignIn}
-                                                appearance="primary"
-                                                shape={"circular"}>
+                                        <Button
+                                            id={"sign-in-start-over-btn"}
+                                            onClick={onResetSignIn}
+                                            appearance="primary"
+                                            shape={"circular"}>
                                             Start over
                                         </Button>
                                     )}

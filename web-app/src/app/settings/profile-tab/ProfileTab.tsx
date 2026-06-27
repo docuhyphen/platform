@@ -76,8 +76,10 @@ const ProfileTab = () =>
                      appearance={"brand"}
                      className={styles.mainDivider}>
                 Basic Details
-                <Button icon={<ProfileEditBasicDetailsIcon/>}
+                <Button id={"button-edit-basic-details"}
+                        icon={<ProfileEditBasicDetailsIcon/>}
                         onClick={() => setIsBasicDetailsDialogOpen(true)}
+                        shape={"circular"}
                         appearance={"subtle"}/>
             </Divider>
             <div className={styles.dataContainer}>
@@ -94,8 +96,10 @@ const ProfileTab = () =>
 
             <div className={styles.dataContainer}>
                 <Text size={500} className={styles.dataEditable}>
-                    <Button appearance={"subtle"}
+                    <Button id={"button-edit-email"}
+                            appearance={"subtle"}
                             size={"small"}
+                            shape={"circular"}
                             icon={<ProfileEditBasicDetailsIcon/>}
                             onClick={() => setIsEmailUpdateDialogOpen(true)}/>
                     {appUser?.email}
@@ -105,14 +109,17 @@ const ProfileTab = () =>
                 <Text size={500} className={styles.dataEditable}>
                     {appUser?.person?.contactDetails?.phoneNumber ? (
                         <>
-                            <Button appearance={"subtle"}
+                            <Button id={"button-edit-phone"}
+                                    appearance={"subtle"}
                                     size={"small"}
+                                    shape={"circular"}
                                     icon={<ProfileEditBasicDetailsIcon/>}
                                     onClick={onAddOrEditPhone}/>
                             {appUser.person.contactDetails.phoneNumber}
                         </>
                     ) : (
-                        <Button appearance={"secondary"}
+                        <Button id={"button-add-phone-number"}
+                                appearance={"secondary"}
                                 shape={"circular"}
                                 icon={<PhoneDismissRegular></PhoneDismissRegular>}
                                 onClick={onAddOrEditPhone}>
@@ -127,7 +134,8 @@ const ProfileTab = () =>
                 Security
             </Divider>
             <div>
-                <Button appearance={"secondary"}
+                <Button id={"button-change-password"}
+                        appearance={"secondary"}
                         shape={"circular"}
                         icon={<PasswordRegular/>}
                         onClick={() => setIsPasswordResetDialogOpen(true)}>

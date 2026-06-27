@@ -214,6 +214,8 @@ const SignUpEmailConfirm: React.FC = () =>
                 <MessageBarActions
                     containerAction={
                         <Button
+                            id={"email-confirm-error-dismiss-btn"}
+                            shape={"circular"}
                             onClick={() => setErrorMessage(undefined)}
                             appearance="transparent"
                             icon={<DismissRegular/>}
@@ -227,7 +229,7 @@ const SignUpEmailConfirm: React.FC = () =>
     const renderValidating = () => (
         <div className={authorizationStyles.authorizationFormSection}>
             <Subtitle1 align={"center"}>Checking your verification link</Subtitle1>
-            <div style={{display: "flex", justifyContent: "center", padding: "12px 0"}}>
+            <div className={signUpStyles.validatingSpinnerContainer}>
                 <Spinner size={"medium"} label={"Validating..."}/>
             </div>
         </div>
@@ -236,9 +238,12 @@ const SignUpEmailConfirm: React.FC = () =>
     const renderInvalidLink = () => (
         <div className={authorizationStyles.authorizationFormSection}>
             <Subtitle1 align={"center"}>
-                <Button icon={<ArrowLeftRegular/>}
-                        appearance={"transparent"}
-                        onClick={() => navigate("/sign-up")}/>
+                <Button
+                    id={"email-confirm-invalid-back-btn"}
+                    shape={"circular"}
+                    icon={<ArrowLeftRegular/>}
+                    appearance={"transparent"}
+                    onClick={() => navigate("/sign-up")}/>
                 Verification link issue
             </Subtitle1>
             <MessageBar intent={"warning"}>
@@ -249,9 +254,11 @@ const SignUpEmailConfirm: React.FC = () =>
                     </Text>
                 </MessageBarBody>
             </MessageBar>
-            <Button onClick={() => navigate("/sign-up")}
-                    appearance={"primary"}
-                    shape={"circular"}>
+            <Button
+                id={"email-confirm-back-to-signup-btn"}
+                onClick={() => navigate("/sign-up")}
+                appearance={"primary"}
+                shape={"circular"}>
                 Back to sign up
             </Button>
         </div>
@@ -260,9 +267,12 @@ const SignUpEmailConfirm: React.FC = () =>
     const renderConfirmForm = () => (
         <div className={authorizationStyles.authorizationFormSection}>
             <Subtitle1 align={"center"}>
-                <Button icon={<ArrowLeftRegular/>}
-                        appearance={"transparent"}
-                        onClick={() => navigate("/sign-up")}/>
+                <Button
+                    id={"email-confirm-form-back-btn"}
+                    shape={"circular"}
+                    icon={<ArrowLeftRegular/>}
+                    appearance={"transparent"}
+                    onClick={() => navigate("/sign-up")}/>
                 Finish creating your account
             </Subtitle1>
 
@@ -277,7 +287,9 @@ const SignUpEmailConfirm: React.FC = () =>
                     label={"Password"}
                     validationState={"none"}
                     validationMessage={""}>
-                    <Input type="password"
+                    <Input
+                           id={"email-confirm-password-input"}
+                           type="password"
                            name="password"
                            maxLength={30}
                            value={password}
@@ -302,7 +314,9 @@ const SignUpEmailConfirm: React.FC = () =>
                     label={"Password Confirmation"}
                     validationState={"none"}
                     validationMessage={""}>
-                    <Input type={"password"}
+                    <Input
+                           id={"email-confirm-confirm-password-input"}
+                           type={"password"}
                            name="confirmationPassword"
                            maxLength={30}
                            value={confirmationPassword}
@@ -311,11 +325,13 @@ const SignUpEmailConfirm: React.FC = () =>
                            onKeyDown={handleKeyDown}/>
                 </Field>
 
-                <Button onClick={onCompleteSignUp}
-                        appearance={"primary"}
-                        shape={"circular"}
-                        disabled={completingSignUp || regeneratingOtp}
-                        className={globalStyles.buttonWithLoading}>
+                <Button
+                    id={"email-confirm-complete-btn"}
+                    onClick={onCompleteSignUp}
+                    appearance={"primary"}
+                    shape={"circular"}
+                    disabled={completingSignUp || regeneratingOtp}
+                    className={globalStyles.buttonWithLoading}>
                     {completingSignUp && <Spinner size={"tiny"}/>}
                     {completingSignUp ? "Completing sign up" : "Complete sign up"}
                 </Button>
@@ -326,11 +342,14 @@ const SignUpEmailConfirm: React.FC = () =>
                     ? "error"
                     : (otpRegenerationSuccessMsg ? "success" : "none")}
                 validationMessage={otpRegenerationFailedMsg || otpRegenerationSuccessMsg}>
-                <Button onClick={onResendCode}
-                        size={"small"}
-                        disabled={completingSignUp || regeneratingOtp}
-                        appearance={"transparent"}
-                        className={globalStyles.buttonWithLoading}>
+                <Button
+                    id={"email-confirm-resend-btn"}
+                    onClick={onResendCode}
+                    size={"small"}
+                    disabled={completingSignUp || regeneratingOtp}
+                    appearance={"transparent"}
+                    shape={"circular"}
+                    className={globalStyles.buttonWithLoading}>
                     {regeneratingOtp && <Spinner size={"tiny"}/>}
                     Send me a new verification link
                 </Button>
@@ -365,9 +384,11 @@ const SignUpEmailConfirm: React.FC = () =>
                 your account security. We also recommend keeping your password
                 secure with a trusted password manager.
             </Text>
-            <Button onClick={() => navigate("/sign-in")}
-                    appearance={"primary"}
-                    shape={"circular"}>
+            <Button
+                id={"email-confirm-sign-in-btn"}
+                onClick={() => navigate("/sign-in")}
+                appearance={"primary"}
+                shape={"circular"}>
                 Sign In
             </Button>
         </div>

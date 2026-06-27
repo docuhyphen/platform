@@ -242,8 +242,9 @@ const ExchangeDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
                                 onChange={(e) => onPickFile(e.target.files ? e.target.files[0] : null)}
                             />
                             <Button
+                                id={"upload-document-choose-file-btn"}
                                 appearance="secondary"
-                                shape="rounded"
+                                shape={"circular"}
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={uploading}>
                                 Choose file

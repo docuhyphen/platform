@@ -20,9 +20,9 @@ import {
     TableHeaderCell,
     TableRow,
     Text,
-    tokens,
 } from '@fluentui/react-components';
 import {PersonAddRegular} from '@fluentui/react-icons';
+import {useAddAdminDialogStyles} from './AddAdminDialogStyles';
 import {grantAppAdmin, searchAppAdminCandidates} from '../../../../services/appRoleApi';
 import {AppUserSearchResult} from '../../../../services/types/dtos';
 
@@ -36,6 +36,7 @@ interface AddAdminDialogProps
 
 const AddAdminDialog: React.FC<AddAdminDialogProps> = ({isOpen, onDismiss, existingAdminUserIds, onComplete}) =>
 {
+    const styles = useAddAdminDialogStyles();
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<AppUserSearchResult[]>([]);
     const [searching, setSearching] = useState(false);
@@ -147,19 +148,20 @@ const AddAdminDialog: React.FC<AddAdminDialogProps> = ({isOpen, onDismiss, exist
 
     return (
         <Dialog modalType="alert" open={isOpen}>
-            <DialogSurface style={{minWidth: '480px', maxWidth: '600px'}}>
+            <DialogSurface className={styles.surface}>
                 <DialogBody>
                     <DialogTitle>Add App Admins</DialogTitle>
-                    <DialogContent style={{display: 'flex', flexDirection: 'column', gap: '16px', marginTop: "1rem", marginBottom: "1rem"}}>
+                    <DialogContent className={styles.content}>
 
                         {error && (
-                            <div style={{color: tokens.colorStatusDangerForeground1}}>
+                            <div className={styles.errorText}>
                                 {error}
                             </div>
                         )}
 
                         <Field label="Search users by name or email">
                             <Input
+                                id={"input-admin-search"}
                                 placeholder="Type at least 2 characters..."
                                 value={searchQuery}
                                 onChange={(_e, d) => setSearchQuery(d.value)}
@@ -168,7 +170,7 @@ const AddAdminDialog: React.FC<AddAdminDialogProps> = ({isOpen, onDismiss, exist
                         </Field>
 
                         {selected.size > 0 && (
-                            <div style={{display: 'flex', gap: '6px', flexWrap: 'wrap'}}>
+                            <div className={styles.selectedBadges}>
                                 {searchResults
                                     .filter((u) => selected.has(u.id))
                                     .map((u) => (
@@ -184,19 +186,14 @@ const AddAdminDialog: React.FC<AddAdminDialogProps> = ({isOpen, onDismiss, exist
                         )}
 
                         {searchQuery.trim().length >= 2 && (
-                            <div style={{
-                                border: `1px solid ${tokens.colorNeutralStroke1}`,
-                                borderRadius: tokens.borderRadiusMedium,
-                                maxHeight: '260px',
-                                overflowY: 'auto',
-                            }}>
+                            <div className={styles.searchResults}>
                                 {searching && (
-                                    <div style={{padding: '12px'}}>
+                                    <div className={styles.searchPadding}>
                                         <Spinner size="tiny" label="Searching..."/>
                                     </div>
                                 )}
                                 {!searching && !hasResults && (
-                                    <div style={{padding: '12px'}}>
+                                    <div className={styles.searchPadding}>
                                         <Text size={200}>No matching users found.</Text>
                                     </div>
                                 )}
@@ -204,7 +201,7 @@ const AddAdminDialog: React.FC<AddAdminDialogProps> = ({isOpen, onDismiss, exist
                                     <Table size="small">
                                         <TableHeader>
                                             <TableRow>
-                                                <TableHeaderCell style={{width: '44px'}}/>
+                                                <TableHeaderCell className={styles.checkboxCell}/>
                                                 <TableHeaderCell>Name</TableHeaderCell>
                                                 <TableHeaderCell>Email</TableHeaderCell>
                                             </TableRow>
@@ -213,11 +210,12 @@ const AddAdminDialog: React.FC<AddAdminDialogProps> = ({isOpen, onDismiss, exist
                                             {searchResults.map((u) => (
                                                 <TableRow
                                                     key={u.id}
-                                                    style={{cursor: 'pointer'}}
+                                                    className={styles.clickableRow}
                                                     onClick={() => toggleUser(u.id)}
                                                 >
-                                                    <TableCell style={{width: '44px'}}>
+                                                    <TableCell className={styles.checkboxCell}>
                                                         <Checkbox
+                                                            id={`checkbox-admin-user-${u.id}`}
                                                             checked={selected.has(u.id)}
                                                             onChange={() => toggleUser(u.id)}
                                                         />
@@ -226,7 +224,7 @@ const AddAdminDialog: React.FC<AddAdminDialogProps> = ({isOpen, onDismiss, exist
                                                         {`${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || '-'}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <div style={{maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}
+                                                        <div className={styles.emailCell}
                                                              title={u.email}>
                                                             {u.email}
                                                         </div>
@@ -243,6 +241,7 @@ const AddAdminDialog: React.FC<AddAdminDialogProps> = ({isOpen, onDismiss, exist
                 </DialogBody>
                 <DialogActions>
                     <Button
+                        id={"btn-dialog-add-admin"}
                         appearance="primary"
                         shape="circular"
                         icon={busy ? <Spinner size="tiny"/> : <PersonAddRegular/>}
@@ -253,6 +252,7 @@ const AddAdminDialog: React.FC<AddAdminDialogProps> = ({isOpen, onDismiss, exist
                     </Button>
                     <DialogTrigger disableButtonEnhancement>
                         <Button
+                            id={"btn-dialog-cancel"}
                             appearance="secondary"
                             shape="circular"
                             disabled={busy}

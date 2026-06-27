@@ -131,6 +131,7 @@ const ExchangeDocumentsList: React.FC<ExchangeDocumentsListProps> = (
                                     id={`exchange-document-upload-new-${exchangeDocument.id}`}
                                     appearance="transparent"
                                     size={"small"}
+                                    shape={"circular"}
                                     icon={<DocumentAddIcon/>}
                                     disabled={!canUploadInCurrentExchange}
                                     onClick={() =>
@@ -157,9 +158,12 @@ const ExchangeDocumentsList: React.FC<ExchangeDocumentsListProps> = (
             <div className={styles.searchSection}>
                 <Tooltip content="Zip all documents"
                          relationship="description">
-                    <Button size={"small"} disabled={!permissions?.canDownloadDocumentsZip}
-                            id="exchange-documents-zip-download"
-                            onClick={() => setIsDocumentZipDialogOpen(true)} appearance={"transparent"}
+                    <Button id="exchange-documents-zip-download"
+                            size={"small"}
+                            disabled={!permissions?.canDownloadDocumentsZip}
+                            onClick={() => setIsDocumentZipDialogOpen(true)}
+                            appearance={"transparent"}
+                            shape={"circular"}
                             icon={<ZipDocumentsIcon/>}/>
                 </Tooltip>
                 <Field className={styles.searchField}>

@@ -11,23 +11,22 @@ import {
     Divider,
     Field,
     Input,
-    makeStyles,
     MessageBar,
     MessageBarBody,
     Spinner,
     Tag,
     Text,
-    tokens,
 } from "@fluentui/react-components";
-import {WorkflowDesignerState, WorkflowTriggerEventDto} from "../../models/models.tsx";
-import {formatTriggerName, STEP_TYPE_LABELS} from "./workflowUtils.ts";
+import {useStyles} from './SaveWorkflowDialogStyles.tsx';
+import {WorkflowDesignerState, WorkflowTriggerEventDto} from "../../../models/models.tsx";
+import {formatTriggerName, STEP_TYPE_LABELS} from "../workflowUtils.ts";
 import {
     completeStepUpWithOtp,
     initiateStepUp,
     regenerateStepUpOtp,
     StepUpInitiateResponse,
-} from "../../../services/authApi.ts";
-import {getOtpFriendlyMessage, normalizeApiError} from "../../../utils/apiErrorUtils.ts";
+} from "../../../../services/authApi.ts";
+import {getOtpFriendlyMessage, normalizeApiError} from "../../../../utils/apiErrorUtils.ts";
 
 type Phase = 'review' | 'verify-otp' | 'verify-external';
 
@@ -39,53 +38,6 @@ interface Props {
     state: WorkflowDesignerState;
     triggers: WorkflowTriggerEventDto[];
 }
-
-const useStyles = makeStyles({
-    reviewSection: {
-        display: "flex",
-        flexDirection: "column",
-        gap: "0.75rem",
-    },
-    reviewRow: {
-        display: "flex",
-        flexDirection: "column",
-        gap: "2px",
-    },
-    reviewLabel: {
-        color: tokens.colorNeutralForeground3,
-        fontSize: "11px",
-        fontWeight: "600",
-        textTransform: "uppercase",
-        letterSpacing: "0.04em",
-    },
-    stepList: {
-        display: "flex",
-        flexDirection: "column",
-        gap: "4px",
-    },
-    stepItem: {
-        display: "flex",
-        alignItems: "center",
-        gap: "0.5rem",
-    },
-    stepNumber: {
-        width: "20px",
-        height: "20px",
-        borderRadius: tokens.borderRadiusCircular,
-        backgroundColor: tokens.colorNeutralBackground3,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: "11px",
-        fontWeight: "600",
-        flexShrink: 0,
-    },
-    tagRow: {
-        display: "flex",
-        flexWrap: "wrap",
-        gap: "4px",
-    },
-});
 
 const WORKFLOW_SAVE_ACTION = "WORKFLOW_DEFINITION_SAVE";
 
@@ -192,11 +144,11 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
 
     return (
         <Dialog open={open} onOpenChange={(_, d) => { if (!d.open) handleClose(); }}>
-            <DialogSurface style={{maxWidth: "500px", width: "100%"}}>
+            <DialogSurface className={styles.surface}>
                 <DialogBody>
                     <DialogTitle>{title}</DialogTitle>
                     <DialogContent>
-                        <div style={{display: "flex", flexDirection: "column", gap: "1rem"}}>
+                        <div className={styles.contentWrapper}>
 
                             {error && (
                                 <MessageBar intent="error">
@@ -206,7 +158,10 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
 
                             {phase === 'review' && (
                                 <>
-                                    <Text size={200} style={{color: tokens.colorNeutralForeground3}}>
+                                    <Text
+                                        size={200}
+                                        className={styles.mutedText}
+                                    >
                                         {isEdit
                                             ? "Review your changes before updating the workflow."
                                             : "Review your workflow before saving."}
@@ -220,7 +175,10 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
                                             <Text className={styles.reviewLabel}>Trigger Event</Text>
                                             <Text>{formatTriggerName(state.triggerEvent)}</Text>
                                             {selectedTrigger?.description && (
-                                                <Text size={200} style={{color: tokens.colorNeutralForeground3}}>
+                                                <Text
+                                                    size={200}
+                                                    className={styles.mutedText}
+                                                >
                                                     {selectedTrigger.description}
                                                 </Text>
                                             )}
@@ -257,7 +215,10 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
                                                 Steps ({state.steps.length})
                                             </Text>
                                             {state.steps.length === 0 ? (
-                                                <Text size={200} style={{color: tokens.colorNeutralForeground3}}>
+                                                <Text
+                                                    size={200}
+                                                    className={styles.mutedText}
+                                                >
                                                     No steps configured.
                                                 </Text>
                                             ) : (
@@ -268,7 +229,7 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
                                                             <Text size={300}>
                                                                 {STEP_TYPE_LABELS[step.type] ?? step.type}
                                                                 {step.assignees.length > 0 && (
-                                                                    <span style={{color: tokens.colorNeutralForeground3}}>
+                                                                    <span className={styles.mutedSpan}>
                                                                         {" — "}{step.assignees.length} assignee{step.assignees.length !== 1 ? "s" : ""}
                                                                     </span>
                                                                 )}
@@ -294,6 +255,7 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
                                         validationMessage={error ?? undefined}
                                     >
                                         <Input
+                                            id={"input-workflow-otp"}
                                             type="text"
                                             autoComplete="one-time-code"
                                             value={otp}
@@ -319,10 +281,22 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
                     <DialogActions>
                         {phase === 'review' && (
                             <>
-                                <Button appearance="secondary" shape="circular" onClick={handleClose} disabled={isBusy}>
+                                <Button
+                                    id={"button-workflow-save-back"}
+                                    appearance="secondary"
+                                    shape="circular"
+                                    onClick={handleClose}
+                                    disabled={isBusy}
+                                >
                                     Back to editing
                                 </Button>
-                                <Button appearance="primary" shape="circular" onClick={handleProceedToVerify} disabled={isBusy}>
+                                <Button
+                                    id={"button-workflow-save-confirm"}
+                                    appearance="primary"
+                                    shape="circular"
+                                    onClick={handleProceedToVerify}
+                                    disabled={isBusy}
+                                >
                                     {initiating ? <><Spinner size="tiny"/> Verifying…</> : (isEdit ? "Confirm & Update" : "Confirm & Save")}
                                 </Button>
                             </>
@@ -330,13 +304,31 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
 
                         {phase === 'verify-otp' && (
                             <>
-                                <Button appearance="primary" shape="circular" onClick={handleSubmitOtp} disabled={isBusy}>
+                                <Button
+                                    id={"button-workflow-verify-continue"}
+                                    appearance="primary"
+                                    shape="circular"
+                                    onClick={handleSubmitOtp}
+                                    disabled={isBusy}
+                                >
                                     {submitting ? <><Spinner size="tiny"/> {isEdit ? "Updating…" : "Saving…"}</> : "Verify & continue"}
                                 </Button>
-                                <Button appearance="secondary" shape="circular" onClick={handleResendOtp} disabled={isBusy}>
+                                <Button
+                                    id={"button-workflow-resend-code"}
+                                    appearance="secondary"
+                                    shape="circular"
+                                    onClick={handleResendOtp}
+                                    disabled={isBusy}
+                                >
                                     {resending ? <><Spinner size="tiny"/> Sending…</> : "Resend code"}
                                 </Button>
-                                <Button appearance="subtle" shape="circular" onClick={() => { setPhase('review'); setError(null); }} disabled={isBusy}>
+                                <Button
+                                    id={"button-workflow-verify-back"}
+                                    appearance="subtle"
+                                    shape="circular"
+                                    onClick={() => { setPhase('review'); setError(null); }}
+                                    disabled={isBusy}
+                                >
                                     Back
                                 </Button>
                             </>
@@ -344,10 +336,22 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
 
                         {phase === 'verify-external' && (
                             <>
-                                <Button appearance="primary" shape="circular" onClick={handleContinueExternal} disabled={isBusy}>
+                                <Button
+                                    id={"button-workflow-continue-external"}
+                                    appearance="primary"
+                                    shape="circular"
+                                    onClick={handleContinueExternal}
+                                    disabled={isBusy}
+                                >
                                     {submitting ? <><Spinner size="tiny"/> Redirecting…</> : `Continue to ${stepUpSession?.provider || "provider"}`}
                                 </Button>
-                                <Button appearance="subtle" shape="circular" onClick={() => { setPhase('review'); setError(null); }} disabled={isBusy}>
+                                <Button
+                                    id={"button-workflow-external-back"}
+                                    appearance="subtle"
+                                    shape="circular"
+                                    onClick={() => { setPhase('review'); setError(null); }}
+                                    disabled={isBusy}
+                                >
                                     Back
                                 </Button>
                             </>

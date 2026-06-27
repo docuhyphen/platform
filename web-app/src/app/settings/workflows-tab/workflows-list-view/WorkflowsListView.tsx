@@ -28,17 +28,17 @@ import {
     useOverflowMenu,
 } from "@fluentui/react-components";
 import {MoreVerticalRegular} from "@fluentui/react-icons";
-import {WorkflowDefinitionSummaryDto} from "../../models/models.tsx";
+import {WorkflowDefinitionSummaryDto} from "../../../models/models.tsx";
 import {
     cloneWorkflowDefinition,
     listWorkflowDefinitions,
     patchWorkflowDefinitionPublished,
     patchWorkflowDefinitionStatus,
-} from "../../../services/workflowService.ts";
+} from "../../../../services/workflowService.ts";
 import {useWorkflowsListViewStyles} from "./WorkflowsListViewStyles.tsx";
-import {ActivateIcon, AddIcon, CopyIcon, DeactivateIcon, DeleteIcon, EditIcon, PublishIcon, UnpublishIcon} from "../../components/IconBundles.tsx";
-import {formatTriggerName} from "./workflowUtils.ts";
-import WorkflowDeleteDialog from "./WorkflowDeleteDialog.tsx";
+import {ActivateIcon, AddIcon, CopyIcon, DeactivateIcon, DeleteIcon, EditIcon, PublishIcon, UnpublishIcon} from "../../../components/IconBundles.tsx";
+import {formatTriggerName} from "../workflowUtils.ts";
+import WorkflowDeleteDialog from "../WorkflowDeleteDialog.tsx";
 
 type ListTab = 'PERSONAL' | 'ORG' | 'APP';
 
@@ -72,17 +72,18 @@ const OverflowTagMenuItem = ({id, tag}: {id: string; tag: string}) =>
 const OverflowTagsMenu = ({tags}: {tags: string[]}) =>
 {
     const {ref, overflowCount, isOverflowing} = useOverflowMenu<HTMLButtonElement>();
+    const styles = useWorkflowsListViewStyles();
     return (
         <Menu>
             <MenuTrigger disableButtonEnhancement>
                 <Button
+                    id="workflows-overflow-tags-btn"
                     ref={ref}
                     appearance="subtle"
                     size="small"
                     shape="circular"
+                    className={styles.overflowTagsButton}
                     style={{
-                        padding: '0 6px',
-                        minWidth: 0,
                         visibility: isOverflowing ? 'visible' : 'hidden',
                         pointerEvents: isOverflowing ? undefined : 'none',
                     }}
@@ -163,7 +164,14 @@ const WorkflowCard = ({def, isPersonal, onEdit, onToggleActive, onTogglePublishe
                     </Badge>
                     <Menu>
                         <MenuTrigger disableButtonEnhancement>
-                            <Button size="small" appearance="subtle" icon={<MoreVerticalRegular/>} aria-label="More actions"/>
+                            <Button
+                            id={`workflow-card-more-actions-btn-${def.id}`}
+                            size="small"
+                            appearance="subtle"
+                            shape={"circular"}
+                            icon={<MoreVerticalRegular/>}
+                            aria-label="More actions"
+                        />
                         </MenuTrigger>
                         <MenuPopover>
                             <MenuList>
@@ -281,7 +289,11 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
             <div className={styles.templateCardInfo}>
                 <Text weight="semibold">{def.name}</Text>
                 {def.summary && <Text size={200} block>{def.summary}</Text>}
-                <Text size={200} block style={{marginTop: "2px"}}>
+                <Text
+                    size={200}
+                    block
+                    className={styles.platformCardTriggerText}
+                >
                     Runs when: {formatTriggerName(def.triggerEvent)}
                 </Text>
                 <div className={styles.tagRow}>
@@ -290,7 +302,13 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                     ))}
                 </div>
             </div>
-            <Button size="small" appearance="outline" onClick={() => openCloneDialog(def)}>
+            <Button
+                id={`workflows-list-add-platform-btn-${def.id}`}
+                size="small"
+                appearance="outline"
+                shape={"circular"}
+                onClick={() => openCloneDialog(def)}
+            >
                 Add to my workflows
             </Button>
         </div>
@@ -299,7 +317,7 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
     return (
         <>
             <div>
-                <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem"}}>
+                <div className={styles.outerWrapper}>
                     <TabList
                         selectedValue={activeTab}
                         onTabSelect={(_, d) => setActiveTab(d.value as ListTab)}
@@ -310,7 +328,13 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                     </TabList>
 
                     {activeTab !== 'APP' && (
-                        <Button appearance="subtle" icon={<AddIcon/>} onClick={() => onNew(activeTab)} shape="circular">
+                        <Button
+                            id="workflows-list-create-btn"
+                            appearance="subtle"
+                            icon={<AddIcon/>}
+                            onClick={() => onNew(activeTab)}
+                            shape="circular"
+                        >
                             Create Workflow
                         </Button>
                     )}
@@ -374,7 +398,10 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                     <DialogBody>
                         <DialogTitle>Clone workflow</DialogTitle>
                         <DialogContent>
-                            <Label htmlFor="clone-name-input" style={{display: "block", marginBottom: "0.25rem"}}>
+                            <Label
+                                htmlFor="clone-name-input"
+                                className={styles.cloneNameLabel}
+                            >
                                 Name
                             </Label>
                             <Input
@@ -382,15 +409,21 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                                 value={cloneNameInput}
                                 onChange={(_, d) => setCloneNameInput(d.value)}
                                 onKeyDown={e => { if (e.key === "Enter") confirmClone(); }}
-                                style={{width: "100%"}}
+                                className={styles.cloneNameInput}
                                 autoFocus
                             />
                         </DialogContent>
                         <DialogActions>
-                            <Button appearance="secondary" shape="circular" onClick={() => setCloningDef(null)}>
+                            <Button
+                                id="workflows-list-clone-cancel-btn"
+                                appearance="secondary"
+                                shape="circular"
+                                onClick={() => setCloningDef(null)}
+                            >
                                 Cancel
                             </Button>
                             <Button
+                                id="workflows-list-clone-confirm-btn"
                                 appearance="primary"
                                 shape="circular"
                                 onClick={confirmClone}

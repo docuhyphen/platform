@@ -15,11 +15,11 @@ import {
     MenuTrigger,
     Spinner,
     Text,
-    tokens,
 } from '@fluentui/react-components';
 import {DeleteRegular, EditRegular, MoreVerticalRegular} from '@fluentui/react-icons';
 import {CreateVariableRequest, UpdateVariableRequest, VariableDefinitionDto} from '../../models/models';
 import {createVariable, deleteVariable, listVariables, updateVariable} from '../../../services/variableService';
+import {usePersonalVariablesTabStyles} from './PersonalVariablesTabStyles';
 
 interface DrawerState
 {
@@ -34,6 +34,7 @@ export interface PersonalVariablesTabHandle
 
 const PersonalVariablesTab = forwardRef<PersonalVariablesTabHandle>((_, ref) =>
 {
+    const styles = usePersonalVariablesTabStyles();
     const [variables, setVariables] = useState<VariableDefinitionDto[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -114,41 +115,68 @@ const PersonalVariablesTab = forwardRef<PersonalVariablesTabHandle>((_, ref) =>
 
     return (
         <>
-            <div style={{display: 'flex', flexDirection: 'column', gap: '12px', padding: '0 4px'}}>
-                <Text size={300} style={{color: 'var(--colorNeutralForeground3)'}}>
+            <div className={styles.container}>
+                <Text
+                    size={300}
+                    className={styles.descriptionText}
+                >
                     Private key-value pairs only you can see and use. Override them when creating an exchange.
                 </Text>
 
                 {loading && <Spinner size="small" label="Loading…"/>}
-                {!loading && error && <Text style={{color: 'var(--colorPaletteRedForeground1)'}}>{error}</Text>}
+                {!loading && error && (
+                    <Text className={styles.errorText}>{error}</Text>
+                )}
                 {!loading && !error && variables.length === 0 && (
-                    <Text style={{color: 'var(--colorNeutralForeground3)'}}>No personal variables yet.</Text>
+                    <Text className={styles.emptyText}>No personal variables yet.</Text>
                 )}
                 {!loading && variables.map(v => (
-                    <div key={v.id} style={{
-                        border: '1px solid var(--colorNeutralStroke1)',
-                        borderRadius: tokens.borderRadiusXLarge,
-                        padding: '10px 16px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: '8px',
-                    }}>
-                        <div style={{display: 'flex', gap: '12px', alignItems: 'center', flex: 1, minWidth: 0}}>
-                            <code style={{fontFamily: 'monospace', fontWeight: 600}}>{`{{${v.key}}}`}</code>
-                            <Text size={200} style={{color: 'var(--colorNeutralForeground2)'}}>
+                    <div
+                        key={v.id}
+                        className={styles.variableRow}
+                    >
+                        <div className={styles.variableRowInner}>
+                            <code className={styles.codeKey}>{`{{${v.key}}}`}</code>
+                            <Text
+                                size={200}
+                                className={styles.defaultValueText}
+                            >
                                 {v.defaultValue ? `Default: "${v.defaultValue}"` : <em>no default</em>}
                             </Text>
-                            {!v.isActive && <Badge appearance="tint" color="severe" size="small">Inactive</Badge>}
+                            {!v.isActive && (
+                                <Badge
+                                    appearance="tint"
+                                    color="severe"
+                                    size="small"
+                                >
+                                    Inactive
+                                </Badge>
+                            )}
                         </div>
                         <Menu>
                             <MenuTrigger disableButtonEnhancement>
-                                <Button size="small" appearance="subtle" icon={<MoreVerticalRegular/>}/>
+                                <Button
+                                    id={`button-personal-var-menu-${v.id}`}
+                                    size="small"
+                                    appearance="subtle"
+                                    shape={"circular"}
+                                    icon={<MoreVerticalRegular/>}
+                                />
                             </MenuTrigger>
                             <MenuPopover>
                                 <MenuList>
-                                    <MenuItem icon={<EditRegular/>} onClick={() => openEdit(v)}>Edit</MenuItem>
-                                    <MenuItem icon={<DeleteRegular/>} onClick={() => handleDelete(v)}>Delete</MenuItem>
+                                    <MenuItem
+                                        icon={<EditRegular/>}
+                                        onClick={() => openEdit(v)}
+                                    >
+                                        Edit
+                                    </MenuItem>
+                                    <MenuItem
+                                        icon={<DeleteRegular/>}
+                                        onClick={() => handleDelete(v)}
+                                    >
+                                        Delete
+                                    </MenuItem>
                                 </MenuList>
                             </MenuPopover>
                         </Menu>
@@ -156,13 +184,23 @@ const PersonalVariablesTab = forwardRef<PersonalVariablesTabHandle>((_, ref) =>
                 ))}
             </div>
 
-            <Drawer open={drawer.open} onOpenChange={(_, d) => setDrawer(prev => ({...prev, open: d.open}))} position="end" size="small">
+            <Drawer
+                open={drawer.open}
+                onOpenChange={(_, d) => setDrawer(prev => ({...prev, open: d.open}))}
+                position="end"
+                size="small"
+            >
                 <DrawerHeader>
                     <DrawerHeaderTitle>{drawer.editing ? 'Edit Variable' : 'New Personal Variable'}</DrawerHeaderTitle>
                 </DrawerHeader>
-                <DrawerBody style={{display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '16px'}}>
-                    <Field label="Key" required hint="Uppercase alphanumeric. Used as {{KEY}} in templates.">
+                <DrawerBody className={styles.drawerBody}>
+                    <Field
+                        label="Key"
+                        required
+                        hint="Uppercase alphanumeric. Used as {{KEY}} in templates."
+                    >
                         <Input
+                            id={"input-personal-var-key"}
                             value={formKey}
                             onChange={(_, d) => setFormKey(d.value.toUpperCase())}
                             placeholder="e.g. MY_COMPANY"
@@ -170,12 +208,32 @@ const PersonalVariablesTab = forwardRef<PersonalVariablesTabHandle>((_, ref) =>
                         />
                     </Field>
                     <Field label="Default Value">
-                        <Input value={formValue} onChange={(_, d) => setFormValue(d.value)} placeholder="e.g. Smith & Co"/>
+                        <Input
+                            id={"input-personal-var-value"}
+                            value={formValue}
+                            onChange={(_, d) => setFormValue(d.value)}
+                            placeholder="e.g. Smith & Co"
+                        />
                     </Field>
-                    {formError && <Text style={{color: 'var(--colorPaletteRedForeground1)'}}>{formError}</Text>}
-                    <div style={{display: 'flex', gap: '8px', justifyContent: 'flex-end'}}>
-                        <Button appearance="secondary" onClick={() => setDrawer({open: false})}>Cancel</Button>
-                        <Button appearance="primary" onClick={handleSave} disabled={saving}>
+                    {formError && (
+                        <Text className={styles.errorText}>{formError}</Text>
+                    )}
+                    <div className={styles.buttonRow}>
+                        <Button
+                            id={"button-personal-var-cancel"}
+                            appearance="secondary"
+                            shape={"circular"}
+                            onClick={() => setDrawer({open: false})}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            id={"button-personal-var-save"}
+                            appearance="primary"
+                            shape={"circular"}
+                            onClick={handleSave}
+                            disabled={saving}
+                        >
                             {saving ? 'Saving…' : 'Save'}
                         </Button>
                     </div>

@@ -13,7 +13,6 @@ import {
     MenuTrigger,
     Spinner,
     Text,
-    tokens
 } from "@fluentui/react-components";
 import {ArrowDownloadRegular, EyeRegular, ArrowUploadRegular, MoreVerticalRegular, DismissRegular} from "@fluentui/react-icons";
 import {DocumentDetailedDto, DocumentVersion, ExchangeDetailedDto} from "../../../../models/models";
@@ -135,7 +134,7 @@ const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
     return (
         <div className={styles.container}>
             {error && (
-                <Text style={{color: tokens.colorStatusDangerForeground1}}>{error}</Text>
+                <Text className={styles.errorText}>{error}</Text>
             )}
 
             <div className={styles.versionList}>
@@ -157,10 +156,12 @@ const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
                                 <Menu>
                                     <MenuTrigger disableButtonEnhancement>
                                         <Button
+                                            id={`version-actions-trigger-${version.id}`}
                                             icon={actionInProgress === version.id
                                                 ? <Spinner size="tiny"/>
                                                 : <MoreVerticalRegular/>}
                                             appearance="subtle"
+                                            shape={"circular"}
                                             size="small"
                                             disabled={actionInProgress === version.id}
                                         />
@@ -201,6 +202,7 @@ const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
             {canUpload && (
                 <div className={styles.uploadButtonRow}>
                     <Button
+                        id={"exchange-document-version-upload-btn"}
                         appearance="primary"
                         shape="circular"
                         size="small"

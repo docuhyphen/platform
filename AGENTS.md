@@ -43,8 +43,9 @@ into an org.
         shape={"circular"}
 - All Buttons must be circular shape
 - Do not use inline styling
-- Add html/react ids to all components, for example <Button id={....
+- Add html/react ids to all components, for example <Button id={"my-component-id"}...
 - Do not add any emojis or characters such as ⚠
+- When creating a component that has styling, create a folder to include the styling and the component itself
 ---
 
 ## Tech Stack

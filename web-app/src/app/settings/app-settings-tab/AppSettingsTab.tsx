@@ -97,6 +97,7 @@ const AppSettingsTab = () =>
             </Divider>
 
             <RadioGroup
+                id={"radiogroup-theme"}
                 value={themeMode}
                 onChange={(_, data) => handleThemeChange(data.value as ThemeMode)}
                 layout="horizontal"
@@ -110,6 +111,7 @@ const AppSettingsTab = () =>
 
             {settings && <>
                 <Switch
+                    id={"switch-auto-preview-documents"}
                     label="Automatically preview documents"
                     checked={settings.autoPreviewDocuments}
                     onChange={(_, data) => handleSettingChange('autoPreviewDocuments', !!data.checked)}
@@ -123,6 +125,7 @@ const AppSettingsTab = () =>
                 </Divider>
 
                 <Switch
+                    id={"switch-notify-share-start"}
                     label="Get notifications on Exchange Initiation"
                     checked={settings.notifyShareStart}
                     onChange={(_, data) => handleSettingChange('notifyShareStart', !!data.checked)}
@@ -130,6 +133,7 @@ const AppSettingsTab = () =>
                 />
 
                 <Switch
+                    id={"switch-notify-share-accept"}
                     label="Get notifications on Exchange Accepted"
                     checked={settings.notifyShareAccept}
                     onChange={(_, data) => handleSettingChange('notifyShareAccept', !!data.checked)}
@@ -137,6 +141,7 @@ const AppSettingsTab = () =>
                 />
 
                 <Switch
+                    id={"switch-notify-share-decline"}
                     label="Get notifications on Exchange Declined"
                     checked={settings.notifyShareDecline}
                     onChange={(_, data) => handleSettingChange('notifyShareDecline', !!data.checked)}
@@ -144,6 +149,7 @@ const AppSettingsTab = () =>
                 />
 
                 <Switch
+                    id={"switch-notify-share-end"}
                     label="Get notifications on Exchange End"
                     checked={settings.notifyShareEnd}
                     onChange={(_, data) => handleSettingChange('notifyShareEnd', !!data.checked)}
@@ -151,6 +157,7 @@ const AppSettingsTab = () =>
                 />
 
                 <Switch
+                    id={"switch-notify-doc-comment"}
                     label="Get notifications on document notes/comments"
                     checked={settings.notifyDocComment}
                     onChange={(_, data) => handleSettingChange('notifyDocComment', !!data.checked)}
@@ -158,6 +165,7 @@ const AppSettingsTab = () =>
                 />
 
                 <Switch
+                    id={"switch-notify-doc-delete"}
                     label="Get notifications on document deletions"
                     checked={settings.notifyDocDelete}
                     onChange={(_, data) => handleSettingChange('notifyDocDelete', !!data.checked)}
@@ -165,6 +173,7 @@ const AppSettingsTab = () =>
                 />
 
                 <Switch
+                    id={"switch-notify-doc-add"}
                     label="Get notifications on document additions"
                     checked={settings.notifyDocAdd}
                     onChange={(_, data) => handleSettingChange('notifyDocAdd', !!data.checked)}
@@ -172,6 +181,7 @@ const AppSettingsTab = () =>
                 />
 
                 <Switch
+                    id={"switch-notify-doc-upload"}
                     label="Get notifications on document upload"
                     checked={settings.notifyDocUpload}
                     onChange={(_, data) => handleSettingChange('notifyDocUpload', !!data.checked)}

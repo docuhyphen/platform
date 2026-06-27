@@ -8,82 +8,7 @@ import {
 } from "@fluentui/react-components";
 import {ExchangeDetailedDto, ExchangeStatus} from "../../../models/models.tsx";
 import {formatDateTimeWithOrdinal} from "../../../helpers.ts";
-import {makeStyles, tokens} from "@fluentui/react-components";
-
-const useStyles = makeStyles({
-    container: {
-        display: "flex",
-        flexDirection: "column",
-        gap: "1rem",
-        padding: "8px 0",
-        overflowY: "auto",
-        flex: 1,
-        minHeight: 0,
-    },
-    section: {
-        display: "flex",
-        flexDirection: "column",
-        gap: "6px",
-    },
-    sectionTitle: {
-        color: tokens.colorNeutralForeground3,
-        textTransform: "uppercase",
-        letterSpacing: "0.04em",
-    },
-    row: {
-        display: "flex",
-        flexDirection: "column",
-        gap: "2px",
-    },
-    labelValueRow: {
-        display: "flex",
-        flexDirection: "row",
-        gap: "8px",
-        alignItems: "flex-start",
-        flexWrap: "wrap",
-    },
-    label: {
-        color: tokens.colorNeutralForeground3,
-        minWidth: "120px",
-        flexShrink: 0,
-    },
-    settingsGrid: {
-        display: "flex",
-        flexDirection: "column",
-        gridTemplateColumns: "1fr 1fr",
-        gap: "8px",
-    },
-    settingItem: {
-        display: "flex",
-        flexDirection: "row",
-        gap: "6px",
-        alignItems: "center",
-    },
-    descriptionText: {
-        whiteSpace: "pre-wrap",
-        color: tokens.colorNeutralForeground1,
-    },
-    noDescription: {
-        color: tokens.colorNeutralForeground4,
-        fontStyle: "italic",
-    },
-    participantRow: {
-        display: "flex",
-        flexDirection: "column",
-        gap: "2px",
-        padding: "6px 0",
-        borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-        ":last-child": {
-            borderBottom: "none",
-        },
-    },
-    participantEmail: {
-        color: tokens.colorNeutralForeground2,
-    },
-    statusBadge: {
-        alignSelf: "flex-start",
-    },
-});
+import {useExchangeDetailsTabStyles} from "./ExchangeDetailsTabStyles.tsx";
 
 const STATUS_LABELS: Record<string, string> = {
     INITIATED: "Pending",
@@ -116,7 +41,7 @@ interface ExchangeDetailsTabProps
 
 const ExchangeDetailsTab: React.FC<ExchangeDetailsTabProps> = ({exchangeDetails}) =>
 {
-    const styles = useStyles();
+    const styles = useExchangeDetailsTabStyles();
 
     const formatPersonName = (firstName?: string, lastName?: string): string =>
     {
@@ -166,7 +91,7 @@ const ExchangeDetailsTab: React.FC<ExchangeDetailsTabProps> = ({exchangeDetails}
                     ? <Body1 className={styles.descriptionText}>{exchangeDetails.description}</Body1>
                     : <Caption1 className={styles.noDescription}>No description provided.</Caption1>}
                 {exchangeDetails.initialShareMessage && (
-                    <Body1 className={styles.descriptionText} style={{marginTop: "6px", fontStyle: "italic"}}>
+                    <Body1 className={styles.initialShareMessageText}>
                         {exchangeDetails.initialShareMessage}
                     </Body1>
                 )}
@@ -207,8 +132,8 @@ const ExchangeDetailsTab: React.FC<ExchangeDetailsTabProps> = ({exchangeDetails}
                     )}
                 </div>
                 {exchangeDetails.participants && exchangeDetails.participants.length > 0 && (
-                    <div style={{marginTop: "4px"}}>
-                        <Caption1 style={{color: tokens.colorNeutralForeground3}}>Additional participants</Caption1>
+                    <div className={styles.additionalParticipantsContainer}>
+                        <Caption1 className={styles.additionalParticipantsLabel}>Additional participants</Caption1>
                         {exchangeDetails.participants.map(p => (
                             <div className={styles.participantRow} key={p.id}>
                                 {p.participantType === "APP_USER"
@@ -242,7 +167,7 @@ const ExchangeDetailsTab: React.FC<ExchangeDetailsTabProps> = ({exchangeDetails}
                     {renderBooleanSetting("Require MFA", exchangeDetails.requireMfa)}
                 </div>
                 {exchangeDetails.maxViews != null && (
-                    <div style={{marginTop: "8px"}}>
+                    <div className={styles.maxViewsContainer}>
                         {renderDetailRow("Max views", String(exchangeDetails.maxViews))}
                     </div>
                 )}

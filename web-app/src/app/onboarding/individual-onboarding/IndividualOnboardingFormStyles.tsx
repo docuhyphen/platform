@@ -6,5 +6,10 @@ export const useIndividualOnboardingFormStyles = makeStyles({
         flexDirection: "column",
         gap: "16px",
         flex: 1,
-    }
+    },
+    radioLabel: {
+        display: "flex",
+        alignItems: "center",
+        gap: "4px",
+    },
 });

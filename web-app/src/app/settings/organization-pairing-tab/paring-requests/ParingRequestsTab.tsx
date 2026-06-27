@@ -81,8 +81,10 @@ const ParingRequestsTab: React.FC<ParingOrganizationsTabProps> = (
                 <MessageBarActions
                     containerAction={
                         <Button
+                            id={"button-dismiss-tab-error"}
                             onClick={() => setTabErrorMessage(null)}
                             appearance="transparent"
+                            shape={"circular"}
                             icon={<DismissRegular/>}
                         />
                     }
@@ -134,8 +136,11 @@ const ParingRequestsTab: React.FC<ParingOrganizationsTabProps> = (
         return <>
             <Menu positioning={{autoSize: true}}>
                 <MenuTrigger disableButtonEnhancement>
-                    <Button icon={<MoreHorizontalRegular/>}
-                            appearance={"subtle"}/>
+                    <Button
+                        id={"button-org-pair-request-actions-menu"}
+                        icon={<MoreHorizontalRegular/>}
+                        shape={"circular"}
+                        appearance={"subtle"}/>
                 </MenuTrigger>
                 <MenuPopover>
                     <MenuList>

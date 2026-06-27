@@ -48,6 +48,7 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
             <Divider alignContent="start">Exchange options</Divider>
             <Field>
                 <Switch
+                    id={"exchange-require-sign-in-switch"}
                     label="Require recipient sign in"
                     checked={requireSignIn}
                     onChange={onRequireSignInChange}
@@ -57,6 +58,7 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
             <Divider alignContent="start">Document options</Divider>
             <Field>
                 <Switch
+                    id={"exchange-allow-additions-switch"}
                     label="Allow document additions"
                     checked={allowDocumentAdditions}
                     onChange={onAllowDocumentAdditionsChange}
@@ -65,6 +67,7 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
             </Field>
             <Field>
                 <Switch
+                    id={"exchange-allow-deletions-switch"}
                     label="Allow document deletions"
                     checked={allowDocumentDeletions}
                     onChange={onAllowDocumentDeletionsChange}
@@ -73,6 +76,7 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
             </Field>
             <Field>
                 <Switch
+                    id={"exchange-allow-download-switch"}
                     label="Allow document download"
                     checked={allowDocumentDownload}
                     onChange={onAllowDocumentDownloadChange}
@@ -88,6 +92,7 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
             )}
             <Field>
                 <Switch
+                    id={"exchange-allow-update-switch"}
                     label="Allow document update"
                     checked={allowDocumentUpdate}
                     onChange={onAllowDocumentUpdateChange}
@@ -96,6 +101,7 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
             </Field>
             <Field>
                 <Switch
+                    id={"exchange-allow-upload-switch"}
                     label="Allow document upload"
                     checked={allowDocumentUpload}
                     onChange={onAllowDocumentUploadChange}

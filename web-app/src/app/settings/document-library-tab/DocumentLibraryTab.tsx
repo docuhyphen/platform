@@ -194,7 +194,7 @@ const DocumentLibraryTab = () =>
                 {!loading && error && (
                     <Text
                         id="doc-error-text"
-                        style={{color: 'var(--colorPaletteRedForeground1)'}}
+                        className={styles.errorText}
                     >
                         {error}
                     </Text>
@@ -202,7 +202,7 @@ const DocumentLibraryTab = () =>
                 {!loading && !error && entries.length === 0 && (
                     <Text
                         id="doc-empty-text"
-                        style={{color: 'var(--colorNeutralForeground3)'}}
+                        className={styles.emptyText}
                     >
                         {emptyMessage[activeTab]}
                     </Text>

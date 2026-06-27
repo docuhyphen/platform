@@ -216,6 +216,7 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
 
                         <Field label="New Email">
                             <Input
+                                id={"app-user-email-update-new-email-input"}
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
@@ -231,6 +232,7 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
                                     A verification code has been sent to {currentEmail}. Please enter it below.
                                 </Text>
                                 <Input
+                                    id={"app-user-email-update-old-code-input"}
                                     type="text"
                                     value={oldEmailCode}
                                     onChange={(e) => setOldEmailCode(e.target.value)}
@@ -246,6 +248,7 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
                                     A verification code has been sent to {email}. Please enter it below.
                                 </Text>
                                 <Input
+                                    id={"app-user-email-update-new-code-input"}
                                     type="text"
                                     value={newEmailCode}
                                     onChange={(e) => setNewEmailCode(e.target.value)}
@@ -258,6 +261,7 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
                 </DialogBody>
                 <DialogActions>
                     <Button
+                        id={"app-user-email-update-submit-btn"}
                         appearance="primary"
                         shape="circular"
                         className={globalStyles.buttonWithLoading}
@@ -269,6 +273,7 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
                     </Button>
                     <DialogTrigger disableButtonEnhancement>
                         <Button
+                            id={"app-user-email-update-cancel-btn"}
                             appearance="secondary"
                             shape="circular"
                             disabled={processing}

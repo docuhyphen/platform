@@ -94,7 +94,7 @@ const ExchangeInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = 
                 }
             </div>
             {choosingBlueprint && (
-                <Text size={300} style={{color: 'var(--colorNeutralForeground3)'}}>
+                <Text size={300} className={styles.choosingBlueprintSubtext}>
                     Select a blueprint to pre-fill the exchange form
                 </Text>
             )}

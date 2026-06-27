@@ -8,7 +8,6 @@ import {
     Switch,
     Tab, TabList, TabValue,
     Text,
-    tokens
 } from "@fluentui/react-components";
 import {useAuth} from "../../../context/AuthContext";
 import {fetchAppUserPersonOrganization} from "../../../services/appUserApi";
@@ -193,14 +192,16 @@ const OrganizationTab = () =>
 
     return <>
         {fetchingOrganization &&
-            <div style={{display: 'flex', justifyContent: 'center', padding: '20px'}}>
-                <Spinner label="Loading"
-                         size={"small"}/>
+            <div className={styles.loadingWrapper}>
+                <Spinner
+                    label="Loading"
+                    size={"small"}
+                />
             </div>
         }
 
         {error && (
-            <div style={{color: tokens.colorStatusDangerForeground1, padding: '10px', marginBottom: '10px'}}>
+            <div className={styles.errorWrapper}>
                 {error}
             </div>
         )}
@@ -217,12 +218,12 @@ const OrganizationTab = () =>
                         status updates.
                     </MessageBarBody>
                 </MessageBar>
-                <div style={{marginTop: '8px'}}>
+                <div className={styles.onboardingRow}>
                     <Text size={300}>
                         Registration Number: {organization.registrationNumber}
                     </Text>
                 </div>
-                <div style={{marginTop: '8px'}}>
+                <div className={styles.onboardingRow}>
                     <Text size={300}>
                         Contact Email: {organization.contactDetails?.email || 'Not provided'}
                     </Text>
@@ -232,7 +233,7 @@ const OrganizationTab = () =>
                         Contact Phone: {organization.contactDetails?.phoneNumber || 'Not provided'}
                     </Text>
                 </div>
-                <div style={{marginTop: '8px'}}>
+                <div className={styles.onboardingRow}>
                     <Text size={300}>
                         If any of these details are incorrect, please contact sales at{' '}
                         <a href="mailto:sales@docuhyphen.com">sales@docuhyphen.com</a> so we can update your
@@ -298,10 +299,13 @@ const OrganizationTab = () =>
                     You are not part of an organization. You can onboard your organization to use the full potential of the platform.
                 </Text>
                 <div>
-                    <Button shape={"circular"}
-                            appearance={"secondary"}
-                            onClick={() => setOnboardingDialogOpen(true)}
-                            icon={<></>}>
+                    <Button
+                        id={"button-org-register"}
+                        shape={"circular"}
+                        appearance={"secondary"}
+                        onClick={() => setOnboardingDialogOpen(true)}
+                        icon={<></>}
+                    >
                         Register your organization
                     </Button>
                 </div>

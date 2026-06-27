@@ -50,5 +50,18 @@ export const useOrganizationTabStyles = makeStyles({
     },
     tabsContainer: {
         // Natural height exch- content scrolls via the settings container scroller.
-    }
+    },
+    loadingWrapper: {
+        display: "flex",
+        justifyContent: "center",
+        padding: "20px",
+    },
+    errorWrapper: {
+        color: tokens.colorStatusDangerForeground1,
+        padding: "10px",
+        marginBottom: "10px",
+    },
+    onboardingRow: {
+        marginTop: "8px",
+    },
 });

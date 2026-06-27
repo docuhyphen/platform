@@ -14,14 +14,14 @@ import {
     WorkflowStepType,
     WorkflowSubjectFieldDto,
     WorkflowTriggerEventDto,
-} from "../../models/models.tsx";
-import {lookupWorkflowEntities} from "../../../services/workflowService.ts";
+} from "../../../models/models.tsx";
+import {lookupWorkflowEntities} from "../../../../services/workflowService.ts";
 import {useStepCardStyles} from "./StepCardStyles.tsx";
-import {DeleteIcon, ToggleHeaderDownIcon, ToggleHeaderUpIcon} from "../../components/IconBundles.tsx";
-import AssigneeBuilder from "./AssigneeBuilder.tsx";
-import {formatTriggerName} from "./workflowUtils.ts";
-import CommunicationPickerDialog from "../../components/communication-picker/CommunicationPickerDialog.tsx";
-import {getCommunication} from "../../../services/communicationService.ts";
+import {DeleteIcon, ToggleHeaderDownIcon, ToggleHeaderUpIcon} from "../../../components/IconBundles.tsx";
+import AssigneeBuilder from "../assignee-builder/AssigneeBuilder.tsx";
+import {formatTriggerName} from "../workflowUtils.ts";
+import CommunicationPickerDialog from "../../../components/communication-picker/CommunicationPickerDialog.tsx";
+import {getCommunication} from "../../../../services/communicationService.ts";
 
 const STEP_TYPE_LABELS: Record<WorkflowStepType, string> = {
     APPROVAL: "Approval",
@@ -106,10 +106,12 @@ const EntityPickerCombobox = ({value, lookupType, onSelect}: {
 
     useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
+    const styles = useStepCardStyles();
     return (
         <Combobox
+            id={`entity-picker-combobox-${lookupType}`}
             size="small"
-            style={{flex: "1 1 8rem", minWidth: 0}}
+            className={styles.entityPickerCombobox}
             freeform={false}
             placeholder="Search…"
             value={inputText}
@@ -139,7 +141,7 @@ const EntityPickerCombobox = ({value, lookupType, onSelect}: {
                     <Option key={r.id} value={r.id}>
                         {r.label}
                         {r.sublabel && (
-                            <span style={{color: "var(--colorNeutralForeground3)", marginLeft: "0.5rem", fontSize: "0.8em"}}>
+                            <span className={styles.sublabel}>
                                 {r.sublabel}
                             </span>
                         )}
@@ -194,11 +196,17 @@ const ConditionExpressionBuilder = ({expression, subjectFields, onChange}: {
         return (
             <div className={`${styles.field} ${styles.fullWidth}`}>
                 <Text size={200} weight="semibold">Condition Expression</Text>
-                <Input size="small"
-                       placeholder="$subject.fieldName == 'value'"
-                       value={expression ?? ""}
-                       onChange={(_, d) => onChange(d.value || undefined)}/>
-                <Text size={100} style={{color: "var(--colorNeutralForeground3)"}}>
+                <Input
+                    id="condition-expression-input"
+                    size="small"
+                    placeholder="$subject.fieldName == 'value'"
+                    value={expression ?? ""}
+                    onChange={(_, d) => onChange(d.value || undefined)}
+                />
+                <Text
+                    size={100}
+                    className={styles.conditionHint}
+                >
                     Select a trigger event to enable the expression builder.
                 </Text>
             </div>
@@ -208,10 +216,11 @@ const ConditionExpressionBuilder = ({expression, subjectFields, onChange}: {
     return (
         <div className={`${styles.field} ${styles.fullWidth}`}>
             <Text size={200} weight="semibold">Condition</Text>
-            <div style={{display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center"}}>
+            <div className={styles.conditionRow}>
                 <Combobox
+                    id="condition-field-combobox"
                     size="small"
-                    style={{flex: "1 1 10rem", minWidth: 0}}
+                    className={styles.conditionFieldCombobox}
                     freeform={false}
                     placeholder="Search fields..."
                     value={fieldSearch}
@@ -241,13 +250,17 @@ const ConditionExpressionBuilder = ({expression, subjectFields, onChange}: {
                     ))}
                 </Combobox>
 
-                <Select size="small" style={{flex: "1 1 10rem"}}
-                        value={operator}
-                        onChange={(_, d) =>
-                        {
-                            setOperator(d.value);
-                            emit(field, d.value, value, quoted);
-                        }}>
+                <Select
+                    id="condition-operator-select"
+                    size="small"
+                    className={styles.conditionOperatorSelect}
+                    value={operator}
+                    onChange={(_, d) =>
+                    {
+                        setOperator(d.value);
+                        emit(field, d.value, value, quoted);
+                    }}
+                >
                     {allowedOperators.map(op => (
                         <option key={op.value} value={op.value}>{op.label}</option>
                     ))}
@@ -266,47 +279,62 @@ const ConditionExpressionBuilder = ({expression, subjectFields, onChange}: {
                         }}
                     />
                 ) : enumValues ? (
-                    <Select size="small" style={{flex: "1 1 8rem"}}
-                            value={value}
-                            onChange={(_, d) =>
-                            {
-                                setValue(d.value);
-                                setValueLabel(humanizeEnumValue(d.value));
-                                emit(field, operator, d.value, quoted);
-                            }}>
+                    <Select
+                        id="condition-enum-value-select"
+                        size="small"
+                        className={styles.conditionValueSelect}
+                        value={value}
+                        onChange={(_, d) =>
+                        {
+                            setValue(d.value);
+                            setValueLabel(humanizeEnumValue(d.value));
+                            emit(field, operator, d.value, quoted);
+                        }}
+                    >
                         <option value="">Select…</option>
                         {enumValues.map(v => (
                             <option key={v} value={v}>{humanizeEnumValue(v)}</option>
                         ))}
                     </Select>
                 ) : isBoolean ? (
-                    <Select size="small" style={{flex: "1 1 8rem"}}
-                            value={value}
-                            onChange={(_, d) =>
-                            {
-                                setValue(d.value);
-                                setValueLabel(d.value === "true" ? "Yes" : "No");
-                                emit(field, operator, d.value, false);
-                            }}>
+                    <Select
+                        id="condition-bool-value-select"
+                        size="small"
+                        className={styles.conditionValueSelect}
+                        value={value}
+                        onChange={(_, d) =>
+                        {
+                            setValue(d.value);
+                            setValueLabel(d.value === "true" ? "Yes" : "No");
+                            emit(field, operator, d.value, false);
+                        }}
+                    >
                         <option value="">Select…</option>
                         <option value="true">Yes</option>
                         <option value="false">No</option>
                     </Select>
                 ) : (
-                    <Input size="small" style={{flex: "1 1 8rem"}}
-                           type={isNumeric ? "number" : "text"}
-                           placeholder={isNumeric ? "e.g. 5" : "Value…"}
-                           value={value}
-                           onChange={(_, d) =>
-                           {
-                               setValue(d.value);
-                               setValueLabel(d.value);
-                               emit(field, operator, d.value, quoted);
-                           }}/>
+                    <Input
+                        id="condition-value-input"
+                        size="small"
+                        className={styles.conditionValueInput}
+                        type={isNumeric ? "number" : "text"}
+                        placeholder={isNumeric ? "e.g. 5" : "Value…"}
+                        value={value}
+                        onChange={(_, d) =>
+                        {
+                            setValue(d.value);
+                            setValueLabel(d.value);
+                            emit(field, operator, d.value, quoted);
+                        }}
+                    />
                 )}
             </div>
             {field && value && valueLabel && (
-                <Text size={100} style={{color: "var(--colorNeutralForeground3)"}}>
+                <Text
+                    size={100}
+                    className={styles.conditionPreview}
+                >
                     {humanizeFieldName(field)} {allowedOperators.find(op => op.value === operator)?.label ?? operator} {valueLabel}
                 </Text>
             )}
@@ -333,40 +361,46 @@ const OutcomeField = ({label, value, stepCount, triggers, onChange}: {
     stepCount: number;
     triggers: WorkflowTriggerEventDto[];
     onChange: (v: StepOutcomeSpecDraft) => void;
-}) => (
-    <div style={{display: "flex", flexDirection: "column", gap: "4px"}}>
-        <Text size={200} weight="semibold">{label}</Text>
-        <div style={{display: "flex", gap: "4px", flexWrap: "wrap"}}>
-            <Select
-                value={value?.nextStep ?? "END"}
-                onChange={(_, d) => onChange({...value, nextStep: d.value})}
-                size="small"
-            >
-                <option value="END">End workflow</option>
-                {Array.from({length: stepCount}, (_, i) => (
-                    <option key={i} value={String(i)}>Go to step {i + 1}</option>
-                ))}
-            </Select>
-            <Select
-                value={value?.emit ?? ""}
-                onChange={(_, d) => onChange({
-                    ...value,
-                    nextStep: value?.nextStep ?? "END",
-                    emit: d.value || undefined,
-                })}
-                size="small"
-                style={{flex: 1, minWidth: "10rem"}}
-            >
-                <option value="">No event emitted</option>
-                {triggers.map(t => (
-                    <option key={t.eventName} value={t.eventName}>
-                        {formatTriggerName(t.eventName)}
-                    </option>
-                ))}
-            </Select>
+}) =>
+{
+    const styles = useStepCardStyles();
+    return (
+        <div className={styles.outcomeFieldColumn}>
+            <Text size={200} weight="semibold">{label}</Text>
+            <div className={styles.outcomeFieldRow}>
+                <Select
+                    id={`outcome-nextstep-select-${label.replace(/\s+/g, "-").toLowerCase()}`}
+                    value={value?.nextStep ?? "END"}
+                    onChange={(_, d) => onChange({...value, nextStep: d.value})}
+                    size="small"
+                >
+                    <option value="END">End workflow</option>
+                    {Array.from({length: stepCount}, (_, i) => (
+                        <option key={i} value={String(i)}>Go to step {i + 1}</option>
+                    ))}
+                </Select>
+                <Select
+                    id={`outcome-emit-select-${label.replace(/\s+/g, "-").toLowerCase()}`}
+                    value={value?.emit ?? ""}
+                    onChange={(_, d) => onChange({
+                        ...value,
+                        nextStep: value?.nextStep ?? "END",
+                        emit: d.value || undefined,
+                    })}
+                    size="small"
+                    className={styles.outcomeEmitSelect}
+                >
+                    <option value="">No event emitted</option>
+                    {triggers.map(t => (
+                        <option key={t.eventName} value={t.eventName}>
+                            {formatTriggerName(t.eventName)}
+                        </option>
+                    ))}
+                </Select>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const DELETE_COUNTDOWN = 5;
 
@@ -449,9 +483,15 @@ const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subject
                     {STEP_TYPE_LABELS[step.type]}
                 </Badge>
                 {expanded ? <ToggleHeaderUpIcon/> : <ToggleHeaderDownIcon/>}
-                <Button size="small" appearance="subtle" icon={<DeleteIcon/>}
-                        onClick={(e) => { e.stopPropagation(); setShowDeleteDialog(true); }}
-                        aria-label="Remove step"/>
+                <Button
+                    id={`step-card-delete-btn-${index}`}
+                    size="small"
+                    appearance="subtle"
+                    shape={"circular"}
+                    icon={<DeleteIcon/>}
+                    onClick={(e) => { e.stopPropagation(); setShowDeleteDialog(true); }}
+                    aria-label="Remove step"
+                />
             </div>
 
             <Dialog modalType="alert" open={showDeleteDialog}>
@@ -469,15 +509,30 @@ const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subject
                         </DialogContent>
                         <DialogActions>
                             {deleteStarted ? (
-                                <Button appearance="primary" shape="circular" onClick={onDeleteCancel}>
+                                <Button
+                                    id={`step-card-cancel-delete-btn-${index}`}
+                                    appearance="primary"
+                                    shape="circular"
+                                    onClick={onDeleteCancel}
+                                >
                                     Cancel
                                 </Button>
                             ) : (
                                 <>
-                                    <Button appearance="primary" shape="circular" onClick={onDeleteConfirm}>
+                                    <Button
+                                        id={`step-card-confirm-delete-btn-${index}`}
+                                        appearance="primary"
+                                        shape="circular"
+                                        onClick={onDeleteConfirm}
+                                    >
                                         Yes, Delete
                                     </Button>
-                                    <Button appearance="secondary" shape="circular" onClick={onDialogDismiss}>
+                                    <Button
+                                        id={`step-card-dismiss-delete-btn-${index}`}
+                                        appearance="secondary"
+                                        shape="circular"
+                                        onClick={onDialogDismiss}
+                                    >
                                         No, Cancel
                                     </Button>
                                 </>
@@ -492,15 +547,23 @@ const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subject
                     <div className={styles.fieldGroup}>
                         <div className={`${styles.field} ${styles.fullWidth}`}>
                             <Text size={200} weight="semibold">Step Name</Text>
-                            <Input size="small" placeholder="e.g. Manager Approval"
-                                   value={step.name ?? ""}
-                                   onChange={(_, d) => patch({name: d.value || undefined})}/>
+                            <Input
+                                id={`step-card-name-input-${index}`}
+                                size="small"
+                                placeholder="e.g. Manager Approval"
+                                value={step.name ?? ""}
+                                onChange={(_, d) => patch({name: d.value || undefined})}
+                            />
                         </div>
 
                         <div className={styles.field}>
                             <Text size={200} weight="semibold">Step Type</Text>
-                            <Select value={step.type}
-                                    onChange={(_, d) => patch({type: d.value as WorkflowStepType})} size="small">
+                            <Select
+                                id={`step-card-type-select-${index}`}
+                                value={step.type}
+                                onChange={(_, d) => patch({type: d.value as WorkflowStepType})}
+                                size="small"
+                            >
                                 {(Object.keys(STEP_TYPE_LABELS) as WorkflowStepType[]).map(t => (
                                     <option key={t} value={t}>{STEP_TYPE_LABELS[t]}</option>
                                 ))}
@@ -510,18 +573,26 @@ const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subject
                         {step.type === "APPROVAL" && (
                             <div className={styles.field}>
                                 <Text size={200} weight="semibold">Quorum</Text>
-                                <div style={{display: "flex", gap: "4px"}}>
-                                    <Select value={step.quorum.kind}
-                                            onChange={(_, d) => patch({quorum: {kind: d.value as QuorumKind}})}
-                                            size="small">
+                                <div className={styles.quorumRow}>
+                                    <Select
+                                        id={`step-card-quorum-select-${index}`}
+                                        value={step.quorum.kind}
+                                        onChange={(_, d) => patch({quorum: {kind: d.value as QuorumKind}})}
+                                        size="small"
+                                    >
                                         <option value="ANY">Any (first to approve)</option>
                                         <option value="ALL">All must approve</option>
                                         <option value="N_OF_M">N of M approvers</option>
                                     </Select>
                                     {step.quorum.kind === "N_OF_M" && (
-                                        <Input size="small" type="number" style={{width: "4rem"}}
-                                               value={String(step.quorum.n ?? 1)}
-                                               onChange={(_, d) => patch({quorum: {...step.quorum, n: parseInt(d.value) || 1}})}/>
+                                        <Input
+                                            id={`step-card-quorum-n-input-${index}`}
+                                            size="small"
+                                            type="number"
+                                            className={styles.quorumNInput}
+                                            value={String(step.quorum.n ?? 1)}
+                                            onChange={(_, d) => patch({quorum: {...step.quorum, n: parseInt(d.value) || 1}})}
+                                        />
                                     )}
                                 </div>
                             </div>
@@ -533,16 +604,21 @@ const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subject
                                     {step.type === "ACTION" ? "Action" : "Message Template"}
                                 </Text>
                                 {step.type === "ACTION" ? (
-                                    <Select value={step.actionHandlerKey ?? ""}
-                                            onChange={(_, d) => patch({actionHandlerKey: d.value})} size="small">
+                                    <Select
+                                        id={`step-card-action-select-${index}`}
+                                        value={step.actionHandlerKey ?? ""}
+                                        onChange={(_, d) => patch({actionHandlerKey: d.value})}
+                                        size="small"
+                                    >
                                         <option value="">Select action...</option>
                                         {BUILT_IN_ACTION_KEYS.map(k => (
                                             <option key={k} value={k}>{formatTriggerName(k)}</option>
                                         ))}
                                     </Select>
                                 ) : (
-                                    <div style={{display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap'}}>
+                                    <div className={styles.notificationRow}>
                                         <Button
+                                            id={`step-card-pick-communication-btn-${index}`}
                                             size="small"
                                             appearance="secondary"
                                             shape="circular"
@@ -552,6 +628,7 @@ const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subject
                                         </Button>
                                         {step.communicationId && (
                                             <Button
+                                                id={`step-card-clear-communication-btn-${index}`}
                                                 size="small"
                                                 appearance="subtle"
                                                 shape="circular"
@@ -561,7 +638,10 @@ const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subject
                                             </Button>
                                         )}
                                         {!step.communicationId && (
-                                            <Text size={200} style={{color: 'var(--colorNeutralForeground3)'}}>
+                                            <Text
+                                                size={200}
+                                                className={styles.notificationHint}
+                                            >
                                                 Leave blank to use the default system notification.
                                             </Text>
                                         )}
@@ -582,21 +662,28 @@ const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subject
                             <>
                                 <div className={styles.field}>
                                     <Text size={200} weight="semibold">SLA (minutes)</Text>
-                                    <Input size="small" type="number" placeholder="No deadline"
-                                           value={step.slaMinutes !== undefined ? String(step.slaMinutes) : ""}
-                                           onChange={(_, d) => patch({slaMinutes: d.value ? parseInt(d.value) : undefined})}/>
+                                    <Input
+                                        id={`step-card-sla-input-${index}`}
+                                        size="small"
+                                        type="number"
+                                        placeholder="No deadline"
+                                        value={step.slaMinutes !== undefined ? String(step.slaMinutes) : ""}
+                                        onChange={(_, d) => patch({slaMinutes: d.value ? parseInt(d.value) : undefined})}
+                                    />
                                 </div>
 
                                 {step.slaMinutes && (
                                     <div className={styles.field}>
                                         <Text size={200} weight="semibold">When deadline is missed</Text>
                                         <Select
+                                            id={`step-card-escalation-select-${index}`}
                                             value={step.escalation?.afterSlaBreach ?? "AUTO_REJECT"}
                                             onChange={(_, d) => patch({escalation: {
                                                 afterSlaBreach: d.value as EscalationAction,
                                                 escalateTo: step.escalation?.escalateTo ?? [],
                                             }})}
-                                            size="small">
+                                            size="small"
+                                        >
                                             <option value="AUTO_REJECT">Reject automatically</option>
                                             <option value="AUTO_APPROVE">Approve automatically</option>
                                             <option value="ESCALATE">Escalate to someone else</option>
@@ -622,7 +709,10 @@ const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subject
                     {step.type === "WAIT_FOR_COUNTERPARTY_CLEARANCE" && (
                         <>
                             <Divider/>
-                            <Text size={200} style={{color: "var(--colorNeutralForeground3)"}}>
+                            <Text
+                                size={200}
+                                className={styles.waitDescription}
+                            >
                                 Pauses this workflow until all workflows on the other party's side of this exchange have completed.
                             </Text>
                             <div className={styles.outcomeRow}>

@@ -122,7 +122,7 @@ const DocumentLibraryUploadDialog = ({open, entryId, entryTitle, onClose, onUplo
                                 <Text
                                     id="doc-upload-selected-file"
                                     size={200}
-                                    style={{color: 'var(--colorNeutralForeground2)'}}
+                                    className={styles.selectedFileText}
                                 >
                                     Selected: {selectedFile.name}
                                 </Text>
@@ -130,7 +130,7 @@ const DocumentLibraryUploadDialog = ({open, entryId, entryTitle, onClose, onUplo
                             {error && (
                                 <span
                                     id="doc-upload-error"
-                                    style={{color: 'var(--colorPaletteRedForeground1)'}}
+                                    className={styles.errorText}
                                 >
                                     {error}
                                 </span>

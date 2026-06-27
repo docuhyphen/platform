@@ -1,10 +1,12 @@
 ﻿import React, {useEffect} from "react";
 import {useNavigate} from "react-router-dom";
 import {Spinner, Text} from "@fluentui/react-components";
+import {useStepUpStyles} from "./StepUpStyles.tsx";
 
 const StepUpCompletion: React.FC = () =>
 {
     const navigate = useNavigate();
+    const styles = useStepUpStyles();
 
     useEffect(() =>
     {
@@ -15,7 +17,7 @@ const StepUpCompletion: React.FC = () =>
     }, [navigate]);
 
     return (
-        <div style={{display: "flex", flexDirection: "column", gap: 12, alignItems: "center", marginTop: 80}}>
+        <div className={styles.stepUpContainer}>
             <Spinner/>
             <Text>Step-up verification completed. Returning to your session...</Text>
         </div>

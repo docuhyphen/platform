@@ -199,6 +199,7 @@ const NotificationsPanel: React.FC = () =>
             <PopoverTrigger disableButtonEnhancement>
                 <div className={styles.triggerContainer}>
                     <Button
+                        id={"notifications-panel-bell-btn"}
                         icon={<NotificationsIcon/>}
                         appearance="subtle"
                         shape="circular"
@@ -268,7 +269,9 @@ const NotificationsPanel: React.FC = () =>
                                 {notifications.length > 0 && (
                                     <div className={styles.markAllAsRead}>
                                         <Button
+                                            id={"notifications-panel-mark-all-read-btn"}
                                             size="small"
+                                            shape={"circular"}
                                             appearance="primary"
                                             onClick={() => markAllAsRead()}>
                                             Mark all as read
@@ -315,6 +318,7 @@ const NotificationsPanel: React.FC = () =>
                                                             <Text size={200}>Group: {step.groupName}</Text>
                                                         )}
                                                         <Textarea
+                                                            id={`notifications-panel-comment-${step.stepInstanceId}`}
                                                             className={styles.commentField}
                                                             placeholder="Optional comment..."
                                                             size="small"
@@ -323,6 +327,7 @@ const NotificationsPanel: React.FC = () =>
                                                         />
                                                         <div className={styles.actions}>
                                                             <Button
+                                                                id={`notifications-panel-approve-btn-${step.stepInstanceId}`}
                                                                 appearance="primary"
                                                                 size="small"
                                                                 shape="circular"
@@ -337,6 +342,7 @@ const NotificationsPanel: React.FC = () =>
                                                                 )}
                                                             </Button>
                                                             <Button
+                                                                id={`notifications-panel-reject-btn-${step.stepInstanceId}`}
                                                                 appearance="secondary"
                                                                 size="small"
                                                                 shape="circular"

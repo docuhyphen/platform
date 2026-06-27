@@ -5,15 +5,15 @@ import {
     AssigneeKind,
     AssigneeSpecDraft,
     WorkflowSubjectFieldDto,
-} from "../../models/models.tsx";
+} from "../../../models/models.tsx";
 import {useAssigneeBuilderStyles} from "./AssigneeBuilderStyles.tsx";
-import {AddIcon, DeleteIcon} from "../../components/IconBundles.tsx";
-import {useAuth} from "../../../context/AuthContext.tsx";
+import {AddIcon, DeleteIcon} from "../../../components/IconBundles.tsx";
+import {useAuth} from "../../../../context/AuthContext.tsx";
 import {
     fetchOrganizationGroups,
     fetchOrganizationUsers,
     OrganizationGroupBasicDto,
-} from "../../../services/organizationApi.ts";
+} from "../../../../services/organizationApi.ts";
 
 const ORG_ROLES = [
     {value: "ORG_ADMIN", label: "Organization Admin"},
@@ -110,6 +110,7 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
 
                         {/* Kind selector */}
                         <Select
+                            id={`assignee-kind-select-${i}`}
                             className={styles.kindSelect}
                             value={a.kind}
                             onChange={(_, d) => update(i, {kind: d.value as AssigneeKind})}
@@ -123,6 +124,7 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
                         {/* ROLE: scope type + role name select + scope ref */}
                         {a.kind === "ROLE" && (<>
                             <Select
+                                id={`assignee-scope-type-select-${i}`}
                                 value={a.scopeType ?? "ORG"}
                                 onChange={(_, d) => update(i, {scopeType: d.value as "APP" | "ORG", roleName: ""})}
                                 size="small"
@@ -131,6 +133,7 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
                                 <option value="APP">Platform-wide</option>
                             </Select>
                             <Select
+                                id={`assignee-role-name-select-${i}`}
                                 className={styles.fieldInput}
                                 value={a.roleName ?? ""}
                                 onChange={(_, d) => update(i, {roleName: d.value})}
@@ -143,6 +146,7 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
                             </Select>
                             {a.scopeType !== "APP" && (
                                 <Select
+                                    id={`assignee-scope-id-ref-select-${i}`}
                                     className={styles.fieldInput}
                                     value={a.scopeIdRef ?? "$subject.orgId"}
                                     onChange={(_, d) => update(i, {scopeIdRef: d.value})}
@@ -158,6 +162,7 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
                         {/* PRINCIPAL: user picker */}
                         {a.kind === "PRINCIPAL" && (
                             <Select
+                                id={`assignee-principal-select-${i}`}
                                 className={styles.fieldInput}
                                 value={a.principalId ?? ""}
                                 onChange={(_, d) => update(i, {principalId: d.value, principalKind: "USER"})}
@@ -173,6 +178,7 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
                         {/* GROUP_ROLE: group picker + role */}
                         {a.kind === "GROUP_ROLE" && (<>
                             <Select
+                                id={`assignee-group-id-select-${i}`}
                                 className={styles.fieldInput}
                                 value={a.groupIdRef ?? ""}
                                 onChange={(_, d) => update(i, {groupIdRef: d.value})}
@@ -184,6 +190,7 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
                                 ))}
                             </Select>
                             <Select
+                                id={`assignee-group-role-select-${i}`}
                                 className={styles.kindSelect}
                                 value={a.groupRole ?? "MANAGER"}
                                 onChange={(_, d) => update(i, {groupRole: d.value})}
@@ -197,8 +204,10 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
 
                     </div>
                     <Button
+                        id={`assignee-remove-btn-${i}`}
                         size="small"
                         appearance="subtle"
+                        shape={"circular"}
                         icon={<DeleteIcon/>}
                         onClick={() => remove(i)}
                         aria-label="Remove assignee"

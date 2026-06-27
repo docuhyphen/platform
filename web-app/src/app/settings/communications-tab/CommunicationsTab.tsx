@@ -11,7 +11,6 @@ import {
     Tab,
     TabList,
     Text,
-    tokens,
 } from '@fluentui/react-components';
 import {MoreVerticalRegular} from '@fluentui/react-icons';
 import {
@@ -127,8 +126,8 @@ const CommunicationsTab = () =>
 
     return (
         <>
-            <div style={{display: 'flex', flexDirection: 'column', gap: '16px', width: '100%'}}>
-                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+            <div className={styles.outerContainer}>
+                <div className={styles.headerRow}>
                     <TabList
                         selectedValue={activeTab}
                         onTabSelect={(_, d) =>
@@ -144,8 +143,9 @@ const CommunicationsTab = () =>
 
                     {canCreate && (
                         <Button
+                            id={"button-create-communication"}
                             appearance="subtle"
-                            shape="circular"
+                            shape={"circular"}
                             icon={<AddIcon/>}
                             onClick={openCreate}
                         >
@@ -156,46 +156,32 @@ const CommunicationsTab = () =>
 
                 {loading && <Spinner size="small" label="Loading communications…"/>}
                 {!loading && error && (
-                    <Text style={{color: 'var(--colorPaletteRedForeground1)'}}>{error}</Text>
+                    <Text className={styles.errorText}>{error}</Text>
                 )}
                 {!loading && !error && communications.length === 0 && (
-                    <Text style={{color: 'var(--colorNeutralForeground3)'}}>{emptyMessage[activeTab]}</Text>
+                    <Text className={styles.emptyText}>{emptyMessage[activeTab]}</Text>
                 )}
                 {!loading && !error && communications.length > 0 && (
                     <div className={styles.cardGrid}>
                         {communications.map(t => (
                             <div
                                 key={t.id}
-                                style={{
-                                    border: '1px solid var(--colorNeutralStroke1)',
-                                    borderRadius: tokens.borderRadiusXLarge,
-                                    padding: '12px 16px',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'flex-start',
-                                    gap: '8px',
-                                }}
+                                className={styles.commCard}
                             >
-                                <div style={{display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0}}>
+                                <div className={styles.commCardContent}>
                                     <Text weight="semibold" size={400}>{t.name}</Text>
                                     {t.summary && (
-                                        <Text size={200} style={{color: 'var(--colorNeutralForeground2)'}}>
+                                        <Text size={200} className={styles.summaryText}>
                                             {t.summary}
                                         </Text>
                                     )}
                                     <Text
                                         size={200}
-                                        style={{
-                                            color: 'var(--colorNeutralForeground3)',
-                                            fontStyle: 'italic',
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap',
-                                        }}
+                                        className={styles.subjectText}
                                     >
                                         {t.subject}
                                     </Text>
-                                    <div style={{display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center'}}>
+                                    <div className={styles.badgeRow}>
                                         {activeTab !== 'PERSONAL' && (
                                             <Badge
                                                 appearance="tint"
@@ -221,8 +207,10 @@ const CommunicationsTab = () =>
                                     <Menu>
                                         <MenuTrigger disableButtonEnhancement>
                                             <Button
+                                                id={`button-communication-more-${t.id}`}
                                                 size="small"
                                                 appearance="subtle"
+                                                shape={"circular"}
                                                 icon={<MoreVerticalRegular/>}
                                                 aria-label="More actions"
                                             />

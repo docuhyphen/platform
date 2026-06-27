@@ -140,6 +140,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
 
                         <Field label="First Name" required>
                             <Input
+                                id={"edit-user-first-name-input"}
                                 type="text"
                                 value={firstName}
                                 maxLength={50}
@@ -150,6 +151,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
 
                         <Field label="Last Name" required>
                             <Input
+                                id={"edit-user-last-name-input"}
                                 type="text"
                                 value={lastName}
                                 maxLength={50}
@@ -160,6 +162,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
 
                         <Field label="Role" required>
                             <Dropdown
+                                id={"edit-user-role-dropdown"}
                                 selectedOptions={[role]}
                                 placeholder={AppUserRoleDisplayNames[role as keyof typeof AppUserRoleDisplayNames]}
                                 onOptionSelect={onSelectRole}
@@ -171,6 +174,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
 
                         <Field>
                             <Switch
+                                id={"edit-user-active-switch"}
                                 disabled={user?.role == AppUserRole.ORG_ADMIN}
                                 checked={isActive}
                                 onChange={(_, data) => setIsActive(data.checked)}
@@ -181,6 +185,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
                 </DialogBody>
                 <DialogActions>
                     <Button
+                        id={"edit-user-save-btn"}
                         appearance="primary"
                         shape="circular"
                         disabled={savingData || !isFormValid || !hasChanges}
@@ -192,6 +197,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
                     </Button>
                     <DialogTrigger disableButtonEnhancement>
                         <Button
+                            id={"edit-user-cancel-btn"}
                             appearance="secondary"
                             shape="circular"
                             disabled={savingData}

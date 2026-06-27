@@ -124,7 +124,8 @@ const BasicDetailsEditDialog: React.FC<BasicDetailsEditDialogProps> = (
                     <div className={styles.errorContainer}>{error || " "}</div>
 
                     <Field label={"Your first name"}>
-                        <Input type={"text"}
+                        <Input id={"input-first-name"}
+                               type={"text"}
                                value={firstName}
                                maxLength={30}
                                onChange={(e) => setFirstName(e.target.value)}
@@ -132,7 +133,8 @@ const BasicDetailsEditDialog: React.FC<BasicDetailsEditDialogProps> = (
                     </Field>
 
                     <Field label={"Your last name"}>
-                        <Input type={"text"}
+                        <Input id={"input-last-name"}
+                               type={"text"}
                                value={lastName}
                                maxLength={30}
                                onChange={(e) => setLastName(e.target.value)}
@@ -141,7 +143,8 @@ const BasicDetailsEditDialog: React.FC<BasicDetailsEditDialogProps> = (
                 </DialogContent>
             </DialogBody>
             <DialogActions>
-                <Button appearance="primary"
+                <Button id={"button-update-profile"}
+                        appearance="primary"
                         shape={"circular"}
                         className={globalStyles.buttonWithLoading}
                         disabled={
@@ -153,7 +156,8 @@ const BasicDetailsEditDialog: React.FC<BasicDetailsEditDialogProps> = (
                     {updatingProfile ? "Updating…" : "Update"}
                 </Button>
                 <DialogTrigger disableButtonEnhancement>
-                    <Button appearance="secondary"
+                    <Button id={"button-basic-details-close"}
+                            appearance="secondary"
                             shape={"circular"}
                             disabled={updatingProfile}
                             onClick={onClose}>

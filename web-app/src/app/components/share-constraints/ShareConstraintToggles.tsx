@@ -1,6 +1,7 @@
 ﻿import React from 'react';
 import {Checkbox, Field, InfoLabel, Input, Text} from '@fluentui/react-components';
 import {ShareConstraints} from '../../../services/types/dtos';
+import {useShareConstraintTogglesStyles} from "./ShareConstraintTogglesStyles.tsx";
 
 interface ShareConstraintTogglesProps
 {
@@ -15,16 +16,18 @@ interface ShareConstraintTogglesProps
  */
 const ShareConstraintToggles: React.FC<ShareConstraintTogglesProps> = ({constraints, onChange, disabled}) =>
 {
+    const styles = useShareConstraintTogglesStyles();
     const update = (partial: Partial<ShareConstraints>) =>
     {
         onChange({...constraints, ...partial});
     };
 
     return (
-        <div style={{display: 'flex', flexDirection: 'column', gap: 6}}>
+        <div className={styles.container}>
             <Text weight="semibold" size={200}>Recipient Constraints</Text>
             <Field>
                 <Checkbox
+                    id={"share-constraint-can-download"}
                     label={
                         <InfoLabel info="Override the session's download setting for this recipient. When unchecked, this recipient cannot download any documents regardless of the exchange-level setting.">
                             Can download documents
@@ -37,6 +40,7 @@ const ShareConstraintToggles: React.FC<ShareConstraintTogglesProps> = ({constrai
             </Field>
             <Field>
                 <Checkbox
+                    id={"share-constraint-can-reshare"}
                     label="Can reshare session"
                     checked={constraints.can_reshare !== false}
                     disabled={disabled}
@@ -45,6 +49,7 @@ const ShareConstraintToggles: React.FC<ShareConstraintTogglesProps> = ({constrai
             </Field>
             <Field>
                 <Checkbox
+                    id={"share-constraint-watermark"}
                     label="Apply watermark"
                     checked={!!constraints.watermark}
                     disabled={disabled}
@@ -53,6 +58,7 @@ const ShareConstraintToggles: React.FC<ShareConstraintTogglesProps> = ({constrai
             </Field>
             <Field>
                 <Checkbox
+                    id={"share-constraint-require-mfa"}
                     label="Require MFA"
                     checked={!!constraints.require_mfa}
                     disabled={disabled}
@@ -61,6 +67,7 @@ const ShareConstraintToggles: React.FC<ShareConstraintTogglesProps> = ({constrai
             </Field>
             <Field label="Max views (0 = unlimited)">
                 <Input
+                    id={"share-constraint-max-views"}
                     type="number"
                     size="small"
                     disabled={disabled}

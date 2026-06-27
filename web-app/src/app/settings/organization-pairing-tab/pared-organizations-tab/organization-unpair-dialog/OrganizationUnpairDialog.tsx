@@ -71,8 +71,10 @@ const OrganizationUnpairDialog: React.FC<UnpairOrganizationDialogProps> = (
                 <MessageBarActions
                     containerAction={
                         <Button
+                            id={"button-dismiss-unpair-dialog-error"}
                             onClick={() => setDialogErrorMessage(null)}
                             appearance="transparent"
+                            shape={"circular"}
                             icon={<DismissRegular/>}
                         />
                     }
@@ -99,18 +101,22 @@ const OrganizationUnpairDialog: React.FC<UnpairOrganizationDialogProps> = (
                         </div>
                     </DialogContent>
                     <DialogActions>
-                        <Button appearance="primary"
-                                shape={"circular"}
-                                onClick={onConfirmUnpair}
-                                disabled={loading}>
+                        <Button
+                            id={"button-confirm-unpair"}
+                            appearance="primary"
+                            shape={"circular"}
+                            onClick={onConfirmUnpair}
+                            disabled={loading}>
                             {loading && <Spinner size={"tiny"}/>}
                             Yes, Unpair
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
-                            <Button appearance="secondary"
-                                    shape={"circular"}
-                                    disabled={loading}
-                                    onClick={onDismiss}>
+                            <Button
+                                id={"button-cancel-unpair"}
+                                appearance="secondary"
+                                shape={"circular"}
+                                disabled={loading}
+                                onClick={onDismiss}>
                                 No, Cancel
                             </Button>
                         </DialogTrigger>

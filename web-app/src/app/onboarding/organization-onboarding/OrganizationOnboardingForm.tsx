@@ -136,8 +136,10 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
                 <MessageBarActions
                     containerAction={
                         <Button
+                            id={"org-onboarding-dismiss-error-btn"}
                             onClick={() => setErrorMessage(undefined)}
                             appearance="transparent"
+                            shape={"circular"}
                             icon={<DismissRegular/>}
                         />
                     }
@@ -181,7 +183,8 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
     const renderRegisterButton = () =>
     {
         return (
-            <Button appearance={"primary"}
+            <Button id={"org-onboarding-register-btn"}
+                    appearance={"primary"}
                     shape={"circular"}
                     className={globalStyles.buttonWithLoading}
                     onClick={onRegisterOrganization}>
@@ -206,7 +209,8 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
                         required
                         validationState={"none"}
                         validationMessage={""}>
-                        <Input type="text"
+                        <Input id={"org-onboarding-name-input"}
+                               type="text"
                                maxLength={120}
                                value={organizationName}
                                onChange={onOrganizationNameChange}/>
@@ -217,7 +221,8 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
                         required
                         validationState={"none"}
                         validationMessage={""}>
-                        <Input type="text"
+                        <Input id={"org-onboarding-registration-number-input"}
+                               type="text"
                                maxLength={30}
                                value={registrationNumber}
                                onChange={onRegistrationNumberChange}/>
@@ -227,7 +232,8 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
                         label={"Phone Number"}
                         validationState={"none"}
                         validationMessage={""}>
-                        <Input type="text"
+                        <Input id={"org-onboarding-phone-input"}
+                               type="text"
                                maxLength={30}
                                value={organizationPhone}
                                onChange={onOrganizationPhoneChange}/>
@@ -238,19 +244,22 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
                             label={"Email"}
                             validationState={"none"}
                             validationMessage={""}>
-                            <Input type="text"
+                            <Input id={"org-onboarding-email-input"}
+                                   type="text"
                                    maxLength={120}
                                    value={organizationEmail}
                                    onChange={onOrganizationEmailChange}/>
                         </Field>
-                        <Checkbox label={"Use my account sign in email"}
+                        <Checkbox id={"org-onboarding-use-account-email-checkbox"}
+                                  label={"Use my account sign in email"}
                                   onChange={onUseAppUserEmailCheck}/>
                     </div>
                     {!isOnDialog && renderRegisterButton()}
                     {isOnDialog &&
                         <div className={styles.dialogActions}>
                             {!orgRegistered && renderRegisterButton()}
-                            <Button appearance={"secondary"}
+                            <Button id={"org-onboarding-dialog-cancel-btn"}
+                                    appearance={"secondary"}
                                     shape="circular"
                                     onClick={onCancel}>
                                 {orgRegistered && "Close"}
@@ -265,7 +274,8 @@ const OrganizationOnboardingForm: React.FC<OrganizationOnboardingFormProps> = (
                 <div className={styles.container}>
                     {isOnDialog &&
                         <div className={styles.dialogActions}>
-                            <Button appearance={"secondary"}
+                            <Button id={"org-onboarding-dialog-close-btn"}
+                                    appearance={"secondary"}
                                     shape="circular"
                                     onClick={onCancel}>
                                 {orgRegistered && "Close"}

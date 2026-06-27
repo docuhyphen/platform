@@ -451,4 +451,44 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
     previewEmptySubText: {
         color: tokens.colorNeutralForeground2,
     },
+
+    previewErrorContainer: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "12px",
+        padding: "32px",
+        textAlign: "center",
+    },
+
+    dividerFullHeight: {
+        height: "100%",
+    },
+
+    watermarkOverlay: {
+        position: "absolute",
+        inset: 0,
+        pointerEvents: "none",
+        overflow: "hidden",
+        zIndex: 5,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        userSelect: "none",
+    },
+
+    watermarkText: {
+        transform: "rotate(-30deg)",
+        opacity: "0.15",
+        fontSize: "4rem",
+        fontWeight: 700,
+        color: "#000",
+        whiteSpace: "nowrap",
+        letterSpacing: "0.2em",
+    },
+
+    pdfRelativeWrapper: {
+        position: "relative",
+    },
 });

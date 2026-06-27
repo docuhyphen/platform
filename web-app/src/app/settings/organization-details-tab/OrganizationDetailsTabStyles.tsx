@@ -32,5 +32,29 @@ export const useOrganizationTabStyles = makeStyles({
 
     mainDivider: {
         width: "300px"
+    },
+
+    loadingWrapper: {
+        display: "flex",
+        justifyContent: "center",
+        padding: "20px"
+    },
+
+    errorMessage: {
+        color: tokens.colorStatusDangerForeground1,
+        padding: "10px",
+        marginBottom: "10px"
+    },
+
+    orgNameSection: {
+        marginBottom: "20px"
+    },
+
+    registrationRow: {
+        marginTop: "5px"
+    },
+
+    pendingInfoRow: {
+        marginTop: "8px"
     }
 });

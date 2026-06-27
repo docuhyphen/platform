@@ -3,6 +3,7 @@ import {AppUserDetailedDto} from "../../../models/models.tsx";
 import {Button, Combobox, ComboboxProps, Divider, Field, Option, Spinner} from "@fluentui/react-components";
 import {Dismiss12Regular} from "@fluentui/react-icons";
 import {useAuth} from "../../../../context/AuthContext.tsx";
+import {useExchangeInitiationRecipientsTabStyles} from "./ExchangeInitiationRecipientsTabStyles.tsx";
 
 const MyOrgRecipients: React.FC<{
     orgUsers: AppUserDetailedDto[];
@@ -19,6 +20,7 @@ const MyOrgRecipients: React.FC<{
       }) =>
 {
     const {appUser} = useAuth();
+    const styles = useExchangeInitiationRecipientsTabStyles();
     const [internalRecipientsInputValue, setInternalRecipientsInputValue] = useState<string>("");
 
     const comboId = "recipients-combo";
@@ -99,15 +101,7 @@ const MyOrgRecipients: React.FC<{
                             <ul
                                 id={selectedListId}
                                 ref={selectedListRef}
-                                style={{
-                                    listStyleType: "none",
-                                    marginBottom: "4px",
-                                    marginTop: 0,
-                                    paddingLeft: 0,
-                                    display: "flex",
-                                    gap: "4px",
-                                    flexWrap: "wrap"
-                                }}>
+                                className={styles.myOrgSelectedList}>
                                 <span id={`${comboId}-remove`} hidden>
                                     Remove
                                 </span>
@@ -129,6 +123,7 @@ const MyOrgRecipients: React.FC<{
                             </ul>
                         )}
                         <Combobox
+                            id={"my-org-recipients-combobox"}
                             multiselect={true}
                             placeholder="Select additional participants"
                             value={internalRecipientsInputValue}

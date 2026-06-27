@@ -288,6 +288,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
 
                         <Field label="Phone number">
                             <Input
+                                id={"phone-management-phone-input"}
                                 type="text"
                                 maxLength={16}
                                 value={phoneNumber || ''}
@@ -300,6 +301,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
                         {addOrEditInitiated && (
                             <Field label="Verification code">
                                 <Input
+                                    id={"phone-management-verification-input"}
                                     type="text"
                                     value={verificationCode}
                                     maxLength={8}
@@ -312,6 +314,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
                 </DialogBody>
                 <DialogActions>
                     <Button
+                        id={"phone-management-submit-btn"}
                         appearance="primary"
                         shape="circular"
                         className={globalStyles.buttonWithLoading}
@@ -323,6 +326,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
                     </Button>
                     <DialogTrigger disableButtonEnhancement>
                         <Button
+                            id={"phone-management-cancel-btn"}
                             appearance="secondary"
                             shape="circular"
                             disabled={processing}

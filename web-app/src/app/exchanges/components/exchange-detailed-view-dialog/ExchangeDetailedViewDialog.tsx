@@ -161,10 +161,10 @@ const ExchangeDetailedViewDialog: React.FC<ExchangeDetailedViewDialogProps> = (
                                 <Text>{exchange.recipient ? formatParticipant(exchange.recipient) : exchange.recipientGroupName ? `${exchange.recipientGroupName} (Group)` : "Not provided"}</Text>
                             </div>
                             {(exchange.participants ?? []).length > 0 && (
-                                <div style={{marginTop: '8px'}}>
-                                    <Text size={200} style={{display: 'block', marginBottom: '4px'}}>Additional participants</Text>
+                                <div className={styles.additionalParticipantsContainer}>
+                                    <Text size={200} className={styles.additionalParticipantsLabel}>Additional participants</Text>
                                     {(exchange.participants ?? []).map((p) => (
-                                        <div key={p.id} className={styles.keyValueGrid} style={{marginBottom: '2px'}}>
+                                        <div key={p.id} className={`${styles.keyValueGrid} ${styles.participantRow}`}>
                                             <Text className={styles.keyLabel}>{p.participantType === 'GROUP' ? 'Group' : 'User'}</Text>
                                             <Text>{p.organizationGroupName ?? ([p.appUserFirstName, p.appUserLastName].filter(Boolean).join(' ') || p.appUserEmail || 'Unknown')}</Text>
                                         </div>
@@ -225,9 +225,11 @@ const ExchangeDetailedViewDialog: React.FC<ExchangeDetailedViewDialogProps> = (
                     </DialogContent>
                     <DialogActions>
 
-                        <Button appearance="primary"
-                                onClick={onDismiss}
-                                shape={"circular"}>
+                        <Button
+                            id={"exchange-detailed-view-close-btn"}
+                            appearance="primary"
+                            onClick={onDismiss}
+                            shape={"circular"}>
                             Close
                         </Button>
                     </DialogActions>

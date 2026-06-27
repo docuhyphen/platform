@@ -390,6 +390,7 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
                                                 <div className={styles.switchGroup}>
                                                     <Field>
                                                         <Switch
+                                                            id={"switch-allow-document-addition"}
                                                             label="Allow document additions"
                                                             checked={allowDocumentAddition}
                                                             onChange={handleCheckboxChange(setAllowDocumentAddition)}
@@ -397,6 +398,7 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
                                                     </Field>
                                                     <Field>
                                                         <Switch
+                                                            id={"switch-allow-document-deletion"}
                                                             label="Allow document deletions"
                                                             checked={allowDocumentDeletion}
                                                             onChange={handleCheckboxChange(setAllowDocumentDeletion)}
@@ -404,6 +406,7 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
                                                     </Field>
                                                     <Field>
                                                         <Switch
+                                                            id={"switch-allow-document-download"}
                                                             label="Allow document download"
                                                             checked={allowDocumentDownload}
                                                             onChange={handleCheckboxChange(setAllowDocumentDownload)}
@@ -417,6 +420,7 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
                                                     )}
                                                     <Field>
                                                         <Switch
+                                                            id={"switch-allow-document-update"}
                                                             label="Allow document update"
                                                             checked={allowDocumentUpdate}
                                                             onChange={handleCheckboxChange(setAllowDocumentUpdate)}
@@ -424,6 +428,7 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
                                                     </Field>
                                                     <Field>
                                                         <Switch
+                                                            id={"switch-allow-document-upload"}
                                                             label="Allow document upload"
                                                             checked={allowDocumentUpload}
                                                             onChange={handleCheckboxChange(setAllowDocumentUpload)}
@@ -442,16 +447,20 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
                                     <div className={styles.requireSignInField}>
                                         <Field>
                                             <Switch
+                                                id={"switch-require-recipient-sign-in"}
                                                 label="Require recipient sign in"
                                                 checked={requireRecipientSignIn}
                                                 onChange={handleCheckboxChange(setRequireRecipientSignIn)}
                                             />
                                         </Field>
-                                        <Button icon={<RegenerateOTPIcon/>}
-                                                className={globalStyles.buttonWithLoading}
-                                                appearance={"transparent"}
-                                                disabled={requireRecipientSignIn || sendingAccessCode || resendCooldownRemaining > 0}
-                                                onClick={onSendAccessCode}>
+                                        <Button
+                                            id={"access-mgmt-send-access-code-btn"}
+                                            icon={<RegenerateOTPIcon/>}
+                                            className={globalStyles.buttonWithLoading}
+                                            appearance={"transparent"}
+                                            shape={"circular"}
+                                            disabled={requireRecipientSignIn || sendingAccessCode || resendCooldownRemaining > 0}
+                                            onClick={onSendAccessCode}>
                                             {sendingAccessCode && <Spinner size={"tiny"}/>}
                                             {resendCooldownRemaining > 0
                                                 ? `Resend access code (${resendCooldownRemaining}s)`
@@ -463,6 +472,7 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
                                     {!requireRecipientSignIn && (
                                         <Field label="No-auth access expires after (days)">
                                             <Input
+                                                id={"input-noauth-access-validity-days"}
                                                 type="number"
                                                 min={1}
                                                 max={30}
@@ -503,17 +513,21 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
                     </DialogActions>
                     <DialogActions>
                         <>
-                            <Button appearance="primary"
-                                    className={globalStyles.buttonWithLoading}
-                                    shape={"circular"}
-                                    onClick={onUpdate}>
+                            <Button
+                                id={"access-mgmt-save-btn"}
+                                appearance="primary"
+                                className={globalStyles.buttonWithLoading}
+                                shape={"circular"}
+                                onClick={onUpdate}>
                                 {updatingExchange && <Spinner size={"tiny"}/>}
                                 Save changes
                             </Button>
-                            <Button appearance="secondary"
-                                    shape={"circular"}
-                                    disabled={updatingExchange}
-                                    onClick={onDismiss}>
+                            <Button
+                                id={"access-mgmt-cancel-btn"}
+                                appearance="secondary"
+                                shape={"circular"}
+                                disabled={updatingExchange}
+                                onClick={onDismiss}>
                                 Cancel
                             </Button>
                         </>

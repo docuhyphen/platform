@@ -18,21 +18,20 @@ import {
     Text,
     Textarea,
     Tooltip,
-    tokens,
 } from "@fluentui/react-components";
-import {WorkflowDesignerState, WorkflowStepSpecDraft, WorkflowTriggerEventDto} from "../../models/models.tsx";
+import {WorkflowDesignerState, WorkflowStepSpecDraft, WorkflowTriggerEventDto} from "../../../models/models.tsx";
 import {
     createWorkflowDefinition,
     getWorkflowDefinition,
     listWorkflowTriggers,
     updateWorkflowDefinition,
-} from "../../../services/workflowService.ts";
+} from "../../../../services/workflowService.ts";
 import {useWorkflowDesignerStyles} from "./WorkflowDesignerStyles.tsx";
-import {AddIcon, BackIcon, InfoIcon} from "../../components/IconBundles.tsx";
-import {useHelpSidebar} from "../../../context/HelpSidebarContext.tsx";
-import StepCard from "./StepCard.tsx";
-import {formatTriggerName} from "./workflowUtils.ts";
-import SaveWorkflowDialog from "./SaveWorkflowDialog.tsx";
+import {AddIcon, BackIcon, InfoIcon} from "../../../components/IconBundles.tsx";
+import {useHelpSidebar} from "../../../../context/HelpSidebarContext.tsx";
+import StepCard from "../step-card/StepCard.tsx";
+import {formatTriggerName} from "../workflowUtils.ts";
+import SaveWorkflowDialog from "../save-workflow-dialog/SaveWorkflowDialog.tsx";
 
 interface Props
 {
@@ -188,21 +187,27 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
     return (
         <div className={styles.container}>
             <div className={styles.topBar}>
-                <Button appearance="subtle"
-                        icon={<BackIcon/>}
-                        shape={"circular"}
-                        onClick={() => isDirty() ? setShowDiscardDialog(true) : onBack()}>
+                <Button
+                    id="workflow-designer-back-btn"
+                    appearance="subtle"
+                    icon={<BackIcon/>}
+                    shape={"circular"}
+                    onClick={() => isDirty() ? setShowDiscardDialog(true) : onBack()}
+                >
                     Back
                 </Button>
                 <Text size={500} weight="semibold">{definitionId ? "Edit Workflow" : "New Workflow"}</Text>
                 <Tooltip content="Workflow help" relationship="label">
-                    <Button appearance="subtle"
-                            shape="circular"
-                            size="small"
-                            icon={<InfoIcon/>}
-                            style={{marginLeft: "auto"}}
-                            onClick={() => openHelpArticle("building-a-workflow")}
-                            aria-label="Open workflow help"/>
+                    <Button
+                        id="workflow-designer-help-btn"
+                        appearance="subtle"
+                        shape="circular"
+                        size="small"
+                        icon={<InfoIcon/>}
+                        className={styles.helpButton}
+                        onClick={() => openHelpArticle("building-a-workflow")}
+                        aria-label="Open workflow help"
+                    />
                 </Tooltip>
             </div>
 
@@ -215,19 +220,30 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
             <div className={styles.formGrid}>
                 <div className={styles.formField}>
                     <Text size={200} weight="semibold">Name *</Text>
-                    <Input value={state.name} onChange={(_, d) => patch({name: d.value})} placeholder="Workflow name"/>
+                    <Input
+                        id="workflow-designer-name-input"
+                        value={state.name}
+                        onChange={(_, d) => patch({name: d.value})}
+                        placeholder="Workflow name"
+                    />
                 </div>
 
                 <div className={styles.formField}>
                     <Text size={200} weight="semibold">Trigger Event *</Text>
                     {triggersError ? (
-                        <Text size={200} style={{color: tokens.colorStatusDangerForeground1}}>
+                        <Text
+                            size={200}
+                            className={styles.triggerError}
+                        >
                             {triggersError}
                         </Text>
                     ) : (
-                        <Select value={state.triggerEvent}
-                                onChange={(_, d) => patch({triggerEvent: d.value})}
-                                disabled={!!definitionId}>
+                        <Select
+                            id="workflow-designer-trigger-select"
+                            value={state.triggerEvent}
+                            onChange={(_, d) => patch({triggerEvent: d.value})}
+                            disabled={!!definitionId}
+                        >
                             <option value="">When does this workflow run?</option>
                             {triggers.filter(t => t.isActive).map(t => (
                                 <option key={t.eventName} value={t.eventName}>
@@ -237,7 +253,10 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
                         </Select>
                     )}
                     {selectedTrigger?.description && (
-                        <Text size={200} style={{color: "var(--colorNeutralForeground3)"}}>
+                        <Text
+                            size={200}
+                            className={styles.triggerDescription}
+                        >
                             {selectedTrigger.description}
                         </Text>
                     )}
@@ -246,6 +265,7 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
                 <div className={`${styles.formField} ${styles.fullWidth}`}>
                     <Text size={200} weight="semibold">Summary</Text>
                     <Textarea
+                        id="workflow-designer-summary-textarea"
                         value={state.summary}
                         onChange={(_, d) => patch({summary: d.value})}
                         placeholder="Brief description of what this workflow does"
@@ -264,15 +284,17 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
                                  onClick={() => removeTag(tag)}>{tag}</Tag>
                         ))}
                         <Input
+                            id="workflow-designer-tag-input"
                             size="small"
                             appearance="underline"
                             placeholder="Add tag, press Enter"
                             value={tagInput}
                             onChange={(_, d) => setTagInput(d.value)}
                             onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
-                            style={{border: "none", flexGrow: 1, minWidth: "8rem"}}
+                            className={styles.tagInputField}
                         />
                         <Button
+                            id="workflow-designer-add-tag-btn"
                             shape="circular"
                             appearance="subtle"
                             size={"medium"}
@@ -284,6 +306,7 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
 
                 <div className={styles.formField}>
                     <Switch
+                        id="workflow-designer-active-switch"
                         label="Active"
                         checked={state.isActive}
                         onChange={(_, d) => patch({isActive: d.checked})}
@@ -294,11 +317,14 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
             <div className={styles.stepList}>
                 <div className={styles.stepListHeader}>
                     <Text weight="semibold">Steps ({state.steps.length})</Text>
-                    <Button size="small"
-                            appearance="secondary"
-                            shape={"circular"}
-                            icon={<AddIcon/>}
-                            onClick={() => patch({steps: [...state.steps, defaultStep()]})}>
+                    <Button
+                        id="workflow-designer-add-step-btn"
+                        size="small"
+                        appearance="secondary"
+                        shape={"circular"}
+                        icon={<AddIcon/>}
+                        onClick={() => patch({steps: [...state.steps, defaultStep()]})}
+                    >
                         Add Step
                     </Button>
                 </div>
@@ -317,7 +343,7 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
                 ))}
 
                 {state.steps.length === 0 && (
-                    <Text style={{color: "var(--colorNeutralForeground3)"}}>
+                    <Text className={styles.noStepsText}>
                         No steps yet. Add a step to define the workflow logic.
                     </Text>
                 )}
@@ -329,14 +355,20 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
                 {/*        Warning: one or more steps use hardcoded Principal UUIDs. These are not portable across organizations.*/}
                 {/*    </Text>*/}
                 {/*)}*/}
-                <Button appearance="secondary"
-                        shape={"circular"}
-                        onClick={() => isDirty() ? setShowDiscardDialog(true) : onBack()}>
+                <Button
+                    id="workflow-designer-cancel-btn"
+                    appearance="secondary"
+                    shape={"circular"}
+                    onClick={() => isDirty() ? setShowDiscardDialog(true) : onBack()}
+                >
                     Cancel
                 </Button>
-                <Button appearance="primary"
-                        shape={"circular"}
-                        onClick={requestSave}>
+                <Button
+                    id="workflow-designer-save-btn"
+                    appearance="primary"
+                    shape={"circular"}
+                    onClick={requestSave}
+                >
                     Save Workflow
                 </Button>
             </div>
@@ -358,10 +390,20 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
                             You have unsaved changes. If you leave now they will be lost.
                         </DialogContent>
                         <DialogActions>
-                            <Button appearance="secondary" onClick={() => setShowDiscardDialog(false)}>
+                            <Button
+                                id="workflow-designer-keep-editing-btn"
+                                appearance="secondary"
+                                shape={"circular"}
+                                onClick={() => setShowDiscardDialog(false)}
+                            >
                                 Keep editing
                             </Button>
-                            <Button appearance="primary" onClick={onBack}>
+                            <Button
+                                id="workflow-designer-discard-btn"
+                                appearance="primary"
+                                shape={"circular"}
+                                onClick={onBack}
+                            >
                                 Discard changes
                             </Button>
                         </DialogActions>

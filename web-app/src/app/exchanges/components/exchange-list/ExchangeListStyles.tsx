@@ -303,6 +303,16 @@ const useExchangeStyles = makeStyles({
     tabsContainer: {
         borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
     },
+
+    inboxRoleTabList: {
+        width: "100%",
+    },
+
+    tabContentFlex: {
+        display: "flex",
+        alignItems: "center",
+        gap: "4px",
+    },
 });
 
 export {useExchangeStyles};

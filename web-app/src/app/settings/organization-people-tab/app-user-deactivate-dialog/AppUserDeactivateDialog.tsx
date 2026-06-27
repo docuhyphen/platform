@@ -171,8 +171,10 @@ const AppUserDeactivateDialog: React.FC<AppUserDeactivateDialogProps> = (
                 <MessageBarActions
                     containerAction={
                         <Button
+                            id={"deactivate-dialog-dismiss-error-btn"}
                             onClick={() => setDialogErrorMessage(null)}
                             appearance="transparent"
+                            shape={"circular"}
                             icon={<DismissRegular/>}
                         />
                     }
@@ -195,18 +197,22 @@ const AppUserDeactivateDialog: React.FC<AppUserDeactivateDialogProps> = (
                                 "Are you sure you want to deactivate this user?"}
                     </DialogContent>
                     <DialogActions>
-                        <Button appearance="primary"
-                                className={globalStyles.buttonWithLoading}
-                                shape={"circular"}
-                                onClick={() => onDelete()}>
+                        <Button
+                            id={"deactivate-dialog-confirm-btn"}
+                            appearance="primary"
+                            className={globalStyles.buttonWithLoading}
+                            shape={"circular"}
+                            onClick={() => onDelete()}>
                             {(deactivating || deleting) && <Spinner size={"tiny"}/>}
                             {canBeDeleted ? "Yes, delete" : "Yes, deactivate"}
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
-                            <Button appearance="secondary"
-                                    shape={"circular"}
-                                    disabled={deactivating || deleting}
-                                    onClick={onDismiss}>
+                            <Button
+                                id={"deactivate-dialog-cancel-btn"}
+                                appearance="secondary"
+                                shape={"circular"}
+                                disabled={deactivating || deleting}
+                                onClick={onDismiss}>
                                 No, Cancel
                             </Button>
                         </DialogTrigger>

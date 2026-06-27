@@ -3,6 +3,7 @@ import {Combobox, Field, Option, Spinner, Text} from '@fluentui/react-components
 import {fetchPersonalGroups} from '../../../../../services/meGroupsApi';
 import {PrincipalGroupDto} from '../../../../../services/types/dtos';
 import {OrganizationGroupBasicDto} from '../../../../../services/organizationApi';
+import {useExchangeInitiationRecipientsTabStyles} from '../ExchangeInitiationRecipientsTabStyles.tsx';
 
 interface MyGroupsRecipientsProps
 {
@@ -17,6 +18,7 @@ interface MyGroupsRecipientsProps
  */
 const MyGroupsRecipients: React.FC<MyGroupsRecipientsProps> = ({recipientOrgGroup, setRecipientOrgGroup}) =>
 {
+    const styles = useExchangeInitiationRecipientsTabStyles();
     const [groups, setGroups] = useState<PrincipalGroupDto[]>([]);
     const [loading, setLoading] = useState(true);
     const [query, setQuery] = useState<string>('');
@@ -79,6 +81,7 @@ const MyGroupsRecipients: React.FC<MyGroupsRecipientsProps> = ({recipientOrgGrou
     return (
         <Field label="Select a personal group">
             <Combobox
+                id={"my-groups-recipient-combobox"}
                 placeholder="Choose a group..."
                 value={query}
                 onChange={e => setQuery(e.target.value)}
@@ -100,7 +103,7 @@ const MyGroupsRecipients: React.FC<MyGroupsRecipientsProps> = ({recipientOrgGrou
             >
                 {activeGroups.map(g => (
                     <Option key={g.id} value={g.id} text={g.name}>
-                        <div style={{display: 'flex', flexDirection: 'column', gap: 2}}>
+                        <div className={styles.myGroupsOptionContent}>
                             <Text weight="semibold">{g.name}</Text>
                             {g.description && <Text size={200}>{g.description}</Text>}
                             <Text size={200}>{g.members.filter(m => m.groupRole !== 'OWNER').length} member{g.members.filter(m => m.groupRole !== 'OWNER').length !== 1 ? 's' : ''}</Text>

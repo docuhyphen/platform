@@ -122,6 +122,7 @@ const OrganizationDetailsEditDialog: React.FC<OrganizationDetailsEditDialogProps
 
                         <Field label="Organization Name">
                             <Input
+                                id={"input-org-name"}
                                 type="text"
                                 value={organizationName}
                                 maxLength={120}
@@ -132,6 +133,7 @@ const OrganizationDetailsEditDialog: React.FC<OrganizationDetailsEditDialogProps
 
                         <Field label="Registration Number">
                             <Input
+                                id={"input-reg-number"}
                                 type="text"
                                 value={registrationNumber}
                                 maxLength={30}
@@ -143,6 +145,7 @@ const OrganizationDetailsEditDialog: React.FC<OrganizationDetailsEditDialogProps
                 </DialogBody>
                 <DialogActions>
                     <Button
+                        id={"button-update-org"}
                         appearance="primary"
                         shape="circular"
                         className={globalStyles.buttonWithLoading}
@@ -154,6 +157,7 @@ const OrganizationDetailsEditDialog: React.FC<OrganizationDetailsEditDialogProps
                     </Button>
                     <DialogTrigger disableButtonEnhancement>
                         <Button
+                            id={"button-close-org-edit"}
                             appearance="secondary"
                             shape="circular"
                             disabled={savingData}

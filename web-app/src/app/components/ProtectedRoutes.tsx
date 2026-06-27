@@ -1,35 +1,15 @@
 import React from 'react';
 import {Navigate} from 'react-router-dom';
-import {makeStyles} from "@fluentui/react-components";
 import {useAuth} from '../../context/AuthContext';
 import MainMenu from "./MainMenu.tsx";
 import AuthBootstrapSplash from "./AuthBootstrapSplash.tsx";
 import HelpDocumentationSidebar from "./help-docs/HelpDocumentationSidebar.tsx";
 import {HelpSidebarContext} from "../../context/HelpSidebarContext.tsx";
-
-const useStyles = makeStyles({
-    appLayout: {
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        flexDirection: "row",
-        overflow: "hidden",
-    },
-    appPane: {
-        flex: 1,
-        minWidth: 0,
-        height: "100%",
-        position: "relative",
-        transform: "translateZ(0)",
-    },
-    pageContent: {
-        height: "100%",
-    },
-});
+import {useProtectedRoutesStyles} from "./ProtectedRoutesStyles.tsx";
 
 const ProtectedRoute: React.FC<{ element: React.ReactElement, path: string }> = ({element, path}) =>
 {
-    const styles = useStyles();
+    const styles = useProtectedRoutesStyles();
     const {token, isBootstrapping} = useAuth();
     const [isHelpSidebarOpen, setIsHelpSidebarOpen] = React.useState(false);
     const [requestedArticleId, setRequestedArticleId] = React.useState<string | undefined>();

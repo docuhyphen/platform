@@ -7,8 +7,6 @@ import {
     Button,
     Portal,
     Text,
-    makeStyles,
-    tokens,
 } from "@fluentui/react-components";
 import {
     ArrowLeftRegular,
@@ -21,150 +19,11 @@ import {
     getHelpDocArticleById,
     getHelpDocSections,
 } from "./helpDocsRegistry.tsx";
+import {useHelpDocumentationSidebarStyles} from "./HelpDocumentationSidebarStyles.tsx";
 
 const DEFAULT_PANEL_WIDTH = 400;
 const MIN_PANEL_WIDTH = 320;
 const WINDOW_PADDING = 80;
-
-const useStyles = makeStyles({
-    spacer: {
-        flexShrink: 0,
-        height: "100%",
-    },
-    panel: {
-        position: "fixed",
-        top: "0",
-        right: "0",
-        height: "100vh",
-        zIndex: 1000010,
-        backgroundColor: tokens.colorNeutralBackground1,
-        borderLeft: `1px solid ${tokens.colorNeutralStroke2}`,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-    },
-    resizeHandle: {
-        position: "absolute",
-        left: 0,
-        top: 0,
-        bottom: 0,
-        width: "16px",
-        cursor: "col-resize",
-        zIndex: 2,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        ":hover > span": {
-            color: tokens.colorBrandForeground1,
-            backgroundColor: tokens.colorNeutralBackground1Hover,
-        },
-    },
-    resizeGrip: {
-        position: "absolute",
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "16px",
-        height: "32px",
-        borderRadius: tokens.borderRadiusMedium,
-        backgroundColor: tokens.colorNeutralBackground3,
-        border: `1px solid ${tokens.colorNeutralStroke2}`,
-        color: tokens.colorNeutralForeground3,
-        cursor: "col-resize",
-        pointerEvents: "none",
-        transition: "color 0.15s, background-color 0.15s",
-        boxShadow: tokens.shadow2,
-    },
-    header: {
-        position: "sticky",
-        top: 0,
-        zIndex: 1,
-        backgroundColor: tokens.colorNeutralBackground1,
-        borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-        padding: "12px 16px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "8px",
-    },
-    breadcrumbRow: {
-        display: "flex",
-        flexWrap: "wrap",
-        gap: "6px",
-        color: tokens.colorNeutralForeground3,
-    },
-    crumbSeparator: {
-        color: tokens.colorNeutralForeground4,
-    },
-    titleRow: {
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: "8px",
-    },
-    titleText: {
-        fontWeight: tokens.fontWeightSemibold,
-        flex: 1,
-        minWidth: 0,
-    },
-    headerActions: {
-        display: "flex",
-        alignItems: "center",
-        gap: "2px",
-        flexShrink: 0,
-    },
-    content: {
-        flex: 1,
-        overflowY: "auto",
-        padding: "1.8rem",
-        color: tokens.colorNeutralForeground2,
-        lineHeight: tokens.lineHeightBase300,
-        fontSize: tokens.fontSizeBase300,
-        "& p": {
-            margin: "0 0 12px",
-        },
-        "& ul, & ol": {
-            margin: "0 0 12px",
-            paddingLeft: "18px",
-        },
-        "& li": {
-            marginBottom: "6px",
-        },
-        "& a[data-help-article]": {
-            color: tokens.colorBrandForeground1,
-            textDecorationLine: "underline",
-            cursor: "pointer",
-        },
-    },
-    nav: {
-        flex: 1,
-        overflowY: "auto",
-        display: "flex",
-        flexDirection: "column",
-    },
-    navArticleItem: {
-        display: "block",
-        width: "100%",
-        textAlign: "left",
-        padding: "6px 16px 6px 32px",
-        border: "none",
-        background: "none",
-        cursor: "pointer",
-        fontSize: tokens.fontSizeBase300,
-        color: tokens.colorNeutralForeground2,
-        lineHeight: tokens.lineHeightBase300,
-        ":hover": {
-            backgroundColor: tokens.colorNeutralBackground1Hover,
-            color: tokens.colorNeutralForeground1,
-        },
-    },
-    navArticleItemActive: {
-        color: tokens.colorBrandForeground1,
-        fontWeight: tokens.fontWeightSemibold,
-    },
-});
 
 function clampPanelWidth(width: number): number
 {
@@ -180,7 +39,7 @@ type HelpDocumentationSidebarProps = {
 
 const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOpen, onOpenChange, requestedArticleId}) =>
 {
-    const styles = useStyles();
+    const styles = useHelpDocumentationSidebarStyles();
     const sections = useMemo(() => getHelpDocSections(), []);
     const [activeArticleId, setActiveArticleId] = useState(getDefaultHelpDocArticle().id);
     const [showNav, setShowNav] = useState(false);
@@ -298,6 +157,7 @@ const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOp
                     </Text>
                     <div className={styles.headerActions}>
                         <Button
+                            id={"help-nav-toggle-btn"}
                             appearance="subtle"
                             shape="circular"
                             icon={showNav ? <ArrowLeftRegular/> : <Navigation24Regular/>}
@@ -305,6 +165,7 @@ const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOp
                             onClick={handleNavToggle}
                         />
                         <Button
+                            id={"help-close-btn"}
                             appearance="subtle"
                             shape="circular"
                             icon={<DismissFilled/>}
@@ -328,7 +189,7 @@ const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOp
                             <AccordionItem key={section.id} value={section.id}>
                                 <AccordionHeader>{section.title}</AccordionHeader>
                                 <AccordionPanel>
-                                    <div style={{display: 'flex', flexDirection: 'column', paddingBottom: '4px'}}>
+                                    <div className={styles.navArticleList}>
                                         {section.articles.map(article => (
                                             <button
                                                 key={article.id}

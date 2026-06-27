@@ -18,6 +18,7 @@ import NewRecipient from "../new-recipient/NewRecipient";
 import {fetchMyOrganizationUsers} from "../../../../../services/organizationApi";
 import MyOrgRecipients from "../MyOrgRecipients.tsx";
 import {useAuth} from "../../../../../context/AuthContext.tsx";
+import {useExchangeInitiationRecipientsTabStyles} from "../ExchangeInitiationRecipientsTabStyles.tsx";
 
 interface PeopleRecipientsProps
 {
@@ -69,6 +70,7 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
     }) =>
 {
     const {appUser, appUserPersonOrganization} = useAuth();
+    const styles = useExchangeInitiationRecipientsTabStyles();
     const [query, setQuery] = useState<string>('');
     const [recents, setRecents] = useState<UserContactDto[]>([]);
     const [results, setResults] = useState<UserContactDto[]>([]);
@@ -335,13 +337,15 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
             );
         }
         return (
-            <div style={{display: 'flex', flexWrap: 'wrap', gap: '8px'}}>
+            <div className={styles.recentContactsRow}>
                 {visibleRecents.map(c => (
-                    <Button key={c.email}
-                            size="small"
-                            shape="circular"
-                            appearance={recipientOrgUser?.email === c.email || newRecipient?.email === c.email ? 'primary' : 'outline'}
-                            onClick={() => selectContact(c)}>
+                    <Button
+                        key={c.email}
+                        id={`recent-contact-btn-${c.email}`}
+                        size="small"
+                        shape="circular"
+                        appearance={recipientOrgUser?.email === c.email || newRecipient?.email === c.email ? 'primary' : 'outline'}
+                        onClick={() => selectContact(c)}>
                         {[c.firstName, c.lastName].filter(Boolean).join(' ') || c.email}
                     </Button>
                 ))}
@@ -357,6 +361,7 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
 
             <Field label="Find a person or type an email">
                 <Combobox
+                    id={"people-recipients-combobox"}
                     placeholder="Type a name or email"
                     value={query}
                     onChange={onComboboxChange}
@@ -374,7 +379,7 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
                             <span>
                                 {formatDisplayName(r)}
                                 {r.shareCount > 1 &&
-                                    <Badge size="small" appearance="tint" style={{marginLeft: 8}}>
+                                    <Badge size="small" appearance="tint" className={styles.shareCountBadge}>
                                         {r.shareCount} shares
                                     </Badge>}
                             </span>

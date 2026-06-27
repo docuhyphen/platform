@@ -50,4 +50,9 @@ export const useSessionsTabStyles = makeStyles({
         minWidth: 0,
         wordBreak: "break-word",
     },
+    sessionActions: {
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+    },
 });

@@ -5,11 +5,12 @@ import {
     Spinner,
     Tab,
     TabList,
-    Text, tokens,
+    Text,
 } from '@fluentui/react-components';
 import {BlueprintDefinitionSummaryDto} from '../../../models/models.tsx';
 import {listBlueprints} from '../../../../services/blueprintService.ts';
 import {AddIcon} from "../../../components/IconBundles.tsx";
+import {useExchangeInitiationStyles} from '../../ExchangeInitiationStyles.tsx';
 
 interface BlueprintPickerProps
 {
@@ -21,6 +22,7 @@ type PickerTab = 'PERSONAL' | 'ORG' | 'APP';
 
 const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =>
 {
+    const styles = useExchangeInitiationStyles();
     const [activeTab, setActiveTab] = useState<PickerTab>('PERSONAL');
     const [blueprints, setBlueprints] = useState<BlueprintDefinitionSummaryDto[]>([]);
     const [loading, setLoading] = useState(false);
@@ -51,7 +53,7 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
     };
 
     return (
-        <div style={{display: 'flex', flexDirection: 'column', gap: '12px', minHeight: '300px'}}>
+        <div className={styles.blueprintPickerContainer}>
             <TabList
                 selectedValue={activeTab}
                 onTabSelect={(_, data) => setActiveTab(data.value as PickerTab)}
@@ -62,38 +64,32 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
             </TabList>
 
             {loading && (
-                <div style={{display: 'flex', justifyContent: 'center', padding: '24px'}}>
-                    <Spinner size="small" label="Loading blueprints…"/>
+                <div className={styles.blueprintPickerSpinnerWrapper}>
+                    <Spinner size="small" label="Loading blueprints..."/>
                 </div>
             )}
 
             {!loading && error && (
-                <Text style={{color: 'var(--colorPaletteRedForeground1)'}}>{error}</Text>
+                <Text className={styles.blueprintPickerErrorText}>{error}</Text>
             )}
 
             {!loading && !error && blueprints.length === 0 && (
-                <Text style={{color: 'var(--colorNeutralForeground3)'}}>
+                <Text className={styles.blueprintPickerEmptyText}>
                     No blueprints available in this category.
                 </Text>
             )}
 
             {!loading && !error && blueprints.length > 0 && (
-                <div style={{display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto'}}>
+                <div className={styles.blueprintList}>
                     {blueprints.map(bp => (
                         <div
                             key={bp.id}
-                            style={{
-                                border: '1px solid var(--colorNeutralStroke1)',
-                                borderRadius: tokens.borderRadiusLarge,
-                                padding: '12px 16px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '6px',
-                            }}
+                            className={styles.blueprintCard}
                         >
-                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                            <div className={styles.blueprintCardHeader}>
                                 <Text weight="semibold" size={400}>{bp.name}</Text>
                                 <Button
+                                    id={`blueprint-use-btn-${bp.id}`}
                                     appearance="primary"
                                     shape="circular"
                                     size="small"
@@ -104,12 +100,12 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
                                 </Button>
                             </div>
                             {bp.summary && (
-                                <Text size={200} style={{color: 'var(--colorNeutralForeground2)'}}>
+                                <Text size={200} className={styles.blueprintCardSummary}>
                                     {bp.summary}
                                 </Text>
                             )}
                             {bp.generalTags.length > 0 && (
-                                <div style={{display: 'flex', gap: '4px', flexWrap: 'wrap'}}>
+                                <div className={styles.blueprintTagRow}>
                                     {bp.generalTags.map(tag => (
                                         <Badge key={tag} appearance="tint" size="small">{tag}</Badge>
                                     ))}

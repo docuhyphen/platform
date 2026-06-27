@@ -191,6 +191,7 @@ const ParingRequestDialog: React.FC<ExchangeDeleteDialogProps> = (
                                     </ul>
                                 )}
                                 <Combobox
+                                    id={"combobox-select-organizations"}
                                     multiselect={true}
                                     placeholder="Select organizations to pair with"
                                     selectedOptions={selectedOrganizationIds}
@@ -206,6 +207,7 @@ const ParingRequestDialog: React.FC<ExchangeDeleteDialogProps> = (
                             <Field className={styles.field}
                                    label={`Message (optional) - ${message.length}/150 characters`}>
                                 <Textarea
+                                    id={"textarea-pairing-message"}
                                     placeholder="Add a message to the organizations you're pairing with"
                                     value={message}
                                     onChange={(e) => setMessage(e.target.value.slice(0, 100))}
@@ -217,6 +219,7 @@ const ParingRequestDialog: React.FC<ExchangeDeleteDialogProps> = (
                     </DialogContent>
                     <DialogActions>
                         <Button
+                            id={"button-send-pair-requests"}
                             appearance="primary"
                             shape="circular"
                             className={styles.sendingRow}
@@ -227,6 +230,7 @@ const ParingRequestDialog: React.FC<ExchangeDeleteDialogProps> = (
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
                             <Button
+                                id={"button-cancel-pair-request"}
                                 appearance="secondary"
                                 shape="circular"
                                 disabled={sendingParingRequests}

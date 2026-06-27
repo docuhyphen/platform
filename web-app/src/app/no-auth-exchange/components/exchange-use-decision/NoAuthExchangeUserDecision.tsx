@@ -312,8 +312,10 @@ const NoAuthExchangeUserDecision: React.FC<NoAuthExchangeUserDecisionProps> = (
                 <MessageBarActions
                     containerAction={
                         <Button
+                            id={"no-auth-exchange-decision-dismiss-error-btn"}
                             onClick={() => setErrorMessage(undefined)}
                             appearance="transparent"
+                            shape={"circular"}
                             icon={<DismissRegular/>}
                         />
                     }
@@ -396,7 +398,8 @@ const NoAuthExchangeUserDecision: React.FC<NoAuthExchangeUserDecisionProps> = (
             <div className={styles.otpInputGroup}>
                 {decisionOtp.map((otpDigit, index) => (
                     <Field key={index}>
-                        <Input className={styles.otpInput}
+                        <Input id={`no-auth-exchange-decision-otp-input-${index}`}
+                               className={styles.otpInput}
                                maxLength={1}
                                inputMode={"numeric"}
                                pattern={"[0-9]*"}
@@ -442,14 +445,16 @@ const NoAuthExchangeUserDecision: React.FC<NoAuthExchangeUserDecisionProps> = (
                     </Text>
                 }
                 <div className={styles.decisionActions}>
-                    <Button onClick={onAccept}
+                    <Button id={"no-auth-exchange-decision-accept-btn"}
+                            onClick={onAccept}
                             disabled={!isExchangeActionable}
                             shape={"circular"}
                             appearance={"primary"}
                             size={"large"}>
                         Accept
                     </Button>
-                    <Button onClick={onDecline}
+                    <Button id={"no-auth-exchange-decision-decline-btn"}
+                            onClick={onDecline}
                             disabled={!isExchangeActionable}
                             className={styles.declineButton}
                             shape={"circular"}
@@ -484,7 +489,8 @@ const NoAuthExchangeUserDecision: React.FC<NoAuthExchangeUserDecisionProps> = (
                                 {renderOtpHeader('decline')}
 
                                 <Field>
-                                    <Textarea placeholder={"Reason for declining"}
+                                    <Textarea id={"no-auth-exchange-decline-reason-textarea"}
+                                              placeholder={"Reason for declining"}
                                               value={declineReason}
                                               onChange={(e) => setDeclineReason(e.target.value)}
                                               maxLength={100}
@@ -497,14 +503,17 @@ const NoAuthExchangeUserDecision: React.FC<NoAuthExchangeUserDecisionProps> = (
                         </DialogBody>
                         <DialogActions>
                             <DialogTrigger>
-                                <Button onClick={onContinueDecline}
+                                <Button id={"no-auth-exchange-decline-confirm-btn"}
+                                        onClick={onContinueDecline}
                                         disabled={isDecliningExchange || !isDecisionOtpComplete || !isDeclineReasonValid}
                                         shape={"circular"}
                                         appearance={"primary"}>
                                     Decline
                                 </Button>
                             </DialogTrigger>
-                            <Button onClick={onCancelDecline}
+                            <Button id={"no-auth-exchange-decline-cancel-btn"}
+                                    onClick={onCancelDecline}
+                                    shape={"circular"}
                                     appearance={"subtle"}>
                                 Cancel
                             </Button>
@@ -521,14 +530,16 @@ const NoAuthExchangeUserDecision: React.FC<NoAuthExchangeUserDecisionProps> = (
                         </DialogBody>
                         <DialogActions>
                             <DialogTrigger>
-                                <Button onClick={onContinueAccept}
+                                <Button id={"no-auth-exchange-accept-confirm-btn"}
+                                        onClick={onContinueAccept}
                                         disabled={isAcceptingExchange || !isDecisionOtpComplete}
                                         shape={"circular"}
                                         appearance={"primary"}>
                                     Accept
                                 </Button>
                             </DialogTrigger>
-                            <Button onClick={onCancelAccept}
+                            <Button id={"no-auth-exchange-accept-cancel-btn"}
+                                    onClick={onCancelAccept}
                                     shape={"circular"}
                                     appearance={"subtle"}>
                                 Cancel

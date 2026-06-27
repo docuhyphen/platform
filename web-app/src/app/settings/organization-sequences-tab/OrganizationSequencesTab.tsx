@@ -16,7 +16,7 @@ import {
     MenuTrigger,
     Select,
     Spinner,
-    Text, tokens,
+    Text,
 } from '@fluentui/react-components';
 import {AddRegular, ArrowCounterclockwiseRegular, DeleteRegular, EditRegular, MoreVerticalRegular} from '@fluentui/react-icons';
 import {AppUserRole, CreateSequenceRequest, SequenceDefinitionDto, SequenceResetPeriod, UpdateSequenceRequest} from '../../models/models';
@@ -27,6 +27,7 @@ import {
     resetSequenceCounter,
     updateSequence,
 } from '../../../services/variableService';
+import {useOrganizationSequencesTabStyles} from './OrganizationSequencesTabStyles';
 
 const RESET_PERIODS: SequenceResetPeriod[] = ['NEVER', 'YEARLY', 'MONTHLY'];
 
@@ -55,6 +56,7 @@ const formatPreview = (form: CreateSequenceRequest | UpdateSequenceRequest, curr
 
 const OrganizationSequencesTab = () =>
 {
+    const styles = useOrganizationSequencesTabStyles();
     const {appUser, appUserPersonOrganization} = useAuth();
     const roleValue = `${appUser?.role ?? ''}`;
     const canManage =
@@ -156,48 +158,78 @@ const OrganizationSequencesTab = () =>
 
     return (
         <>
-            <div style={{display: 'flex', flexDirection: 'column', gap: '16px', padding: '0 4px'}}>
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                    <Text size={500} weight="semibold">Sequences</Text>
+            <div className={styles.container}>
+                <div className={styles.header}>
+                    <Text
+                        size={500}
+                        weight="semibold"
+                    >
+                        Sequences
+                    </Text>
                     {canManage && (
-                        <Button appearance="subtle" shape="circular" icon={<AddRegular/>} onClick={openCreate}>
+                        <Button
+                            id={"button-create-sequence"}
+                            appearance="subtle"
+                            shape={"circular"}
+                            icon={<AddRegular/>}
+                            onClick={openCreate}
+                        >
                             Create Sequence
                         </Button>
                     )}
                 </div>
-                <Text size={300} style={{color: 'var(--colorNeutralForeground3)'}}>
-                    Auto-incrementing counters. Use <code style={{fontFamily: 'monospace'}}>{'{{SEQ:KEY}}'}</code> in blueprint and exchange names.
+                <Text
+                    size={300}
+                    className={styles.descriptionText}
+                >
+                    Auto-incrementing counters. Use <code>{'{{SEQ:KEY}}'}</code> in blueprint and exchange names.
                 </Text>
 
                 {loading && <Spinner size="small" label="Loading…"/>}
-                {!loading && error && <Text style={{color: 'var(--colorPaletteRedForeground1)'}}>{error}</Text>}
+                {!loading && error && (
+                    <Text className={styles.errorText}>{error}</Text>
+                )}
                 {!loading && !error && sequences.length === 0 && (
-                    <Text style={{color: 'var(--colorNeutralForeground3)'}}>No sequences yet.</Text>
+                    <Text className={styles.emptyText}>No sequences yet.</Text>
                 )}
                 {!loading && sequences.map(seq => (
-                    <div key={seq.id} style={{
-                        border: '1px solid var(--colorNeutralStroke1)',
-                        borderRadius: tokens.borderRadiusMedium,
-                        padding: '12px 16px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                        gap: '8px',
-                    }}>
-                        <div style={{display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0}}>
-                            <Text weight="semibold" size={400}>{seq.name}</Text>
-                            <code style={{fontFamily: 'monospace', fontSize: '12px', color: 'var(--colorNeutralForeground2)'}}>{`{{SEQ:${seq.key}}}`}</code>
-                            <div style={{display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center'}}>
-                                <Badge appearance="tint" color={seq.isActive ? 'success' : 'severe'} size="small">
+                    <div
+                        key={seq.id}
+                        className={styles.sequenceCard}
+                    >
+                        <div className={styles.sequenceCardInner}>
+                            <Text
+                                weight="semibold"
+                                size={400}
+                            >
+                                {seq.name}
+                            </Text>
+                            <code className={styles.codeToken}>{`{{SEQ:${seq.key}}}`}</code>
+                            <div className={styles.badgeRow}>
+                                <Badge
+                                    appearance="tint"
+                                    color={seq.isActive ? 'success' : 'severe'}
+                                    size="small"
+                                >
                                     {seq.isActive ? 'Active' : 'Inactive'}
                                 </Badge>
-                                <Badge appearance="tint" color="informative" size="small">
+                                <Badge
+                                    appearance="tint"
+                                    color="informative"
+                                    size="small"
+                                >
                                     Counter: {seq.currentValue}
                                 </Badge>
-                                <Badge appearance="tint" size="small">
+                                <Badge
+                                    appearance="tint"
+                                    size="small"
+                                >
                                     Resets: {seq.resetPeriod}
                                 </Badge>
-                                <Text size={200} style={{color: 'var(--colorNeutralForeground3)'}}>
+                                <Text
+                                    size={200}
+                                    className={styles.nextText}
+                                >
                                     Next: <strong>{seq.previewValue}</strong>
                                 </Text>
                             </div>
@@ -205,13 +237,34 @@ const OrganizationSequencesTab = () =>
                         {canManage && (
                             <Menu>
                                 <MenuTrigger disableButtonEnhancement>
-                                    <Button size="small" appearance="subtle" icon={<MoreVerticalRegular/>}/>
+                                    <Button
+                                        id={`button-seq-menu-${seq.id}`}
+                                        size="small"
+                                        appearance="subtle"
+                                        shape={"circular"}
+                                        icon={<MoreVerticalRegular/>}
+                                    />
                                 </MenuTrigger>
                                 <MenuPopover>
                                     <MenuList>
-                                        <MenuItem icon={<EditRegular/>} onClick={() => openEdit(seq)}>Edit</MenuItem>
-                                        <MenuItem icon={<ArrowCounterclockwiseRegular/>} onClick={() => handleReset(seq)}>Reset Counter</MenuItem>
-                                        <MenuItem icon={<DeleteRegular/>} onClick={() => handleDelete(seq)}>Delete</MenuItem>
+                                        <MenuItem
+                                            icon={<EditRegular/>}
+                                            onClick={() => openEdit(seq)}
+                                        >
+                                            Edit
+                                        </MenuItem>
+                                        <MenuItem
+                                            icon={<ArrowCounterclockwiseRegular/>}
+                                            onClick={() => handleReset(seq)}
+                                        >
+                                            Reset Counter
+                                        </MenuItem>
+                                        <MenuItem
+                                            icon={<DeleteRegular/>}
+                                            onClick={() => handleDelete(seq)}
+                                        >
+                                            Delete
+                                        </MenuItem>
                                     </MenuList>
                                 </MenuPopover>
                             </Menu>
@@ -220,48 +273,105 @@ const OrganizationSequencesTab = () =>
                 ))}
             </div>
 
-            <Drawer open={drawer.open} onOpenChange={(_, d) => setDrawer(prev => ({...prev, open: d.open}))} position="end" size="small">
+            <Drawer
+                open={drawer.open}
+                onOpenChange={(_, d) => setDrawer(prev => ({...prev, open: d.open}))}
+                position="end"
+                size="small"
+            >
                 <DrawerHeader>
                     <DrawerHeaderTitle>{drawer.editing ? 'Edit Sequence' : 'New Sequence'}</DrawerHeaderTitle>
                 </DrawerHeader>
-                <DrawerBody style={{display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '16px'}}>
-                    <Field label="Name" required validationMessage={!form.name.trim() && formError ? formError : undefined}>
-                        <Input value={form.name} onChange={(_, d) => setForm(f => ({...f, name: d.value}))} placeholder="e.g. Invoice Number"/>
-                    </Field>
-                    <Field label="Key (uppercase)" required hint="Used in {{SEQ:KEY}} token">
+                <DrawerBody className={styles.drawerBody}>
+                    <Field
+                        label="Name"
+                        required
+                        validationMessage={!form.name.trim() && formError ? formError : undefined}
+                    >
                         <Input
+                            id={"input-seq-name"}
+                            value={form.name}
+                            onChange={(_, d) => setForm(f => ({...f, name: d.value}))}
+                            placeholder="e.g. Invoice Number"
+                        />
+                    </Field>
+                    <Field
+                        label="Key (uppercase)"
+                        required
+                        hint="Used in {{SEQ:KEY}} token"
+                    >
+                        <Input
+                            id={"input-seq-key"}
                             value={form.key}
                             onChange={(_, d) => setForm(f => ({...f, key: d.value.toUpperCase()}))}
                             placeholder="e.g. INV"
                             disabled={!!drawer.editing}
                         />
                     </Field>
-                    <Field label="Pad Width" hint="0 = no padding, 3 → 007">
+                    <Field
+                        label="Pad Width"
+                        hint="0 = no padding, 3 → 007"
+                    >
                         <Input
+                            id={"input-seq-pad-width"}
                             type="number"
                             value={String(form.padWidth ?? 0)}
                             onChange={(_, d) => setForm(f => ({...f, padWidth: parseInt(d.value) || 0}))}
                         />
                     </Field>
                     <Field label="Prefix">
-                        <Input value={form.prefix ?? ''} onChange={(_, d) => setForm(f => ({...f, prefix: d.value}))} placeholder="e.g. INV-"/>
+                        <Input
+                            id={"input-seq-prefix"}
+                            value={form.prefix ?? ''}
+                            onChange={(_, d) => setForm(f => ({...f, prefix: d.value}))}
+                            placeholder="e.g. INV-"
+                        />
                     </Field>
                     <Field label="Suffix">
-                        <Input value={form.suffix ?? ''} onChange={(_, d) => setForm(f => ({...f, suffix: d.value}))} placeholder="e.g. /2026"/>
+                        <Input
+                            id={"input-seq-suffix"}
+                            value={form.suffix ?? ''}
+                            onChange={(_, d) => setForm(f => ({...f, suffix: d.value}))}
+                            placeholder="e.g. /2026"
+                        />
                     </Field>
                     <Field label="Reset Period">
-                        <Select value={form.resetPeriod ?? 'NEVER'} onChange={(_, d) => setForm(f => ({...f, resetPeriod: d.value as SequenceResetPeriod}))}>
+                        <Select
+                            id={"select-seq-reset-period"}
+                            value={form.resetPeriod ?? 'NEVER'}
+                            onChange={(_, d) => setForm(f => ({...f, resetPeriod: d.value as SequenceResetPeriod}))}
+                        >
                             {RESET_PERIODS.map(p => <option key={p} value={p}>{p}</option>)}
                         </Select>
                     </Field>
-                    <div style={{padding: '8px 12px', background: 'var(--colorNeutralBackground2)', borderRadius: tokens.borderRadiusLarge}}>
-                        <Text size={200} style={{color: 'var(--colorNeutralForeground3)'}}>Preview: </Text>
-                        <code style={{fontFamily: 'monospace'}}>{formatPreview(form, drawer.editing?.currentValue ?? 0)}</code>
+                    <div className={styles.previewBox}>
+                        <Text
+                            size={200}
+                            className={styles.previewLabel}
+                        >
+                            Preview:{' '}
+                        </Text>
+                        <code>{formatPreview(form, drawer.editing?.currentValue ?? 0)}</code>
                     </div>
-                    {formError && <Text style={{color: 'var(--colorPaletteRedForeground1)'}}>{formError}</Text>}
-                    <div style={{display: 'flex', gap: '8px', justifyContent: 'flex-end'}}>
-                        <Button appearance="secondary" onClick={() => setDrawer({open: false})}>Cancel</Button>
-                        <Button appearance="primary" onClick={handleSave} disabled={saving}>
+                    {formError && (
+                        <Text className={styles.formError}>{formError}</Text>
+                    )}
+                    <div className={styles.buttonRow}>
+                        <Button
+                            id={"button-seq-cancel"}
+                            appearance="secondary"
+                            shape={"circular"}
+                            onClick={() => setDrawer({open: false})}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            id={"button-seq-save"}
+                            appearance="primary"
+                            shape={"circular"}
+                            onClick={handleSave}
+                            disabled={saving}
+                        >
                             {saving ? 'Saving…' : 'Save'}
                         </Button>
                     </div>

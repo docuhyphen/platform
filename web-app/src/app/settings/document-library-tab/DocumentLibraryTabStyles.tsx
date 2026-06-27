@@ -74,4 +74,21 @@ export const useDocumentsTabStyles = makeStyles({
         minHeight: "32px",
         cursor: "text",
     },
+    tagInputField: {
+        border: "none",
+        flexGrow: "1",
+        minWidth: "8rem",
+    },
+    errorText: {
+        color: tokens.colorPaletteRedForeground1,
+    },
+    emptyText: {
+        color: tokens.colorNeutralForeground3,
+    },
+    descriptionText: {
+        color: tokens.colorNeutralForeground2,
+    },
+    selectedFileText: {
+        color: tokens.colorNeutralForeground2,
+    },
 });

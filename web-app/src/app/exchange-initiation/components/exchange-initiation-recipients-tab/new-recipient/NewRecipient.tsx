@@ -155,6 +155,7 @@ const NewRecipient: React.FC<NewRecipientProps> = (
                 </InfoLabel>
             }>
                 <Input
+                    id={"new-recipient-email-input"}
                     type="email"
                     value={recipient.email}
                     onChange={onEmailChange}
@@ -164,6 +165,7 @@ const NewRecipient: React.FC<NewRecipientProps> = (
             <div className={styles.recipientEmailFields}>
                 <Field className={styles.recipientEmail}>
                     <Input
+                        id={"new-recipient-first-name-input"}
                         type="text"
                         value={recipient.firstName}
                         onChange={onFirstNameChange}
@@ -172,6 +174,7 @@ const NewRecipient: React.FC<NewRecipientProps> = (
                 </Field>
                 <Field className={styles.recipientEmail}>
                     <Input
+                        id={"new-recipient-last-name-input"}
                         type="text"
                         value={recipient.lastName}
                         onChange={onLastNameChange}

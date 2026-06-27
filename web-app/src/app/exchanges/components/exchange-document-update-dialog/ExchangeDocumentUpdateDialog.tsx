@@ -156,6 +156,7 @@ const ExchangeDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
                         <Field className={styles.documentTitleField}
                                label="New document name">
                             <Input
+                                id={"input-update-document-title"}
                                 type="text"
                                 value={documentTitle}
                                 required
@@ -165,12 +166,14 @@ const ExchangeDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
                         <div className={styles.documentRestriction}>
                             <Field label="">
                                 <Switch
+                                    id={"switch-update-document-restrict-type"}
                                     label="Restrict upload type"
                                     checked={isRestrictionEnabled}
                                     onChange={(e) => setIsRestrictionEnabled(e.target.checked)}
                                 />
                             </Field>
                             <Dropdown
+                                id={"dropdown-update-document-type"}
                                 disabled={!isRestrictionEnabled}
                                 value={selectedRestrictionType}
                                 placeholder="Select allowed upload type"

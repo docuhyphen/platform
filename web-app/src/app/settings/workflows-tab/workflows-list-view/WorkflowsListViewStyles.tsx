@@ -107,4 +107,29 @@ export const useWorkflowsListViewStyles = makeStyles({
             gridTemplateColumns: "1fr",
         },
     },
+
+    outerWrapper: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: "0.75rem",
+    },
+
+    cloneNameLabel: {
+        display: "block",
+        marginBottom: "0.25rem",
+    },
+
+    cloneNameInput: {
+        width: "100%",
+    },
+
+    platformCardTriggerText: {
+        marginTop: "2px",
+    },
+
+    overflowTagsButton: {
+        padding: "0 6px",
+        minWidth: "0",
+    },
 });

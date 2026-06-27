@@ -155,8 +155,11 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
                 <TableCell className={styles.actionsCell}>
                     <Menu positioning={{autoSize: true}}>
                         <MenuTrigger disableButtonEnhancement>
-                            <Button icon={<MoreHorizontalRegular/>}
-                                    appearance={"subtle"}/>
+                            <Button
+                                id="org-groups-row-actions-menu"
+                                icon={<MoreHorizontalRegular/>}
+                                appearance={"subtle"}
+                                shape={"circular"}/>
                         </MenuTrigger>
                         <MenuPopover>
                             <MenuList>
@@ -185,6 +188,7 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
             <div className={styles.header}>
                 <span></span>
                 <Button
+                    id="org-groups-create-group"
                     icon={<GroupAddIcon/>}
                     appearance="subtle"
                     shape="circular"

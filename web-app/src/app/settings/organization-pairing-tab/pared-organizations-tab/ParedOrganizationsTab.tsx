@@ -48,8 +48,10 @@ const ParedOrganizationsTab: React.FC<ParedOrganizationsTabProps> = (
                 <MessageBarActions
                     containerAction={
                         <Button
+                            id={"button-dismiss-tab-error"}
                             onClick={() => setTabErrorMessage(null)}
                             appearance="transparent"
+                            shape={"circular"}
                             icon={<DismissRegular/>}
                         />
                     }
@@ -82,8 +84,11 @@ const ParedOrganizationsTab: React.FC<ParedOrganizationsTabProps> = (
         return <>
             <Menu positioning={{autoSize: true}}>
                 <MenuTrigger disableButtonEnhancement>
-                    <Button icon={<MoreHorizontalRegular/>}
-                            appearance={"subtle"}/>
+                    <Button
+                        id={"button-org-pair-actions-menu"}
+                        icon={<MoreHorizontalRegular/>}
+                        shape={"circular"}
+                        appearance={"subtle"}/>
                 </MenuTrigger>
                 <MenuPopover>
                     <MenuList>

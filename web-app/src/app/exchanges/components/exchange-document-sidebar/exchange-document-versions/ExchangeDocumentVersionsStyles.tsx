@@ -95,4 +95,7 @@ export const useExchangeDocumentVersionsStyles = makeStyles({
         minHeight: "0",
         height: "100%",
     },
+    errorText: {
+        color: tokens.colorStatusDangerForeground1,
+    },
 });

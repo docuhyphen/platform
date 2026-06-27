@@ -98,24 +98,30 @@ const OAuthLinkConfirm: React.FC = () =>
                         )}
 
                         <Field label={"Password"}>
-                            <Input type="password"
-                                   value={password}
-                                   onChange={onPasswordChange}
-                                   onKeyDown={handleKeyDown}/>
+                            <Input
+                                id={"oauth-link-password-input"}
+                                type="password"
+                                value={password}
+                                onChange={onPasswordChange}
+                                onKeyDown={handleKeyDown}/>
                         </Field>
 
-                        <Button onClick={onConfirm}
-                                appearance="primary"
-                                shape={"circular"}
-                                className={globalStyles.buttonWithLoading}
-                                disabled={loading}>
+                        <Button
+                            id={"oauth-link-confirm-btn"}
+                            onClick={onConfirm}
+                            appearance="primary"
+                            shape={"circular"}
+                            className={globalStyles.buttonWithLoading}
+                            disabled={loading}>
                             {loading && <Spinner size={"tiny"}/>}
                             {loading ? "Linking..." : "Link Account"}
                         </Button>
 
-                        <Button onClick={() => navigate('/sign-in')}
-                                appearance="transparent"
-                                shape={"circular"}>
+                        <Button
+                            id={"oauth-link-cancel-btn"}
+                            onClick={() => navigate('/sign-in')}
+                            appearance="transparent"
+                            shape={"circular"}>
                             Cancel
                         </Button>
                     </div>

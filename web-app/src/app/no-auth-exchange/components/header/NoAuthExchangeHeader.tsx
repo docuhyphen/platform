@@ -26,7 +26,8 @@ const NoAuthExchangeHeader: React.FC = () =>
             <AppLogo/>
             <div className={styles.signInButtonContainer}>
                 Already have an account?
-                <Button onClick={onSignIn}
+                <Button id={"no-auth-exchange-header-sign-in-btn"}
+                        onClick={onSignIn}
                         disabled={signingIn}
                         className={styles.signInButton}
                         appearance={"primary"}

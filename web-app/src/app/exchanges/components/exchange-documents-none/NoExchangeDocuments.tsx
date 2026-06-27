@@ -18,10 +18,12 @@ const NoExchangeDocuments: React.FC<NoDocumentsProps> = (
     return (
         <div className={styles.noDocumentsContainer}>
             <Text size={500}>No documents available</Text>
-            <Button onClick={() => setIsDocumentAddDialogOpen(true)}
-                    shape={"circular"}
-                    icon={<DocumentAddIcon/>}
-                    appearance={"primary"}>
+            <Button
+                id={"no-exchange-documents-add-btn"}
+                onClick={() => setIsDocumentAddDialogOpen(true)}
+                shape={"circular"}
+                icon={<DocumentAddIcon/>}
+                appearance={"primary"}>
                 Add document
             </Button>
         </div>

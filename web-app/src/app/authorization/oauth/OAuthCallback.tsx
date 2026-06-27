@@ -4,6 +4,7 @@ import {useAuth} from '../../../context/AuthContext.tsx';
 import {setApiClientAuthToken} from '../../../services/apiClient.ts';
 import {fetchAppUser, fetchAppUserPersonOrganization} from '../../../services/appUserApi.ts';
 import {Button, MessageBar, MessageBarBody, Spinner, Text} from "@fluentui/react-components";
+import {useOAuthStyles} from "./OAuthStyles.tsx";
 
 const ERROR_MESSAGES: Record<string, string> = {
     ACCOUNT_DEPROVISIONED: "Your account has been deprovisioned. Please contact your administrator.",
@@ -21,6 +22,7 @@ const OAuthCallback: React.FC = () =>
     const {setAccessToken, setIdToken, setAppUser, setAppUserPersonOrganization} = useAuth();
     const navigate = useNavigate();
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const styles = useOAuthStyles();
 
     useEffect(() =>
     {
@@ -92,11 +94,17 @@ const OAuthCallback: React.FC = () =>
     if (errorMessage)
     {
         return (
-            <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '16px', padding: '32px', maxWidth: '480px', margin: '0 auto'}}>
-                <MessageBar intent="error" style={{width: '100%'}}>
+            <div className={styles.oauthCallbackContainer}>
+                <MessageBar
+                    intent="error"
+                    className={styles.oauthMessageBar}>
                     <MessageBarBody>{errorMessage}</MessageBarBody>
                 </MessageBar>
-                <Button appearance="primary" shape="circular" onClick={() => navigate('/sign-in')}>
+                <Button
+                    id={"oauth-callback-back-to-sign-in-btn"}
+                    appearance="primary"
+                    shape={"circular"}
+                    onClick={() => navigate('/sign-in')}>
                     Back to Sign In
                 </Button>
             </div>
@@ -104,7 +112,7 @@ const OAuthCallback: React.FC = () =>
     }
 
     return (
-        <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '16px'}}>
+        <div className={styles.oauthSpinnerContainer}>
             <Spinner size="large"/>
             <Text size={400}>Completing sign-in...</Text>
         </div>

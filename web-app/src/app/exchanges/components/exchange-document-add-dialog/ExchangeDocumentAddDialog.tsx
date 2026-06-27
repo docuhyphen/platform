@@ -127,6 +127,7 @@ const AddDocumentDialog: React.FC<AddDocumentDialogProps> = (
                         )}
                         <Field className={styles.documentTitleField}>
                             <Input
+                                id={"input-add-document-title"}
                                 type="text"
                                 value={documentTitle}
                                 required
@@ -137,12 +138,14 @@ const AddDocumentDialog: React.FC<AddDocumentDialogProps> = (
                         <div className={styles.documentRestriction}>
                             <Field label="">
                                 <Switch
+                                    id={"switch-add-document-restrict-type"}
                                     label="Restrict upload type"
                                     checked={restrictType}
                                     onChange={(ev) => setRestrictType(ev.target.checked)}
                                 />
                             </Field>
                             <Dropdown
+                                id={"dropdown-add-document-type"}
                                 disabled={!restrictType}
                                 value={restrictedType}
                                 placeholder="Select allowed upload type"
@@ -165,7 +168,8 @@ const AddDocumentDialog: React.FC<AddDocumentDialogProps> = (
                         </div>
                     </DialogContent>
                     <DialogActions>
-                        <Button appearance="primary"
+                        <Button id={"add-document-submit-btn"}
+                                appearance="primary"
                                 shape={"circular"}
                                 className={globalStyles.buttonWithLoading}
                                 onClick={onAddDocument}>
@@ -173,7 +177,8 @@ const AddDocumentDialog: React.FC<AddDocumentDialogProps> = (
                             Add
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
-                            <Button appearance="secondary"
+                            <Button id={"add-document-close-btn"}
+                                    appearance="secondary"
                                     onClick={onDismissDialog}
                                     shape={"circular"}
                                     disabled={addingDocument}>

@@ -31,15 +31,18 @@ const ExchangeInitiationDialogActions: React.FC<ExchangeInitiationDialogActionsP
         <>
 
             {(!choosingBlueprint && exchangeInitiatedSuccessfully) && (
-                <Button appearance="primary"
-                        onClick={onResetInitiation}
-                        shape={"circular"}>
+                <Button
+                    id={"exchange-create-another-btn"}
+                    appearance="primary"
+                    onClick={onResetInitiation}
+                    shape={"circular"}>
                     Create another
                 </Button>
             )}
 
             {(!choosingBlueprint && !exchangeInitiatedSuccessfully) && (
                 <Button
+                    id={"exchange-initiate-btn"}
                     onClick={onInitiateExchange}
                     appearance="primary"
                     shape="circular"
@@ -53,6 +56,7 @@ const ExchangeInitiationDialogActions: React.FC<ExchangeInitiationDialogActionsP
             )}
 
             <Button
+                id={"exchange-cancel-btn"}
                 shape={"circular"}
                 disabled={initiatingExchange}
                 onClick={onCloseDialog}

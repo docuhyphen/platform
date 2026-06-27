@@ -317,6 +317,7 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
         <>
             <Field>
                 <RadioGroup
+                    id={"my-org-share-with-group"}
                     layout={"horizontal"}
                     value={shareWith}
                     onChange={onShareWithChange}>
@@ -331,6 +332,7 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
                         <Spinner size="tiny" label="Loading users..."/>
                     ) : (
                         <Combobox
+                            id={"my-org-user-combobox"}
                             onOptionSelect={setRecipientOrgUserOptionItem}
                             placeholder="Select or find person"
                             onChange={(ev) => setUserSearchQuery(ev.target.value)}
@@ -347,6 +349,7 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
                         <Spinner size="tiny" label="Loading groups..."/>
                     ) : (
                         <Combobox
+                            id={"my-org-group-combobox"}
                             onOptionSelect={setRecipientOrgGroupOptionItem}
                             placeholder="Select Group/Team/Department"
                             onChange={(ev) => setGroupSearchQuery(ev.target.value)}

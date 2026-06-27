@@ -22,6 +22,7 @@ import AppLogo from "./app-logo/AppLogo.tsx";
 import {useGlobalStyles} from "../../GlobalStyles.tsx";
 import {InfoIcon, SettingsIcon, ExchangeIcon, SignOutButtonIcon} from "./IconBundles.tsx";
 import NotificationsPanel from './main-menu/notifications-panel/NotificationsPanel';
+import {useMainMenuStyles} from "./MainMenuStyles.tsx";
 
 const MAX_DISPLAY_EMAIL_LENGTH = 36;
 const LAST_EXCHANGES_QUERY_STORAGE_KEY = 'exchanges.lastRoute.query';
@@ -68,6 +69,7 @@ const MainMenu: React.FC<{ onToggleHelpSidebar: () => void }> = ({onToggleHelpSi
     };
 
     const styles = useGlobalStyles();
+    const menuStyles = useMainMenuStyles();
 
     return (
         <section className={styles.mainAppHeader}>
@@ -84,27 +86,36 @@ const MainMenu: React.FC<{ onToggleHelpSidebar: () => void }> = ({onToggleHelpSi
             </span>
 
             {/* Tour anchor: Start Exchanging */}
-            <div id="tour-start-exchanging" style={{display: 'inline-flex', alignItems: 'center'}}>
+            <div
+                id="tour-start-exchanging"
+                className={menuStyles.tourAnchor}>
                 <ExchangeInitiation/>
             </div>
 
             {/* Tour anchor: Exchanges */}
-            <div id="tour-sessions-btn" style={{display: 'inline-flex', alignItems: 'center'}}>
-                <Button icon={<ExchangeIcon/>}
-                        onClick={() =>
+            <div
+                id="tour-sessions-btn"
+                className={menuStyles.tourAnchor}>
+                <Button
+                    id={"exchanges-nav-btn"}
+                    icon={<ExchangeIcon/>}
+                    shape={"circular"}
+                    onClick={() =>
+                    {
+                        if (window.location.pathname !== '/exchanges')
                         {
-                            if (window.location.pathname !== '/exchanges')
-                            {
-                                const savedQuery = window.localStorage.getItem(LAST_EXCHANGES_QUERY_STORAGE_KEY) || '';
-                                navigate(`/exchanges${savedQuery}`);
-                            }
-                        }}
-                        appearance={"subtle"}>
+                            const savedQuery = window.localStorage.getItem(LAST_EXCHANGES_QUERY_STORAGE_KEY) || '';
+                            navigate(`/exchanges${savedQuery}`);
+                        }
+                    }}
+                    appearance={"subtle"}>
                 </Button>
             </div>
 
             {/* Tour anchor: Notifications */}
-            <div id="tour-notifications" style={{display: 'inline-flex', alignItems: 'center'}}>
+            <div
+                id="tour-notifications"
+                className={menuStyles.tourAnchor}>
                 <NotificationsPanel/>
             </div>
 
@@ -115,7 +126,9 @@ const MainMenu: React.FC<{ onToggleHelpSidebar: () => void }> = ({onToggleHelpSi
             {/*</Button>*/}
 
             {/* Tour anchor: Account menu */}
-            <div id="tour-account-btn" style={{display: 'inline-flex', alignItems: 'center'}}>
+            <div
+                id="tour-account-btn"
+                className={menuStyles.tourAnchor}>
                 <Menu>
                     <MenuTrigger disableButtonEnhancement>
                         {/*
@@ -126,7 +139,9 @@ const MainMenu: React.FC<{ onToggleHelpSidebar: () => void }> = ({onToggleHelpSi
                           button collapses to a square avatar that matches
                           the surrounding icon buttons.
                         */}
-                        <Button appearance="subtle"
+                        <Button
+                                id={"account-menu-btn"}
+                                appearance="subtle"
                                 shape="circular"
                                 className={styles.mainHeaderPersona}
                                 aria-label={appUser?.email ? `Account menu for ${appUser.email}` : "Account menu"}

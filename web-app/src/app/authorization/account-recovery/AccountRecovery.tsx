@@ -193,6 +193,8 @@ const AccountRecovery: React.FC = () =>
                 <MessageBarActions
                     containerAction={
                         <Button
+                            id={"account-recovery-error-dismiss-btn"}
+                            shape={"circular"}
                             onClick={() => setResponseError(undefined)}
                             appearance="transparent"
                             icon={<DismissRegular/>}
@@ -209,7 +211,9 @@ const AccountRecovery: React.FC = () =>
                 label={"Verification code"}
                 validationState={otpRegenerationFailedMsg ? "error" : (otpRegenerationSuccessfulMsg ? "success" : "none")}
                 validationMessage={otpRegenerationFailedMsg || otpRegenerationSuccessfulMsg}>
-                <Input type="text"
+                <Input
+                       id={"account-recovery-otp-input"}
+                       type="text"
                        name="otp"
                        maxLength={6}
                        value={formData.otp}
@@ -217,11 +221,14 @@ const AccountRecovery: React.FC = () =>
                        onChange={handleChange}
                        onKeyDown={(e) => handleKeyDown(e, onCompletePasswordReset)}/>
             </Field>
-            <Button onClick={onRegenerateOTP}
-                    size={"small"}
-                    disabled={completingPwdReset}
-                    appearance={"transparent"}
-                    className={globalStyles.buttonWithLoading}>
+            <Button
+                id={"account-recovery-resend-otp-btn"}
+                onClick={onRegenerateOTP}
+                size={"small"}
+                disabled={completingPwdReset}
+                appearance={"transparent"}
+                shape={"circular"}
+                className={globalStyles.buttonWithLoading}>
                 {regeneratingOtp && <Spinner size={"tiny"}/>}
                 Resend verification code
             </Button>
@@ -234,7 +241,9 @@ const AccountRecovery: React.FC = () =>
                 label={"Password"}
                 validationState={"none"}
                 validationMessage={""}>
-                <Input type="password"
+                <Input
+                       id={"account-recovery-password-input"}
+                       type="password"
                        name="password"
                        maxLength={30}
                        value={formData.password}
@@ -259,7 +268,9 @@ const AccountRecovery: React.FC = () =>
                 label={"Password Confirmation"}
                 validationState={"none"}
                 validationMessage={""}>
-                <Input type={"password"}
+                <Input
+                       id={"account-recovery-confirm-password-input"}
+                       type={"password"}
                        name="confirmationPassword"
                        maxLength={30}
                        value={formData.confirmationPassword}
@@ -286,7 +297,11 @@ const AccountRecovery: React.FC = () =>
                             <Text align={"center"} size={300}>
                                 Your password has been updated successfully.
                             </Text>
-                            <Button onClick={() => navigate("/sign-in")} appearance={"primary"} shape={"circular"}>
+                            <Button
+                                id={"account-recovery-success-sign-in-btn"}
+                                onClick={() => navigate("/sign-in")}
+                                appearance={"primary"}
+                                shape={"circular"}>
                                 Sign In
                             </Button>
                         </div>
@@ -308,9 +323,12 @@ const AccountRecovery: React.FC = () =>
                     </div>
                     <div className={authorizationStyles.authorizationFormSection}>
                         <Subtitle1 align={"center"}>
-                            <Button icon={<ArrowLeftRegular/>}
-                                    appearance={"transparent"}
-                                    onClick={() => navigate("/sign-in")}/>
+                            <Button
+                                id={"account-recovery-back-btn"}
+                                shape={"circular"}
+                                icon={<ArrowLeftRegular/>}
+                                appearance={"transparent"}
+                                onClick={() => navigate("/sign-in")}/>
                             Recover account
                         </Subtitle1>
 
@@ -320,7 +338,9 @@ const AccountRecovery: React.FC = () =>
                             label={"Email"}
                             validationState={pwdResetSuccessfulMsg ? "success" : "none"}
                             validationMessage={pwdResetSuccessfulMsg}>
-                            <Input type="email"
+                            <Input
+                                   id={"account-recovery-email-input"}
+                                   type="email"
                                    name="email"
                                    maxLength={254}
                                    disabled={initiatingPwdReset}
@@ -334,11 +354,13 @@ const AccountRecovery: React.FC = () =>
                             <div className={accountRecoveryStyles.signUpCompletionForm}>
                                 {renderOtpSection()}
                                 {renderPasswordsSection()}
-                                <Button onClick={onCompletePasswordReset}
-                                        appearance={"primary"}
-                                        shape={"circular"}
-                                        disabled={regeneratingOtp}
-                                        className={globalStyles.buttonWithLoading}>
+                                <Button
+                                    id={"account-recovery-reset-btn"}
+                                    onClick={onCompletePasswordReset}
+                                    appearance={"primary"}
+                                    shape={"circular"}
+                                    disabled={regeneratingOtp}
+                                    className={globalStyles.buttonWithLoading}>
                                     {completingPwdReset && <Spinner size={"tiny"}/>}
                                     {completingPwdReset ? "Resetting password" : "Reset Password"}
                                 </Button>
@@ -346,10 +368,12 @@ const AccountRecovery: React.FC = () =>
                         }
 
                         {!pwdResetInitiationSuccessful &&
-                            <Button onClick={onInitiatePasswordReset}
-                                    appearance={"primary"}
-                                    shape={"circular"}
-                                    className={globalStyles.buttonWithLoading}>
+                            <Button
+                                id={"account-recovery-initiate-btn"}
+                                onClick={onInitiatePasswordReset}
+                                appearance={"primary"}
+                                shape={"circular"}
+                                className={globalStyles.buttonWithLoading}>
                                 {initiatingPwdReset && <Spinner size={"tiny"}/>}
                                 Recover
                             </Button>

@@ -16,7 +16,6 @@ import {
     Toast,
     Toaster,
     ToastTitle, ToastTrigger,
-    tokens,
     useId,
     useToastController,
 } from "@fluentui/react-components";
@@ -801,25 +800,16 @@ const ExchangeInitiation: React.FC = () =>
     {
         if (pendingVariableTokens.length === 0) return null;
         return (
-            <div style={{
-                padding: '12px 16px',
-                border: '1px solid var(--colorBrandStroke2)',
-                borderRadius: tokens.borderRadiusXLarge,
-                background: 'var(--colorNeutralBackground2)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-                marginBottom: '12px',
-            }}>
+            <div className={styles.variableOverridesPanel}>
                 <Text weight="semibold" size={300}>Fill in variables</Text>
-                <Text size={200} style={{color: 'var(--colorNeutralForeground3)'}}>
+                <Text size={200} className={styles.variableOverridesSubtext}>
                     Override the default values for this exchange.
                 </Text>
                 {pendingVariableTokens.map(token => (
-                    <div key={token} style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
-                        <Text size={200} style={{minWidth: '120px', fontFamily: 'monospace'}}>{`{{${token}}}`}</Text>
+                    <div key={token} className={styles.variableOverridesRow}>
+                        <Text size={200} className={styles.variableOverridesLabel}>{`{{${token}}}`}</Text>
                         <input
-                            style={{flex: 1, padding: '4px 8px', borderRadius: tokens.borderRadiusMedium, border: '1px solid var(--colorNeutralStroke1)', background: 'var(--colorNeutralBackground1)', color: 'inherit'}}
+                            className={styles.variableOverridesInput}
                             value={variableOverrides[token] ?? ''}
                             onChange={e => setVariableOverrides(prev => ({...prev, [token]: e.target.value}))}
                             placeholder={`Value for ${token}`}
@@ -861,8 +851,10 @@ const ExchangeInitiation: React.FC = () =>
                             <MessageBarActions
                                 containerAction={
                                     <Button
+                                        id={`exchange-close-message-bar-${index}`}
                                         onClick={() => onCloseMessageBar(index)}
                                         appearance="transparent"
+                                        shape={"circular"}
                                         icon={<DismissRegular/>}/>
                                 }
                             />
@@ -890,6 +882,7 @@ const ExchangeInitiation: React.FC = () =>
                     </div>
                     <div className={styles.exchangeSuccessActions}>
                         <Button
+                            id={"exchange-copy-link-btn"}
                             appearance={"subtle"}
                             shape={"circular"}
                             onClick={onCopyExchangeLink}
@@ -898,6 +891,7 @@ const ExchangeInitiation: React.FC = () =>
                             Copy Link
                         </Button>
                         <Button
+                            id={"exchange-view-exchange-btn"}
                             shape={"circular"}
                             appearance={"subtle"}
                             onClick={onViewExchange}
@@ -934,8 +928,9 @@ const ExchangeInitiation: React.FC = () =>
                 <DialogBody>
                     <DialogTitle className={styles.dialogTitle}>
                         {saveBlueprintDialogOpen ? (
-                            <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                            <div className={styles.saveBlueprintBackRow}>
                                 <Button
+                                    id={"exchange-save-blueprint-back-btn"}
                                     appearance="subtle"
                                     shape="circular"
                                     size="small"

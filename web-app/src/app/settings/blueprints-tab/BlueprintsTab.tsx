@@ -11,7 +11,6 @@ import {
     Tab,
     TabList,
     Text,
-    tokens,
 } from '@fluentui/react-components';
 import {MoreVerticalRegular} from '@fluentui/react-icons';
 import {
@@ -136,8 +135,8 @@ const BlueprintsTab = () =>
 
     return (
         <>
-            <div style={{display: 'flex', flexDirection: 'column', gap: '16px', width: '100%'}}>
-                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+            <div className={styles.outerContainer}>
+                <div className={styles.headerRow}>
                     <TabList
                         selectedValue={activeTab}
                         onTabSelect={(_, d) =>
@@ -153,10 +152,11 @@ const BlueprintsTab = () =>
 
                     {canCreate && (
                         <Button
+                            id={"button-create-blueprint"}
                             className={globalStyles.buttonWithLoading}
                             icon={<AddIcon/>}
                             appearance="subtle"
-                            shape="circular"
+                            shape={"circular"}
                             onClick={openCreate}
                         >
                             Create Blueprint
@@ -166,34 +166,26 @@ const BlueprintsTab = () =>
 
                 {loading && <Spinner size="small" label="Loading blueprints…"/>}
                 {!loading && error && (
-                    <Text style={{color: 'var(--colorPaletteRedForeground1)'}}>{error}</Text>
+                    <Text className={styles.errorText}>{error}</Text>
                 )}
                 {!loading && !error && blueprints.length === 0 && (
-                    <Text style={{color: 'var(--colorNeutralForeground3)'}}>{emptyMessage[activeTab]}</Text>
+                    <Text className={styles.emptyText}>{emptyMessage[activeTab]}</Text>
                 )}
                 {!loading && !error && blueprints.length > 0 && (
                     <div className={styles.cardGrid}>
                         {blueprints.map(bp => (
                             <div
                                 key={bp.id}
-                                style={{
-                                    border: '1px solid var(--colorNeutralStroke1)',
-                                    borderRadius: tokens.borderRadiusXLarge,
-                                    padding: '12px 16px',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'flex-start',
-                                    gap: '8px',
-                                }}
+                                className={styles.blueprintCard}
                             >
-                                <div style={{display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0}}>
+                                <div className={styles.blueprintCardContent}>
                                     <Text weight="semibold" size={400}>{bp.name}</Text>
                                     {bp.summary && (
-                                        <Text size={200} style={{color: 'var(--colorNeutralForeground2)'}}>
+                                        <Text size={200} className={styles.summaryText}>
                                             {bp.summary}
                                         </Text>
                                     )}
-                                    <div style={{display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center'}}>
+                                    <div className={styles.badgeRow}>
                                         {activeTab !== 'PERSONAL' && (
                                             <Badge
                                                 appearance="tint"
@@ -219,8 +211,10 @@ const BlueprintsTab = () =>
                                     <Menu>
                                         <MenuTrigger disableButtonEnhancement>
                                             <Button
+                                                id={`button-blueprint-more-${bp.id}`}
                                                 size="small"
                                                 appearance="subtle"
+                                                shape={"circular"}
                                                 icon={<MoreVerticalRegular/>}
                                                 aria-label="More actions"
                                             />

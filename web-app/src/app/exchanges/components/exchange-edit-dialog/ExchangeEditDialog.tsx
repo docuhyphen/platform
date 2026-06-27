@@ -116,28 +116,36 @@ const ExchangeEditDialog: React.FC<ExchangeDeleteDialogProps> = (
                             </MessageBar>
                         )}
                         <Field label={"Exchange name"}>
-                            <Input type={"text"}
-                                   value={name}
-                                   onChange={onExchangeNameChange}/>
+                            <Input
+                                id={"input-edit-exchange-name"}
+                                type={"text"}
+                                value={name}
+                                onChange={onExchangeNameChange}/>
                         </Field>
                         <Field label={"Description"}>
-                            <Textarea value={description}
-                                      onChange={onDescriptionChange}/>
+                            <Textarea
+                                id={"textarea-edit-exchange-description"}
+                                value={description}
+                                onChange={onDescriptionChange}/>
                         </Field>
                     </DialogContent>
                     <DialogActions>
-                        <Button appearance="primary"
-                                className={globalStyles.buttonWithLoading}
-                                shape={"circular"}
-                                onClick={onEdit}>
+                        <Button
+                            id={"edit-exchange-submit-btn"}
+                            appearance="primary"
+                            className={globalStyles.buttonWithLoading}
+                            shape={"circular"}
+                            onClick={onEdit}>
                             {editingExchange && <Spinner size={"tiny"}/>}
                             Edit
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
-                            <Button appearance="secondary"
-                                    shape={"circular"}
-                                    disabled={editingExchange}
-                                    onClick={onCancel}>
+                            <Button
+                                id={"edit-exchange-cancel-btn"}
+                                appearance="secondary"
+                                shape={"circular"}
+                                disabled={editingExchange}
+                                onClick={onCancel}>
                                 Cancel
                             </Button>
                         </DialogTrigger>

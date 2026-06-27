@@ -42,7 +42,8 @@ const PasswordResetDialog : React.FC<PasswordResetDialogProps> = (
                 </DialogBody>
                 <DialogActions>
                     <DialogTrigger disableButtonEnhancement>
-                        <Button appearance="secondary"
+                        <Button id={"button-password-reset-close"}
+                                appearance="secondary"
                                 shape={"circular"}
                                 onClick={() => onDismiss()}>
                             Close

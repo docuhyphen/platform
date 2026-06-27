@@ -109,6 +109,7 @@ const ExchangeDocumentZipDownloadDialog: React.FC<DownloadDocumentDialogProps> =
                         <div className={styles.downloadContainer}>
                             <Field className={styles.downloadNameField}>
                                 <Input
+                                    id={"input-zip-download-name"}
                                     type="text"
                                     value={downloadName}
                                     required
@@ -119,6 +120,7 @@ const ExchangeDocumentZipDownloadDialog: React.FC<DownloadDocumentDialogProps> =
                             </Field>
                             {exchange?.documents?.filter(d => d.uploadDate).map(document => (
                                 <Checkbox
+                                    id={`checkbox-zip-download-doc-${document.id}`}
                                     key={document.id}
                                     label={document.title}
                                     onChange={(e, data) => handleDocumentSelection(document.id, data.checked)}

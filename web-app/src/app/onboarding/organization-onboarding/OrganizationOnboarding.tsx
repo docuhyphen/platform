@@ -65,7 +65,9 @@ const OrganizationOnboarding: React.FC = () =>
                             }
                         }/>
                     </div>
-                    <Button appearance={"transparent"}
+                    <Button id={"org-onboarding-skip-btn"}
+                            appearance={"transparent"}
+                            shape={"circular"}
                             onClick={() => setIsSkipOrgOnboardingDialogOpen(true)}>
                         Skip for later
                     </Button>
@@ -105,14 +107,16 @@ const OrganizationOnboarding: React.FC = () =>
                             </Text>
                         </DialogContent>
                         <DialogActions>
-                            <Button appearance="primary"
+                            <Button id={"org-onboarding-skip-confirm-btn"}
+                                    appearance="primary"
                                     className={globalStyles.buttonWithLoading}
                                     shape={"circular"}
                                     onClick={() => navigate('/exchanges')}>
                                 Yes, Skip Registration
                             </Button>
                             <DialogTrigger disableButtonEnhancement>
-                                <Button appearance="secondary"
+                                <Button id={"org-onboarding-skip-cancel-btn"}
+                                        appearance="secondary"
                                         shape={"circular"}
                                         onClick={() => setIsSkipOrgOnboardingDialogOpen(false)}>
                                     No, Register

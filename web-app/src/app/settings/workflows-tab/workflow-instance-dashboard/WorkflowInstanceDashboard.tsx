@@ -1,9 +1,9 @@
 import {useCallback, useEffect, useState} from "react";
 import {Badge, Button, Select, Spinner, Text} from "@fluentui/react-components";
-import {WorkflowInstanceSummaryDto} from "../../models/models.tsx";
-import {listWorkflowInstances} from "../../../services/workflowService.ts";
+import {WorkflowInstanceSummaryDto} from "../../../models/models.tsx";
+import {listWorkflowInstances} from "../../../../services/workflowService.ts";
 import {useWorkflowInstanceDashboardStyles} from "./WorkflowInstanceDashboardStyles.tsx";
-import {INSTANCE_STATUS_LABELS} from "./workflowUtils.ts";
+import {INSTANCE_STATUS_LABELS} from "../workflowUtils.ts";
 import {ArrowSyncRegular} from "@fluentui/react-icons";
 
 type InstanceStatus = WorkflowInstanceSummaryDto["status"] | "";
@@ -71,6 +71,7 @@ const WorkflowInstanceDashboard = ({onSelectInstance}: Props) =>
                 <div className={styles.filterBar}>
                     <Text weight="semibold">Filter by status:</Text>
                     <Select
+                        id="workflow-instance-status-filter-select"
                         value={statusFilter}
                         onChange={(_, d) =>
                         {
@@ -78,7 +79,7 @@ const WorkflowInstanceDashboard = ({onSelectInstance}: Props) =>
                             setPage(0);
                         }}
                         size="small"
-                        style={{minWidth: "10rem"}}
+                        className={styles.statusFilterSelect}
                     >
                         <option value="">All</option>
                         <option value="RUNNING">In Progress</option>
@@ -87,11 +88,16 @@ const WorkflowInstanceDashboard = ({onSelectInstance}: Props) =>
                         <option value="CANCELLED">Cancelled</option>
                         <option value="ESCALATED">Escalated</option>
                     </Select>
-                    <Button size="small"
-                            shape={"circular"}
-                            icon={<ArrowSyncRegular/>}
-                            appearance="secondary"
-                            onClick={load}>Refresh</Button>
+                    <Button
+                        id="workflow-instance-refresh-btn"
+                        size="small"
+                        shape={"circular"}
+                        icon={<ArrowSyncRegular/>}
+                        appearance="secondary"
+                        onClick={load}
+                    >
+                        Refresh
+                    </Button>
                 </div>
             )}
 
@@ -112,7 +118,11 @@ const WorkflowInstanceDashboard = ({onSelectInstance}: Props) =>
                     <div className={styles.rowInfo}>
                         <Text weight="semibold">{inst.definitionName ?? inst.definitionId}</Text>
                         {inst.exchangeName && <Text size={200} block>Exchange: {inst.exchangeName}</Text>}
-                        <Text size={200} block style={{color: "inherit"}}>
+                        <Text
+                            size={200}
+                            block
+                            className={styles.rowMetaInherit}
+                        >
                             Step {inst.currentStepIndex + 1} &middot; Started {formatDate(inst.createdAt)}
                         </Text>
                     </div>
@@ -124,12 +134,23 @@ const WorkflowInstanceDashboard = ({onSelectInstance}: Props) =>
 
             {!loading && hasResults && (
                 <div className={styles.pagination}>
-                    <Button size="small" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                    <Button
+                        id="workflow-instance-prev-page-btn"
+                        size="small"
+                        shape={"circular"}
+                        disabled={page === 0}
+                        onClick={() => setPage(p => p - 1)}
+                    >
                         Previous
                     </Button>
                     <Text size={200}>Page {page + 1}</Text>
-                    <Button size="small" disabled={instances.length < PAGE_SIZE}
-                            onClick={() => setPage(p => p + 1)}>
+                    <Button
+                        id="workflow-instance-next-page-btn"
+                        size="small"
+                        shape={"circular"}
+                        disabled={instances.length < PAGE_SIZE}
+                        onClick={() => setPage(p => p + 1)}
+                    >
                         Next
                     </Button>
                 </div>

@@ -104,8 +104,10 @@ const OrganizationPairingTab = () =>
                 <MessageBarActions
                     containerAction={
                         <Button
+                            id={"button-dismiss-tab-error"}
                             onClick={() => setTabErrorMessage(null)}
                             appearance="transparent"
+                            shape={"circular"}
                             icon={<DismissRegular/>}
                         />
                     }
@@ -177,6 +179,7 @@ const OrganizationPairingTab = () =>
                     <span></span>
 
                     <Button
+                        id={"button-find-and-pair"}
                         icon={<LinkAddRegular/>}
                         appearance="subtle"
                         shape="circular"

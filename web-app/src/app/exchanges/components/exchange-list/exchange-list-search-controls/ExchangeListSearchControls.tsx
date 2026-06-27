@@ -99,9 +99,12 @@ const ExchangeListSearchControls: React.FC<ExchangeListSearchControlsProps> = (
                 <MenuTrigger>
                     <Tooltip content="Filter exchanges"
                              relationship="description">
-                        <Button icon={<FilterIcon/>}
-                                id="exchange-list-filter-menu-trigger"
-                                appearance={selectedInitiator !== null ? "primary" : "subtle"}/>
+                        <Button
+                            icon={<FilterIcon/>}
+                            id="exchange-list-filter-menu-trigger"
+                            appearance={selectedInitiator !== null ? "primary" : "subtle"}
+                            shape={"circular"}
+                        />
                     </Tooltip>
                 </MenuTrigger>
                 <MenuPopover>
@@ -133,9 +136,12 @@ const ExchangeListSearchControls: React.FC<ExchangeListSearchControlsProps> = (
                 <MenuTrigger>
                     <Tooltip content={getSortDescription(sortBy, sortDirection)}
                              relationship="description">
-                        <Button icon={getSortDirectionIcon(sortDirection)}
-                                id="exchange-list-sort-menu-trigger"
-                                appearance="subtle"/>
+                        <Button
+                            icon={getSortDirectionIcon(sortDirection)}
+                            id="exchange-list-sort-menu-trigger"
+                            appearance="subtle"
+                            shape={"circular"}
+                        />
                     </Tooltip>
                 </MenuTrigger>
                 <MenuPopover>

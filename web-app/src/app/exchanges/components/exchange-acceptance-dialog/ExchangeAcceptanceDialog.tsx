@@ -152,13 +152,14 @@ const ExchangeAcceptanceDialog: React.FC<ExchangeAcceptanceDialogProps> = (
                 <div className={styles.declineFieldContainer}>
                     <Field>
                         <Textarea
+                            id={"textarea-acceptance-reject-reason"}
                             placeholder="Reason for declining (optional)"
                             value={rejectReason}
                             onChange={e => setRejectReason(e.target.value)}
                             maxLength={100}
                         />
                     </Field>
-                    <Checkbox label="Report"/>
+                    <Checkbox id={"checkbox-acceptance-report"} label="Report"/>
                 </div>
             )}
 
@@ -172,6 +173,7 @@ const ExchangeAcceptanceDialog: React.FC<ExchangeAcceptanceDialogProps> = (
 
             <div className={styles.actions}>
                 <Button
+                    id={"acceptance-accept-btn"}
                     appearance="primary"
                     disabled={updatingExchange}
                     className={globalStyles.buttonWithLoading}
@@ -183,6 +185,7 @@ const ExchangeAcceptanceDialog: React.FC<ExchangeAcceptanceDialogProps> = (
 
                 {!rejectingExchange && (
                     <Button
+                        id={"acceptance-decline-btn"}
                         appearance="secondary"
                         shape="circular"
                         disabled={updatingExchange}
@@ -194,6 +197,7 @@ const ExchangeAcceptanceDialog: React.FC<ExchangeAcceptanceDialogProps> = (
                 {rejectingExchange && (
                     <>
                         <Button
+                            id={"acceptance-confirm-decline-btn"}
                             appearance="secondary"
                             className={globalStyles.buttonWithLoading}
                             shape="circular"
@@ -203,6 +207,7 @@ const ExchangeAcceptanceDialog: React.FC<ExchangeAcceptanceDialogProps> = (
                             Confirm Decline
                         </Button>
                         <Button
+                            id={"acceptance-cancel-decline-btn"}
                             appearance="subtle"
                             shape="circular"
                             disabled={updatingExchange}
@@ -215,6 +220,7 @@ const ExchangeAcceptanceDialog: React.FC<ExchangeAcceptanceDialogProps> = (
                 {!isSingleExchange && !rejectingExchange && (
                     canDecideLater ?
                         <Button
+                            id={"acceptance-decide-later-btn"}
                             appearance="subtle"
                             shape="circular"
                             disabled={updatingExchange}
@@ -224,6 +230,7 @@ const ExchangeAcceptanceDialog: React.FC<ExchangeAcceptanceDialogProps> = (
                         :
                         <>
                             <Button
+                                id={"acceptance-open-active-btn"}
                                 appearance="secondary"
                                 shape="circular"
                                 disabled={updatingExchange || activeCount === 0}
@@ -231,6 +238,7 @@ const ExchangeAcceptanceDialog: React.FC<ExchangeAcceptanceDialogProps> = (
                                 Open Active ({activeCount})
                             </Button>
                             <Button
+                                id={"acceptance-open-archive-btn"}
                                 appearance="secondary"
                                 shape="circular"
                                 disabled={updatingExchange || archiveCount === 0}

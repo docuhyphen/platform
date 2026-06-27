@@ -54,4 +54,17 @@ export const useExchangeDDetailedViewDialogStyles = makeStyles({
     keyLabel: {
         color: tokens.colorNeutralForeground3,
     },
+
+    additionalParticipantsContainer: {
+        marginTop: "8px",
+    },
+
+    additionalParticipantsLabel: {
+        display: "block",
+        marginBottom: "4px",
+    },
+
+    participantRow: {
+        marginBottom: "2px",
+    },
 });

@@ -285,6 +285,7 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
 
                         <Field label="Email">
                             <Input
+                                id={"email-management-email-input"}
                                 type="email"
                                 value={email || ''}
                                 onChange={onEmailChange}
@@ -297,6 +298,7 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
                         {addOrEditInitiated && (
                             <Field label="Verification code">
                                 <Input
+                                    id={"email-management-verification-input"}
                                     type="text"
                                     value={verificationCode}
                                     onChange={onVerificationCodeChange}
@@ -309,6 +311,7 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
                 </DialogBody>
                 <DialogActions>
                     <Button
+                        id={"email-management-submit-btn"}
                         appearance="primary"
                         shape="circular"
                         className={globalStyles.buttonWithLoading}
@@ -320,6 +323,7 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
                     </Button>
                     <DialogTrigger disableButtonEnhancement>
                         <Button
+                            id={"email-management-cancel-btn"}
                             appearance="secondary"
                             shape="circular"
                             disabled={processing}

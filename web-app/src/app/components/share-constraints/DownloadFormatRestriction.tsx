@@ -1,5 +1,6 @@
 import React from 'react';
 import {Checkbox, Field, InfoLabel, Radio, RadioGroup, Text} from '@fluentui/react-components';
+import {useDownloadFormatRestrictionStyles} from "./DownloadFormatRestrictionStyles.tsx";
 
 const SUPPORTED_DOWNLOAD_FORMATS = ['PDF', 'DOCX', 'DOC', 'XLSX', 'XLS', 'PPTX', 'PPT', 'PNG', 'JPG'];
 
@@ -17,6 +18,7 @@ interface DownloadFormatRestrictionProps
  */
 const DownloadFormatRestriction: React.FC<DownloadFormatRestrictionProps> = ({allowedDownloadFormats, onChange: onFormatsChange, disabled}) =>
 {
+    const styles = useDownloadFormatRestrictionStyles();
     const formatRestrictionActive = !!allowedDownloadFormats;
 
     const handleFormatToggle = (format: string, checked: boolean) =>
@@ -37,7 +39,7 @@ const DownloadFormatRestriction: React.FC<DownloadFormatRestrictionProps> = ({al
     };
 
     return (
-        <div style={{display: 'flex', flexDirection: 'column', gap: 4, marginLeft: 24, marginTop: 4}}>
+        <div className={styles.container}>
             <InfoLabel
                 size="small"
                 weight="semibold"
@@ -46,6 +48,7 @@ const DownloadFormatRestriction: React.FC<DownloadFormatRestrictionProps> = ({al
                 Download format restriction
             </InfoLabel>
             <RadioGroup
+                id={"download-format-restriction-radio-group"}
                 value={formatRestrictionActive ? 'restrict' : 'all'}
                 disabled={disabled}
                 onChange={(_e, data) =>
@@ -64,9 +67,10 @@ const DownloadFormatRestriction: React.FC<DownloadFormatRestrictionProps> = ({al
                 <Radio value="restrict" label="Restrict to selected formats"/>
             </RadioGroup>
             {formatRestrictionActive && (
-                <div style={{display: 'flex', flexWrap: 'wrap', gap: 4, marginLeft: 24}}>
+                <div className={styles.formatCheckboxes}>
                     {SUPPORTED_DOWNLOAD_FORMATS.map(format => (
                         <Checkbox
+                            id={`download-format-checkbox-${format.toLowerCase()}`}
                             key={format}
                             label={format}
                             checked={(allowedDownloadFormats || []).includes(format)}

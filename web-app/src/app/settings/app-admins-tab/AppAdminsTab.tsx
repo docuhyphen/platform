@@ -153,6 +153,7 @@ const AppAdminsTab: React.FC = () =>
                             <div className={styles.header}>
                                 <span/>
                                 <Button
+                                    id={"btn-add-admin"}
                                     icon={<PersonAddRegular/>}
                                     appearance="subtle"
                                     shape="circular"
@@ -168,7 +169,7 @@ const AppAdminsTab: React.FC = () =>
                                         <TableHeaderCell><Text weight="semibold">Name</Text></TableHeaderCell>
                                         <TableHeaderCell><Text weight="semibold">Email</Text></TableHeaderCell>
                                         <TableHeaderCell><Text weight="semibold">Granted At</Text></TableHeaderCell>
-                                        <TableHeaderCell style={{width: '90px', minWidth: '90px', maxWidth: '90px'}}><Text weight="semibold">Actions</Text></TableHeaderCell>
+                                        <TableHeaderCell className={styles.actionsCell}><Text weight="semibold">Actions</Text></TableHeaderCell>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -181,11 +182,12 @@ const AppAdminsTab: React.FC = () =>
                                             <TableCell>
                                                 {admin.grantedAt ? new Date(admin.grantedAt).toLocaleString() : '-'}
                                             </TableCell>
-                                            <TableCell style={{width: '90px', minWidth: '90px', maxWidth: '90px'}}>
+                                            <TableCell className={styles.actionsCell}>
                                                 {admin.appUserId === appUser?.id ? (
                                                     <Badge>You</Badge>
                                                 ) : (
                                                     <Button
+                                                        id={`btn-revoke-admin-${admin.assignmentId}`}
                                                         size="small"
                                                         appearance="subtle"
                                                         icon={<DeleteRegular/>}

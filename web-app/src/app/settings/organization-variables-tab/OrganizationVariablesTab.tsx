@@ -16,11 +16,11 @@ import {
     MenuTrigger,
     Spinner,
     Text,
-    tokens,
 } from '@fluentui/react-components';
 import {DeleteRegular, EditRegular, MoreVerticalRegular} from '@fluentui/react-icons';
 import {AppUserRole, CreateVariableRequest, UpdateVariableRequest, VariableDefinitionDto} from '../../models/models';
 import {createVariable, deleteVariable, listVariables, updateVariable} from '../../../services/variableService';
+import {useOrganizationVariablesTabStyles} from './OrganizationVariablesTabStyles';
 
 interface DrawerState
 {
@@ -35,6 +35,7 @@ export interface OrganizationVariablesTabHandle
 
 const OrganizationVariablesTab = forwardRef<OrganizationVariablesTabHandle>((_, ref) =>
 {
+    const styles = useOrganizationVariablesTabStyles();
     const {appUser, appUserPersonOrganization} = useAuth();
     const roleValue = `${appUser?.role ?? ''}`;
     const canManage =
@@ -121,42 +122,69 @@ const OrganizationVariablesTab = forwardRef<OrganizationVariablesTabHandle>((_, 
 
     return (
         <>
-            <div style={{display: 'flex', flexDirection: 'column', gap: '12px', padding: '0 4px'}}>
-                <Text size={300} style={{color: 'var(--colorNeutralForeground3)'}}>
+            <div className={styles.container}>
+                <Text
+                    size={300}
+                    className={styles.descriptionText}
+                >
                     Reusable key-value pairs shared across your organization. Users can override them per exchange.
                 </Text>
 
                 {loading && <Spinner size="small" label="Loading…"/>}
-                {!loading && error && <Text style={{color: 'var(--colorPaletteRedForeground1)'}}>{error}</Text>}
+                {!loading && error && (
+                    <Text className={styles.errorText}>{error}</Text>
+                )}
                 {!loading && !error && variables.length === 0 && (
-                    <Text style={{color: 'var(--colorNeutralForeground3)'}}>No org variables yet.</Text>
+                    <Text className={styles.emptyText}>No org variables yet.</Text>
                 )}
                 {!loading && variables.map(v => (
-                    <div key={v.id} style={{
-                        border: '1px solid var(--colorNeutralStroke1)',
-                        borderRadius: tokens.borderRadiusXLarge,
-                        padding: '10px 16px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: '8px',
-                    }}>
-                        <div style={{display: 'flex', gap: '12px', alignItems: 'center', flex: 1, minWidth: 0}}>
-                            <code style={{fontFamily: 'monospace', fontWeight: 600}}>{`{{${v.key}}}`}</code>
-                            <Text size={200} style={{color: 'var(--colorNeutralForeground2)'}}>
+                    <div
+                        key={v.id}
+                        className={styles.variableRow}
+                    >
+                        <div className={styles.variableRowInner}>
+                            <code className={styles.codeKey}>{`{{${v.key}}}`}</code>
+                            <Text
+                                size={200}
+                                className={styles.defaultValueText}
+                            >
                                 {v.defaultValue ? `Default: "${v.defaultValue}"` : <em>no default</em>}
                             </Text>
-                            {!v.isActive && <Badge appearance="tint" color="severe" size="small">Inactive</Badge>}
+                            {!v.isActive && (
+                                <Badge
+                                    appearance="tint"
+                                    color="severe"
+                                    size="small"
+                                >
+                                    Inactive
+                                </Badge>
+                            )}
                         </div>
                         {canManage && (
                             <Menu>
                                 <MenuTrigger disableButtonEnhancement>
-                                    <Button size="small" appearance="subtle" icon={<MoreVerticalRegular/>}/>
+                                    <Button
+                                        id={`button-org-var-menu-${v.id}`}
+                                        size="small"
+                                        appearance="subtle"
+                                        shape={"circular"}
+                                        icon={<MoreVerticalRegular/>}
+                                    />
                                 </MenuTrigger>
                                 <MenuPopover>
                                     <MenuList>
-                                        <MenuItem icon={<EditRegular/>} onClick={() => openEdit(v)}>Edit</MenuItem>
-                                        <MenuItem icon={<DeleteRegular/>} onClick={() => handleDelete(v)}>Delete</MenuItem>
+                                        <MenuItem
+                                            icon={<EditRegular/>}
+                                            onClick={() => openEdit(v)}
+                                        >
+                                            Edit
+                                        </MenuItem>
+                                        <MenuItem
+                                            icon={<DeleteRegular/>}
+                                            onClick={() => handleDelete(v)}
+                                        >
+                                            Delete
+                                        </MenuItem>
                                     </MenuList>
                                 </MenuPopover>
                             </Menu>
@@ -165,13 +193,23 @@ const OrganizationVariablesTab = forwardRef<OrganizationVariablesTabHandle>((_, 
                 ))}
             </div>
 
-            <Drawer open={drawer.open} onOpenChange={(_, d) => setDrawer(prev => ({...prev, open: d.open}))} position="end" size="small">
+            <Drawer
+                open={drawer.open}
+                onOpenChange={(_, d) => setDrawer(prev => ({...prev, open: d.open}))}
+                position="end"
+                size="small"
+            >
                 <DrawerHeader>
                     <DrawerHeaderTitle>{drawer.editing ? 'Edit Variable' : 'New Org Variable'}</DrawerHeaderTitle>
                 </DrawerHeader>
-                <DrawerBody style={{display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '16px'}}>
-                    <Field label="Key" required hint="Uppercase alphanumeric. Used as {{KEY}} in templates.">
+                <DrawerBody className={styles.drawerBody}>
+                    <Field
+                        label="Key"
+                        required
+                        hint="Uppercase alphanumeric. Used as {{KEY}} in templates."
+                    >
                         <Input
+                            id={"input-org-var-key"}
                             value={formKey}
                             onChange={(_, d) => setFormKey(d.value.toUpperCase())}
                             placeholder="e.g. CLIENT_NAME"
@@ -179,12 +217,32 @@ const OrganizationVariablesTab = forwardRef<OrganizationVariablesTabHandle>((_, 
                         />
                     </Field>
                     <Field label="Default Value">
-                        <Input value={formValue} onChange={(_, d) => setFormValue(d.value)} placeholder="e.g. Acme Corp"/>
+                        <Input
+                            id={"input-org-var-value"}
+                            value={formValue}
+                            onChange={(_, d) => setFormValue(d.value)}
+                            placeholder="e.g. Acme Corp"
+                        />
                     </Field>
-                    {formError && <Text style={{color: 'var(--colorPaletteRedForeground1)'}}>{formError}</Text>}
-                    <div style={{display: 'flex', gap: '8px', justifyContent: 'flex-end'}}>
-                        <Button appearance="secondary" onClick={() => setDrawer({open: false})}>Cancel</Button>
-                        <Button appearance="primary" onClick={handleSave} disabled={saving}>
+                    {formError && (
+                        <Text className={styles.errorText}>{formError}</Text>
+                    )}
+                    <div className={styles.buttonRow}>
+                        <Button
+                            id={"button-org-var-cancel"}
+                            appearance="secondary"
+                            shape={"circular"}
+                            onClick={() => setDrawer({open: false})}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            id={"button-org-var-save"}
+                            appearance="primary"
+                            shape={"circular"}
+                            onClick={handleSave}
+                            disabled={saving}
+                        >
                             {saving ? 'Saving…' : 'Save'}
                         </Button>
                     </div>

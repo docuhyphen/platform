@@ -160,6 +160,7 @@ const Settings = () =>
 
             <div className={styles.mobileMenuBar}>
                 <Button
+                    id={"button-settings-mobile-menu"}
                     appearance="subtle"
                     shape="circular"
                     icon={<Navigation24Regular/>}

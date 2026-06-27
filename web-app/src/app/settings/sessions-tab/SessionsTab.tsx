@@ -114,7 +114,8 @@ const SessionsTab: React.FC = () =>
                 <span></span>
 
                 <div>
-                    <Button appearance={"secondary"}
+                    <Button id={"button-sign-out-all-devices"}
+                            appearance={"secondary"}
                             shape="circular"
                             icon={<SignOutButtonIcon></SignOutButtonIcon>}
                             onClick={() => setIsAllDeviceSignOutDialogOpen(true)}
@@ -153,13 +154,14 @@ const SessionsTab: React.FC = () =>
                                 <Caption1>Expires: {formatDate(session.expiresAt)}</Caption1>
                             )}
                         </div>
-                        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <div className={styles.sessionActions}>
                             {session.isCurrent && (
                                 <Badge appearance="filled" color="brand">
                                     This device
                                 </Badge>
                             )}
                             <Button
+                                id={"button-revoke-session"}
                                 icon={<DeleteRegular/>}
                                 shape={"circular"}
                                 appearance="subtle"

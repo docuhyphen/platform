@@ -19,6 +19,7 @@ import {getAvailableVariables} from '../../../services/variableService';
 import OrganizationVariablesTab, {OrganizationVariablesTabHandle} from '../organization-variables-tab/OrganizationVariablesTab';
 import PersonalVariablesTab, {PersonalVariablesTabHandle} from '../personal-variables-tab/PersonalVariablesTab';
 import {useAuth} from '../../../context/AuthContext';
+import {useVariablesTabStyles} from './VariablesTabStyles';
 
 type ActiveTab = 'PERSONAL' | 'ORG' | 'PLATFORM';
 
@@ -32,6 +33,7 @@ const SYSTEM_VARIABLE_COLUMNS = ['Token', 'Description', 'Example'];
 
 const PlatformVariablesView = () =>
 {
+    const styles = useVariablesTabStyles();
     const [systemVars, setSystemVars] = useState<SystemVariableDto[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -46,15 +48,27 @@ const PlatformVariablesView = () =>
     }, []);
 
     return (
-        <div style={{display: 'flex', flexDirection: 'column', gap: '16px', padding: '0 4px'}}>
+        <div className={styles.platformContainer}>
             <div>
-                <Text size={500} weight="semibold" block style={{marginBottom: '4px'}}>System Variables</Text>
-                <Text size={300} style={{color: 'var(--colorNeutralForeground3)', display: 'block', marginBottom: '12px'}}>
+                <Text
+                    size={500}
+                    weight="semibold"
+                    block
+                    className={styles.systemVarTitle}
+                >
+                    System Variables
+                </Text>
+                <Text
+                    size={300}
+                    className={styles.systemVarSubtitle}
+                >
                     Built-in tokens resolved automatically at exchange creation time. Read-only, no configuration needed.
                 </Text>
             </div>
             {loading && <Spinner size="small"/>}
-            {!loading && error && <Text style={{color: 'var(--colorPaletteRedForeground1)'}}>{error}</Text>}
+            {!loading && error && (
+                <Text className={styles.errorText}>{error}</Text>
+            )}
             {!loading && !error && (
                 <Table size="small">
                     <TableHeader>
@@ -66,11 +80,17 @@ const PlatformVariablesView = () =>
                         {systemVars.map(sv => (
                             <TableRow key={sv.token}>
                                 <TableCell>
-                                    <code style={{fontFamily: 'monospace', fontSize: '12px'}}>{`{{${sv.token}}}`}</code>
+                                    <code className={styles.codeCell}>{`{{${sv.token}}}`}</code>
                                 </TableCell>
                                 <TableCell><Text size={200}>{sv.description}</Text></TableCell>
                                 <TableCell>
-                                    <Badge appearance="tint" color="brand" size="small">{sv.example}</Badge>
+                                    <Badge
+                                        appearance="tint"
+                                        color="brand"
+                                        size="small"
+                                    >
+                                        {sv.example}
+                                    </Badge>
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -83,6 +103,7 @@ const PlatformVariablesView = () =>
 
 const VariablesTab = () =>
 {
+    const styles = useVariablesTabStyles();
     const {appUser, appUserPersonOrganization} = useAuth();
     const roleValue = `${appUser?.role ?? ''}`;
     const canManageOrg =
@@ -104,8 +125,8 @@ const VariablesTab = () =>
         (activeTab === 'ORG' && !!canManageOrg);
 
     return (
-        <div style={{display: 'flex', flexDirection: 'column', gap: '16px', width: '100%'}}>
-            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+        <div className={styles.container}>
+            <div className={styles.header}>
                 <TabList
                     selectedValue={activeTab}
                     onTabSelect={(_, d) => setActiveTab(d.value as ActiveTab)}
@@ -117,9 +138,10 @@ const VariablesTab = () =>
 
                 {canAdd && (
                     <Button
+                        id={"button-create-variable"}
                         icon={<AddRegular/>}
                         appearance="subtle"
-                        shape="circular"
+                        shape={"circular"}
                         onClick={handleAdd}
                     >
                         Create Variable

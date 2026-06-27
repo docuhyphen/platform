@@ -158,6 +158,7 @@ const PendingApprovals: React.FC = () =>
             <PopoverTrigger disableButtonEnhancement>
                 <div className={styles.triggerContainer}>
                     <Button
+                        id={"pending-approvals-trigger-btn"}
                         icon={<TaskListSquareLtrRegular/>}
                         appearance="subtle"
                         shape="circular"
@@ -209,6 +210,7 @@ const PendingApprovals: React.FC = () =>
                                                 <Text size={200}>Group: {step.groupName}</Text>
                                             )}
                                             <Textarea
+                                                id={`pending-approval-comment-${step.stepInstanceId}`}
                                                 className={styles.commentField}
                                                 placeholder="Optional comment..."
                                                 size="small"
@@ -217,6 +219,7 @@ const PendingApprovals: React.FC = () =>
                                             />
                                             <div className={styles.actions}>
                                                 <Button
+                                                    id={`pending-approval-approve-btn-${step.stepInstanceId}`}
                                                     appearance="primary"
                                                     size="small"
                                                     shape="circular"
@@ -231,6 +234,7 @@ const PendingApprovals: React.FC = () =>
                                                     )}
                                                 </Button>
                                                 <Button
+                                                    id={`pending-approval-reject-btn-${step.stepInstanceId}`}
                                                     appearance="secondary"
                                                     size="small"
                                                     shape="circular"

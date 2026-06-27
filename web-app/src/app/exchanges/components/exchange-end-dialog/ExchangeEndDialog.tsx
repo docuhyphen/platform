@@ -104,23 +104,29 @@ const ExchangeEndDialog: React.FC<ExchangeEndDialogProps> = (
                             </MessageBar>
                         )}
                         <Field label={"Notes"} className={styles.endNoteField}>
-                            <Textarea value={exchangeEndNote}
-                                      onChange={onEndNoteChange}/>
+                            <Textarea
+                                id={"textarea-end-exchange-note"}
+                                value={exchangeEndNote}
+                                onChange={onEndNoteChange}/>
                         </Field>
                     </DialogContent>
                     <DialogActions>
-                        <Button appearance="primary"
-                                className={globalStyles.buttonWithLoading}
-                                shape={"circular"}
-                                onClick={onExchangeEnd}>
+                        <Button
+                            id={"end-exchange-submit-btn"}
+                            appearance="primary"
+                            className={globalStyles.buttonWithLoading}
+                            shape={"circular"}
+                            onClick={onExchangeEnd}>
                             {endingExchange && <Spinner size={"tiny"}/>}
                             End Exchange
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
-                            <Button appearance="secondary"
-                                    shape={"circular"}
-                                    disabled={endingExchange}
-                                    onClick={onCancel}>
+                            <Button
+                                id={"end-exchange-cancel-btn"}
+                                appearance="secondary"
+                                shape={"circular"}
+                                disabled={endingExchange}
+                                onClick={onCancel}>
                                 Cancel
                             </Button>
                         </DialogTrigger>

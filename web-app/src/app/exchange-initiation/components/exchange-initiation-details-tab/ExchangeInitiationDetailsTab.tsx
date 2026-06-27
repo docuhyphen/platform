@@ -60,6 +60,7 @@ const ExchangeInitiationDetailsTab: React.FC<ExchangeDetailsTabProps> = (
                     />
                 ) : (
                     <Input
+                        id={"exchange-name-input"}
                         type="text"
                         value={name}
                         required
@@ -82,6 +83,7 @@ const ExchangeInitiationDetailsTab: React.FC<ExchangeDetailsTabProps> = (
                     />
                 ) : (
                     <Textarea
+                        id={"exchange-description-textarea"}
                         onChange={onDescriptionChange}
                         value={description}
                         placeholder="Add context about this exchange (optional)"
@@ -102,6 +104,7 @@ const ExchangeInitiationDetailsTab: React.FC<ExchangeDetailsTabProps> = (
                     />
                 ) : (
                     <Textarea
+                        id={"exchange-share-message-textarea"}
                         onChange={onInitialShareMessageChange}
                         value={initialShareMessage}
                         placeholder="Include any instructions or details recipients should know (optional)"

@@ -1,4 +1,42 @@
-import {makeStyles} from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
+
+export const useBlueprintEditorStyles = makeStyles({
+    dialogSurface: {
+        maxWidth: "600px",
+        width: "100%",
+    },
+    tabList: {
+        marginBottom: "16px",
+    },
+    accordionPanelContent: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "12px",
+        paddingBottom: "8px",
+    },
+    linkedBadgeRow: {
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        marginTop: "6px",
+    },
+    permissionsContent: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+    },
+    errorSpan: {
+        color: "var(--colorPaletteRedForeground1)",
+        fontSize: "12px",
+        marginTop: "8px",
+        display: "block",
+    },
+    tagInputField: {
+        border: "none",
+        flexGrow: 1,
+        minWidth: "8rem",
+    },
+});
 
 export const useTemplatesTabStyles = makeStyles({
     cardGrid: {
@@ -24,5 +62,47 @@ export const useTemplatesTabStyles = makeStyles({
         justifyContent: "space-between",
         flexWrap: "wrap",
         gap: "8px",
+    },
+    outerContainer: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "16px",
+        width: "100%",
+    },
+    headerRow: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    blueprintCard: {
+        border: `1px solid ${tokens.colorNeutralStroke1}`,
+        borderRadius: tokens.borderRadiusXLarge,
+        padding: "12px 16px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: "8px",
+    },
+    blueprintCardContent: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "4px",
+        flex: "1",
+        minWidth: 0,
+    },
+    summaryText: {
+        color: "var(--colorNeutralForeground2)",
+    },
+    badgeRow: {
+        display: "flex",
+        gap: "6px",
+        flexWrap: "wrap",
+        alignItems: "center",
+    },
+    errorText: {
+        color: "var(--colorPaletteRedForeground1)",
+    },
+    emptyText: {
+        color: "var(--colorNeutralForeground3)",
     },
 });

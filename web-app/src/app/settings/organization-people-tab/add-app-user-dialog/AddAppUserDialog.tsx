@@ -164,6 +164,7 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
 
                         <Field label="Email" required>
                             <Input
+                                id={"add-user-email-input"}
                                 type="email"
                                 value={email}
                                 maxLength={254}
@@ -174,6 +175,7 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
 
                         <Field label="First Name" required>
                             <Input
+                                id={"add-user-first-name-input"}
                                 type="text"
                                 value={firstName}
                                 maxLength={50}
@@ -184,6 +186,7 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
 
                         <Field label="Last Name" required>
                             <Input
+                                id={"add-user-last-name-input"}
                                 type="text"
                                 value={lastName}
                                 maxLength={50}
@@ -194,6 +197,7 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
 
                         <Field label="Role" required>
                             <Dropdown
+                                id={"add-user-role-dropdown"}
                                 selectedOptions={[role]}
                                 placeholder={AppUserRoleDisplayNames[role as keyof typeof AppUserRoleDisplayNames]}
                                 onOptionSelect={(_, data) => data.optionValue && setRole(data.optionValue)}
@@ -206,6 +210,7 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
                 </DialogBody>
                 <DialogActions>
                     <Button
+                        id={"add-user-save-btn"}
                         appearance="primary"
                         shape="circular"
                         className={globalStyles.buttonWithLoading}
@@ -217,6 +222,7 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
                     </Button>
                     <DialogTrigger disableButtonEnhancement>
                         <Button
+                            id={"add-user-cancel-btn"}
                             appearance="secondary"
                             shape="circular"
                             disabled={savingData}

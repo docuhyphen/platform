@@ -23,4 +23,9 @@ export const useAppAdminsTabStyles = makeStyles({
         color: tokens.colorPaletteRedForeground1,
         ...shorthands.padding('8px'),
     },
+    actionsCell: {
+        width: '90px',
+        minWidth: '90px',
+        maxWidth: '90px',
+    },
 });

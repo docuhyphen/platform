@@ -77,8 +77,10 @@ const ParingRequestDeleteDialog: React.FC<ParingRequestDeleteDialogProps> = (
                 <MessageBarActions
                     containerAction={
                         <Button
+                            id={"button-dismiss-delete-dialog-error"}
                             onClick={() => setDialogErrorMessage(null)}
                             appearance="transparent"
+                            shape={"circular"}
                             icon={<DismissRegular/>}
                         />
                     }
@@ -100,22 +102,26 @@ const ParingRequestDeleteDialog: React.FC<ParingRequestDeleteDialogProps> = (
                         </div>
                     </DialogContent>
                     <DialogActions>
-                        <Button appearance="primary"
-                                className={globalStyles.buttonWithLoading}
-                                shape={"circular"}
-                                onClick={onDelete}>
+                        <Button
+                            id={"button-confirm-delete-request"}
+                            appearance="primary"
+                            className={globalStyles.buttonWithLoading}
+                            shape={"circular"}
+                            onClick={onDelete}>
                             {deletingOrgPairRequest && <Spinner size={"tiny"}/>}
                             Yes, Delete
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
-                            <Button appearance="secondary"
-                                    shape={"circular"}
-                                    disabled={deletingOrgPairRequest}
-                                    onClick={() =>
-                                    {
-                                        setDialogErrorMessage("");
-                                        onDismiss()
-                                    }}>
+                            <Button
+                                id={"button-cancel-delete-request"}
+                                appearance="secondary"
+                                shape={"circular"}
+                                disabled={deletingOrgPairRequest}
+                                onClick={() =>
+                                {
+                                    setDialogErrorMessage("");
+                                    onDismiss()
+                                }}>
                                 No, Cancel
                             </Button>
                         </DialogTrigger>

@@ -73,7 +73,9 @@ const ActionRequiredCard = ({ instance, pendingStep, onDecisionMade }: Props) =>
             {!showRejectForm && (
                 <div className={styles.actionButtons}>
                     <Button
+                        id={"action-required-approve-btn"}
                         appearance="primary"
+                        shape={"circular"}
                         disabled={submitting}
                         icon={submitting ? <Spinner size="tiny" /> : undefined}
                         onClick={handleApprove}
@@ -81,7 +83,9 @@ const ActionRequiredCard = ({ instance, pendingStep, onDecisionMade }: Props) =>
                         Approve
                     </Button>
                     <Button
+                        id={"action-required-reject-btn"}
                         appearance="secondary"
+                        shape={"circular"}
                         disabled={submitting}
                         onClick={() => setShowRejectForm(true)}
                     >
@@ -93,6 +97,7 @@ const ActionRequiredCard = ({ instance, pendingStep, onDecisionMade }: Props) =>
             {showRejectForm && (
                 <div className={styles.rejectForm}>
                     <Textarea
+                        id={"textarea-action-required-reject-reason"}
                         placeholder="Reason for rejection (optional)"
                         value={rejectReason}
                         onChange={(_, d) => setRejectReason(d.value)}
@@ -101,7 +106,9 @@ const ActionRequiredCard = ({ instance, pendingStep, onDecisionMade }: Props) =>
                     />
                     <div className={styles.rejectActions}>
                         <Button
+                            id={"action-required-confirm-reject-btn"}
                             appearance="primary"
+                            shape={"circular"}
                             disabled={submitting}
                             icon={submitting ? <Spinner size="tiny" /> : undefined}
                             onClick={handleReject}
@@ -109,7 +116,9 @@ const ActionRequiredCard = ({ instance, pendingStep, onDecisionMade }: Props) =>
                             Confirm Reject
                         </Button>
                         <Button
+                            id={"action-required-cancel-reject-btn"}
                             appearance="subtle"
+                            shape={"circular"}
                             disabled={submitting}
                             onClick={() => { setShowRejectForm(false); setRejectReason(""); }}
                         >

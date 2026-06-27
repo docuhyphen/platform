@@ -351,9 +351,10 @@ const MyGroupsTab: React.FC = () =>
                     <div className={styles.header}>
                         <span/>
                         <Button
+                            id="create-group-open"
                             icon={<AddRegular/>}
                             appearance="subtle"
-                            shape="circular"
+                            shape={"circular"}
                             onClick={() => setCreateOpen(true)}
                         >
                             Create Group
@@ -411,7 +412,12 @@ const MyGroupsTab: React.FC = () =>
                                         <TableCell className={styles.actionsCell}>
                                             <Menu>
                                                 <MenuTrigger disableButtonEnhancement>
-                                                    <Button icon={<MoreHorizontalRegular/>} appearance="subtle"/>
+                                                    <Button
+                                                        id={`group-menu-${group.id}`}
+                                                        icon={<MoreHorizontalRegular/>}
+                                                        appearance="subtle"
+                                                        shape={"circular"}
+                                                    />
                                                 </MenuTrigger>
                                                 <MenuPopover>
                                                     <MenuList>
@@ -451,12 +457,20 @@ const MyGroupsTab: React.FC = () =>
                 <DialogSurface>
                     <DialogBody>
                         <DialogTitle>Create Personal Group</DialogTitle>
-                        <DialogContent style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+                        <DialogContent className={styles.dialogContentColumn}>
                             <Field label="Group Name" required>
-                                <Input value={newName} onChange={(_e, d) => setNewName(d.value)}/>
+                                <Input
+                                    id="create-group-name"
+                                    value={newName}
+                                    onChange={(_e, d) => setNewName(d.value)}
+                                />
                             </Field>
                             <Field label="Description">
-                                <Textarea value={newDesc} onChange={(_e, d) => setNewDesc(d.value)}/>
+                                <Textarea
+                                    id="create-group-desc"
+                                    value={newDesc}
+                                    onChange={(_e, d) => setNewDesc(d.value)}
+                                />
                             </Field>
                             <Field label="Members" required hint="Search and add at least one member to the group.">
                                 {memberTagPicker()}
@@ -464,20 +478,28 @@ const MyGroupsTab: React.FC = () =>
                         </DialogContent>
                         <DialogActions>
                             <Button
+                                id="create-group-submit"
                                 appearance="primary"
-                                shape="circular"
+                                shape={"circular"}
                                 disabled={creating || !newName.trim() || selectedContacts.length === 0}
                                 onClick={handleCreate}
                             >
                                 {creating && <Spinner size="tiny"/>} Create
                             </Button>
-                            <Button appearance="secondary" shape="circular" onClick={() =>
-                            {
-                                setCreateOpen(false);
-                                setNewName('');
-                                setNewDesc('');
-                                resetMemberPicker();
-                            }}>Cancel</Button>
+                            <Button
+                                id="create-group-cancel"
+                                appearance="secondary"
+                                shape={"circular"}
+                                onClick={() =>
+                                {
+                                    setCreateOpen(false);
+                                    setNewName('');
+                                    setNewDesc('');
+                                    resetMemberPicker();
+                                }}
+                            >
+                                Cancel
+                            </Button>
                         </DialogActions>
                     </DialogBody>
                 </DialogSurface>
@@ -485,18 +507,20 @@ const MyGroupsTab: React.FC = () =>
 
             {/* ── Manage Group dialog (merged rename + members) ─────────── */}
             <Dialog modalType="alert" open={!!managingGroup}>
-                <DialogSurface style={{minWidth: 480}}>
+                <DialogSurface className={styles.manageSurface}>
                     <DialogBody>
                         <DialogTitle>Manage Group</DialogTitle>
-                        <DialogContent style={{display: 'flex', flexDirection: 'column', gap: 16}}>
+                        <DialogContent className={styles.dialogContentColumnLarge}>
                             <Field label="Group Name" required>
                                 <Input
+                                    id="manage-group-name"
                                     value={manageGroupName}
                                     onChange={(_e, d) => setManageGroupName(d.value)}
                                 />
                             </Field>
                             <Field label="Description">
                                 <Textarea
+                                    id="manage-group-desc"
                                     value={manageGroupDesc}
                                     onChange={(_e, d) => setManageGroupDesc(d.value)}
                                 />
@@ -507,7 +531,7 @@ const MyGroupsTab: React.FC = () =>
                             {/* Current members */}
                             <div>
                                 <Text weight="semibold" size={300}>Members</Text>
-                                <div style={{marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2}}>
+                                <div className={styles.memberList}>
                                     {(() =>
                                     {
                                         const nonOwners = managingGroup?.members.filter(m => m.groupRole !== 'OWNER') ?? [];
@@ -516,21 +540,27 @@ const MyGroupsTab: React.FC = () =>
                                             return <Text size={200} italic>No members yet.</Text>;
                                         }
                                         return nonOwners.map((m, i) => (
-                                            <div key={i} style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: 8,
-                                                padding: '4px 0',
-                                            }}>
-                                                <Text size={200} style={{flex: 1}}>
+                                            <div
+                                                key={i}
+                                                className={styles.memberRow}
+                                            >
+                                                <Text
+                                                    size={200}
+                                                    className={styles.memberName}
+                                                >
                                                     {[m.user?.person?.firstName, m.user?.person?.lastName].filter(Boolean).join(' ') || m.user?.email || 'Unknown'}
                                                 </Text>
-                                                <Badge size="small" appearance="outline">
+                                                <Badge
+                                                    size="small"
+                                                    appearance="outline"
+                                                >
                                                     {GroupRoleDisplayNames[m.groupRole as keyof typeof GroupRoleDisplayNames] || m.groupRole}
                                                 </Badge>
                                                 <Button
+                                                    id={`remove-member-${i}`}
                                                     size="small"
                                                     appearance="subtle"
+                                                    shape={"circular"}
                                                     icon={<PersonDeleteRegular/>}
                                                     title="Remove member"
                                                     onClick={() =>
@@ -563,22 +593,29 @@ const MyGroupsTab: React.FC = () =>
                         </DialogContent>
                         <DialogActions>
                             <Button
+                                id="manage-group-add-members"
                                 appearance="primary"
-                                shape="circular"
+                                shape={"circular"}
                                 disabled={addingMember || selectedContacts.length === 0}
                                 onClick={onAddMembersConfirm}
                             >
                                 {addingMember && <Spinner size="tiny"/>} Add Members
                             </Button>
                             <Button
+                                id="manage-group-save"
                                 appearance="secondary"
-                                shape="circular"
+                                shape={"circular"}
                                 disabled={savingGroupDetails || !manageGroupName.trim()}
                                 onClick={handleSaveGroupDetails}
                             >
                                 {savingGroupDetails && <Spinner size="tiny"/>} Save Changes
                             </Button>
-                            <Button appearance="secondary" shape="circular" onClick={closeManageGroup}>
+                            <Button
+                                id="manage-group-close"
+                                appearance="secondary"
+                                shape={"circular"}
+                                onClick={closeManageGroup}
+                            >
                                 Close
                             </Button>
                         </DialogActions>
@@ -596,13 +633,19 @@ const MyGroupsTab: React.FC = () =>
                         </DialogContent>
                         <DialogActions>
                             <Button
+                                id="confirm-remove-member-submit"
                                 appearance="primary"
-                                shape="circular"
+                                shape={"circular"}
                                 onClick={() => confirmRemove && handleRemoveMember(confirmRemove.groupId, confirmRemove.userId)}
                             >
                                 Remove
                             </Button>
-                            <Button appearance="secondary" shape="circular" onClick={() => setConfirmRemove(null)}>
+                            <Button
+                                id="confirm-remove-member-cancel"
+                                appearance="secondary"
+                                shape={"circular"}
+                                onClick={() => setConfirmRemove(null)}
+                            >
                                 Cancel
                             </Button>
                         </DialogActions>
@@ -620,13 +663,19 @@ const MyGroupsTab: React.FC = () =>
                         </DialogContent>
                         <DialogActions>
                             <Button
+                                id="confirm-delete-group-submit"
                                 appearance="primary"
-                                shape="circular"
+                                shape={"circular"}
                                 onClick={() => confirmDeleteGroupId && handleDelete(confirmDeleteGroupId)}
                             >
                                 Delete
                             </Button>
-                            <Button appearance="secondary" shape="circular" onClick={() => setConfirmDeleteGroupId(null)}>
+                            <Button
+                                id="confirm-delete-group-cancel"
+                                appearance="secondary"
+                                shape={"circular"}
+                                onClick={() => setConfirmDeleteGroupId(null)}
+                            >
                                 Cancel
                             </Button>
                         </DialogActions>

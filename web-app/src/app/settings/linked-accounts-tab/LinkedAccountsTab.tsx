@@ -1,4 +1,5 @@
 import React, {useEffect, useState} from 'react';
+import {useLinkedAccountsTabStyles} from './LinkedAccountsTabStyles';
 import {
     Button,
     MessageBar,
@@ -15,6 +16,7 @@ import {getIdentityProviders, initiateLinkProvider, unlinkProvider} from "../../
 
 const LinkedAccountsTab: React.FC = () =>
 {
+    const styles = useLinkedAccountsTabStyles();
     const [providers, setProviders] = useState<IdentityProviderLinkDto[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | undefined>();
@@ -91,7 +93,7 @@ const LinkedAccountsTab: React.FC = () =>
     }
 
     return (
-        <div style={{display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '500px'}}>
+        <div className={styles.container}>
 
             <Text size={200}>
                 Manage the identity providers linked to your account.
@@ -111,10 +113,12 @@ const LinkedAccountsTab: React.FC = () =>
                     description={isLinked('INTERNAL') ? <Badge appearance="filled" color="success">Linked</Badge> : <Badge appearance="outline">Not linked</Badge>}
                     action={
                         isLinked('INTERNAL')
-                            ? <Button appearance="secondary"
-                                      disabled={!canUnlink || actionLoading === 'INTERNAL'}
-                                      shape={"circular"}
-                                      onClick={() => onUnlinkProvider('INTERNAL')}>
+                            ? <Button
+                                id={"btn-unlink-internal"}
+                                appearance="secondary"
+                                disabled={!canUnlink || actionLoading === 'INTERNAL'}
+                                shape={"circular"}
+                                onClick={() => onUnlinkProvider('INTERNAL')}>
                                 {actionLoading === 'INTERNAL' ? <Spinner size="tiny"/> : "Unlink"}
                             </Button>
                             : null
@@ -129,16 +133,20 @@ const LinkedAccountsTab: React.FC = () =>
                     description={isLinked('MICROSOFT') ? <Badge appearance="filled" color="success">Linked</Badge> : <Badge appearance="outline">Not linked</Badge>}
                     action={
                         isLinked('MICROSOFT')
-                            ? <Button appearance="secondary"
-                                      disabled={!canUnlink || actionLoading === 'MICROSOFT'}
-                                      shape={"circular"}
-                                      onClick={() => onUnlinkProvider('MICROSOFT')}>
+                            ? <Button
+                                id={"btn-unlink-microsoft"}
+                                appearance="secondary"
+                                disabled={!canUnlink || actionLoading === 'MICROSOFT'}
+                                shape={"circular"}
+                                onClick={() => onUnlinkProvider('MICROSOFT')}>
                                 {actionLoading === 'MICROSOFT' ? <Spinner size="tiny"/> : "Unlink"}
                             </Button>
-                            : <Button appearance="secondary"
-                                      disabled={actionLoading === 'MICROSOFT'}
-                                      shape={"circular"}
-                                      onClick={() => onLinkProvider('MICROSOFT')}>
+                            : <Button
+                                id={"btn-link-microsoft"}
+                                appearance="secondary"
+                                disabled={actionLoading === 'MICROSOFT'}
+                                shape={"circular"}
+                                onClick={() => onLinkProvider('MICROSOFT')}>
                                 {actionLoading === 'MICROSOFT' ? <Spinner size="tiny"/> : "Link"}
                             </Button>
                     }
@@ -152,15 +160,20 @@ const LinkedAccountsTab: React.FC = () =>
                     description={isLinked('GOOGLE') ? <Badge appearance="filled" color="success">Linked</Badge> : <Badge appearance="outline">Not linked</Badge>}
                     action={
                         isLinked('GOOGLE')
-                            ? <Button appearance="secondary"
-                                      disabled={!canUnlink || actionLoading === 'GOOGLE'}
-                                      shape={"circular"}
-                                      onClick={() => onUnlinkProvider('GOOGLE')}>
+                            ? <Button
+                                id={"btn-unlink-google"}
+                                appearance="secondary"
+                                disabled={!canUnlink || actionLoading === 'GOOGLE'}
+                                shape={"circular"}
+                                onClick={() => onUnlinkProvider('GOOGLE')}>
                                 {actionLoading === 'GOOGLE' ? <Spinner size="tiny"/> : "Unlink"}
                             </Button>
-                            : <Button appearance="secondary" disabled={actionLoading === 'GOOGLE'}
-                                      shape={"circular"}
-                                      onClick={() => onLinkProvider('GOOGLE')}>
+                            : <Button
+                                id={"btn-link-google"}
+                                appearance="secondary"
+                                disabled={actionLoading === 'GOOGLE'}
+                                shape={"circular"}
+                                onClick={() => onLinkProvider('GOOGLE')}>
                                 {actionLoading === 'GOOGLE' ? <Spinner size="tiny"/> : "Link"}
                             </Button>
                     }

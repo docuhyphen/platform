@@ -162,6 +162,7 @@ const ExchangeDetailsHeader: React.FC<ExchangeDetailsHeaderProps> = (
                                             id="exchange-details-header-add-document"
                                             icon={<DocumentAddIcon/>}
                                             appearance="primary"
+                                            shape={"circular"}
                                             disabled={exchangeDetails.status === ExchangeStatus.ENDED || !exchangePermissions.canAddExchangeDocument}
                                             onClick={() => setIsDocumentAddDialogOpen(true)}
                                         />
@@ -172,6 +173,7 @@ const ExchangeDetailsHeader: React.FC<ExchangeDetailsHeaderProps> = (
                                             icon={<EditExchangeIcon/>}
                                             disabled={exchangeDetails.status === ExchangeStatus.ENDED || !exchangePermissions.canEditSharingOptions}
                                             appearance={"subtle"}
+                                            shape={"circular"}
                                             onClick={() => setIsExchangeEditDialogOpen(true)}
                                         />
                                     </Tooltip>
@@ -181,6 +183,7 @@ const ExchangeDetailsHeader: React.FC<ExchangeDetailsHeaderProps> = (
                                             icon={<ManageAccessIcon/>}
                                             disabled={exchangeDetails.status === ExchangeStatus.ENDED || !exchangePermissions.canEditSharingOptions}
                                             appearance={"subtle"}
+                                            shape={"circular"}
                                             onClick={() => setIsExchangeAccessManagementDialogOpen(true)}
                                         />
                                     </Tooltip>
@@ -188,7 +191,12 @@ const ExchangeDetailsHeader: React.FC<ExchangeDetailsHeaderProps> = (
                             )}
                             <Menu positioning={{autoSize: true}}>
                                 <MenuTrigger disableButtonEnhancement>
-                                    <Button id="exchange-details-header-more-menu-trigger" icon={<MoreVerticalRegular/>} appearance="subtle"/>
+                                    <Button
+                                        id="exchange-details-header-more-menu-trigger"
+                                        icon={<MoreVerticalRegular/>}
+                                        appearance="subtle"
+                                        shape={"circular"}
+                                    />
                                 </MenuTrigger>
                                 <MenuPopover>
                                     <MenuList id="exchange-details-header-more-menu-list">
@@ -267,6 +275,7 @@ const ExchangeDetailsHeader: React.FC<ExchangeDetailsHeaderProps> = (
                                     onClick={toggleHeaderDetails}
                                     size={"small"}
                                     appearance={"subtle"}
+                                    shape={"circular"}
                                     aria-label={detailsToggleTooltip}
                                     icon={isExpanded ? <ToggleHeaderUpIcon/> : <ToggleHeaderDownIcon/>}/>
                             </Tooltip>

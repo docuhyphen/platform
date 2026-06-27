@@ -1,5 +1,6 @@
 import React from 'react';
 import {Spinner} from '@fluentui/react-components';
+import {useAuthBootstrapSplashStyles} from "./AuthBootstrapSplashStyles.tsx";
 
 /**
  * Full-viewport placeholder rendered by route guards while AuthContext is
@@ -7,18 +8,14 @@ import {Spinner} from '@fluentui/react-components';
  * a closed-and-reopened browser flashes /sign-in for a frame before the
  * refresh resolves and bounces the user to their real landing page.
  */
-const AuthBootstrapSplash: React.FC = () => (
-    <div
-        style={{
-            position: 'fixed',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-        }}
-    >
-        <Spinner size="small"/>
-    </div>
-);
+const AuthBootstrapSplash: React.FC = () =>
+{
+    const styles = useAuthBootstrapSplashStyles();
+    return (
+        <div className={styles.splashContainer}>
+            <Spinner size="small"/>
+        </div>
+    );
+};
 
 export default AuthBootstrapSplash;

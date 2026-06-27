@@ -8,7 +8,6 @@ import {
     Switch,
     Tab, TabList, TabValue,
     Text,
-    tokens
 } from "@fluentui/react-components";
 import {useAuth} from "../../../context/AuthContext";
 import {fetchAppUserPersonOrganization} from "../../../services/appUserApi";
@@ -156,14 +155,16 @@ const OrganizationDetailsTab = () =>
 
     return <>
         {fetchingOrganization &&
-            <div style={{display: 'flex', justifyContent: 'center', padding: '20px'}}>
-                <Spinner label="Loading"
-                         size={"small"}/>
+            <div className={styles.loadingWrapper}>
+                <Spinner
+                    label="Loading"
+                    size={"small"}
+                />
             </div>
         }
 
         {error && (
-            <div style={{color: tokens.colorStatusDangerForeground1, padding: '10px', marginBottom: '10px'}}>
+            <div className={styles.errorMessage}>
                 {error}
             </div>
         )}
@@ -180,12 +181,12 @@ const OrganizationDetailsTab = () =>
                         status updates.
                     </MessageBarBody>
                 </MessageBar>
-                <div style={{marginTop: '8px'}}>
+                <div className={styles.pendingInfoRow}>
                     <Text size={300}>
                         Registration Number: {organization.registrationNumber}
                     </Text>
                 </div>
-                <div style={{marginTop: '8px'}}>
+                <div className={styles.pendingInfoRow}>
                     <Text size={300}>
                         Contact Email: {organization.contactDetails?.email || 'Not provided'}
                     </Text>
@@ -195,7 +196,7 @@ const OrganizationDetailsTab = () =>
                         Contact Phone: {organization.contactDetails?.phoneNumber || 'Not provided'}
                     </Text>
                 </div>
-                <div style={{marginTop: '8px'}}>
+                <div className={styles.pendingInfoRow}>
                     <Text size={300}>
                         If any of these details are incorrect, please contact sales at{' '}
                         <a href="mailto:sales@docuhyphen.com">sales@docuhyphen.com</a> so we can update your
@@ -208,12 +209,15 @@ const OrganizationDetailsTab = () =>
         {organization && !fetchingOrganization && organization.isActive && (
             <div className={styles.container}>
 
-                <div style={{marginBottom: '20px'}}>
-                    <Text size={500} weight="semibold">
+                <div className={styles.orgNameSection}>
+                    <Text
+                        size={500}
+                        weight="semibold"
+                    >
                         {organization.name || "Unnamed Organization"}
                     </Text>
                     {organization.registrationNumber && (
-                        <div style={{marginTop: '5px'}}>
+                        <div className={styles.registrationRow}>
                             <Text size={300}>Registration: {organization.registrationNumber}</Text>
                         </div>
                     )}
@@ -230,7 +234,9 @@ const OrganizationDetailsTab = () =>
                     <Text size={500} className={styles.dataEditable}>
                         {canManageOrganization && (
                             <Button
+                                id={"button-edit-org-email"}
                                 appearance="subtle"
+                                shape={"circular"}
                                 size="small"
                                 icon={<ProfileEditBasicDetailsIcon/>}
                                 onClick={onAddOrEditEmail}
@@ -246,7 +252,9 @@ const OrganizationDetailsTab = () =>
                             <>
                                 {canManageOrganization && (
                                     <Button
+                                        id={"button-edit-org-phone"}
                                         appearance="subtle"
+                                        shape={"circular"}
                                         size="small"
                                         icon={<ProfileEditBasicDetailsIcon/>}
                                         onClick={onAddOrEditPhone}
@@ -257,6 +265,7 @@ const OrganizationDetailsTab = () =>
                         ) : (
                             canManageOrganization ? (
                                 <Button
+                                    id={"button-add-org-phone"}
                                     appearance="secondary"
                                     shape="circular"
                                     size="small"
@@ -299,24 +308,28 @@ const OrganizationDetailsTab = () =>
 
                 {organizationSettings && canManageOrganization && <>
                     <Switch
+                        id={"switch-allow-external-customer-sharing"}
                         checked={organizationSettings.allowExternalCustomerSharing !== false}
                         onChange={(_, data) => handleSettingChange('allowExternalCustomerSharing', data.checked)}
                         label="Allow sharing with external customers (individuals)"
                         disabled={savingSettings}
                     />
                     <Switch
+                        id={"switch-allow-share-without-pairing"}
                         checked={organizationSettings.allowShareWithoutPairing}
                         onChange={(_, data) => handleSettingChange('allowShareWithoutPairing', data.checked)}
                         label="Allow sharing with unpaired organizations"
                         disabled={savingSettings}
                     />
                     <Switch
+                        id={"switch-allow-profile-update"}
                         checked={organizationSettings.allowProfileUpdate}
                         onChange={(_, data) => handleSettingChange('allowProfileUpdate', data.checked)}
                         label="Allow users to update their basic profiles"
                         disabled={savingSettings}
                     />
                     <Switch
+                        id={"switch-allow-email-update"}
                         checked={organizationSettings.allowEmailUpdate}
                         onChange={(_, data) => handleSettingChange('allowEmailUpdate', data.checked)}
                         label="Allow users to update their email addresses"

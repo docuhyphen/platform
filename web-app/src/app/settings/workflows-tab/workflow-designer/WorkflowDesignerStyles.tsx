@@ -1,6 +1,28 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useWorkflowDesignerStyles = makeStyles({
+    helpButton: {
+        marginLeft: "auto",
+    },
+
+    triggerError: {
+        color: tokens.colorStatusDangerForeground1,
+    },
+
+    triggerDescription: {
+        color: "var(--colorNeutralForeground3)",
+    },
+
+    tagInputField: {
+        border: "none",
+        flexGrow: 1,
+        minWidth: "8rem",
+    },
+
+    noStepsText: {
+        color: "var(--colorNeutralForeground3)",
+    },
+
     container: {
         display: "flex",
         flexDirection: "column",

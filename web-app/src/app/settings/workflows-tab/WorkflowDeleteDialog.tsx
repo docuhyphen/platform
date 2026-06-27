@@ -118,28 +118,34 @@ const WorkflowDeleteDialog: React.FC<WorkflowDeleteDialogProps> = (
                     <DialogActions>
                         {deleteStarted ? (
                             <Button
+                                id="workflow-delete-dialog-cancel-btn"
                                 appearance="primary"
                                 className={globalStyles.buttonWithLoading}
                                 shape="circular"
-                                onClick={onCancel}>
+                                onClick={onCancel}
+                            >
                                 Cancel
                             </Button>
                         ) : (
                             <>
                                 <Button
+                                    id="workflow-delete-dialog-confirm-btn"
                                     appearance="primary"
                                     className={globalStyles.buttonWithLoading}
                                     shape="circular"
-                                    onClick={onDelete}>
+                                    onClick={onDelete}
+                                >
                                     {deleting && <Spinner size="tiny"/>}
                                     Yes, Delete
                                 </Button>
                                 <DialogTrigger disableButtonEnhancement>
                                     <Button
+                                        id="workflow-delete-dialog-dismiss-btn"
                                         appearance="secondary"
                                         shape="circular"
                                         disabled={deleting}
-                                        onClick={onDismiss}>
+                                        onClick={onDismiss}
+                                    >
                                         No, Cancel
                                     </Button>
                                 </DialogTrigger>

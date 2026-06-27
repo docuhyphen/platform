@@ -59,4 +59,23 @@ export const useOrganizationPeopleTabStyles = makeStyles({
         minWidth: "60px",
         maxWidth: "60px",
     },
+    capacityBox: {
+        padding: '12px 16px',
+        borderRadius: tokens.borderRadiusXLarge,
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+    },
+    capacityBoxRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    capacityAtCap: {
+        color: 'var(--colorPaletteRedForeground1)',
+    },
+    capacityNearCap: {
+        color: 'var(--colorPaletteYellowForeground1)',
+    },
 });

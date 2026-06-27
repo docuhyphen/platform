@@ -226,16 +226,18 @@ const DocumentLibraryEditorDialog = ({open, onClose, onSaved, entry, scope}: Pro
                                              onClick={() => setTags(prev => prev.filter(t => t !== tag))}>{tag}</Tag>
                                     ))}
                                     <Input
+                                        id={"input-doc-editor-tag"}
                                         size="small"
                                         appearance="underline"
                                         placeholder="Add tag, press Enter"
                                         value={tagInput}
                                         onChange={(_, d) => setTagInput(d.value)}
                                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
-                                        style={{border: 'none', flexGrow: 1, minWidth: '8rem'}}
+                                        className={styles.tagInputField}
                                     />
                                     <Button
-                                        shape="circular"
+                                        id={"button-doc-editor-add-tag"}
+                                        shape={"circular"}
                                         appearance="subtle"
                                         size="medium"
                                         icon={<AddIcon/>}
@@ -246,7 +248,7 @@ const DocumentLibraryEditorDialog = ({open, onClose, onSaved, entry, scope}: Pro
                             {error && title.trim() && (
                                 <span
                                     id="doc-editor-error"
-                                    style={{color: 'var(--colorPaletteRedForeground1)'}}
+                                    className={styles.errorText}
                                 >
                                     {error}
                                 </span>

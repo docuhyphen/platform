@@ -22,4 +22,13 @@ export const useSignInStyles = makeStyles({
         alignItems: "center",
         gap: "16px",
     },
+    orgPickerList: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+        marginTop: "8px",
+    },
+    orgPickerButton: {
+        justifyContent: "flex-start",
+    },
 });

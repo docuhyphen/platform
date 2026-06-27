@@ -1014,13 +1014,17 @@ const Exchanges: React.FC = () =>
                             </Text>
                             <div className={styles.inboxEmptyActions}>
                                 <Button
+                                    id={"exchanges-incoming-empty-open-active-btn"}
                                     appearance="primary"
+                                    shape={"circular"}
                                     disabled={tabCounts.active === 0}
                                     onClick={() => setActiveListTab('active')}>
                                     Open Active ({tabCounts.active})
                                 </Button>
                                 <Button
+                                    id={"exchanges-incoming-empty-open-archive-btn"}
                                     appearance="secondary"
+                                    shape={"circular"}
                                     disabled={tabCounts.archive === 0}
                                     onClick={() => setActiveListTab('archive')}>
                                     Open Archive ({tabCounts.archive})
@@ -1045,13 +1049,17 @@ const Exchanges: React.FC = () =>
                             </Text>
                             <div className={styles.inboxEmptyActions}>
                                 <Button
+                                    id={"exchanges-outgoing-empty-open-active-btn"}
                                     appearance="primary"
+                                    shape={"circular"}
                                     disabled={tabCounts.active === 0}
                                     onClick={() => setActiveListTab('active')}>
                                     Open Active ({tabCounts.active})
                                 </Button>
                                 <Button
+                                    id={"exchanges-outgoing-empty-open-archive-btn"}
                                     appearance="secondary"
+                                    shape={"circular"}
                                     disabled={tabCounts.archive === 0}
                                     onClick={() => setActiveListTab('archive')}>
                                     Open Archive ({tabCounts.archive})
@@ -1072,13 +1080,17 @@ const Exchanges: React.FC = () =>
                             </Text>
                             <div className={styles.inboxEmptyActions}>
                                 <Button
+                                    id={"exchanges-active-empty-open-inbox-btn"}
                                     appearance="primary"
+                                    shape={"circular"}
                                     disabled={tabCounts.inbox === 0}
                                     onClick={() => setActiveListTab('inbox')}>
                                     Open Inbox ({tabCounts.inbox})
                                 </Button>
                                 <Button
+                                    id={"exchanges-active-empty-open-archive-btn"}
                                     appearance="secondary"
+                                    shape={"circular"}
                                     disabled={tabCounts.archive === 0}
                                     onClick={() => setActiveListTab('archive')}>
                                     Open Archive ({tabCounts.archive})
@@ -1099,13 +1111,17 @@ const Exchanges: React.FC = () =>
                             </Text>
                             <div className={styles.inboxEmptyActions}>
                                 <Button
+                                    id={"exchanges-archive-empty-open-inbox-btn"}
                                     appearance="primary"
+                                    shape={"circular"}
                                     disabled={tabCounts.inbox === 0}
                                     onClick={() => setActiveListTab('inbox')}>
                                     Open Inbox ({tabCounts.inbox})
                                 </Button>
                                 <Button
+                                    id={"exchanges-archive-empty-open-active-btn"}
                                     appearance="secondary"
+                                    shape={"circular"}
                                     disabled={tabCounts.active === 0}
                                     onClick={() => setActiveListTab('active')}>
                                     Open Active ({tabCounts.active})

@@ -200,6 +200,8 @@ const SignUp: React.FC = () =>
                 <MessageBarActions
                     containerAction={
                         <Button
+                            id={"sign-up-error-dismiss-btn"}
+                            shape={"circular"}
                             onClick={() => setFormErrorMessage(undefined)}
                             appearance="transparent"
                             icon={<DismissRegular/>}
@@ -216,7 +218,9 @@ const SignUp: React.FC = () =>
                 label={"Verification code"}
                 validationState={otpRegenerationFailedMsg ? "error" : (otpRegenerationSuccessfulMsg ? "success" : "none")}
                 validationMessage={otpRegenerationFailedMsg || otpRegenerationSuccessfulMsg}>
-                <Input type="text"
+                <Input
+                       id={"sign-up-otp-input"}
+                       type="text"
                        name="otp"
                        maxLength={6}
                        value={formData.otp}
@@ -224,11 +228,14 @@ const SignUp: React.FC = () =>
                        onChange={handleChange}
                        onKeyDown={(e) => handleKeyDown(e, onCompleteSignUp)}/>
             </Field>
-            <Button onClick={onRegenerateOTP}
-                    size={"small"}
-                    disabled={completingSignUp}
-                    appearance={"transparent"}
-                    className={globalStyles.buttonWithLoading}> {/* Use GlobalStyles */}
+            <Button
+                id={"sign-up-resend-otp-btn"}
+                onClick={onRegenerateOTP}
+                size={"small"}
+                disabled={completingSignUp}
+                appearance={"transparent"}
+                shape={"circular"}
+                className={globalStyles.buttonWithLoading}>
                 {regeneratingOtp && <Spinner size={"tiny"}/>}
                 Resend verification code
             </Button>
@@ -241,7 +248,9 @@ const SignUp: React.FC = () =>
                 label={"Password"}
                 validationState={"none"}
                 validationMessage={""}>
-                <Input type="password"
+                <Input
+                       id={"sign-up-password-input"}
+                       type="password"
                        name="password"
                        maxLength={30}
                        value={formData.password}
@@ -266,7 +275,9 @@ const SignUp: React.FC = () =>
                 label={"Password Confirmation"}
                 validationState={"none"}
                 validationMessage={""}>
-                <Input type={"password"}
+                <Input
+                       id={"sign-up-confirm-password-input"}
+                       type={"password"}
                        name="confirmationPassword"
                        maxLength={30}
                        value={formData.confirmationPassword}
@@ -286,9 +297,12 @@ const SignUp: React.FC = () =>
                     </div>
                     {!signUpSuccessful && <div className={authorizationStyles.authorizationFormSection}>
                         <Subtitle1 align={"center"}>
-                            <Button icon={<ArrowLeftRegular/>}
-                                    appearance={"transparent"}
-                                    onClick={() => navigate("/sign-in")}/>
+                            <Button
+                                id={"sign-up-back-btn"}
+                                shape={"circular"}
+                                icon={<ArrowLeftRegular/>}
+                                appearance={"transparent"}
+                                onClick={() => navigate("/sign-in")}/>
                             Create account
                         </Subtitle1>
                         {renderFormErrorMessage()}
@@ -296,7 +310,9 @@ const SignUp: React.FC = () =>
                             label={"Enter your email"}
                             validationState={initiationSuccessfulMsg ? "success" : "none"}
                             validationMessage={initiationSuccessfulMsg}>
-                            <Input type="email"
+                            <Input
+                                   id={"sign-up-email-input"}
+                                   type="email"
                                    name="email"
                                    maxLength={254}
                                    autoComplete={"false"}
@@ -307,20 +323,24 @@ const SignUp: React.FC = () =>
                         {initiationSuccessful && <div className={signUpStyles.signUpCompletionForm}>
                             {renderOtpSection()}
                             {renderPasswordsSection()}
-                            <Button onClick={onCompleteSignUp}
-                                    appearance={"primary"}
-                                    shape={"circular"}
-                                    disabled={regeneratingOtp}
-                                    className={globalStyles.buttonWithLoading}> {/* Use GlobalStyles */}
+                            <Button
+                                id={"sign-up-complete-btn"}
+                                onClick={onCompleteSignUp}
+                                appearance={"primary"}
+                                shape={"circular"}
+                                disabled={regeneratingOtp}
+                                className={globalStyles.buttonWithLoading}>
                                 {completingSignUp && <Spinner size={"tiny"}/>}
                                 {completingSignUp ? "Completing sign up" : "Complete sign up"}
                             </Button>
                         </div>}
                         {!initiationSuccessful &&
-                            <Button onClick={onInitiateSignUp}
-                                    appearance={"primary"}
-                                    shape={"circular"}
-                                    className={globalStyles.buttonWithLoading}>
+                            <Button
+                                id={"sign-up-initiate-btn"}
+                                onClick={onInitiateSignUp}
+                                appearance={"primary"}
+                                shape={"circular"}
+                                className={globalStyles.buttonWithLoading}>
                                 {initiatingSignUp && <Spinner size={"tiny"}/>}
                                 Sign Up
                             </Button>}
@@ -328,21 +348,25 @@ const SignUp: React.FC = () =>
                         {!initiationSuccessful && <>
                             <div><Divider>OR</Divider></div>
 
-                            <Button onClick={() => {
-                                const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-                                window.location.href = `${apiBaseUrl}/auth/oauth/MICROSOFT/authorize?flow=signup`;
-                            }}
-                                    appearance={"secondary"}
-                                    shape={"circular"}>
+                            <Button
+                                id={"sign-up-microsoft-btn"}
+                                onClick={() => {
+                                    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+                                    window.location.href = `${apiBaseUrl}/auth/oauth/MICROSOFT/authorize?flow=signup`;
+                                }}
+                                appearance={"secondary"}
+                                shape={"circular"}>
                                 Sign up with Microsoft
                             </Button>
 
-                            <Button onClick={() => {
-                                const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-                                window.location.href = `${apiBaseUrl}/auth/oauth/GOOGLE/authorize?flow=signup`;
-                            }}
-                                    appearance={"secondary"}
-                                    shape={"circular"}>
+                            <Button
+                                id={"sign-up-google-btn"}
+                                onClick={() => {
+                                    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+                                    window.location.href = `${apiBaseUrl}/auth/oauth/GOOGLE/authorize?flow=signup`;
+                                }}
+                                appearance={"secondary"}
+                                shape={"circular"}>
                                 Sign up with Google
                             </Button>
                         </>}
@@ -372,9 +396,11 @@ const SignUp: React.FC = () =>
                             your account security. We also recommend keeping your password
                             secure with a trusted password manager.
                         </Text>
-                        <Button onClick={() => navigate("/sign-in")}
-                                appearance={"primary"}
-                                shape={"circular"}>
+                        <Button
+                            id={"sign-up-success-sign-in-btn"}
+                            onClick={() => navigate("/sign-in")}
+                            appearance={"primary"}
+                            shape={"circular"}>
                             Sign In
                         </Button>
                     </div>}

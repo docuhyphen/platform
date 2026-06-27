@@ -140,6 +140,7 @@ const ExchangeInitiationRecipientsTab: React.FC<ExchangeRecipientsTabProps> = (p
         <div className={styles.recipientsTabContent}>
             <Field>
                 <RadioGroup
+                    id={"exchange-recipient-mode-group"}
                     layout={isMobile ? "vertical" : "horizontal"}
                     value={props.recipientMode}
                     onChange={onRecipientModeChange}>
@@ -204,19 +205,19 @@ const ExchangeInitiationRecipientsTab: React.FC<ExchangeRecipientsTabProps> = (p
                 && appUserPersonOrganization != null
                 && appUserPersonOrganization.verificationComplete
                 && appUserPersonOrganization.isActive && (
-                <div style={{marginTop: 8, display: 'flex', alignItems: 'center', gap: 8}}>
+                <div className={styles.externalBadgeRow}>
                     <Badge appearance="outline" color="warning">External recipient</Badge>
                 </div>
             )}
 
-            <div style={{marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--colorNeutralStroke2)'}}>
+            <div className={styles.roleSection}>
                 <Field
                     label={
                         <InfoLabel
                             info={
-                                <div style={{display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 320}}>
+                                <div>
                                     <Text size={200}>Each role determines what the recipient can do in this exchange.</Text>
-                                    <div style={{display: 'flex', flexDirection: 'column', gap: 6}}>
+                                    <div>
                                         <div><Text size={200} weight="semibold">Auto</Text> <Text size={200}>exch- derived from document permissions (Editor if write access granted, Viewer otherwise).</Text></div>
                                         <div><Text size={200} weight="semibold">Editor</Text> <Text size={200}>exch- can add, update, upload, and manage documents.</Text></div>
                                         <div><Text size={200} weight="semibold">Viewer</Text> <Text size={200}>exch- read-only access. Supports download and watermark constraints.</Text></div>
@@ -234,6 +235,7 @@ const ExchangeInitiationRecipientsTab: React.FC<ExchangeRecipientsTabProps> = (p
                     hint="Defaults to Editor/Viewer based on document permissions."
                 >
                     <Dropdown
+                        id={"exchange-recipient-role-dropdown"}
                         size="small"
                         value={props.recipientRole ? ExchangeShareRoleDisplayNames[props.recipientRole] : 'Auto'}
                         selectedOptions={props.recipientRole ? [props.recipientRole] : ['AUTO']}
@@ -258,7 +260,7 @@ const ExchangeInitiationRecipientsTab: React.FC<ExchangeRecipientsTabProps> = (p
                 </Field>
 
                 {props.recipientRole && CONSTRAINED_ROLES.has(props.recipientRole) && (
-                    <div style={{marginTop: 8}}>
+                    <div className={styles.constraintsRow}>
                         <ShareConstraintToggles
                             constraints={props.recipientConstraints}
                             onChange={props.setRecipientConstraints}

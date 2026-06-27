@@ -16,7 +16,6 @@ import {
     Tag,
     Text,
     Textarea,
-    tokens,
 } from '@fluentui/react-components';
 import {
     CreateCommunicationRequest,
@@ -189,23 +188,24 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
 
     return (
         <Dialog open={open} onOpenChange={(_, {open: isOpen}) => { if (!isOpen) onClose(); }}>
-            <DialogSurface style={{maxWidth: '680px', width: '100%'}}>
+            <DialogSurface className={styles.dialogSurface}>
                 <DialogBody>
                     <DialogTitle>{communication ? 'Edit Communication' : 'Create Communication'}</DialogTitle>
                     <DialogContent>
                         <TabList
                             selectedValue={activeTab}
                             onTabSelect={(_, d) => setActiveTab(d.value as EditorTab)}
-                            style={{marginBottom: '16px'}}
+                            className={styles.tabList}
                         >
                             <Tab value="details">Details</Tab>
                             <Tab value="preview" disabled={!communication?.id}>Preview</Tab>
                         </TabList>
 
                         {activeTab === 'details' && (
-                            <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                            <div className={styles.tabContent}>
                                 <Field label="Name" required>
                                     <Input
+                                        id={"input-comm-name"}
                                         value={name}
                                         onChange={(_, d) => setName(d.value)}
                                         placeholder="Communication name"
@@ -213,6 +213,7 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
                                 </Field>
                                 <Field label="Summary">
                                     <Input
+                                        id={"input-comm-summary"}
                                         value={summary}
                                         onChange={(_, d) => setSummary(d.value)}
                                         placeholder="Short description"
@@ -228,6 +229,7 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
                                         />
                                     ) : (
                                         <Input
+                                            id={"input-comm-subject"}
                                             value={subject}
                                             onChange={(_, d) => setSubject(d.value)}
                                             placeholder="Email subject line"
@@ -249,6 +251,7 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
                                         />
                                     ) : (
                                         <Textarea
+                                            id={"textarea-comm-body"}
                                             value={body}
                                             onChange={(_, d) => setBody(d.value)}
                                             rows={6}
@@ -258,19 +261,27 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
                                 </Field>
                                 {variableHints.length > 0 && (
                                     <div>
-                                        <Text size={200} style={{color: 'var(--colorNeutralForeground3)', display: 'block', marginBottom: '6px'}}>
+                                        <Text
+                                            size={200}
+                                            className={styles.tokenHintLabel}
+                                        >
                                             Available tokens:
                                         </Text>
-                                        <div style={{display: 'flex', flexWrap: 'wrap', gap: '4px'}}>
+                                        <div className={styles.tokenHintRow}>
                                             {variableHints.slice(0, 12).map(hint => (
-                                                <Badge key={hint} appearance="tint" size="small" color="informative"
-                                                       style={{fontFamily: 'monospace', cursor: 'pointer'}}
-                                                       onClick={() => setBody(b => b + hint)}>
+                                                <Badge
+                                                    key={hint}
+                                                    appearance="tint"
+                                                    size="small"
+                                                    color="informative"
+                                                    className={styles.tokenBadge}
+                                                    onClick={() => setBody(b => b + hint)}
+                                                >
                                                     {hint}
                                                 </Badge>
                                             ))}
                                             {variableHints.length > 12 && (
-                                                <Text size={200} style={{color: 'var(--colorNeutralForeground3)'}}>
+                                                <Text size={200} className={styles.tokenHintMore}>
                                                     +{variableHints.length - 12} more
                                                 </Text>
                                             )}
@@ -280,23 +291,27 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
                                 <Field label="Tags">
                                     <div className={styles.tagInput}>
                                         {tags.map(tag => (
-                                            <Tag key={tag}
-                                                 size="small"
-                                                 shape={"circular"}
-                                                 dismissible
-                                                 onClick={() => setTags(prev => prev.filter(t => t !== tag))}>{tag}</Tag>
+                                            <Tag
+                                                key={tag}
+                                                size="small"
+                                                shape={"circular"}
+                                                dismissible
+                                                onClick={() => setTags(prev => prev.filter(t => t !== tag))}
+                                            >{tag}</Tag>
                                         ))}
                                         <Input
+                                            id={"input-comm-tag"}
                                             size="small"
                                             appearance="underline"
                                             placeholder="Add tag, press Enter"
                                             value={tagInput}
                                             onChange={(_, d) => setTagInput(d.value)}
                                             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
-                                            style={{border: 'none', flexGrow: 1, minWidth: '8rem'}}
+                                            className={styles.tagInputField}
                                         />
                                         <Button
-                                            shape="circular"
+                                            id={"button-comm-add-tag"}
+                                            shape={"circular"}
                                             appearance="subtle"
                                             size="medium"
                                             icon={<AddIcon/>}
@@ -308,12 +323,13 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
                         )}
 
                         {activeTab === 'preview' && (
-                            <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                            <div className={styles.tabContent}>
                                 <Field
                                     label="Sample variables (JSON)"
                                     hint='Override tokens for preview, e.g. {"exchangeName": "Contract Review"}'
                                 >
                                     <Textarea
+                                        id={"textarea-comm-preview-vars"}
                                         value={previewVars}
                                         onChange={(_, d) => setPreviewVars(d.value)}
                                         rows={3}
@@ -321,45 +337,39 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
                                     />
                                 </Field>
                                 <Button
+                                    id={"button-comm-render-preview"}
                                     appearance="secondary"
-                                    shape="circular"
+                                    shape={"circular"}
                                     onClick={handlePreview}
                                     disabled={previewing}
-                                    style={{alignSelf: 'flex-start'}}
+                                    className={styles.renderPreviewButton}
                                 >
                                     {previewing ? <><Spinner size="tiny"/> Rendering…</> : 'Render Preview'}
                                 </Button>
                                 {previewError && (
-                                    <Text style={{color: 'var(--colorPaletteRedForeground1)'}}>{previewError}</Text>
+                                    <Text className={styles.previewErrorText}>{previewError}</Text>
                                 )}
                                 {previewResult && (
-                                    <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
-                                        <div style={{
-                                            border: '1px solid var(--colorNeutralStroke1)',
-                                            borderRadius: tokens.borderRadiusXLarge,
-                                            padding: '12px',
-                                            background: 'var(--colorNeutralBackground2)',
-                                        }}>
-                                            <Text size={200} weight="semibold" style={{display: 'block', marginBottom: '4px', color: 'var(--colorNeutralForeground3)'}}>
+                                    <div className={styles.previewResultsContainer}>
+                                        <div className={styles.previewBox}>
+                                            <Text
+                                                size={200}
+                                                weight="semibold"
+                                                className={styles.previewSubjectLabel}
+                                            >
                                                 Subject
                                             </Text>
                                             <Text size={400} weight="semibold">{previewResult.subject}</Text>
                                         </div>
-                                        <div style={{
-                                            border: '1px solid var(--colorNeutralStroke1)',
-                                            borderRadius: tokens.borderRadiusXLarge,
-                                            padding: '12px',
-                                            background: 'var(--colorNeutralBackground2)',
-                                        }}>
-                                            <Text size={200} weight="semibold" style={{display: 'block', marginBottom: '8px', color: 'var(--colorNeutralForeground3)'}}>
+                                        <div className={styles.previewBox}>
+                                            <Text
+                                                size={200}
+                                                weight="semibold"
+                                                className={styles.previewBodyLabel}
+                                            >
                                                 Body (Markdown)
                                             </Text>
-                                            <pre style={{
-                                                fontFamily: 'inherit',
-                                                whiteSpace: 'pre-wrap',
-                                                wordBreak: 'break-word',
-                                                margin: 0,
-                                            }}>
+                                            <pre className={styles.previewPre}>
                                                 {previewResult.body}
                                             </pre>
                                         </div>
@@ -369,18 +379,29 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
                         )}
 
                         {error && (
-                            <span style={{color: 'var(--colorPaletteRedForeground1)', fontSize: '12px', marginTop: '8px', display: 'block'}}>
+                            <span className={styles.errorSpan}>
                                 {error}
                             </span>
                         )}
                     </DialogContent>
                     <DialogActions>
                         {activeTab === 'details' && (
-                            <Button appearance="primary" shape="circular" onClick={handleSave} disabled={saving}>
+                            <Button
+                                id={"button-comm-save"}
+                                appearance="primary"
+                                shape={"circular"}
+                                onClick={handleSave}
+                                disabled={saving}
+                            >
                                 {saving ? <><Spinner size="tiny"/> Saving…</> : (communication ? 'Save Changes' : 'Create Communication')}
                             </Button>
                         )}
-                        <Button shape="circular" onClick={onClose} disabled={saving}>Cancel</Button>
+                        <Button
+                            id={"button-comm-cancel"}
+                            shape={"circular"}
+                            onClick={onClose}
+                            disabled={saving}
+                        >Cancel</Button>
                     </DialogActions>
                 </DialogBody>
             </DialogSurface>

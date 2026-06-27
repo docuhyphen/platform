@@ -6,8 +6,8 @@ import {
     Input,
     Spinner,
     Text,
-    tokens,
 } from "@fluentui/react-components";
+import {useAuthSessionPolicySectionStyles} from "./AuthSessionPolicySectionStyles.tsx";
 import {
     getOrgAuthSessionPolicy,
     updateOrgIdpAuthSessionPolicy,
@@ -66,6 +66,7 @@ const buildDraft = (row: OrgAuthSessionPolicyIdp): DraftRow => ({
 
 export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySectionProps) =>
 {
+    const styles = useAuthSessionPolicySectionStyles();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [settings, setSettings] = useState<OrgAuthSessionPolicySettings | null>(null);
@@ -192,18 +193,25 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
 
     return (
         <>
-            <Divider alignContent="start" appearance="brand" style={{marginTop: 20, marginBottom: 12}}>
+            <Divider
+                alignContent="start"
+                appearance="brand"
+                className={styles.divider}
+            >
                 Auth Session Policy
             </Divider>
 
             {loading && (
-                <div style={{padding: 8}}>
-                    <Spinner size="tiny" label="Loading policy"/>
+                <div className={styles.loadingWrapper}>
+                    <Spinner
+                        size="tiny"
+                        label="Loading policy"
+                    />
                 </div>
             )}
 
             {error && (
-                <div style={{color: tokens.colorStatusDangerForeground1, marginBottom: 8}}>{error}</div>
+                <div className={styles.error}>{error}</div>
             )}
 
             {settings && !loading && (
@@ -214,18 +222,7 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                         Short refresh and idle windows are intentional for sensitive-document workloads.
                     </Text>
 
-                    <div
-                        style={{
-                            display: "grid",
-                            gridTemplateColumns: "auto auto auto",
-                            columnGap: 16,
-                            rowGap: 4,
-                            marginBottom: 16,
-                            padding: 8,
-                            background: tokens.colorNeutralBackground2,
-                            borderRadius: 4,
-                        }}
-                    >
+                    <div className={styles.effectiveGrid}>
                         <Text weight="semibold">Effective access token</Text>
                         <Text>{settings.effective.accessTokenExpiryMinutes} min</Text>
                         <Text size={200}>
@@ -256,7 +253,10 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                     </div>
 
                     {settings.idpConfigs.length === 0 && (
-                        <Text size={300} style={{color: tokens.colorNeutralForeground3}}>
+                        <Text
+                            size={300}
+                            className={styles.noIdpText}
+                        >
                             No Identity Provider configurations exist yet.
                         </Text>
                     )}
@@ -270,14 +270,9 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                         return (
                             <div
                                 key={row.configId}
-                                style={{
-                                    border: `1px solid ${tokens.colorNeutralStroke2}`,
-                                    borderRadius: 4,
-                                    padding: 12,
-                                    marginBottom: 12,
-                                }}
+                                className={styles.idpCard}
                             >
-                                <div style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 8}}>
+                                <div className={styles.idpCardHeader}>
                                     <Text weight="semibold">{row.provider}</Text>
                                     <Badge
                                         appearance="outline"
@@ -287,17 +282,11 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                                     </Badge>
                                 </div>
 
-                                <div
-                                    style={{
-                                        display: "grid",
-                                        gridTemplateColumns: "1fr 1fr 1fr 1fr",
-                                        gap: 12,
-                                        marginBottom: 8,
-                                    }}
-                                >
-                                    <label style={{display: "flex", flexDirection: "column", gap: 4}}>
+                                <div className={styles.inputsGrid}>
+                                    <label className={styles.inputLabel}>
                                         <Text size={200}>Access token expiry (minutes)</Text>
                                         <Input
+                                            id={`input-access-token-expiry-${row.configId}`}
                                             value={draft.accessTokenExpiryMinutes}
                                             disabled={disabled}
                                             placeholder="(inherit default)"
@@ -309,9 +298,10 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                                             }
                                         />
                                     </label>
-                                    <label style={{display: "flex", flexDirection: "column", gap: 4}}>
+                                    <label className={styles.inputLabel}>
                                         <Text size={200}>Refresh token expiry (minutes)</Text>
                                         <Input
+                                            id={`input-refresh-token-expiry-${row.configId}`}
                                             value={draft.refreshTokenExpiryMinutes}
                                             disabled={disabled}
                                             placeholder="(inherit default)"
@@ -323,9 +313,10 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                                             }
                                         />
                                     </label>
-                                    <label style={{display: "flex", flexDirection: "column", gap: 4}}>
+                                    <label className={styles.inputLabel}>
                                         <Text size={200}>Max session duration (hours)</Text>
                                         <Input
+                                            id={`input-max-session-duration-${row.configId}`}
                                             value={draft.maxSessionDurationHours}
                                             disabled={disabled}
                                             placeholder="(inherit default)"
@@ -337,9 +328,10 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                                             }
                                         />
                                     </label>
-                                    <label style={{display: "flex", flexDirection: "column", gap: 4}}>
+                                    <label className={styles.inputLabel}>
                                         <Text size={200}>Idle timeout (minutes)</Text>
                                         <Input
+                                            id={`input-idle-timeout-${row.configId}`}
                                             value={draft.idleTimeoutMinutes}
                                             disabled={disabled}
                                             placeholder="(inherit default)"
@@ -354,19 +346,16 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                                 </div>
 
                                 {draft.error && (
-                                    <div
-                                        style={{
-                                            color: tokens.colorStatusDangerForeground1,
-                                            marginBottom: 8,
-                                        }}
-                                    >
+                                    <div className={styles.draftError}>
                                         {draft.error}
                                     </div>
                                 )}
 
-                                <div style={{display: "flex", gap: 8}}>
+                                <div className={styles.actionRow}>
                                     <Button
+                                        id={`button-auth-policy-save-${row.configId}`}
                                         appearance="primary"
+                                        shape={"circular"}
                                         size="small"
                                         disabled={disabled}
                                         onClick={() => onSave(row.configId)}
@@ -374,7 +363,9 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                                         {draft.saving ? "Saving…" : "Save"}
                                     </Button>
                                     <Button
+                                        id={`button-auth-policy-reset-${row.configId}`}
                                         appearance="secondary"
+                                        shape={"circular"}
                                         size="small"
                                         disabled={disabled}
                                         onClick={() => onReset(row.configId)}

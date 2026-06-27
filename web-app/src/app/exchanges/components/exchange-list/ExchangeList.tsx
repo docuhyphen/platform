@@ -656,15 +656,15 @@ const ExchangeList: React.FC<ExchangeListProps> = (
                         selectedValue={inboxRole}
                         onTabSelect={(_, data) => handleInboxRoleChange(data.value as InboxRole)}
                         size="small"
-                        style={{width: '100%'}}>
+                        className={styles.inboxRoleTabList}>
                         <Tab id="exchange-list-inbox-role-incoming" value="incoming">
-                            <span style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
+                            <span className={styles.tabContentFlex}>
                                 Incoming
                                 {incomingCount > 0 && <CounterBadge count={incomingCount} size="small" appearance="filled" color="danger"/>}
                             </span>
                         </Tab>
                         <Tab id="exchange-list-inbox-role-outgoing" value="outgoing">
-                            <span style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
+                            <span className={styles.tabContentFlex}>
                                 Outgoing
                                 {outgoingCount > 0 && <CounterBadge count={outgoingCount} size="small" appearance="filled"/>}
                             </span>
@@ -741,6 +741,7 @@ const ExchangeList: React.FC<ExchangeListProps> = (
                                 id="exchange-list-clear-filters"
                                 size="small"
                                 appearance="subtle"
+                                shape={"circular"}
                                 onClick={handleClearFilters}>
                                 Clear filters
                             </Button>

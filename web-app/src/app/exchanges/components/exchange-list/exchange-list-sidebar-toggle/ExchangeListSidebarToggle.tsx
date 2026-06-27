@@ -22,6 +22,7 @@ const ExchangeListSidebarToggle: React.FC<ExchangeListSidebarToggleProps> = (
                 id="exchange-list-sidebar-toggle"
                 size="small"
                 appearance="subtle"
+                shape={"circular"}
                 aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
                 icon={isSidebarCollapsed ? <ExpandExchangeListSidebarIcon/> : <CollapseExchangeListSidebarIcon/>}
                 onClick={toggleSidebar}

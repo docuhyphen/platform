@@ -47,5 +47,14 @@ export const useWorkflowInstanceDetailStyles = makeStyles({
     currentStepHighlight: {
         borderColor: tokens.colorBrandStroke1,
     },
+
+    exchangeName: {
+        marginBottom: "0.5rem",
+    },
+
+    instanceStatus: {
+        marginBottom: "0.75rem",
+        color: "var(--colorNeutralForeground3)",
+    },
 });
 

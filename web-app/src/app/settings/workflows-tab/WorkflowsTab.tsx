@@ -2,10 +2,10 @@ import {useState} from "react";
 import {SelectTabData, SelectTabEvent, Tab, TabList, TabValue} from "@fluentui/react-components";
 import {WorkflowDefinitionSummaryDto} from "../../models/models.tsx";
 import {useWorkflowsTabStyles} from "./WorkflowsTabStyles.tsx";
-import WorkflowsListView from "./WorkflowsListView.tsx";
-import WorkflowDesigner from "./WorkflowDesigner.tsx";
-import WorkflowInstanceDashboard from "./WorkflowInstanceDashboard.tsx";
-import WorkflowInstanceDetail from "./WorkflowInstanceDetail.tsx";
+import WorkflowsListView from "./workflows-list-view/WorkflowsListView.tsx";
+import WorkflowDesigner from "./workflow-designer/WorkflowDesigner.tsx";
+import WorkflowInstanceDashboard from "./workflow-instance-dashboard/WorkflowInstanceDashboard.tsx";
+import WorkflowInstanceDetail from "./workflow-instance-detail/WorkflowInstanceDetail.tsx";
 
 type SubTab = "workflows" | "activity";
 

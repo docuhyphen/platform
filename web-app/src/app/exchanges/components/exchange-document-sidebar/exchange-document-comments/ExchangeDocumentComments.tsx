@@ -145,6 +145,7 @@ const ExchangeDocumentComments: React.FC<ExchangeDocumentCommentsProps> = (
                 <div className={styles.commentFieldContainerField}>
                     <Field className={styles.commentField}>
                         <Textarea
+                            id={"textarea-exchange-document-comment"}
                             placeholder="Add note"
                             maxLength={255}
                             value={newComment}
@@ -160,8 +161,10 @@ const ExchangeDocumentComments: React.FC<ExchangeDocumentCommentsProps> = (
                     </Text>
 
                     <Button
+                        id={"exchange-document-comment-send-btn"}
                         icon={addingComment ? <Spinner size={"extra-small"}/> : <SendCommentIcon/>}
                         appearance="transparent"
+                        shape={"circular"}
                         onClick={onAddComment}
                         size={"large"}
                         disabled={!newComment.trim() || addingComment}

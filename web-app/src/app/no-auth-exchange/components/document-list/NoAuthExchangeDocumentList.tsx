@@ -241,6 +241,7 @@ const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({
                     <div className={styles.documentActionsLine1}>
                         <div className={styles.uploadActions}>
                             <Button
+                                id={`no-auth-exchange-doc-choose-file-btn-${doc.id}`}
                                 appearance="subtle"
                                 icon={<DocumentAddIcon/>}
                                 shape="circular"
@@ -256,6 +257,7 @@ const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({
                                 />
                             </Button>
                             <Button
+                                id={`no-auth-exchange-doc-upload-btn-${doc.id}`}
                                 appearance="subtle"
                                 icon={<UploadIcon/>}
                                 shape="circular"
@@ -268,6 +270,7 @@ const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({
                         </div>
                         {doc.uploadDate && (
                             <Button
+                                id={`no-auth-exchange-doc-download-btn-${doc.id}`}
                                 appearance="subtle"
                                 disabled={downloadingDocument}
                                 shape="circular"
@@ -304,6 +307,7 @@ const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({
                     <div className={styles.verificationControls}>
                         <Field label="Access code" className={styles.otpInputField}>
                             <Input
+                                id={"no-auth-exchange-access-code-input"}
                                 value={accessCode}
                                 onChange={(_, data) => onAccessCodeChange(data.value)}
                                 placeholder="Enter access code"
@@ -311,6 +315,7 @@ const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({
                             />
                         </Field>
                         <Button
+                            id={"no-auth-exchange-verify-code-btn"}
                             appearance="secondary"
                             shape="circular"
                             onClick={onVerifyAccessCode}

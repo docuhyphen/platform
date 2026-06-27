@@ -102,6 +102,7 @@ const ExchangeDocumentDownloadDialog: React.FC<DownloadDocumentDialogProps> = (
                         )}
                         <Field className={styles.downloadNameField}>
                             <Input
+                                id={"input-download-document-name"}
                                 type="text"
                                 value={downloadName}
                                 required
@@ -116,7 +117,8 @@ const ExchangeDocumentDownloadDialog: React.FC<DownloadDocumentDialogProps> = (
                         </Field>
                     </DialogContent>
                     <DialogActions>
-                        <Button appearance="primary"
+                        <Button id={"download-document-submit-btn"}
+                                appearance="primary"
                                 className={globalStyles.buttonWithLoading}
                                 shape={"circular"}
                                 disabled={(downloadingDocument || !downloadName || !downloadName.trim())}
@@ -125,7 +127,8 @@ const ExchangeDocumentDownloadDialog: React.FC<DownloadDocumentDialogProps> = (
                             Download
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
-                            <Button appearance="secondary"
+                            <Button id={"download-document-close-btn"}
+                                    appearance="secondary"
                                     shape={"circular"}
                                     disabled={downloadingDocument}
                                     onClick={onClose}>

@@ -709,15 +709,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         if (previewError)
         {
             return (
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '12px',
-                    padding: '32px',
-                    textAlign: 'center'
-                }}>
+                <div className={styles.previewErrorContainer}>
                     <Text size={500} weight={"semibold"}>Preview unavailable</Text>
                     <Text size={300}>{previewError}</Text>
                     {canDownloadOriginal && (
@@ -796,7 +788,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         }
 
         return (
-            <div style={{position: 'relative'}}>
+            <div className={styles.pdfRelativeWrapper}>
             <Document
                 className={styles.pdfDocument}
                 file={pdfUrl}
@@ -867,29 +859,9 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
             {watermarkEnabled && (
                 <div
                     aria-hidden
-                    style={{
-                        position: 'absolute',
-                        inset: 0,
-                        pointerEvents: 'none',
-                        overflow: 'hidden',
-                        zIndex: 5,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        userSelect: 'none',
-                    }}
+                    className={styles.watermarkOverlay}
                 >
-                    <div
-                        style={{
-                            transform: 'rotate(-30deg)',
-                            opacity: 0.15,
-                            fontSize: '4rem',
-                            fontWeight: 700,
-                            color: '#000',
-                            whiteSpace: 'nowrap',
-                            letterSpacing: '0.2em',
-                        }}
-                    >
+                    <div className={styles.watermarkText}>
                         {watermarkText} · CONFIDENTIAL
                     </div>
                 </div>
@@ -959,30 +931,36 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                               Desktop/tablet keeps all controls.
                             */}
                             <Tooltip content="Enlarge" relationship="description">
-                                <Button onClick={toggleEnlarge}
-                                        id="exchange-document-preview-expand"
-                                        appearance="transparent"
-                                        style={hideEnlarge ? {display: 'none'} : undefined}
-                                        icon={<ExpandIcon/>}/>
+                                <Button
+                                    onClick={toggleEnlarge}
+                                    id="exchange-document-preview-expand"
+                                    appearance="transparent"
+                                    shape={"circular"}
+                                    style={hideEnlarge ? {display: 'none'} : undefined}
+                                    icon={<ExpandIcon/>}/>
                             </Tooltip>
 
                             {!isMobile && (
                                 <Tooltip content="Fullscreen" relationship="description">
-                                    <Button onClick={toggleFullscreen}
-                                            id="exchange-document-preview-fullscreen-inline"
-                                            appearance="transparent"
-                                            icon={<FullScreenEnterIcon/>}/>
+                                    <Button
+                                        onClick={toggleFullscreen}
+                                        id="exchange-document-preview-fullscreen-inline"
+                                        appearance="transparent"
+                                        shape={"circular"}
+                                        icon={<FullScreenEnterIcon/>}/>
                                 </Tooltip>
                             )}
 
                             {!isMobile && (
                                 <>
-                                    <Divider vertical style={{height: "100%"}}/>
+                                    <Divider vertical className={styles.dividerFullHeight}/>
 
-                                    <Button onClick={handleZoomIn}
-                                            id="exchange-document-preview-zoom-in-inline"
-                                            appearance="transparent"
-                                            icon={<ZoomInIcon/>}/>
+                                    <Button
+                                        onClick={handleZoomIn}
+                                        id="exchange-document-preview-zoom-in-inline"
+                                        appearance="transparent"
+                                        shape={"circular"}
+                                        icon={<ZoomInIcon/>}/>
 
                                     <Tooltip content="Click to reset" relationship="description">
                                         <Button onClick={handleResetZoom}
@@ -994,29 +972,35 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                                         </Button>
                                     </Tooltip>
 
-                                    <Button onClick={handleZoomOut}
-                                            id="exchange-document-preview-zoom-out-inline"
-                                            appearance="transparent"
-                                            icon={<ZoomOutIcon/>}/>
+                                    <Button
+                                        onClick={handleZoomOut}
+                                        id="exchange-document-preview-zoom-out-inline"
+                                        appearance="transparent"
+                                        shape={"circular"}
+                                        icon={<ZoomOutIcon/>}/>
 
-                                    <Divider vertical style={{height: "100%"}}/>
+                                    <Divider vertical className={styles.dividerFullHeight}/>
                                 </>
                             )}
                         </>
                     )}
 
                     <div className={styles.pagesInputContainer}>
-                        <Button onClick={() => goToPage(1)}
-                                id="exchange-document-preview-page-first"
-                                icon={<FirstPageIcon/>}
-                                disabled={numPages === 0}
-                                appearance="transparent"/>
+                        <Button
+                            onClick={() => goToPage(1)}
+                            id="exchange-document-preview-page-first"
+                            icon={<FirstPageIcon/>}
+                            disabled={numPages === 0}
+                            appearance="transparent"
+                            shape={"circular"}/>
 
-                        <Button onClick={handlePreviousPage}
-                                id="exchange-document-preview-page-previous"
-                                appearance="transparent"
-                                disabled={numPages === 0 || currentPage <= 1}
-                                icon={<PreviousPageIcon/>}/>
+                        <Button
+                            onClick={handlePreviousPage}
+                            id="exchange-document-preview-page-previous"
+                            appearance="transparent"
+                            shape={"circular"}
+                            disabled={numPages === 0 || currentPage <= 1}
+                            icon={<PreviousPageIcon/>}/>
 
                         <Input
                             id="exchange-document-preview-page-input"
@@ -1041,17 +1025,21 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                             contentAfter={<Text className={styles.pagesInputAfter}>{` / ${numPages}`}</Text>}
                         />
 
-                        <Button onClick={handleNextPage}
-                                id="exchange-document-preview-page-next"
-                                appearance="transparent"
-                                disabled={numPages === 0 || currentPage >= numPages}
-                                icon={<NextPageIcon/>}/>
+                        <Button
+                            onClick={handleNextPage}
+                            id="exchange-document-preview-page-next"
+                            appearance="transparent"
+                            shape={"circular"}
+                            disabled={numPages === 0 || currentPage >= numPages}
+                            icon={<NextPageIcon/>}/>
 
-                        <Button onClick={() => goToPage(numPages)}
-                                id="exchange-document-preview-page-last"
-                                icon={<LastPageIcon/>}
-                                disabled={numPages === 0}
-                                appearance="transparent"/>
+                        <Button
+                            onClick={() => goToPage(numPages)}
+                            id="exchange-document-preview-page-last"
+                            icon={<LastPageIcon/>}
+                            disabled={numPages === 0}
+                            appearance="transparent"
+                            shape={"circular"}/>
                     </div>
 
                     {isEnlarged && (
@@ -1067,12 +1055,14 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                             */}
                             {!isMobile && (
                                 <>
-                                    <Divider vertical style={{height: "100%"}}/>
+                                    <Divider vertical className={styles.dividerFullHeight}/>
 
-                                    <Button onClick={handleZoomOut}
-                                            id="exchange-document-preview-zoom-out-enlarged"
-                                            appearance="transparent"
-                                            icon={<ZoomOutIcon/>}/>
+                                    <Button
+                                        onClick={handleZoomOut}
+                                        id="exchange-document-preview-zoom-out-enlarged"
+                                        appearance="transparent"
+                                        shape={"circular"}
+                                        icon={<ZoomOutIcon/>}/>
 
                                     <Tooltip content="Click to reset"
                                              relationship="description">
@@ -1085,27 +1075,33 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                                         </Button>
                                     </Tooltip>
 
-                                    <Button onClick={handleZoomIn}
-                                            id="exchange-document-preview-zoom-in-enlarged"
-                                            appearance="transparent"
-                                            icon={<ZoomInIcon/>}/>
+                                    <Button
+                                        onClick={handleZoomIn}
+                                        id="exchange-document-preview-zoom-in-enlarged"
+                                        appearance="transparent"
+                                        shape={"circular"}
+                                        icon={<ZoomInIcon/>}/>
 
-                                    <Divider vertical style={{height: "100%"}}/>
+                                    <Divider vertical className={styles.dividerFullHeight}/>
 
                                     <Tooltip content={isFullscreen ? "Exit fullscreen" : "Fullscreen"} relationship="description">
-                                        <Button onClick={toggleFullscreen}
-                                                id="exchange-document-preview-fullscreen-enlarged"
-                                                appearance="transparent"
-                                                icon={isFullscreen ? <FullScreenExitIcon/> : <FullScreenEnterIcon/>}/>
+                                        <Button
+                                            onClick={toggleFullscreen}
+                                            id="exchange-document-preview-fullscreen-enlarged"
+                                            appearance="transparent"
+                                            shape={"circular"}
+                                            icon={isFullscreen ? <FullScreenExitIcon/> : <FullScreenEnterIcon/>}/>
                                     </Tooltip>
                                 </>
                             )}
 
                             <Tooltip content="Exit" relationship="description">
-                                <Button onClick={toggleEnlarge}
-                                        id="exchange-document-preview-exit-enlarged"
-                                        appearance="transparent"
-                                        icon={<CollapseIcon/>}/>
+                                <Button
+                                    onClick={toggleEnlarge}
+                                    id="exchange-document-preview-exit-enlarged"
+                                    appearance="transparent"
+                                    shape={"circular"}
+                                    icon={<CollapseIcon/>}/>
                             </Tooltip>
                         </>
                     )}

@@ -50,5 +50,13 @@ export const useWorkflowInstanceDashboardStyles = makeStyles({
         gap: "0.5rem",
         paddingTop: "0.75rem",
     },
+
+    statusFilterSelect: {
+        minWidth: "10rem",
+    },
+
+    rowMetaInherit: {
+        color: "inherit",
+    },
 });
 

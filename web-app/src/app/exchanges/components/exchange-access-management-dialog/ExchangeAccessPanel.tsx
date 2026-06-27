@@ -311,6 +311,7 @@ const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId, on
             <div className={styles.toolbar}>
                 <Text size={200}>Manage who has access and what they can do.</Text>
                 <Button
+                    id={"access-panel-add-person-btn"}
                     size="small"
                     shape="circular"
                     appearance="secondary"
@@ -338,9 +339,11 @@ const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId, on
                         <Card key={entry.shareId} className={styles.row}>
                             <div className={styles.rowTop}>
                                 <Button
+                                    id={`access-entry-toggle-${entry.shareId}`}
                                     className={styles.actionButton}
                                     size="small"
                                     appearance="subtle"
+                                    shape={"circular"}
                                     icon={showDetails ? <ChevronUpRegular/> : <ChevronDownRegular/>}
                                     onClick={() => setExpandedEntryId(showDetails ? null : entry.shareId)}>
                                 </Button>
@@ -362,6 +365,7 @@ const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId, on
                                             </Text>
                                         ) : (
                                             <Combobox
+                                                id={`combobox-access-entry-role-${entry.shareId}`}
                                                 value={ExchangeShareRoleDisplayNames[draft.roleName as ExchangeShareRole] || draft.roleName}
                                                 selectedOptions={[draft.roleName]}
                                                 disabled={busy}
@@ -382,18 +386,23 @@ const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId, on
                                         )}
 
                                         {isRevoked ? (
-                                            <Button className={styles.actionButton}
-                                                    size="small"
-                                                    appearance="transparent"
-                                                    disabled={busy || isImmutable}
-                                                    onClick={() => handleReinstate(entry)}>
+                                            <Button
+                                                id={`access-entry-reinstate-${entry.shareId}`}
+                                                className={styles.actionButton}
+                                                size="small"
+                                                appearance="transparent"
+                                                shape={"circular"}
+                                                disabled={busy || isImmutable}
+                                                onClick={() => handleReinstate(entry)}>
                                                 Reinstate
                                             </Button>
                                         ) : (
                                             <Button
+                                                id={`access-entry-revoke-${entry.shareId}`}
                                                 className={styles.actionButton}
                                                 size="small"
                                                 appearance="transparent"
+                                                shape={"circular"}
                                                 icon={<DeleteRegular/>}
                                                 disabled={busy || isImmutable}
                                                 onClick={() => handleRevoke(entry.shareId)}>
@@ -454,6 +463,7 @@ const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId, on
                                             <Field label="Max views (blank = unlimited)"
                                                    className={styles.maxViewsField}>
                                                 <Input
+                                                    id={`input-access-entry-max-views-${entry.shareId}`}
                                                     type="number"
                                                     appearance={"filled-darker"}
                                                     min={1}
@@ -489,9 +499,11 @@ const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId, on
 
                                         {!isRevoked && !isImmutable && (
                                             <Button
+                                                id={`access-entry-save-${entry.shareId}`}
                                                 className={styles.actionButton}
                                                 size="small"
                                                 appearance="secondary"
+                                                shape={"circular"}
                                                 disabled={busy || !draft.dirty}
                                                 onClick={() => handleSaveEntry(entry)}
                                             >

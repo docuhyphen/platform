@@ -397,6 +397,7 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
                     Organization
                 </InfoLabel>}>
                 <Combobox
+                    id={"external-org-combobox"}
                     onOptionSelect={onSelectOrgOptionItem}
                     placeholder="Select organization"
                     onChange={(ev) => setOrgSearchQuery(ev.target.value)}
@@ -411,6 +412,7 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
                         <Spinner size="tiny" label="Loading groups..."/>
                     ) : (
                         <Combobox
+                            id={"external-org-group-combobox"}
                             onOptionSelect={onSelectOrgGroupOptionItem}
                             placeholder="Select Group/Team/Department"
                             onChange={(ev) => setOrgGroupSearchQuery(ev.target.value)}

@@ -11,8 +11,8 @@ import {
     DialogTitle,
     DialogTrigger,
     Spinner,
-    tokens
 } from "@fluentui/react-components";
+import {useGroupDeleteDialogStyles} from "./GroupDeleteDialogStyles.tsx";
 import {deleteOrganizationGroup, OrganizationGroupBasicDto} from "../../../../services/organizationApi.ts";
 
 interface GroupDeleteDialog
@@ -36,6 +36,7 @@ const GroupDeleteDialog: React.FC<GroupDeleteDialog> = (
     const token = useToken();
     const [deletingSession, setDeletingSession] = React.useState(false);
     const globalStyles = useGlobalStyles()
+    const deleteDialogStyles = useGroupDeleteDialogStyles();
     const [deleteStarted, setDeleteStarted] = React.useState(false);
     const [countdown, setCountdown] = React.useState(10);
     const [error, setError] = React.useState<string | null>(null);
@@ -115,7 +116,7 @@ const GroupDeleteDialog: React.FC<GroupDeleteDialog> = (
                 <DialogBody>
                     <DialogTitle>Deleting {group && group.name}</DialogTitle>
                     <DialogContent>
-                        <div style={{minHeight: "20px", color: tokens.colorStatusDangerForeground1, fontSize: "12px", lineHeight: "20px"}}>{error || " "}</div>
+                        <div className={deleteDialogStyles.errorMessage}>{error || " "}</div>
                         {deleteStarted ? (
                             <div>
                                 Deleting in {countdown} seconds...
@@ -128,26 +129,32 @@ const GroupDeleteDialog: React.FC<GroupDeleteDialog> = (
                     </DialogContent>
                     <DialogActions>
                         {deleteStarted ? (
-                            <Button appearance="primary"
-                                    className={globalStyles.buttonWithLoading}
-                                    shape={"circular"}
-                                    onClick={onCancel}>
+                            <Button
+                                id="group-delete-dialog-cancel-countdown"
+                                appearance="primary"
+                                className={globalStyles.buttonWithLoading}
+                                shape={"circular"}
+                                onClick={onCancel}>
                                 Cancel
                             </Button>
                         ) : (
                             <>
-                                <Button appearance="primary"
-                                        className={globalStyles.buttonWithLoading}
-                                        shape={"circular"}
-                                        onClick={onDelete}>
+                                <Button
+                                    id="group-delete-dialog-confirm-delete"
+                                    appearance="primary"
+                                    className={globalStyles.buttonWithLoading}
+                                    shape={"circular"}
+                                    onClick={onDelete}>
                                     {deletingSession && <Spinner size={"tiny"}/>}
                                     Yes, Delete
                                 </Button>
                                 <DialogTrigger disableButtonEnhancement>
-                                    <Button appearance="secondary"
-                                            shape={"circular"}
-                                            disabled={deletingSession}
-                                            onClick={onDismiss}>
+                                    <Button
+                                        id="group-delete-dialog-no-cancel"
+                                        appearance="secondary"
+                                        shape={"circular"}
+                                        disabled={deletingSession}
+                                        onClick={onDismiss}>
                                         No, Cancel
                                     </Button>
                                 </DialogTrigger>

@@ -14,6 +14,7 @@ import {
 } from "@fluentui/react-components";
 import {StepUpPrompt, subscribeStepUp} from "../../../services/stepUpBroker";
 import {getOtpFriendlyMessage, normalizeApiError} from "../../../utils/apiErrorUtils";
+import {useStepUpModalStyles} from "./StepUpModalStyles.tsx";
 
 const friendlyActionLabel = (action?: string | null): string =>
 {
@@ -24,6 +25,7 @@ const friendlyActionLabel = (action?: string | null): string =>
 
 const StepUpModal: React.FC = () =>
 {
+    const styles = useStepUpModalStyles();
     const [prompt, setPrompt] = useState<StepUpPrompt | null>(null);
     const [otp, setOtp] = useState("");
     const [submitting, setSubmitting] = useState(false);
@@ -126,9 +128,7 @@ const StepUpModal: React.FC = () =>
             <DialogSurface>
                 <DialogBody>
                     <DialogTitle>Confirm it's you</DialogTitle>
-                    <DialogContent
-                        style={{display: "flex", flexDirection: "column", gap: 16, margin: "8px 0"}}
-                    >
+                    <DialogContent className={styles.dialogContent}>
                         {isOtpFlow ? (
                             <>
                                 <Text>
@@ -140,6 +140,7 @@ const StepUpModal: React.FC = () =>
                                     validationMessage={error ?? undefined}
                                 >
                                     <Input
+                                        id={"step-up-otp-input"}
                                         type="text"
                                         autoComplete="one-time-code"
                                         value={otp}
@@ -168,6 +169,7 @@ const StepUpModal: React.FC = () =>
                     {isOtpFlow ? (
                         <>
                             <Button
+                                id={"step-up-verify-btn"}
                                 appearance="primary"
                                 shape="circular"
                                 disabled={submitting}
@@ -177,6 +179,7 @@ const StepUpModal: React.FC = () =>
                                 Verify & continue
                             </Button>
                             <Button
+                                id={"step-up-resend-btn"}
                                 appearance="secondary"
                                 shape="circular"
                                 disabled={resending || submitting}
@@ -188,6 +191,7 @@ const StepUpModal: React.FC = () =>
                         </>
                     ) : (
                         <Button
+                            id={"step-up-continue-external-btn"}
                             appearance="primary"
                             shape="circular"
                             disabled={submitting}
@@ -198,6 +202,7 @@ const StepUpModal: React.FC = () =>
                         </Button>
                     )}
                     <Button
+                        id={"step-up-cancel-btn"}
                         appearance="secondary"
                         shape="circular"
                         disabled={submitting}

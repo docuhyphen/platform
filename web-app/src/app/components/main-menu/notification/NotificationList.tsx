@@ -61,6 +61,7 @@ const NotificationList: React.FC = () =>
             <PopoverTrigger disableButtonEnhancement>
                 <div className={styles.notificationButtonContainer}>
                     <Button
+                        id={"notification-list-bell-btn"}
                         icon={<NotificationsIcon/>}
                         appearance="subtle"
                         shape={"circular"}>
@@ -97,7 +98,9 @@ const NotificationList: React.FC = () =>
                 {notifications.length > 0 &&
                     <div className={styles.markAllAsRead}>
                         <Button
+                            id={"notification-list-mark-all-read-btn"}
                             size="small"
+                            shape={"circular"}
                             appearance="primary"
                             onClick={() => markAllAsRead()}>
                             Mark all as read

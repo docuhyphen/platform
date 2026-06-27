@@ -252,6 +252,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                         <span>Edit Group</span>
                         <Field>
                             <Switch
+                                id="edit-group-dialog-active-switch"
                                 checked={isActive}
                                 onChange={(_, data) => setIsActive(data.checked)}
                                 label={isActive ? "Disable" : "Enable"}
@@ -277,8 +278,10 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                                 <MessageBarActions
                                     containerAction={
                                         <Button
+                                            id="edit-group-dialog-dismiss-error"
                                             onClick={() => setError(null)}
                                             appearance="transparent"
+                                            shape={"circular"}
                                             icon={<DismissRegular/>}
                                         />
                                     }
@@ -302,7 +305,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                                 <Field
                                     label="Add members"
                                     hint="Search by name or email to add org members."
-                                    style={{marginBottom: "12px"}}
+                                    className={styles.addMembersField}
                                 >
                                     <TagPicker
                                         selectedOptions={pickerSelectedIds}
@@ -377,8 +380,8 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                                             <TableRow>
                                                 <TableHeaderCell>Name</TableHeaderCell>
                                                 <TableHeaderCell>Email</TableHeaderCell>
-                                                <TableHeaderCell style={{width: 120}}>Role</TableHeaderCell>
-                                                <TableHeaderCell style={{width: 56}}>Actions</TableHeaderCell>
+                                                <TableHeaderCell className={styles.roleHeaderCell}>Role</TableHeaderCell>
+                                                <TableHeaderCell className={styles.actionsHeaderCell}>Actions</TableHeaderCell>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
@@ -389,30 +392,21 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                                                     <TableRow key={uid}>
                                                         <TableCell
                                                             title={`${user.person?.firstName ?? ""} ${user.person?.lastName ?? ""}`.trim()}>
-                                                            <div style={{
-                                                                maxWidth: "180px",
-                                                                overflow: "hidden",
-                                                                textOverflow: "ellipsis",
-                                                                whiteSpace: "nowrap"
-                                                            }}>
+                                                            <div className={styles.memberNameCell}>
                                                                 {user.person?.firstName} {user.person?.lastName}
                                                             </div>
                                                         </TableCell>
                                                         <TableCell title={user.email}>
-                                                            <div style={{
-                                                                maxWidth: "220px",
-                                                                overflow: "hidden",
-                                                                textOverflow: "ellipsis",
-                                                                whiteSpace: "nowrap"
-                                                            }}>
+                                                            <div className={styles.memberEmailCell}>
                                                                 {user.email}
                                                             </div>
                                                         </TableCell>
-                                                        <TableCell style={{width: 120}}>
+                                                        <TableCell className={styles.roleTableCell}>
                                                             <Dropdown
+                                                                id={`edit-group-member-role-${uid}`}
                                                                 size="small"
                                                                 disabled={permissionDenied}
-                                                                style={{minWidth: "90px", maxWidth: "110px"}}
+                                                                className={styles.roleDropdown}
                                                                 value={GroupRoleDisplayNames[memberRoles.get(uid) || GroupRole.MEMBER]}
                                                                 selectedOptions={[memberRoles.get(uid) || GroupRole.MEMBER]}
                                                                 onOptionSelect={(_e, d) =>
@@ -430,10 +424,12 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                                                                 ))}
                                                             </Dropdown>
                                                         </TableCell>
-                                                        <TableCell style={{width: 56}}>
+                                                        <TableCell className={styles.actionsTableCell}>
                                                             <Button
+                                                                id={`edit-group-remove-member-${uid}`}
                                                                 size="small"
                                                                 appearance="subtle"
+                                                                shape={"circular"}
                                                                 icon={<DeleteRegular/>}
                                                                 disabled={permissionDenied}
                                                                 title="Remove member"
@@ -452,6 +448,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                 </DialogBody>
                 <DialogActions>
                     <Button
+                        id="edit-group-dialog-save"
                         appearance="primary"
                         shape="circular"
                         disabled={permissionDenied || savingData}
@@ -461,6 +458,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                     </Button>
                     <DialogTrigger disableButtonEnhancement>
                         <Button
+                            id="edit-group-dialog-cancel"
                             appearance="secondary"
                             shape="circular"
                             disabled={savingData}

@@ -228,6 +228,7 @@ const ExchangeDocumentSidebar: React.FC<ExchangeDocumentSidebarProps> = (
                     className={styles.drawerHeaderTitle}
                     action={
                         <Button
+                            id={"exchange-document-sidebar-dismiss-btn"}
                             size={"small"}
                             appearance="subtle"
                             shape={"circular"}

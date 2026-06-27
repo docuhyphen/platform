@@ -12,6 +12,7 @@ import {
 import {DocumentLibraryEntrySummaryDto} from '../../../models/models.tsx';
 import {listDocumentLibraryEntries} from '../../../../services/documentLibraryService.ts';
 import {BackIcon} from '../../../components/IconBundles.tsx';
+import {useExchangeInitiationStyles} from '../../ExchangeInitiationStyles.tsx';
 
 interface DocumentLibraryPickerProps
 {
@@ -29,6 +30,7 @@ const tabLabel: Record<PickerTab, string> = {
 
 const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, onBack}) =>
 {
+    const styles = useExchangeInitiationStyles();
     const [activeTab, setActiveTab] = useState<PickerTab>('PERSONAL');
     const [entries, setEntries] = useState<DocumentLibraryEntrySummaryDto[]>([]);
     const [loading, setLoading] = useState(false);
@@ -74,9 +76,9 @@ const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, 
     return (
         <div
             id="doc-library-picker"
-            style={{display: 'flex', flexDirection: 'column', gap: '12px', minHeight: '300px'}}
+            className={styles.docPickerContainer}
         >
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            <div className={styles.docPickerHeader}>
                 <Button
                     id="doc-picker-back-btn"
                     appearance="subtle"
@@ -122,7 +124,7 @@ const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, 
             </TabList>
 
             {loading && (
-                <div style={{display: 'flex', justifyContent: 'center', padding: '24px'}}>
+                <div className={styles.docPickerSpinnerWrapper}>
                     <Spinner
                         id="doc-picker-spinner"
                         size="medium"
@@ -134,7 +136,7 @@ const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, 
             {!loading && error && (
                 <Text
                     id="doc-picker-error"
-                    style={{color: 'var(--colorPaletteRedForeground1)'}}
+                    className={styles.docPickerErrorText}
                 >
                     {error}
                 </Text>
@@ -143,14 +145,14 @@ const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, 
             {!loading && !error && entries.length === 0 && (
                 <Text
                     id="doc-picker-empty"
-                    style={{color: 'var(--colorNeutralForeground3)'}}
+                    className={styles.docPickerEmptyText}
                 >
                     No documents available in this category.
                 </Text>
             )}
 
             {!loading && !error && entries.length > 0 && (
-                <div style={{display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto'}}>
+                <div className={styles.docPickerList}>
                     {entries.map(entry => (
                         <div
                             key={entry.id}
@@ -167,7 +169,7 @@ const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, 
                                 backgroundColor: selectedIds.has(entry.id) ? 'var(--colorBrandBackground2)' : undefined,
                             }}
                         >
-                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                            <div className={styles.docPickerEntryHeader}>
                                 <Text
                                     weight="semibold"
                                     size={400}
@@ -184,12 +186,12 @@ const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, 
                             {entry.description && (
                                 <Text
                                     size={200}
-                                    style={{color: 'var(--colorNeutralForeground2)'}}
+                                    className={styles.docPickerEntryDescription}
                                 >
                                     {entry.description}
                                 </Text>
                             )}
-                            <div style={{display: 'flex', gap: '4px', flexWrap: 'wrap'}}>
+                            <div className={styles.docPickerEntryTagRow}>
                                 {entry.documentType && (
                                     <Badge
                                         appearance="tint"

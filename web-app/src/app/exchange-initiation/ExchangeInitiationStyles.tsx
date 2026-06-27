@@ -161,4 +161,147 @@ export const useExchangeInitiationStyles = makeStyles({
         minHeight: "32px",
         cursor: "text",
     },
+    variableOverridesPanel: {
+        padding: "12px 16px",
+        border: "1px solid var(--colorBrandStroke2)",
+        borderRadius: tokens.borderRadiusXLarge,
+        background: "var(--colorNeutralBackground2)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+        marginBottom: "12px",
+    },
+    variableOverridesSubtext: {
+        color: "var(--colorNeutralForeground3)",
+    },
+    variableOverridesRow: {
+        display: "flex",
+        gap: "8px",
+        alignItems: "center",
+    },
+    variableOverridesLabel: {
+        minWidth: "120px",
+        fontFamily: "monospace",
+    },
+    variableOverridesInput: {
+        flex: 1,
+        padding: "4px 8px",
+        borderRadius: tokens.borderRadiusMedium,
+        border: "1px solid var(--colorNeutralStroke1)",
+        background: "var(--colorNeutralBackground1)",
+        color: "inherit",
+    },
+    saveBlueprintBackRow: {
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+    },
+    blueprintPickerContainer: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "12px",
+        minHeight: "300px",
+    },
+    blueprintPickerSpinnerWrapper: {
+        display: "flex",
+        justifyContent: "center",
+        padding: "24px",
+    },
+    blueprintPickerErrorText: {
+        color: "var(--colorPaletteRedForeground1)",
+    },
+    blueprintPickerEmptyText: {
+        color: "var(--colorNeutralForeground3)",
+    },
+    blueprintList: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+        overflowY: "auto",
+    },
+    blueprintCard: {
+        border: "1px solid var(--colorNeutralStroke1)",
+        borderRadius: tokens.borderRadiusLarge,
+        padding: "12px 16px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "6px",
+    },
+    blueprintCardHeader: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+    },
+    blueprintCardSummary: {
+        color: "var(--colorNeutralForeground2)",
+    },
+    blueprintTagRow: {
+        display: "flex",
+        gap: "4px",
+        flexWrap: "wrap",
+    },
+    saveBlueprintContainer: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "16px",
+    },
+    saveBlueprintErrorText: {
+        color: "var(--colorPaletteRedForeground1)",
+        fontSize: "12px",
+    },
+    saveBlueprintActions: {
+        display: "flex",
+        gap: "8px",
+        paddingTop: "4px",
+    },
+    docLinkedBadgeRow: {
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        marginTop: "6px",
+    },
+    choosingBlueprintSubtext: {
+        color: "var(--colorNeutralForeground3)",
+    },
+    docPickerContainer: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "12px",
+        minHeight: "300px",
+    },
+    docPickerHeader: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+    },
+    docPickerSpinnerWrapper: {
+        display: "flex",
+        justifyContent: "center",
+        padding: "24px",
+    },
+    docPickerErrorText: {
+        color: "var(--colorPaletteRedForeground1)",
+    },
+    docPickerEmptyText: {
+        color: "var(--colorNeutralForeground3)",
+    },
+    docPickerList: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+        overflowY: "auto",
+    },
+    docPickerEntryHeader: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+    },
+    docPickerEntryDescription: {
+        color: "var(--colorNeutralForeground2)",
+    },
+    docPickerEntryTagRow: {
+        display: "flex",
+        gap: "4px",
+        flexWrap: "wrap",
+    },
 });

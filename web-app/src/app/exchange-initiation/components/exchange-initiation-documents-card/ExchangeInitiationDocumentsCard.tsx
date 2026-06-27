@@ -51,6 +51,7 @@ const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
                             />
                         ) : (
                             <Input
+                                id={`doc-card-name-input-${index}`}
                                 type="text"
                                 size="small"
                                 value={document.title || ''}
@@ -63,19 +64,22 @@ const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
                     </Field>
                     {!locked && (
                         <Button
+                            id={`doc-card-delete-btn-${index}`}
                             icon={<DeleteIcon className={styles.iconDeleteFilled}/>}
                             appearance="transparent"
+                            shape={"circular"}
                             onClick={() => onDeleteDocument(index)}
                         />
                     )}
                 </div>
                 {isLinked && (
-                    <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px'}}>
+                    <div className={styles.docLinkedBadgeRow}>
                         <Badge appearance="tint" color="success" size="small">
                             Linked from library
                         </Badge>
                         {onUnlink && (
                             <Button
+                                id={`doc-card-unlink-btn-${index}`}
                                 size="small"
                                 appearance="outline"
                                 shape="circular"
@@ -91,6 +95,7 @@ const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
                     <div className={styles.exchangeDocumentsRestrictionField}>
                         <Field label="">
                             <Switch
+                                id={`doc-card-restrict-switch-${index}`}
                                 label="Restrict upload type"
                                 checked={document.restrictType ?? false}
                                 disabled={isLinked || locked}
@@ -98,6 +103,7 @@ const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
                             />
                         </Field>
                         <Dropdown
+                            id={`doc-card-type-dropdown-${index}`}
                             className={styles.exchangeDocumentsDropdown}
                             disabled={!document.restrictType || isLinked || locked}
                             appearance="underline"
@@ -123,6 +129,7 @@ const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
                         </Dropdown>
                     </div>
                     <Checkbox
+                        id={`doc-card-required-checkbox-${index}`}
                         label="Required"
                         checked={document.required ?? false}
                         disabled={isLinked || locked}

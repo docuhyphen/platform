@@ -20,4 +20,9 @@ export const useSignUpStyles = makeStyles({
         justifyContent: "center",
         flex: 1,
     },
+    validatingSpinnerContainer: {
+        display: "flex",
+        justifyContent: "center",
+        padding: "12px 0",
+    },
 });

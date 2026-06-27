@@ -20,6 +20,7 @@ import {createBlueprint, patchBlueprintPublished} from '../../../../services/blu
 import {useAuth} from '../../../../context/AuthContext.tsx';
 import {useDocumentsTabStyles} from '../../../settings/document-library-tab/DocumentLibraryTabStyles.tsx';
 import {AddIcon} from '../../../components/IconBundles.tsx';
+import {useExchangeInitiationStyles} from '../../ExchangeInitiationStyles.tsx';
 
 interface SaveBlueprintPanelProps
 {
@@ -45,6 +46,7 @@ const SaveBlueprintPanel: React.FC<SaveBlueprintPanelProps> = (
 {
     const {appUser, appUserPersonOrganization} = useAuth();
     const docStyles = useDocumentsTabStyles();
+    const styles = useExchangeInitiationStyles();
     const roleValue = `${appUser?.role ?? ''}`;
     const isAdmin =
         appUserPersonOrganization?.isActive &&
@@ -111,10 +113,11 @@ const SaveBlueprintPanel: React.FC<SaveBlueprintPanelProps> = (
     };
 
     return (
-        <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
+        <div className={styles.saveBlueprintContainer}>
             {isAdmin && (
                 <Field label="Save to">
                     <RadioGroup
+                        id={"save-blueprint-target-group"}
                         value={saveTarget}
                         onChange={(_, d) => setSaveTarget(d.value as SaveTarget)}
                         layout="horizontal"
@@ -126,6 +129,7 @@ const SaveBlueprintPanel: React.FC<SaveBlueprintPanelProps> = (
             )}
             <Field label="Name" required>
                 <Input
+                    id={"save-blueprint-name-input"}
                     value={name}
                     onChange={(_, d) => setName(d.value)}
                     placeholder="Blueprint name"
@@ -134,6 +138,7 @@ const SaveBlueprintPanel: React.FC<SaveBlueprintPanelProps> = (
             </Field>
             <Field label="Summary">
                 <Textarea
+                    id={"save-blueprint-summary-textarea"}
                     value={summary}
                     onChange={(_, d) => setSummary(d.value)}
                     placeholder="Short description of this blueprint"
@@ -153,15 +158,16 @@ const SaveBlueprintPanel: React.FC<SaveBlueprintPanelProps> = (
                         </Tag>
                     ))}
                     <Input
+                        id={"save-blueprint-tag-input"}
                         size="small"
                         appearance="underline"
                         placeholder="Add tag, press Enter"
                         value={tagInput}
                         onChange={(_, d) => setTagInput(d.value)}
                         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
-                        style={{border: 'none', flexGrow: 1, minWidth: '8rem'}}
                     />
                     <Button
+                        id={"save-blueprint-add-tag-btn"}
                         shape="circular"
                         appearance="subtle"
                         size="medium"
@@ -171,20 +177,25 @@ const SaveBlueprintPanel: React.FC<SaveBlueprintPanelProps> = (
                 </div>
             </Field>
             {error && (
-                <span style={{color: 'var(--colorPaletteRedForeground1)', fontSize: '12px'}}>
+                <span className={styles.saveBlueprintErrorText}>
                     {error}
                 </span>
             )}
-            <div style={{display: 'flex', gap: '8px', paddingTop: '4px'}}>
+            <div className={styles.saveBlueprintActions}>
                 <Button
+                    id={"save-blueprint-save-btn"}
                     appearance="primary"
                     shape="circular"
                     onClick={handleSave}
                     disabled={saving}
                 >
-                    {saving ? <><Spinner size="tiny"/> Saving…</> : 'Save Blueprint'}
+                    {saving ? <><Spinner size="tiny"/> Saving...</> : 'Save Blueprint'}
                 </Button>
-                <Button shape="circular" onClick={onBack} disabled={saving}>Back</Button>
+                <Button
+                    id={"save-blueprint-back-btn"}
+                    shape="circular"
+                    onClick={onBack}
+                    disabled={saving}>Back</Button>
             </div>
         </div>
     );

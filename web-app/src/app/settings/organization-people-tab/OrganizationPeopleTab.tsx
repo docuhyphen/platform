@@ -9,8 +9,7 @@ import {
     TableCellLayout,
     TableHeader,
     TableHeaderCell,
-    TableRow, Text,
-    tokens
+    TableRow, Text
 } from "@fluentui/react-components";
 import * as React from "react";
 import {useEffect, useState} from "react";
@@ -109,8 +108,8 @@ const OrganizationPeopleTab = () =>
             {error && <div className={styles.error}>{error}</div>}
 
             {capacity && (
-                <div style={{padding: '12px 16px', borderRadius: tokens.borderRadiusXLarge, border: `1px solid ${tokens.colorNeutralStroke2}`, display: 'flex', flexDirection: 'column', gap: '6px'}}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <div className={styles.capacityBox}>
+                    <div className={styles.capacityBoxRow}>
                         <Caption1>
                             <strong>Member capacity</strong> &nbsp;·&nbsp; Tier: {capacity.tierCode}
                         </Caption1>
@@ -126,12 +125,12 @@ const OrganizationPeopleTab = () =>
                         />
                     )}
                     {capacity.atCap && (
-                        <Caption1 style={{color: 'var(--colorPaletteRedForeground1)'}}>
+                        <Caption1 className={styles.capacityAtCap}>
                             Organization has reached its user limit. Upgrade your plan to add more members.
                         </Caption1>
                     )}
                     {!capacity.atCap && capacity.nearCap && (
-                        <Caption1 style={{color: 'var(--colorPaletteYellowForeground1)'}}>
+                        <Caption1 className={styles.capacityNearCap}>
                             Approaching user limit.
                         </Caption1>
                     )}
@@ -148,6 +147,7 @@ const OrganizationPeopleTab = () =>
                     <div></div>
                     {/*<SearchBox className={styles.searchBox}/>*/}
                     <Button
+                        id={"org-people-add-person-btn"}
                         icon={<PersonAddIcon/>}
                         appearance="subtle"
                         shape="circular"
@@ -190,8 +190,11 @@ const OrganizationPeopleTab = () =>
                                 <TableCell className={styles.actionsCell}>
                                     <Menu positioning={{autoSize: true}}>
                                         <MenuTrigger disableButtonEnhancement>
-                                            <Button icon={<MoreHorizontalRegular/>}
-                                                    appearance={"subtle"}/>
+                                            <Button
+                                                id={`org-people-actions-menu-btn-${user.id}`}
+                                                icon={<MoreHorizontalRegular/>}
+                                                appearance={"subtle"}
+                                                shape={"circular"}/>
                                         </MenuTrigger>
                                         <MenuPopover>
                                             <MenuList>

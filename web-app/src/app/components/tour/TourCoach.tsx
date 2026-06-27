@@ -10,6 +10,7 @@ import {
     TeachingPopoverTitle,
     TeachingPopoverTrigger,
 } from '@fluentui/react-components';
+import {useTourCoachStyles} from "./TourCoachStyles.tsx";
 import { useAuth } from '../../../context/AuthContext';
 import { updateAppUserSettings } from '../../../services/appUserApi';
 
@@ -67,6 +68,7 @@ const TOUR_STEPS: TourStep[] = [
 ];
 
 function TourCoach() {
+    const styles = useTourCoachStyles();
     const { appUser, token } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
@@ -176,9 +178,9 @@ function TourCoach() {
             }}
         >
             <TeachingPopoverTrigger>
-                <span style={{ position: 'fixed', top: -9999, left: -9999, width: 0, height: 0 }} />
+                <span className={styles.hiddenAnchor}/>
             </TeachingPopoverTrigger>
-            <TeachingPopoverSurface style={{ maxWidth: 340 }}>
+            <TeachingPopoverSurface className={styles.popoverSurface}>
                 <TeachingPopoverHeader>
                     Step {currentStep + 1} of {TOUR_STEPS.length}
                 </TeachingPopoverHeader>
@@ -187,15 +189,20 @@ function TourCoach() {
                     <Text size={200}>{step.description}</Text>
                 </TeachingPopoverBody>
                 <TeachingPopoverFooter
-                    primary={{ children: isLast ? 'Got it' : 'Next →', onClick: handleNext }}
+                    primary={{ children: isLast ? 'Got it' : 'Next', onClick: handleNext }}
                     secondary={currentStep === 0
                         ? { children: 'Skip tour', onClick: completeTour }
                         : undefined}
                 />
                 {currentStep > 0 && (
-                    <div style={{ paddingBottom: 10, paddingInlineStart: 16 }}>
-                        <Button appearance="transparent" size="small" onClick={handlePrev}>
-                            ← Back
+                    <div className={styles.backButtonRow}>
+                        <Button
+                            id={"tour-back-btn"}
+                            shape={"circular"}
+                            appearance="transparent"
+                            size="small"
+                            onClick={handlePrev}>
+                            Back
                         </Button>
                     </div>
                 )}

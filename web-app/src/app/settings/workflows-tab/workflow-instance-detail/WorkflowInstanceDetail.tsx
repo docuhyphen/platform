@@ -8,10 +8,10 @@ import {
     Spinner,
     Text,
 } from "@fluentui/react-components";
-import {WorkflowInstanceDetailDto, WorkflowStepInstanceDto} from "../../models/models.tsx";
-import {getWorkflowInstanceDetail} from "../../../services/workflowService.ts";
+import {WorkflowInstanceDetailDto, WorkflowStepInstanceDto} from "../../../models/models.tsx";
+import {getWorkflowInstanceDetail} from "../../../../services/workflowService.ts";
 import {useWorkflowInstanceDetailStyles} from "./WorkflowInstanceDetailStyles.tsx";
-import {DECISION_LABELS, INSTANCE_STATUS_LABELS, PRINCIPAL_KIND_LABELS, STEP_STATUS_LABELS, STEP_TYPE_LABELS} from "./workflowUtils.ts";
+import {DECISION_LABELS, INSTANCE_STATUS_LABELS, PRINCIPAL_KIND_LABELS, STEP_STATUS_LABELS, STEP_TYPE_LABELS} from "../workflowUtils.ts";
 
 const STEP_STATUS_COLORS: Record<string, "success" | "warning" | "danger" | "informative" | "subtle"> = {
     APPROVED: "success",
@@ -124,11 +124,19 @@ const WorkflowInstanceDetail = ({instanceId, onDismiss}: Props) =>
                     <>
                         <Text weight="semibold" size={400} block>{detail.definitionName}</Text>
                         {detail.exchangeName && (
-                            <Text size={200} block style={{marginBottom: "0.5rem"}}>
+                            <Text
+                                size={200}
+                                block
+                                className={styles.exchangeName}
+                            >
                                 Exchange: {detail.exchangeName}
                             </Text>
                         )}
-                        <Text size={200} block style={{marginBottom: "0.75rem", color: "var(--colorNeutralForeground3)"}}>
+                        <Text
+                            size={200}
+                            block
+                            className={styles.instanceStatus}
+                        >
                             Status: {INSTANCE_STATUS_LABELS[detail.status] ?? detail.status}
                         </Text>
                         <div className={styles.stepTimeline}>

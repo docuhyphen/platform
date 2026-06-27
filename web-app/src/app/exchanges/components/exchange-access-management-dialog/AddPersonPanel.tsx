@@ -3,15 +3,14 @@ import {
     Button,
     Combobox,
     Field,
-    makeStyles,
     MessageBar,
     MessageBarBody,
     Option,
     Spinner,
     Tag,
     Text,
-    tokens,
 } from '@fluentui/react-components';
+import {useAddPersonPanelStyles} from './AddPersonPanelStyles';
 import {
     TagPicker,
     TagPickerControl,
@@ -69,41 +68,8 @@ function parseTagPickerSelection(selectedOptions: string[] | undefined): Constra
     return selectedOptions.filter((value): value is ConstraintTag => valid.has(value as ConstraintTag));
 }
 
-const useStyles = makeStyles({
-    container: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px',
-    },
-    topBar: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-    },
-    form: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-    },
-    row: {
-        display: 'flex',
-        gap: '8px',
-    },
-    personField: {
-        flex: '1',
-    },
-    hint: {
-        color: tokens.colorNeutralForeground3,
-    },
-    actions: {
-        display: 'flex',
-        justifyContent: 'flex-end',
-        gap: '8px',
-    },
-});
-
 const AddPersonPanel: React.FC<Props> = ({exchangeId, onBack, onPersonAdded}) => {
-    const styles = useStyles();
+    const styles = useAddPersonPanelStyles();
 
     const [email, setEmail] = useState('');
     const [role, setRole] = useState<string>(ExchangeShareRole.VIEWER);
@@ -140,6 +106,7 @@ const AddPersonPanel: React.FC<Props> = ({exchangeId, onBack, onPersonAdded}) =>
         <div className={styles.container}>
             <div className={styles.topBar}>
                 <Button
+                    id={"add-person-panel-back-btn"}
                     appearance="subtle"
                     shape="circular"
                     icon={<BackIcon/>}
@@ -165,6 +132,7 @@ const AddPersonPanel: React.FC<Props> = ({exchangeId, onBack, onPersonAdded}) =>
                 <div className={styles.row}>
                     <Field label="Person email" className={styles.personField}>
                         <Combobox
+                            id={"combobox-add-person-email"}
                             placeholder="name@company.com"
                             value={email}
                             freeform
@@ -174,6 +142,7 @@ const AddPersonPanel: React.FC<Props> = ({exchangeId, onBack, onPersonAdded}) =>
                     </Field>
                     <Field label="Access role">
                         <Combobox
+                            id={"combobox-add-person-role"}
                             value={AssignableRoleDisplayNames[role] || ExchangeShareRoleDisplayNames[role as ExchangeShareRole] || role}
                             selectedOptions={[role]}
                             disabled={busy}
@@ -217,6 +186,7 @@ const AddPersonPanel: React.FC<Props> = ({exchangeId, onBack, onPersonAdded}) =>
 
                 <div className={styles.actions}>
                     <Button
+                        id={"add-person-panel-cancel-btn"}
                         appearance="secondary"
                         shape="circular"
                         onClick={onBack}
@@ -225,6 +195,7 @@ const AddPersonPanel: React.FC<Props> = ({exchangeId, onBack, onPersonAdded}) =>
                         Cancel
                     </Button>
                     <Button
+                        id={"add-person-panel-add-btn"}
                         appearance="primary"
                         shape="circular"
                         disabled={busy || !email.trim()}

@@ -35,4 +35,33 @@ export const useMyGroupsTabStyles = makeStyles({
         minWidth: '60px',
         maxWidth: '60px',
     },
+    dialogContentColumn: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+    },
+    dialogContentColumnLarge: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+    },
+    manageSurface: {
+        minWidth: '480px',
+    },
+    memberList: {
+        marginTop: '8px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '2px',
+    },
+    memberRow: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        paddingTop: '4px',
+        paddingBottom: '4px',
+    },
+    memberName: {
+        flex: 1,
+    },
 });

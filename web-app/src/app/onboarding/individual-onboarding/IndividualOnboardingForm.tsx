@@ -186,8 +186,10 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
                 <MessageBarActions
                     containerAction={
                         <Button
+                            id={"individual-onboarding-dismiss-error-btn"}
                             onClick={() => setErrorMessage('')}
                             appearance="transparent"
+                            shape={"circular"}
                             icon={<DismissRegular/>}
                         />
                     }
@@ -202,7 +204,8 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
             <Field label={"First Name"}
                    validationState={"none"}
                    validationMessage={""}>
-                <Input type="text"
+                <Input id={"individual-onboarding-first-name-input"}
+                       type="text"
                        maxLength={60}
                        value={firstName}
                        onChange={onFirstNameChange}/>
@@ -211,7 +214,8 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
             <Field label={"Last Name"}
                    validationState={"none"}
                    validationMessage={""}>
-                <Input type="text"
+                <Input id={"individual-onboarding-last-name-input"}
+                       type="text"
                        maxLength={60}
                        value={lastName}
                        onChange={onLastNameChange}/>
@@ -219,6 +223,7 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
 
             <Field label={"Choose your theme"}>
                 <RadioGroup
+                    id={"individual-onboarding-theme-radio-group"}
                     value={selectedTheme}
                     onChange={(_, data) => onThemeChange(data.value as ThemeMode)}
                     layout="horizontal"
@@ -226,11 +231,11 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
                 >
                     <Radio
                         value="light"
-                        label={<span style={{display: 'flex', alignItems: 'center', gap: '4px'}}><WeatherSunnyRegular/> Light</span>}
+                        label={<span className={styles.radioLabel}><WeatherSunnyRegular/> Light</span>}
                     />
                     <Radio
                         value="dark"
-                        label={<span style={{display: 'flex', alignItems: 'center', gap: '4px'}}><WeatherMoonRegular/> Dark</span>}
+                        label={<span className={styles.radioLabel}><WeatherMoonRegular/> Dark</span>}
                     />
                 </RadioGroup>
             </Field>
@@ -258,11 +263,13 @@ const IndividualOnboardingForm: React.FC<IndividualRegistrationProps> = ({onRegi
             {/*    </Field>*/}
             {/*}*/}
 
-            <Checkbox label="Register your organization as well"
+            <Checkbox id={"individual-onboarding-register-org-checkbox"}
+                      label="Register your organization as well"
                       checked={alsoRegisterOrganization}
                       onChange={onRegisterOrganizationCheck}/>
 
-            <Button onClick={onRegisterIndividual}
+            <Button id={"individual-onboarding-register-btn"}
+                    onClick={onRegisterIndividual}
                     shape={"circular"}
                     appearance={"primary"}
                     className={globalStyles.buttonWithLoading}>

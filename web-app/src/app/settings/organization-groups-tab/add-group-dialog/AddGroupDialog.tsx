@@ -19,7 +19,6 @@ import {
     TableHeaderCell,
     TableRow,
     Text,
-    tokens,
 } from "@fluentui/react-components";
 import {
     TagPicker,
@@ -211,7 +210,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
                     <DialogTitle>Create New Group</DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
                         {error && (
-                            <div style={{color: tokens.colorStatusDangerForeground1, marginBottom: "10px"}}>
+                            <div className={styles.errorMessage}>
                                 {error}
                             </div>
                         )}
@@ -234,7 +233,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
                                     <Field
                                         label="Add members"
                                         hint="Search by name or email to add org members."
-                                        style={{marginBottom: "12px"}}
+                                        className={styles.addMembersField}
                                     >
                                         <TagPicker
                                             selectedOptions={pickerSelectedIds}
@@ -296,8 +295,8 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
                                                 <TableRow>
                                                     <TableHeaderCell>Name</TableHeaderCell>
                                                     <TableHeaderCell>Email</TableHeaderCell>
-                                                    <TableHeaderCell style={{width: 120}}>Role</TableHeaderCell>
-                                                    <TableHeaderCell style={{width: 56}}>Actions</TableHeaderCell>
+                                                    <TableHeaderCell className={styles.roleHeaderCell}>Role</TableHeaderCell>
+                                                    <TableHeaderCell className={styles.actionsHeaderCell}>Actions</TableHeaderCell>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -308,29 +307,20 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
                                                         <TableRow key={uid}>
                                                             <TableCell
                                                                 title={`${user.person?.firstName ?? ""} ${user.person?.lastName ?? ""}`.trim()}>
-                                                                <div style={{
-                                                                    maxWidth: "180px",
-                                                                    overflow: "hidden",
-                                                                    textOverflow: "ellipsis",
-                                                                    whiteSpace: "nowrap",
-                                                                }}>
+                                                                <div className={styles.memberNameCell}>
                                                                     {user.person?.firstName} {user.person?.lastName}
                                                                 </div>
                                                             </TableCell>
                                                             <TableCell title={user.email}>
-                                                                <div style={{
-                                                                    maxWidth: "220px",
-                                                                    overflow: "hidden",
-                                                                    textOverflow: "ellipsis",
-                                                                    whiteSpace: "nowrap",
-                                                                }}>
+                                                                <div className={styles.memberEmailCell}>
                                                                     {user.email}
                                                                 </div>
                                                             </TableCell>
-                                                            <TableCell style={{width: 120}}>
+                                                            <TableCell className={styles.roleTableCell}>
                                                                 <Dropdown
+                                                                    id={`add-group-member-role-${uid}`}
                                                                     size="small"
-                                                                    style={{minWidth: "90px", maxWidth: "110px"}}
+                                                                    className={styles.roleDropdown}
                                                                     value={GroupRoleDisplayNames[memberRoles.get(uid) || GroupRole.MEMBER]}
                                                                     selectedOptions={[memberRoles.get(uid) || GroupRole.MEMBER]}
                                                                     onOptionSelect={(_e, d) =>
@@ -348,10 +338,12 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
                                                                     ))}
                                                                 </Dropdown>
                                                             </TableCell>
-                                                            <TableCell style={{width: 56}}>
+                                                            <TableCell className={styles.actionsTableCell}>
                                                                 <Button
+                                                                    id={`add-group-remove-member-${uid}`}
                                                                     size="small"
                                                                     appearance="subtle"
+                                                                    shape={"circular"}
                                                                     icon={<DeleteRegular/>}
                                                                     title="Remove member"
                                                                     onClick={() => removeMember(uid)}
@@ -370,6 +362,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
                 </DialogBody>
                 <DialogActions>
                     <Button
+                        id="add-group-dialog-create"
                         appearance="primary"
                         shape="circular"
                         disabled={savingData || !name.trim() || selectedMembers.size === 0}
@@ -380,6 +373,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
                     </Button>
                     <DialogTrigger disableButtonEnhancement>
                         <Button
+                            id="add-group-dialog-cancel"
                             appearance="secondary"
                             shape="circular"
                             disabled={savingData}

@@ -2,7 +2,8 @@ import React, {useEffect, useState} from "react";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {isTokenExpired} from "../../utils/helpers.ts";
 import {useNavigate, useSearchParams} from "react-router-dom";
-import {Button, MessageBar, MessageBarBody, Subtitle1, Text, tokens} from "@fluentui/react-components";
+import {Button, MessageBar, MessageBarBody, Subtitle1, Text} from "@fluentui/react-components";
+import {useAppSessionExpiredStyles} from "./AppSessionExpiredStyles.tsx";
 import {useAuthorizationStyles} from "../authorization/AuthorizationStyles.tsx";
 import SignInCarousel from "../authorization/carousel/SignInCarousel.tsx";
 import AppLogo from "../components/app-logo/AppLogo.tsx";
@@ -22,6 +23,7 @@ const AppSessionExpired: React.FC = () =>
     const [searchParams] = useSearchParams();
     const [message, setMessage] = useState<string>("Your session has expired. Please sign in again.");
     const authorizationStyles = useAuthorizationStyles();
+    const styles = useAppSessionExpiredStyles();
 
     useEffect(() =>
     {
@@ -59,10 +61,13 @@ const AppSessionExpired: React.FC = () =>
                         <MessageBar intent="warning">
                             <MessageBarBody>{message}</MessageBarBody>
                         </MessageBar>
-                        <Text size={300} style={{color: tokens.colorNeutralForeground3}}>
+                        <Text size={300} className={styles.mutedText}>
                             For your security, sign in again to continue.
                         </Text>
-                        <Button appearance="primary" shape="circular" onClick={handleSignIn}>
+                        <Button id={"app-session-expired-sign-in-btn"}
+                                appearance="primary"
+                                shape="circular"
+                                onClick={handleSignIn}>
                             Sign In
                         </Button>
                     </div>

@@ -33,6 +33,7 @@ const ExchangeListPagination: React.FC<ExchangeListPaginationProps> = (
                     id="exchange-list-pagination-first"
                     icon={<FirstPageIcon/>}
                     appearance="subtle"
+                    shape={"circular"}
                     disabled={currentPage === 0}
                     onClick={() => onPageChange(0)}
                 />
@@ -45,6 +46,7 @@ const ExchangeListPagination: React.FC<ExchangeListPaginationProps> = (
                     id="exchange-list-pagination-previous"
                     icon={<PreviousPageIcon/>}
                     appearance="subtle"
+                    shape={"circular"}
                     disabled={currentPage === 0}
                     onClick={() => onPageChange(currentPage - 1)}/>
             </Tooltip>
@@ -60,6 +62,7 @@ const ExchangeListPagination: React.FC<ExchangeListPaginationProps> = (
                     id="exchange-list-pagination-next"
                     icon={<NextPageIcon/>}
                     appearance="subtle"
+                    shape={"circular"}
                     disabled={currentPage >= totalPages - 1}
                     onClick={() => onPageChange(currentPage + 1)}/>
             </Tooltip>
@@ -71,6 +74,7 @@ const ExchangeListPagination: React.FC<ExchangeListPaginationProps> = (
                     id="exchange-list-pagination-last"
                     icon={<LastPageIcon/>}
                     appearance="subtle"
+                    shape={"circular"}
                     disabled={currentPage >= totalPages - 1}
                     onClick={() => onPageChange(totalPages - 1)}/>
             </Tooltip>

@@ -46,7 +46,8 @@ const AllDeviceSignOutDialog: React.FC<AllDeviceSignOutDialogProps> = (
                 </DialogContent>
             </DialogBody>
             <DialogActions>
-                <Button shape={"circular"}
+                <Button id={"button-sign-out-all-devices"}
+                        shape={"circular"}
                         appearance={"primary"}
                         disabled={signingOut}
                         className={globalStyles.buttonWithLoading}>
@@ -56,7 +57,8 @@ const AllDeviceSignOutDialog: React.FC<AllDeviceSignOutDialogProps> = (
                         onSignOut={() => setSigningOut(true)}/>
                 </Button>
                 <DialogTrigger disableButtonEnhancement>
-                    <Button appearance="secondary"
+                    <Button id={"button-all-device-sign-out-close"}
+                            appearance="secondary"
                             shape={"circular"}
                             disabled={signingOut}
                             onClick={() => onDismiss()}>
