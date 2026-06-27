@@ -254,7 +254,7 @@ const OrganizationSequencesTab = () =>
                             {RESET_PERIODS.map(p => <option key={p} value={p}>{p}</option>)}
                         </Select>
                     </Field>
-                    <div style={{padding: '8px 12px', background: 'var(--colorNeutralBackground2)', borderRadius: '6px'}}>
+                    <div style={{padding: '8px 12px', background: 'var(--colorNeutralBackground2)', borderRadius: tokens.borderRadiusLarge}}>
                         <Text size={200} style={{color: 'var(--colorNeutralForeground3)'}}>Preview: </Text>
                         <code style={{fontFamily: 'monospace'}}>{formatPreview(form, drawer.editing?.currentValue ?? 0)}</code>
                     </div>

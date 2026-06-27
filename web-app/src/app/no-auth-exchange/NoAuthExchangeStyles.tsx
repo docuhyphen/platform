@@ -48,6 +48,6 @@ export const useNoAuthExchangeStyles = makeStyles({
         padding: "16px",
         boxShadow: tokens.shadow4,
         marginTop: "48px",
-        borderRadius: "4px",
+        borderRadius: tokens.borderRadiusMedium,
     }
 })

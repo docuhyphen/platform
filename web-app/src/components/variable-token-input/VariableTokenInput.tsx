@@ -10,6 +10,7 @@ import {
     Text,
     Textarea,
     Tooltip,
+    tokens,
 } from '@fluentui/react-components';
 import {DismissRegular} from '@fluentui/react-icons';
 import {AvailableVariablesDto, SequenceDefinitionDto, SystemVariableDto, VariableDefinitionDto} from '../../app/models/models';
@@ -176,15 +177,15 @@ const VariableTokenInput: React.FC<VariableTokenInputProps> = ({
     const filterSearch = (token: string) =>
         !pickerSearch || token.toLowerCase().includes(pickerSearch.toLowerCase());
 
-    const tokens = getTokens(value);
+    const vTokens = getTokens(value);
 
     // Render a visual preview of the value with chips interspersed
     const renderPreview = () =>
     {
-        if (tokens.length === 0) return null;
+        if (vTokens.length === 0) return null;
         const parts: React.ReactNode[] = [];
         let last = 0;
-        tokens.forEach(({token, start, end}, i) =>
+        vTokens.forEach(({token, start, end}, i) =>
         {
             if (start > last)
                 parts.push(<span key={`text-${i}`}>{value.slice(last, start)}</span>);
@@ -298,11 +299,11 @@ const VariableTokenInput: React.FC<VariableTokenInputProps> = ({
                 )}
                 {picker}
             </div>
-            {tokens.length > 0 && (
+            {vTokens.length > 0 && (
                 <div style={{
                     padding: '6px 8px',
                     background: 'var(--colorNeutralBackground2)',
-                    borderRadius: '4px',
+                    borderRadius: tokens.borderRadiusMedium,
                     fontSize: '12px',
                     lineHeight: '1.8',
                     wordBreak: 'break-word',

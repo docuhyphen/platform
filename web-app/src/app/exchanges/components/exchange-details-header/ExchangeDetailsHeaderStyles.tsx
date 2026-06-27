@@ -9,7 +9,7 @@ export const useExchangeDetailsHeaderStyles = makeStyles({
         gap: "8px",
         background: tokens.colorNeutralBackground1,
         padding: "8px 16px",
-        borderRadius: "4px",
+        borderRadius: tokens.borderRadiusMedium,
         borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
         borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
         borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,

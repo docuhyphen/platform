@@ -78,7 +78,7 @@ const useExchangeStyles = makeStyles({
         maxWidth: "400px",
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         position: "relative",
-        borderRadius: "4px",
+        borderRadius: tokens.borderRadiusMedium,
         background: tokens.colorNeutralBackground1,
         display: "flex",
         flexDirection: "column",
@@ -107,7 +107,7 @@ const useExchangeStyles = makeStyles({
         overflow: "hidden",
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         position: "relative",
-        borderRadius: "4px",
+        borderRadius: tokens.borderRadiusMedium,
         background: tokens.colorNeutralBackground1,
         display: "flex",
         flexDirection: "column",
@@ -205,7 +205,7 @@ const useExchangeStyles = makeStyles({
 
     exchangesListBodyWebkitScrollbarThumb: {
         backgroundColor: `${tokens.colorBrandForeground1}`,
-        borderRadius: "10px",
+        borderRadius: tokens.borderRadiusCircular,
         border: `3px solid ${tokens.colorNeutralBackground2}`,
     },
 

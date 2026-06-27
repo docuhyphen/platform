@@ -16,6 +16,7 @@ import {
     MenuTrigger,
     Spinner,
     Text,
+    tokens,
 } from '@fluentui/react-components';
 import {DeleteRegular, EditRegular, MoreVerticalRegular} from '@fluentui/react-icons';
 import {AppUserRole, CreateVariableRequest, UpdateVariableRequest, VariableDefinitionDto} from '../../models/models';
@@ -133,7 +134,7 @@ const OrganizationVariablesTab = forwardRef<OrganizationVariablesTabHandle>((_, 
                 {!loading && variables.map(v => (
                     <div key={v.id} style={{
                         border: '1px solid var(--colorNeutralStroke1)',
-                        borderRadius: '8px',
+                        borderRadius: tokens.borderRadiusXLarge,
                         padding: '10px 16px',
                         display: 'flex',
                         justifyContent: 'space-between',

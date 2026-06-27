@@ -16,6 +16,7 @@ import {
     Tag,
     Text,
     Textarea,
+    tokens,
 } from '@fluentui/react-components';
 import {
     CreateCommunicationRequest,
@@ -335,7 +336,7 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
                                     <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
                                         <div style={{
                                             border: '1px solid var(--colorNeutralStroke1)',
-                                            borderRadius: '8px',
+                                            borderRadius: tokens.borderRadiusXLarge,
                                             padding: '12px',
                                             background: 'var(--colorNeutralBackground2)',
                                         }}>
@@ -346,7 +347,7 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
                                         </div>
                                         <div style={{
                                             border: '1px solid var(--colorNeutralStroke1)',
-                                            borderRadius: '8px',
+                                            borderRadius: tokens.borderRadiusXLarge,
                                             padding: '12px',
                                             background: 'var(--colorNeutralBackground2)',
                                         }}>

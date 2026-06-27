@@ -165,7 +165,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         display: "flex",
         justifyContent: "space-between",
         padding: "16px",
-        borderRadius: "4px",
+        borderRadius: tokens.borderRadiusMedium,
         animationName: {
             from: {
                 opacity: 0,
@@ -230,7 +230,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         margin: "0 auto",
         flex: 1,
         overflow: "hidden",
-        borderRadius: "4px",
+        borderRadius: tokens.borderRadiusMedium,
         animationName: {
             from: {
                 opacity: 0,
@@ -299,7 +299,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         boxSizing: "border-box",
         backgroundColor: tokens.colorNeutralBackground3,
         border: `1px solid ${tokens.colorNeutralStroke2}`,
-        borderRadius: "2px",
+        borderRadius: tokens.borderRadiusSmall,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -353,7 +353,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
 
     thumbnailPageButton: {
         border: `1px solid ${tokens.colorNeutralStroke2}`,
-        borderRadius: "6px",
+        borderRadius: tokens.borderRadiusLarge,
         backgroundColor: tokens.colorNeutralBackground1,
         padding: "6px",
         cursor: "pointer",
@@ -424,7 +424,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         gap: "10px",
         minHeight: "240px",
         border: `1px dashed ${tokens.colorNeutralStroke2}`,
-        borderRadius: "6px",
+        borderRadius: tokens.borderRadiusLarge,
         backgroundColor: tokens.colorNeutralBackground1,
     },
 
@@ -440,7 +440,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         gap: "10px",
         minHeight: "280px",
         border: `1px dashed ${tokens.colorNeutralStroke2}`,
-        borderRadius: "6px",
+        borderRadius: tokens.borderRadiusLarge,
         backgroundColor: tokens.colorNeutralBackground1,
         padding: "20px",
         textAlign: "center",

@@ -30,7 +30,7 @@ export const useDocumentDialogStyles = makeStyles({
 
     fileInfoCard: {
         border: `1px solid ${tokens.colorNeutralStroke2}`,
-        borderRadius: "8px",
+        borderRadius: tokens.borderRadiusXLarge,
         padding: "12px",
         backgroundColor: tokens.colorNeutralBackground1,
         display: "flex",

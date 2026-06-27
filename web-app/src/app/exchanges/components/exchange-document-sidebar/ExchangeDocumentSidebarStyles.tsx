@@ -56,7 +56,7 @@ export const useExchangeDocumentSidebarStyles = makeStyles({
     },
     metadataPanel: {
         backgroundColor: tokens.colorNeutralBackground2,
-        borderRadius: "6px",
+        borderRadius: tokens.borderRadiusLarge,
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         padding: "8px",
         overflow: "hidden",

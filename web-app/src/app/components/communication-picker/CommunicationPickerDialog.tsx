@@ -13,6 +13,7 @@ import {
     Tab,
     TabList,
     Text,
+    tokens,
 } from '@fluentui/react-components';
 import {SearchRegular} from '@fluentui/react-icons';
 import {CommunicationSummaryDto} from '../../models/models';
@@ -123,7 +124,7 @@ const CommunicationPickerDialog: React.FC<Props> = ({open, onClose, onSelect, se
                                             onClick={() => setPending(t)}
                                             style={{
                                                 border: `2px solid ${isSelected ? 'var(--colorBrandStroke1)' : 'var(--colorNeutralStroke1)'}`,
-                                                borderRadius: '8px',
+                                                borderRadius: tokens.borderRadiusXLarge,
                                                 padding: '10px 14px',
                                                 cursor: 'pointer',
                                                 background: isSelected ? 'var(--colorBrandBackground2)' : 'transparent',

@@ -186,7 +186,7 @@ const AddAdminDialog: React.FC<AddAdminDialogProps> = ({isOpen, onDismiss, exist
                         {searchQuery.trim().length >= 2 && (
                             <div style={{
                                 border: `1px solid ${tokens.colorNeutralStroke1}`,
-                                borderRadius: '4px',
+                                borderRadius: tokens.borderRadiusMedium,
                                 maxHeight: '260px',
                                 overflowY: 'auto',
                             }}>

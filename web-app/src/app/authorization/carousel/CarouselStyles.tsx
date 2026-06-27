@@ -30,7 +30,7 @@ export const useCarouselStyles = makeStyles({
         width: "10px",
         height: "10px",
         backgroundColor: "rgba(255, 255, 255, 0.35)",
-        borderRadius: "50%",
+        borderRadius: tokens.borderRadiusCircular,
         cursor: "pointer",
         transition: "background-color 0.15s ease",
     },

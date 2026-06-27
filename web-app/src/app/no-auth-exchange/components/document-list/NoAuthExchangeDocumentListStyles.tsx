@@ -19,7 +19,7 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
         gap: "8px",
         background: tokens.colorNeutralBackground1,
         padding: "12px",
-        borderRadius: "6px",
+        borderRadius: tokens.borderRadiusLarge,
     },
 
     accessWindowHint: {

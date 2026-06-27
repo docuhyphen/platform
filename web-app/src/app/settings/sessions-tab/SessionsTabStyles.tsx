@@ -22,7 +22,7 @@ export const useSessionsTabStyles = makeStyles({
         justifyContent: "space-between",
         alignItems: "flex-start",
         padding: "12px 16px",
-        borderRadius: "8px",
+        borderRadius: tokens.borderRadiusXLarge,
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         gap: "16px",
         // Stack the meta block and the action row on phones; the inline

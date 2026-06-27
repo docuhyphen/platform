@@ -12,7 +12,7 @@ export const useExchangeAcceptanceDialogStyles = makeStyles({
         justifyContent: "center",
         backgroundColor: tokens.colorBackgroundOverlay,
         backdropFilter: "blur(4px)",
-        borderRadius: "8px",
+        borderRadius: tokens.borderRadiusXLarge,
     },
 
     overlayCard: {
@@ -23,7 +23,7 @@ export const useExchangeAcceptanceDialogStyles = makeStyles({
         maxWidth: "100%",
         width: "50rem",
         boxShadow: tokens.shadow28,
-        borderRadius: "8px",
+        borderRadius: tokens.borderRadiusXLarge,
     },
 
     nameContainer: {

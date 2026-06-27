@@ -24,7 +24,7 @@ export const useAuthorizationStyles = makeStyles({
         maxWidth: "100%",
         width: "800px",
         minHeight: "650px",
-        borderRadius: "16px",
+        borderRadius: tokens.borderRadiusXLarge,
         boxShadow: tokens.shadow16,
         background: tokens.colorNeutralBackground1,
 
@@ -33,7 +33,7 @@ export const useAuthorizationStyles = makeStyles({
         },
     },
     authSection1: {
-        borderRadius: "16px 0 0 16px",
+        borderRadius: `${tokens.borderRadiusXLarge} 0 0 ${tokens.borderRadiusXLarge}`,
         display: "flex",
         flexDirection: "column",
         height: "auto",
@@ -47,7 +47,7 @@ export const useAuthorizationStyles = makeStyles({
         },
     },
     authSection2: {
-        borderRadius: "0 16px 16px 0",
+        borderRadius: `0 ${tokens.borderRadiusXLarge} ${tokens.borderRadiusXLarge} 0`,
         background: tokens.colorBrandBackground,
         color: tokens.colorNeutralForegroundOnBrand,
         height: "auto",

@@ -17,7 +17,7 @@ export const useDocumentsTabStyles = makeStyles({
     card: {
         minWidth: "0",
         border: "1px solid var(--colorNeutralStroke1)",
-        borderRadius: "8px",
+        borderRadius: tokens.borderRadiusXLarge,
         padding: "12px 16px",
         display: "flex",
         justifyContent: "space-between",

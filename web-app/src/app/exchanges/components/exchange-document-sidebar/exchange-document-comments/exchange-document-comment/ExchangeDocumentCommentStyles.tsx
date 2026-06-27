@@ -21,7 +21,7 @@ export const useExchangeDocumentCommentStyles = makeStyles({
         borderBottomColor: tokens.colorBrandForeground1,
         whiteSpace: "pre-wrap",
         wordBreak: "break-word",
-        borderRadius: "4px",
+        borderRadius: tokens.borderRadiusMedium,
         padding: "4px"
     },
     commentDate: {

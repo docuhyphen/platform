@@ -71,7 +71,7 @@ const useStyles = makeStyles({
     stepNumber: {
         width: "20px",
         height: "20px",
-        borderRadius: "50%",
+        borderRadius: tokens.borderRadiusCircular,
         backgroundColor: tokens.colorNeutralBackground3,
         display: "flex",
         alignItems: "center",

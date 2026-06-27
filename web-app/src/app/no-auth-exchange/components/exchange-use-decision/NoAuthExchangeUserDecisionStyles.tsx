@@ -12,7 +12,7 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
         width: "100%",
         margin: "0 auto",
         boxShadow: tokens.shadow4,
-        borderRadius: "3px",
+        borderRadius: tokens.borderRadiusMedium,
         background: tokens.colorNeutralBackground1,
     },
 

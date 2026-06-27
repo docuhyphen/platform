@@ -9,6 +9,7 @@ import {
     MenuTrigger,
     Spinner,
     Text,
+    tokens,
 } from '@fluentui/react-components';
 import {MoreVerticalRegular} from '@fluentui/react-icons';
 import {ActivateIcon, BlueprintAddIcon, CopyIcon, DeactivateIcon, DeleteIcon, EditIcon, PublishIcon, UnpublishIcon} from '../../components/IconBundles.tsx';
@@ -108,7 +109,7 @@ const OrganizationBlueprintsTab = () =>
                         style={{
                             width: '100%',
                             border: '1px solid var(--colorNeutralStroke1)',
-                            borderRadius: '8px',
+                            borderRadius: tokens.borderRadiusXLarge,
                             padding: '12px 16px',
                             display: 'flex',
                             justifyContent: 'space-between',

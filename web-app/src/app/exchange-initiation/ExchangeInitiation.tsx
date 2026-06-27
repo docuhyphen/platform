@@ -16,6 +16,7 @@ import {
     Toast,
     Toaster,
     ToastTitle, ToastTrigger,
+    tokens,
     useId,
     useToastController,
 } from "@fluentui/react-components";
@@ -803,7 +804,7 @@ const ExchangeInitiation: React.FC = () =>
             <div style={{
                 padding: '12px 16px',
                 border: '1px solid var(--colorBrandStroke2)',
-                borderRadius: '8px',
+                borderRadius: tokens.borderRadiusXLarge,
                 background: 'var(--colorNeutralBackground2)',
                 display: 'flex',
                 flexDirection: 'column',
@@ -818,7 +819,7 @@ const ExchangeInitiation: React.FC = () =>
                     <div key={token} style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
                         <Text size={200} style={{minWidth: '120px', fontFamily: 'monospace'}}>{`{{${token}}}`}</Text>
                         <input
-                            style={{flex: 1, padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--colorNeutralStroke1)', background: 'var(--colorNeutralBackground1)', color: 'inherit'}}
+                            style={{flex: 1, padding: '4px 8px', borderRadius: tokens.borderRadiusMedium, border: '1px solid var(--colorNeutralStroke1)', background: 'var(--colorNeutralBackground1)', color: 'inherit'}}
                             value={variableOverrides[token] ?? ''}
                             onChange={e => setVariableOverrides(prev => ({...prev, [token]: e.target.value}))}
                             placeholder={`Value for ${token}`}

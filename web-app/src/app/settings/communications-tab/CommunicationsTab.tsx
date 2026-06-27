@@ -11,6 +11,7 @@ import {
     Tab,
     TabList,
     Text,
+    tokens,
 } from '@fluentui/react-components';
 import {MoreVerticalRegular} from '@fluentui/react-icons';
 import {
@@ -167,7 +168,7 @@ const CommunicationsTab = () =>
                                 key={t.id}
                                 style={{
                                     border: '1px solid var(--colorNeutralStroke1)',
-                                    borderRadius: '8px',
+                                    borderRadius: tokens.borderRadiusXLarge,
                                     padding: '12px 16px',
                                     display: 'flex',
                                     justifyContent: 'space-between',

@@ -20,12 +20,12 @@ export const useOnboardingStyles = makeStyles({
         width: "800px",
         margin: "80px",
         maxHeight: "650px",
-        borderRadius: "16px",
+        borderRadius: tokens.borderRadiusXLarge,
         boxShadow: tokens.shadow16,
         background: tokens.colorNeutralBackground1,
     },
     onboardingSection1: {
-        borderRadius: "16px 0 0 16px",
+        borderRadius: `${tokens.borderRadiusXLarge} 0 0 ${tokens.borderRadiusXLarge}`,
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
@@ -36,7 +36,7 @@ export const useOnboardingStyles = makeStyles({
         maxWidth: "50%",
     },
     onboardingSection2: {
-        borderRadius: "0 16px 16px 0",
+        borderRadius: `0 ${tokens.borderRadiusXLarge} ${tokens.borderRadiusXLarge} 0`,
         background: tokens.colorBrandBackground,
         color: tokens.colorNeutralForegroundOnBrand,
         height: "100%",

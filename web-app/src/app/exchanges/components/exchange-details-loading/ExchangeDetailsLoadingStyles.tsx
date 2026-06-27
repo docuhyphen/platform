@@ -24,7 +24,7 @@ export const useExchangeDetailsLoadingStyles = makeStyles({
         width: "100%",
         padding: "8px 16px",
         boxSizing: "border-box",
-        borderRadius: "4px",
+        borderRadius: tokens.borderRadiusMedium,
         minWidth: 0,
         // Match the real ExchangeDetailsHeader's tighter mobile padding so
         // the skeleton occupies the same vertical footprint as the loaded
@@ -143,7 +143,7 @@ export const useExchangeDetailsLoadingStyles = makeStyles({
 
     pdfPreviewSection: {
         border: `1px solid ${tokens.colorNeutralStroke2}`,
-        borderRadius: "4px",
+        borderRadius: tokens.borderRadiusMedium,
         margin: "auto",
         width: "100%",
         maxWidth: "500px",

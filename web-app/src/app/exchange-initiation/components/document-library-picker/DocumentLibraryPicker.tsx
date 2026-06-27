@@ -7,6 +7,7 @@ import {
     Tab,
     TabList,
     Text,
+    tokens,
 } from '@fluentui/react-components';
 import {DocumentLibraryEntrySummaryDto} from '../../../models/models.tsx';
 import {listDocumentLibraryEntries} from '../../../../services/documentLibraryService.ts';
@@ -157,7 +158,7 @@ const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, 
                             onClick={() => toggleEntry(entry.id)}
                             style={{
                                 border: `1px solid ${selectedIds.has(entry.id) ? 'var(--colorBrandStroke1)' : 'var(--colorNeutralStroke1)'}`,
-                                borderRadius: '8px',
+                                borderRadius: tokens.borderRadiusXLarge,
                                 padding: '12px 16px',
                                 display: 'flex',
                                 flexDirection: 'column',

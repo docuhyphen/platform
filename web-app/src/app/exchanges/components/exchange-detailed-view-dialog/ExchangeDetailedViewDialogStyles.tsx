@@ -17,7 +17,7 @@ export const useExchangeDDetailedViewDialogStyles = makeStyles({
 
     sectionCard: {
         border: `1px solid ${tokens.colorNeutralStroke2}`,
-        borderRadius: "8px",
+        borderRadius: tokens.borderRadiusXLarge,
         padding: "12px",
         display: "flex",
         flexDirection: "column",

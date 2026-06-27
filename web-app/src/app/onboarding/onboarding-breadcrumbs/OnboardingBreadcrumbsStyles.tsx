@@ -43,7 +43,7 @@ export const useOnboardingBreadcrumbsStyles = makeStyles({
         flex: 1,
         background: tokens.colorNeutralBackgroundAlpha,
         padding: "8px 16px",
-        borderRadius: "4px",
+        borderRadius: tokens.borderRadiusMedium,
         cursor: "default",
     },
 

@@ -45,7 +45,7 @@ export const useAccountRecoveryStyles = makeStyles({
         maxWidth: "480px",
         width: "100%",
         padding: "40px",
-        borderRadius: "16px",
+        borderRadius: tokens.borderRadiusXLarge,
         background: tokens.colorNeutralBackground1,
         boxShadow: tokens.shadow16,
     },

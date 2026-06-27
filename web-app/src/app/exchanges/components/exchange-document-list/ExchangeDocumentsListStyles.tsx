@@ -40,7 +40,7 @@ export const useExchangeDocumentsListStyles = makeStyles({
 
         "&::-webkit-scrollbar-thumb": {
             backgroundColor: "transparent",
-            borderRadius: "4px",
+            borderRadius: tokens.borderRadiusMedium,
             transition: "background-color 180ms ease",
         },
 
