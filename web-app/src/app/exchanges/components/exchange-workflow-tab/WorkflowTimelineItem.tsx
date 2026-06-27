@@ -33,6 +33,12 @@ const DECISION_COLORS: Record<string, string> = {
 const formatDateTime = (iso?: string) =>
     iso ? new Date(iso).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" }) : "";
 
+const formatStepStatus = (status: string) =>
+{
+    const label = (STEP_STATUS_LABELS[status] ?? status).toLowerCase();
+    return label.charAt(0).toUpperCase() + label.slice(1);
+};
+
 const formatEpoch = (ms: number) =>
     new Date(ms).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
 
@@ -98,7 +104,7 @@ const WorkflowTimelineItem = ({ step, isActivePending }: Props) =>
                         appearance="outline"
                         size="small"
                     >
-                        {STEP_STATUS_LABELS[step.status] ?? step.status}
+                        {formatStepStatus(step.status)}
                     </Badge>
                     <Text size={200} className={styles.stepHeaderMeta}>
                         {collapsedSummary(step, isActivePending)}

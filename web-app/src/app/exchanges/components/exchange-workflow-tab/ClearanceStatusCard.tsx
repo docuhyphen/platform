@@ -16,6 +16,12 @@ const BADGE_COLOR: Record<string, "neutral" | "informative" | "success" | "impor
     BLOCKED: "important",
 };
 
+const formatClearanceStatus = (status: string) =>
+{
+    const label = status.toLowerCase();
+    return label.charAt(0).toUpperCase() + label.slice(1);
+};
+
 interface Props
 {
     clearance: ExchangeClearanceStatusDto;
@@ -42,7 +48,7 @@ const ClearanceStatusCard = ({ clearance }: Props) =>
                     <Badge id="clearance-badge-my-org"
                            appearance={BADGE_APPEARANCE[myStatus] ?? "ghost"}
                            color={BADGE_COLOR[myStatus] ?? "neutral"}>
-                        My Organization: {myStatus}
+                        My Organization: {formatClearanceStatus(myStatus)}
                     </Badge>
                 )}
                 {clearance.counterparties.map((cp, i) =>
@@ -51,7 +57,7 @@ const ClearanceStatusCard = ({ clearance }: Props) =>
                                key={i}
                                appearance={BADGE_APPEARANCE[cp.status] ?? "ghost"}
                                color={BADGE_COLOR[cp.status] ?? "neutral"}>
-                            Counterparty: {cp.status}
+                            Counterparty: {formatClearanceStatus(cp.status)}
                         </Badge>
                     )
                 )}

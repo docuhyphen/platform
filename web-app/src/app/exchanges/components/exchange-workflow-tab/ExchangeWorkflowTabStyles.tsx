@@ -108,8 +108,8 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: "2px",
-        paddingLeft: tokens.spacingHorizontalS,
-        borderLeft: `2px solid ${tokens.colorNeutralStroke2}`,
+        padding: tokens.spacingHorizontalS,
+        borderLeft: `4px solid ${tokens.colorNeutralStroke2}`,
         marginBottom: tokens.spacingVerticalXS,
     },
     metaText: {
