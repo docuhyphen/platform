@@ -94,6 +94,9 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         flexWrap: "wrap",
     },
     stepHeaderMeta: {
+        display: "flex",
+        alignItems: "center",
+        gap: tokens.spacingHorizontalS,
         color: tokens.colorNeutralForeground3,
         marginLeft: "auto",
     },
@@ -136,7 +139,6 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
         backgroundColor: tokens.colorNeutralBackground2,
         borderRadius: tokens.borderRadiusMedium,
-        marginBottom: tokens.spacingVerticalM,
     },
     clearanceBadgeRow: {
         display: "flex",

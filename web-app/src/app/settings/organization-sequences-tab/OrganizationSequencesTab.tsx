@@ -16,7 +16,7 @@ import {
     MenuTrigger,
     Select,
     Spinner,
-    Text,
+    Text, tokens,
 } from '@fluentui/react-components';
 import {AddRegular, ArrowCounterclockwiseRegular, DeleteRegular, EditRegular, MoreVerticalRegular} from '@fluentui/react-icons';
 import {AppUserRole, CreateSequenceRequest, SequenceDefinitionDto, SequenceResetPeriod, UpdateSequenceRequest} from '../../models/models';
@@ -177,7 +177,7 @@ const OrganizationSequencesTab = () =>
                 {!loading && sequences.map(seq => (
                     <div key={seq.id} style={{
                         border: '1px solid var(--colorNeutralStroke1)',
-                        borderRadius: '8px',
+                        borderRadius: tokens.borderRadiusMedium,
                         padding: '12px 16px',
                         display: 'flex',
                         justifyContent: 'space-between',

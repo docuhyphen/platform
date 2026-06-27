@@ -64,20 +64,24 @@ const principalLabel = (displayName?: string, email?: string, fallback?: string)
     return displayName || email || fallback || "";
 };
 
-const collapsedSummary = (step: WorkflowStepInstanceDto, isActivePending: boolean): string =>
+const collapsedBadgeLabel = (step: WorkflowStepInstanceDto, isActivePending: boolean): string =>
 {
-    if (isActivePending) return "Waiting for action";
+    if (isActivePending) return "Waiting";
+    if (step.decisions.some(d => d.decision === "APPROVE")) return "Approved";
+    if (step.decisions.some(d => d.decision === "REJECT")) return "Rejected";
+    return formatStepStatus(step.status);
+};
+
+const collapsedSummaryText = (step: WorkflowStepInstanceDto, isActivePending: boolean): string =>
+{
+    if (isActivePending) return "";
     const latestApprove = step.decisions.find(d => d.decision === "APPROVE");
     if (latestApprove)
-    {
-        return `Approved by ${principalLabel(latestApprove.displayName, latestApprove.email, latestApprove.principalId)} · ${formatEpoch(latestApprove.atEpochMillis)}`;
-    }
+        return `by ${principalLabel(latestApprove.displayName, latestApprove.email, latestApprove.principalId)} · ${formatEpoch(latestApprove.atEpochMillis)}`;
     const latestReject = step.decisions.find(d => d.decision === "REJECT");
     if (latestReject)
-    {
-        return `Rejected by ${principalLabel(latestReject.displayName, latestReject.email, latestReject.principalId)} · ${formatEpoch(latestReject.atEpochMillis)}`;
-    }
-    return STEP_STATUS_LABELS[step.status] ?? step.status;
+        return `by ${principalLabel(latestReject.displayName, latestReject.email, latestReject.principalId)} · ${formatEpoch(latestReject.atEpochMillis)}`;
+    return "";
 };
 
 interface Props
@@ -99,16 +103,20 @@ const WorkflowTimelineItem = ({ step, isActivePending }: Props) =>
                     <Text size={300} weight={isActivePending ? "semibold" : "regular"}>
                         Step {step.stepIndex + 1}: {STEP_TYPE_LABELS[step.stepType] ?? step.stepType}
                     </Text>
-                    <Badge
-                        color={STEP_STATUS_COLORS[step.status] ?? "subtle"}
-                        appearance="outline"
-                        size="small"
-                    >
-                        {formatStepStatus(step.status)}
-                    </Badge>
-                    <Text size={200} className={styles.stepHeaderMeta}>
-                        {collapsedSummary(step, isActivePending)}
-                    </Text>
+                    <div className={styles.stepHeaderMeta}>
+                        <Badge
+                            color={STEP_STATUS_COLORS[step.status] ?? "subtle"}
+                            appearance="outline"
+                            size="small"
+                        >
+                            {collapsedBadgeLabel(step, isActivePending)}
+                        </Badge>
+                        {collapsedSummaryText(step, isActivePending) && (
+                            <Text size={200}>
+                                {collapsedSummaryText(step, isActivePending)}
+                            </Text>
+                        )}
+                    </div>
                 </div>
             </AccordionHeader>
             <AccordionPanel>

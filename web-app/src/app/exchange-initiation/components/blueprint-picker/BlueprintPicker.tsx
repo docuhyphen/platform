@@ -5,7 +5,7 @@ import {
     Spinner,
     Tab,
     TabList,
-    Text,
+    Text, tokens,
 } from '@fluentui/react-components';
 import {BlueprintDefinitionSummaryDto} from '../../../models/models.tsx';
 import {listBlueprints} from '../../../../services/blueprintService.ts';
@@ -84,7 +84,7 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
                             key={bp.id}
                             style={{
                                 border: '1px solid var(--colorNeutralStroke1)',
-                                borderRadius: '8px',
+                                borderRadius: tokens.borderRadiusLarge,
                                 padding: '12px 16px',
                                 display: 'flex',
                                 flexDirection: 'column',
