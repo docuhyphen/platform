@@ -61,11 +61,9 @@ const SignIn: React.FC = () =>
     const authorizationStyles = useAuthorizationStyles();
     const globalStyles = useGlobalStyles();
 
-    const onEmailChange = (_e: React.ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) => setEmail(newValue.value || '');
-    const onOtpChange = (_e: React.ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) => setOtp(newValue.value || '');
+    const onEmailChange = (_e: React.ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) => setEmail((newValue.value || '').trim());
+    const onOtpChange = (_e: React.ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) => setOtp((newValue.value || '').trim());
     const onPasswordChange = (_e: React.ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) => setPassword(newValue.value || '');
-
-    const token = useToken();
 
     // Identifier-first lookup
     const onLookupEmail = async () =>
