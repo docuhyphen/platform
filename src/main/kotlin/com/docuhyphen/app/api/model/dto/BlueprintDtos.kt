@@ -122,4 +122,5 @@ data class PatchBlueprintStatusRequest(
 @Serializable
 data class CloneBlueprintRequest(
     val newName: String? = null,
+    val targetScope: String? = null,
 )

@@ -21,6 +21,7 @@ export interface PatchBlueprintPublishedRequest
 export interface CloneBlueprintRequest
 {
     newName?: string;
+    targetScope?: 'PERSONAL' | 'ORG';
 }
 
 export interface ListBlueprintsParams

@@ -39,6 +39,17 @@ export const useBlueprintEditorStyles = makeStyles({
 });
 
 export const useTemplatesTabStyles = makeStyles({
+    searchRow: {
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        width: "100%",
+    },
+    paginationRow: {
+        display: "flex",
+        justifyContent: "center",
+        paddingTop: "4px",
+    },
     cardGrid: {
         display: "grid",
         gridTemplateColumns: "repeat(2, 1fr)",
@@ -69,10 +80,41 @@ export const useTemplatesTabStyles = makeStyles({
         gap: "16px",
         width: "100%",
     },
+    stickyBlock: {
+        position: "sticky",
+        top: 0,
+        zIndex: 1,
+        background: tokens.colorNeutralBackground1,
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+        paddingBottom: "8px",
+    },
     headerRow: {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
+    },
+    filterPopover: {
+        padding: "8px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "6px",
+        minWidth: "180px",
+        maxWidth: "260px",
+    },
+    filterPopoverList: {
+        minHeight: "80px",
+        maxHeight: "220px",
+        overflowY: "auto",
+        display: "flex",
+        flexDirection: "column",
+    },
+    activeTagsRow: {
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: "4px",
     },
     blueprintCard: {
         border: `1px solid ${tokens.colorNeutralStroke1}`,

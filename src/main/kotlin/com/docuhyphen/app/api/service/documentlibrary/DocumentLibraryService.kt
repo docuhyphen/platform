@@ -212,6 +212,7 @@ class DocumentLibraryService @Inject constructor(
         request: CloneDocumentLibraryEntryRequest,
         callerUserId: UUID,
         callerOrgId: UUID?,
+        isOrgAdmin: Boolean,
         isAppAdmin: Boolean,
     ): DocumentLibraryEntryDto
     {
@@ -219,13 +220,14 @@ class DocumentLibraryService @Inject constructor(
             ?: throw IllegalArgumentException("Document library entry not found: $id")
         checkReadAccess(source, callerUserId, callerOrgId, isAppAdmin)
 
+        val targetScope = resolveCloneTargetScope(request.targetScope, callerOrgId, isOrgAdmin, isAppAdmin)
         val clone = DocumentLibraryEntry().apply {
             title = request.newName?.trim()?.ifBlank { null } ?: "${source.title} (copy)"
             description = source.description
             generalTags = source.generalTags
             isActive = false
-            scope = BlueprintScope.PERSONAL
-            organizationId = null
+            scope = targetScope
+            organizationId = if (targetScope == BlueprintScope.ORG) callerOrgId else null
             sourceDocumentId = source.id
             createdByAppUserId = callerUserId
         }
@@ -304,6 +306,29 @@ class DocumentLibraryService @Inject constructor(
             isAppAdmin -> BlueprintScope.APP
             isOrgAdmin && callerOrgId != null -> BlueprintScope.ORG
             else -> BlueprintScope.PERSONAL
+        }
+    }
+
+    private fun resolveCloneTargetScope(
+        requested: String?,
+        callerOrgId: UUID?,
+        isOrgAdmin: Boolean,
+        isAppAdmin: Boolean,
+    ): BlueprintScope
+    {
+        if (requested == null) return BlueprintScope.PERSONAL
+        return when (requested.uppercase())
+        {
+            "PERSONAL" -> BlueprintScope.PERSONAL
+            "ORG" ->
+            {
+                if (!isOrgAdmin && !isAppAdmin)
+                    throw ForbiddenException("Org admin role required to clone into the organization collection")
+                if (callerOrgId == null)
+                    throw ForbiddenException("No organization membership found")
+                BlueprintScope.ORG
+            }
+            else -> throw ForbiddenException("Cannot clone directly into scope: $requested")
         }
     }
 

@@ -13,9 +13,11 @@ import com.docuhyphen.app.api.model.entity.BlueprintDefinition
 import com.docuhyphen.app.api.model.entity.BlueprintDocumentDefault
 import com.docuhyphen.app.api.model.entity.BlueprintParticipantDefault
 import com.docuhyphen.app.api.model.entity.BlueprintScope
+import com.docuhyphen.app.api.model.entity.DocumentLibraryEntry
 import com.docuhyphen.app.api.repository.BlueprintDefinitionRepository
 import com.docuhyphen.app.api.repository.BlueprintDocumentDefaultRepository
 import com.docuhyphen.app.api.repository.BlueprintParticipantDefaultRepository
+import com.docuhyphen.app.api.repository.DocumentLibraryRepository
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -33,6 +35,7 @@ class BlueprintDefinitionService @Inject constructor(
     private val repository: BlueprintDefinitionRepository,
     private val documentDefaultRepository: BlueprintDocumentDefaultRepository,
     private val participantDefaultRepository: BlueprintParticipantDefaultRepository,
+    private val documentLibraryRepository: DocumentLibraryRepository,
 )
 {
     private val logger = LoggerFactory.getLogger(BlueprintDefinitionService::class.java)
@@ -182,6 +185,7 @@ class BlueprintDefinitionService @Inject constructor(
         request: CloneBlueprintRequest,
         callerUserId: UUID,
         callerOrgId: UUID?,
+        isOrgAdmin: Boolean,
         isAppAdmin: Boolean,
     ): BlueprintDefinitionDto
     {
@@ -189,6 +193,7 @@ class BlueprintDefinitionService @Inject constructor(
             ?: throw IllegalArgumentException("Blueprint not found: $id")
         checkReadAccess(source, callerUserId, callerOrgId, isAppAdmin)
 
+        val targetScope = resolveCloneTargetScope(request.targetScope, callerOrgId, isOrgAdmin, isAppAdmin)
         val clone = BlueprintDefinition().apply {
             name = request.newName?.trim()?.ifBlank { null } ?: "${source.name} (copy)"
             summary = source.summary
@@ -196,14 +201,14 @@ class BlueprintDefinitionService @Inject constructor(
             configJson = source.configJson
             generalTags = source.generalTags
             isActive = false
-            scope = BlueprintScope.PERSONAL
-            organizationId = null
+            scope = targetScope
+            organizationId = if (targetScope == BlueprintScope.ORG) callerOrgId else null
             isTemplate = false
             sourceTemplateId = source.id
             createdByAppUserId = callerUserId
         }
         repository.save(clone)
-        copyChildren(source.id, clone.id)
+        copyChildren(source.id, clone.id, targetScope, callerUserId, callerOrgId)
         return clone.toDto()
     }
 
@@ -275,6 +280,29 @@ class BlueprintDefinitionService @Inject constructor(
         }
     }
 
+    private fun resolveCloneTargetScope(
+        requested: String?,
+        callerOrgId: UUID?,
+        isOrgAdmin: Boolean,
+        isAppAdmin: Boolean,
+    ): BlueprintScope
+    {
+        if (requested == null) return BlueprintScope.PERSONAL
+        return when (requested.uppercase())
+        {
+            "PERSONAL" -> BlueprintScope.PERSONAL
+            "ORG" ->
+            {
+                if (!isOrgAdmin && !isAppAdmin)
+                    throw ForbiddenException("Org admin role required to clone into the organization collection")
+                if (callerOrgId == null)
+                    throw ForbiddenException("No organization membership found")
+                BlueprintScope.ORG
+            }
+            else -> throw ForbiddenException("Cannot clone directly into scope: $requested")
+        }
+    }
+
     private fun parseConfig(configJson: String): BlueprintConfigJson =
         runCatching { json.decodeFromString(BlueprintConfigJson.serializer(), configJson) }
             .getOrElse { throw IllegalArgumentException("Invalid configJson: ${it.message}") }
@@ -318,10 +346,45 @@ class BlueprintDefinitionService @Inject constructor(
         }
     }
 
-    /** Copies the child rows from [sourceId] onto [targetId] (used by clone). */
-    private fun copyChildren(sourceId: UUID, targetId: UUID)
+    /**
+     * Copies the child rows from [sourceId] onto [targetId] (used by clone).
+     * Any library document linked from APP scope is deep-copied into [targetScope]
+     * so the cloned blueprint has no dependency on platform-owned documents.
+     */
+    private fun copyChildren(
+        sourceId: UUID,
+        targetId: UUID,
+        targetScope: BlueprintScope,
+        callerUserId: UUID,
+        callerOrgId: UUID?,
+    )
     {
         documentDefaultRepository.findAllByBlueprintDefinitionId(sourceId).forEach { src ->
+            val resolvedLibraryDocumentId = src.libraryDocumentId?.let { libId ->
+                val libEntry = documentLibraryRepository.findById(libId)
+                if (libEntry != null && libEntry.scope == BlueprintScope.APP)
+                {
+                    documentLibraryRepository.save(
+                        DocumentLibraryEntry().apply {
+                            title = libEntry.title
+                            description = libEntry.description
+                            generalTags = libEntry.generalTags
+                            documentType = libEntry.documentType
+                            fileName = libEntry.fileName
+                            fileSizeBytes = libEntry.fileSizeBytes
+                            storagePath = libEntry.storagePath
+                            contentHash = libEntry.contentHash
+                            isActive = libEntry.isActive
+                            isPublished = false
+                            scope = targetScope
+                            organizationId = if (targetScope == BlueprintScope.ORG) callerOrgId else null
+                            sourceDocumentId = libEntry.id
+                            createdByAppUserId = callerUserId
+                        }
+                    ).id
+                }
+                else libId
+            }
             documentDefaultRepository.save(
                 BlueprintDocumentDefault().apply {
                     this.blueprintDefinitionId = targetId
@@ -329,7 +392,7 @@ class BlueprintDefinitionService @Inject constructor(
                     this.restrictedType = src.restrictedType
                     this.restrictType = src.restrictType
                     this.required = src.required
-                    this.libraryDocumentId = src.libraryDocumentId
+                    this.libraryDocumentId = resolvedLibraryDocumentId
                     this.displayOrder = src.displayOrder
                 }
             )

@@ -89,6 +89,7 @@ data class UpdateDocumentLibraryEntryRequest(
 @Serializable
 data class CloneDocumentLibraryEntryRequest(
     val newName: String? = null,
+    val targetScope: String? = null,
 )
 
 @Serializable

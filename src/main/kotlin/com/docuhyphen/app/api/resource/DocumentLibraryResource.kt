@@ -399,10 +399,11 @@ class DocumentLibraryResource @Inject constructor(
 
         val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
         val isAppAdmin = userRoleService.isAppAdmin(actor.id)
+        val isOrgAdmin = callerOrgId != null && userRoleService.isOrgAdminIn(actor.id, callerOrgId)
 
         return try
         {
-            val dto = documentLibraryService.cloneEntry(entryId, request, actor.id, callerOrgId, isAppAdmin)
+            val dto = documentLibraryService.cloneEntry(entryId, request, actor.id, callerOrgId, isOrgAdmin, isAppAdmin)
             Response.status(CREATED).entity(dto).build()
         }
         catch (e: IllegalArgumentException)

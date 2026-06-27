@@ -1,6 +1,7 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {
     Button,
+    Checkbox,
     Dialog,
     DialogActions,
     DialogBody,
@@ -8,12 +9,32 @@ import {
     DialogSurface,
     DialogTitle,
     DialogTrigger,
+    Field,
+    Menu,
+    MenuItem,
+    MenuList,
+    MenuPopover,
+    MenuTrigger,
+    Popover,
+    PopoverSurface,
+    PopoverTrigger,
+    SearchBox,
     Spinner,
     Tab,
     TabList,
+    Tag,
+    TagGroup,
     Text,
+    Tooltip,
 } from '@fluentui/react-components';
-import {AddIcon, DocumentAddIcon} from '../../components/IconBundles.tsx';
+import {
+    AddIcon,
+    CheckmarkIcon,
+    DocumentAddIcon,
+    FilterIcon,
+    SortDownIcon,
+    SortUpIcon,
+} from '../../components/IconBundles.tsx';
 import {useDocumentsTabStyles} from './DocumentLibraryTabStyles.tsx';
 import {AppUserRole, DocumentLibraryEntrySummaryDto, DocumentLibraryScope} from '../../models/models.tsx';
 import {
@@ -28,8 +49,12 @@ import {useAuth} from '../../../context/AuthContext.tsx';
 import DocumentLibraryEntryCard from './DocumentLibraryEntryCard.tsx';
 import DocumentLibraryEditorDialog from './DocumentLibraryEditorDialog.tsx';
 import DocumentLibraryUploadDialog from './DocumentLibraryUploadDialog.tsx';
+import ExchangeListPagination from '../../exchanges/components/exchange-list/exchange-list-pagination/ExchangeListPagination.tsx';
+
+const PAGE_SIZE = 12;
 
 type ActiveTab = 'PERSONAL' | 'ORG' | 'APP';
+type SortOrder = 'default' | 'nameAsc' | 'nameDesc';
 
 const tabLabels: Record<ActiveTab, string> = {
     PERSONAL: 'My Documents',
@@ -58,6 +83,49 @@ const DocumentLibraryTab = () =>
     const [entries, setEntries] = useState<DocumentLibraryEntrySummaryDto[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+    const [sortOrder, setSortOrder] = useState<SortOrder>('default');
+    const [currentPage, setCurrentPage] = useState(0);
+    const [filterSearch, setFilterSearch] = useState('');
+
+    const availableTags = useMemo(() =>
+    {
+        const tags = new Set<string>();
+        entries.forEach(e => e.generalTags.forEach(t => tags.add(t)));
+        return [...tags].sort();
+    }, [entries]);
+
+    const filteredTagOptions = useMemo(() =>
+    {
+        const q = filterSearch.trim().toLowerCase();
+        return q ? availableTags.filter(t => t.toLowerCase().includes(q)) : availableTags;
+    }, [availableTags, filterSearch]);
+
+    const filteredEntries = useMemo(() =>
+    {
+        const q = searchQuery.trim().toLowerCase();
+        let result = entries
+            .filter(e => !q || e.title.toLowerCase().includes(q) || (e.description ?? '').toLowerCase().includes(q))
+            .filter(e => selectedTags.size === 0 || e.generalTags.some(t => selectedTags.has(t)));
+        if (sortOrder === 'nameAsc') result = [...result].sort((a, b) => a.title.localeCompare(b.title));
+        else if (sortOrder === 'nameDesc') result = [...result].sort((a, b) => b.title.localeCompare(a.title));
+        return result;
+    }, [entries, searchQuery, selectedTags, sortOrder]);
+
+    const totalPages = Math.ceil(filteredEntries.length / PAGE_SIZE);
+    const visibleEntries = filteredEntries.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+
+    const toggleTag = (tag: string) =>
+    {
+        setSelectedTags(prev =>
+        {
+            const next = new Set(prev);
+            if (next.has(tag)) next.delete(tag); else next.add(tag);
+            return next;
+        });
+        setCurrentPage(0);
+    };
 
     const [editorOpen, setEditorOpen] = useState(false);
     const [editingEntry, setEditingEntry] = useState<DocumentLibraryEntrySummaryDto | undefined>();
@@ -94,6 +162,18 @@ const DocumentLibraryTab = () =>
     const handleClone = async (entry: DocumentLibraryEntrySummaryDto) =>
     {
         await cloneDocumentLibraryEntry(entry.id, {newName: `${entry.title} (copy)`});
+        loadEntries();
+    };
+
+    const handleCloneToPersonal = async (entry: DocumentLibraryEntrySummaryDto) =>
+    {
+        await cloneDocumentLibraryEntry(entry.id, {newName: `${entry.title} (copy)`, targetScope: 'PERSONAL'});
+        loadEntries();
+    };
+
+    const handleCloneToOrg = async (entry: DocumentLibraryEntrySummaryDto) =>
+    {
+        await cloneDocumentLibraryEntry(entry.id, {newName: `${entry.title} (copy)`, targetScope: 'ORG'});
         loadEntries();
     };
 
@@ -142,45 +222,172 @@ const DocumentLibraryTab = () =>
                 id="documents-tab-container"
                 className={styles.container}
             >
-                <div className={styles.header}>
-                    <TabList
-                        selectedValue={activeTab}
-                        onTabSelect={(_, d) =>
-                        {
-                            setActiveTab(d.value as ActiveTab);
-                            setEntries([]);
-                        }}
-                    >
-                        <Tab
-                            id="doc-tab-personal"
-                            value="PERSONAL"
+                <div className={styles.stickyBlock}>
+                    <div className={styles.header}>
+                        <TabList
+                            selectedValue={activeTab}
+                            onTabSelect={(_, d) =>
+                            {
+                                setActiveTab(d.value as ActiveTab);
+                                setEntries([]);
+                                setSearchQuery('');
+                                setSelectedTags(new Set());
+                                setSortOrder('default');
+                                setCurrentPage(0);
+                                setFilterSearch('');
+                            }}
                         >
-                            {tabLabels.PERSONAL}
-                        </Tab>
-                        <Tab
-                            id="doc-tab-org"
-                            value="ORG"
-                        >
-                            {tabLabels.ORG}
-                        </Tab>
-                        <Tab
-                            id="doc-tab-app"
-                            value="APP"
-                        >
-                            {tabLabels.APP}
-                        </Tab>
-                    </TabList>
+                            <Tab
+                                id="doc-tab-personal"
+                                value="PERSONAL"
+                            >
+                                {tabLabels.PERSONAL}
+                            </Tab>
+                            <Tab
+                                id="doc-tab-org"
+                                value="ORG"
+                            >
+                                {tabLabels.ORG}
+                            </Tab>
+                            <Tab
+                                id="doc-tab-app"
+                                value="APP"
+                            >
+                                {tabLabels.APP}
+                            </Tab>
+                        </TabList>
 
-                    {canCreate && (
-                        <Button
-                            id="doc-create-btn"
-                            icon={<AddIcon/>}
-                            appearance="subtle"
-                            shape="circular"
-                            onClick={openCreate}
-                        >
-                            Create Document
-                        </Button>
+                        {canCreate && (
+                            <Button
+                                id="doc-create-btn"
+                                icon={<AddIcon/>}
+                                appearance="subtle"
+                                shape="circular"
+                                onClick={openCreate}
+                            >
+                                Create Document
+                            </Button>
+                        )}
+                    </div>
+
+                    <div className={styles.searchRow}>
+                        <Field style={{flex: 1}}>
+                            <SearchBox
+                                id="doc-search-input"
+                                placeholder="Search documents"
+                                maxLength={100}
+                                value={searchQuery}
+                                onChange={(_, data) =>
+                                {
+                                    setSearchQuery(data.value);
+                                    setCurrentPage(0);
+                                }}
+                            />
+                        </Field>
+                        {availableTags.length > 0 && (
+                            <Popover positioning="below-end" onOpenChange={(_, {open}) => { if (!open) setFilterSearch(''); }}>
+                                <PopoverTrigger disableButtonEnhancement>
+                                    <Tooltip content="Filter by tag" relationship="description">
+                                        <Button
+                                            id="doc-filter-btn"
+                                            icon={<FilterIcon/>}
+                                            appearance={selectedTags.size > 0 ? 'primary' : 'subtle'}
+                                            shape="circular"
+                                        />
+                                    </Tooltip>
+                                </PopoverTrigger>
+                                <PopoverSurface className={styles.filterPopover}>
+                                    <SearchBox
+                                        placeholder="Search tags"
+                                        size="small"
+                                        value={filterSearch}
+                                        onChange={(_, d) => setFilterSearch(d.value)}
+                                    />
+                                    <div className={styles.filterPopoverList}>
+                                        {filteredTagOptions.map(tag => (
+                                            <Checkbox
+                                                key={tag}
+                                                label={tag}
+                                                checked={selectedTags.has(tag)}
+                                                onChange={() => toggleTag(tag)}
+                                            />
+                                        ))}
+                                        {filteredTagOptions.length === 0 && (
+                                            <Text size={200} style={{padding: '4px 8px', color: 'var(--colorNeutralForeground3)'}}>
+                                                No tags found
+                                            </Text>
+                                        )}
+                                    </div>
+                                </PopoverSurface>
+                            </Popover>
+                        )}
+                        <Menu>
+                            <MenuTrigger>
+                                <Tooltip
+                                    content={sortOrder === 'nameAsc' ? 'Name (A-Z)' : sortOrder === 'nameDesc' ? 'Name (Z-A)' : 'Recently updated'}
+                                    relationship="description"
+                                >
+                                    <Button
+                                        id="doc-sort-btn"
+                                        icon={sortOrder === 'nameDesc' ? <SortDownIcon/> : <SortUpIcon/>}
+                                        appearance={sortOrder !== 'default' ? 'primary' : 'subtle'}
+                                        shape="circular"
+                                    />
+                                </Tooltip>
+                            </MenuTrigger>
+                            <MenuPopover>
+                                <MenuList>
+                                    <MenuItem
+                                        icon={sortOrder === 'default' ? <CheckmarkIcon/> : undefined}
+                                        onClick={() => { setSortOrder('default'); setCurrentPage(0); }}
+                                    >
+                                        Recently updated
+                                    </MenuItem>
+                                    <MenuItem
+                                        icon={sortOrder === 'nameAsc' ? <CheckmarkIcon/> : undefined}
+                                        onClick={() => { setSortOrder('nameAsc'); setCurrentPage(0); }}
+                                    >
+                                        Name (A-Z)
+                                    </MenuItem>
+                                    <MenuItem
+                                        icon={sortOrder === 'nameDesc' ? <CheckmarkIcon/> : undefined}
+                                        onClick={() => { setSortOrder('nameDesc'); setCurrentPage(0); }}
+                                    >
+                                        Name (Z-A)
+                                    </MenuItem>
+                                </MenuList>
+                            </MenuPopover>
+                        </Menu>
+                    </div>
+
+                    {selectedTags.size > 0 && (
+                        <div className={styles.activeTagsRow}>
+                            <TagGroup
+                                onDismiss={(_ev, {value}) =>
+                                {
+                                    setSelectedTags(prev =>
+                                    {
+                                        const next = new Set(prev);
+                                        next.delete(value);
+                                        return next;
+                                    });
+                                    setCurrentPage(0);
+                                }}
+                            >
+                                {[...selectedTags].map(tag => (
+                                    <Tag key={tag} value={tag} size="small" dismissible>
+                                        {tag}
+                                    </Tag>
+                                ))}
+                            </TagGroup>
+                            <Button
+                                size="small"
+                                appearance="subtle"
+                                onClick={() => { setSelectedTags(new Set()); setCurrentPage(0); }}
+                            >
+                                Clear all
+                            </Button>
+                        </div>
                     )}
                 </div>
 
@@ -207,9 +414,17 @@ const DocumentLibraryTab = () =>
                         {emptyMessage[activeTab]}
                     </Text>
                 )}
-                {!loading && !error && entries.length > 0 && (
+                {!loading && !error && entries.length > 0 && filteredEntries.length === 0 && (
+                    <Text
+                        id="doc-no-results-text"
+                        className={styles.emptyText}
+                    >
+                        No documents match your search.
+                    </Text>
+                )}
+                {!loading && !error && visibleEntries.length > 0 && (
                     <div className={styles.cardGrid}>
-                        {entries.map(entry => (
+                        {visibleEntries.map(entry => (
                             <DocumentLibraryEntryCard
                                 key={entry.id}
                                 entry={entry}
@@ -222,8 +437,19 @@ const DocumentLibraryTab = () =>
                                 onActivate={() => handleActivate(entry)}
                                 onClone={() => handleClone(entry)}
                                 onDelete={() => setConfirmDeleteId(entry.id)}
+                                onCloneToPersonal={activeTab === 'APP' ? () => handleCloneToPersonal(entry) : undefined}
+                                onCloneToOrg={activeTab === 'APP' && canManageOrganization ? () => handleCloneToOrg(entry) : undefined}
                             />
                         ))}
+                    </div>
+                )}
+                {!loading && !error && totalPages > 1 && (
+                    <div className={styles.paginationRow}>
+                        <ExchangeListPagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                        />
                     </div>
                 )}
             </div>

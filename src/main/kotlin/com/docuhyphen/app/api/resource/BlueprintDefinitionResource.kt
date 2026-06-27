@@ -310,10 +310,11 @@ class BlueprintDefinitionResource @Inject constructor(
 
         val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
         val isAppAdmin = userRoleService.isAppAdmin(actor.id)
+        val isOrgAdmin = callerOrgId != null && userRoleService.isOrgAdminIn(actor.id, callerOrgId)
 
         return try
         {
-            val dto = blueprintService.cloneBlueprint(bpId, request, actor.id, callerOrgId, isAppAdmin)
+            val dto = blueprintService.cloneBlueprint(bpId, request, actor.id, callerOrgId, isOrgAdmin, isAppAdmin)
             Response.status(CREATED).entity(dto).build()
         }
         catch (e: IllegalArgumentException)

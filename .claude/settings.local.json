@@ -158,7 +158,12 @@
       "PowerShell(cd web-app; npx tsc --noEmit 2>&1 | Select-Object -First 60; Write-Output \"===TSC_EXIT=$LASTEXITCODE===\")",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\web-app\\\\src\" -Recurse -Directory)",
       "Bash(Select-Object -First 20)",
-      "Bash(Format-Table FullName)"
+      "Bash(Format-Table FullName)",
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "PowerShell(if \\(!\\(Test-Path \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\.claude\"\\)\\) { New-Item -ItemType Directory -Path \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\.claude\" }; Get-ChildItem \"C:\\\\Users\\\\Black\\\\IdeaProjects\\\\doc-hyphen\\\\.claude\")",
+      "Bash(node -e \"const pkg = require\\('./node_modules/@fluentui/react-components/package.json'\\); console.log\\(pkg.version\\)\")",
+      "Bash(node -e \"const exports = Object.keys\\(require\\('./node_modules/@fluentui/react-components'\\)\\); console.log\\(exports.filter\\(k => /Popover|TagGroup|TagPicker/.test\\(k\\)\\).join\\('\\\\n'\\)\\)\")",
+      "PowerShell(netstat -ano)"
     ]
   }
 }

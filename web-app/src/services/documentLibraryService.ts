@@ -19,6 +19,7 @@ export interface PatchDocumentLibraryPublishedRequest
 export interface CloneDocumentLibraryEntryRequest
 {
     newName?: string;
+    targetScope?: 'PERSONAL' | 'ORG';
 }
 
 export interface ListDocumentLibraryParams

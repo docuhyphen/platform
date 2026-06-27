@@ -36,6 +36,8 @@ interface Props
     onActivate: () => void;
     onClone: () => void;
     onDelete: () => void;
+    onCloneToPersonal?: () => void;
+    onCloneToOrg?: () => void;
 }
 
 const DocumentLibraryEntryCard = ({
@@ -49,6 +51,8 @@ const DocumentLibraryEntryCard = ({
     onActivate,
     onClone,
     onDelete,
+    onCloneToPersonal,
+    onCloneToOrg,
 }: Props) =>
 {
     const styles = useDocumentsTabStyles();
@@ -135,6 +139,42 @@ const DocumentLibraryEntryCard = ({
                         onClick={onDownload}
                     />
                 )}
+                {!canManage && (onCloneToPersonal || onCloneToOrg) && (
+                    <Menu>
+                        <MenuTrigger disableButtonEnhancement>
+                            <Button
+                                id={`doc-menu-btn-${entry.id}`}
+                                size="small"
+                                appearance="subtle"
+                                shape="circular"
+                                icon={<MoreVerticalRegular/>}
+                                aria-label="More actions"
+                            />
+                        </MenuTrigger>
+                        <MenuPopover>
+                            <MenuList>
+                                {onCloneToPersonal && (
+                                    <MenuItem
+                                        id={`doc-clone-personal-item-${entry.id}`}
+                                        icon={<CopyIcon/>}
+                                        onClick={onCloneToPersonal}
+                                    >
+                                        Clone to My Collection
+                                    </MenuItem>
+                                )}
+                                {onCloneToOrg && (
+                                    <MenuItem
+                                        id={`doc-clone-org-item-${entry.id}`}
+                                        icon={<CopyIcon/>}
+                                        onClick={onCloneToOrg}
+                                    >
+                                        Clone to Organization
+                                    </MenuItem>
+                                )}
+                            </MenuList>
+                        </MenuPopover>
+                    </Menu>
+                )}
                 {canManage && (
                     <Menu>
                         <MenuTrigger disableButtonEnhancement>
@@ -179,13 +219,36 @@ const DocumentLibraryEntryCard = ({
                                 >
                                     {entry.isActive ? 'Deactivate' : 'Activate'}
                                 </MenuItem>
-                                <MenuItem
-                                    id={`doc-clone-item-${entry.id}`}
-                                    icon={<CopyIcon/>}
-                                    onClick={onClone}
-                                >
-                                    Clone
-                                </MenuItem>
+                                {entry.scope === 'APP' ? (
+                                    <>
+                                        {onCloneToPersonal && (
+                                            <MenuItem
+                                                id={`doc-clone-personal-item-${entry.id}`}
+                                                icon={<CopyIcon/>}
+                                                onClick={onCloneToPersonal}
+                                            >
+                                                Clone to My Collection
+                                            </MenuItem>
+                                        )}
+                                        {onCloneToOrg && (
+                                            <MenuItem
+                                                id={`doc-clone-org-item-${entry.id}`}
+                                                icon={<CopyIcon/>}
+                                                onClick={onCloneToOrg}
+                                            >
+                                                Clone to Organization
+                                            </MenuItem>
+                                        )}
+                                    </>
+                                ) : (
+                                    <MenuItem
+                                        id={`doc-clone-item-${entry.id}`}
+                                        icon={<CopyIcon/>}
+                                        onClick={onClone}
+                                    >
+                                        Clone
+                                    </MenuItem>
+                                )}
                                 <MenuItem
                                     id={`doc-delete-item-${entry.id}`}
                                     icon={<DeleteIcon/>}
