@@ -114,12 +114,6 @@ web-app/src/
 
 ---
 
-## Help Docs Maintenance
-
-**This step is mandatory and non-optional.** Every feature implementation, rename, or
-behavioural change MUST include a help docs update before the task is considered complete.
-Do not summarise the work as done until the help docs have been reviewed and updated.
-
 The help docs live in:
 `web-app/src/app/components/help-docs/sections/` (section files and per-article files)
 

@@ -1,24 +1,14 @@
-﻿import React from 'react';
-import {
-    Body1,
-    Button,
-    Caption1,
-    Card,
-    CardHeader,
-    Field,
-    mergeClasses,
-    SearchBox,
-    Tooltip
-} from "@fluentui/react-components";
-import {DocumentAddIcon, ZipDocumentsIcon} from "../../../components/IconBundles.tsx";
-import ExchangeDocumentActionsMenu from "../exchange-document-actions-menu/ExchangeDocumentActionsMenu.tsx";
+import React from 'react';
+import {Button, Field, SearchBox, Tooltip, mergeClasses} from "@fluentui/react-components";
+import {ChevronLeftRegular, ChevronRightRegular} from "@fluentui/react-icons";
+import {ZipDocumentsIcon} from "../../../components/IconBundles.tsx";
 import {DocumentDetailedDto, ExchangeDetailedDto, ExchangeStatus} from "../../../models/models.tsx";
-import {formatDateTimeWithOrdinal} from "../../../helpers.ts";
 import {useExchangeDocumentsListStyles} from "./ExchangeDocumentsListStyles.tsx";
 import {ExchangePermissions} from "../../ExchangePermissions.ts";
+import ExchangeDocumentCard from "./ExchangeDocumentCard.tsx";
+import {useDocumentStrip} from "./useDocumentStrip.ts";
 
-interface ExchangeDocumentsListProps
-{
+interface ExchangeDocumentsListProps {
     exchangeDetails: ExchangeDetailedDto | null;
     filteredDocuments: DocumentDetailedDto[];
     selectedExchangeDocument?: DocumentDetailedDto;
@@ -37,143 +27,88 @@ interface ExchangeDocumentsListProps
     setIsDocumentSidebarOpen: (isOpen: boolean) => void;
 }
 
-const ExchangeDocumentsList: React.FC<ExchangeDocumentsListProps> = (
-    {
-        exchangeDetails,
-        filteredDocuments,
-        selectedExchangeDocument,
-        setSelectedExchangeDocument,
-        setSelectedUpdateExchangeDocument,
-        setIsUploadDocumentDialogOpen,
-        onDocumentDeleted,
-        onDocumentUpdated,
-        onNewDocumentAdded,
-        onDocumentUploaded,
-        permissions,
-        onFilterDocuments,
-        setIsDocumentAddDialogOpen,
-        setIsDocumentUpdateDialogOpen,
-        setIsDocumentZipDialogOpen,
-        setIsDocumentSidebarOpen
-    }) =>
-{
+const ExchangeDocumentsList: React.FC<ExchangeDocumentsListProps> = (props) => {
     const styles = useExchangeDocumentsListStyles();
-    const isArchivedExchange =
-        exchangeDetails?.status === ExchangeStatus.ENDED ||
-        exchangeDetails?.status === ExchangeStatus.REJECTED;
-    const canUploadInCurrentExchange = !isArchivedExchange && !!permissions?.canUploadDocument;
+    const {stripRef, canScrollLeft, canScrollRight, scrollByCard, onStripKeyDown} = useDocumentStrip(
+        props.selectedExchangeDocument?.id,
+        props.filteredDocuments.length
+    );
+    const isArchived = props.exchangeDetails?.status === ExchangeStatus.ENDED ||
+        props.exchangeDetails?.status === ExchangeStatus.REJECTED;
+    const canUpload = !isArchived && !!props.permissions?.canUploadDocument;
+    const hasOverflow = canScrollLeft || canScrollRight;
 
-    const onCardClick = (exchangeDocument: DocumentDetailedDto) =>
-    {
-        setSelectedExchangeDocument(exchangeDocument);
-    };
-
-    const renderDocumentsActionsMenu = (exchangeDocument: DocumentDetailedDto) =>
-    {
-        return (
-            <ExchangeDocumentActionsMenu
-                exchange={exchangeDetails}
-                permissions={permissions}
-                onOpenDetailsSidebar={() =>
-                {
-                    setSelectedExchangeDocument(exchangeDocument);
-                    setIsDocumentSidebarOpen(true);
-                }}
-                onDocumentDeleted={onDocumentDeleted}
-                exchangeDocument={exchangeDocument}
-                onUpload={() =>
-                {
-                    setSelectedExchangeDocument(exchangeDocument);
-                    setIsUploadDocumentDialogOpen(true);
-                }}
-                onUpdate={() =>
-                {
-                    setSelectedUpdateExchangeDocument(exchangeDocument);
-                    setIsDocumentUpdateDialogOpen(true);
-                }}
-                onPreviewDocument={() =>
-                {
-                    setSelectedExchangeDocument(exchangeDocument)
-                }}
-            />
-        );
-    };
-
-    const getDocumentCardClasses = (exchangeDocument: DocumentDetailedDto) =>
-    {
-        if (exchangeDocument && exchangeDocument.id === selectedExchangeDocument?.id)
-        {
-            return mergeClasses(styles.documentsCard, styles.documentsCardSelected);
-        }
-        return styles.documentsCard;
-    };
-
-    const renderDocumentsListCard = (exchangeDocument: DocumentDetailedDto) =>
-    {
-        return (
-            <Card key={exchangeDocument.id}
-                  id={`exchange-document-card-${exchangeDocument.id}`}
-                  data-doc-card="true"
-                  className={getDocumentCardClasses(exchangeDocument)}
-                  onClick={() => onCardClick(exchangeDocument)}>
-                <CardHeader
-                    header={<Body1>
-                        <b>{exchangeDocument.title}</b>
-                    </Body1>}
-                    description={
-                        <>
-                            {exchangeDocument.uploadDate ? (
-                                <Caption1>
-                                    Uploaded {formatDateTimeWithOrdinal(exchangeDocument.uploadDate)}
-                                </Caption1>
-                            ) : (
-                                <Button
-                                    id={`exchange-document-upload-new-${exchangeDocument.id}`}
-                                    appearance="transparent"
-                                    size={"small"}
-                                    shape={"circular"}
-                                    icon={<DocumentAddIcon/>}
-                                    disabled={!canUploadInCurrentExchange}
-                                    onClick={() =>
-                                    {
-                                        if (!canUploadInCurrentExchange) return;
-                                        setSelectedExchangeDocument(exchangeDocument);
-                                        setIsUploadDocumentDialogOpen(true);
-                                    }}>
-                                    Upload new document
-                                    {//ToDo: change text to upload new version when not first upload
-                                    }
-                                </Button>
-                            )}
-                        </>
-                    }
-                    action={<>{exchangeDetails && renderDocumentsActionsMenu(exchangeDocument)}</>}
-                />
-            </Card>
-        );
+    const openUpload = (document: DocumentDetailedDto) => {
+        if (!canUpload) return;
+        props.setSelectedExchangeDocument(document);
+        props.setIsUploadDocumentDialogOpen(true);
     };
 
     return (
-        <section className={styles.container}>
-            <div className={styles.searchSection}>
-                <Tooltip content="Zip all documents"
-                         relationship="description">
+        <section id="exchange-documents-list" className={styles.container}>
+            <div id="exchange-documents-search" className={styles.searchSection}>
+                <Tooltip content="Zip all documents" relationship="description">
                     <Button id="exchange-documents-zip-download"
-                            size={"small"}
-                            disabled={!permissions?.canDownloadDocumentsZip}
-                            onClick={() => setIsDocumentZipDialogOpen(true)}
-                            appearance={"transparent"}
-                            shape={"circular"}
+                            size="small"
+                            disabled={!props.permissions?.canDownloadDocumentsZip}
+                            onClick={() => props.setIsDocumentZipDialogOpen(true)}
+                            appearance="transparent"
+                            shape="circular"
                             icon={<ZipDocumentsIcon/>}/>
                 </Tooltip>
-                <Field className={styles.searchField}>
-                    <SearchBox id="exchange-documents-filter-input" placeholder={"Filter documents"}
-                               onChange={onFilterDocuments}/>
+                <Field id="exchange-documents-search-field" className={styles.searchField}>
+                    <SearchBox id="exchange-documents-filter-input"
+                               placeholder="Filter documents"
+                               onChange={props.onFilterDocuments}/>
                 </Field>
             </div>
-            <div id={"documents-list-cards"}
-                 className={styles.cardListSection}>
-                {filteredDocuments.map((document: DocumentDetailedDto) => renderDocumentsListCard(document))}
+            <div id="exchange-documents-strip-layout" className={styles.stripLayout}>
+                {hasOverflow && (
+                    <Button id="exchange-documents-scroll-left"
+                            aria-label="Scroll documents left"
+                            className={styles.scrollButton}
+                            appearance="subtle"
+                            shape="circular"
+                            disabled={!canScrollLeft}
+                            icon={<ChevronLeftRegular/>}
+                            onClick={() => scrollByCard(-1)}/>
+                )}
+                <div id="documents-list-cards"
+                     ref={stripRef}
+                     className={mergeClasses(styles.cardListSection, !hasOverflow && styles.cardListSectionFullWidth)}
+                     tabIndex={0}
+                     aria-label="Exchange documents"
+                     onKeyDown={onStripKeyDown}>
+                    {props.filteredDocuments.map(document => (
+                        <ExchangeDocumentCard key={document.id}
+                                              document={document}
+                                              exchange={props.exchangeDetails}
+                                              permissions={props.permissions}
+                                              selected={document.id === props.selectedExchangeDocument?.id}
+                                              canUpload={canUpload}
+                                              onSelect={() => props.setSelectedExchangeDocument(document)}
+                                              onUpload={() => openUpload(document)}
+                                              onUpdate={() => {
+                                                  props.setSelectedUpdateExchangeDocument(document);
+                                                  props.setIsDocumentUpdateDialogOpen(true);
+                                              }}
+                                              onOpenDetails={() => {
+                                                  props.setSelectedExchangeDocument(document);
+                                                  props.setIsDocumentSidebarOpen(true);
+                                              }}
+                                              onDelete={props.onDocumentDeleted}/>
+                    ))}
+                </div>
+                {hasOverflow && (
+                    <Button id="exchange-documents-scroll-right"
+                            aria-label="Scroll documents right"
+                            className={styles.scrollButton}
+                            appearance="subtle"
+                            shape="circular"
+                            disabled={!canScrollRight}
+                            icon={<ChevronRightRegular/>}
+                            onClick={() => scrollByCard(1)}/>
+                )}
             </div>
         </section>
     );
