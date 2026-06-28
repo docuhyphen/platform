@@ -1,5 +1,4 @@
-﻿// src/main/kotlin/com/dochyphen/app/api/service/sharingsession/ExchangeDocumentCommentsService.kt
-package com.docuhyphen.app.api.service.exchange
+﻿package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.exception.AppUserNotFoundException

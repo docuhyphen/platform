@@ -704,7 +704,7 @@ class ExchangeInitiationService @Inject constructor(
                     )
                     emailService.sendEmail(
                         to = email,
-                        subject = "$subjectTitle | Document request from $initiatorName",
+                        subject = "$subjectTitle | Exchange request from $initiatorName",
                         body = body,
                         useHtml = true,
                     )
@@ -728,7 +728,7 @@ class ExchangeInitiationService @Inject constructor(
                 )
                 emailService.sendEmail(
                     to = initiator.email,
-                    subject = "$subjectTitle | Document request sent",
+                    subject = "$subjectTitle | Exchange request sent",
                     body = body,
                     useHtml = true,
                 )
@@ -792,7 +792,7 @@ class ExchangeInitiationService @Inject constructor(
                 )
                 emailService.sendEmail(
                     to = email,
-                    subject = "$subjectTitle | Document request from $initiatorName",
+                    subject = "$subjectTitle | Exchange request from $initiatorName",
                     body = body,
                     useHtml = true,
                 )

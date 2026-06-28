@@ -1,7 +1,7 @@
 ﻿<#assign emailTitle = (appName!'DocuHyphen') + " - Exchange Sent">
 <#include "email-header.ftl">
 
-<p style="margin:0 0 14px 0;"><strong>Your exchange has been sent.</strong></p>
+<p style="margin:0 0 14px 0;"><strong>Your Exchange request has been sent.</strong></p>
 
 <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin:0 0 14px 0; border:1px solid #dddddd; background-color:#f0f2f5;">
     <tr>

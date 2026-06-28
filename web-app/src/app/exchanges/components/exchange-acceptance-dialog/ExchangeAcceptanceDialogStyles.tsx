@@ -2,7 +2,6 @@
 
 export const useExchangeAcceptanceDialogStyles = makeStyles({
 
-    // Blocking frosted-glass overlay covering the entire details panel.
     overlay: {
         position: "absolute",
         inset: 0,
@@ -18,42 +17,82 @@ export const useExchangeAcceptanceDialogStyles = makeStyles({
     overlayCard: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
-        padding: "32px",
-        maxWidth: "100%",
-        width: "50rem",
+        gap: "12px",
+        padding: "20px 24px",
+        maxWidth: "580px",
+        width: "100%",
         boxShadow: tokens.shadow28,
         borderRadius: tokens.borderRadiusXLarge,
     },
 
-    nameContainer: {
-        display: "flex",
-        flexDirection: "column",
-        gap: "2px",
-    },
-
-    participantInfoContainer: {
-        display: "flex",
-        flexDirection: "column",
-        gap: "2px",
-    },
-
-    messageContainer: {
-        display: "flex",
-        flexDirection: "column",
-        gap: "2px",
-    },
-
-    documentsInfoContainer: {
+    section: {
         display: "flex",
         flexDirection: "column",
         gap: "6px",
     },
 
-    documentsGroup: {
+    sectionLabel: {
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+    },
+
+    sectionIcon: {
+        fontSize: "14px",
+        color: tokens.colorNeutralForeground3,
+        flexShrink: 0,
+    },
+
+    labelText: {
+        color: tokens.colorNeutralForeground3,
+    },
+
+    sectionContent: {
+        paddingLeft: "20px",
         display: "flex",
         flexDirection: "column",
-        gap: "2px",
+        gap: "4px",
+    },
+
+    requesterCaption: {
+        color: tokens.colorNeutralForeground2,
+        marginTop: "2px",
+    },
+
+    messageBox: {
+        backgroundColor: tokens.colorNeutralBackground3,
+        borderRadius: tokens.borderRadiusMedium,
+        padding: "8px 12px",
+        borderLeftWidth: "3px",
+        borderLeftStyle: "solid",
+        borderLeftColor: tokens.colorBrandBackground,
+    },
+
+    documentList: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "4px",
+    },
+
+    documentItem: {
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+    },
+
+    documentIcon: {
+        fontSize: "14px",
+        color: tokens.colorNeutralForeground3,
+        flexShrink: 0,
+    },
+
+    emptyText: {
+        color: tokens.colorNeutralForeground3,
+    },
+
+    alreadySharedLabel: {
+        color: tokens.colorNeutralForeground2,
+        marginTop: "6px",
     },
 
     declineFieldContainer: {
@@ -63,16 +102,22 @@ export const useExchangeAcceptanceDialogStyles = makeStyles({
         gap: "8px",
     },
 
-
     actions: {
         display: "flex",
+        flexDirection: "column",
         gap: "8px",
-        justifyContent: "center",
-        flexWrap: "wrap",
-        marginTop: "4px",
     },
 
-    navigationHint: {
-        color: tokens.colorNeutralForeground3,
+    primaryActions: {
+        justifyContent: "end",
+        display: "flex",
+        gap: "8px",
+        flexWrap: "wrap",
+    },
+
+    secondaryActions: {
+        display: "flex",
+        gap: "8px",
+        flexWrap: "wrap",
     },
 });

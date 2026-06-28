@@ -759,7 +759,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
             return (
                 <div className={styles.previewEmptyState} id={'preview-empty-state'}>
                     <Text size={500} weight={"semibold"}>No file uploaded yet</Text>
-                    <Text size={300} className={styles.previewEmptySubText}>
+                    <Text size={300} className={styles.previewEmptySubText} align={"center"}>
                         Upload a file for <b>{exchangeDocument.title}</b> to start previewing.
                     </Text>
                     {canUploadDocument && (

@@ -160,7 +160,7 @@ class ExchangeEmailTemplateService @Inject constructor(
 
             ExchangeStatus.REJECTED -> when (audience)
             {
-                ExchangeStatusEmailAudience.INITIATOR -> "Rejected: Sharing request response - $name"
+                ExchangeStatusEmailAudience.INITIATOR -> "Rejected: Exchange request response - $name"
                 ExchangeStatusEmailAudience.RECIPIENT -> "Confirmed: You rejected the sharing request - $name"
             }
 

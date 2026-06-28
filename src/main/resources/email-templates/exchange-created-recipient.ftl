@@ -1,7 +1,7 @@
 ﻿<#assign emailTitle = (appName!'DocuHyphen') + " - New Exchange">
 <#include "email-header.ftl">
 
-<p style="margin:0 0 14px 0;"><strong>You have a new exchange from ${initiatorName}.</strong></p>
+<p style="margin:0 0 14px 0;"><strong>You have a new Exchange request from ${initiatorName}.</strong></p>
 <#if initiatorOrganization??>
 <p style="margin:0 0 14px 0;">Sent on behalf of <strong>${initiatorOrganization}</strong>.</p>
 </#if>
@@ -14,7 +14,7 @@
             <p style="margin:0 0 6px 0;"><strong>Message:</strong> ${sessionMessage}</p>
             </#if>
             <#if documents?has_content>
-            <p style="margin:0 0 6px 0;"><strong>Requested documents:</strong></p>
+            <p style="margin:0 0 6px 0;"><strong>Documents:</strong></p>
             <table width="100%" border="0" cellpadding="0" cellspacing="0">
                 <#list documents as doc>
                 <tr>
@@ -41,7 +41,7 @@
 </table>
 <p style="margin:0 0 14px 0;">Already have an account? <a href="${exchangeLink}" style="color:#1f73b7;">Sign in and open the exchange</a>.</p>
 <#else>
-<p style="margin:0 0 14px 0;">Open the exchange to accept and upload: <a href="${exchangeLink}" style="color:#1f73b7;">${exchangeLink}</a></p>
+<p style="margin:0 0 14px 0;">Open the Exchange to accept and upload: <a href="${exchangeLink}" style="color:#1f73b7;">${exchangeLink}</a></p>
 </#if>
 <p style="margin:0 0 14px 0;">If you do not recognize this request, ignore this email or contact <a href="mailto:support@docuhyphen.com" style="color:#1f73b7;">support@docuhyphen.com</a>.</p>
 
