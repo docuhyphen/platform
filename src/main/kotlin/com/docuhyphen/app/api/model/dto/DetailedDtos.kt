@@ -1,5 +1,7 @@
 ﻿package com.docuhyphen.app.api.model.dto
 
+import com.docuhyphen.app.api.model.entity.NotificationChannelType
+
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
@@ -162,6 +164,14 @@ data class AppUserSettingsDto(
     val notifyDocDelete: Boolean = true,
     val notifyDocAdd: Boolean = true,
     val notifyDocUpload: Boolean = true,
+    val notifyShareStartChannels: Set<NotificationChannelType>? = null,
+    val notifyShareAcceptChannels: Set<NotificationChannelType>? = null,
+    val notifyShareDeclineChannels: Set<NotificationChannelType>? = null,
+    val notifyShareEndChannels: Set<NotificationChannelType>? = null,
+    val notifyDocCommentChannels: Set<NotificationChannelType>? = null,
+    val notifyDocDeleteChannels: Set<NotificationChannelType>? = null,
+    val notifyDocAddChannels: Set<NotificationChannelType>? = null,
+    val notifyDocUploadChannels: Set<NotificationChannelType>? = null,
     val theme: String = "light",
     val tourCompleted: Boolean = false,
 )

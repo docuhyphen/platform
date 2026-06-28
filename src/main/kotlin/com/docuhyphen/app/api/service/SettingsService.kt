@@ -6,6 +6,7 @@ import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.dto.AppUserSettingsDto
 import com.docuhyphen.app.api.model.dto.OrganizationSettingsDto
 import com.docuhyphen.app.api.model.entity.AppUserSettings
+import com.docuhyphen.app.api.model.entity.NotificationChannelType
 import com.docuhyphen.app.api.model.entity.OrganizationSettings
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
@@ -77,26 +78,46 @@ class SettingsService @Inject constructor(
             settings.autoPreviewDocuments = settingsDto.autoPreviewDocuments
         }
 
-        if (settings.notifyShareStart != settingsDto.notifyShareStart ||
-            settings.notifyShareAccept != settingsDto.notifyShareAccept ||
-            settings.notifyShareDecline != settingsDto.notifyShareDecline ||
-            settings.notifyShareEnd != settingsDto.notifyShareEnd ||
-            settings.notifyDocComment != settingsDto.notifyDocComment ||
-            settings.notifyDocDelete != settingsDto.notifyDocDelete ||
-            settings.notifyDocAdd != settingsDto.notifyDocAdd ||
-            settings.notifyDocUpload != settingsDto.notifyDocUpload
-        )
+        val notifyShareStartChannels = normalizeNotificationChannels(settingsDto.notifyShareStartChannels, settingsDto.notifyShareStart)
+        val notifyShareAcceptChannels = normalizeNotificationChannels(settingsDto.notifyShareAcceptChannels, settingsDto.notifyShareAccept)
+        val notifyShareDeclineChannels = normalizeNotificationChannels(settingsDto.notifyShareDeclineChannels, settingsDto.notifyShareDecline)
+        val notifyShareEndChannels = normalizeNotificationChannels(settingsDto.notifyShareEndChannels, settingsDto.notifyShareEnd)
+        val notifyDocCommentChannels = normalizeNotificationChannels(settingsDto.notifyDocCommentChannels, settingsDto.notifyDocComment)
+        val notifyDocDeleteChannels = normalizeNotificationChannels(settingsDto.notifyDocDeleteChannels, settingsDto.notifyDocDelete)
+        val notifyDocAddChannels = normalizeNotificationChannels(settingsDto.notifyDocAddChannels, settingsDto.notifyDocAdd)
+        val notifyDocUploadChannels = normalizeNotificationChannels(settingsDto.notifyDocUploadChannels, settingsDto.notifyDocUpload)
+
+        val notificationChannelsChanged =
+            settings.notifyShareStartChannels != serializeNotificationChannels(notifyShareStartChannels) ||
+            settings.notifyShareAcceptChannels != serializeNotificationChannels(notifyShareAcceptChannels) ||
+            settings.notifyShareDeclineChannels != serializeNotificationChannels(notifyShareDeclineChannels) ||
+            settings.notifyShareEndChannels != serializeNotificationChannels(notifyShareEndChannels) ||
+            settings.notifyDocCommentChannels != serializeNotificationChannels(notifyDocCommentChannels) ||
+            settings.notifyDocDeleteChannels != serializeNotificationChannels(notifyDocDeleteChannels) ||
+            settings.notifyDocAddChannels != serializeNotificationChannels(notifyDocAddChannels) ||
+            settings.notifyDocUploadChannels != serializeNotificationChannels(notifyDocUploadChannels)
+
+        if (notificationChannelsChanged)
         {
             authorizationService.validateUpdateNotificationSettings(currentUser, targetUser)
 
-            settings.notifyShareStart = settingsDto.notifyShareStart
-            settings.notifyShareAccept = settingsDto.notifyShareAccept
-            settings.notifyShareDecline = settingsDto.notifyShareDecline
-            settings.notifyShareEnd = settingsDto.notifyShareEnd
-            settings.notifyDocComment = settingsDto.notifyDocComment
-            settings.notifyDocDelete = settingsDto.notifyDocDelete
-            settings.notifyDocAdd = settingsDto.notifyDocAdd
-            settings.notifyDocUpload = settingsDto.notifyDocUpload
+            settings.notifyShareStartChannels = serializeNotificationChannels(notifyShareStartChannels)
+            settings.notifyShareAcceptChannels = serializeNotificationChannels(notifyShareAcceptChannels)
+            settings.notifyShareDeclineChannels = serializeNotificationChannels(notifyShareDeclineChannels)
+            settings.notifyShareEndChannels = serializeNotificationChannels(notifyShareEndChannels)
+            settings.notifyDocCommentChannels = serializeNotificationChannels(notifyDocCommentChannels)
+            settings.notifyDocDeleteChannels = serializeNotificationChannels(notifyDocDeleteChannels)
+            settings.notifyDocAddChannels = serializeNotificationChannels(notifyDocAddChannels)
+            settings.notifyDocUploadChannels = serializeNotificationChannels(notifyDocUploadChannels)
+
+            settings.notifyShareStart = notifyShareStartChannels.isNotEmpty()
+            settings.notifyShareAccept = notifyShareAcceptChannels.isNotEmpty()
+            settings.notifyShareDecline = notifyShareDeclineChannels.isNotEmpty()
+            settings.notifyShareEnd = notifyShareEndChannels.isNotEmpty()
+            settings.notifyDocComment = notifyDocCommentChannels.isNotEmpty()
+            settings.notifyDocDelete = notifyDocDeleteChannels.isNotEmpty()
+            settings.notifyDocAdd = notifyDocAddChannels.isNotEmpty()
+            settings.notifyDocUpload = notifyDocUploadChannels.isNotEmpty()
         }
 
         // Theme is a personal preference and requires no admin validation.
@@ -186,6 +207,35 @@ class SettingsService @Inject constructor(
 
     companion object
     {
+        private val SUPPORTED_NOTIFICATION_CHANNELS = setOf(
+            NotificationChannelType.EMAIL,
+            NotificationChannelType.IN_APP,
+        )
+
+        fun parseNotificationChannels(value: String): Set<NotificationChannelType>
+        {
+            if (value.isBlank()) return emptySet()
+            return value.split(",").mapNotNull { channel ->
+                runCatching { NotificationChannelType.valueOf(channel.trim()) }.getOrNull()
+            }.toSet()
+        }
+
+        private fun normalizeNotificationChannels(
+            requested: Set<NotificationChannelType>?,
+            legacyEnabled: Boolean,
+        ): Set<NotificationChannelType>
+        {
+            val channels = requested ?: if (legacyEnabled) SUPPORTED_NOTIFICATION_CHANNELS else emptySet()
+            if (!SUPPORTED_NOTIFICATION_CHANNELS.containsAll(channels))
+            {
+                throw DataIntegrityException("Unsupported notification channel")
+            }
+            return channels
+        }
+
+        private fun serializeNotificationChannels(channels: Set<NotificationChannelType>): String =
+            channels.sortedBy { it.ordinal }.joinToString(",") { it.name }
+
         fun getDefaultAppUserSettings(): AppUserSettingsDto
         {
             return AppUserSettingsDto(
@@ -199,6 +249,14 @@ class SettingsService @Inject constructor(
                 notifyDocDelete = true,
                 notifyDocAdd = true,
                 notifyDocUpload = true,
+                notifyShareStartChannels = setOf(NotificationChannelType.EMAIL, NotificationChannelType.IN_APP),
+                notifyShareAcceptChannels = setOf(NotificationChannelType.EMAIL, NotificationChannelType.IN_APP),
+                notifyShareDeclineChannels = setOf(NotificationChannelType.EMAIL, NotificationChannelType.IN_APP),
+                notifyShareEndChannels = emptySet(),
+                notifyDocCommentChannels = setOf(NotificationChannelType.EMAIL, NotificationChannelType.IN_APP),
+                notifyDocDeleteChannels = setOf(NotificationChannelType.EMAIL, NotificationChannelType.IN_APP),
+                notifyDocAddChannels = setOf(NotificationChannelType.EMAIL, NotificationChannelType.IN_APP),
+                notifyDocUploadChannels = setOf(NotificationChannelType.EMAIL, NotificationChannelType.IN_APP),
                 theme = "light",
                 tourCompleted = false,
             )

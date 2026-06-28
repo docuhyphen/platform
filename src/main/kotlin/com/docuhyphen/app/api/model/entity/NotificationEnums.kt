@@ -1,6 +1,9 @@
 package com.docuhyphen.app.api.model.entity
 
+import kotlinx.serialization.Serializable
+
 /** Delivery channels a notification can be routed to. */
+@Serializable
 enum class NotificationChannelType
 {
     EMAIL,

@@ -1,198 +1,141 @@
-﻿import {Divider, Radio, RadioGroup, Switch, Text} from "@fluentui/react-components";
+import {Divider, Radio, RadioGroup, Switch} from "@fluentui/react-components";
 import {useAppSettingsTabStyles} from "./AppSettingsTabStyles.tsx";
-import React, {useEffect, useState} from "react";
+import {useEffect, useState} from "react";
 import {fetchAppUser, updateAppUserSettings} from "../../../services/appUserApi";
-import {AppUserSettingsDto} from "../../models/models.tsx";
+import {AppUserSettingsDto, NotificationPreferenceChannel} from "../../models/models.tsx";
 import {useAuth} from "../../../context/AuthContext.tsx";
 import {useTheme} from "../../../context/themeContextBase";
 import type {ThemeMode} from "../../../context/theme";
+import NotificationPreferenceRow from "./notification-preference-row/NotificationPreferenceRow.tsx";
+import {
+    getNotificationChannels,
+    NotificationPreferenceDefinition,
+    notificationPreferenceDefinitions
+} from "./notificationPreferenceDefinitions.ts";
 
-const AppSettingsTab = () =>
-{
+const AppSettingsTab = () => {
     const styles = useAppSettingsTabStyles();
     const {token, appUser, setAppUser} = useAuth();
     const {mode: themeMode, setMode: setThemeMode} = useTheme();
-
     const [settings, setSettings] = useState<AppUserSettingsDto>();
     const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
 
-    useEffect(() =>
-    {
-        const loadSettings = async () =>
-        {
-            try
-            {
+    useEffect(() => {
+        const loadSettings = async () => {
+            try {
                 setIsLoading(true);
                 const userData = await fetchAppUser(token);
-                if (userData.settings)
-                {
-                    setSettings(userData.settings);
-                    // Don't call setThemeMode here exch- ThemeSync already
-                    // handles the merge between localStorage and DB on
-                    // sign-in. Calling it here would override the local
-                    // preference that ThemeSync deliberately preserved.
-                }
-            }
-            catch (error)
-            {
+                if (userData.settings) setSettings(userData.settings);
+            } catch (error) {
                 console.error("Failed to load user settings:", error);
-            }
-            finally
-            {
+            } finally {
                 setIsLoading(false);
             }
         };
-
         loadSettings();
-    }, [token, setThemeMode]);
+    }, [token]);
 
-    const handleSettingChange = async (setting: keyof AppUserSettingsDto, value: AppUserSettingsDto[keyof AppUserSettingsDto]) =>
-    {
-        if (!settings)
-        {
-            return;
-        }
+    const saveSettings = async (changes: Partial<AppUserSettingsDto>) => {
+        if (!settings) return;
         const previousSettings = settings;
-        const updatedSettings = {...settings, [setting]: value} as AppUserSettingsDto;
-        try
-        {
+        const updatedSettings = {...settings, ...changes};
+        try {
+            setIsSaving(true);
             setSettings(updatedSettings);
             await updateAppUserSettings(updatedSettings, token);
-            // Keep the cached appUser in sync so ThemeSync (and others) see the update.
-            if (appUser)
-            {
-                setAppUser({...appUser, settings: updatedSettings});
-            }
-        }
-        catch (error)
-        {
-            console.error(`Failed to update ${String(setting)}:`, error);
-            // Revert the setting on error
+            if (appUser) setAppUser({...appUser, settings: updatedSettings});
+        } catch (error) {
+            console.error("Failed to update user settings:", error);
             setSettings(previousSettings);
+            throw error;
+        } finally {
+            setIsSaving(false);
         }
     };
 
-    const handleThemeChange = async (next: ThemeMode) =>
-    {
-        // Apply immediately for snappy UX; revert in handleSettingChange on failure.
+    const handleThemeChange = async (next: ThemeMode) => {
         const previousMode = themeMode;
         setThemeMode(next);
-        try
-        {
-            await handleSettingChange("theme", next);
-        }
-        catch
-        {
+        try {
+            await saveSettings({theme: next});
+        } catch {
             setThemeMode(previousMode);
         }
     };
 
-    return (
-        <div className={styles.container}>
+    const handleNotificationChannelsChange = async (
+        definition: NotificationPreferenceDefinition,
+        channels: NotificationPreferenceChannel[],
+    ) => {
+        try {
+            await saveSettings({
+                [definition.channelSetting]: channels,
+                [definition.legacySetting]: channels.length > 0,
+            });
+        } catch {
+            // saveSettings restores the previous selection.
+        }
+    };
 
-            <Divider appearance="brand"
+    const controlsDisabled = isLoading || isSaving;
+
+    return (
+        <div id="app-preferences"
+             className={styles.container}>
+            <Divider id="appearance-preferences-divider"
+                     appearance="brand"
                      alignContent="start"
                      className={styles.mainDivider}>
                 Appearance
             </Divider>
-
-            <RadioGroup
-                id={"radiogroup-theme"}
-                value={themeMode}
-                onChange={(_, data) => handleThemeChange(data.value as ThemeMode)}
-                layout="horizontal"
-                aria-label="Theme"
-                disabled={isLoading}
-            >
-                <Radio value="light" label="Light"/>
-                <Radio value="dark" label="Dark"/>
-                <Radio value="system" label="System default"/>
+            <RadioGroup id="radiogroup-theme"
+                        value={themeMode}
+                        onChange={(_, data) => handleThemeChange(data.value as ThemeMode)}
+                        layout="horizontal"
+                        aria-label="Theme"
+                        disabled={controlsDisabled}>
+                <Radio id="theme-light"
+                       value="light"
+                       label="Light"/>
+                <Radio id="theme-dark"
+                       value="dark"
+                       label="Dark"/>
+                <Radio id="theme-system"
+                       value="system"
+                       label="System default"/>
             </RadioGroup>
-
-            {settings && <>
-                <Switch
-                    id={"switch-auto-preview-documents"}
-                    label="Automatically preview documents"
-                    checked={settings.autoPreviewDocuments}
-                    onChange={(_, data) => handleSettingChange('autoPreviewDocuments', !!data.checked)}
-                    disabled={isLoading}
-                />
-
-                <Divider appearance="brand"
-                         alignContent="start"
-                className={styles.mainDivider}>
-                    Notifications
-                </Divider>
-
-                <Switch
-                    id={"switch-notify-share-start"}
-                    label="Get notifications on Exchange Initiation"
-                    checked={settings.notifyShareStart}
-                    onChange={(_, data) => handleSettingChange('notifyShareStart', !!data.checked)}
-                    disabled={isLoading}
-                />
-
-                <Switch
-                    id={"switch-notify-share-accept"}
-                    label="Get notifications on Exchange Accepted"
-                    checked={settings.notifyShareAccept}
-                    onChange={(_, data) => handleSettingChange('notifyShareAccept', !!data.checked)}
-                    disabled={isLoading}
-                />
-
-                <Switch
-                    id={"switch-notify-share-decline"}
-                    label="Get notifications on Exchange Declined"
-                    checked={settings.notifyShareDecline}
-                    onChange={(_, data) => handleSettingChange('notifyShareDecline', !!data.checked)}
-                    disabled={isLoading}
-                />
-
-                <Switch
-                    id={"switch-notify-share-end"}
-                    label="Get notifications on Exchange End"
-                    checked={settings.notifyShareEnd}
-                    onChange={(_, data) => handleSettingChange('notifyShareEnd', !!data.checked)}
-                    disabled={isLoading}
-                />
-
-                <Switch
-                    id={"switch-notify-doc-comment"}
-                    label="Get notifications on document notes/comments"
-                    checked={settings.notifyDocComment}
-                    onChange={(_, data) => handleSettingChange('notifyDocComment', !!data.checked)}
-                    disabled={isLoading}
-                />
-
-                <Switch
-                    id={"switch-notify-doc-delete"}
-                    label="Get notifications on document deletions"
-                    checked={settings.notifyDocDelete}
-                    onChange={(_, data) => handleSettingChange('notifyDocDelete', !!data.checked)}
-                    disabled={isLoading}
-                />
-
-                <Switch
-                    id={"switch-notify-doc-add"}
-                    label="Get notifications on document additions"
-                    checked={settings.notifyDocAdd}
-                    onChange={(_, data) => handleSettingChange('notifyDocAdd', !!data.checked)}
-                    disabled={isLoading}
-                />
-
-                <Switch
-                    id={"switch-notify-doc-upload"}
-                    label="Get notifications on document upload"
-                    checked={settings.notifyDocUpload}
-                    onChange={(_, data) => handleSettingChange('notifyDocUpload', !!data.checked)}
-                    disabled={isLoading}
-                />
-            </>
-            }
+            {settings && (
+                <>
+                    <Switch id="switch-auto-preview-documents"
+                            label="Automatically preview documents"
+                            checked={settings.autoPreviewDocuments}
+                            onChange={(_, data) =>
+                                saveSettings({autoPreviewDocuments: !!data.checked}).catch(() => undefined)}
+                            disabled={controlsDisabled}/>
+                    <Divider id="notification-preferences-divider"
+                             appearance="brand"
+                             alignContent="start"
+                             className={styles.mainDivider}>
+                        Notifications
+                    </Divider>
+                    <div id="notification-preferences-list"
+                         className={styles.notificationList}>
+                        {notificationPreferenceDefinitions.map(definition => (
+                            <NotificationPreferenceRow key={definition.id}
+                                                       id={definition.id}
+                                                       title={definition.title}
+                                                       description={definition.description}
+                                                       channels={getNotificationChannels(settings, definition)}
+                                                       disabled={controlsDisabled}
+                                                       onChange={channels =>
+                                                           handleNotificationChannelsChange(definition, channels)}/>
+                        ))}
+                    </div>
+                </>
+            )}
         </div>
     );
 };
 
 export default AppSettingsTab;
-
-

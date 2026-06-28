@@ -1,10 +1,15 @@
-import React from "react";
 import {HelpDocSectionInput} from "../helpDocsRegistry";
+import {notificationPreferencesArticle} from "./articles/notificationPreferencesArticle";
 
 export const identitySection: HelpDocSectionInput = {
     id: "identity",
     title: "Identity & access",
     articles: [
+        {
+            id: "notification-preferences",
+            title: "Notification preferences",
+            content: notificationPreferencesArticle,
+        },
         {
             id: "idp-setup-guide",
             title: "IdP setup guide",

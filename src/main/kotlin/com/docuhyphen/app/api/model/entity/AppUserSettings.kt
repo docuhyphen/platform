@@ -42,7 +42,7 @@ class AppUserSettings
     var notifyShareDecline: Boolean = true
 
     @Column(name = "notify_share_end", nullable = false)
-    var notifyShareEnd: Boolean = true
+    var notifyShareEnd: Boolean = false
 
     @Column(name = "notify_doc_comment", nullable = false)
     var notifyDocComment: Boolean = true
@@ -55,6 +55,31 @@ class AppUserSettings
 
     @Column(name = "notify_doc_upload", nullable = false)
     var notifyDocUpload: Boolean = true
+
+
+    @Column(name = "notify_share_start_channels", nullable = false, length = 128)
+    var notifyShareStartChannels: String = "EMAIL,IN_APP"
+
+    @Column(name = "notify_share_accept_channels", nullable = false, length = 128)
+    var notifyShareAcceptChannels: String = "EMAIL,IN_APP"
+
+    @Column(name = "notify_share_decline_channels", nullable = false, length = 128)
+    var notifyShareDeclineChannels: String = "EMAIL,IN_APP"
+
+    @Column(name = "notify_share_end_channels", nullable = false, length = 128)
+    var notifyShareEndChannels: String = ""
+
+    @Column(name = "notify_doc_comment_channels", nullable = false, length = 128)
+    var notifyDocCommentChannels: String = "EMAIL,IN_APP"
+
+    @Column(name = "notify_doc_delete_channels", nullable = false, length = 128)
+    var notifyDocDeleteChannels: String = "EMAIL,IN_APP"
+
+    @Column(name = "notify_doc_add_channels", nullable = false, length = 128)
+    var notifyDocAddChannels: String = "EMAIL,IN_APP"
+
+    @Column(name = "notify_doc_upload_channels", nullable = false, length = 128)
+    var notifyDocUploadChannels: String = "EMAIL,IN_APP"
 
     @Column(name = "theme", nullable = false, length = 16)
     var theme: String = "light"

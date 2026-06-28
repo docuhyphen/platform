@@ -1,32 +1,19 @@
-import {makeStyles} from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useAppSettingsTabStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
+        gap: tokens.spacingVerticalM,
         width: "100%",
+        maxWidth: "760px",
         minWidth: 0,
     },
-    header: {
-
-    },
-    dataContainer: {
-        display: "flex",
-        flexDirection: "row",
-        flexWrap: "wrap",
-        gap: "16px"
-    },
-
-    dataName: {
-        minWidth: "150px"
-    },
-
     mainDivider: {
-        width: "300px",
-        maxWidth: "100%",
-        "@media (max-width: 768px)": {
-            width: "100%",
-        },
-    }
+        width: "100%",
+    },
+    notificationList: {
+        display: "flex",
+        flexDirection: "column",
+    },
 });

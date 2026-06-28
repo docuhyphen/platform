@@ -694,6 +694,8 @@ export interface NotificationDto
     data: Record<string, string>;
 }
 
+export type NotificationPreferenceChannel = "EMAIL" | "IN_APP";
+
 export interface AppUserSettingsDto
 {
     id?: string;
@@ -707,6 +709,14 @@ export interface AppUserSettingsDto
     notifyDocDelete: boolean;
     notifyDocAdd: boolean;
     notifyDocUpload: boolean;
+    notifyShareStartChannels?: NotificationPreferenceChannel[];
+    notifyShareAcceptChannels?: NotificationPreferenceChannel[];
+    notifyShareDeclineChannels?: NotificationPreferenceChannel[];
+    notifyShareEndChannels?: NotificationPreferenceChannel[];
+    notifyDocCommentChannels?: NotificationPreferenceChannel[];
+    notifyDocDeleteChannels?: NotificationPreferenceChannel[];
+    notifyDocAddChannels?: NotificationPreferenceChannel[];
+    notifyDocUploadChannels?: NotificationPreferenceChannel[];
     theme: "light" | "dark" | "system";
     tourCompleted: boolean;
 }
