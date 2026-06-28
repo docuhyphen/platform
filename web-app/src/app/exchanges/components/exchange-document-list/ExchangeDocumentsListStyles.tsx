@@ -1,4 +1,4 @@
-﻿import {makeStyles, shorthands, tokens} from "@fluentui/react-components";
+import {makeStyles, shorthands, tokens} from "@fluentui/react-components";
 
 export const useExchangeDocumentsListStyles = makeStyles({
     container: {
@@ -8,13 +8,33 @@ export const useExchangeDocumentsListStyles = makeStyles({
         flexDirection: "column",
         gap: tokens.spacingVerticalS,
     },
-    searchSection: {
+    toolbar: {
         display: "flex",
-        gap: tokens.spacingHorizontalSNudge,
         alignItems: "center",
+        flexWrap: "wrap",
+        gap: tokens.spacingHorizontalS,
+        width: "100%",
     },
     searchField: {
-        flexGrow: 1,
+        flex: "1 1 280px",
+        width: "100%",
+        maxWidth: "360px",
+        minWidth: "220px",
+    },
+    filterGroup: {
+        display: "flex",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: tokens.spacingHorizontalXS,
+    },
+    toolbarActions: {
+        display: "flex",
+        alignItems: "center",
+        gap: tokens.spacingHorizontalXS,
+        marginLeft: "auto",
+        "@media (max-width: 900px)": {
+            marginLeft: 0,
+        },
     },
     stripLayout: {
         display: "grid",
@@ -22,6 +42,7 @@ export const useExchangeDocumentsListStyles = makeStyles({
         alignItems: "center",
         gap: tokens.spacingHorizontalXS,
         minWidth: 0,
+        width: "100%",
     },
     cardListSection: {
         display: "flex",
@@ -52,10 +73,10 @@ export const useExchangeDocumentsListStyles = makeStyles({
         flexShrink: 0,
     },
     documentsCard: {
-        width: "360px",
-        minWidth: "360px",
-        maxWidth: "360px",
-        flex: "0 0 360px",
+        width: "300px",
+        minWidth: "300px",
+        maxWidth: "300px",
+        flex: "0 0 300px",
         scrollSnapAlign: "start",
         cursor: "pointer",
         gap: tokens.spacingVerticalXS,

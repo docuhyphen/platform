@@ -1,7 +1,7 @@
 ﻿import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
-    Button, InputOnChangeData, Link, SearchBoxChangeEvent, SelectTabData, SelectTabEvent,
-    Spinner, Tab, TabList, TabValue, Text, Toast, Toaster,
+    Button, InputOnChangeData, Link, SearchBoxChangeEvent,
+    Spinner, TabValue, Text, Toast, Toaster,
     ToastBody,
     ToastTitle,
     ToastTrigger,
@@ -46,14 +46,8 @@ import {InboxRole, ExchangeTabCounts} from "./components/exchange-list/ExchangeL
 import {useIsMobile} from "../../utils/useMediaQuery.ts";
 import ExchangeDetailsTab from "./components/exchange-details-tab/ExchangeDetailsTab.tsx";
 import ExchangeAuditTab from "./components/exchange-audit-tab/ExchangeAuditTab.tsx";
-import {
-    AuditIcon,
-    DetailsIcon,
-    DocumentsIcon,
-    ExchangeWorkflowsTabIcon,
-    SettingsWorkflowsTabIcon
-} from "../components/IconBundles.tsx";
 import ExchangeWorkflowTab from "./components/exchange-workflow-tab/ExchangeWorkflowTab.tsx";
+import ExchangeTabsHeader from "./components/exchange-tabs-header/ExchangeTabsHeader.tsx";
 
 const ACTIVE_TAB_STORAGE_KEY = 'exchanges.mainTab.active';
 const LAST_ROUTE_QUERY_STORAGE_KEY = 'exchanges.lastRoute.query';
@@ -708,7 +702,7 @@ const Exchanges: React.FC = () =>
         );
     };
 
-    const onFilterDocuments = (event: SearchBoxChangeEvent, data: InputOnChangeData) =>
+    const onFilterDocuments = (_event: SearchBoxChangeEvent, data: InputOnChangeData) =>
     {
         const query = data.value.toLowerCase();
 
@@ -884,15 +878,11 @@ const Exchanges: React.FC = () =>
                             onBackToList={isMobile ? () => setSelectedExchangeId(null) : undefined}
                         />
 
-                        <TabList
-                            selectedValue={detailsActiveTab}
-                            onTabSelect={(_: SelectTabEvent, data: SelectTabData) => setDetailsActiveTab(data.value)}
-                            size="small">
-                            <Tab value="documents" icon={<DocumentsIcon/>}>Documents</Tab>
-                            <Tab value="details" icon={<DetailsIcon/>}>Details</Tab>
-                            <Tab value="audit" icon={<AuditIcon/>}>Audit</Tab>
-                            <Tab value="workflow" icon={<ExchangeWorkflowsTabIcon/>}>Workflow</Tab>
-                        </TabList>
+                        <ExchangeTabsHeader activeTab={detailsActiveTab}
+                                            documents={exchangeDetails?.documents || []}
+                                            canDownloadZip={!!permissions?.canDownloadDocumentsZip}
+                                            onTabChange={setDetailsActiveTab}
+                                            onDownloadZip={() => setIsDocumentZipDialogOpen(true)}/>
 
                         {detailsActiveTab === 'documents' && (
                         <div className={styles.documentsSectionContainer} id={"documentsSectionContainer"}>
@@ -908,12 +898,7 @@ const Exchanges: React.FC = () =>
                                         setSelectedUpdateExchangeDocument={setSelectedUpdateExchangeDocument}
                                         setIsUploadDocumentDialogOpen={setIsUploadDocumentDialogOpen}
                                         setIsDocumentUpdateDialogOpen={setIsUpdateDocumentDialogOpen}
-                                        setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}
-                                        setIsDocumentZipDialogOpen={setIsDocumentZipDialogOpen}
                                         onDocumentDeleted={onDocumentDeleted}
-                                        onDocumentUpdated={onDocumentUpdated}
-                                        onNewDocumentAdded={onNewDocumentAdded}
-                                        onDocumentUploaded={onDocumentUploaded}
                                         setIsDocumentSidebarOpen={setIsDocumentSidebarOpen}
                                     />
                                 )}

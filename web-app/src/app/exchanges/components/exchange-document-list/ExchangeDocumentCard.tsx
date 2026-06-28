@@ -1,6 +1,6 @@
 import React from "react";
 import {Button, Caption1, Card, Text, Tooltip, mergeClasses} from "@fluentui/react-components";
-import {ArrowUploadRegular, CheckmarkCircleFilled, CheckmarkCircleRegular, CircleRegular} from "@fluentui/react-icons";
+import {ArrowUploadRegular, CheckmarkCircleFilled, CircleRegular} from "@fluentui/react-icons";
 import {DocumentDetailedDto, ExchangeDetailedDto} from "../../../models/models.tsx";
 import {ExchangePermissions} from "../../ExchangePermissions.ts";
 import ExchangeDocumentActionsMenu from "../exchange-document-actions-menu/ExchangeDocumentActionsMenu.tsx";

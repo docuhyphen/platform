@@ -1,4 +1,3 @@
-import React from "react";
 import {HelpDocSectionInput} from "../helpDocsRegistry";
 import {manageAccessArticle} from "./articles/manageAccessArticle";
 import {exchangeDocumentCardsArticle} from "./articles/exchangeDocumentCardsArticle";
@@ -7,6 +6,11 @@ export const exchangesSection: HelpDocSectionInput = {
     id: "exchanges",
     title: "Exchanges",
     articles: [
+        {
+            id: "exchange-document-cards",
+            title: "Working with Exchange documents",
+            content: exchangeDocumentCardsArticle,
+        },
         {
             id: "manage-access",
             title: "Managing access & permissions",
