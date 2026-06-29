@@ -1,18 +1,15 @@
 import React, {useEffect, useState} from 'react';
-import {useLinkedAccountsTabStyles} from './LinkedAccountsTabStyles';
 import {
-    Button,
     MessageBar,
     MessageBarBody,
     Spinner,
-    Subtitle2,
-    Text,
-    Card,
-    CardHeader,
-    Badge,
 } from "@fluentui/react-components";
+import {useLinkedAccountsTabStyles} from './LinkedAccountsTabStyles';
 import {IdentityProviderLinkDto, ResponseError} from "../../models/models.tsx";
 import {getIdentityProviders, initiateLinkProvider, unlinkProvider} from "../../../services/authApi.ts";
+import LinkedProviderCard from "./linked-provider-card/LinkedProviderCard.tsx";
+import LinkedAccountsSummary from "./linked-accounts-summary/LinkedAccountsSummary.tsx";
+import {providerDefinitions} from "./providerDefinitions.ts";
 
 const LinkedAccountsTab: React.FC = () =>
 {
@@ -85,109 +82,54 @@ const LinkedAccountsTab: React.FC = () =>
     };
 
     const isLinked = (provider: string) => providers.some(p => p.provider === provider);
-    const canUnlink = providers.length > 1;
+    const connectedCount = providers.length;
+    const canUnlink = connectedCount > 1;
 
     if (loading)
     {
-        return <Spinner label="Loading linked accounts..." />;
+        return <Spinner
+            id={"linked-accounts-loading"}
+            label="Loading linked accounts..."
+        />;
     }
 
     return (
-        <div className={styles.container}>
-
-            <Text size={200}>
-                Manage the identity providers linked to your account.
-                You can sign in using any linked provider.
-            </Text>
+        <div
+            id={"linked-accounts-tab-container"}
+            className={styles.container}>
+            <LinkedAccountsSummary connectedCount={connectedCount}/>
 
             {error && (
-                <MessageBar intent="error">
+                <MessageBar
+                    id={"linked-accounts-error"}
+                    intent="error">
                     <MessageBarBody>{error}</MessageBarBody>
                 </MessageBar>
             )}
 
-            {/* Internal (Email + Password) */}
-            <Card>
-                <CardHeader
-                    header={<Text weight="semibold">Email & Password</Text>}
-                    description={isLinked('INTERNAL') ? <Badge appearance="filled" color="success">Linked</Badge> : <Badge appearance="outline">Not linked</Badge>}
-                    action={
-                        isLinked('INTERNAL')
-                            ? <Button
-                                id={"btn-unlink-internal"}
-                                appearance="secondary"
-                                disabled={!canUnlink || actionLoading === 'INTERNAL'}
-                                shape={"circular"}
-                                onClick={() => onUnlinkProvider('INTERNAL')}>
-                                {actionLoading === 'INTERNAL' ? <Spinner size="tiny"/> : "Unlink"}
-                            </Button>
-                            : null
-                    }
-                />
-            </Card>
+            <div
+                id={"linked-accounts-provider-list"}
+                className={styles.providerList}>
+                {providerDefinitions.map((providerCard) =>
+                {
+                    const linked = isLinked(providerCard.provider);
 
-            {/* Microsoft */}
-            <Card>
-                <CardHeader
-                    header={<Text weight="semibold">Microsoft</Text>}
-                    description={isLinked('MICROSOFT') ? <Badge appearance="filled" color="success">Linked</Badge> : <Badge appearance="outline">Not linked</Badge>}
-                    action={
-                        isLinked('MICROSOFT')
-                            ? <Button
-                                id={"btn-unlink-microsoft"}
-                                appearance="secondary"
-                                disabled={!canUnlink || actionLoading === 'MICROSOFT'}
-                                shape={"circular"}
-                                onClick={() => onUnlinkProvider('MICROSOFT')}>
-                                {actionLoading === 'MICROSOFT' ? <Spinner size="tiny"/> : "Unlink"}
-                            </Button>
-                            : <Button
-                                id={"btn-link-microsoft"}
-                                appearance="secondary"
-                                disabled={actionLoading === 'MICROSOFT'}
-                                shape={"circular"}
-                                onClick={() => onLinkProvider('MICROSOFT')}>
-                                {actionLoading === 'MICROSOFT' ? <Spinner size="tiny"/> : "Link"}
-                            </Button>
-                    }
-                />
-            </Card>
-
-            {/* Google */}
-            <Card>
-                <CardHeader
-                    header={<Text weight="semibold">Google</Text>}
-                    description={isLinked('GOOGLE') ? <Badge appearance="filled" color="success">Linked</Badge> : <Badge appearance="outline">Not linked</Badge>}
-                    action={
-                        isLinked('GOOGLE')
-                            ? <Button
-                                id={"btn-unlink-google"}
-                                appearance="secondary"
-                                disabled={!canUnlink || actionLoading === 'GOOGLE'}
-                                shape={"circular"}
-                                onClick={() => onUnlinkProvider('GOOGLE')}>
-                                {actionLoading === 'GOOGLE' ? <Spinner size="tiny"/> : "Unlink"}
-                            </Button>
-                            : <Button
-                                id={"btn-link-google"}
-                                appearance="secondary"
-                                disabled={actionLoading === 'GOOGLE'}
-                                shape={"circular"}
-                                onClick={() => onLinkProvider('GOOGLE')}>
-                                {actionLoading === 'GOOGLE' ? <Spinner size="tiny"/> : "Link"}
-                            </Button>
-                    }
-                />
-            </Card>
-
-            {!canUnlink && (
-                <Text size={200} italic>
-                    You must have at least one linked provider. Unlink is disabled when only one remains.
-                </Text>
-            )}
+                    return <LinkedProviderCard
+                        id={`linked-provider-card-${providerCard.idPrefix}`}
+                        key={providerCard.provider}
+                        title={providerCard.title}
+                        description={providerCard.description}
+                        providerMark={providerCard.providerMark}
+                        linked={linked}
+                        isActionLoading={actionLoading === providerCard.provider}
+                        canUnlink={canUnlink}
+                        onLink={() => onLinkProvider(providerCard.provider)}
+                        onUnlink={() => onUnlinkProvider(providerCard.provider)}
+                    />;
+                })}
+            </div>
         </div>
     );
 };
 
 export default LinkedAccountsTab;
-

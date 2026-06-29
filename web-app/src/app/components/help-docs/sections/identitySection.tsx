@@ -1,4 +1,5 @@
 import {HelpDocSectionInput} from "../helpDocsRegistry";
+import {linkedAccountsArticle} from "./articles/linkedAccountsArticle";
 import {notificationPreferencesArticle} from "./articles/notificationPreferencesArticle";
 import {profileSettingsArticle} from "./articles/profileSettingsArticle";
 
@@ -10,6 +11,11 @@ export const identitySection: HelpDocSectionInput = {
             id: "profile-settings",
             title: "Profile settings",
             content: profileSettingsArticle,
+        },
+        {
+            id: "linked-accounts",
+            title: "Linked accounts",
+            content: linkedAccountsArticle,
         },
         {
             id: "notification-preferences",
