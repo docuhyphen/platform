@@ -360,6 +360,7 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
                         appearance={recipientOrgUser?.email === c.email || newRecipient?.email === c.email ? 'primary' : 'outline'}
                         onClick={() => selectContact(c)}>
                         <PersonOption
+                            size={"extra-small"}
                             id={`recent-contact-persona-${c.email}`}
                             person={toPersonPickerItem(c)}
                         />

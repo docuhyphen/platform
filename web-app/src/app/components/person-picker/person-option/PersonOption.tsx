@@ -5,10 +5,11 @@ import {usePersonOptionStyles} from "./PersonOptionStyles.tsx";
 interface Props
 {
     id: string;
+    size?: 'extra-small' | 'small' | 'medium' | 'large' | 'extra-large' | 'huge';
     person: PersonPickerItem;
 }
 
-const PersonOption = ({id, person}: Props) =>
+const PersonOption = ({id, person, size}: Props) =>
 {
     const styles = usePersonOptionStyles();
     const name = getPersonName(person);
@@ -19,7 +20,7 @@ const PersonOption = ({id, person}: Props) =>
             className={styles.persona}
             name={name}
             secondaryText={person.email}
-            size="small"
+            size={size || "small"}
             avatar={person.avatarUrl ? {image: {src: person.avatarUrl}} : undefined}
         />
     );
