@@ -1,3 +1,4 @@
+import {deviceSessionsArticle} from "./articles/deviceSessionsArticle";
 import {HelpDocSectionInput} from "../helpDocsRegistry";
 import {linkedAccountsArticle} from "./articles/linkedAccountsArticle";
 import {notificationPreferencesArticle} from "./articles/notificationPreferencesArticle";
@@ -16,6 +17,11 @@ export const identitySection: HelpDocSectionInput = {
             id: "linked-accounts",
             title: "Linked accounts",
             content: linkedAccountsArticle,
+        },
+        {
+            id: "device-sessions",
+            title: "Device sessions",
+            content: deviceSessionsArticle,
         },
         {
             id: "notification-preferences",
