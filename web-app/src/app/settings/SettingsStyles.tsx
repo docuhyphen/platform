@@ -70,4 +70,7 @@ export const useSettingsStyles = makeStyles({
             paddingTop: "1rem",
         },
     },
+    tabSettingDivider: {
+        marginTop: tokens.spacingVerticalM
+    }
 });

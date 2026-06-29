@@ -109,7 +109,7 @@ const Settings = () =>
             vertical
             size="medium"
         >
-            <Divider appearance={"brand"} alignContent={"start"}>Personal</Divider>
+            <Divider appearance={"brand"} alignContent={"start"} className={styles.tabSettingDivider}>Personal</Divider>
             <Tab id="ProfileTab" icon={<SettingsProfileTabIcon/>} value={tabIds.profile}>
                 Profile
             </Tab>
@@ -125,14 +125,14 @@ const Settings = () =>
             <Tab id="AppSettingsTab" icon={<SettingsAppSettingsTabIcon/>} value={tabIds.appSettings}>
                 Preferences
             </Tab>
-            <Divider appearance={"brand"} alignContent={"start"}>Content</Divider>
+            <Divider appearance={"brand"} alignContent={"start"} className={styles.tabSettingDivider}>Content</Divider>
             <Tab id="DocumentsTab" icon={<SettingsDocumentsTabIcon/>} value={tabIds.documents}>
                 Document Library
             </Tab>
             <Tab id="BlueprintsTab" icon={<SettingsExchangeBlueprintsTabIcon/>} value={tabIds.blueprints}>
                 Blueprints
             </Tab>
-            <Divider appearance={"brand"} alignContent={"start"}>Automation</Divider>
+            <Divider appearance={"brand"} alignContent={"start"} className={styles.tabSettingDivider}>Automation</Divider>
             <Tab id="WorkflowsTab" icon={<SettingsWorkflowsTabIcon/>} value={tabIds.workflows}>
                 Workflows
             </Tab>
@@ -145,7 +145,7 @@ const Settings = () =>
             <Tab id="CommunicationsTab" icon={<SettingsCommunicationsTabIcon/>} value={tabIds.communications}>
                 Communications
             </Tab>
-            <Divider appearance={"brand"} alignContent={"start"}>Organization</Divider>
+            <Divider appearance={"brand"} alignContent={"start"} className={styles.tabSettingDivider}>Organization</Divider>
             <Tab id="OrganizationTab" icon={<SettingsOrganizationTabIcon/>} value={tabIds.organization}>
                 Administration
             </Tab>

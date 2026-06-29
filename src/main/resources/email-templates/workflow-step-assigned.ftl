@@ -26,7 +26,7 @@
 <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin:0 0 14px 0;">
     <tr>
         <td>
-            <a href="${appUrl!'https://app.docuhyphen.com'}" style="display:inline-block;padding:10px 24px;background-color:#1f73b7;color:#ffffff;text-decoration:none;border-radius:4px;font-weight:bold;">
+            <a href="${appUrl!'https://app.docuhyphen.com'}" style="display:inline-block;padding:10px 24px;background-color:${brandPrimaryColor};color:#ffffff;text-decoration:none;border-radius:4px;font-weight:bold;">
                 Review &amp; Respond
             </a>
         </td>

@@ -34,7 +34,7 @@
             <p style="margin:0 0 8px 0;"><strong>&#9888; A registered account is required to access this request.</strong></p>
             <p style="margin:0 0 8px 0;">The sender has requested that you sign in to ${appName!'DocuHyphen'} to view and respond to this exchange. If you don&apos;t have an account yet, you can create one for free.</p>
             <p style="margin:0;">
-                <a href="${signUpLink}" style="display:inline-block;padding:10px 20px;background-color:#1f73b7;color:#ffffff;text-decoration:none;border-radius:4px;font-weight:bold;">Create your free account</a>
+                <a href="${signUpLink}" style="display:inline-block;padding:10px 20px;background-color:${brandPrimaryColor};color:#ffffff;text-decoration:none;border-radius:4px;font-weight:bold;">Create your free account</a>
             </p>
         </td>
     </tr>
