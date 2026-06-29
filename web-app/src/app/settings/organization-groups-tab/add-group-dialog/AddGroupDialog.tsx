@@ -20,14 +20,6 @@ import {
     TableRow,
     Text,
 } from "@fluentui/react-components";
-import {
-    TagPicker,
-    TagPickerControl,
-    TagPickerGroup,
-    TagPickerInput,
-    TagPickerList,
-    TagPickerOption,
-} from "@fluentui/react-tag-picker";
 import React, {useEffect, useRef, useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import {addOrganizationGroup, fetchMyOrganizationUsers} from "../../../../services/organizationApi.ts";
@@ -35,6 +27,16 @@ import {AppUserDetailedDto} from "../../../models/models.tsx";
 import {useAddGroupDialogStyles} from "./AddGroupDialogStyles.tsx";
 import {DeleteRegular} from "@fluentui/react-icons";
 import {GroupRole, GroupRoleDisplayNames} from "../../../../services/types/roles";
+import MultiPersonPicker from "../../../components/person-picker/multi-person-picker/MultiPersonPicker.tsx";
+import {PersonPickerItem} from "../../../components/person-picker/personPickerTypes.ts";
+
+const toPersonPickerItem = (user: AppUserDetailedDto): PersonPickerItem => ({
+    id: user.id ?? "",
+    email: user.email,
+    firstName: user.person?.firstName,
+    lastName: user.person?.lastName,
+    avatarUrl: user.avatarUrl,
+});
 
 interface AddGroupDialogProps
 {
@@ -62,8 +64,6 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
     const [loadingUsers, setLoadingUsers] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // TagPicker state
-    const [pickerSelectedIds, setPickerSelectedIds] = useState<string[]>([]);
     const [addMemberQuery, setAddMemberQuery] = useState("");
     const [addMemberFilteredQuery, setAddMemberFilteredQuery] = useState("");
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,7 +73,6 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
         setName("");
         setSelectedMembers(new Set());
         setMemberRoles(new Map());
-        setPickerSelectedIds([]);
         setAddMemberQuery("");
         setAddMemberFilteredQuery("");
         setError(null);
@@ -171,24 +170,19 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
             next.delete(uid);
             return next;
         });
-        setPickerSelectedIds(prev => prev.filter(id => id !== uid));
     };
 
-    const onQueryChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    const onQueryChange = (query: string) =>
     {
-        const q = e.target.value;
-        setAddMemberQuery(q);
+        setAddMemberQuery(query);
         if (debounceRef.current) clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => setAddMemberFilteredQuery(q), 150);
+        debounceRef.current = setTimeout(() => setAddMemberFilteredQuery(query), 150);
     };
-
-    const displayName = (u: AppUserDetailedDto) =>
-        `${u.person?.firstName ?? ""} ${u.person?.lastName ?? ""}`.trim() || u.email;
 
     const pickerOptions = users.filter(u =>
     {
         const uid = String(u.id ?? "");
-        if (selectedMembers.has(uid) || pickerSelectedIds.includes(uid)) return false;
+        if (selectedMembers.has(uid)) return false;
         if (!addMemberFilteredQuery) return true;
         const q = addMemberFilteredQuery.toLowerCase();
         const fullName = `${u.person?.firstName ?? ""} ${u.person?.lastName ?? ""}`.toLowerCase();
@@ -196,6 +190,18 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
     });
 
     const memberUsers = users.filter(u => selectedMembers.has(String(u.id ?? "")));
+
+    const onMemberSelectionChange = (selectedIds: string[]) =>
+    {
+        const currentIds = Array.from(selectedMembers);
+        selectedIds.filter(id => !selectedMembers.has(id)).forEach(addMember);
+        currentIds.filter(id => !selectedIds.includes(id)).forEach(removeMember);
+        if (selectedIds.length > currentIds.length)
+        {
+            setAddMemberQuery("");
+            setAddMemberFilteredQuery("");
+        }
+    };
 
     const onClose = () =>
     {
@@ -235,53 +241,16 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
                                         hint="Search by name or email to add org members."
                                         className={styles.addMembersField}
                                     >
-                                        <TagPicker
-                                            selectedOptions={pickerSelectedIds}
-                                            onOptionSelect={(_e, data) =>
-                                            {
-                                                const nextIds = data.selectedOptions;
-                                                const added = nextIds.filter(id => !pickerSelectedIds.includes(id));
-                                                const removed = pickerSelectedIds.filter(id => !nextIds.includes(id));
-
-                                                added.forEach(uid =>
-                                                {
-                                                    if (uid !== "__no_results__") addMember(uid);
-                                                });
-                                                removed.forEach(uid => removeMember(uid));
-
-                                                setPickerSelectedIds(nextIds.filter(id => id !== "__no_results__"));
-                                                if (added.length > 0)
-                                                {
-                                                    setAddMemberQuery("");
-                                                    setAddMemberFilteredQuery("");
-                                                }
-                                            }}
-                                        >
-                                            <TagPickerControl>
-                                                <TagPickerGroup/>
-                                                <TagPickerInput
-                                                    value={addMemberQuery}
-                                                    onChange={onQueryChange}
-                                                    placeholder="Type a name or email..."
-                                                />
-                                            </TagPickerControl>
-                                            <TagPickerList>
-                                                {pickerOptions.map(u => (
-                                                    <TagPickerOption
-                                                        key={String(u.id)}
-                                                        value={String(u.id)}
-                                                        text={displayName(u)}
-                                                    >
-                                                        {displayName(u)} ({u.email})
-                                                    </TagPickerOption>
-                                                ))}
-                                                {pickerOptions.length === 0 && addMemberFilteredQuery.length >= 1 && (
-                                                    <TagPickerOption value="__no_results__" text="no results">
-                                                        No matching org members found
-                                                    </TagPickerOption>
-                                                )}
-                                            </TagPickerList>
-                                        </TagPicker>
+                                        <MultiPersonPicker
+                                            id="add-group-member-picker"
+                                            people={pickerOptions.map(toPersonPickerItem)}
+                                            selectedPeople={memberUsers.map(toPersonPickerItem)}
+                                            onSelectionChange={onMemberSelectionChange}
+                                            query={addMemberQuery}
+                                            onQueryChange={onQueryChange}
+                                            placeholder="Type a name or email"
+                                            noResultsText="No matching organization members found"
+                                        />
                                     </Field>
 
                                     {/* Members-only table */}

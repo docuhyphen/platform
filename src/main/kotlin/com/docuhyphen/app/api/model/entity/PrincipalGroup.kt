@@ -68,6 +68,9 @@ class PrincipalGroup
     @Column(name = "is_active", nullable = false)
     var isActive: Boolean = true
 
+    @Column(name = "icon_data", columnDefinition = "TEXT")
+    var iconData: String? = null
+
     @Column(name = "created_date", nullable = false)
     @Serializable(with = TimestampSerializer::class)
     var createdDate: Timestamp = Timestamp.from(Instant.now())

@@ -1,5 +1,3 @@
-import React from "react";
-
 export const usingBlueprintsArticle = (
     <>
         <p>
@@ -50,8 +48,11 @@ export const usingBlueprintsArticle = (
         </p>
         <p>
             The dialog moves to the <b>Recipients</b> tab automatically once you
-            have reviewed the pre-filled details. Add your recipient there and
-            initiate the exchange when ready.
+            have reviewed the pre-filled details. Search for a recipient by name or
+            email and select their person card. You can enter a complete email address
+            for a new recipient who is not in your contacts. Add any internal
+            participants with the multi-person picker, then initiate the exchange
+            when ready.
         </p>
 
         <h3>Saving the current form as a blueprint</h3>

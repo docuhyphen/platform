@@ -16,4 +16,5 @@ data class UserContactDto(
     @Serializable(with = TimestampSerializer::class)
     val lastSharedAt: Timestamp,
     val shareCount: Int,
+    val avatarUrl: String? = null,
 )

@@ -152,6 +152,53 @@ export const deleteOrganizationGroup = async (
     }
 };
 
+export const uploadOrganizationGroupIcon = async (
+    organizationId: string,
+    groupId: string,
+    formData: FormData,
+    token?: string,
+) =>
+{
+    try
+    {
+        const response = await apiClient.post(
+            `/organizations/${organizationId}/groups/${groupId}/icon`,
+            formData,
+            {
+                headers: {
+                    ...(token ? {Authorization: addBearerToHeaderToken(token)} : {}),
+                    'Content-Type': 'multipart/form-data',
+                },
+            },
+        );
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
+export const deleteOrganizationGroupIcon = async (
+    organizationId: string,
+    groupId: string,
+    token?: string,
+) =>
+{
+    try
+    {
+        const response = await apiClient.delete(
+            `/organizations/${organizationId}/groups/${groupId}/icon`,
+            {headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined},
+        );
+        return response.data;
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
 export const fetchOrganizationUsers = async (organizationId: string, token?: string): Promise<AppUserDetailedDto[]> =>
 {
     try

@@ -136,7 +136,8 @@ data class AppUserDetailedDto(
     /** Effective org role label, resolved from organization_membership; null if not an org member. */
     val role: String? = null,
     val person: PersonDetailedDto?,
-    val settings: AppUserSettingsDto
+    val settings: AppUserSettingsDto,
+    val avatarUrl: String? = null,
 )
 
 @Serializable
@@ -174,6 +175,12 @@ data class AppUserSettingsDto(
     val notifyDocUploadChannels: Set<NotificationChannelType>? = null,
     val theme: String = "light",
     val tourCompleted: Boolean = false,
+    val documentLibraryView: String = "cards",
+    val blueprintsView: String = "cards",
+    val workflowsView: String = "cards",
+    val sequencesView: String = "cards",
+    val variablesView: String = "cards",
+    val communicationsView: String = "cards",
 )
 
 @Serializable

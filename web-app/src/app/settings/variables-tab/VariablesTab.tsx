@@ -1,4 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
+import ViewModeToggle from '../../components/ViewModeToggle.tsx';
+import {updateAppUserSettings} from '../../../services/appUserApi';
 import {
     Badge,
     Button,
@@ -14,7 +16,7 @@ import {
     Text,
 } from '@fluentui/react-components';
 import {AddRegular} from '@fluentui/react-icons';
-import {AppUserRole, SystemVariableDto} from '../../models/models';
+import {AppUserRole, SystemVariableDto, ViewMode} from '../../models/models';
 import {getAvailableVariables} from '../../../services/variableService';
 import OrganizationVariablesTab, {OrganizationVariablesTabHandle} from '../organization-variables-tab/OrganizationVariablesTab';
 import PersonalVariablesTab, {PersonalVariablesTabHandle} from '../personal-variables-tab/PersonalVariablesTab';
@@ -104,15 +106,24 @@ const PlatformVariablesView = () =>
 const VariablesTab = () =>
 {
     const styles = useVariablesTabStyles();
-    const {appUser, appUserPersonOrganization} = useAuth();
+    const {appUser, setAppUser, token, appUserPersonOrganization} = useAuth();
     const roleValue = `${appUser?.role ?? ''}`;
     const canManageOrg =
         appUserPersonOrganization?.isActive &&
         (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN');
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('PERSONAL');
+    const [viewMode, setViewMode] = useState<ViewMode>(appUser?.settings?.variablesView ?? 'cards');
     const personalRef = useRef<PersonalVariablesTabHandle>(null);
     const orgRef = useRef<OrganizationVariablesTabHandle>(null);
+
+    const handleViewModeChange = async (mode: ViewMode) => {
+        setViewMode(mode);
+        if (!appUser?.settings) return;
+        const updated = {...appUser.settings, variablesView: mode};
+        try { await updateAppUserSettings(updated, token); if (appUser) setAppUser({...appUser, settings: updated}); }
+        catch { /* non-critical */ }
+    };
 
     const handleAdd = () =>
     {
@@ -149,8 +160,14 @@ const VariablesTab = () =>
                 )}
             </div>
 
-            {activeTab === 'PERSONAL' && <PersonalVariablesTab ref={personalRef}/>}
-            {activeTab === 'ORG' && <OrganizationVariablesTab ref={orgRef}/>}
+            {activeTab !== 'PLATFORM' && (
+                <div className={styles.toolbar}>
+                    <ViewModeToggle value={viewMode} onChange={handleViewModeChange}/>
+                </div>
+            )}
+
+            {activeTab === 'PERSONAL' && <PersonalVariablesTab ref={personalRef} viewMode={viewMode}/>}
+            {activeTab === 'ORG' && <OrganizationVariablesTab ref={orgRef} viewMode={viewMode}/>}
             {activeTab === 'PLATFORM' && <PlatformVariablesView/>}
         </div>
     );

@@ -94,6 +94,7 @@ export interface PrincipalGroupDto
     scope: string;              // 'PERSONAL' | 'ORGANIZATION'
     externallyPublished: boolean;
     ownerAppUserId?: string;
+    iconUrl?: string;
     members: PrincipalGroupMemberDto[];
 }
 
@@ -155,6 +156,7 @@ export interface AppUserSearchResult
     email: string;
     firstName?: string;
     lastName?: string;
+    avatarUrl?: string | null;
 }
 
 // ── Org Settings ──

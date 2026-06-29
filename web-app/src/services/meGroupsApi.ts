@@ -50,3 +50,13 @@ export const removePersonalGroupMember = (
 
 export const deletePersonalGroup = (groupId: string): Promise<void> =>
     executeRequest(() => apiClient.delete(`/me/groups/${groupId}`));
+
+export const uploadPersonalGroupIcon = (groupId: string, formData: FormData): Promise<PrincipalGroupDto> =>
+    executeRequest(() =>
+        apiClient.post(`/me/groups/${groupId}/icon`, formData, {
+            headers: {'Content-Type': 'multipart/form-data'},
+        }),
+    );
+
+export const deletePersonalGroupIcon = (groupId: string): Promise<PrincipalGroupDto> =>
+    executeRequest(() => apiClient.delete(`/me/groups/${groupId}/icon`));

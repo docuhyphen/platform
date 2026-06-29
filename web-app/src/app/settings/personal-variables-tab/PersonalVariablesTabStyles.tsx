@@ -50,4 +50,25 @@ export const usePersonalVariablesTabStyles = makeStyles({
         gap: '8px',
         justifyContent: 'flex-end',
     },
+    table: {
+        width: '100%',
+        borderCollapse: 'collapse',
+    },
+    th: {
+        textAlign: 'left',
+        padding: '6px 12px',
+        fontSize: tokens.fontSizeBase200,
+        fontWeight: tokens.fontWeightSemibold,
+        color: tokens.colorNeutralForeground3,
+        borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
+        whiteSpace: 'nowrap',
+    },
+    tr: {
+        borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+        ':hover': {backgroundColor: tokens.colorNeutralBackground2},
+    },
+    td: {
+        padding: '8px 12px',
+        verticalAlign: 'middle',
+    },
 });

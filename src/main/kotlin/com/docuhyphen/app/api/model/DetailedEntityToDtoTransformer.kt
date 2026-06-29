@@ -239,6 +239,12 @@ class DetailedEntityToDtoTransformer
                         notifyDocUploadChannels = SettingsService.parseNotificationChannels(notifyDocUploadChannels),
                         theme = theme,
                         tourCompleted = tourCompleted,
+                        documentLibraryView = documentLibraryView,
+                        blueprintsView = blueprintsView,
+                        workflowsView = workflowsView,
+                        sequencesView = sequencesView,
+                        variablesView = variablesView,
+                        communicationsView = communicationsView,
                     )
                 }
             } ?: SettingsService.getDefaultAppUserSettings()

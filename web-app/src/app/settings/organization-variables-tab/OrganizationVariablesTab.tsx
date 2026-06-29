@@ -18,7 +18,7 @@ import {
     Text,
 } from '@fluentui/react-components';
 import {DeleteRegular, EditRegular, MoreVerticalRegular} from '@fluentui/react-icons';
-import {AppUserRole, CreateVariableRequest, UpdateVariableRequest, VariableDefinitionDto} from '../../models/models';
+import {AppUserRole, CreateVariableRequest, UpdateVariableRequest, VariableDefinitionDto, ViewMode} from '../../models/models';
 import {createVariable, deleteVariable, listVariables, updateVariable} from '../../../services/variableService';
 import {useOrganizationVariablesTabStyles} from './OrganizationVariablesTabStyles';
 
@@ -33,7 +33,12 @@ export interface OrganizationVariablesTabHandle
     openCreate: () => void;
 }
 
-const OrganizationVariablesTab = forwardRef<OrganizationVariablesTabHandle>((_, ref) =>
+interface OrganizationVariablesTabProps
+{
+    viewMode?: ViewMode;
+}
+
+const OrganizationVariablesTab = forwardRef<OrganizationVariablesTabHandle, OrganizationVariablesTabProps>(({viewMode = 'cards'}, ref) =>
 {
     const styles = useOrganizationVariablesTabStyles();
     const {appUser, appUserPersonOrganization} = useAuth();
@@ -137,7 +142,7 @@ const OrganizationVariablesTab = forwardRef<OrganizationVariablesTabHandle>((_, 
                 {!loading && !error && variables.length === 0 && (
                     <Text className={styles.emptyText}>No org variables yet.</Text>
                 )}
-                {!loading && variables.map(v => (
+                {!loading && !error && variables.length > 0 && viewMode === 'cards' && variables.map(v => (
                     <div
                         key={v.id}
                         className={styles.variableRow}
@@ -191,6 +196,42 @@ const OrganizationVariablesTab = forwardRef<OrganizationVariablesTabHandle>((_, 
                         )}
                     </div>
                 ))}
+                {!loading && !error && variables.length > 0 && viewMode === 'table' && (
+                    <table className={styles.table}>
+                        <thead>
+                            <tr>
+                                <th className={styles.th}>Token</th>
+                                <th className={styles.th}>Default Value</th>
+                                <th className={styles.th}>Active</th>
+                                {canManage && <th className={styles.th}/>}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {variables.map(v => (
+                                <tr key={v.id} className={styles.tr}>
+                                    <td className={styles.td}><code className={styles.codeKey}>{`{{${v.key}}}`}</code></td>
+                                    <td className={styles.td}><Text size={200}>{v.defaultValue || <em>no default</em>}</Text></td>
+                                    <td className={styles.td}><Text size={200}>{v.isActive ? 'Active' : 'Inactive'}</Text></td>
+                                    {canManage && (
+                                        <td className={styles.td}>
+                                            <Menu>
+                                                <MenuTrigger disableButtonEnhancement>
+                                                    <Button size="small" appearance="subtle" shape="circular" icon={<MoreVerticalRegular/>}/>
+                                                </MenuTrigger>
+                                                <MenuPopover>
+                                                    <MenuList>
+                                                        <MenuItem icon={<EditRegular/>} onClick={() => openEdit(v)}>Edit</MenuItem>
+                                                        <MenuItem icon={<DeleteRegular/>} onClick={() => handleDelete(v)}>Delete</MenuItem>
+                                                    </MenuList>
+                                                </MenuPopover>
+                                            </Menu>
+                                        </td>
+                                    )}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
 
             <Drawer

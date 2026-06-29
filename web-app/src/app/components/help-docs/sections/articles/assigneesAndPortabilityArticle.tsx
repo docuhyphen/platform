@@ -1,5 +1,3 @@
-import React from "react";
-
 export const assigneesAndPortabilityArticle = (
     <>
         <p>
@@ -67,10 +65,11 @@ export const assigneesAndPortabilityArticle = (
         <p><b>Fields:</b></p>
         <ul>
             <li>
-                <b>User</b> - a dropdown of users in your organization. Selecting
-                a user stores their UUID in the definition. Any workflow that
-                contains a PRINCIPAL assignee will show a portability warning in
-                the save bar.
+                <b>User</b> - a searchable list of users in your organization.
+                Search by name or email, then select the matching person card.
+                Selecting a user stores their UUID in the definition. Any workflow
+                that contains a PRINCIPAL assignee will show a portability warning
+                in the save bar.
             </li>
         </ul>
 

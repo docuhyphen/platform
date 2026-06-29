@@ -22,7 +22,7 @@ import {
     PublishIcon,
     UnpublishIcon,
 } from '../../components/IconBundles';
-import {AppUserRole, CommunicationSummaryDto, CommunicationScope} from '../../models/models';
+import {AppUserRole, CommunicationSummaryDto, CommunicationScope, ViewMode} from '../../models/models';
 import {
     cloneCommunication,
     deleteCommunication,
@@ -33,6 +33,9 @@ import {
 import CommunicationEditorDialog from './CommunicationEditorDialog';
 import {useAuth} from '../../../context/AuthContext';
 import {useCommunicationsTabStyles} from './CommunicationsTabStyles';
+import ViewModeToggle from '../../components/ViewModeToggle.tsx';
+import TagList from '../../components/TagList.tsx';
+import {updateAppUserSettings} from '../../../services/appUserApi';
 
 type ActiveTab = 'PERSONAL' | 'ORG' | 'PLATFORM';
 
@@ -51,13 +54,15 @@ const emptyMessage: Record<ActiveTab, string> = {
 const CommunicationsTab = () =>
 {
     const styles = useCommunicationsTabStyles();
-    const {appUser, appUserPersonOrganization} = useAuth();
+    const {appUser, setAppUser, token, appUserPersonOrganization} = useAuth();
 
     const roleValue = `${appUser?.role ?? ''}`;
     const canManageOrganization =
         appUserPersonOrganization?.isActive &&
         (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN');
     const isAppAdmin = roleValue === 'APP_ADMIN';
+
+    const [viewMode, setViewMode] = useState<ViewMode>(appUser?.settings?.communicationsView ?? 'cards');
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('PERSONAL');
     const [communications, setCommunications] = useState<CommunicationSummaryDto[]>([]);
@@ -77,6 +82,14 @@ const CommunicationsTab = () =>
     };
 
     useEffect(() => { loadCommunications(); }, [activeTab]);
+
+    const handleViewModeChange = async (mode: ViewMode) => {
+        setViewMode(mode);
+        if (!appUser?.settings) return;
+        const updated = {...appUser.settings, communicationsView: mode};
+        try { await updateAppUserSettings(updated, token); if (appUser) setAppUser({...appUser, settings: updated}); }
+        catch { /* non-critical */ }
+    };
 
     const handlePublish = async (t: CommunicationSummaryDto) =>
     {
@@ -154,6 +167,10 @@ const CommunicationsTab = () =>
                     )}
                 </div>
 
+                <div className={styles.toolbar}>
+                    <ViewModeToggle value={viewMode} onChange={handleViewModeChange}/>
+                </div>
+
                 {loading && <Spinner size="small" label="Loading communications…"/>}
                 {!loading && error && (
                     <Text className={styles.errorText}>{error}</Text>
@@ -161,7 +178,7 @@ const CommunicationsTab = () =>
                 {!loading && !error && communications.length === 0 && (
                     <Text className={styles.emptyText}>{emptyMessage[activeTab]}</Text>
                 )}
-                {!loading && !error && communications.length > 0 && (
+                {!loading && !error && communications.length > 0 && viewMode === 'cards' && (
                     <div className={styles.cardGrid}>
                         {communications.map(t => (
                             <div
@@ -198,9 +215,7 @@ const CommunicationsTab = () =>
                                         >
                                             {t.isActive ? 'Active' : 'Inactive'}
                                         </Badge>
-                                        {t.generalTags.map(tag => (
-                                            <Badge key={tag} appearance="tint" size="small">{tag}</Badge>
-                                        ))}
+                                        <TagList tags={t.generalTags}/>
                                     </div>
                                 </div>
                                 {canManageItem(t) && (
@@ -241,6 +256,66 @@ const CommunicationsTab = () =>
                             </div>
                         ))}
                     </div>
+                )}
+                {!loading && !error && communications.length > 0 && viewMode === 'table' && (
+                    <table className={styles.table}>
+                        <thead>
+                            <tr>
+                                <th className={styles.th}>Name</th>
+                                <th className={styles.th}>Subject</th>
+                                <th className={styles.th}>Tags</th>
+                                {activeTab !== 'PERSONAL' && <th className={styles.th}>Published</th>}
+                                <th className={styles.th}>Active</th>
+                                <th className={styles.th}/>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {communications.map(t => (
+                                <tr key={t.id} className={styles.tr}>
+                                    <td className={styles.td}>
+                                        <Text weight="semibold">{t.name}</Text>
+                                        {t.summary && <Text size={200} className={styles.summaryText} block>{t.summary}</Text>}
+                                    </td>
+                                    <td className={styles.td}><Text size={200}>{t.subject}</Text></td>
+                                    <td className={styles.td}>
+                                        <TagList tags={t.generalTags}/>
+                                    </td>
+                                    {activeTab !== 'PERSONAL' && (
+                                        <td className={styles.td}><Text size={200}>{t.isPublished ? 'Published' : 'Draft'}</Text></td>
+                                    )}
+                                    <td className={styles.td}>
+                                        <Badge appearance="tint" color={t.isActive ? 'success' : 'warning'} size="small">
+                                            {t.isActive ? 'Active' : 'Inactive'}
+                                        </Badge>
+                                    </td>
+                                    <td className={styles.td}>
+                                        {canManageItem(t) && (
+                                            <Menu>
+                                                <MenuTrigger disableButtonEnhancement>
+                                                    <Button size="small" appearance="subtle" shape="circular" icon={<MoreVerticalRegular/>} aria-label="More actions"/>
+                                                </MenuTrigger>
+                                                <MenuPopover>
+                                                    <MenuList>
+                                                        <MenuItem icon={<EditIcon/>} onClick={() => openEdit(t)}>Edit</MenuItem>
+                                                        {activeTab !== 'PERSONAL' && (
+                                                            <MenuItem icon={t.isPublished ? <UnpublishIcon/> : <PublishIcon/>} onClick={() => handlePublish(t)}>
+                                                                {t.isPublished ? 'Unpublish' : 'Publish'}
+                                                            </MenuItem>
+                                                        )}
+                                                        <MenuItem icon={t.isActive ? <DeactivateIcon/> : <ActivateIcon/>} onClick={() => handleActivate(t)}>
+                                                            {t.isActive ? 'Deactivate' : 'Activate'}
+                                                        </MenuItem>
+                                                        <MenuItem icon={<CopyIcon/>} onClick={() => handleDuplicate(t)}>Duplicate</MenuItem>
+                                                        <MenuItem icon={<DeleteIcon/>} onClick={() => handleDelete(t)}>Delete</MenuItem>
+                                                    </MenuList>
+                                                </MenuPopover>
+                                            </Menu>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 )}
             </div>
 

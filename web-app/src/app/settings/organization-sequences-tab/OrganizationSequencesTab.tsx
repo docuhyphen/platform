@@ -19,7 +19,7 @@ import {
     Text,
 } from '@fluentui/react-components';
 import {AddRegular, ArrowCounterclockwiseRegular, DeleteRegular, EditRegular, MoreVerticalRegular} from '@fluentui/react-icons';
-import {AppUserRole, CreateSequenceRequest, SequenceDefinitionDto, SequenceResetPeriod, UpdateSequenceRequest} from '../../models/models';
+import {AppUserRole, CreateSequenceRequest, SequenceDefinitionDto, SequenceResetPeriod, UpdateSequenceRequest, ViewMode} from '../../models/models';
 import {
     createSequence,
     deleteSequence,
@@ -28,6 +28,8 @@ import {
     updateSequence,
 } from '../../../services/variableService';
 import {useOrganizationSequencesTabStyles} from './OrganizationSequencesTabStyles';
+import ViewModeToggle from '../../components/ViewModeToggle.tsx';
+import {updateAppUserSettings} from '../../../services/appUserApi';
 
 const RESET_PERIODS: SequenceResetPeriod[] = ['NEVER', 'YEARLY', 'MONTHLY'];
 
@@ -57,11 +59,13 @@ const formatPreview = (form: CreateSequenceRequest | UpdateSequenceRequest, curr
 const OrganizationSequencesTab = () =>
 {
     const styles = useOrganizationSequencesTabStyles();
-    const {appUser, appUserPersonOrganization} = useAuth();
+    const {appUser, setAppUser, token, appUserPersonOrganization} = useAuth();
     const roleValue = `${appUser?.role ?? ''}`;
     const canManage =
         appUserPersonOrganization?.isActive &&
         (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN');
+
+    const [viewMode, setViewMode] = useState<ViewMode>(appUser?.settings?.sequencesView ?? 'cards');
 
     const [sequences, setSequences] = useState<SequenceDefinitionDto[]>([]);
     const [loading, setLoading] = useState(false);
@@ -82,6 +86,14 @@ const OrganizationSequencesTab = () =>
     };
 
     useEffect(() => { load(); }, []);
+
+    const handleViewModeChange = async (mode: ViewMode) => {
+        setViewMode(mode);
+        if (!appUser?.settings) return;
+        const updated = {...appUser.settings, sequencesView: mode};
+        try { await updateAppUserSettings(updated, token); if (appUser) setAppUser({...appUser, settings: updated}); }
+        catch { /* non-critical */ }
+    };
 
     const openCreate = () =>
     {
@@ -185,6 +197,10 @@ const OrganizationSequencesTab = () =>
                     Auto-incrementing counters. Use <code>{'{{SEQ:KEY}}'}</code> in blueprint and exchange names.
                 </Text>
 
+                <div className={styles.toolbar}>
+                    <ViewModeToggle value={viewMode} onChange={handleViewModeChange}/>
+                </div>
+
                 {loading && <Spinner size="small" label="Loading…"/>}
                 {!loading && error && (
                     <Text className={styles.errorText}>{error}</Text>
@@ -192,7 +208,7 @@ const OrganizationSequencesTab = () =>
                 {!loading && !error && sequences.length === 0 && (
                     <Text className={styles.emptyText}>No sequences yet.</Text>
                 )}
-                {!loading && sequences.map(seq => (
+                {!loading && !error && sequences.length > 0 && viewMode === 'cards' && sequences.map(seq => (
                     <div
                         key={seq.id}
                         className={styles.sequenceCard}
@@ -271,6 +287,51 @@ const OrganizationSequencesTab = () =>
                         )}
                     </div>
                 ))}
+                {!loading && !error && sequences.length > 0 && viewMode === 'table' && (
+                    <table className={styles.table}>
+                        <thead>
+                            <tr>
+                                <th className={styles.th}>Name</th>
+                                <th className={styles.th}>Token</th>
+                                <th className={styles.th}>Counter</th>
+                                <th className={styles.th}>Reset Period</th>
+                                <th className={styles.th}>Active</th>
+                                {canManage && <th className={styles.th}/>}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {sequences.map(seq => (
+                                <tr key={seq.id} className={styles.tr}>
+                                    <td className={styles.td}><Text weight="semibold">{seq.name}</Text></td>
+                                    <td className={styles.td}><code className={styles.codeToken}>{`{{SEQ:${seq.key}}}`}</code></td>
+                                    <td className={styles.td}><Text size={200}>{seq.currentValue} (next: {seq.previewValue})</Text></td>
+                                    <td className={styles.td}><Text size={200}>{seq.resetPeriod}</Text></td>
+                                    <td className={styles.td}>
+                                        <Badge appearance="tint" color={seq.isActive ? 'success' : 'severe'} size="small">
+                                            {seq.isActive ? 'Active' : 'Inactive'}
+                                        </Badge>
+                                    </td>
+                                    {canManage && (
+                                        <td className={styles.td}>
+                                            <Menu>
+                                                <MenuTrigger disableButtonEnhancement>
+                                                    <Button size="small" appearance="subtle" shape="circular" icon={<MoreVerticalRegular/>}/>
+                                                </MenuTrigger>
+                                                <MenuPopover>
+                                                    <MenuList>
+                                                        <MenuItem icon={<EditRegular/>} onClick={() => openEdit(seq)}>Edit</MenuItem>
+                                                        <MenuItem icon={<ArrowCounterclockwiseRegular/>} onClick={() => handleReset(seq)}>Reset Counter</MenuItem>
+                                                        <MenuItem icon={<DeleteRegular/>} onClick={() => handleDelete(seq)}>Delete</MenuItem>
+                                                    </MenuList>
+                                                </MenuPopover>
+                                            </Menu>
+                                        </td>
+                                    )}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
 
             <Drawer

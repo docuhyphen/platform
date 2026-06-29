@@ -37,7 +37,7 @@ import {
     UnpublishIcon,
 } from '../../components/IconBundles.tsx';
 import {useTemplatesTabStyles} from './BlueprintsTabStyles.tsx';
-import {AppUserRole, BlueprintDefinitionSummaryDto, BlueprintScope} from '../../models/models.tsx';
+import {AppUserRole, BlueprintDefinitionSummaryDto, BlueprintScope, ViewMode} from '../../models/models.tsx';
 import {
     cloneBlueprint,
     deleteBlueprint,
@@ -47,6 +47,9 @@ import {
 } from '../../../services/blueprintService.ts';
 import BlueprintEditorDialog from './BlueprintEditorDialog.tsx';
 import {useAuth} from '../../../context/AuthContext.tsx';
+import ViewModeToggle from '../../components/ViewModeToggle.tsx';
+import TagList from '../../components/TagList.tsx';
+import {updateAppUserSettings} from '../../../services/appUserApi';
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 import ExchangeListPagination from '../../exchanges/components/exchange-list/exchange-list-pagination/ExchangeListPagination.tsx';
 
@@ -78,13 +81,15 @@ const BlueprintsTab = () =>
 {
     const globalStyles = useGlobalStyles();
     const styles = useTemplatesTabStyles();
-    const {appUser, appUserPersonOrganization} = useAuth();
+    const {appUser, setAppUser, token, appUserPersonOrganization} = useAuth();
 
     const roleValue = `${appUser?.role ?? ''}`;
     const canManageOrganization =
         appUserPersonOrganization?.isActive &&
         (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN');
     const isAppAdmin = roleValue === 'APP_ADMIN';
+
+    const [viewMode, setViewMode] = useState<ViewMode>(appUser?.settings?.blueprintsView ?? 'cards');
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('PERSONAL');
     const [blueprints, setBlueprints] = useState<BlueprintDefinitionSummaryDto[]>([]);
@@ -147,6 +152,14 @@ const BlueprintsTab = () =>
     };
 
     useEffect(() => { loadBlueprints(); }, [activeTab]);
+
+    const handleViewModeChange = async (mode: ViewMode) => {
+        setViewMode(mode);
+        if (!appUser?.settings) return;
+        const updated = {...appUser.settings, blueprintsView: mode};
+        try { await updateAppUserSettings(updated, token); if (appUser) setAppUser({...appUser, settings: updated}); }
+        catch { /* non-critical */ }
+    };
 
     const handlePublish = async (bp: BlueprintDefinitionSummaryDto) =>
     {
@@ -331,6 +344,7 @@ const BlueprintsTab = () =>
                                 </MenuList>
                             </MenuPopover>
                         </Menu>
+                        <ViewModeToggle value={viewMode} onChange={handleViewModeChange}/>
                     </div>
 
                     {selectedTags.size > 0 && (
@@ -374,7 +388,7 @@ const BlueprintsTab = () =>
                 {!loading && !error && blueprints.length > 0 && filteredBlueprints.length === 0 && (
                     <Text className={styles.emptyText}>No blueprints match your search.</Text>
                 )}
-                {!loading && !error && visibleBlueprints.length > 0 && (
+                {!loading && !error && visibleBlueprints.length > 0 && viewMode === 'cards' && (
                     <div className={styles.cardGrid}>
                         {visibleBlueprints.map(bp => (
                             <div
@@ -405,9 +419,7 @@ const BlueprintsTab = () =>
                                         >
                                             {bp.isActive ? 'Active' : 'Inactive'}
                                         </Badge>
-                                        {bp.generalTags.map(tag => (
-                                            <Badge key={tag} appearance="tint" size="small">{tag}</Badge>
-                                        ))}
+                                        <TagList tags={bp.generalTags}/>
                                     </div>
                                 </div>
                                 {activeTab === 'APP' && !canManageItem(bp) && (
@@ -487,6 +499,85 @@ const BlueprintsTab = () =>
                             </div>
                         ))}
                     </div>
+                )}
+                {!loading && !error && visibleBlueprints.length > 0 && viewMode === 'table' && (
+                    <table className={styles.table}>
+                        <thead>
+                            <tr>
+                                <th className={styles.th}>Name</th>
+                                <th className={styles.th}>Summary</th>
+                                <th className={styles.th}>Tags</th>
+                                {activeTab !== 'PERSONAL' && <th className={styles.th}>Published</th>}
+                                <th className={styles.th}>Active</th>
+                                <th className={styles.th}/>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {visibleBlueprints.map(bp => (
+                                <tr key={bp.id} className={styles.tr}>
+                                    <td className={styles.td}><Text weight="semibold">{bp.name}</Text></td>
+                                    <td className={styles.td}><Text size={200}>{bp.summary ?? '—'}</Text></td>
+                                    <td className={styles.td}>
+                                        <TagList tags={bp.generalTags}/>
+                                    </td>
+                                    {activeTab !== 'PERSONAL' && (
+                                        <td className={styles.td}><Text size={200}>{bp.isPublished ? 'Published' : 'Draft'}</Text></td>
+                                    )}
+                                    <td className={styles.td}>
+                                        <Badge appearance="tint" color={bp.isActive ? 'success' : 'warning'} size="small">
+                                            {bp.isActive ? 'Active' : 'Inactive'}
+                                        </Badge>
+                                    </td>
+                                    <td className={styles.td}>
+                                        {activeTab === 'APP' && !canManageItem(bp) && (
+                                            <Menu>
+                                                <MenuTrigger disableButtonEnhancement>
+                                                    <Button size="small" appearance="subtle" shape="circular" icon={<MoreVerticalRegular/>} aria-label="More actions"/>
+                                                </MenuTrigger>
+                                                <MenuPopover>
+                                                    <MenuList>
+                                                        <MenuItem icon={<CopyIcon/>} onClick={() => handleCloneToPersonal(bp)}>Clone to My Collection</MenuItem>
+                                                        {canManageOrganization && (
+                                                            <MenuItem icon={<CopyIcon/>} onClick={() => handleCloneToOrg(bp)}>Clone to Organization</MenuItem>
+                                                        )}
+                                                    </MenuList>
+                                                </MenuPopover>
+                                            </Menu>
+                                        )}
+                                        {canManageItem(bp) && (
+                                            <Menu>
+                                                <MenuTrigger disableButtonEnhancement>
+                                                    <Button size="small" appearance="subtle" shape="circular" icon={<MoreVerticalRegular/>} aria-label="More actions"/>
+                                                </MenuTrigger>
+                                                <MenuPopover>
+                                                    <MenuList>
+                                                        <MenuItem icon={<EditIcon/>} onClick={() => openEdit(bp)}>Edit</MenuItem>
+                                                        {activeTab !== 'PERSONAL' && (
+                                                            <MenuItem icon={bp.isPublished ? <UnpublishIcon/> : <PublishIcon/>} onClick={() => handlePublish(bp)}>
+                                                                {bp.isPublished ? 'Unpublish' : 'Publish'}
+                                                            </MenuItem>
+                                                        )}
+                                                        <MenuItem icon={bp.isActive ? <DeactivateIcon/> : <ActivateIcon/>} onClick={() => handleActivate(bp)}>
+                                                            {bp.isActive ? 'Deactivate' : 'Activate'}
+                                                        </MenuItem>
+                                                        {activeTab === 'APP' ? (
+                                                            <>
+                                                                <MenuItem icon={<CopyIcon/>} onClick={() => handleCloneToPersonal(bp)}>Clone to My Collection</MenuItem>
+                                                                {canManageOrganization && <MenuItem icon={<CopyIcon/>} onClick={() => handleCloneToOrg(bp)}>Clone to Organization</MenuItem>}
+                                                            </>
+                                                        ) : (
+                                                            <MenuItem icon={<CopyIcon/>} onClick={() => handleDuplicate(bp)}>Duplicate</MenuItem>
+                                                        )}
+                                                        <MenuItem icon={<DeleteIcon/>} onClick={() => handleDelete(bp)}>Delete</MenuItem>
+                                                    </MenuList>
+                                                </MenuPopover>
+                                            </Menu>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 )}
                 {!loading && !error && totalPages > 1 && (
                     <div className={styles.paginationRow}>

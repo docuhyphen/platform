@@ -17,7 +17,7 @@ import {
     Text,
 } from '@fluentui/react-components';
 import {DeleteRegular, EditRegular, MoreVerticalRegular} from '@fluentui/react-icons';
-import {CreateVariableRequest, UpdateVariableRequest, VariableDefinitionDto} from '../../models/models';
+import {CreateVariableRequest, UpdateVariableRequest, VariableDefinitionDto, ViewMode} from '../../models/models';
 import {createVariable, deleteVariable, listVariables, updateVariable} from '../../../services/variableService';
 import {usePersonalVariablesTabStyles} from './PersonalVariablesTabStyles';
 
@@ -32,7 +32,12 @@ export interface PersonalVariablesTabHandle
     openCreate: () => void;
 }
 
-const PersonalVariablesTab = forwardRef<PersonalVariablesTabHandle>((_, ref) =>
+interface PersonalVariablesTabProps
+{
+    viewMode?: ViewMode;
+}
+
+const PersonalVariablesTab = forwardRef<PersonalVariablesTabHandle, PersonalVariablesTabProps>(({viewMode = 'cards'}, ref) =>
 {
     const styles = usePersonalVariablesTabStyles();
     const [variables, setVariables] = useState<VariableDefinitionDto[]>([]);
@@ -130,7 +135,7 @@ const PersonalVariablesTab = forwardRef<PersonalVariablesTabHandle>((_, ref) =>
                 {!loading && !error && variables.length === 0 && (
                     <Text className={styles.emptyText}>No personal variables yet.</Text>
                 )}
-                {!loading && variables.map(v => (
+                {!loading && !error && variables.length > 0 && viewMode === 'cards' && variables.map(v => (
                     <div
                         key={v.id}
                         className={styles.variableRow}
@@ -182,6 +187,40 @@ const PersonalVariablesTab = forwardRef<PersonalVariablesTabHandle>((_, ref) =>
                         </Menu>
                     </div>
                 ))}
+                {!loading && !error && variables.length > 0 && viewMode === 'table' && (
+                    <table className={styles.table}>
+                        <thead>
+                            <tr>
+                                <th className={styles.th}>Token</th>
+                                <th className={styles.th}>Default Value</th>
+                                <th className={styles.th}>Active</th>
+                                <th className={styles.th}/>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {variables.map(v => (
+                                <tr key={v.id} className={styles.tr}>
+                                    <td className={styles.td}><code className={styles.codeKey}>{`{{${v.key}}}`}</code></td>
+                                    <td className={styles.td}><Text size={200}>{v.defaultValue || <em>no default</em>}</Text></td>
+                                    <td className={styles.td}><Text size={200}>{v.isActive ? 'Active' : 'Inactive'}</Text></td>
+                                    <td className={styles.td}>
+                                        <Menu>
+                                            <MenuTrigger disableButtonEnhancement>
+                                                <Button size="small" appearance="subtle" shape="circular" icon={<MoreVerticalRegular/>}/>
+                                            </MenuTrigger>
+                                            <MenuPopover>
+                                                <MenuList>
+                                                    <MenuItem icon={<EditRegular/>} onClick={() => openEdit(v)}>Edit</MenuItem>
+                                                    <MenuItem icon={<DeleteRegular/>} onClick={() => handleDelete(v)}>Delete</MenuItem>
+                                                </MenuList>
+                                            </MenuPopover>
+                                        </Menu>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
 
             <Drawer

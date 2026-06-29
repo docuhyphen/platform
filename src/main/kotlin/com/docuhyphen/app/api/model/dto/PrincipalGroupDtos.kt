@@ -30,5 +30,6 @@ data class PrincipalGroupDto(
     val externallyPublished: Boolean,
     @Serializable(with = UUIDSerializer::class)
     val ownerAppUserId: UUID? = null,
+    val iconUrl: String? = null,
     val members: List<PrincipalGroupMemberDto>,
 )

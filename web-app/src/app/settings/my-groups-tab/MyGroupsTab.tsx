@@ -11,7 +11,6 @@ import {
     DialogContent,
     DialogSurface,
     DialogTitle,
-    DialogTrigger,
     Divider,
     Field,
     Input,
@@ -28,19 +27,10 @@ import {
     TableHeader,
     TableHeaderCell,
     TableRow,
-    Tag,
     Text,
     Textarea,
     Tooltip,
 } from '@fluentui/react-components';
-import {
-    TagPicker,
-    TagPickerControl,
-    TagPickerGroup,
-    TagPickerInput,
-    TagPickerList,
-    TagPickerOption,
-} from '@fluentui/react-tag-picker';
 import {
     AddRegular,
     DeleteRegular,
@@ -60,6 +50,16 @@ import {
 import {searchContacts, UserContactDto} from '../../../services/personalContactsApi';
 import {PrincipalGroupDto} from '../../../services/types/dtos';
 import {GroupRoleDisplayNames} from '../../../services/types/roles';
+import MultiPersonPicker from '../../components/person-picker/multi-person-picker/MultiPersonPicker.tsx';
+import {PersonPickerItem} from '../../components/person-picker/personPickerTypes.ts';
+
+const toPersonPickerItem = (contact: UserContactDto): PersonPickerItem => ({
+    id: contact.contactAppUserId ?? contact.email,
+    email: contact.email,
+    firstName: contact.firstName,
+    lastName: contact.lastName,
+    avatarUrl: contact.avatarUrl,
+});
 
 const MyGroupsTab: React.FC = () =>
 {
@@ -253,12 +253,11 @@ const MyGroupsTab: React.FC = () =>
     };
 
     // ── Member tag picker (shared) ────────────────────────────────────────
-    const onMemberTagQueryChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    const onMemberTagQueryChange = (query: string) =>
     {
-        const q = e.target.value;
-        setMemberTagQuery(q);
+        setMemberTagQuery(query);
         if (memberDebounceRef.current) clearTimeout(memberDebounceRef.current);
-        if (q.length < 2)
+        if (query.length < 2)
         {
             setMemberSearchResults([]);
             setHasUnregisteredHits(false);
@@ -268,7 +267,7 @@ const MyGroupsTab: React.FC = () =>
         {
             try
             {
-                const results = await searchContacts(q, 10);
+                const results = await searchContacts(query, 10);
                 const registered = results.filter(c => !!c.contactAppUserId);
                 setMemberSearchResults(registered);
                 setHasUnregisteredHits(results.length > registered.length);
@@ -281,62 +280,33 @@ const MyGroupsTab: React.FC = () =>
         }, 250);
     };
 
-    const memberTagPicker = (existingMemberIds: string[] = []) => (
-        <TagPicker
-            selectedOptions={selectedContacts.map(c => c.contactAppUserId!)}
-            onOptionSelect={(_e, data) =>
-            {
-                const allIds = data.selectedOptions;
-                const updated = allIds
-                    .map(id =>
-                        selectedContacts.find(c => c.contactAppUserId === id) ||
-                        memberSearchResults.find(c => c.contactAppUserId === id),
-                    )
-                    .filter((c): c is UserContactDto => !!c);
-                setSelectedContacts(updated);
-            }}
-        >
-            <TagPickerControl>
-                <TagPickerGroup>
-                    {selectedContacts.map(c => (
-                        <Tag key={c.contactAppUserId!}
-                             shape={"circular"}
-                             value={c.contactAppUserId!} dismissible>
-                            {[c.firstName, c.lastName].filter(Boolean).join(' ') || c.email}
-                        </Tag>
-                    ))}
-                </TagPickerGroup>
-                <TagPickerInput
-                    value={memberTagQuery}
-                    onChange={onMemberTagQueryChange}
-                    placeholder="Type a name or email..."
-                />
-            </TagPickerControl>
-            <TagPickerList>
-                {memberSearchResults
-                    .filter(c =>
-                        !selectedContacts.some(s => s.contactAppUserId === c.contactAppUserId) &&
-                        !existingMemberIds.includes(c.contactAppUserId!),
-                    )
-                    .map(c => (
-                        <TagPickerOption
-                            key={c.contactAppUserId!}
-                            value={c.contactAppUserId!}
-                            text={[c.firstName, c.lastName].filter(Boolean).join(' ') || c.email}
-                        >
-                            {[c.firstName, c.lastName].filter(Boolean).join(' ')} ({c.email})
-                        </TagPickerOption>
-                    ))}
-                {memberSearchResults.length === 0 && memberTagQuery.length >= 2 && (
-                    <TagPickerOption value="__no_results__" text="no results">
-                        {hasUnregisteredHits
-                            ? "This contact hasn't fully registered yet and can't be added to a group"
-                            : 'No registered contacts found'}
-                    </TagPickerOption>
-                )}
-            </TagPickerList>
-        </TagPicker>
-    );
+    const memberTagPicker = (existingMemberIds: string[] = []) =>
+    {
+        const availableContacts = memberSearchResults.filter(contact =>
+            !existingMemberIds.includes(contact.contactAppUserId ?? ""),
+        );
+
+        return (
+            <MultiPersonPicker
+                id="personal-group-member-picker"
+                people={availableContacts.map(toPersonPickerItem)}
+                selectedPeople={selectedContacts.map(toPersonPickerItem)}
+                onSelectionChange={selectedIds =>
+                {
+                    const contacts = [...selectedContacts, ...availableContacts];
+                    setSelectedContacts(selectedIds
+                        .map(id => contacts.find(contact => contact.contactAppUserId === id))
+                        .filter((contact): contact is UserContactDto => !!contact));
+                }}
+                query={memberTagQuery}
+                onQueryChange={onMemberTagQueryChange}
+                placeholder="Type a name or email"
+                noResultsText={hasUnregisteredHits
+                    ? "This contact has not completed registration"
+                    : "No registered contacts found"}
+            />
+        );
+    };
 
     return (
         <div className={styles.container}>

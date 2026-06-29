@@ -87,6 +87,24 @@ class AppUserSettings
     @Column(name = "tour_completed", nullable = false)
     var tourCompleted: Boolean = false
 
+    @Column(name = "document_library_view", nullable = false, length = 10)
+    var documentLibraryView: String = "cards"
+
+    @Column(name = "blueprints_view", nullable = false, length = 10)
+    var blueprintsView: String = "cards"
+
+    @Column(name = "workflows_view", nullable = false, length = 10)
+    var workflowsView: String = "cards"
+
+    @Column(name = "sequences_view", nullable = false, length = 10)
+    var sequencesView: String = "cards"
+
+    @Column(name = "variables_view", nullable = false, length = 10)
+    var variablesView: String = "cards"
+
+    @Column(name = "communications_view", nullable = false, length = 10)
+    var communicationsView: String = "cards"
+
     @OneToOne(mappedBy = "settings")
     @JsonIgnore
     var appUser: AppUser? = null

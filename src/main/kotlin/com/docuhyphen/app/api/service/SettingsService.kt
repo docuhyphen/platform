@@ -131,6 +131,15 @@ class SettingsService @Inject constructor(
         // Tour completion is a personal preference, no admin check needed.
         settings.tourCompleted = settingsDto.tourCompleted
 
+        // View mode preferences — personal preferences, no admin validation needed.
+        val validViewModes = setOf("cards", "table")
+        if (settingsDto.documentLibraryView in validViewModes) settings.documentLibraryView = settingsDto.documentLibraryView
+        if (settingsDto.blueprintsView in validViewModes) settings.blueprintsView = settingsDto.blueprintsView
+        if (settingsDto.workflowsView in validViewModes) settings.workflowsView = settingsDto.workflowsView
+        if (settingsDto.sequencesView in validViewModes) settings.sequencesView = settingsDto.sequencesView
+        if (settingsDto.variablesView in validViewModes) settings.variablesView = settingsDto.variablesView
+        if (settingsDto.communicationsView in validViewModes) settings.communicationsView = settingsDto.communicationsView
+
         targetUser.settings = settings
         appUserService.update(targetUser)
 
@@ -259,6 +268,12 @@ class SettingsService @Inject constructor(
                 notifyDocUploadChannels = setOf(NotificationChannelType.EMAIL, NotificationChannelType.IN_APP),
                 theme = "light",
                 tourCompleted = false,
+                documentLibraryView = "cards",
+                blueprintsView = "cards",
+                workflowsView = "cards",
+                sequencesView = "cards",
+                variablesView = "cards",
+                communicationsView = "cards",
             )
         }
 

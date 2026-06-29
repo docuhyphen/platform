@@ -17,6 +17,11 @@ import {
 } from "../../../../../services/organizationApi";
 import MyOrgRecipients from "../MyOrgRecipients.tsx";
 import {useAuth} from "../../../../../context/AuthContext.tsx";
+import SinglePersonPicker from "../../../../components/person-picker/single-person-picker/SinglePersonPicker.tsx";
+import {
+    matchesPersonQuery,
+    PersonPickerItem,
+} from "../../../../components/person-picker/personPickerTypes.ts";
 
 interface MyOrganizationRecipientsProps
 {
@@ -33,6 +38,14 @@ enum ShareWithMode
     INDIVIDUAL = "withIndividual",
     GROUP = "withOrgGroup"
 }
+
+const toPersonPickerItem = (user: AppUserDetailedDto): PersonPickerItem => ({
+    id: user.id ?? "",
+    email: user.email,
+    firstName: user.person?.firstName,
+    lastName: user.person?.lastName,
+    avatarUrl: user.avatarUrl,
+});
 
 const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
     {
@@ -164,17 +177,8 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
 
     const filteredUsers = myOrgUsers
         .filter(user => user.id !== appUser?.id)
-        .filter(user => !userSearchQuery ||
-            user.email.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
-            (user.person?.firstName && user.person.firstName.toLowerCase().includes(userSearchQuery.toLowerCase())) ||
-            (user.person?.lastName && user.person.lastName.toLowerCase().includes(userSearchQuery.toLowerCase())))
-        .map(user => (
-            <Option key={user.id}
-                    text={`${user.person?.firstName || ''} ${user.person?.lastName || ''} (${user.email})`}
-                    value={user.id || ''}>
-                {`${user.person?.firstName || ''} ${user.person?.lastName || ''} (${user.email})`}
-            </Option>
-        ));
+        .map(toPersonPickerItem)
+        .filter(person => person.id && matchesPersonQuery(person, userSearchQuery));
 
     const filteredGroups = myOrgGroups
         .filter(group => !groupSearchQuery || group.name.toLowerCase().includes(groupSearchQuery.toLowerCase()))
@@ -211,9 +215,9 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
         }
     };
 
-    const setRecipientOrgUserOptionItem: ComboboxProps["onOptionSelect"] = (_, data: OptionOnSelectData) =>
+    const selectRecipientOrgUser = (person: PersonPickerItem | null) =>
     {
-        if (!data || !data.optionValue)
+        if (!person)
         {
             setUserSearchQuery("");
             setSelectedOrgUser(null);
@@ -228,8 +232,7 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
             return;
         }
 
-        const userId = data.optionValue;
-        const selectedUser = myOrgUsers.find(u => u.id === userId);
+        const selectedUser = myOrgUsers.find(user => user.id === person.id);
 
         if (selectedUser && selectedUser.id !== appUser?.id)
         {
@@ -331,14 +334,16 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
                     {isLoadingUsers ? (
                         <Spinner size="tiny" label="Loading users..."/>
                     ) : (
-                        <Combobox
+                        <SinglePersonPicker
                             id={"my-org-user-combobox"}
-                            onOptionSelect={setRecipientOrgUserOptionItem}
+                            people={filteredUsers}
+                            query={userSearchQuery}
+                            onQueryChange={setUserSearchQuery}
+                            onPersonSelect={selectRecipientOrgUser}
                             placeholder="Select or find person"
-                            onChange={(ev) => setUserSearchQuery(ev.target.value)}
-                            value={userSearchQuery}>
-                            {filteredUsers}
-                        </Combobox>
+                            selectedPersonId={selectedOrgUser?.id}
+                            noResultsText="No matching organization users found"
+                        />
                     )}
                 </Field>
             )}

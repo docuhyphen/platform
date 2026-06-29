@@ -255,6 +255,7 @@ data class AppUserSearchResultDto(
     val email: String,
     val firstName: String? = null,
     val lastName: String? = null,
+    val avatarUrl: String? = null,
 )
 
 @Serializable

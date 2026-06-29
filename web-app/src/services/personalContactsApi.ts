@@ -8,6 +8,7 @@ export interface UserContactDto
     lastName: string | null;
     lastSharedAt: string;
     shareCount: number;
+    avatarUrl?: string | null;
 }
 
 const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>

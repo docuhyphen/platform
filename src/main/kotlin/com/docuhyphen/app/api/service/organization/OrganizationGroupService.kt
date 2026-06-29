@@ -445,6 +445,7 @@ class OrganizationGroupService @Inject constructor(
             name = group.name,
             scope = group.scope.name,
             externallyPublished = group.externallyPublished,
+            iconUrl = group.iconData,
             members = members,
         )
     }

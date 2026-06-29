@@ -16,11 +16,15 @@ import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import jakarta.ws.rs.*
+import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
 import kotlinx.serialization.Serializable
+import org.jboss.resteasy.reactive.RestForm
 import org.slf4j.LoggerFactory
+import java.io.File
+import java.util.Base64
 import java.util.UUID
 
 /**
@@ -254,6 +258,58 @@ class PersonalGroupResource @Inject constructor(
         }
     }
 
+    /** Upload or replace the icon image for a personal group. */
+    @POST
+    @Path("/{groupId}/icon")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Transactional
+    fun uploadGroupIcon(
+        @RestForm("file") file: File?,
+        @RestForm("contentType") contentType: String?,
+        @PathParam("groupId") groupId: String,
+    ): Response
+    {
+        return try
+        {
+            val gid = UUID.fromString(groupId)
+            authorize(Action.GROUP_MANAGE_MEMBERS, gid)
+            if (file == null) return Response.status(BAD_REQUEST).entity(ResponseError("No file provided")).build()
+            val bytes = file.readBytes()
+            if (bytes.isEmpty()) return Response.status(BAD_REQUEST).entity(ResponseError("Uploaded file is empty")).build()
+            val mime = contentType?.takeIf { it.startsWith("image/") } ?: "image/png"
+            val dataUrl = "data:$mime;base64,${Base64.getEncoder().encodeToString(bytes)}"
+            val group = groupRepository.findById(gid) ?: throw NotFoundException("Group not found")
+            group.iconData = dataUrl
+            groupRepository.save(group)
+            Response.ok(toDto(group)).build()
+        }
+        catch (e: Exception)
+        {
+            handleError(e, "Error uploading group icon")
+        }
+    }
+
+    /** Remove the icon image from a personal group. */
+    @DELETE
+    @Path("/{groupId}/icon")
+    @Transactional
+    fun deleteGroupIcon(@PathParam("groupId") groupId: String): Response
+    {
+        return try
+        {
+            val gid = UUID.fromString(groupId)
+            authorize(Action.GROUP_MANAGE_MEMBERS, gid)
+            val group = groupRepository.findById(gid) ?: throw NotFoundException("Group not found")
+            group.iconData = null
+            groupRepository.save(group)
+            Response.ok(toDto(group)).build()
+        }
+        catch (e: Exception)
+        {
+            handleError(e, "Error removing group icon")
+        }
+    }
+
     // ---- helpers -------------------------------------------------------------
 
     /**
@@ -300,6 +356,7 @@ class PersonalGroupResource @Inject constructor(
             scope = group.scope.name,
             externallyPublished = group.externallyPublished,
             ownerAppUserId = group.ownerAppUserId,
+            iconUrl = group.iconData,
             members = members,
         )
     }

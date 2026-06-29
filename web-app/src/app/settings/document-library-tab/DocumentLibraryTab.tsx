@@ -1,5 +1,6 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import {
+    Badge,
     Button,
     Checkbox,
     Dialog,
@@ -35,8 +36,11 @@ import {
     SortDownIcon,
     SortUpIcon,
 } from '../../components/IconBundles.tsx';
+import ViewModeToggle from '../../components/ViewModeToggle.tsx';
+import TagList from '../../components/TagList.tsx';
+import {updateAppUserSettings} from '../../../services/appUserApi';
 import {useDocumentsTabStyles} from './DocumentLibraryTabStyles.tsx';
-import {AppUserRole, DocumentLibraryEntrySummaryDto, DocumentLibraryScope} from '../../models/models.tsx';
+import {AppUserRole, DocumentLibraryEntrySummaryDto, DocumentLibraryScope, ViewMode} from '../../models/models.tsx';
 import {
     cloneDocumentLibraryEntry,
     deleteDocumentLibraryEntry,
@@ -71,13 +75,15 @@ const emptyMessage: Record<ActiveTab, string> = {
 const DocumentLibraryTab = () =>
 {
     const styles = useDocumentsTabStyles();
-    const {appUser, appUserPersonOrganization} = useAuth();
+    const {appUser, setAppUser, token, appUserPersonOrganization} = useAuth();
 
     const roleValue = `${appUser?.role ?? ''}`;
     const canManageOrganization =
         appUserPersonOrganization?.isActive &&
         (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN');
     const isAppAdmin = roleValue === 'APP_ADMIN';
+
+    const [viewMode, setViewMode] = useState<ViewMode>(appUser?.settings?.documentLibraryView ?? 'cards');
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('PERSONAL');
     const [entries, setEntries] = useState<DocumentLibraryEntrySummaryDto[]>([]);
@@ -146,6 +152,14 @@ const DocumentLibraryTab = () =>
     };
 
     useEffect(() => { loadEntries(); }, [activeTab]);
+
+    const handleViewModeChange = async (mode: ViewMode) => {
+        setViewMode(mode);
+        if (!appUser?.settings) return;
+        const updated = {...appUser.settings, documentLibraryView: mode};
+        try { await updateAppUserSettings(updated, token); if (appUser) setAppUser({...appUser, settings: updated}); }
+        catch { /* non-critical: preference saved locally at least */ }
+    };
 
     const handlePublish = async (entry: DocumentLibraryEntrySummaryDto) =>
     {
@@ -358,6 +372,7 @@ const DocumentLibraryTab = () =>
                                 </MenuList>
                             </MenuPopover>
                         </Menu>
+                        <ViewModeToggle value={viewMode} onChange={handleViewModeChange}/>
                     </div>
 
                     {selectedTags.size > 0 && (
@@ -422,7 +437,7 @@ const DocumentLibraryTab = () =>
                         No documents match your search.
                     </Text>
                 )}
-                {!loading && !error && visibleEntries.length > 0 && (
+                {!loading && !error && visibleEntries.length > 0 && viewMode === 'cards' && (
                     <div className={styles.cardGrid}>
                         {visibleEntries.map(entry => (
                             <DocumentLibraryEntryCard
@@ -442,6 +457,65 @@ const DocumentLibraryTab = () =>
                             />
                         ))}
                     </div>
+                )}
+                {!loading && !error && visibleEntries.length > 0 && viewMode === 'table' && (
+                    <table className={styles.table}>
+                        <thead>
+                            <tr>
+                                <th className={styles.th}>Title</th>
+                                <th className={styles.th}>Type</th>
+                                <th className={styles.th}>Tags</th>
+                                {activeTab !== 'PERSONAL' && <th className={styles.th}>Published</th>}
+                                <th className={styles.th}>Active</th>
+                                <th className={styles.th}/>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {visibleEntries.map(entry => (
+                                <tr key={entry.id} className={styles.tr}>
+                                    <td className={styles.td}>
+                                        <Text weight="semibold">{entry.title}</Text>
+                                        {entry.description && (
+                                            <Text size={200} className={styles.descriptionText} block>{entry.description}</Text>
+                                        )}
+                                    </td>
+                                    <td className={styles.td}>
+                                        <Text size={200}>{entry.documentType ?? '—'}</Text>
+                                    </td>
+                                    <td className={styles.td}>
+                                        <TagList tags={entry.generalTags}/>
+                                    </td>
+                                    {activeTab !== 'PERSONAL' && (
+                                        <td className={styles.td}>
+                                            <Text size={200}>{entry.isPublished ? 'Published' : 'Draft'}</Text>
+                                        </td>
+                                    )}
+                                    <td className={styles.td}>
+                                        <Badge appearance="tint" color={entry.isActive ? 'success' : 'warning'} size="small">
+                                            {entry.isActive ? 'Active' : 'Inactive'}
+                                        </Badge>
+                                    </td>
+                                    <td className={styles.td}>
+                                        <DocumentLibraryEntryCard
+                                            entry={entry}
+                                            canManage={canManageItem(entry)}
+                                            showPublishToggle={activeTab !== 'PERSONAL'}
+                                            actionsOnly
+                                            onEdit={() => openEdit(entry)}
+                                            onUpload={() => openUpload(entry)}
+                                            onDownload={() => handleDownload(entry)}
+                                            onPublish={() => handlePublish(entry)}
+                                            onActivate={() => handleActivate(entry)}
+                                            onClone={() => handleClone(entry)}
+                                            onDelete={() => setConfirmDeleteId(entry.id)}
+                                            onCloneToPersonal={activeTab === 'APP' ? () => handleCloneToPersonal(entry) : undefined}
+                                            onCloneToOrg={activeTab === 'APP' && canManageOrganization ? () => handleCloneToOrg(entry) : undefined}
+                                        />
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 )}
                 {!loading && !error && totalPages > 1 && (
                     <div className={styles.paginationRow}>

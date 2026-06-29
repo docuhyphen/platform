@@ -33,4 +33,8 @@ export const useVariablesTabStyles = makeStyles({
         fontFamily: 'monospace',
         fontSize: '12px',
     },
+    toolbar: {
+        display: 'flex',
+        justifyContent: 'flex-end',
+    },
 });

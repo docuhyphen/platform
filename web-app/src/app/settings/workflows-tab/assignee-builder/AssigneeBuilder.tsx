@@ -14,6 +14,11 @@ import {
     fetchOrganizationUsers,
     OrganizationGroupBasicDto,
 } from "../../../../services/organizationApi.ts";
+import SinglePersonPicker from "../../../components/person-picker/single-person-picker/SinglePersonPicker.tsx";
+import {
+    matchesPersonQuery,
+    PersonPickerItem,
+} from "../../../components/person-picker/personPickerTypes.ts";
 
 const ORG_ROLES = [
     {value: "ORG_ADMIN", label: "Organization Admin"},
@@ -41,11 +46,13 @@ interface Props
     subjectFields?: WorkflowSubjectFieldDto[];
 }
 
-const userLabel = (u: AppUserDetailedDto): string =>
-{
-    const name = [u.person?.firstName, u.person?.lastName].filter(Boolean).join(' ');
-    return name ? `${name} (${u.email})` : u.email;
-};
+const toPersonPickerItem = (user: AppUserDetailedDto): PersonPickerItem => ({
+    id: user.id ?? "",
+    email: user.email,
+    firstName: user.person?.firstName,
+    lastName: user.person?.lastName,
+    avatarUrl: user.avatarUrl,
+});
 
 const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props) =>
 {
@@ -55,6 +62,7 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
 
     const [users, setUsers] = useState<AppUserDetailedDto[]>([]);
     const [groups, setGroups] = useState<OrganizationGroupBasicDto[]>([]);
+    const [personQueries, setPersonQueries] = useState<Record<number, string>>({});
 
     const loadOrgData = useCallback(async () =>
     {
@@ -95,6 +103,7 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
     ];
 
     const roleOptions = (scopeType?: string) => scopeType === 'APP' ? APP_ROLES : ORG_ROLES;
+    const people = users.map(toPersonPickerItem).filter(person => person.id);
 
     return (
         <div className={styles.container}>
@@ -161,18 +170,19 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
 
                         {/* PRINCIPAL: user picker */}
                         {a.kind === "PRINCIPAL" && (
-                            <Select
+                            <SinglePersonPicker
                                 id={`assignee-principal-select-${i}`}
-                                className={styles.fieldInput}
-                                value={a.principalId ?? ""}
-                                onChange={(_, d) => update(i, {principalId: d.value, principalKind: "USER"})}
-                                size="small"
-                            >
-                                <option value="">Select user...</option>
-                                {users.map(u => (
-                                    <option key={u.id} value={u.id ?? ""}>{userLabel(u)}</option>
-                                ))}
-                            </Select>
+                                people={people.filter(person => matchesPersonQuery(person, personQueries[i] ?? ""))}
+                                query={personQueries[i] ?? ""}
+                                onQueryChange={query => setPersonQueries(current => ({...current, [i]: query}))}
+                                onPersonSelect={person => update(i, {
+                                    principalId: person?.id ?? "",
+                                    principalKind: "USER",
+                                })}
+                                placeholder="Find a user"
+                                selectedPersonId={a.principalId}
+                                noResultsText="No matching organization users found"
+                            />
                         )}
 
                         {/* GROUP_ROLE: group picker + role */}

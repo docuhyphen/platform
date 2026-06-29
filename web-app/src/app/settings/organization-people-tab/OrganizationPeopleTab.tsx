@@ -1,27 +1,27 @@
 import {
     Badge,
     Button, Caption1, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger,
+    Persona,
     ProgressBar,
+    SearchBox,
     Spinner,
     Table,
     TableBody,
     TableCell,
-    TableCellLayout,
     TableHeader,
     TableHeaderCell,
     TableRow, Text
 } from "@fluentui/react-components";
-import * as React from "react";
 import {useEffect, useState} from "react";
 import {PersonAddIcon} from "../../components/IconBundles.tsx";
 import {useOrganizationPeopleTabStyles} from "./OrganizationPeopleTabStyles.tsx";
 import {fetchMyOrganizationUsers} from "../../../services/organizationApi.ts";
 import {useAuth} from "../../../context/AuthContext.tsx";
-import {AppUserDetailedDto, AppUserRole, AppUserRoleDisplayNames, OrgMemberCapacityResponse} from "../../models/models.tsx";
+import {AppUserDetailedDto, AppUserRoleDisplayNames, OrgMemberCapacityResponse} from "../../models/models.tsx";
 import {getOrgMemberCapacity} from "../../../services/authApi.ts";
 import AddAppUserDialog from "./add-app-user-dialog/AddAppUserDialog.tsx";
 import EditUserDialog from "./app-user-edit-dialog/EditUserDialog.tsx";
-import {DeleteRegular, MoreHorizontalRegular, PersonEditRegular, PersonRegular} from "@fluentui/react-icons";
+import {MoreHorizontalRegular, PersonEditRegular} from "@fluentui/react-icons";
 import AppUserDeactivateDialog from "./app-user-deactivate-dialog/AppUserDeactivateDialog.tsx";
 
 const OrganizationPeopleTab = () =>
@@ -36,6 +36,7 @@ const OrganizationPeopleTab = () =>
     const [isDeleteAppUserDialogOpen, setIsDeleteAppUserDialogOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<AppUserDetailedDto | null>(null);
     const [capacity, setCapacity] = useState<OrgMemberCapacityResponse | null>(null);
+    const [searchQuery, setSearchQuery] = useState("");
 
     const loadUsers = async () =>
     {
@@ -88,12 +89,6 @@ const OrganizationPeopleTab = () =>
         setIsEditDialogOpen(true);
     };
 
-    const onDeleteOrgAppUser = (user: AppUserDetailedDto) =>
-    {
-        setSelectedUser(user);
-        setIsDeleteAppUserDialogOpen(true);
-    };
-
     const columns = [
         {columnKey: "person", label: "Person name"},
         {columnKey: "email", label: "Email"},
@@ -101,6 +96,17 @@ const OrganizationPeopleTab = () =>
         {columnKey: "status", label: "Status", className: styles.statusCell},
         {columnKey: "actions", label: "Actions", className: styles.actionsCell}
     ];
+
+    const filteredUsers = users.filter(user =>
+    {
+        const query = searchQuery.trim().toLocaleLowerCase();
+        if (!query) return true;
+        const name = [user.person?.firstName, user.person?.lastName]
+            .filter(Boolean)
+            .join(" ")
+            .toLocaleLowerCase();
+        return name.includes(query) || user.email.toLocaleLowerCase().includes(query);
+    });
 
     return (
         <div className={styles.container}>
@@ -144,8 +150,13 @@ const OrganizationPeopleTab = () =>
                 </div>
             ) : <>
                 <div className={styles.header}>
-                    <div></div>
-                    {/*<SearchBox className={styles.searchBox}/>*/}
+                    <SearchBox
+                        id="organization-people-search"
+                        className={styles.searchBox}
+                        placeholder="Search by name or email"
+                        value={searchQuery}
+                        onChange={(_, data) => setSearchQuery(data.value)}
+                    />
                     <Button
                         id={"org-people-add-person-btn"}
                         icon={<PersonAddIcon/>}
@@ -166,12 +177,16 @@ const OrganizationPeopleTab = () =>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {users.map((user) => (
+                        {filteredUsers.map((user) => (
                             <TableRow key={user.id}>
                                 <TableCell title={`${user.person?.firstName ?? ""} ${user.person?.lastName ?? ""}`.trim()}>
-                                    <TableCellLayout truncate media={<PersonRegular/>} className={styles.truncateCell}>
-                                        {user.person?.firstName} {user.person?.lastName}
-                                    </TableCellLayout>
+                                    <Persona
+                                        id={`organization-person-${user.id}`}
+                                        name={[user.person?.firstName, user.person?.lastName].filter(Boolean).join(" ") || user.email}
+                                        secondaryText={user.email}
+                                        size="small"
+                                        avatar={user.avatarUrl ? {image: {src: user.avatarUrl}} : undefined}
+                                    />
                                 </TableCell>
                                 <TableCell title={user.email}>
                                     <div className={styles.truncateCell}>{user.email}</div>
@@ -251,13 +266,13 @@ const OrganizationPeopleTab = () =>
                 }
                 appUser={selectedUser!}
                 organizationId={appUserPersonOrganization?.id}
-                onDeactivated={(userId) =>
+                onDeactivated={() =>
                 {
                     setIsDeleteAppUserDialogOpen(false)
                     setSelectedUser(null);
                     loadUsers();
                 }}
-                onDeleted={(userId) =>
+                onDeleted={() =>
                 {
                     setIsDeleteAppUserDialogOpen(false)
                     setSelectedUser(null);

@@ -1,4 +1,3 @@
-import React from "react";
 import {HelpDocSectionInput} from "../helpDocsRegistry";
 
 export const adminOperationsSection: HelpDocSectionInput = {
@@ -44,6 +43,14 @@ export const adminOperationsSection: HelpDocSectionInput = {
                         <li>Review role assignments on a recurring cadence.</li>
                         <li>Revoke unused or stale access promptly during offboarding.</li>
                     </ol>
+
+                    <h3>Finding people</h3>
+                    <p>
+                        Person selectors in organization groups and App Admin settings
+                        are searchable by name or email. Results show a person card with
+                        an avatar or initials, full name, and email. Multi-person selectors
+                        keep selected people as removable tags.
+                    </p>
 
                     <h3>Common pitfalls</h3>
                     <ul>

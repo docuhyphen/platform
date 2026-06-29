@@ -1,8 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {
-    Badge,
     Button,
-    Checkbox,
     Dialog,
     DialogActions,
     DialogBody,
@@ -11,20 +9,22 @@ import {
     DialogTitle,
     DialogTrigger,
     Field,
-    Input,
     Spinner,
-    Table,
-    TableBody,
-    TableCell,
-    TableHeader,
-    TableHeaderCell,
-    TableRow,
-    Text,
 } from '@fluentui/react-components';
 import {PersonAddRegular} from '@fluentui/react-icons';
 import {useAddAdminDialogStyles} from './AddAdminDialogStyles';
 import {grantAppAdmin, searchAppAdminCandidates} from '../../../../services/appRoleApi';
 import {AppUserSearchResult} from '../../../../services/types/dtos';
+import MultiPersonPicker from '../../../components/person-picker/multi-person-picker/MultiPersonPicker.tsx';
+import {PersonPickerItem} from '../../../components/person-picker/personPickerTypes.ts';
+
+const toPersonPickerItem = (user: AppUserSearchResult): PersonPickerItem => ({
+    id: user.id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    avatarUrl: user.avatarUrl,
+});
 
 interface AddAdminDialogProps
 {
@@ -40,7 +40,7 @@ const AddAdminDialog: React.FC<AddAdminDialogProps> = ({isOpen, onDismiss, exist
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<AppUserSearchResult[]>([]);
     const [searching, setSearching] = useState(false);
-    const [selected, setSelected] = useState<Set<string>>(new Set());
+    const [selectedUsers, setSelectedUsers] = useState<AppUserSearchResult[]>([]);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -48,7 +48,7 @@ const AddAdminDialog: React.FC<AddAdminDialogProps> = ({isOpen, onDismiss, exist
     {
         setSearchQuery('');
         setSearchResults([]);
-        setSelected(new Set());
+        setSelectedUsers([]);
         setError(null);
         setSearching(false);
     };
@@ -99,25 +99,22 @@ const AddAdminDialog: React.FC<AddAdminDialogProps> = ({isOpen, onDismiss, exist
         };
     }, [searchQuery, existingAdminUserIds]);
 
-    const toggleUser = (id: string) =>
+    const onSelectionChange = (selectedIds: string[]) =>
     {
-        setSelected((prev) =>
-        {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
-            return next;
-        });
+        const users = [...selectedUsers, ...searchResults];
+        setSelectedUsers(selectedIds
+            .map(id => users.find(user => user.id === id))
+            .filter((user): user is AppUserSearchResult => !!user));
     };
 
     const handleAdd = async () =>
     {
-        if (selected.size === 0) return;
+        if (selectedUsers.length === 0) return;
         setBusy(true);
         setError(null);
         try
         {
-            await Promise.all(Array.from(selected).map((id) => grantAppAdmin({appUserId: id})));
+            await Promise.all(selectedUsers.map(user => grantAppAdmin({appUserId: user.id})));
             resetForm();
             onComplete();
         }
@@ -132,19 +129,11 @@ const AddAdminDialog: React.FC<AddAdminDialogProps> = ({isOpen, onDismiss, exist
         }
     };
 
-    const formatUser = (u: AppUserSearchResult): string =>
-    {
-        const name = `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim();
-        return name ? `${name} (${u.email})` : u.email;
-    };
-
     const handleClose = () =>
     {
         resetForm();
         onDismiss();
     };
-
-    const hasResults = searchResults.length > 0;
 
     return (
         <Dialog modalType="alert" open={isOpen}>
@@ -160,82 +149,20 @@ const AddAdminDialog: React.FC<AddAdminDialogProps> = ({isOpen, onDismiss, exist
                         )}
 
                         <Field label="Search users by name or email">
-                            <Input
-                                id={"input-admin-search"}
-                                placeholder="Type at least 2 characters..."
-                                value={searchQuery}
-                                onChange={(_e, d) => setSearchQuery(d.value)}
+                            <MultiPersonPicker
+                                id="input-admin-search"
+                                people={searchResults.map(toPersonPickerItem)}
+                                selectedPeople={selectedUsers.map(toPersonPickerItem)}
+                                onSelectionChange={onSelectionChange}
+                                query={searchQuery}
+                                onQueryChange={setSearchQuery}
+                                placeholder="Type at least 2 characters"
                                 disabled={busy}
+                                noResultsText="No matching users found"
                             />
                         </Field>
 
-                        {selected.size > 0 && (
-                            <div className={styles.selectedBadges}>
-                                {searchResults
-                                    .filter((u) => selected.has(u.id))
-                                    .map((u) => (
-                                        <Badge
-                                            key={u.id}
-                                            appearance="outline"
-                                            color="brand"
-                                        >
-                                            {formatUser(u)}
-                                        </Badge>
-                                    ))}
-                            </div>
-                        )}
-
-                        {searchQuery.trim().length >= 2 && (
-                            <div className={styles.searchResults}>
-                                {searching && (
-                                    <div className={styles.searchPadding}>
-                                        <Spinner size="tiny" label="Searching..."/>
-                                    </div>
-                                )}
-                                {!searching && !hasResults && (
-                                    <div className={styles.searchPadding}>
-                                        <Text size={200}>No matching users found.</Text>
-                                    </div>
-                                )}
-                                {!searching && hasResults && (
-                                    <Table size="small">
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHeaderCell className={styles.checkboxCell}/>
-                                                <TableHeaderCell>Name</TableHeaderCell>
-                                                <TableHeaderCell>Email</TableHeaderCell>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {searchResults.map((u) => (
-                                                <TableRow
-                                                    key={u.id}
-                                                    className={styles.clickableRow}
-                                                    onClick={() => toggleUser(u.id)}
-                                                >
-                                                    <TableCell className={styles.checkboxCell}>
-                                                        <Checkbox
-                                                            id={`checkbox-admin-user-${u.id}`}
-                                                            checked={selected.has(u.id)}
-                                                            onChange={() => toggleUser(u.id)}
-                                                        />
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {`${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || '-'}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className={styles.emailCell}
-                                                             title={u.email}>
-                                                            {u.email}
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                )}
-                            </div>
-                        )}
+                        {searching && <Spinner size="tiny" label="Searching..."/>}
 
                     </DialogContent>
                 </DialogBody>
@@ -245,10 +172,10 @@ const AddAdminDialog: React.FC<AddAdminDialogProps> = ({isOpen, onDismiss, exist
                         appearance="primary"
                         shape="circular"
                         icon={busy ? <Spinner size="tiny"/> : <PersonAddRegular/>}
-                        disabled={busy || selected.size === 0}
+                        disabled={busy || selectedUsers.length === 0}
                         onClick={handleAdd}
                     >
-                        {selected.size > 1 ? `Add ${selected.size} Admins` : 'Add Admin'}
+                        {selectedUsers.length > 1 ? `Add ${selectedUsers.length} Admins` : 'Add Admin'}
                     </Button>
                     <DialogTrigger disableButtonEnhancement>
                         <Button

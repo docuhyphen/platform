@@ -80,6 +80,10 @@
     DocumentSearchRegular,
     FilterFilled,
     FilterRegular,
+    GridFilled,
+    GridRegular,
+    TableFilled,
+    TableRegular,
     FullScreenMaximizeFilled,
     FullScreenMaximizeRegular,
     FullScreenMinimizeFilled,
@@ -214,3 +218,5 @@ export const CollapseExchangeListSidebarIcon = bundleIcon(ChevronDoubleLeftFille
 export const ExpandExchangeListSidebarIcon = bundleIcon(ChevronDoubleRightFilled, ChevronDoubleRightRegular)
 export const FullScreenEnterIcon = bundleIcon(FullScreenMaximizeFilled, FullScreenMaximizeRegular)
 export const FullScreenExitIcon = bundleIcon(FullScreenMinimizeFilled, FullScreenMinimizeRegular)
+export const ViewCardsIcon = bundleIcon(GridFilled, GridRegular)
+export const ViewTableIcon = bundleIcon(TableFilled, TableRegular)

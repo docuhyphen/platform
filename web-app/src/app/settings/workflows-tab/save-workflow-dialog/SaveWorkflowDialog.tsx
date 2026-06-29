@@ -14,10 +14,10 @@ import {
     MessageBar,
     MessageBarBody,
     Spinner,
-    Tag,
     Text,
 } from "@fluentui/react-components";
 import {useStyles} from './SaveWorkflowDialogStyles.tsx';
+import TagList from '../../../components/TagList.tsx';
 import {WorkflowDesignerState, WorkflowTriggerEventDto} from "../../../models/models.tsx";
 import {formatTriggerName, STEP_TYPE_LABELS} from "../workflowUtils.ts";
 import {
@@ -192,11 +192,7 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
                                         {state.generalTags.length > 0 && (
                                             <div className={styles.reviewRow}>
                                                 <Text className={styles.reviewLabel}>Tags</Text>
-                                                <div className={styles.tagRow}>
-                                                    {state.generalTags.map(tag => (
-                                                        <Tag key={tag} size="small" shape="circular">{tag}</Tag>
-                                                    ))}
-                                                </div>
+                                                <TagList tags={state.generalTags}/>
                                             </div>
                                         )}
                                         <div className={styles.reviewRow}>

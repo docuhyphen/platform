@@ -1,13 +1,9 @@
 ﻿import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
-    Badge,
     Button,
-    Combobox,
-    ComboboxProps,
     Field,
     InfoLabel,
     Option,
-    OptionOnSelectData,
     Spinner,
     Text
 } from "@fluentui/react-components";
@@ -19,6 +15,9 @@ import {fetchMyOrganizationUsers} from "../../../../../services/organizationApi"
 import MyOrgRecipients from "../MyOrgRecipients.tsx";
 import {useAuth} from "../../../../../context/AuthContext.tsx";
 import {useExchangeInitiationRecipientsTabStyles} from "../ExchangeInitiationRecipientsTabStyles.tsx";
+import SinglePersonPicker from "../../../../components/person-picker/single-person-picker/SinglePersonPicker.tsx";
+import PersonOption from "../../../../components/person-picker/person-option/PersonOption.tsx";
+import {PersonPickerItem} from "../../../../components/person-picker/personPickerTypes.ts";
 
 interface PeopleRecipientsProps
 {
@@ -42,6 +41,14 @@ const formatDisplayName = (c: UserContactDto): string =>
 };
 
 const normalizeEmail = (value?: string | null): string => (value ?? '').trim().toLowerCase();
+
+const toPersonPickerItem = (contact: UserContactDto): PersonPickerItem => ({
+    id: contact.email,
+    email: contact.email,
+    firstName: contact.firstName,
+    lastName: contact.lastName,
+    avatarUrl: contact.avatarUrl,
+});
 
 /**
  * Personal-contacts-based recipient picker. Surfaces:
@@ -288,9 +295,8 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
         setShowEmailFallback(true);
     };
 
-    const onComboboxChange = (ev: React.ChangeEvent<HTMLInputElement>) =>
+    const onQueryChange = (value: string) =>
     {
-        const value = ev.target.value;
         setQuery(value);
         if (value.length === 0)
         {
@@ -299,20 +305,27 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
         }
     };
 
-    const onComboboxSelect: ComboboxProps["onOptionSelect"] = (_, data: OptionOnSelectData) =>
+    const onPersonSelect = (person: PersonPickerItem | null) =>
     {
-        if (!data.optionValue) return;
-        if (data.optionValue === '__send_as_new__')
+        if (!person)
         {
-            startEmailFallback(query.trim().toLowerCase());
+            setRecipientOrgUser(undefined);
+            setShowEmailFallback(false);
             return;
         }
-        const match = visibleResults.find(r => r.email === data.optionValue) ??
-            visibleRecents.find(r => r.email === data.optionValue);
+        const match = visibleResults.find(result => result.email === person.id) ??
+            visibleRecents.find(result => result.email === person.id);
         if (match)
         {
             selectContact(match);
         }
+    };
+
+    const onSpecialOptionSelect = (value: string): boolean =>
+    {
+        if (value !== "__send_as_new__") return false;
+        startEmailFallback(query.trim().toLowerCase());
+        return true;
     };
 
     const trimmedQuery = query.trim();
@@ -346,7 +359,10 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
                         shape="circular"
                         appearance={recipientOrgUser?.email === c.email || newRecipient?.email === c.email ? 'primary' : 'outline'}
                         onClick={() => selectContact(c)}>
-                        {[c.firstName, c.lastName].filter(Boolean).join(' ') || c.email}
+                        <PersonOption
+                            id={`recent-contact-persona-${c.email}`}
+                            person={toPersonPickerItem(c)}
+                        />
                     </Button>
                 ))}
             </div>
@@ -360,39 +376,30 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
             </Field>
 
             <Field label="Find a person or type an email">
-                <Combobox
+                <SinglePersonPicker
                     id={"people-recipients-combobox"}
                     placeholder="Type a name or email"
-                    value={query}
-                    onChange={onComboboxChange}
-                    onOptionSelect={onComboboxSelect}
-                    freeform>
-                    {isSearching && (
-                        <Option key="__loading__" text="" value="__loading__" disabled>
-                            Searching...
-                        </Option>
-                    )}
-                    {!isSearching && visibleResults.map(r => (
-                        <Option key={r.email}
-                                text={formatDisplayName(r)}
-                                value={r.email}>
-                            <span>
-                                {formatDisplayName(r)}
-                                {r.shareCount > 1 &&
-                                    <Badge size="small" appearance="tint" className={styles.shareCountBadge}>
-                                        {r.shareCount} shares
-                                    </Badge>}
-                            </span>
-                        </Option>
-                    ))}
+                    people={visibleResults.map(toPersonPickerItem)}
+                    query={query}
+                    onQueryChange={onQueryChange}
+                    onPersonSelect={onPersonSelect}
+                    selectedPersonId={recipientOrgUser?.email ?? newRecipient?.email}
+                    loading={isSearching}
+                    freeform
+                    noResultsText="No matching contacts found"
+                    onSpecialOptionSelect={onSpecialOptionSelect}
+                >
                     {!isSearching && queryLooksLikeEmail && !hasExactEmailMatch && !isOwnEmailQuery && (
-                        <Option key="__send_as_new__"
-                                text={`Send to ${trimmedQuery} as a new recipient`}
-                                value="__send_as_new__">
+                        <Option
+                            id="people-recipients-send-new-option"
+                            key="__send_as_new__"
+                            text={`Send to ${trimmedQuery} as a new recipient`}
+                            value="__send_as_new__"
+                        >
                             Send to <strong>{trimmedQuery}</strong> as a new recipient
                         </Option>
                     )}
-                </Combobox>
+                </SinglePersonPicker>
                 {isOwnEmailQuery && (
                     <Text size={200}>You cannot share with your own email address.</Text>
                 )}

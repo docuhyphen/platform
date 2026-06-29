@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {
     Button,
     Combobox,
@@ -28,6 +28,17 @@ import {
     ExchangeShareRoleDisplayNames,
 } from '../../../../services/types/roles';
 import {BackIcon} from '../../../components/IconBundles.tsx';
+import {searchContacts, UserContactDto} from '../../../../services/personalContactsApi.ts';
+import SinglePersonPicker from '../../../components/person-picker/single-person-picker/SinglePersonPicker.tsx';
+import {PersonPickerItem} from '../../../components/person-picker/personPickerTypes.ts';
+
+const toPersonPickerItem = (contact: UserContactDto): PersonPickerItem => ({
+    id: contact.email,
+    email: contact.email,
+    firstName: contact.firstName,
+    lastName: contact.lastName,
+    avatarUrl: contact.avatarUrl,
+});
 
 interface Props {
     exchangeId: string;
@@ -76,8 +87,46 @@ const AddPersonPanel: React.FC<Props> = ({exchangeId, onBack, onPersonAdded}) =>
     const [constraintTags, setConstraintTags] = useState<ConstraintTag[]>([]);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [searchResults, setSearchResults] = useState<UserContactDto[]>([]);
+    const [searching, setSearching] = useState(false);
 
     const canAddConstraints = useMemo(() => isConstrainedRole(role), [role]);
+
+    useEffect(() =>
+    {
+        const query = email.trim();
+        if (query.length < 2)
+        {
+            setSearchResults([]);
+            setSearching(false);
+            return;
+        }
+
+        let cancelled = false;
+        setSearching(true);
+        const handle = window.setTimeout(() =>
+        {
+            searchContacts(query, 10)
+                .then(results =>
+                {
+                    if (!cancelled) setSearchResults(results);
+                })
+                .catch(() =>
+                {
+                    if (!cancelled) setSearchResults([]);
+                })
+                .finally(() =>
+                {
+                    if (!cancelled) setSearching(false);
+                });
+        }, 250);
+
+        return () =>
+        {
+            cancelled = true;
+            window.clearTimeout(handle);
+        };
+    }, [email]);
 
     const handleAdd = async () => {
         if (!email.trim()) return;
@@ -131,13 +180,20 @@ const AddPersonPanel: React.FC<Props> = ({exchangeId, onBack, onPersonAdded}) =>
 
                 <div className={styles.row}>
                     <Field label="Person email" className={styles.personField}>
-                        <Combobox
+                        <SinglePersonPicker
                             id={"combobox-add-person-email"}
                             placeholder="name@company.com"
-                            value={email}
+                            people={searchResults.map(toPersonPickerItem)}
+                            query={email}
+                            onQueryChange={setEmail}
+                            onPersonSelect={person =>
+                            {
+                                if (person) setEmail(person.email);
+                            }}
+                            selectedPersonId={searchResults.some(contact => contact.email === email) ? email : null}
+                            loading={searching}
                             freeform
                             disabled={busy}
-                            onChange={e => setEmail(e.target.value)}
                         />
                     </Field>
                     <Field label="Access role">

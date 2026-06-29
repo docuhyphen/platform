@@ -477,6 +477,7 @@ export interface AppUserDetailedDto
     person: PersonDetailedDto
     settings: AppUserSettingsDto
     identityProviders?: IdentityProviderLinkDto[]
+    avatarUrl?: string | null
 }
 
 // ── OAuth / Multi-IDP Types ──
@@ -719,7 +720,15 @@ export interface AppUserSettingsDto
     notifyDocUploadChannels?: NotificationPreferenceChannel[];
     theme: "light" | "dark" | "system";
     tourCompleted: boolean;
+    documentLibraryView?: 'cards' | 'table';
+    blueprintsView?: 'cards' | 'table';
+    workflowsView?: 'cards' | 'table';
+    sequencesView?: 'cards' | 'table';
+    variablesView?: 'cards' | 'table';
+    communicationsView?: 'cards' | 'table';
 }
+
+export type ViewMode = 'cards' | 'table';
 
 export interface OrganizationSettingsDto
 {

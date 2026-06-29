@@ -6,6 +6,7 @@ import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.model.entity.GroupRole
 import com.docuhyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
+import com.docuhyphen.app.api.repository.PrincipalGroupRepository
 import com.docuhyphen.app.api.resource.model.AddOrganizationGroupRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpdateOrganizationGroupRequest
@@ -16,10 +17,15 @@ import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import jakarta.ws.rs.*
+import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
+import org.jboss.resteasy.reactive.RestForm
 import org.slf4j.LoggerFactory
+import java.io.File
+import java.util.Base64
+import java.util.UUID
 
 @Path("organizations")
 @Produces(APPLICATION_JSON)
@@ -28,6 +34,7 @@ class OrganizationGroupResource @Inject constructor(
     private val organizationGroupService: OrganizationGroupService,
     private val configurationService: ConfigurationService,
     private val directoryLookupGuardService: DirectoryLookupGuardService,
+    private val principalGroupRepository: PrincipalGroupRepository,
 )
 {
     companion object
@@ -327,6 +334,64 @@ class OrganizationGroupResource @Inject constructor(
                         .build()
                 }
             }
+        }
+    }
+
+    @POST
+    @Path("/{organizationId}/groups/{groupId}/icon")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Transactional
+    fun uploadOrganizationGroupIcon(
+        @RestForm("file") file: File?,
+        @RestForm("contentType") contentType: String?,
+        @PathParam("organizationId") organizationId: String,
+        @PathParam("groupId") groupId: String,
+    ): Response
+    {
+        return try
+        {
+            if (file == null) return Response.status(BAD_REQUEST).entity(ResponseError("No file provided")).build()
+            val bytes = file.readBytes()
+            if (bytes.isEmpty()) return Response.status(BAD_REQUEST).entity(ResponseError("Uploaded file is empty")).build()
+            val mime = contentType?.takeIf { it.startsWith("image/") } ?: "image/png"
+            val dataUrl = "data:$mime;base64,${Base64.getEncoder().encodeToString(bytes)}"
+            val gid = UUID.fromString(groupId)
+            val group = principalGroupRepository.findById(gid)
+                ?: return Response.status(NOT_FOUND).entity(ResponseError("Group not found")).build()
+            group.iconData = dataUrl
+            principalGroupRepository.save(group)
+            Response.ok(organizationGroupService.getOrganizationGroupViews(organizationId).find { it.id == gid }).build()
+        }
+        catch (exception: Exception)
+        {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
+            logger.error("Error uploading organization group icon", exception)
+            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An error occurred while uploading the group icon")).build()
+        }
+    }
+
+    @DELETE
+    @Path("/{organizationId}/groups/{groupId}/icon")
+    @Transactional
+    fun deleteOrganizationGroupIcon(
+        @PathParam("organizationId") organizationId: String,
+        @PathParam("groupId") groupId: String,
+    ): Response
+    {
+        return try
+        {
+            val gid = UUID.fromString(groupId)
+            val group = principalGroupRepository.findById(gid)
+                ?: return Response.status(NOT_FOUND).entity(ResponseError("Group not found")).build()
+            group.iconData = null
+            principalGroupRepository.save(group)
+            Response.ok(organizationGroupService.getOrganizationGroupViews(organizationId).find { it.id == gid }).build()
+        }
+        catch (exception: Exception)
+        {
+            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
+            logger.error("Error removing organization group icon", exception)
+            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An error occurred while removing the group icon")).build()
         }
     }
 }
