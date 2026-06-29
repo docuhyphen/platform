@@ -28,10 +28,15 @@ class SessionExpiryScheduler
     {
         try
         {
-            val cleaned = userSessionService.cleanupExpiredSessions()
-            if (cleaned > 0)
+            val expired = userSessionService.cleanupExpiredSessions()
+            val idleTimedOut = userSessionService.cleanupIdleTimedOutSessions()
+            if (expired > 0)
             {
-                logger.info("Session expiry cleanup: {} session(s) expired and removed", cleaned)
+                logger.info("Session expiry cleanup: {} session(s) expired and removed", expired)
+            }
+            if (idleTimedOut > 0)
+            {
+                logger.info("Idle session cleanup: {} session(s) revoked after timeout", idleTimedOut)
             }
         }
         catch (t: Throwable)

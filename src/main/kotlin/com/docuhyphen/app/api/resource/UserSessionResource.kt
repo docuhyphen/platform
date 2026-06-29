@@ -36,11 +36,15 @@ class UserSessionResource @Inject constructor(
         return try
         {
             val appUser = authTokenContext.authToken.appUser!!
-            val sessions = userSessionService.listActiveSessions(appUser.id)
+            val sessions = userSessionService.listSessions(appUser.id)
+            val now = java.time.Instant.now()
             val currentSessionId = authenticationService
                 .verifyAccessToken(authTokenContext.authToken.token)
                 ?.let { it["exchange_id"] as? String }
             val dtos = sessions.map { s ->
+                val isActive = s.isActive &&
+                    s.revokedAt == null &&
+                    (s.expiresAt == null || s.expiresAt!!.toInstant().isAfter(now))
                 UserSessionDto(
                     sessionId = s.sessionId.toString(),
                     deviceId = s.deviceId,
@@ -50,6 +54,9 @@ class UserSessionResource @Inject constructor(
                     createdDate = s.createdDate.toInstant().toString(),
                     lastSeenAt = s.lastSeenAt.toInstant().toString(),
                     expiresAt = s.expiresAt?.toInstant()?.toString(),
+                    revokedAt = s.revokedAt?.toInstant()?.toString(),
+                    revocationReasonCode = s.revocationReasonCode,
+                    isActive = isActive,
                     isCurrent = s.sessionId.toString() == currentSessionId,
                 )
             }
@@ -77,9 +84,7 @@ class UserSessionResource @Inject constructor(
                     .build()
             }
 
-            val sessions = userSessionService.listActiveSessions(appUser.id)
-            val owns = sessions.any { it.sessionId == sid }
-            if (!owns)
+            if (!userSessionService.isSessionOwnedByUser(sid, appUser.id))
             {
                 return Response.status(Response.Status.NOT_FOUND)
                     .entity(ResponseError("Session not found."))
@@ -101,6 +106,51 @@ class UserSessionResource @Inject constructor(
             logger.error("Error revoking session", e)
             Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                 .entity(ResponseError("Failed to revoke session."))
+                .build()
+        }
+    }
+
+    @DELETE
+    @Path("/{sessionId}/record")
+    fun deleteSessionRecord(@PathParam("sessionId") sessionId: String): Response
+    {
+        return try
+        {
+            val appUser = authTokenContext.authToken.appUser!!
+            val sid = runCatching { UUID.fromString(sessionId) }.getOrElse {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(ResponseError("Invalid session ID."))
+                    .build()
+            }
+
+            if (!userSessionService.isSessionOwnedByUser(sid, appUser.id))
+            {
+                return Response.status(Response.Status.NOT_FOUND)
+                    .entity(ResponseError("Session not found."))
+                    .build()
+            }
+
+            val deleted = userSessionService.deleteInactiveSession(sid, appUser.id)
+            if (!deleted)
+            {
+                return Response.status(Response.Status.CONFLICT)
+                    .entity(ResponseError("Only ended sessions can be deleted."))
+                    .build()
+            }
+
+            authAuditService.emit(
+                action = "SESSION_DELETE_RECORD",
+                outcome = "SUCCESS",
+                sessionId = sid.toString(),
+                actorId = appUser.id,
+            )
+            Response.noContent().build()
+        }
+        catch (e: Exception)
+        {
+            logger.error("Error deleting session record", e)
+            Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(ResponseError("Failed to delete session record."))
                 .build()
         }
     }

@@ -17,6 +17,7 @@ class UserSessionService @Inject constructor(
     private val userSessionRepository: UserSessionRepository,
     private val sessionRevocationCache: SessionRevocationCache,
     private val realtimeEventService: RealtimeEventService,
+    private val authSessionPolicyService: AuthSessionPolicyService,
 )
 {
     fun createSession(
@@ -132,6 +133,31 @@ class UserSessionService @Inject constructor(
         return expired.size
     }
 
+    /** Revoke abandoned active sessions whose last activity exceeded the configured idle policy. */
+    fun cleanupIdleTimedOutSessions(): Int
+    {
+        val nowInstant = Instant.now()
+        val activeSessions = userSessionRepository.findAllActiveSessions(Timestamp.from(nowInstant))
+        if (activeSessions.isEmpty()) return 0
+
+        var revokedCount = 0
+        activeSessions.forEach { session ->
+            val appUser = session.appUser ?: return@forEach
+            val lastSeen = session.lastSeenAt.toInstant()
+            val idleLimitMinutes = runCatching { authSessionPolicyService.resolveForAppUser(appUser) }
+                .getOrNull()
+                ?.idleTimeoutMinutes
+                ?: return@forEach
+            val idleSeconds = java.time.Duration.between(lastSeen, nowInstant).seconds
+            if (idleSeconds <= idleLimitMinutes * 60) return@forEach
+
+            revokeSession(session.sessionId, RevocationReasonCode.SECURITY_POLICY)
+            revokedCount++
+        }
+
+        return revokedCount
+    }
+
     /**
      * @param sendNotifications When true (default, used by SCIM/deprovision callers) this method
      * also sends EXCHANGE_REVOKED to every affected socket. Pass false when the caller (SignOutService)
@@ -157,5 +183,22 @@ class UserSessionService @Inject constructor(
     fun listActiveSessions(userId: UUID): List<UserSession>
     {
         return userSessionRepository.findActiveSessionsForUser(userId, Timestamp.from(Instant.now()))
+    }
+
+    fun listSessions(userId: UUID): List<UserSession>
+    {
+        cleanupExpiredSessions()
+        cleanupIdleTimedOutSessions()
+        return userSessionRepository.findAllSessionsForUser(userId)
+    }
+
+    fun isSessionOwnedByUser(sessionId: UUID, userId: UUID): Boolean
+    {
+        return userSessionRepository.findBySessionId(sessionId)?.appUser?.id == userId
+    }
+
+    fun deleteInactiveSession(sessionId: UUID, userId: UUID): Boolean
+    {
+        return userSessionRepository.deleteInactiveSessionForUser(sessionId, userId) > 0
     }
 }

@@ -307,6 +307,18 @@ export const revokeUserSession = async (sessionId: string): Promise<void> =>
     }
 };
 
+export const deleteUserSessionRecord = async (sessionId: string): Promise<void> =>
+{
+    try
+    {
+        await apiClient.delete(`/auth/sessions/${sessionId}/record`);
+    }
+    catch (error: any)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
 // ── Org Capacity ──
 
 export const getOrgMemberCapacity = async (orgId: string): Promise<OrgMemberCapacityResponse> =>

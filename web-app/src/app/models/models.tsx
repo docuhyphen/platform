@@ -528,6 +528,9 @@ export interface UserSessionDto
     createdDate: string;
     lastSeenAt: string;
     expiresAt?: string;
+    revokedAt?: string;
+    revocationReasonCode?: string;
+    isActive?: boolean;
     isCurrent?: boolean;
 }
 

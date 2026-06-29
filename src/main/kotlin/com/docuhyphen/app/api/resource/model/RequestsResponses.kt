@@ -705,6 +705,9 @@ data class UserSessionDto(
     val createdDate: String,
     val lastSeenAt: String,
     val expiresAt: String? = null,
+    val revokedAt: String? = null,
+    val revocationReasonCode: String? = null,
+    val isActive: Boolean = true,
     /** True for the session that issued the access token used to make the current request. */
     val isCurrent: Boolean = false,
 )

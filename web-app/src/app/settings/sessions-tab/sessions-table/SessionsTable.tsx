@@ -16,22 +16,30 @@ interface SessionsTableProps
 {
     sessions: UserSessionDto[];
     revoking: string | null;
+    deleting: string | null;
     onRevoke: (sessionId: string) => void;
+    onDelete: (sessionId: string) => void;
 }
 
 const SessionsTable: React.FC<SessionsTableProps> = (
     {
         sessions,
         revoking,
-        onRevoke
+        deleting,
+        onRevoke,
+        onDelete,
     }
 ) =>
 {
     const styles = useSessionsTabStyles();
 
     return (
-        <div id={"device-sessions-table-wrapper"} className={styles.tableWrapper}>
-            <Table id={"device-sessions-table"} className={styles.table}>
+        <div
+            id={"device-sessions-table-wrapper"}
+            className={styles.tableWrapper}>
+            <Table
+                id={"device-sessions-table"}
+                className={styles.table}>
                 <TableHeader>
                     <TableRow>
                         <TableHeaderCell className={styles.deviceColumn}>Device</TableHeaderCell>
@@ -47,7 +55,7 @@ const SessionsTable: React.FC<SessionsTableProps> = (
                     {sessions.length === 0 && (
                         <TableRow>
                             <TableCell colSpan={7}>
-                                <Text id={"device-sessions-empty"}>No active sessions found.</Text>
+                                <Text id={"device-sessions-empty"}>No session records found.</Text>
                             </TableCell>
                         </TableRow>
                     )}
@@ -56,7 +64,9 @@ const SessionsTable: React.FC<SessionsTableProps> = (
                             key={session.sessionId}
                             session={session}
                             isRevoking={revoking === session.sessionId}
+                            isDeleting={deleting === session.sessionId}
                             onRevoke={() => onRevoke(session.sessionId)}
+                            onDelete={() => onDelete(session.sessionId)}
                         />
                     ))}
                 </TableBody>
