@@ -54,7 +54,7 @@ const NotificationPreferenceRow: React.FC<NotificationPreferenceRowProps> = (pro
                           className={styles.dropdown}
                           aria-label={`Delivery channels for ${props.title}`}
                           multiselect
-                          appearance={"underline"}
+                          appearance={"outline"}
                           disabled={props.disabled}
                           selectedOptions={props.channels}
                           onOptionSelect={onOptionSelect}

@@ -121,7 +121,7 @@ const BasicDetailsEditDialog: React.FC<BasicDetailsEditDialogProps> = (
             <DialogBody>
                 <DialogTitle>Update your profile</DialogTitle>
                 <DialogContent className={styles.dialogContentContainer}>
-                    <div className={styles.errorContainer}>{error || " "}</div>
+                    { error && <div className={styles.errorContainer}>{error}</div>}
 
                     <Field label={"Your first name"}>
                         <Input id={"input-first-name"}

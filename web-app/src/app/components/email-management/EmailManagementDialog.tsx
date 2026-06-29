@@ -281,7 +281,7 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
                         {mode === EmailManagementMode.ADD ? "Add new email" : "Edit email"}
                     </DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
-                        <div className={styles.errorContainer}>{error || " "}</div>
+                        { error && <div className={styles.errorContainer}>{error}</div>}
 
                         <Field label="Email">
                             <Input

@@ -136,7 +136,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Edit User</DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
-                        <div className={styles.errorContainer}>{error || " "}</div>
+                        { error && <div className={styles.errorContainer}>{error}</div>}
 
                         <Field label="First Name" required>
                             <Input

@@ -155,7 +155,7 @@ const ParingRequestDialog: React.FC<ExchangeDeleteDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Find & Pair</DialogTitle>
                     <DialogContent className={styles.dialogContent}>
-                        <div className={styles.errorContainer}>{error || " "}</div>
+                        { error && <div className={styles.errorContainer}>{error}</div>}
 
                         {isLoading &&
                             <Spinner size={"small"}/>

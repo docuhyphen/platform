@@ -1,35 +1,35 @@
-import {Button, Divider, Switch, Text} from "@fluentui/react-components";
+import {useState} from "react";
 import {useProfileTabStyles} from "./ProfileTabStyles.tsx";
-import {ProfileEditBasicDetailsIcon} from "../../components/IconBundles.tsx";
 import {useAuth} from "../../../context/AuthContext.tsx";
-import {useEffect, useState} from "react";
 import {AppUserDetailedDto, AppUserSettingsDto} from "../../models/models.tsx";
 import {updateAppUserSettings} from "../../../services/appUserApi.ts";
+import {formatDate} from "../../helpers.ts";
 import BasicDetailsEditDialog from "./basic-details-edit-dialog/BasicDetailsEditDialog.tsx";
 import PhoneManagementDialog, {PhoneManagementMode} from "../../components/phone-management/PhoneManagementDialog.tsx";
 import AppUserEmailUpdateDialog from "../../components/app-user-email-update-dialog/AppUserEmailUpdateDialog.tsx";
 import PasswordResetDialog from "./password-reset-dialog/PasswordResetDialog.tsx";
-import {PasswordRegular, PhoneDismissRegular} from "@fluentui/react-icons";
+import ProfileOverviewCard from "./profile-overview-card/ProfileOverviewCard.tsx";
+import ProfileSecurityCard from "./profile-security-card/ProfileSecurityCard.tsx";
+import ProfileNotificationsCard from "./profile-notifications-card/ProfileNotificationsCard.tsx";
 
 const ProfileTab = () =>
 {
-    const {appUser, token, setAppUser} = useAuth()
-    const styles = useProfileTabStyles()
+    const {appUser, token, setAppUser} = useAuth();
+    const styles = useProfileTabStyles();
     const [isBasicDetailsDialogOpen, setIsBasicDetailsDialogOpen] = useState(false);
     const [isPasswordResetDialogOpen, setIsPasswordResetDialogOpen] = useState(false);
     const [phoneManagementMode, setPhoneManagementMode] = useState(PhoneManagementMode.ADD);
     const [isContactDetailsEditDialogOpen, setIsContactDetailsEditDialogOpen] = useState(false);
     const [isEmailUpdateDialogOpen, setIsEmailUpdateDialogOpen] = useState(false);
 
-    useEffect(() =>
-    {
-    }, [appUser]);
-
-    const notifyLoginChange = async (e, data) =>
+    const notifyLoginChange = async (_, data) =>
     {
         try
         {
-            if (!appUser) return;
+            if (!appUser)
+            {
+                return;
+            }
 
             const updatedSettings: AppUserSettingsDto = {
                 ...appUser.settings,
@@ -43,104 +43,44 @@ const ProfileTab = () =>
                 settings: updatedSettings
             });
         }
-        catch (e)
+        catch (error)
         {
-            console.error("Failed to update settings:", e);
+            console.error("Failed to update settings:", error);
         }
-    }
+    };
 
     const onAddOrEditPhone = () =>
     {
-        setPhoneManagementMode(PhoneManagementMode.ADD)
+        setPhoneManagementMode(
+            appUser?.person.contactDetails?.phoneNumber
+                ? PhoneManagementMode.EDIT
+                : PhoneManagementMode.ADD
+        );
+        setIsContactDetailsEditDialogOpen(true);
+    };
 
-        if (appUser?.person.contactDetails?.phoneNumber)
-        {
-            setPhoneManagementMode(PhoneManagementMode.EDIT)
-        }
-
-        setIsContactDetailsEditDialogOpen(true)
-    }
+    const memberSince = appUser?.createdDate ? formatDate(appUser.createdDate) : "Not available";
+    const linkedProvidersCount = appUser?.identityProviders?.length || 0;
 
     return <>
-        <div className={styles.container}>
+        <div id={"profile-tab-container"} className={styles.container}>
+            <ProfileOverviewCard
+                appUser={appUser}
+                memberSince={memberSince}
+                onEditProfile={() => setIsBasicDetailsDialogOpen(true)}
+                onEditPhone={onAddOrEditPhone}
+                onEditEmail={() => setIsEmailUpdateDialogOpen(true)}
+            />
 
-            {appUser &&
-                <Switch
-                    checked={appUser.settings.notifyLogin}
-                    onChange={notifyLoginChange}
-                    label="Send me an email every time I sign in"
+            <div id={"profile-tab-card-grid"} className={styles.cardGrid}>
+                <ProfileSecurityCard
+                    onChangePassword={() => setIsPasswordResetDialogOpen(true)}
                 />
-            }
 
-            <Divider alignContent={"start"}
-                     appearance={"brand"}
-                     className={styles.mainDivider}>
-                Basic Details
-                <Button id={"button-edit-basic-details"}
-                        icon={<ProfileEditBasicDetailsIcon/>}
-                        onClick={() => setIsBasicDetailsDialogOpen(true)}
-                        shape={"circular"}
-                        appearance={"subtle"}/>
-            </Divider>
-            <div className={styles.dataContainer}>
-                <Text size={500}>
-                    {appUser?.person?.firstName} {appUser?.person?.lastName}
-                </Text>
-            </div>
-
-            <Divider alignContent={"start"}
-                     appearance={"brand"}
-                     className={styles.mainDivider}>
-                Contact Details
-            </Divider>
-
-            <div className={styles.dataContainer}>
-                <Text size={500} className={styles.dataEditable}>
-                    <Button id={"button-edit-email"}
-                            appearance={"subtle"}
-                            size={"small"}
-                            shape={"circular"}
-                            icon={<ProfileEditBasicDetailsIcon/>}
-                            onClick={() => setIsEmailUpdateDialogOpen(true)}/>
-                    {appUser?.email}
-                </Text>
-            </div>
-            <div className={styles.dataContainer}>
-                <Text size={500} className={styles.dataEditable}>
-                    {appUser?.person?.contactDetails?.phoneNumber ? (
-                        <>
-                            <Button id={"button-edit-phone"}
-                                    appearance={"subtle"}
-                                    size={"small"}
-                                    shape={"circular"}
-                                    icon={<ProfileEditBasicDetailsIcon/>}
-                                    onClick={onAddOrEditPhone}/>
-                            {appUser.person.contactDetails.phoneNumber}
-                        </>
-                    ) : (
-                        <Button id={"button-add-phone-number"}
-                                appearance={"secondary"}
-                                shape={"circular"}
-                                icon={<PhoneDismissRegular></PhoneDismissRegular>}
-                                onClick={onAddOrEditPhone}>
-                            Add phone number
-                        </Button>
-                    )}
-                </Text>
-            </div>
-            <Divider alignContent={"start"}
-                     appearance={"brand"}
-                     className={styles.mainDivider}>
-                Security
-            </Divider>
-            <div>
-                <Button id={"button-change-password"}
-                        appearance={"secondary"}
-                        shape={"circular"}
-                        icon={<PasswordRegular/>}
-                        onClick={() => setIsPasswordResetDialogOpen(true)}>
-                    Change password
-                </Button>
+                <ProfileNotificationsCard
+                    appUser={appUser}
+                    onNotifyLoginChange={notifyLoginChange}
+                />
             </div>
         </div>
 
@@ -155,18 +95,17 @@ const ProfileTab = () =>
             mode={phoneManagementMode}
             onDismiss={() => setIsContactDetailsEditDialogOpen(false)}
             contactDetails={appUser?.person.contactDetails}
-            onComplete={
-                (contactDetails) =>
-                {
-                    setAppUser({
-                        ...appUser,
-                        person: {
-                            ...appUser?.person,
-                            contactDetails: contactDetails
-                        }
-                    } as AppUserDetailedDto)
-                }
-            }/>
+            onComplete={(contactDetails) =>
+            {
+                setAppUser({
+                    ...appUser,
+                    person: {
+                        ...appUser?.person,
+                        contactDetails: contactDetails
+                    }
+                } as AppUserDetailedDto);
+            }}
+        />
 
         <BasicDetailsEditDialog
             isOpen={isBasicDetailsDialogOpen}
@@ -175,8 +114,9 @@ const ProfileTab = () =>
 
         <PasswordResetDialog
             isOpen={isPasswordResetDialogOpen}
-            onDismiss={() => setIsPasswordResetDialogOpen(false)}/>
-    </>
-}
+            onDismiss={() => setIsPasswordResetDialogOpen(false)}
+        />
+    </>;
+};
 
 export default ProfileTab;

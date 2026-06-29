@@ -46,6 +46,7 @@ into an org.
 - Add html/react ids to all components, for example <Button id={"my-component-id"}...
 - Do not add any emojis or characters such as ⚠
 - When creating a component that has styling, create a folder to include the styling and the component itself
+- Every new component added or updated must be responsive following best Web responsiveness designs
 ---
 
 ## Tech Stack

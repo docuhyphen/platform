@@ -204,7 +204,7 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
                         Update Email Address
                     </DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
-                        <div className={styles.errorContainer}>{error || " "}</div>
+                        { error && <div className={styles.errorContainer}>{error}</div>}
 
                         {stage === UpdateStage.ENTER_EMAIL && (
                             <Text>

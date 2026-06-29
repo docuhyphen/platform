@@ -1,10 +1,16 @@
 import {HelpDocSectionInput} from "../helpDocsRegistry";
 import {notificationPreferencesArticle} from "./articles/notificationPreferencesArticle";
+import {profileSettingsArticle} from "./articles/profileSettingsArticle";
 
 export const identitySection: HelpDocSectionInput = {
     id: "identity",
     title: "Identity & access",
     articles: [
+        {
+            id: "profile-settings",
+            title: "Profile settings",
+            content: profileSettingsArticle,
+        },
         {
             id: "notification-preferences",
             title: "Notification preferences",

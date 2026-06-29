@@ -118,7 +118,7 @@ const OrganizationDetailsEditDialog: React.FC<OrganizationDetailsEditDialogProps
                 <DialogBody>
                     <DialogTitle>Update Organization Details</DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
-                        <div className={styles.errorContainer}>{error || " "}</div>
+                        { error && <div className={styles.errorContainer}>{error}</div>}
 
                         <Field label="Organization Name">
                             <Input

@@ -284,7 +284,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
                         {mode === PhoneManagementMode.ADD ? "Add new phone number" : "Edit phone number"}
                     </DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
-                        <div className={styles.errorContainer}>{error || " "}</div>
+                        { error && <div className={styles.errorContainer}>{error}</div>}
 
                         <Field label="Phone number">
                             <Input

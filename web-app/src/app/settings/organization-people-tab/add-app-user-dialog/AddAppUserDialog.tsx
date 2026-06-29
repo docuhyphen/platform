@@ -160,7 +160,7 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
                 <DialogBody>
                     <DialogTitle>Add New User</DialogTitle>
                     <DialogContent className={styles.dialogContentContainer}>
-                        <div className={styles.errorContainer}>{error || " "}</div>
+                        { error && <div className={styles.errorContainer}>{error}</div>}
 
                         <Field label="Email" required>
                             <Input

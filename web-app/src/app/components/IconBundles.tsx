@@ -131,7 +131,9 @@
     DismissFilled, DismissRegular, DocumentFlowchartFilled, DocumentFlowchartRegular, CopyRegular, CopyFilled,
     EyeFilled, EyeRegular, EyeOffFilled, EyeOffRegular,
     ToggleRightFilled, ToggleRightRegular, ToggleLeftFilled, ToggleLeftRegular, FlowFilled, FlowRegular, BranchRegular,
-    BranchFilled, ChatMailFilled, ChatMailRegular, BookNumberFilled, BookNumberRegular,
+    BranchFilled, ChatMailFilled, ChatMailRegular, BookNumberFilled, BookNumberRegular, MailEditFilled,
+    MailEditRegular, PersonEditFilled, PersonEditRegular, PhoneFilled, PhoneRegular, PhoneAddRegular, PhoneAddFilled,
+    PhoneEditFilled, PhoneEditRegular,
 } from "@fluentui/react-icons";
 
 export const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
@@ -174,6 +176,11 @@ export const SignOutButtonIcon = bundleIcon(ArrowExitFilled, ArrowExitRegular);
 export const SettingsSequencesTabIcon = bundleIcon(BookNumberFilled, BookNumberRegular);
 export const SettingsVariablesTabIcon = bundleIcon(NotepadEditFilled, NotepadEditRegular);
 export const SettingsCommunicationsTabIcon = bundleIcon(ChatMailFilled, ChatMailRegular);
+export const MailEditIcon = bundleIcon(MailEditFilled, MailEditRegular)
+export const PersonEditIcon = bundleIcon(PersonEditFilled, PersonEditRegular)
+export const PhoneIcon = bundleIcon(PhoneFilled, PhoneRegular)
+export const PhoneAddIcon = bundleIcon(PhoneAddFilled, PhoneAddRegular)
+export const PhoneEditIcon = bundleIcon(PhoneEditFilled, PhoneEditRegular)
 export const SettingsDocumentsTabIcon = bundleIcon(DocumentDatabaseFilled, DocumentDatabaseRegular);
 export const InfoIcon = bundleIcon(InfoFilled, InfoRegular)
 export const SettingsIcon = bundleIcon(SettingsFilled, SettingsRegular)
