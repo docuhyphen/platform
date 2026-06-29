@@ -2,7 +2,7 @@
 <#include "email-header.ftl">
 
 <#if audience == "INITIATOR">
-<p style="margin:0 0 14px 0;"><strong>Great news: the recipient accepted your exchange.</strong></p>
+<p style="margin:0 0 14px 0;"><strong>Your Exchange request has been accepted</strong></p>
 <#else>
 <p style="margin:0 0 14px 0;"><strong>You accepted this exchange. The session is now active.</strong></p>
 </#if>
@@ -11,7 +11,6 @@
     <tr>
         <td style="padding:12px 20px;">
             <p style="margin:0 0 6px 0;"><strong>Exchange:</strong> ${name}</p>
-            <p style="margin:0 0 6px 0;"><strong>Status:</strong> ${statusText}</p>
             <p style="margin:0 0 6px 0;"><strong>Initiator:</strong> ${initiatorEmail}</p>
             <p style="margin:0 0 6px 0;"><strong>Recipient:</strong> ${recipientEmail}</p>
             <#if documents?has_content>

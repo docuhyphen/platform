@@ -437,7 +437,7 @@ const NoAuthExchangeUserDecision: React.FC<NoAuthExchangeUserDecisionProps> = (
             <section className={styles.container}>
                 <Text size={500}
                       align={"center"}>
-                    {exchange.initiatorFirstName} {exchange.initiatorLastName} has requested documents from you.
+                    {exchange.initiatorFirstName} {exchange.initiatorLastName} wants to exchange documents with you.
                 </Text>
                 {exchange.initialShareMessage &&
                     <Text size={300} align={"center"}>

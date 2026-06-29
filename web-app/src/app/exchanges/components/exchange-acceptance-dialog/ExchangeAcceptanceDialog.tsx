@@ -134,7 +134,7 @@ const ExchangeAcceptanceDialog: React.FC<ExchangeAcceptanceDialogProps> = (
                             tertiaryText={initiatorOrg}
                             size="medium"
                         />
-                        <Text size={200} className={styles.requesterCaption}>has requested documents from you.</Text>
+                        <Text size={200} className={styles.requesterCaption}>wants to exchange documents with you.</Text>
                     </div>
                 </div>
 
