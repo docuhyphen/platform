@@ -51,10 +51,10 @@ const ExchangeTabsHeader: React.FC<ExchangeTabsHeaderProps> = (props) => {
             </div>
             <div id="exchange-tabs-actions"
                  className={styles.headerActions}>
-                <Tooltip content="Zip all documents"
+                <Tooltip content="Download all uploaded documents"
                          relationship="description">
                     <Button id="exchange-documents-zip-download"
-                            aria-label="Zip all documents"
+                            aria-label="Download all uploaded documents"
                             size="small"
                             disabled={!props.canDownloadZip}
                             onClick={props.onDownloadZip}
