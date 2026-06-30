@@ -11,8 +11,12 @@
     <tr>
         <td style="padding:12px 20px;">
             <p style="margin:0 0 6px 0;"><strong>Exchange:</strong> ${name}</p>
-            <p style="margin:0 0 6px 0;"><strong>Initiator:</strong> ${initiatorEmail}</p>
-            <p style="margin:0 0 6px 0;"><strong>Recipient:</strong> ${recipientEmail}</p>
+            <#if audience == "INITIATOR">
+            <p style="margin:0 0 6px 0;"><strong>Initiator:</strong> ${initiatorLabel}</p>
+            <p style="margin:0 0 6px 0;"><strong>Recipient:</strong> ${recipientLabel}</p>
+            <#else>
+            <p style="margin:0 0 6px 0;"><strong>Shared by:</strong> ${initiatorLabel}</p>
+            </#if>
             <#if documents?has_content>
             <p style="margin:0 0 6px 0;"><strong>Documents:</strong></p>
             <table width="100%" border="0" cellpadding="0" cellspacing="0">
@@ -25,7 +29,6 @@
             <#else>
             <p style="margin:0 0 6px 0;"><strong>Documents:</strong> No documents listed.</p>
             </#if>
-            <p style="margin:6px 0 0 0;"><strong>Last activity:</strong> ${lastActivity}</p>
         </td>
     </tr>
 </table>

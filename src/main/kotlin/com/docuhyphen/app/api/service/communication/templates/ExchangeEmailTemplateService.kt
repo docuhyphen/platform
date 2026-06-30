@@ -64,8 +64,8 @@ class ExchangeEmailTemplateService @Inject constructor(
         exchangeId: String,
         name: String,
         statusText: String,
-        initiatorEmail: String,
-        recipientEmail: String,
+        initiatorLabel: String,
+        recipientLabel: String,
         documents: List<String>,
         lastActivity: String,
         rejectionReason: String? = null,
@@ -84,8 +84,8 @@ class ExchangeEmailTemplateService @Inject constructor(
             "name" to name,
             "statusText" to statusText,
             "audience" to audience.name,
-            "initiatorEmail" to initiatorEmail,
-            "recipientEmail" to recipientEmail,
+            "initiatorLabel" to initiatorLabel,
+            "recipientLabel" to recipientLabel,
             "documents" to documents,
             "lastActivity" to lastActivity,
         )
@@ -108,7 +108,7 @@ class ExchangeEmailTemplateService @Inject constructor(
         }
 
         return RenderedEmailTemplate(
-            subject = exchangeStatusSubject(status, audience, name, initiatorEmail),
+            subject = exchangeStatusSubject(status, audience, name, initiatorLabel),
             body = renderer.render(templateName, model),
         )
     }
@@ -145,14 +145,14 @@ class ExchangeEmailTemplateService @Inject constructor(
         status: ExchangeStatus,
         audience: ExchangeStatusEmailAudience,
         name: String,
-        initiatorEmail: String,
+        initiatorLabel: String,
     ): String
     {
         return when (status)
         {
             ExchangeStatus.INITIATED -> when (audience)
             {
-                ExchangeStatusEmailAudience.RECIPIENT -> "Action required: New sharing request from $initiatorEmail"
+                ExchangeStatusEmailAudience.RECIPIENT -> "Action required: New sharing request from $initiatorLabel"
                 ExchangeStatusEmailAudience.INITIATOR -> "Sharing request updated: $name"
             }
 

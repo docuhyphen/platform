@@ -8,8 +8,7 @@
         <td style="padding:12px 20px;">
             <p style="margin:0 0 6px 0;"><strong>Exchange:</strong> ${name}</p>
             <p style="margin:0 0 6px 0;"><strong>Document:</strong> ${documentTitle}</p>
-            <p style="margin:0 0 6px 0;"><strong>Uploaded by:</strong> ${uploaderEmail}</p>
-            <p style="margin:0 0 6px 0;"><strong>Uploaded at:</strong> ${uploadedAt}</p>
+            <p style="margin:0 0 6px 0;"><strong>Uploaded by:</strong> ${uploaderLabel}</p>
         </td>
     </tr>
 </table>

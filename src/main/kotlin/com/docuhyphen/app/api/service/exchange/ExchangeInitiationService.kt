@@ -360,6 +360,9 @@ class ExchangeInitiationService @Inject constructor(
             recipientAppUser = appUserRecipient,
             recipientGroupId = recipientGroupId,
             exchange = savedExchange,
+            recipientEmail = sessionInitiationDto.recipientEmail,
+            recipientFirstName = sessionInitiationDto.recipientFirstName,
+            recipientLastName = sessionInitiationDto.recipientLastName,
             pendingApproval = recipientNeedsApproval,
         )
 
@@ -652,10 +655,16 @@ class ExchangeInitiationService @Inject constructor(
         recipientAppUser: AppUser?,
         recipientGroupId: UUID?,
         exchange: Exchange,
+        recipientEmail: String? = null,
+        recipientFirstName: String? = null,
+        recipientLastName: String? = null,
         pendingApproval: Boolean = false,
     )
     {
-        val initiatorName = initiator.person?.let { "${it.firstName} ${it.lastName}" } ?: initiator.email
+        val initiatorName = listOfNotNull(
+            initiator.person?.firstName?.trim()?.takeIf { it.isNotBlank() },
+            initiator.person?.lastName?.trim()?.takeIf { it.isNotBlank() },
+        ).joinToString(" ").ifBlank { initiator.email }
         val documentTitles = exchange.documents.map { it.title }
         val exchangeIdStr = exchange.id.toString()
         val subjectTitle = configurationService.emailSubjectTitle
@@ -681,7 +690,14 @@ class ExchangeInitiationService @Inject constructor(
         val recipientLabel = when (recipientType)
         {
             GROUP -> recipientGroupId?.let { principalGroupRepository.findById(it)?.name }?.let { "Group: $it" } ?: "Group"
-            else -> recipientAppUser?.email ?: "Recipient"
+            else -> listOfNotNull(
+                recipientAppUser?.person?.firstName?.trim()?.takeIf { it.isNotBlank() },
+                recipientAppUser?.person?.lastName?.trim()?.takeIf { it.isNotBlank() },
+                recipientFirstName?.trim()?.takeIf { it.isNotBlank() },
+                recipientLastName?.trim()?.takeIf { it.isNotBlank() },
+            ).joinToString(" ").ifBlank {
+                recipientAppUser?.email ?: recipientEmail ?: "Recipient"
+            }
         }
 
         val requireSignInForRecipient = recipientType == EMAIL && exchange.requireRecipientSignIn

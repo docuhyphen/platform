@@ -612,10 +612,14 @@ class ExchangeDocumentService @Inject constructor(
         } ?: return
 
         val uploadedAtInstant = document.uploadDate?.toInstant() ?: Instant.now()
+        val uploaderLabel = listOfNotNull(
+            appUser.person?.firstName?.trim()?.takeIf { it.isNotBlank() },
+            appUser.person?.lastName?.trim()?.takeIf { it.isNotBlank() },
+        ).joinToString(" ").ifBlank { appUser.email }
         val model = mapOf(
             "name" to (exchange.name ?: "Exchange"),
             "documentTitle" to (document.title ?: "Document"),
-            "uploaderEmail" to appUser.email,
+            "uploaderLabel" to uploaderLabel,
             "uploadedAt" to emailDateFormatter.format(uploadedAtInstant),
             "exchangeId" to exchange.id.toString(),
             "documentId" to document.id.toString(),

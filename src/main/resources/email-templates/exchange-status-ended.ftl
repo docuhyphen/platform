@@ -12,8 +12,8 @@
         <td style="padding:12px 20px;">
             <p style="margin:0 0 6px 0;"><strong>Exchange:</strong> ${name}</p>
             <p style="margin:0 0 6px 0;"><strong>Status:</strong> ${statusText}</p>
-            <p style="margin:0 0 6px 0;"><strong>Initiator:</strong> ${initiatorEmail}</p>
-            <p style="margin:0 0 6px 0;"><strong>Recipient:</strong> ${recipientEmail}</p>
+            <p style="margin:0 0 6px 0;"><strong>Initiator:</strong> ${initiatorLabel}</p>
+            <p style="margin:0 0 6px 0;"><strong>Recipient:</strong> ${recipientLabel}</p>
             <#if documents?has_content>
             <p style="margin:0 0 6px 0;"><strong>Documents:</strong></p>
             <table width="100%" border="0" cellpadding="0" cellspacing="0">

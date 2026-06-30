@@ -7,13 +7,16 @@ import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.RoleName
+import com.docuhyphen.app.api.model.entity.ShareSource
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.realtime.RealtimeMessage
 import com.docuhyphen.app.api.realtime.RealtimeMessageType
-import com.docuhyphen.app.api.repository.ShareRepository
 import com.docuhyphen.app.api.repository.ExchangeRepository
+import com.docuhyphen.app.api.repository.ExternalParticipantRepository
+import com.docuhyphen.app.api.repository.PrincipalGroupRepository
+import com.docuhyphen.app.api.repository.ShareRepository
 import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
 import com.docuhyphen.app.api.repository.WorkflowStepInstanceRepository
 import com.docuhyphen.app.api.resource.model.UpdateExchangeRequest
@@ -50,6 +53,8 @@ class ExchangeUpdateService @Inject constructor(
     private val otpService: OtpService,
     private val userContactService: UserContactService,
     private val shareService: ShareService,
+    private val externalParticipantRepository: ExternalParticipantRepository,
+    private val principalGroupRepository: PrincipalGroupRepository,
     private val shareRepository: ShareRepository,
     private val appUserService: AppUserService,
     private val workflowInstanceRepository: WorkflowInstanceRepository,
@@ -693,9 +698,63 @@ class ExchangeUpdateService @Inject constructor(
         }
     }
 
-    /** Email of the session's primary recipient, resolved from its recipient Share. */
-    private fun resolveRecipientEmail(exchangeId: UUID): String? =
-        shareService.primaryRecipientUserId(exchangeId)?.let { appUserService.getById(it)?.email }
+    /** Email of the exchange's primary recipient, resolved from its recipient Share. */
+    private fun resolveRecipientEmail(exchangeId: UUID, includeInactive: Boolean = false): String? =
+        resolvePrimaryRecipientUser(exchangeId, includeInactive)?.email
+            ?: resolvePrimaryRecipientParticipantEmail(exchangeId, includeInactive)
+
+    private fun resolvePrimaryRecipientUser(exchangeId: UUID, includeInactive: Boolean = false) =
+        (if (includeInactive) shareService.primaryRecipientUserIdForDisplay(exchangeId) else shareService.primaryRecipientUserId(exchangeId))
+            ?.let { appUserService.getById(it) }
+
+    private fun resolvePrimaryRecipientGroupLabel(exchangeId: UUID, includeInactive: Boolean = false): String? =
+        (if (includeInactive) shareService.primaryRecipientGroupIdForDisplay(exchangeId) else shareService.primaryRecipientGroupId(exchangeId))
+            ?.let { groupId -> principalGroupRepository.findById(groupId)?.name }
+            ?.takeIf { it.isNotBlank() }
+            ?.let { "Group: $it" }
+
+    private fun resolvePrimaryRecipientParticipantLabel(exchangeId: UUID, includeInactive: Boolean = false): String? =
+        resolvePrimaryRecipientParticipant(exchangeId, includeInactive)
+            ?.let { participant ->
+                participant.displayName?.trim()?.takeIf { it.isNotBlank() } ?: participant.email
+            }
+
+    private fun resolvePrimaryRecipientParticipantEmail(exchangeId: UUID, includeInactive: Boolean = false): String? =
+        resolvePrimaryRecipientParticipant(exchangeId, includeInactive)?.email
+
+    private fun resolvePrimaryRecipientParticipant(exchangeId: UUID, includeInactive: Boolean = false) =
+        (if (includeInactive) shareRepository.findAllByResource(ResourceType.EXCHANGE, exchangeId)
+        else shareRepository.findActiveByResource(ResourceType.EXCHANGE, exchangeId))
+            .firstOrNull {
+                it.principalKind == PrincipalKind.PARTICIPANT &&
+                    it.roleName != RoleName.OWNER.name &&
+                    it.source == ShareSource.DIRECT
+            }
+            ?.principalId
+            ?.let { externalParticipantRepository.findById(it) }
+
+    private fun resolveUserLabel(appUserId: UUID?): String? =
+        appUserId
+            ?.let { appUserService.getById(it) }
+            ?.let { appUser ->
+                listOfNotNull(
+                    appUser.person?.firstName?.trim()?.takeIf { it.isNotBlank() },
+                    appUser.person?.lastName?.trim()?.takeIf { it.isNotBlank() },
+                ).joinToString(" ").ifBlank { appUser.email }
+            }
+
+    private fun resolveRecipientLabel(exchangeId: UUID, includeInactive: Boolean = false): String =
+        resolvePrimaryRecipientUser(exchangeId, includeInactive)
+            ?.let { appUser ->
+                listOfNotNull(
+                    appUser.person?.firstName?.trim()?.takeIf { it.isNotBlank() },
+                    appUser.person?.lastName?.trim()?.takeIf { it.isNotBlank() },
+                ).joinToString(" ").ifBlank { appUser.email }
+            }
+            ?: resolvePrimaryRecipientParticipantLabel(exchangeId, includeInactive)
+            ?: resolvePrimaryRecipientGroupLabel(exchangeId, includeInactive)
+            ?: resolveRecipientEmail(exchangeId, includeInactive)
+            ?: "Recipient"
 
     private enum class EmailAudience
     {
@@ -763,8 +822,10 @@ class ExchangeUpdateService @Inject constructor(
         val destination = when (audience)
         {
             EmailAudience.INITIATOR -> session.initiator?.email
-            EmailAudience.RECIPIENT -> resolveRecipientEmail(session.id)
+            EmailAudience.RECIPIENT -> resolveRecipientEmail(session.id, includeInactive = status == ExchangeStatus.REJECTED)
         } ?: return
+
+        val includeInactiveRecipient = status == ExchangeStatus.REJECTED || status == ExchangeStatus.ENDED
 
         val template = emailTemplateService.renderExchangeStatusEmail(
             status = status,
@@ -776,8 +837,8 @@ class ExchangeUpdateService @Inject constructor(
             exchangeId = session.id.toString(),
             name = session.name?.ifBlank { "Untitled session" } ?: "Untitled session",
             statusText = statusText(status),
-            initiatorEmail = session.initiator?.email ?: "Unknown",
-            recipientEmail = resolveRecipientEmail(session.id) ?: "Unknown",
+            initiatorLabel = resolveUserLabel(session.initiator?.id) ?: "Unknown",
+            recipientLabel = resolveRecipientLabel(session.id, includeInactive = includeInactiveRecipient),
             documents = session.documents.map { it.title.trim() }.filter { it.isNotBlank() },
             lastActivity = formatTimestamp(session.lastActivity),
             rejectionReason = rejectionReasonOverride ?: session.rejectionReason,
