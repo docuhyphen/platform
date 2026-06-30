@@ -7,6 +7,8 @@ import com.docuhyphen.app.api.model.dto.toDto
 import com.docuhyphen.app.api.model.entity.VariableDefinition
 import com.docuhyphen.app.api.model.entity.VariableScope
 import com.docuhyphen.app.api.repository.VariableDefinitionRepository
+import com.docuhyphen.app.api.service.auth.AdminActionGuardService
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -17,6 +19,7 @@ import java.util.*
 @ApplicationScoped
 class VariableDefinitionService @Inject constructor(
     private val repository: VariableDefinitionRepository,
+    private val adminActionGuardService: AdminActionGuardService,
 )
 {
     companion object
@@ -54,6 +57,7 @@ class VariableDefinitionService @Inject constructor(
         callerOrgId: UUID?,
         isOrgAdmin: Boolean,
         isAppAdmin: Boolean,
+        context: AdminApprovalContext,
     ): VariableDefinitionDto
     {
         val scope = runCatching { VariableScope.valueOf(request.scope.uppercase()) }
@@ -81,6 +85,12 @@ class VariableDefinitionService @Inject constructor(
             }
         }
 
+        adminActionGuardService.enforce(
+            action = actionFor(scope, "CREATE"),
+            actorId = callerUserId,
+            context = context,
+        )
+
         val variable = VariableDefinition().apply {
             this.key = normalizedKey
             this.defaultValue = request.defaultValue
@@ -99,10 +109,16 @@ class VariableDefinitionService @Inject constructor(
         callerOrgId: UUID?,
         isOrgAdmin: Boolean,
         isAppAdmin: Boolean,
+        context: AdminApprovalContext,
     ): VariableDefinitionDto
     {
         val variable = repository.findById(id) ?: throw IllegalArgumentException("Variable not found")
         checkWriteAccess(variable, callerUserId, callerOrgId, isOrgAdmin, isAppAdmin)
+        adminActionGuardService.enforce(
+            action = actionFor(variable.scope, "UPDATE"),
+            actorId = callerUserId,
+            context = context,
+        )
         request.defaultValue?.let { variable.defaultValue = it.takeIf { v -> v.isNotBlank() } }
         request.isActive?.let { variable.isActive = it }
         return repository.update(variable).toDto()
@@ -115,10 +131,16 @@ class VariableDefinitionService @Inject constructor(
         callerOrgId: UUID?,
         isOrgAdmin: Boolean,
         isAppAdmin: Boolean,
+        context: AdminApprovalContext,
     )
     {
         val variable = repository.findById(id) ?: throw IllegalArgumentException("Variable not found")
         checkWriteAccess(variable, callerUserId, callerOrgId, isOrgAdmin, isAppAdmin)
+        adminActionGuardService.enforce(
+            action = actionFor(variable.scope, "DELETE"),
+            actorId = callerUserId,
+            context = context,
+        )
         variable.isDeleted = true
         variable.isActive = false
         repository.update(variable)
@@ -144,4 +166,11 @@ class VariableDefinitionService @Inject constructor(
                     throw ForbiddenException("Org admin role required to modify variable ${variable.id}")
         }
     }
+
+    private fun actionFor(scope: VariableScope, operation: String): String =
+        when (scope)
+        {
+            VariableScope.ORG -> "ORG_VARIABLE_$operation"
+            VariableScope.PERSONAL -> "PERSONAL_VARIABLE_$operation"
+        }
 }

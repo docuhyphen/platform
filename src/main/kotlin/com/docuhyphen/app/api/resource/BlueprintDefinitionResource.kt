@@ -7,6 +7,7 @@ import com.docuhyphen.app.api.model.dto.PatchBlueprintPublishedRequest
 import com.docuhyphen.app.api.model.dto.PatchBlueprintStatusRequest
 import com.docuhyphen.app.api.model.dto.UpdateBlueprintRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.blueprint.BlueprintDefinitionService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
@@ -15,6 +16,7 @@ import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.DELETE
 import jakarta.ws.rs.GET
+import jakarta.ws.rs.HeaderParam
 import jakarta.ws.rs.PATCH
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.PUT
@@ -87,7 +89,10 @@ class BlueprintDefinitionResource @Inject constructor(
     }
 
     @POST
-    fun createBlueprint(request: CreateBlueprintRequest): Response
+    fun createBlueprint(
+        request: CreateBlueprintRequest,
+        @HeaderParam("X-Request-Id") requestId: String?,
+    ): Response
     {
         val actor = authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
@@ -103,7 +108,14 @@ class BlueprintDefinitionResource @Inject constructor(
 
         return try
         {
-            val dto = blueprintService.createBlueprint(request, actor.id, callerOrgId, isOrgAdmin, isAppAdmin)
+            val dto = blueprintService.createBlueprint(
+                request,
+                actor.id,
+                callerOrgId,
+                isOrgAdmin,
+                isAppAdmin,
+                AdminApprovalContext(requestId = requestId),
+            )
             Response.status(CREATED).entity(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -116,6 +128,7 @@ class BlueprintDefinitionResource @Inject constructor(
         }
         catch (e: Exception)
         {
+            if (e is jakarta.ws.rs.WebApplicationException) throw e
             logger.error("Failed to create blueprint", e)
             Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to create blueprint")).build()
         }
@@ -157,7 +170,11 @@ class BlueprintDefinitionResource @Inject constructor(
 
     @PUT
     @Path("/{id}")
-    fun updateBlueprint(@PathParam("id") id: String, request: UpdateBlueprintRequest): Response
+    fun updateBlueprint(
+        @PathParam("id") id: String,
+        request: UpdateBlueprintRequest,
+        @HeaderParam("X-Request-Id") requestId: String?,
+    ): Response
     {
         val actor = authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
@@ -171,7 +188,14 @@ class BlueprintDefinitionResource @Inject constructor(
 
         return try
         {
-            val dto = blueprintService.updateBlueprint(bpId, request, actor.id, callerOrgId, isAppAdmin)
+            val dto = blueprintService.updateBlueprint(
+                bpId,
+                request,
+                actor.id,
+                callerOrgId,
+                isAppAdmin,
+                AdminApprovalContext(requestId = requestId),
+            )
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -184,6 +208,7 @@ class BlueprintDefinitionResource @Inject constructor(
         }
         catch (e: Exception)
         {
+            if (e is jakarta.ws.rs.WebApplicationException) throw e
             logger.error("Failed to update blueprint {}", id, e)
             Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to update blueprint")).build()
         }
@@ -191,7 +216,11 @@ class BlueprintDefinitionResource @Inject constructor(
 
     @PATCH
     @Path("/{id}/status")
-    fun patchBlueprintStatus(@PathParam("id") id: String, request: PatchBlueprintStatusRequest): Response
+    fun patchBlueprintStatus(
+        @PathParam("id") id: String,
+        request: PatchBlueprintStatusRequest,
+        @HeaderParam("X-Request-Id") requestId: String?,
+    ): Response
     {
         val actor = authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
@@ -205,7 +234,14 @@ class BlueprintDefinitionResource @Inject constructor(
 
         return try
         {
-            val dto = blueprintService.patchStatus(bpId, request, actor.id, callerOrgId, isAppAdmin)
+            val dto = blueprintService.patchStatus(
+                bpId,
+                request,
+                actor.id,
+                callerOrgId,
+                isAppAdmin,
+                AdminApprovalContext(requestId = requestId),
+            )
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -218,6 +254,7 @@ class BlueprintDefinitionResource @Inject constructor(
         }
         catch (e: Exception)
         {
+            if (e is jakarta.ws.rs.WebApplicationException) throw e
             logger.error("Failed to patch blueprint status {}", id, e)
             Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to patch blueprint status")).build()
         }
@@ -225,7 +262,11 @@ class BlueprintDefinitionResource @Inject constructor(
 
     @PATCH
     @Path("/{id}/published")
-    fun patchBlueprintPublished(@PathParam("id") id: String, request: PatchBlueprintPublishedRequest): Response
+    fun patchBlueprintPublished(
+        @PathParam("id") id: String,
+        request: PatchBlueprintPublishedRequest,
+        @HeaderParam("X-Request-Id") requestId: String?,
+    ): Response
     {
         val actor = authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
@@ -245,7 +286,14 @@ class BlueprintDefinitionResource @Inject constructor(
 
         return try
         {
-            val dto = blueprintService.patchPublished(bpId, request, actor.id, callerOrgId, isAppAdmin)
+            val dto = blueprintService.patchPublished(
+                bpId,
+                request,
+                actor.id,
+                callerOrgId,
+                isAppAdmin,
+                AdminApprovalContext(requestId = requestId),
+            )
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -258,6 +306,7 @@ class BlueprintDefinitionResource @Inject constructor(
         }
         catch (e: Exception)
         {
+            if (e is jakarta.ws.rs.WebApplicationException) throw e
             logger.error("Failed to patch blueprint published {}", id, e)
             Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to patch blueprint published")).build()
         }
@@ -265,7 +314,10 @@ class BlueprintDefinitionResource @Inject constructor(
 
     @DELETE
     @Path("/{id}")
-    fun deleteBlueprint(@PathParam("id") id: String): Response
+    fun deleteBlueprint(
+        @PathParam("id") id: String,
+        @HeaderParam("X-Request-Id") requestId: String?,
+    ): Response
     {
         val actor = authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
@@ -279,7 +331,13 @@ class BlueprintDefinitionResource @Inject constructor(
 
         return try
         {
-            blueprintService.deleteBlueprint(bpId, actor.id, callerOrgId, isAppAdmin)
+            blueprintService.deleteBlueprint(
+                bpId,
+                actor.id,
+                callerOrgId,
+                isAppAdmin,
+                AdminApprovalContext(requestId = requestId),
+            )
             Response.noContent().build()
         }
         catch (e: IllegalArgumentException)
@@ -292,6 +350,7 @@ class BlueprintDefinitionResource @Inject constructor(
         }
         catch (e: Exception)
         {
+            if (e is jakarta.ws.rs.WebApplicationException) throw e
             logger.error("Failed to delete blueprint {}", id, e)
             Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to delete blueprint")).build()
         }
@@ -299,7 +358,11 @@ class BlueprintDefinitionResource @Inject constructor(
 
     @POST
     @Path("/{id}/clone")
-    fun cloneBlueprint(@PathParam("id") id: String, request: CloneBlueprintRequest): Response
+    fun cloneBlueprint(
+        @PathParam("id") id: String,
+        request: CloneBlueprintRequest,
+        @HeaderParam("X-Request-Id") requestId: String?,
+    ): Response
     {
         val actor = authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
@@ -314,7 +377,15 @@ class BlueprintDefinitionResource @Inject constructor(
 
         return try
         {
-            val dto = blueprintService.cloneBlueprint(bpId, request, actor.id, callerOrgId, isOrgAdmin, isAppAdmin)
+            val dto = blueprintService.cloneBlueprint(
+                bpId,
+                request,
+                actor.id,
+                callerOrgId,
+                isOrgAdmin,
+                isAppAdmin,
+                AdminApprovalContext(requestId = requestId),
+            )
             Response.status(CREATED).entity(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -327,6 +398,7 @@ class BlueprintDefinitionResource @Inject constructor(
         }
         catch (e: Exception)
         {
+            if (e is jakarta.ws.rs.WebApplicationException) throw e
             logger.error("Failed to clone blueprint {}", id, e)
             Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to clone blueprint")).build()
         }

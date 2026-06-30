@@ -30,6 +30,10 @@ export const managingOrgVariablesArticle = (
             The new variable is immediately available as <code>{"{{KEY}}"}</code> in any
             supported field across your organization.
         </p>
+        <p>
+            Creating, editing, or deleting an org variable can require a 6-digit
+            verification code to confirm the admin action.
+        </p>
 
         <h3>Editing and deleting</h3>
         <p>

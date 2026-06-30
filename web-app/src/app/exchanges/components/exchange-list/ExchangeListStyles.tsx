@@ -185,7 +185,7 @@ const useExchangeStyles = makeStyles({
         paddingTop: "2px",
         boxSizing: "border-box",
         scrollbarWidth: "thin",
-        scrollbarColor: `${tokens.colorNeutralForeground3} ${tokens.colorNeutralBackground2}`,
+        scrollbarColor: `${tokens.colorNeutralStroke1} transparent`,
         flex: 1,
         minWidth: "380px",
         // Drop the 380px minWidth on phones, otherwise the list scrolls
@@ -193,24 +193,17 @@ const useExchangeStyles = makeStyles({
         "@media (max-width: 768px)": {
             minWidth: 0,
         },
-    },
-
-    exchangesListBodyWebkitScrollbar: {
-        width: "12px",
-    },
-
-    exchangesListBodyWebkitScrollbarTrack: {
-        background: tokens.colorNeutralBackground2,
-    },
-
-    exchangesListBodyWebkitScrollbarThumb: {
-        backgroundColor: `${tokens.colorBrandForeground1}`,
-        borderRadius: tokens.borderRadiusCircular,
-        border: `3px solid ${tokens.colorNeutralBackground2}`,
-    },
-
-    exchangesListBodyWebkitScrollbarThumbHover: {
-        backgroundColor: `${tokens.colorBrandForeground1}`,
+        "&::-webkit-scrollbar": {
+            width: "6px",
+            height: "6px",
+        },
+        "&::-webkit-scrollbar-thumb": {
+            backgroundColor: tokens.colorNeutralStroke1,
+            borderRadius: tokens.borderRadiusCircular,
+        },
+        "&::-webkit-scrollbar-track": {
+            backgroundColor: "transparent",
+        },
     },
 
     listCardItem: {

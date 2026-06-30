@@ -7,6 +7,8 @@ import com.docuhyphen.app.api.model.dto.toDto
 import com.docuhyphen.app.api.model.entity.SequenceDefinition
 import com.docuhyphen.app.api.model.entity.SequenceResetPeriod
 import com.docuhyphen.app.api.repository.SequenceDefinitionRepository
+import com.docuhyphen.app.api.service.auth.AdminActionGuardService
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -19,6 +21,7 @@ import java.util.*
 @ApplicationScoped
 class SequenceDefinitionService @Inject constructor(
     private val repository: SequenceDefinitionRepository,
+    private val adminActionGuardService: AdminActionGuardService,
 )
 {
     companion object
@@ -46,6 +49,7 @@ class SequenceDefinitionService @Inject constructor(
         callerUserId: UUID,
         isOrgAdmin: Boolean,
         isAppAdmin: Boolean,
+        context: AdminApprovalContext,
     ): SequenceDefinitionDto
     {
         if (!isOrgAdmin && !isAppAdmin)
@@ -60,6 +64,12 @@ class SequenceDefinitionService @Inject constructor(
 
         val resetPeriod = runCatching { SequenceResetPeriod.valueOf(request.resetPeriod.uppercase()) }
             .getOrElse { throw IllegalArgumentException("Invalid resetPeriod '${request.resetPeriod}'") }
+
+        adminActionGuardService.enforce(
+            action = "ORG_SEQUENCE_CREATE",
+            actorId = callerUserId,
+            context = context,
+        )
 
         val seq = SequenceDefinition().apply {
             this.organizationId = organizationId
@@ -81,10 +91,17 @@ class SequenceDefinitionService @Inject constructor(
         callerOrgId: UUID?,
         isOrgAdmin: Boolean,
         isAppAdmin: Boolean,
+        callerUserId: UUID,
+        context: AdminApprovalContext,
     ): SequenceDefinitionDto
     {
         val seq = repository.findById(id) ?: throw IllegalArgumentException("Sequence not found")
         checkWriteAccess(seq, callerOrgId, isOrgAdmin, isAppAdmin)
+        adminActionGuardService.enforce(
+            action = "ORG_SEQUENCE_UPDATE",
+            actorId = callerUserId,
+            context = context,
+        )
 
         request.name?.trim()?.let { if (it.isNotBlank()) seq.name = it }
         request.padWidth?.let { seq.padWidth = it.coerceAtLeast(0) }
@@ -100,10 +117,22 @@ class SequenceDefinitionService @Inject constructor(
     }
 
     @Transactional
-    fun deleteSequence(id: UUID, callerOrgId: UUID?, isOrgAdmin: Boolean, isAppAdmin: Boolean)
+    fun deleteSequence(
+        id: UUID,
+        callerOrgId: UUID?,
+        isOrgAdmin: Boolean,
+        isAppAdmin: Boolean,
+        callerUserId: UUID,
+        context: AdminApprovalContext,
+    )
     {
         val seq = repository.findById(id) ?: throw IllegalArgumentException("Sequence not found")
         checkWriteAccess(seq, callerOrgId, isOrgAdmin, isAppAdmin)
+        adminActionGuardService.enforce(
+            action = "ORG_SEQUENCE_DELETE",
+            actorId = callerUserId,
+            context = context,
+        )
         seq.isDeleted = true
         seq.isActive = false
         repository.update(seq)
@@ -111,10 +140,22 @@ class SequenceDefinitionService @Inject constructor(
     }
 
     @Transactional
-    fun resetCounter(id: UUID, callerOrgId: UUID?, isOrgAdmin: Boolean, isAppAdmin: Boolean): SequenceDefinitionDto
+    fun resetCounter(
+        id: UUID,
+        callerOrgId: UUID?,
+        isOrgAdmin: Boolean,
+        isAppAdmin: Boolean,
+        callerUserId: UUID,
+        context: AdminApprovalContext,
+    ): SequenceDefinitionDto
     {
         val seq = repository.findById(id) ?: throw IllegalArgumentException("Sequence not found")
         checkWriteAccess(seq, callerOrgId, isOrgAdmin, isAppAdmin)
+        adminActionGuardService.enforce(
+            action = "ORG_SEQUENCE_RESET",
+            actorId = callerUserId,
+            context = context,
+        )
         seq.currentValue = 0L
         seq.lastResetAt = Timestamp.from(Instant.now())
         return repository.update(seq).toDto()

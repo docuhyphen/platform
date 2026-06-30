@@ -24,6 +24,10 @@ export const managingPersonalVariablesArticle = (
             and blueprints you create. Other users who receive or view your exchanges do
             not see the token definition.
         </p>
+        <p>
+            When you create, edit, or delete a personal variable, DocuHyphen may ask
+            you to enter a 6-digit verification code before the change is saved.
+        </p>
 
         <h3>Overriding at exchange creation</h3>
         <p>

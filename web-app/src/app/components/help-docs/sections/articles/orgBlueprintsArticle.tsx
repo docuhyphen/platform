@@ -28,6 +28,10 @@ export const orgBlueprintsArticle = (
             Newly created organization blueprints start as <b>Draft</b> and are
             not yet visible to other members.
         </p>
+        <p>
+            Creating, editing, publishing, activating, duplicating into the org, or
+            deleting an organization blueprint can require a 6-digit verification code.
+        </p>
 
         <h3>Publishing and unpublishing</h3>
         <p>

@@ -18,6 +18,8 @@ import com.docuhyphen.app.api.repository.BlueprintDefinitionRepository
 import com.docuhyphen.app.api.repository.BlueprintDocumentDefaultRepository
 import com.docuhyphen.app.api.repository.BlueprintParticipantDefaultRepository
 import com.docuhyphen.app.api.repository.DocumentLibraryRepository
+import com.docuhyphen.app.api.service.auth.AdminActionGuardService
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -36,6 +38,7 @@ class BlueprintDefinitionService @Inject constructor(
     private val documentDefaultRepository: BlueprintDocumentDefaultRepository,
     private val participantDefaultRepository: BlueprintParticipantDefaultRepository,
     private val documentLibraryRepository: DocumentLibraryRepository,
+    private val adminActionGuardService: AdminActionGuardService,
 )
 {
     private val logger = LoggerFactory.getLogger(BlueprintDefinitionService::class.java)
@@ -82,9 +85,15 @@ class BlueprintDefinitionService @Inject constructor(
         callerOrgId: UUID?,
         isOrgAdmin: Boolean,
         isAppAdmin: Boolean,
+        context: AdminApprovalContext,
     ): BlueprintDefinitionDto
     {
         val resolvedScope = resolveScope(request.scope, callerOrgId, isOrgAdmin, isAppAdmin)
+        adminActionGuardService.enforce(
+            action = actionFor(resolvedScope, "CREATE"),
+            actorId = callerUserId,
+            context = context,
+        )
         val bp = BlueprintDefinition().apply {
             name = request.name.trim()
             summary = request.summary?.trim()
@@ -110,11 +119,17 @@ class BlueprintDefinitionService @Inject constructor(
         callerUserId: UUID,
         callerOrgId: UUID?,
         isAppAdmin: Boolean,
+        context: AdminApprovalContext,
     ): BlueprintDefinitionDto
     {
         val bp = repository.findById(id)
             ?: throw IllegalArgumentException("Blueprint not found: $id")
         checkWriteAccess(bp, callerUserId, callerOrgId, isAppAdmin)
+        adminActionGuardService.enforce(
+            action = actionFor(bp.scope, "UPDATE"),
+            actorId = callerUserId,
+            context = context,
+        )
 
         request.name?.trim()?.let { if (it.isNotBlank()) bp.name = it }
         request.summary?.let { bp.summary = it.trim().ifBlank { null } }
@@ -135,6 +150,7 @@ class BlueprintDefinitionService @Inject constructor(
         callerUserId: UUID,
         callerOrgId: UUID?,
         isAppAdmin: Boolean,
+        context: AdminApprovalContext,
     ): BlueprintDefinitionDto
     {
         val bp = repository.findById(id)
@@ -144,6 +160,11 @@ class BlueprintDefinitionService @Inject constructor(
         {
             throw ForbiddenException("Personal blueprints cannot be published")
         }
+        adminActionGuardService.enforce(
+            action = actionFor(bp.scope, "PUBLISH_UPDATE"),
+            actorId = callerUserId,
+            context = context,
+        )
         bp.isPublished = request.isPublished
         bp.updatedAt = Timestamp.from(Instant.now())
         return repository.update(bp).toDto()
@@ -156,22 +177,39 @@ class BlueprintDefinitionService @Inject constructor(
         callerUserId: UUID,
         callerOrgId: UUID?,
         isAppAdmin: Boolean,
+        context: AdminApprovalContext,
     ): BlueprintDefinitionDto
     {
         val bp = repository.findById(id)
             ?: throw IllegalArgumentException("Blueprint not found: $id")
         checkWriteAccess(bp, callerUserId, callerOrgId, isAppAdmin)
+        adminActionGuardService.enforce(
+            action = actionFor(bp.scope, "STATUS_UPDATE"),
+            actorId = callerUserId,
+            context = context,
+        )
         bp.isActive = request.isActive
         bp.updatedAt = Timestamp.from(Instant.now())
         return repository.update(bp).toDto()
     }
 
     @Transactional
-    fun deleteBlueprint(id: UUID, callerUserId: UUID, callerOrgId: UUID?, isAppAdmin: Boolean)
+    fun deleteBlueprint(
+        id: UUID,
+        callerUserId: UUID,
+        callerOrgId: UUID?,
+        isAppAdmin: Boolean,
+        context: AdminApprovalContext,
+    )
     {
         val bp = repository.findById(id)
             ?: throw IllegalArgumentException("Blueprint not found: $id")
         checkWriteAccess(bp, callerUserId, callerOrgId, isAppAdmin)
+        adminActionGuardService.enforce(
+            action = actionFor(bp.scope, "DELETE"),
+            actorId = callerUserId,
+            context = context,
+        )
         bp.isDeleted = true
         bp.isActive = false
         bp.updatedAt = Timestamp.from(Instant.now())
@@ -187,6 +225,7 @@ class BlueprintDefinitionService @Inject constructor(
         callerOrgId: UUID?,
         isOrgAdmin: Boolean,
         isAppAdmin: Boolean,
+        context: AdminApprovalContext,
     ): BlueprintDefinitionDto
     {
         val source = repository.findById(id)
@@ -194,6 +233,11 @@ class BlueprintDefinitionService @Inject constructor(
         checkReadAccess(source, callerUserId, callerOrgId, isAppAdmin)
 
         val targetScope = resolveCloneTargetScope(request.targetScope, callerOrgId, isOrgAdmin, isAppAdmin)
+        adminActionGuardService.enforce(
+            action = actionFor(targetScope, "CLONE"),
+            actorId = callerUserId,
+            context = context,
+        )
         val clone = BlueprintDefinition().apply {
             name = request.newName?.trim()?.ifBlank { null } ?: "${source.name} (copy)"
             summary = source.summary
@@ -302,6 +346,14 @@ class BlueprintDefinitionService @Inject constructor(
             else -> throw ForbiddenException("Cannot clone directly into scope: $requested")
         }
     }
+
+    private fun actionFor(scope: BlueprintScope, operation: String): String =
+        when (scope)
+        {
+            BlueprintScope.PERSONAL -> "PERSONAL_BLUEPRINT_$operation"
+            BlueprintScope.ORG -> "ORG_BLUEPRINT_$operation"
+            BlueprintScope.APP -> "APP_BLUEPRINT_$operation"
+        }
 
     private fun parseConfig(configJson: String): BlueprintConfigJson =
         runCatching { json.decodeFromString(BlueprintConfigJson.serializer(), configJson) }

@@ -39,6 +39,10 @@ export const blueprintPlatformArticle = (
             delete platform blueprints. Regular users and Organization Admins can
             view and clone them but cannot modify the originals.
         </p>
+        <p>
+            Platform blueprint management can require a 6-digit verification code
+            before the change is applied.
+        </p>
 
         <h3>Related articles</h3>
         <ul>

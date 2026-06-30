@@ -13,6 +13,29 @@ html, body, #docu-hyphen-app
     height: 100%;
 }
 
+*
+{
+    scrollbar-width: thin;
+    scrollbar-color: var(--colorNeutralStroke1) transparent;
+}
+
+*::-webkit-scrollbar
+{
+    width: 6px;
+    height: 6px;
+}
+
+*::-webkit-scrollbar-thumb
+{
+    background-color: var(--colorNeutralStroke1);
+    border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-track
+{
+    background-color: transparent;
+}
+
 /*
  * Phone viewports: FluentUI's DialogSurface defaults to a min-width that
  * exceeds typical phone widths (~360px). Override globally so every

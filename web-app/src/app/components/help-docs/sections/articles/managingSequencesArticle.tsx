@@ -15,6 +15,10 @@ export const managingSequencesArticle = (
             sequences. Regular members can use <code>{"{{SEQ:KEY}}"}</code> tokens in
             blueprints and exchanges but cannot create or configure sequence definitions.
         </p>
+        <p>
+            Sequence changes can require a 6-digit verification code before the create,
+            update, reset, or delete action is applied.
+        </p>
 
         <h3>How to create a sequence</h3>
         <ol>

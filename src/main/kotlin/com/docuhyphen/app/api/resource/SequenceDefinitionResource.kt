@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.dto.CreateSequenceRequest
 import com.docuhyphen.app.api.model.dto.UpdateSequenceRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.variable.SequenceDefinitionService
@@ -53,7 +54,10 @@ class SequenceDefinitionResource @Inject constructor(
     }
 
     @POST
-    fun createSequence(request: CreateSequenceRequest): Response
+    fun createSequence(
+        request: CreateSequenceRequest,
+        @HeaderParam("X-Request-Id") requestId: String?,
+    ): Response
     {
         val actor = authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
@@ -69,7 +73,14 @@ class SequenceDefinitionResource @Inject constructor(
 
         return try
         {
-            val dto = sequenceService.createSequence(callerOrgId, request, actor.id, isOrgAdmin, isAppAdmin)
+            val dto = sequenceService.createSequence(
+                callerOrgId,
+                request,
+                actor.id,
+                isOrgAdmin,
+                isAppAdmin,
+                AdminApprovalContext(requestId = requestId),
+            )
             Response.status(CREATED).entity(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -82,6 +93,7 @@ class SequenceDefinitionResource @Inject constructor(
         }
         catch (e: Exception)
         {
+            if (e is WebApplicationException) throw e
             logger.error("Failed to create sequence", e)
             Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to create sequence")).build()
         }
@@ -124,7 +136,11 @@ class SequenceDefinitionResource @Inject constructor(
 
     @PUT
     @Path("/{id}")
-    fun updateSequence(@PathParam("id") id: String, request: UpdateSequenceRequest): Response
+    fun updateSequence(
+        @PathParam("id") id: String,
+        request: UpdateSequenceRequest,
+        @HeaderParam("X-Request-Id") requestId: String?,
+    ): Response
     {
         val actor = authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
@@ -139,7 +155,15 @@ class SequenceDefinitionResource @Inject constructor(
 
         return try
         {
-            val dto = sequenceService.updateSequence(seqId, request, callerOrgId, isOrgAdmin, isAppAdmin)
+            val dto = sequenceService.updateSequence(
+                seqId,
+                request,
+                callerOrgId,
+                isOrgAdmin,
+                isAppAdmin,
+                actor.id,
+                AdminApprovalContext(requestId = requestId),
+            )
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -152,6 +176,7 @@ class SequenceDefinitionResource @Inject constructor(
         }
         catch (e: Exception)
         {
+            if (e is WebApplicationException) throw e
             logger.error("Failed to update sequence {}", id, e)
             Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to update sequence")).build()
         }
@@ -159,7 +184,10 @@ class SequenceDefinitionResource @Inject constructor(
 
     @DELETE
     @Path("/{id}")
-    fun deleteSequence(@PathParam("id") id: String): Response
+    fun deleteSequence(
+        @PathParam("id") id: String,
+        @HeaderParam("X-Request-Id") requestId: String?,
+    ): Response
     {
         val actor = authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
@@ -174,7 +202,14 @@ class SequenceDefinitionResource @Inject constructor(
 
         return try
         {
-            sequenceService.deleteSequence(seqId, callerOrgId, isOrgAdmin, isAppAdmin)
+            sequenceService.deleteSequence(
+                seqId,
+                callerOrgId,
+                isOrgAdmin,
+                isAppAdmin,
+                actor.id,
+                AdminApprovalContext(requestId = requestId),
+            )
             Response.noContent().build()
         }
         catch (e: IllegalArgumentException)
@@ -187,6 +222,7 @@ class SequenceDefinitionResource @Inject constructor(
         }
         catch (e: Exception)
         {
+            if (e is WebApplicationException) throw e
             logger.error("Failed to delete sequence {}", id, e)
             Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to delete sequence")).build()
         }
@@ -194,7 +230,10 @@ class SequenceDefinitionResource @Inject constructor(
 
     @PATCH
     @Path("/{id}/reset")
-    fun resetCounter(@PathParam("id") id: String): Response
+    fun resetCounter(
+        @PathParam("id") id: String,
+        @HeaderParam("X-Request-Id") requestId: String?,
+    ): Response
     {
         val actor = authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
@@ -209,7 +248,14 @@ class SequenceDefinitionResource @Inject constructor(
 
         return try
         {
-            val dto = sequenceService.resetCounter(seqId, callerOrgId, isOrgAdmin, isAppAdmin)
+            val dto = sequenceService.resetCounter(
+                seqId,
+                callerOrgId,
+                isOrgAdmin,
+                isAppAdmin,
+                actor.id,
+                AdminApprovalContext(requestId = requestId),
+            )
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -222,6 +268,7 @@ class SequenceDefinitionResource @Inject constructor(
         }
         catch (e: Exception)
         {
+            if (e is WebApplicationException) throw e
             logger.error("Failed to reset counter for sequence {}", id, e)
             Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to reset counter")).build()
         }

@@ -25,6 +25,10 @@ export const managingBlueprintsArticle = (
             This captures the current state of the form - documents, permissions,
             participants, and settings - into a new personal blueprint.
         </p>
+        <p>
+            Creating, editing, duplicating, activating, or deleting a personal
+            blueprint can require a 6-digit verification code before the change is saved.
+        </p>
 
         <h3>The blueprint editor</h3>
         <p>The editor has three tabs:</p>

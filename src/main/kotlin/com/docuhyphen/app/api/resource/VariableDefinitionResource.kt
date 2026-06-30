@@ -6,6 +6,7 @@ import com.docuhyphen.app.api.model.dto.CreateVariableRequest
 import com.docuhyphen.app.api.model.dto.UpdateVariableRequest
 import com.docuhyphen.app.api.model.entity.VariableScope
 import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.variable.AvailableVariablesService
@@ -85,7 +86,10 @@ class VariableDefinitionResource @Inject constructor(
     }
 
     @POST
-    fun createVariable(request: CreateVariableRequest): Response
+    fun createVariable(
+        request: CreateVariableRequest,
+        @HeaderParam("X-Request-Id") requestId: String?,
+    ): Response
     {
         val actor = authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
@@ -99,7 +103,14 @@ class VariableDefinitionResource @Inject constructor(
 
         return try
         {
-            val dto = variableService.createVariable(request, actor.id, callerOrgId, isOrgAdmin, isAppAdmin)
+            val dto = variableService.createVariable(
+                request,
+                actor.id,
+                callerOrgId,
+                isOrgAdmin,
+                isAppAdmin,
+                AdminApprovalContext(requestId = requestId),
+            )
             Response.status(CREATED).entity(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -112,6 +123,7 @@ class VariableDefinitionResource @Inject constructor(
         }
         catch (e: Exception)
         {
+            if (e is WebApplicationException) throw e
             logger.error("Failed to create variable", e)
             Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to create variable")).build()
         }
@@ -119,7 +131,11 @@ class VariableDefinitionResource @Inject constructor(
 
     @PUT
     @Path("/{id}")
-    fun updateVariable(@PathParam("id") id: String, request: UpdateVariableRequest): Response
+    fun updateVariable(
+        @PathParam("id") id: String,
+        request: UpdateVariableRequest,
+        @HeaderParam("X-Request-Id") requestId: String?,
+    ): Response
     {
         val actor = authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
@@ -134,7 +150,15 @@ class VariableDefinitionResource @Inject constructor(
 
         return try
         {
-            val dto = variableService.updateVariable(varId, request, actor.id, callerOrgId, isOrgAdmin, isAppAdmin)
+            val dto = variableService.updateVariable(
+                varId,
+                request,
+                actor.id,
+                callerOrgId,
+                isOrgAdmin,
+                isAppAdmin,
+                AdminApprovalContext(requestId = requestId),
+            )
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -147,6 +171,7 @@ class VariableDefinitionResource @Inject constructor(
         }
         catch (e: Exception)
         {
+            if (e is WebApplicationException) throw e
             logger.error("Failed to update variable {}", id, e)
             Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to update variable")).build()
         }
@@ -154,7 +179,10 @@ class VariableDefinitionResource @Inject constructor(
 
     @DELETE
     @Path("/{id}")
-    fun deleteVariable(@PathParam("id") id: String): Response
+    fun deleteVariable(
+        @PathParam("id") id: String,
+        @HeaderParam("X-Request-Id") requestId: String?,
+    ): Response
     {
         val actor = authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
@@ -169,7 +197,14 @@ class VariableDefinitionResource @Inject constructor(
 
         return try
         {
-            variableService.deleteVariable(varId, actor.id, callerOrgId, isOrgAdmin, isAppAdmin)
+            variableService.deleteVariable(
+                varId,
+                actor.id,
+                callerOrgId,
+                isOrgAdmin,
+                isAppAdmin,
+                AdminApprovalContext(requestId = requestId),
+            )
             Response.noContent().build()
         }
         catch (e: IllegalArgumentException)
@@ -182,6 +217,7 @@ class VariableDefinitionResource @Inject constructor(
         }
         catch (e: Exception)
         {
+            if (e is WebApplicationException) throw e
             logger.error("Failed to delete variable {}", id, e)
             Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to delete variable")).build()
         }
