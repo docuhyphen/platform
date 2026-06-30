@@ -152,7 +152,7 @@ const StepUpModal: React.FC = () =>
                                         }}
                                     />
                                 </Field>
-                                {info && <Text>{info}</Text>}
+                                {info && <Text className={styles.infoText}>{info}</Text>}
                             </>
                         ) : (
                             <>

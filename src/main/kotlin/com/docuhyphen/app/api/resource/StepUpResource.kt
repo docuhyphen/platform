@@ -348,8 +348,13 @@ class StepUpResource @Inject constructor(
         val cooldownUntil = mfaRecord.createdDate.toInstant().plusSeconds(resendCooldownSeconds)
         if (Instant.now().isBefore(cooldownUntil))
         {
+            val remainingSeconds = cooldownUntil.epochSecond - Instant.now().epochSecond
             return Response.status(429)
-                .entity(ResponseError("Please wait before requesting another verification code."))
+                .entity(ResponseError(
+                    errorMessage = "Please wait before requesting another verification code.",
+                    reasonCode = "OTP_RATE_LIMITED",
+                    retryAfterSeconds = remainingSeconds,
+                ))
                 .build()
         }
 
