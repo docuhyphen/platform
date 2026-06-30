@@ -61,7 +61,9 @@ Use the plural label `Integrations`.
 Place it in Settings under the `Organization` divider, immediately below `Administration` and above
 `Billing`.
 
-`Integrations` is a collapsible Settings navigation group. It is collapsed by default and contains:
+`Integrations` is a single Settings navigation item. Selecting it opens an organization Integrations
+page with a horizontal tab list, following the existing `OrganizationTab` pattern used by
+`Administration`. The page contains these tabs:
 
 1. Connected Apps
 2. API Applications
@@ -71,13 +73,13 @@ Place it in Settings under the `Organization` divider, immediately below `Admini
 Applications are the configuration ownership root. Webhooks are created and managed inside a
 specific application, for example:
 
-`Integrations > API Applications > Acme CLM > Webhooks`
+`Organization > Integrations > API Applications > Acme CLM > Webhooks`
 
-The main `Webhooks` child is an application-grouped index and navigation shortcut. It does not create
+The main `Webhooks` tab is an application-grouped index and navigation shortcut. It does not create
 an organization-wide webhook configuration model and does not allow a webhook to exist without an
 owning application.
 
-The main `Activity` child provides a combined operational view using the same integration permission
+The main `Activity` tab provides a combined operational view using the same integration permission
 boundary. Each application detail also includes its own filtered Activity view.
 
 ### A webhook is a workflow step
@@ -185,35 +187,37 @@ The implementation must account for these existing behaviors:
 
 ### Organization Settings Navigation
 
-Update `web-app/src/app/settings/Settings.tsx` and split navigation rendering into focused components:
+Update `web-app/src/app/settings/Settings.tsx` and follow the existing Administration page pattern:
 
-- Add a reusable `SettingsNavigationGroup` component with circular expand and collapse controls.
-- Add an `Integrations` group below `Administration` and above `Billing`.
-- Initialize the group as collapsed.
-- Add child tab IDs for Connected Apps, API Applications, Webhooks, and Activity.
-- Automatically expand the group when one of its children is already selected.
-- Keep the group collapsed by default for a new Settings session.
-- Preserve the same group and child behavior in the mobile Settings drawer.
-- Add integration navigation icons to `IconBundles.tsx`.
+- Add one `Integrations` navigation item below `Administration` and above `Billing`.
+- Selecting `Integrations` renders a dedicated `IntegrationsTab` page.
+- Inside that page, add a horizontal Fluent UI `TabList` with Connected Apps, API Applications,
+  Webhooks, and Activity tabs.
+- Keep the selected inner tab as page-local state, consistent with `OrganizationTab`.
+- Make the horizontal tab list responsive and usable in the mobile Settings drawer layout.
+- Add an Integrations navigation icon to `IconBundles.tsx`.
 - Replace direct role-string authorization with effective capabilities from the hardened session
   contract.
 
 The navigation order becomes:
 
 1. Administration
-2. Integrations, collapsed by default
-   1. Connected Apps
-   2. API Applications
-   3. Webhooks
-   4. Activity
+2. Integrations
 3. Billing
 
-The group is visible when the user has at least one of:
+The Integrations page tab order is:
+
+1. Connected Apps
+2. API Applications
+3. Webhooks
+4. Activity
+
+The Integrations navigation item is visible when the user has at least one of:
 
 - `INTEGRATION_VIEW`
 - `INTEGRATION_MANAGE`
 
-All integration children use the same two human-facing capability boundaries. `INTEGRATION_VIEW`
+All Integrations page tabs use the same two human-facing capability boundaries. `INTEGRATION_VIEW`
 allows navigation and redacted viewing. `INTEGRATION_MANAGE` allows configuration and operational
 actions. Hiding a control never replaces backend authorization.
 
@@ -223,6 +227,8 @@ Create:
 
 ```text
 web-app/src/app/settings/integrations-tab/
+  IntegrationsTab.tsx
+  IntegrationsTabStyles.tsx
   connected-apps-tab/
     ConnectedAppsTab.tsx
     ConnectedAppsTabStyles.tsx
@@ -257,9 +263,6 @@ web-app/src/app/settings/integrations-tab/
     WebhookEndpointEditorDialogStyles.tsx
     WebhookSecretRotationDialog.tsx
     WebhookSecretRotationDialogStyles.tsx
-web-app/src/app/settings/settings-navigation/
-  SettingsNavigationGroup.tsx
-  SettingsNavigationGroupStyles.tsx
 ```
 
 Every component must follow the repository frontend rules:
@@ -322,7 +325,7 @@ Selecting an application opens application detail with:
 Webhook creation and management occurs only inside the selected application's Webhooks tab. The
 canonical path is:
 
-`Integrations > API Applications > Acme CLM > Webhooks`
+`Organization > Integrations > API Applications > Acme CLM > Webhooks`
 
 Show:
 
@@ -366,7 +369,7 @@ failures, retries, callbacks, or referencing workflows.
 
 #### Main Webhooks index
 
-The main `Integrations > Webhooks` child groups endpoints by owning Connected App or API Application.
+The main `Organization > Integrations > Webhooks` tab groups endpoints by owning Connected App or API Application.
 It is a navigation and dependency overview, not a second configuration surface.
 
 It shows application name, endpoint count, failed delivery count, and referencing workflow count.
@@ -375,9 +378,9 @@ must first select or create an application.
 
 #### Activity
 
-`Integrations > Activity` provides an optional combined operational view across the organization's
+`Organization > Integrations > Activity` provides an optional combined operational view across the organization's
 applications. It uses the same `INTEGRATION_VIEW` and `INTEGRATION_MANAGE` checks as the rest of the
-Integrations group and does not introduce another role family.
+Integrations page and does not introduce another role family.
 
 Each application detail exposes the same delivery data pre-filtered to that application.
 
@@ -1361,12 +1364,13 @@ Exit criteria:
 
 ### Phase 5: Integrations Settings UI
 
-1. Add the collapsed-by-default Integrations navigation group.
-2. Add Connected Apps, API Applications, Webhooks, and Activity child navigation.
+1. Add the `Integrations` navigation item below Administration and above Billing.
+2. Build the Integrations page with Connected Apps, API Applications, Webhooks, and Activity tabs,
+   following the Administration page pattern.
 3. Build API application detail with Overview, Authentication, Permissions, Webhooks, and Activity.
 4. Keep webhook creation and mutation inside the owning application detail.
-5. Make the main Webhooks child an application-grouped index and shortcut only.
-6. Build the combined Activity child and application-filtered activity view from the same data.
+5. Make the main Webhooks tab an application-grouped index and shortcut only.
+6. Build the combined Activity tab and application-filtered activity view from the same data.
 7. Add responsive editors, secret rotation, verification, test delivery, and redelivery flows.
 8. Replace role-string visibility checks with `INTEGRATION_VIEW` and `INTEGRATION_MANAGE`.
 9. Add component tests.
@@ -1483,11 +1487,12 @@ Exit criteria:
 
 ### Frontend
 
-- Collapsed-by-default Integrations group placement, expansion, selection, and mobile behavior
-- Connected Apps, API Applications, Webhooks, and Activity child visibility
+- Integrations navigation item placement, selection, and mobile behavior
+- Integrations page tab selection, responsive overflow behavior, and persistence while the page is open
+- Connected Apps, API Applications, Webhooks, and Activity tab visibility
 - API application detail navigation to Overview, Authentication, Permissions, Webhooks, and Activity
 - Webhook creation available only within an owning application
-- Main Webhooks index grouped by application with no independent create path
+- Main Webhooks tab grouped by application with no independent create path
 - Applications, endpoints, and activity loading and empty states
 - One-time secret display
 - Verification, test, rotation, disablement, and redelivery dialogs
@@ -1528,13 +1533,14 @@ section, and registry size limits in `AGENTS.md`.
 
 The feature is complete only when:
 
-- Settings contains a collapsed-by-default `Integrations` group below `Administration` with Connected
-  Apps, API Applications, Webhooks, and Activity children.
+- Settings contains one `Integrations` navigation item below `Administration` and above `Billing`.
+- The Integrations page uses the same page-level tab pattern as Administration and contains Connected
+  Apps, API Applications, Webhooks, and Activity tabs.
 - Webhooks are owned and configured through a specific application, such as
-  `Integrations > API Applications > Acme CLM > Webhooks`.
-- The main Webhooks child is an application-grouped index and does not create a second webhook
+  `Organization > Integrations > API Applications > Acme CLM > Webhooks`.
+- The main Webhooks tab is an application-grouped index and does not create a second webhook
   configuration model.
-- Application detail includes webhook activity, while the main Activity child provides a combined
+- Application detail includes webhook activity, while the main Activity tab provides a combined
   view under the same integration permission boundary.
 - Registered applications are first-class, organization-scoped machine principals.
 - Every application-initiated Exchange has an active human `OWNER`.
