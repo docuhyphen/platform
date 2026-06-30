@@ -117,7 +117,7 @@ const ExchangeWorkflowTab = ({ exchange }: Props) =>
         return (
             <div id="exchange-workflow-tab-empty"
                  className={styles.emptyCard}>
-                <Text>This exchange does not require workflow approval.</Text>
+                <Text>This exchange does not require any workflows.</Text>
             </div>
         );
     }
