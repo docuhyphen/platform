@@ -1,559 +1,705 @@
-# Fields / Metadata Layer — Implementation Guide (v3)
-
-## BEFORE YOU START
-
-**Read `AGENTS.md` before writing a single line of code.**
-It contains project conventions, commit rules, and coding standards that all implementations must follow.
-
-**Do NOT create any pull requests at any point during this implementation.**
-Implement all phases directly on the working branch. No PR, no draft PR, no branch push.
-
-**Migration versions:** This plan uses V19, V20, V21. A JSON-to-table normalization pass
-already consumed V16 (drop `communication.channel_overrides_json`), V17 (workflow
-`workflow_step_assignee` + `workflow_step_decision`), and V18 (blueprint
-`blueprint_document_default` + `blueprint_participant_default`). Confirm the latest applied
-migration before creating new files and bump if needed.
-
----
-
-## Context
-
-Exchanges currently have only fixed metadata (name, description, status, dates, documents, permissions).
-There is no configurable metadata system and no way to filter which workflows apply to which exchanges —
-all active workflows for an org fire on every matching trigger event.
-
-This feature introduces **Fields** as a first-class domain capability:
-1. **Classification** — structured metadata on exchanges (Category, Highly Sensitive, etc.)
-2. **Workflow gating** — pre-execution filter so a workflow only fires when its field conditions match
-3. **Blueprint defaults** — blueprints pre-populate field values at exchange creation time
-
-This is the **v3 rearchitected** plan. Major structural decisions are taken now because the platform is
-pre-production — proper normalized tables over JSON blobs, typed value storage, and future-proofed
-workflow condition grouping.
-
----
-
-## Architectural Decisions (Final)
-
-| Decision | Approach | Why |
-|---|---|---|
-| `FieldDefinition.key` | Immutable slug, `UNIQUE(scope_type, scope_org_id, key)` | Stable token for snapshot injection (`fields.<key>`); matches `VariableDefinition`/`SequenceDefinition` pattern |
-| `ExchangeFieldValue` storage | Multi-column typed: `text_value`, `bool_value`, `json_value` | Direct SQL search, no JSON parsing on read, type safety |
-| CHECKLIST persistence | Separate `exchange_checklist_item_value` table with `checked_by`, `checked_at` | Checklist implies per-item auditability — fundamentally different from MULTISELECT |
-| Blueprint defaults | Separate `blueprint_field_default` table — NOT in `configJson` | FK integrity, queryable, cascade delete, no JSON parsing |
-| Workflow conditions | `workflow_condition_group` (OR-ed) + `workflow_field_condition` (AND-ed within group) | Future-proofs `(A AND B) OR (C AND D)`; v1 creates one AND group, no UI change needed |
-| Workflow filter timing | Pre-execution — filter BEFORE instance creation | Avoids orphan `WorkflowInstance` rows for non-matching workflows |
-| Snapshot injection | Flat `"fields.<key>" → value` in existing `subjectData Map<String, String>` | Compatible with existing predicate evaluator — nested JSON would break it |
-| Guest visibility | Filter `INTERNAL` fields in `toNoAuthDto()` transformer | Server-enforced; follows existing endpoint-separation pattern |
-| Settings tab gating | Tab always visible; backend enforces 403 for non-admin mutations | Consistent with all other Settings tabs — no frontend tab hiding |
-| `required_from` timestamp | On `FieldDefinition` | Validation only applies to exchanges created after this timestamp; existing exchanges stay valid |
-
-**Codebase patterns this reuses (verified):**
-- Sub-entity validation before main entity save → `ExchangeInitiationService.initiateExchange()`
-- `@OneToMany(cascade = [CascadeType.ALL])` sub-entity save → `Exchange.documents` in `Exchange.kt`
-- Discrete junction entity (not `@ManyToMany`) → `PrincipalGroupMember.kt`
-- Domain event publishing → `@Inject DomainEventPublisher` in `ExchangeAutoAcceptActionHandler.kt`
-- Immutable `key` slug → `VariableDefinition.kt`, `SequenceDefinition.kt`
-- Standalone child entity persisted via repository (Phase 3 blueprint defaults) → `BlueprintDocumentDefault.kt` + `persistDocuments`/`loadDocuments` in `BlueprintDefinitionService.kt`
-
-**Integration points confirmed against current code (re-verify before implementing):**
-- `ExchangeInitiationService.initiateExchange(dto: ExchangeInitiationDto)` exists and calls
-  `workflowEngineService.trigger(TriggerRequest(... subjectData = buildMap { ... }))` at **three**
-  sites (draft / acceptance / ending). Merge `getValuesAsSubjectDataMap(...)` into the `subjectData`
-  map at **each** of those call sites.
-- Guest visibility: `BasicEntityToDtoTransformer.toNoAuthDto(exchange)` returns the separate
-  `NoAuthExchangeBasicDto`. "Strip INTERNAL fields" means: only populate SHARED field values when
-  building the no-auth DTO. The full `exchangeFields` block goes on `ExchangeDetailedDto`
-  (populated in `ExchangeRetrievalService`) for authenticated views.
-- `Settings.tsx` registers a tab in four places: the `tabIds` object, the label map, the `<Tab>`
-  list, and the render switch. Add the Fields tab to all four, after Variables.
-- UUID DDL convention: existing migrations (V14, V17, V18) supply the `id` from the entity
-  (`UUID.randomUUID()`) and omit a column default. The `DEFAULT gen_random_uuid()` in this plan's
-  DDL is harmless on PostgreSQL 15 but inconsistent with that convention — entities must still
-  assign their own `id` regardless. Drop the default for consistency if preferred.
-
----
-
-## Delivery: 3 Phases
-
----
-
-## Phase 1 — Core Fields: Schema, Backend, Exchange UI, Settings Admin
-
-### V19 Migration: `V19__exchange_fields.sql`
-
-**`exchange_field_definition`**
-```sql
-CREATE TABLE exchange_field_definition (
-    id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    key                     VARCHAR(64)  NOT NULL,
-    name                    VARCHAR(255) NOT NULL,
-    description             TEXT,
-    field_type              VARCHAR(20)  NOT NULL,
-      -- TEXT | TEXTAREA | CHECKBOX | SELECT | MULTISELECT | CHECKLIST
-    scope_type              VARCHAR(10)  NOT NULL DEFAULT 'ORG',
-      -- PLATFORM | ORG
-    scope_org_id            UUID REFERENCES organization(id),
-    visibility              VARCHAR(20)  NOT NULL DEFAULT 'INTERNAL',
-      -- INTERNAL | SHARED
-    required                BOOLEAN      NOT NULL DEFAULT false,
-    required_from           TIMESTAMP,
-    special_behavior        VARCHAR(30)  NOT NULL DEFAULT 'NONE',
-      -- NONE | SENSITIVE_FLAG
-    display_order           INTEGER      NOT NULL DEFAULT 0,
-    active                  BOOLEAN      NOT NULL DEFAULT true,
-    is_default              BOOLEAN      NOT NULL DEFAULT false,
-    created_by_app_user_id  UUID REFERENCES app_user(id),
-    created_at              TIMESTAMP    NOT NULL DEFAULT NOW(),
-    updated_at              TIMESTAMP    NOT NULL DEFAULT NOW(),
-    CONSTRAINT uq_field_key UNIQUE (scope_type, scope_org_id, key)
-);
-```
-
-**`exchange_field_option`** (SELECT, MULTISELECT, CHECKLIST)
-```sql
-CREATE TABLE exchange_field_option (
-    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    field_id      UUID         NOT NULL REFERENCES exchange_field_definition(id),
-    value         VARCHAR(100) NOT NULL,
-    display_name  VARCHAR(255) NOT NULL,
-    display_order INTEGER      NOT NULL DEFAULT 0,
-    active        BOOLEAN      NOT NULL DEFAULT true
-);
-```
-
-**`exchange_field_value`** — TEXT, TEXTAREA, SELECT, MULTISELECT, CHECKBOX (CHECKLIST uses its own table)
-```sql
-CREATE TABLE exchange_field_value (
-    id                      UUID      PRIMARY KEY DEFAULT gen_random_uuid(),
-    exchange_id             UUID      NOT NULL REFERENCES exchange(id),
-    field_definition_id     UUID      NOT NULL REFERENCES exchange_field_definition(id),
-    text_value              VARCHAR(5000),   -- TEXT, TEXTAREA, SELECT
-    bool_value              BOOLEAN,         -- CHECKBOX
-    json_value              TEXT,            -- MULTISELECT: '["legal","hr"]'
-    updated_by_app_user_id  UUID REFERENCES app_user(id),
-    created_at              TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at              TIMESTAMP NOT NULL DEFAULT NOW(),
-    CONSTRAINT uq_exchange_field UNIQUE (exchange_id, field_definition_id)
-);
-```
-
-Storage mapping per type:
-- TEXT / TEXTAREA / SELECT → `text_value`
-- CHECKBOX → `bool_value`
-- MULTISELECT → `json_value` (JSON array of option values)
-- CHECKLIST → **does not use this table** (see below)
-
-**`exchange_checklist_item_value`** — CHECKLIST fields only
-```sql
-CREATE TABLE exchange_checklist_item_value (
-    exchange_id             UUID      NOT NULL REFERENCES exchange(id),
-    field_definition_id     UUID      NOT NULL REFERENCES exchange_field_definition(id),
-    option_id               UUID      NOT NULL REFERENCES exchange_field_option(id),
-    checked                 BOOLEAN   NOT NULL DEFAULT false,
-    checked_by_app_user_id  UUID REFERENCES app_user(id),
-    checked_at              TIMESTAMP,
-    updated_at              TIMESTAMP NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (exchange_id, field_definition_id, option_id)
-);
-```
-
-**Seed data — platform default fields**
-```sql
-INSERT INTO exchange_field_definition
-    (id, key, name, description, field_type, scope_type, visibility,
-     required, special_behavior, display_order, active, is_default)
-VALUES (
-    '00000000-0000-0000-0000-000000000010',
-    'highly_sensitive', 'Highly Sensitive',
-    'Marks this exchange as containing highly sensitive information',
-    'CHECKBOX', 'PLATFORM', 'SHARED', false, 'SENSITIVE_FLAG', 0, true, true
-), (
-    '00000000-0000-0000-0000-000000000011',
-    'category', 'Category',
-    'The category or nature of this exchange',
-    'SELECT', 'PLATFORM', 'SHARED', false, 'NONE', 1, true, true
-);
-
-INSERT INTO exchange_field_option (field_id, value, display_name, display_order) VALUES
-    ('00000000-0000-0000-0000-000000000011', 'legal',      'Legal',      0),
-    ('00000000-0000-0000-0000-000000000011', 'finance',    'Finance',    1),
-    ('00000000-0000-0000-0000-000000000011', 'hr',         'HR',         2),
-    ('00000000-0000-0000-0000-000000000011', 'compliance', 'Compliance', 3),
-    ('00000000-0000-0000-0000-000000000011', 'operations', 'Operations', 4),
-    ('00000000-0000-0000-0000-000000000011', 'other',      'Other',      5);
-```
-
----
-
-### Backend — Phase 1
-
-**New entities** (`src/main/kotlin/.../model/entity/`):
-- `ExchangeFieldDefinition.kt` — Kotlin enums `FieldType`, `ScopeType`, `FieldVisibility`, `SpecialBehavior`; `@OneToMany(cascade = [CascadeType.ALL])` to `ExchangeFieldOption`
-- `ExchangeFieldOption.kt` — `@ManyToOne` to `ExchangeFieldDefinition`
-- `ExchangeFieldValue.kt` — typed columns `textValue`, `boolValue`, `jsonValue`; `@ManyToOne` to `ExchangeFieldDefinition`
-- `ExchangeChecklistItemValue.kt` — composite PK `(exchangeId, fieldDefinitionId, optionId)`; `checkedByAppUserId`, `checkedAt`
-
-**New repositories**:
-- `ExchangeFieldDefinitionRepository` — `findApplicableForOrg(orgId)`, `findAdminListForOrg(orgId)`, `findByKey(scopeType, orgId, key)`
-- `ExchangeFieldOptionRepository` — `findAllActiveByFieldId(fieldId)`
-- `ExchangeFieldValueRepository` — `findAllByExchangeId(exchangeId)`, `findByExchangeIdAndFieldDefinitionId(...)`
-- `ExchangeChecklistItemValueRepository` — `findAllByExchangeId(exchangeId)`, `findAllByExchangeIdAndFieldDefinitionId(...)`
-
-**New service `ExchangeFieldDefinitionService`**:
-- `listApplicable(orgId)` → applicable definitions ordered by `display_order`
-- `listForAdmin(orgId)` → includes inactive; PLATFORM rows flagged read-only
-- `create(orgId, adminUserId, request)` — org admin only; key set once, never updated; PLATFORM-scope → 403
-- `update(orgId, id, request)` — org admin only; key excluded from update path; PLATFORM-scope → 403
-- `toggleActive(orgId, id)` — org admin only; PLATFORM-scope → 403
-- `reorder(orgId, orderedIds)` — ORG-scope only
-
-**New service `ExchangeFieldValueService`**:
-- `saveValues(exchangeId, orgId, callerUserId, request: ExchangeFieldValueRequest)`:
-  - TEXT/TEXTAREA/SELECT/MULTISELECT/CHECKBOX → upsert `exchange_field_value` typed column
-  - CHECKLIST → upsert rows in `exchange_checklist_item_value`; set `checked_by_app_user_id` + `checked_at` on each item transitioning to checked
-  - Validation: SELECT value is active option; MULTISELECT all values are active options; CHECKLIST all option_ids are active options; CHECKBOX bool; TEXT ≤500 chars; TEXTAREA ≤5000 chars; deactivated option values rejected on new saves
-- `getValues(exchangeId)` → `ExchangeFieldValuesDto` containing:
-  - `fieldValues: List<ExchangeFieldValueDto>` — typed values per non-CHECKLIST field
-  - `checklistValues: List<ExchangeChecklistFieldDto>` — per-item state with `checkedBy`, `checkedAt`
-- `getValuesAsSubjectDataMap(exchangeId)` → `Map<String, String>` for workflow snapshot:
-  - TEXT/TEXTAREA/SELECT: `"fields.<key>"` → `text_value`
-  - CHECKBOX: `"fields.<key>"` → `"true"`/`"false"`
-  - MULTISELECT: `"fields.<key>"` → raw `json_value`
-  - CHECKLIST: `"fields.<key>"` → JSON array of checked option values only
-- `validateRequired(orgId, submittedFieldIds, now)` — throws `IllegalArgumentException` naming any required field (where `required_from IS NULL OR required_from ≤ now`) missing from submitted data
-
-**Changes to `ExchangeInitiationDto`** — add `fieldValues: ExchangeFieldValueRequest? = null` (typed maps per field type, not raw JSON strings)
-
-**Changes to `ExchangeInitiationService.initiateExchange()`** — follow existing validate-before-save pattern:
-1. Before exchange save: `exchangeFieldValueService.validateRequired(orgId, request.fieldValues, Instant.now())`
-2. After `savedExchange` persisted: `exchangeFieldValueService.saveValues(savedExchange.id, orgId, callerId, request.fieldValues)`
-3. Before each `workflowEngineService.trigger(...)`: merge `getValuesAsSubjectDataMap(savedExchange.id)` into `subjectData`
-
-**Changes to `ExchangeDetailedDto`** — add `exchangeFields: ExchangeFieldValuesDto`, populated in `ExchangeRetrievalService`
-
-**Changes to `BasicEntityToDtoTransformer.toNoAuthDto()`** — strip any field where `visibility == INTERNAL` (guest/magic-link safety, server-enforced)
-
-**New REST resource `ExchangeFieldDefinitionResource`** at `/field-definitions`:
-```
-GET    /field-definitions              → list applicable for caller's org
-GET    /field-definitions/admin        → admin list incl. inactive [org admin]
-POST   /field-definitions              → create [org admin]
-PUT    /field-definitions/{id}         → update [org admin; PLATFORM → 403]
-PATCH  /field-definitions/{id}/active  → toggle active [org admin; PLATFORM → 403]
-PUT    /field-definitions/reorder      → reorder [org admin]
-```
-
-**Audit events** — emit via `DomainEventPublisher` (pattern: `ExchangeAutoAcceptActionHandler`):
-- `field_definition.created` / `field_definition.updated` / `field_definition.deactivated`
-- `exchange.field_value_changed` — payload `fieldKey`, `beforeValue`, `afterValue`
-- CHECKLIST: `exchange.checklist_item_checked` / `exchange.checklist_item_unchecked` — payload `fieldKey`, `optionValue`, `checkedBy`
-
----
-
-### Frontend — Phase 1
-
-**New file `web-app/src/app/exchange-initiation/fieldConstants.ts`**:
-```ts
-export const HIGHLY_SENSITIVE_FIELD_ID = '00000000-0000-0000-0000-000000000010';
-export const CATEGORY_FIELD_ID         = '00000000-0000-0000-0000-000000000011';
-```
-
-**State additions in `useExchangeInitiatingState.ts`**:
-```ts
-fieldValues: ExchangeFieldValueDraft       // typed, not raw JSON strings
-setFieldValues: (v: ExchangeFieldValueDraft) => void
-```
-Reset to `{}` in `resetInitiationForm()`.
-
-**New shared component `web-app/src/app/fields/FieldValueInput.tsx`** — reused across exchange creation, exchange details (edit), and workflow condition builder:
-- TEXT → `<Input>`, TEXTAREA → `<Textarea>`, CHECKBOX → `<Checkbox>`
-- SELECT → `<Dropdown>` from options
-- MULTISELECT → grouped `<Checkbox>` list or `<TagPicker>`
-- CHECKLIST → list of `<Checkbox>` items; compact mode hides audit info, full mode shows `checkedBy`/`checkedAt`
-
-**New component `.../exchange-initiation-fields-tab/ExchangeInitiationFieldsTab.tsx`**:
-- PLATFORM-scope definitions first, then ORG-scope
-- Required fields: red asterisk; INTERNAL fields: lock icon + "(Only visible to your organization)"
-- Uses `FieldValueInput` for each definition
-
-**`ExchangeInitiationDialogTitleSection.tsx`** — add `fields-tab` as 5th tab (`TagMultipleRegular` icon)
-
-**`ExchangeInitiation.tsx`**:
-- Load `GET /field-definitions` on dialog open
-- Add `fields-tab` render branch
-- `onInitiateExchange()`: validate required → `setSelectedTab('fields-tab')` on error
-- Blueprint selection: populate field defaults from `blueprint.fieldDefaults` (Phase 3 wires this; in Phase 1 leave a hook)
-
-**`ExchangeDetailsTab.tsx`** — add "Fields" section:
-- Non-CHECKLIST: badge pills (SELECT/MULTISELECT), checkmark (CHECKBOX), plain text (TEXT/TEXTAREA)
-- CHECKLIST: compact checklist; click reveals `checkedBy`/`checkedAt`
-- INTERNAL fields: `(Internal)` label; absent from guest view (server-filtered)
-
-**`ExchangeDetailsHeader.tsx`** — Highly Sensitive treatment:
-- `exchangeFields.fieldValues.find(fv => fv.fieldDefinitionId === HIGHLY_SENSITIVE_FIELD_ID && fv.boolValue === true)`
-- If true: `<MessageBar intent="warning">` + `<ShieldRegular />` badge beside exchange name
-
-**New settings directory `web-app/src/app/settings/fields-tab/`**:
-- `FieldsTab.tsx`, `FieldsTabStyles.tsx` — PLATFORM section read-only; ORG section editable (Edit / Deactivate / drag-reorder)
-- `FieldDefinitionDialog.tsx` — Key required on create, read-only on edit; option list editor for SELECT/MULTISELECT/CHECKLIST; Required + optional `required_from`; Visibility toggle
-- Register "Fields" tab in `Settings.tsx` after Variables — always visible; mutations 403 for non-admins
-
----
-
-### After completing Phase 1 — UPDATE THIS FILE
-- Mark Phase 1 complete with date
-- Note any deviations from the plan
-- Note any files created not listed here
-- Confirm 4 tables + seed data created
-
----
-
-## Phase 2 — Workflow Field Conditions + Engine Refactor
-
-### V20 Migration: `V20__workflow_field_conditions.sql`
-```sql
-CREATE TABLE workflow_condition_group (
-    id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workflow_definition_id  UUID NOT NULL REFERENCES workflow_definition(id),
-    group_order             INTEGER NOT NULL DEFAULT 0,
-    created_at              TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE workflow_field_condition (
-    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    condition_group_id  UUID NOT NULL REFERENCES workflow_condition_group(id),
-    field_definition_id UUID NOT NULL REFERENCES exchange_field_definition(id),
-    operator            VARCHAR(20) NOT NULL,
-      -- EQUALS | NOT_EQUALS | IS_TRUE | IS_FALSE
-      -- CONTAINS | NOT_CONTAINS | ANY_SELECTED | ALL_SELECTED
-    expected_value      TEXT,   -- null for IS_TRUE / IS_FALSE
-    created_at          TIMESTAMP NOT NULL DEFAULT NOW()
-);
-```
-
-**Evaluation semantics:**
-- Groups are **OR-ed**; conditions within a group are **AND-ed**
-- V1 UI creates exactly one group per workflow (AND-only, same behavior as today)
-- Future UI can add multiple groups for `(A AND B) OR (C AND D)`
-
----
-
-### Backend — Phase 2
-
-**New entities**: `WorkflowConditionGroup` (`@ManyToOne` to `WorkflowDefinition`), `WorkflowFieldCondition` (`@ManyToOne` to group + `ExchangeFieldDefinition`)
-
-**New repositories**:
-- `WorkflowConditionGroupRepository` — `findAllByWorkflowDefinitionId(...)`, `deleteAllByWorkflowDefinitionId(...)`
-- `WorkflowFieldConditionRepository` — `findAllByConditionGroupId(groupId)`
-
-**`WorkflowDefinitionService`** — create/update: delete + re-insert all groups and conditions (simple replace)
-
-**`DefaultWorkflowEngineService.trigger()` — refactored flow**:
-```
-findAllActiveForTrigger(event, orgId)
-  → filterByFieldConditions(definitions, request.subjectData)   ← NEW
-    → for each passing definition → createInstance → createStep → activateStep
-```
-```kotlin
-private fun filterByFieldConditions(
-    definitions: List<WorkflowDefinition>,
-    subjectData: Map<String, String>
-): List<WorkflowDefinition> = definitions.filter { definition ->
-    val groups = conditionGroupRepo.findAllByWorkflowDefinitionId(definition.id)
-    if (groups.isEmpty()) return@filter true  // no conditions = triggers all
-    groups.sortedBy { it.groupOrder }.any { group ->          // OR across groups
-        conditionRepo.findAllByConditionGroupId(group.id).all { condition ->  // AND within group
-            val actual = subjectData["fields.${condition.fieldDefinition.key}"]
-            evaluateFieldCondition(condition.operator, actual, condition.expectedValue)
-        }
-    }
-}
-
-private fun evaluateFieldCondition(operator: String, actual: String?, expected: String?): Boolean =
-    when (operator) {
-        "EQUALS"       -> actual == expected
-        "NOT_EQUALS"   -> actual != expected
-        "IS_TRUE"      -> actual == "true"
-        "IS_FALSE"     -> actual == "false" || actual == null
-        "CONTAINS"     -> actual != null && expected != null && actual.contains(expected)
-        "NOT_CONTAINS" -> actual == null || expected == null || !actual.contains(expected)
-        "ANY_SELECTED" -> actual != null && expected != null && parseJsonArray(actual).contains(expected)
-        "ALL_SELECTED" -> expected != null && parseJsonArray(expected).all { e ->
-                              parseJsonArray(actual ?: "[]").contains(e)
-                          }
-        else           -> false
-    }
-```
-The filter reads only from `request.subjectData` (already enriched with `"fields.<key>"` by `ExchangeInitiationService` in Phase 1). The engine stays decoupled from `ExchangeFieldValueService`.
-
-> Integration note: `trigger()` was refactored during the JSON-normalization pass into
-> `trigger()` (loads definitions, loops) + `triggerOne(definition, request)`. Insert
-> `filterByFieldConditions(...)` in `trigger()` right after `findAllActiveForTrigger(...)` and
-> loop `triggerOne` over the filtered list. Inject `conditionGroupRepo` / `conditionRepo`
-> alongside the existing `assigneeRepository` / `decisionRepository` injections.
-
-**`WorkflowDefinitionDto`** — add `conditionGroups: List<WorkflowConditionGroupDto>`:
-```kotlin
-data class WorkflowConditionGroupDto(
-    val id: UUID, val groupOrder: Int,
-    val conditions: List<WorkflowFieldConditionDto>
-)
-data class WorkflowFieldConditionDto(
-    val id: UUID, val fieldDefinitionId: UUID,
-    val fieldKey: String, val fieldName: String,   // denormalized for display
-    val operator: String, val expectedValue: String?
-)
-```
-
-**`WorkflowDefinitionResource`** — include `conditionGroups` in GET; accept in POST/PUT
-
----
-
-### Frontend — Phase 2
-
-**`WorkflowDesigner.tsx`** — "Field Conditions" section between Trigger Event and Steps:
-- Label: **"Apply only when conditions match"**; V1 renders a single AND group as a flat list with `+` Add Condition
-- Operators filtered by field type (CHECKBOX → IS_TRUE/IS_FALSE; SELECT → EQUALS/NOT_EQUALS; MULTISELECT/CHECKLIST → ANY_SELECTED/ALL_SELECTED; TEXT/TEXTAREA → EQUALS/NOT_EQUALS/CONTAINS/NOT_CONTAINS)
-- Reuses `FieldValueInput` (compact; hidden for IS_TRUE/IS_FALSE); "AND" visual separator between rows
-- State: `conditionGroups: WorkflowConditionGroupDraft[]` in `WorkflowDesignerState`
-
-**`WorkflowsListView.tsx`** — badge "N field conditions" when conditions exist
-
----
-
-### After completing Phase 2 — UPDATE THIS FILE
-- Mark Phase 2 complete with date
-- Note deviations
-- Confirm regression: no-condition workflows still trigger on all exchanges
-
----
-
-## Phase 3 — Blueprint Field Defaults (Separate Table)
-
-### V21 Migration: `V21__blueprint_field_defaults.sql`
-```sql
-CREATE TABLE blueprint_field_default (
-    id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    blueprint_definition_id UUID NOT NULL REFERENCES blueprint_definition(id),
-    field_definition_id     UUID NOT NULL REFERENCES exchange_field_definition(id),
-    text_value              VARCHAR(5000),   -- TEXT, TEXTAREA, SELECT
-    bool_value              BOOLEAN,         -- CHECKBOX
-    json_value              TEXT,            -- MULTISELECT: '["legal","hr"]'
-                                             -- CHECKLIST: '["opt1","opt3"]' (pre-checked option values)
-    display_order           INTEGER NOT NULL DEFAULT 0,
-    CONSTRAINT uq_blueprint_field UNIQUE (blueprint_definition_id, field_definition_id)
-);
-```
-CHECKLIST defaults store pre-checked option `value` strings in `json_value`. No `checked_by`/`checked_at` — those only apply to live exchanges.
-
----
-
-### Backend — Phase 3
-
-**Follow the exact pattern already established in V18 for `blueprint_document_default` /
-`blueprint_participant_default`** (see `BlueprintDefinitionService.kt`). Blueprint child
-collections are NOT JPA `@OneToMany` cascades — they are standalone entities persisted
-explicitly through their repository. Mirror that, do not invent a new approach.
-
-- **New entity `BlueprintFieldDefault.kt`** — standalone `@Entity` with `blueprintDefinitionId: UUID`, `fieldDefinitionId: UUID`, typed `textValue`/`boolValue`/`jsonValue`, `displayOrder`. (Mirror `BlueprintDocumentDefault.kt`.)
-- **New repository `BlueprintFieldDefaultRepository`** — `findAllByBlueprintDefinitionId(...)` (ordered by `display_order`) + `deleteAllByBlueprintDefinitionId(...)`. (Mirror `BlueprintDocumentDefaultRepository`.)
-- **`BlueprintDefinitionService`** — inject the new repo; add private helpers mirroring the existing ones:
-  - `persistFieldDefaults(blueprintId, defaults)` — delete-then-insert (like `persistDocuments`)
-  - `loadFieldDefaults(blueprintId)` — map rows to `BlueprintFieldDefaultDto` (like `loadDocuments`)
-  - `createBlueprint` → call `persistFieldDefaults(bp.id, request.fieldDefaults)`
-  - `updateBlueprint` → `request.fieldDefaults?.let { persistFieldDefaults(bp.id, it) }`
-  - `cloneBlueprint` → extend `copyChildren(sourceId, targetId)` to also copy field-default rows
-  - `toDto` → add `fieldDefaults = loadFieldDefaults(id)`
-- **`BlueprintDtos.kt`** — add `fieldDefaults: List<BlueprintFieldDefaultDto>` to `BlueprintDefinitionDto`; add `fieldDefaults` to `CreateBlueprintRequest` (default `emptyList()`) and `UpdateBlueprintRequest` (nullable; null = leave unchanged). `BlueprintConfigJson` already holds scalars only — do NOT add field data to it.
-
----
-
-### Frontend — Phase 3
-
-Mirror how `exchangeDocuments` / `participants` are already wired as typed arrays (the V18
-refactor), not the old configJson route.
-
-- **`models.tsx`** — add `fieldDefaults: BlueprintFieldDefaultDto[]` to `BlueprintDefinitionSummaryDto`; add `fieldDefaults?: BlueprintFieldDefaultDto[]` to `CreateBlueprintRequest` and `UpdateBlueprintRequest`. (Sits beside the existing `exchangeDocuments` / `participants` arrays.)
-- **`ExchangeInitiation.tsx` — `handleBlueprintSelect`** — read `blueprint.fieldDefaults` from the DTO (like `blueprint.exchangeDocuments` today); map into typed `fieldValues` state. `buildBlueprintConfigJson` stays scalars-only (field defaults are passed separately, like `buildBlueprintDocuments()`).
-- **`SaveBlueprintDialog.tsx`** — add a `fieldDefaults` prop and include it in the create request (mirror the `exchangeDocuments` / `participants` props added in V18).
-- **`BlueprintPicker.tsx`** — render badge pills from `blueprint.fieldDefaults`:
-  - CHECKBOX `SENSITIVE_FLAG` + `boolValue === true` → `<ShieldRegular />` "Highly Sensitive"
-  - SELECT → `textValue` resolved to option `display_name` via embedded definition
-  - MULTISELECT/CHECKLIST → count badge e.g. "2 items"
-- **`settings/templates-tab/BlueprintEditorDialog.tsx`** — add a "Field Defaults" section in a new editor tab. Hold defaults in dedicated `fieldDefaults` state (mirror the `documents` state pattern), load from `blueprint.fieldDefaults` on open, send as `req.fieldDefaults` on save. Use `FieldValueInput` (compact) per picked field definition.
-
----
-
-### After completing Phase 3 — UPDATE THIS FILE
-- Mark Phase 3 complete with date
-- Note deviations
-- Confirm field defaults survive create → save → select cycle
-
----
-
-## Cross-Cutting Concerns
-
-### Search & Reporting (forward compatibility)
-Typed columns enable direct SQL without JSON parsing:
-```sql
-SELECT e.* FROM exchange e
-JOIN exchange_field_value v ON v.exchange_id = e.id
-JOIN exchange_field_definition d ON d.id = v.field_definition_id
-WHERE d.key = 'category' AND v.text_value = 'legal';
-```
-MULTISELECT containment: `v.json_value::jsonb @> '["hr"]'` (add GIN index when reporting scales). No schema change needed.
-
-### Migration Strategy
-Platform is pre-production — no data migration, only forward additive schema.
-Per phase: apply Flyway migration → deploy backend (new endpoints, existing unchanged) → deploy frontend (new tab only).
-**Backward compatibility:** workflows with no condition groups continue triggering on all exchanges — zero behavior change.
-
----
-
-## FINAL VALIDATION — After All 3 Phases Are Complete
-
-**1. Read `AGENTS.md` again.** Confirm the implementation follows every convention it defines.
-
-**2. Read this file (`FIELDS-FEATURE.md`) again top to bottom.** Walk through every bullet in every phase and confirm it was implemented.
-
-**3. Run the verification checklist below.**
-
----
-
-### Verification Checklist
-
-**Phase 1 — Core Fields:**
-- [ ] 4 tables created + seed rows for `highly_sensitive` and `category` present
-- [ ] `GET /field-definitions` returns both platform defaults for any org member
-- [ ] Org admin creates a required TEXT field; non-admin `POST /field-definitions` → 403
-- [ ] PLATFORM-scope field `PUT`/`PATCH` → 403
-- [ ] Exchange creation: missing required field → 400 naming the field; UI navigates to Fields tab
-- [ ] Category = Legal + Highly Sensitive = true saved and returned in `exchangeFields`
-- [ ] CHECKLIST: checking an item writes `checked_by` + `checked_at` in `exchange_checklist_item_value`
-- [ ] Highly Sensitive = true → warning banner and shield badge in exchange header
-- [ ] Guest/magic-link access → response contains NO `INTERNAL` field values
-- [ ] Settings → Fields tab visible to all; PLATFORM rows read-only, ORG rows editable
-
-**Phase 2 — Workflow Conditions:**
-- [ ] 2 tables created: `workflow_condition_group`, `workflow_field_condition`
-- [ ] Workflow with no groups → triggers on all exchanges (regression)
-- [ ] Condition Category EQUALS `"legal"` → no instance for Finance exchange
-- [ ] Condition Category EQUALS `"legal"` → instance created for Legal exchange
-- [ ] Two conditions in one group (AND) → both must match to trigger
-- [ ] Designer saves, reloads, deletes conditions correctly; list card shows condition-count badge
-
-**Phase 3 — Blueprint Defaults:**
-- [ ] `blueprint_field_default` table created
-- [ ] Blueprint with Category = Legal + Highly Sensitive saved with field defaults
-- [ ] Blueprint picker card shows "Legal" badge and Highly Sensitive shield
-- [ ] Selecting blueprint pre-populates Fields tab (typed values, not configJson)
-- [ ] User can override field defaults before submitting exchange
-
-**Final integrity:**
-- [ ] `AGENTS.md` re-read; all conventions followed
-- [ ] All new entities follow existing naming/package conventions
-- [ ] All migrations are additive only (no column drops, no data loss)
-- [ ] `npx tsc --noEmit` passes (vite build uses esbuild and does NOT type-check) AND `vite build` succeeds
-- [ ] Backend compiles (`./mvnw -o compile`) and Flyway migrations apply against PostgreSQL 15 (Hibernate runs in `validate` mode — entity/column mismatches fail at boot)
-- [ ] Existing workflow behavior unchanged (no-condition workflows still fire)
+# Configurable Fields and Business Schema Engine Architecture
+
+## Document Purpose
+
+This document defines the architectural direction for configurable Fields in DocuHyphen. The goal is
+not to build an insurance, lending, vehicle-finance, legal, or any other industry-specific domain
+model into the platform. The goal is to give each organization a safe way to describe its own
+business concepts and use them consistently in Exchanges, Blueprints, Workflows, search, reporting,
+and governance.
+
+This is an architecture document, not an implementation plan. It deliberately distinguishes:
+
+- Foundations that should be designed correctly in the first release.
+- Capabilities that may be implemented incrementally.
+- Enterprise capabilities that are deferred but must remain possible without replacing the engine.
+
+## Intended Outcome
+
+An Exchange can act as a generic business work item. A configured schema gives that work item its
+business meaning.
+
+Examples include:
+
+- An insurer configures a Claim Case schema with Policy Number, Claim Type, Loss Date, Broker,
+  Estimated Loss, and Fraud Indicator.
+- A lender configures a Loan Application schema with Application Number, Product, Requested Amount,
+  Affordability Outcome, and Credit Decision.
+- A vehicle-finance business configures a Vehicle Finance Case schema with Dealer, Vehicle VIN,
+  Settlement Amount, Contract Number, and Case Type.
+- A legal team configures a Matter schema with Matter Number, Practice Area, Client, Jurisdiction,
+  and Confidentiality Level.
+
+These are configurations, not Kotlin entities. DocuHyphen continues to own the document exchange,
+workflow, sharing, audit, and collaboration lifecycle while customers define the business language
+that surrounds that lifecycle.
+
+## Architectural Correction
+
+The engine should not be designed as a collection of independent custom fields attached directly to
+resources. That model works for labels and filters, but becomes fragile when Fields are used as a
+configurable business schema.
+
+The durable abstraction is:
+
+1. A governance Scope owns configuration.
+2. A Schema describes a business concept for a resource type.
+3. A versioned Schema composes reusable Field Definitions.
+4. A Schema Assignment records which schema version governs a resource.
+5. Field Values store typed data against that assignment.
+6. Workflows and Blueprints reference stable schema and field identities.
+
+This separation is the main requirement for future enterprise support.
+
+## Design Principles
+
+### Configuration Over Industry Code
+
+Industry concepts must be created through configuration. The core platform must not contain
+industry-specific branches or fixed Claim, Policy, Loan, and Vehicle Finance entities.
+
+### Stable Identity Over Display Names
+
+Names and labels may change. References used by workflows, integrations, reports, and stored values
+must use immutable identifiers and stable namespaced keys.
+
+### Published Configuration Is Immutable
+
+Changing a schema that is already used by live resources must create a new version. Historical
+resources remain understandable and workflows remain reproducible.
+
+### Scope Is Not Authorization
+
+Scope identifies who governs configuration. Authorization decides who may discover, view, use, or
+change a resource. A future Business Unit scope must not be treated as a substitute for business-unit
+data isolation.
+
+### Generic Does Not Mean Untyped
+
+Values must have explicit types, validation rules, canonical representations, and supported
+operators. Storing arbitrary JSON without a type contract would move complexity into every consumer.
+
+### Incremental Delivery Without Architectural Dead Ends
+
+The first release may support only Platform and Organization scopes, Exchanges, and a small set of
+field types. Its identities and contracts must already allow more scopes, resources, types, and
+consumers to be registered later.
+
+## Conceptual Model
+
+### Scope Reference
+
+A Scope Reference identifies the governance owner of configuration using:
+
+- scopeKind, such as PLATFORM or ORGANIZATION.
+- scopeId, which identifies the owner when the kind requires one.
+
+The contract must allow future kinds such as BUSINESS_UNIT without changing every schema and field
+table. The initial release does not need a Business Unit entity, scope hierarchy, inherited
+configuration, delegated administration, or isolation rules.
+
+Scope References should be represented consistently across Fields, Schemas, Blueprints, Workflows,
+Variables, Sequences, and Communications over time. New field-engine records should not encode
+organization ownership solely through a nullable organizationId plus an unrelated enum.
+
+Future scope resolution may support:
+
+- Platform configuration available to all organizations.
+- Group-level configuration shared by multiple organizations.
+- Organization configuration.
+- Business-unit configuration below an organization.
+- Team configuration below a business unit.
+
+Only Platform and Organization need to resolve initially.
+
+### Resource Reference
+
+A Resource Reference identifies the subject receiving a schema or values using:
+
+- A stable resourceType code, such as EXCHANGE, BLUEPRINT, or DOCUMENT_LIBRARY_ENTRY.
+- A resourceId.
+
+The field engine must not depend directly on every resource repository. Each supported resource type
+registers an adapter responsible for:
+
+- Verifying that the resource exists.
+- Resolving its owner Scope Reference.
+- Confirming whether a schema can be assigned.
+- Checking the caller's permission through the owning resource service.
+- Supplying lifecycle context needed for validation.
+
+The first adapter may support only Exchanges. Adding another resource should require an adapter and
+consumer UI, not a new field-definition model.
+
+### Schema Definition
+
+A Schema Definition is the stable identity of a configurable business concept. It contains:
+
+- An immutable ID.
+- A stable namespaced key.
+- A mutable display name and description.
+- Its owning Scope Reference.
+- Its target resource type.
+- Lifecycle status.
+
+Example keys:
+
+- first-rand:customer-case
+- directaxis:loan-application
+- wesbank:vehicle-finance-case
+- old-mutual-iwyze:claim-case
+
+The namespace is part of the identity. A plain key such as status or type is too likely to collide
+across platform, organization, and future business-unit configuration.
+
+A Schema Definition must not contain live mutable field rules. Those belong to a Schema Version.
+
+### Schema Version
+
+A Schema Version is an immutable published contract containing:
+
+- A monotonically increasing version number.
+- The set and order of field bindings.
+- The exact Field Contracts used.
+- Schema-level validation rules.
+- Publication metadata and audit information.
+- A compatibility classification for the change.
+
+Lifecycle should support:
+
+- DRAFT: editable and not valid for new production assignments.
+- PUBLISHED: immutable and available for assignments.
+- RETIRED: unavailable for new assignments but retained for history.
+
+Publishing a changed draft creates a new immutable version. It does not rewrite an existing published
+version.
+
+Moving an existing resource to a newer version must be an explicit migration operation with
+validation and audit. Automatic adoption of the latest version is not permitted.
+
+The initial UI may expose only one draft and the latest published version. The persistence and
+service contracts should still preserve version identity from the start.
+
+### Field Definition
+
+A Field Definition is the stable identity of a reusable business attribute. It contains:
+
+- An immutable ID.
+- A stable namespaced key.
+- Its owning Scope Reference.
+- A lifecycle status.
+
+Examples include:
+
+- common:customer-reference
+- common:data-classification
+- directaxis:affordability-outcome
+- wesbank:vehicle-vin
+- iwyze:loss-date
+
+A field's display label, help text, type configuration, constraints, and option set belong to a
+versioned Field Contract rather than the stable identity.
+
+### Field Contract
+
+A Field Contract is the immutable version of a Field Definition. It specifies:
+
+- Value type and type-contract version.
+- Display label, description, and help text.
+- Validation constraints.
+- Selection options or an Option Set reference.
+- Data classification and visibility metadata.
+- Searchable, filterable, sortable, and reportable capabilities.
+- External integration aliases where required.
+
+Once a Field Contract is published and used by a Schema Version, its value type and semantic meaning
+must not change. A new contract version is required.
+
+### Schema Field Binding
+
+A Schema Field Binding places a Field Contract into a Schema Version. This is where contextual
+behavior belongs:
+
+- Display order and section.
+- Required or optional behavior.
+- Read-only or editable behavior.
+- Default value expression.
+- Conditional visibility.
+- Conditional requiredness.
+- Lifecycle stages in which editing is allowed.
+- Whether the value is included in workflow context.
+
+Requiredness must not live only on the global Field Definition. Customer Reference may be required
+in a Loan Application schema and optional in a Complaint schema.
+
+The initial release may support only order, requiredness, visibility, and static defaults. The model
+should leave the remaining binding rules as versioned extensions.
+
+### Resolved Schema View
+
+Consumers should request a Resolved Schema View from the engine instead of loading definitions,
+bindings, and scope precedence themselves. The view provides:
+
+- The selected Schema Definition and exact version.
+- An ordered, flattened list of effective bindings.
+- The Field Contract and allowed operators for each binding.
+- The source Scope Reference for inherited or composed configuration.
+- Effective defaults, visibility, and validation constraints.
+- Resolution diagnostics when configuration conflicts or dependencies are unavailable.
+
+Initially, resolution is simple because a schema is owned by either the Platform or one
+Organization and has no inheritance. Keeping this service boundary from the start allows future
+business-unit overlays and schema composition to be added in one place.
+
+### Option Set and Option
+
+Selection options need their own stable identities. Display labels are mutable presentation, not
+stored business values.
+
+Each option should have:
+
+- An immutable ID.
+- A stable code.
+- A display label.
+- Active-from and retired-at lifecycle metadata.
+- Display order.
+- Optional external mappings.
+
+Deactivating an option prevents new selection but does not invalidate or erase historical values.
+An option code must not be reused later with a different meaning.
+
+Shared Option Sets may be added when several fields genuinely use the same controlled vocabulary.
+The initial implementation may keep options within a Field Contract if the identity rules are the
+same and extraction into a shared set remains lossless.
+
+### Schema Assignment
+
+A Schema Assignment connects one Resource Reference to one published Schema Version. It records:
+
+- The resource.
+- The exact schema version.
+- The Scope Reference under which the assignment was resolved.
+- Assignment source, such as manual selection, Blueprint, API, or migration.
+- Who or what assigned it and when.
+
+A live resource must be pinned to an exact version. It must not silently begin using the newest
+schema when an administrator publishes changes.
+
+Most resources should have one primary business schema initially. Supporting multiple composable
+schemas can be added later, provided assignments are already first-class records rather than a
+single schema key copied onto the resource.
+
+### Field Value
+
+A Field Value belongs to:
+
+- A Schema Assignment.
+- A Schema Field Binding or Field Contract.
+- The Resource Reference represented by the assignment.
+
+It also records:
+
+- A canonical typed value.
+- Value provenance.
+- Created and updated timestamps.
+- The actor or system that last changed it.
+- Optional effective time for future temporal use cases.
+
+Values remain readable after a schema, field, or option is retired.
+
+### Value Provenance
+
+Provenance should distinguish values supplied by:
+
+- A user.
+- A Blueprint default.
+- An API or external system.
+- A workflow action.
+- A calculated rule.
+- A migration.
+
+This is inexpensive to model early and difficult to reconstruct later. It supports audit,
+troubleshooting, source-system reconciliation, and future rules governing whether an imported value
+may be overwritten.
+
+## Field Type System
+
+### Type Contract
+
+Field types should be registered through a controlled type registry. Each type contract defines:
+
+- A stable type code and contract version.
+- Accepted input shape.
+- Validation and normalization.
+- Canonical persistence representation.
+- API serialization.
+- Supported search and workflow operators.
+- Redaction and display behavior.
+- Frontend editor and read-only renderer.
+
+Unknown type codes must fail closed. Customer-provided executable code must not run inside the field
+engine.
+
+### Initial Types
+
+The first release can remain focused:
+
+- Short text.
+- Long text.
+- Yes or No.
+- Integer.
+- Decimal.
+- Date.
+- Date and time.
+- Single selection.
+- Multiple selection.
+
+Integer, decimal, and date types are worth reserving in the first contract even if some arrive after
+the first UI release. Treating money, dates, and counts as text would weaken validation, sorting,
+conditions, and reporting.
+
+Currency may initially be a Decimal field with a fixed currency semantic annotation. A richer Money
+type can be added later if multi-currency values are required.
+
+### Deferred Types
+
+The registry should allow future types without pretending they are simple scalar fields:
+
+- Principal reference.
+- Resource reference.
+- External-system reference.
+- Address.
+- Money.
+- Repeating group or collection.
+- Structured object.
+- Calculated field.
+- Checklist with per-item workflow and audit state.
+
+A checklist is collaborative state, not merely a multiselect. Repeating objects introduce child
+identity, ordering, validation, and query concerns. Both should remain separate capabilities.
+
+## Typed Value Storage Contract
+
+The architecture should use generic Field Values from the beginning rather than an
+exchange-specific value model that later needs to be duplicated for every resource.
+
+The storage strategy must satisfy:
+
+- Type-safe reads and writes.
+- Equality and range queries without parsing display strings.
+- Stable references to field, contract, schema, and assignment versions.
+- Efficient organization and future scope filtering.
+- Preservation of retired definitions and options.
+- Indexing of frequently queried scalar and selection values.
+
+The exact table design is an implementation decision, but one unrestricted JSON value column should
+not be the only query model. A practical design may use typed scalar columns plus a child relation
+for multiple selections, with a canonical JSON representation only at API boundaries.
+
+Large-scale reporting may later use an event-fed projection or warehouse. The transactional model
+must publish enough stable identity, scope, schema version, type, and provenance data to build that
+projection without interpreting labels.
+
+## Scope Resolution and Future Business Units
+
+Business-unit isolation is intentionally not part of the first Fields release. The following
+contracts are required now so it can be added cleanly:
+
+- Every Schema, Field, Option Set, Assignment, and Value has an explicit owner or effective Scope
+  Reference where appropriate.
+- Scope kind is extensible and not hard-coded to an organization column in service interfaces.
+- Configuration keys are unique within a namespace and owner scope, not globally by display name.
+- Scope resolution is handled by one service rather than repeated in repositories.
+- Consumers receive an effective configuration result and do not implement inheritance themselves.
+- Audit events include Scope References.
+
+Future resolution may combine configuration in a deterministic order:
+
+1. Platform baseline.
+2. Group or parent-organization baseline.
+3. Organization configuration.
+4. Business-unit configuration.
+5. Team configuration.
+
+Later scopes should extend or bind parent configuration, not mutate the parent's published versions.
+Conflict rules must be explicit. A lower scope must not silently redefine a stable field key with a
+different type.
+
+The field engine must not claim that a future BUSINESS_UNIT Scope Reference provides isolation by
+itself. Isolation also requires membership, authorization, query filtering, administration,
+auditing, and possibly encryption or tenancy boundaries across the wider platform.
+
+## Schema Composition and Overrides
+
+The preferred future model is composition with explicit precedence, not unrestricted inheritance.
+
+For example:
+
+- A group publishes a Customer Case base schema.
+- DirectAxis composes it into a Loan Application schema.
+- WesBank composes it into a Vehicle Finance Case schema.
+- Each business adds local fields without redefining shared Customer Reference semantics.
+
+The initial release does not need schema composition. It should still avoid assumptions that make
+composition impossible:
+
+- Bindings have their own identity.
+- Fields are reusable across schemas.
+- Schema versions pin exact Field Contracts.
+- Keys are namespaced.
+- Defaults and requiredness belong to bindings.
+- Consumers use a resolved schema view supplied by the engine.
+
+## Validation Model
+
+Validation occurs in layers:
+
+1. The Type Contract validates shape and canonical form.
+2. The Field Contract validates constraints such as length, range, precision, or allowed options.
+3. The Schema Field Binding validates contextual rules such as requiredness.
+4. The resource adapter validates lifecycle rules such as which fields may change after acceptance.
+5. Authorization validates whether the caller may perform the operation.
+
+Validation rules must be deterministic, versioned, and executable on the backend. Frontend
+validation improves usability but is not authoritative.
+
+Conditional rules should use a controlled expression language over stable field references. The
+language must define null behavior, type coercion, supported operators, and evaluation errors.
+Arbitrary JavaScript, Kotlin, SQL, or template expressions must not be accepted as validation rules.
+
+## Workflow Integration
+
+Workflows should consume a typed schema context rather than depend on ad hoc string maps.
+
+The workflow contract should eventually expose:
+
+- Schema ID and version.
+- Stable field ID and namespaced key.
+- Type code.
+- Canonical value.
+- Value provenance where relevant.
+
+The current workflow subject snapshot may serialize values for compatibility, but field conditions
+must reference immutable field or binding IDs. A display label or mutable option label must never be
+the durable workflow reference.
+
+Workflow instances must retain the field values or subject snapshot used when decisions were made.
+Later edits to a resource must not rewrite the evidence behind an approval or routing decision.
+
+Schema-aware workflow applicability may support:
+
+- Target resource type.
+- Target schema identity.
+- Compatible schema version range.
+- Typed field conditions.
+
+Unknown fields, incompatible types, and retired options must produce an explicit non-match or
+configuration error according to a documented rule. They must not be silently treated as strings.
+
+## Blueprint Integration
+
+A Blueprint may define:
+
+- The Schema Definition to assign.
+- A pinned or controlled compatible Schema Version.
+- Static field defaults.
+- Future expressions that derive defaults from trusted context.
+
+Selecting a Blueprint creates a new Schema Assignment and copies defaults as values with Blueprint
+provenance. It does not create an invisible dependency on mutable Blueprint configuration.
+
+When a Blueprint is cloned across scopes, DocuHyphen must validate that its schema, field contracts,
+option identities, documents, workflows, and access policies are available or explicitly remapped.
+
+## Classification, Visibility, and Authorization
+
+Fields may classify a resource, but classification must not directly grant access.
+
+Examples:
+
+- Department = Legal describes the resource.
+- An Access Policy grants the Legal group permission to discover and use it.
+- Data Classification = Restricted may trigger a policy recommendation or workflow.
+- It does not become an authorization rule unless a separate policy engine explicitly uses it.
+
+Field visibility is also distinct from resource access. A caller may be allowed to participate in an
+Exchange without seeing internal underwriting, fraud, affordability, or complaint-classification
+fields.
+
+Visibility rules must apply consistently to:
+
+- Detail responses.
+- Lists and search.
+- Workflow snapshots and notifications.
+- Exports and reports.
+- Audit views.
+- Realtime events.
+- Integration payloads.
+
+Sensitive values must not be written into logs or general-purpose events. Audit events should
+prefer stable field identity and change metadata, with protected before and after values only where
+there is an explicit requirement.
+
+## Search, Reporting, and Integration Readiness
+
+Each Field Contract should declare supported capabilities rather than assuming every field can be
+searched, sorted, grouped, or exported.
+
+The engine should provide a common query model using:
+
+- Resource type and owner scope.
+- Schema identity and version.
+- Field identity.
+- Type-aware operators.
+- Canonical option codes or IDs.
+
+Search and reporting must apply resource authorization and field visibility before returning data.
+Counts and aggregations can also leak restricted information and require the same treatment.
+
+External mappings should be aliases attached to a versioned Field Contract or Option, for example:
+
+- Source system name.
+- External field path.
+- External option code.
+- Mapping version.
+
+The internal stable key must not be changed merely to match a vendor or legacy system.
+
+## Audit and Change Impact
+
+The platform should audit:
+
+- Schema and Field creation.
+- Draft changes and publication.
+- Retirement and reactivation where permitted.
+- Schema assignment.
+- Field value changes and provenance.
+- Option lifecycle changes.
+- Configuration cloning or remapping across scopes.
+
+Before publishing a new version, future impact analysis should identify:
+
+- Active Blueprints using the prior version.
+- Workflows referencing changed fields or options.
+- Resources pinned to affected versions.
+- Reports and integrations using external aliases.
+- Whether the change is additive, compatible, or breaking.
+
+The first release may provide basic usage counts. Stable references and immutable versions are what
+make richer impact analysis possible later.
+
+## Resource-Specific Adoption
+
+### Exchanges
+
+Exchanges are the first business-data subject. A Schema Assignment gives an Exchange its configured
+case type and its Field Values provide workflow, search, and reporting context.
+
+Exchange Shares continue to govern participation. Field visibility is evaluated separately,
+especially for external or magic-link recipients.
+
+### Blueprints
+
+Blueprints can select a schema and provide defaults for a future Exchange. Blueprints may also have
+their own classification schema later. These are distinct uses and must not share the same value
+records.
+
+### Workflows
+
+Workflows may use Fields in two ways:
+
+- Fields classify and govern the Workflow Definition itself.
+- Typed conditions inspect the subject resource's assigned schema and values.
+
+These contexts must remain distinct.
+
+### Document Library, Communications, Variables, and Sequences
+
+These resources may adopt schemas for classification and governance later. Their services register
+resource adapters and retain authority over resource permissions and lifecycle behavior.
+
+## Lean First Release
+
+The first implementation should focus on proving the engine without implementing the full enterprise
+operating model.
+
+### Build in the Foundation
+
+- Generic Scope Reference with PLATFORM and ORGANIZATION resolvers.
+- Generic Resource Reference and an Exchange resource adapter.
+- Stable namespaced Schema and Field identities.
+- Draft, Published, and Retired lifecycle.
+- Immutable published Schema Versions and Field Contracts.
+- Schema Field Bindings with order, requiredness, visibility, and static defaults.
+- Schema Assignment pinned to an exact version.
+- Generic typed Field Values with provenance.
+- Stable option identities and lifecycle.
+- A controlled type registry and typed validation.
+- Audit events containing stable IDs, versions, resource references, and scopes.
+- Service boundaries for schema resolution, validation, assignment, and value access.
+
+### Keep the First User Experience Small
+
+- Organization administrators create Fields and one or more Exchange schemas.
+- Administrators compose fields into a schema and publish a version.
+- Exchange creators select an applicable schema and enter values.
+- The backend validates and stores values.
+- Exchange details display permitted values.
+- Blueprints may select a schema and provide defaults in a later increment.
+- Workflow applicability and typed field conditions may follow after the value foundation is stable.
+
+### Explicitly Defer
+
+- A Business Unit entity and business-unit data isolation.
+- Scope hierarchy and inherited configuration.
+- Delegated schema administration.
+- Cross-business-unit discovery and reporting.
+- Dynamic metadata-driven Access Policies.
+- Multiple schemas assigned to one live resource.
+- Schema migration of existing resources.
+- Repeating groups, structured objects, calculated fields, and collaborative checklists.
+- Customer-authored type plug-ins or executable rules.
+- Enterprise analytics projections and data warehouse delivery.
+
+Deferring these capabilities is safe only if the foundation rules above are retained.
+
+## Anti-Patterns to Avoid
+
+- Creating an exchange-specific definition as the permanent Field Definition model.
+- Putting requiredness, display order, and defaults only on the global Field Definition.
+- Updating a published field type or option meaning in place.
+- Storing workflow references by field display name.
+- Storing selected option labels as business values.
+- Treating a plain organization ID as the permanent scope abstraction.
+- Letting every consumer resolve scope inheritance independently.
+- Storing all values as untyped text or opaque JSON.
+- Making Field Values grant permissions directly.
+- Automatically upgrading live resources to the latest schema.
+- Adding industry-specific columns or code paths to the core engine.
+- Calling a group or field named Business Unit an isolation boundary.
+
+## Decisions to Confirm Before Implementation Planning
+
+- Whether an Exchange may initially have exactly one primary Schema Assignment.
+- Whether a published schema can be selected directly or only through a Blueprint.
+- Whether organization administrators may create schemas from scratch or must clone a platform
+  template.
+- Which initial value types will be exposed in the first UI.
+- Whether values can be edited after an Exchange is accepted and which service owns that decision.
+- Which values, if any, may be shared with external Exchange participants.
+- Whether schema publication requires approval or only an organization administrator.
+- Whether platform-provided Field Definitions may be reused inside organization schemas.
+- Whether external aliases are needed in the first release or only reserved in the contract.
+
+## Success Criteria
+
+The architecture is successful when:
+
+- A new industry or business unit can define its business language without backend domain classes.
+- Two business units can use different schemas without field-key or option collisions.
+- Shared fields can be reused without allowing local configuration to change their meaning.
+- A live Exchange remains tied to the schema version under which it was created.
+- Workflow, Blueprint, search, audit, and integration consumers use stable typed references.
+- Retired fields and options remain historically understandable.
+- Adding future scope hierarchy and business-unit isolation extends the engine rather than replacing
+  its core identities, assignments, values, and versioning model.
