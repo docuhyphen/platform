@@ -142,7 +142,8 @@ const WorkflowCard = ({def, isPersonal, onEdit, onToggleActive, onTogglePublishe
 const WorkflowsListView = ({onEdit, onNew}: Props) =>
 {
     const styles = useWorkflowsListViewStyles();
-    const {appUser, setAppUser, token} = useAuth();
+    const {appUser, setAppUser, token, appUserPersonOrganization} = useAuth();
+    const hasOrg = !!appUserPersonOrganization?.isActive;
     const [activeTab, setActiveTab] = useState<ListTab>('PERSONAL');
     const [viewMode, setViewMode] = useState<ViewMode>(appUser?.settings?.workflowsView ?? 'cards');
     const [definitions, setDefinitions] = useState<WorkflowDefinitionSummaryDto[]>([]);
@@ -262,7 +263,7 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                         onTabSelect={(_, d) => setActiveTab(d.value as ListTab)}
                     >
                         <Tab value="PERSONAL">{TAB_LABEL.PERSONAL}</Tab>
-                        <Tab value="ORG">{TAB_LABEL.ORG}</Tab>
+                        {hasOrg && <Tab value="ORG">{TAB_LABEL.ORG}</Tab>}
                         <Tab value="APP">{TAB_LABEL.APP}</Tab>
                     </TabList>
 

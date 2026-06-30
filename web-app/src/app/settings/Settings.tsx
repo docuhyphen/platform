@@ -97,6 +97,7 @@ const Settings = () =>
     const currentTabLabel = tabLabels[selectedValue as string] ?? "Settings";
 
     const roleValue = `${appUser?.role ?? ''}`;
+    const hasOrg = !!appUserPersonOrganization?.isActive;
     const canManageOrganization =
         appUserPersonOrganization?.isActive &&
         (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN');
@@ -136,22 +137,28 @@ const Settings = () =>
             <Tab id="WorkflowsTab" icon={<SettingsWorkflowsTabIcon/>} value={tabIds.workflows}>
                 Workflows
             </Tab>
-            <Tab id="SequencesTab" icon={<SettingsSequencesTabIcon/>} value={tabIds.sequences}>
-                Sequences
-            </Tab>
+            {hasOrg && (
+                <Tab id="SequencesTab" icon={<SettingsSequencesTabIcon/>} value={tabIds.sequences}>
+                    Sequences
+                </Tab>
+            )}
             <Tab id="VariablesTab" icon={<SettingsVariablesTabIcon/>} value={tabIds.variables}>
                 Variables
             </Tab>
             <Tab id="CommunicationsTab" icon={<SettingsCommunicationsTabIcon/>} value={tabIds.communications}>
                 Communications
             </Tab>
-            <Divider appearance={"brand"} alignContent={"start"} className={styles.tabSettingDivider}>Organization</Divider>
-            <Tab id="OrganizationTab" icon={<SettingsOrganizationTabIcon/>} value={tabIds.organization}>
-                Administration
-            </Tab>
-            <Tab id="OrganizationBillingTab" icon={<SettingsOrganizationBillingTabIcon/>} value={tabIds.organizationBilling}>
-                Billing
-            </Tab>
+            {canManageOrganization && (
+                <>
+                    <Divider appearance={"brand"} alignContent={"start"} className={styles.tabSettingDivider}>Organization</Divider>
+                    <Tab id="OrganizationTab" icon={<SettingsOrganizationTabIcon/>} value={tabIds.organization}>
+                        Administration
+                    </Tab>
+                    <Tab id="OrganizationBillingTab" icon={<SettingsOrganizationBillingTabIcon/>} value={tabIds.organizationBilling}>
+                        Billing
+                    </Tab>
+                </>
+            )}
         </TabList>
     );
 

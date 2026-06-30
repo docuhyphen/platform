@@ -78,6 +78,7 @@ const DocumentLibraryTab = () =>
     const {appUser, setAppUser, token, appUserPersonOrganization} = useAuth();
 
     const roleValue = `${appUser?.role ?? ''}`;
+    const hasOrg = !!appUserPersonOrganization?.isActive;
     const canManageOrganization =
         appUserPersonOrganization?.isActive &&
         (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN');
@@ -257,12 +258,14 @@ const DocumentLibraryTab = () =>
                             >
                                 {tabLabels.PERSONAL}
                             </Tab>
-                            <Tab
-                                id="doc-tab-org"
-                                value="ORG"
-                            >
-                                {tabLabels.ORG}
-                            </Tab>
+                            {hasOrg && (
+                                <Tab
+                                    id="doc-tab-org"
+                                    value="ORG"
+                                >
+                                    {tabLabels.ORG}
+                                </Tab>
+                            )}
                             <Tab
                                 id="doc-tab-app"
                                 value="APP"

@@ -57,6 +57,7 @@ const CommunicationsTab = () =>
     const {appUser, setAppUser, token, appUserPersonOrganization} = useAuth();
 
     const roleValue = `${appUser?.role ?? ''}`;
+    const hasOrg = !!appUserPersonOrganization?.isActive;
     const canManageOrganization =
         appUserPersonOrganization?.isActive &&
         (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN');
@@ -150,7 +151,7 @@ const CommunicationsTab = () =>
                         }}
                     >
                         <Tab value="PERSONAL">{tabLabels.PERSONAL}</Tab>
-                        <Tab value="ORG">{tabLabels.ORG}</Tab>
+                        {hasOrg && <Tab value="ORG">{tabLabels.ORG}</Tab>}
                         <Tab value="PLATFORM">{tabLabels.PLATFORM}</Tab>
                     </TabList>
 
