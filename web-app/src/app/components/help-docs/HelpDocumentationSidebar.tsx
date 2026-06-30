@@ -5,6 +5,7 @@ import {
     AccordionItem,
     AccordionPanel,
     Button,
+    Input,
     Portal,
     Text,
 } from "@fluentui/react-components";
@@ -13,8 +14,10 @@ import {
     DismissFilled,
     Navigation24Regular,
     ReOrderDotsVertical20Regular,
+    SearchRegular,
 } from "@fluentui/react-icons";
 import {
+    HELP_DOC_ARTICLES,
     getDefaultHelpDocArticle,
     getHelpDocArticleById,
     getHelpDocSections,
@@ -45,6 +48,7 @@ const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOp
     const [showNav, setShowNav] = useState(false);
     const [openSection, setOpenSection] = useState<string>(sections[0]?.id ?? '');
     const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
+    const [searchQuery, setSearchQuery] = useState('');
     const dragStartRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
     React.useEffect(() =>
@@ -62,8 +66,18 @@ const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOp
             const currentSection = sections.find(s => s.articles.some(a => a.id === activeArticleId));
             if (currentSection) setOpenSection(currentSection.id);
         }
+        setSearchQuery('');
         setShowNav(prev => !prev);
     };
+
+    const searchResults = useMemo(() =>
+    {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return null;
+        return HELP_DOC_ARTICLES.filter(a =>
+            a.title.toLowerCase().includes(q) || a.sectionTitle.toLowerCase().includes(q),
+        );
+    }, [searchQuery]);
 
     const selectArticle = (articleId: string) =>
     {
@@ -178,32 +192,62 @@ const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOp
 
             {showNav ? (
                 <div className={styles.nav}>
-                    <Accordion
-                        collapsible
-                        openItems={openSection ? [openSection] : []}
-                        onToggle={(_, data) =>
-                            setOpenSection(prev => prev === data.value ? '' : data.value as string)
-                        }
-                    >
-                        {sections.map(section => (
-                            <AccordionItem key={section.id} value={section.id}>
-                                <AccordionHeader>{section.title}</AccordionHeader>
-                                <AccordionPanel>
-                                    <div className={styles.navArticleList}>
-                                        {section.articles.map(article => (
-                                            <button
-                                                key={article.id}
-                                                className={`${styles.navArticleItem}${article.id === activeArticleId ? ` ${styles.navArticleItemActive}` : ''}`}
-                                                onClick={() => selectArticle(article.id)}
-                                            >
-                                                {article.title}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </AccordionPanel>
-                            </AccordionItem>
-                        ))}
-                    </Accordion>
+                    <div className={styles.searchContainer}>
+                        <Input
+                            appearance="outline"
+                            placeholder="Search articles…"
+                            contentBefore={<SearchRegular/>}
+                            value={searchQuery}
+                            onChange={(_, data) => setSearchQuery(data.value)}
+                            className={styles.searchInput}
+                        />
+                    </div>
+
+                    {searchResults ? (
+                        <div className={styles.navArticleList}>
+                            {searchResults.length === 0 ? (
+                                <Text className={styles.searchNoResults}>No articles found</Text>
+                            ) : (
+                                searchResults.map(article => (
+                                    <button
+                                        key={article.id}
+                                        className={`${styles.navArticleItem}${article.id === activeArticleId ? ` ${styles.navArticleItemActive}` : ''}`}
+                                        onClick={() => selectArticle(article.id)}
+                                    >
+                                        <span className={styles.searchResultTitle}>{article.title}</span>
+                                        <span className={styles.searchResultSection}>{article.sectionTitle}</span>
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                    ) : (
+                        <Accordion
+                            collapsible
+                            openItems={openSection ? [openSection] : []}
+                            onToggle={(_, data) =>
+                                setOpenSection(prev => prev === data.value ? '' : data.value as string)
+                            }
+                        >
+                            {sections.map(section => (
+                                <AccordionItem key={section.id} value={section.id}>
+                                    <AccordionHeader>{section.title}</AccordionHeader>
+                                    <AccordionPanel>
+                                        <div className={styles.navArticleList}>
+                                            {section.articles.map(article => (
+                                                <button
+                                                    key={article.id}
+                                                    className={`${styles.navArticleItem}${article.id === activeArticleId ? ` ${styles.navArticleItemActive}` : ''}`}
+                                                    onClick={() => selectArticle(article.id)}
+                                                >
+                                                    {article.title}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </AccordionPanel>
+                                </AccordionItem>
+                            ))}
+                        </Accordion>
+                    )}
                 </div>
             ) : (
                 <div className={styles.content} onClick={onContentClick}>

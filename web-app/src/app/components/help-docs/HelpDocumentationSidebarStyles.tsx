@@ -126,7 +126,6 @@ export const useHelpDocumentationSidebarStyles = makeStyles({
         border: "none",
         background: "none",
         cursor: "pointer",
-        fontSize: tokens.fontSizeBase300,
         color: tokens.colorNeutralForeground2,
         lineHeight: tokens.lineHeightBase300,
         ":hover": {
@@ -142,5 +141,30 @@ export const useHelpDocumentationSidebarStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         paddingBottom: "4px",
+    },
+    searchContainer: {
+        padding: "10px 16px",
+        borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+        flexShrink: 0,
+    },
+    searchInput: {
+        width: "100%",
+    },
+    searchResultTitle: {
+        display: "block",
+        fontSize: tokens.fontSizeBase300,
+    },
+    searchResultSection: {
+        display: "block",
+        fontSize: tokens.fontSizeBase200,
+        color: tokens.colorNeutralForeground4,
+        marginTop: "1px",
+    },
+    searchNoResults: {
+        display: "block",
+        padding: "16px",
+        color: tokens.colorNeutralForeground3,
+        fontSize: tokens.fontSizeBase300,
+        textAlign: "center",
     },
 });
