@@ -331,6 +331,11 @@ class ExchangeUpdateService @Inject constructor(
 
         exchangeRepository.update(session)
 
+        workflowInstanceRepository.findAllRunningForSubject(ResourceType.EXCHANGE.name, sessionUUID)
+            .forEach { instance ->
+                workflowEngineService.cancel(instance.id, "Exchange deleted")
+            }
+
         shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID)
 
         logger.info("Exchange ${session.name} deleted")

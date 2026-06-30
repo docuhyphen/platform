@@ -26,6 +26,20 @@ class WorkflowInstanceRepository :
             .resultList
             .firstOrNull()
 
+    fun findAllRunningForSubject(resourceType: String, resourceId: UUID): List<WorkflowInstance> =
+        entityManager.createQuery(
+            """SELECT i FROM WorkflowInstance i
+               WHERE i.subjectResourceType = :rt
+                 AND i.subjectResourceId = :rid
+                 AND i.status = :status
+               ORDER BY i.createdAt DESC""",
+            WorkflowInstance::class.java,
+        )
+            .setParameter("rt", resourceType)
+            .setParameter("rid", resourceId)
+            .setParameter("status", WorkflowInstanceStatus.RUNNING)
+            .resultList
+
     /**
      * Returns the first RUNNING [WorkflowInstance] for [subjectResourceId] whose backing
      * [WorkflowDefinition] fires on [triggerEvent]. Used to check whether an acceptance or

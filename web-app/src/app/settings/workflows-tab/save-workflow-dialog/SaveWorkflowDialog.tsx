@@ -103,7 +103,10 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
             }
             await onConfirm();
         } catch (e: unknown) {
-            setError(getOtpFriendlyMessage(normalizeApiError(e, "Verification failed.")));
+            setError(getOtpFriendlyMessage(normalizeApiError(
+                e,
+                isEdit ? "Failed to update workflow." : "Failed to save workflow.",
+            )));
         } finally {
             setSubmitting(false);
         }

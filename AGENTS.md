@@ -37,7 +37,12 @@ these workflows. Platform-bundled workflow templates (categorized by tags) can b
 into an org.
 
 ---
-## FRONT-END
+## BACKEND RULES
+- A service should not user another service's repository directly, they should communicate via methods
+---
+
+---
+## FRONT-END RULES
 - All HTML tags, react tags, etc attributes must be on a new line when they have more than oone attribute like example:
 <Button appearance="primary"
         shape={"circular"}

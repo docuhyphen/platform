@@ -3,8 +3,8 @@ import React from "react";
 export const buildingAWorkflowArticle = (
     <>
         <p>
-            This guide walks you through creating a workflow definition from scratch
-            using the Workflow Designer in Settings.
+            This guide walks you through creating a workflow from scratch using the
+            Workflow Designer in Settings.
         </p>
 
         <h3>Before you begin</h3>
@@ -32,7 +32,7 @@ export const buildingAWorkflowArticle = (
             <li>Click the <b>Workflows</b> tab.</li>
             <li>
                 Click <b>New workflow</b> to open the designer, or click{" "}
-                <b>Edit</b> on an existing workflow definition row to modify it.
+                <b>Edit</b> on an existing workflow row to modify it.
             </li>
         </ol>
         <p>
@@ -43,9 +43,8 @@ export const buildingAWorkflowArticle = (
         <h3>Step 2: fill in the header fields</h3>
         <ul>
             <li>
-                <b>Name</b> - a short, descriptive name shown in the definition
-                list (for example, "Recipient Acceptance Gate" or "Pre-Send Manager
-                Approval").
+                <b>Name</b> - a short, descriptive name shown in the workflow list
+                (for example, "Recipient Acceptance Gate" or "Pre-Send Manager Approval").
             </li>
             <li>
                 <b>Trigger event</b> - select from the dropdown. The available{" "}
@@ -62,9 +61,8 @@ export const buildingAWorkflowArticle = (
                 Any tag value is valid.
             </li>
             <li>
-                <b>Active</b> - only active definitions are matched when a trigger
-                event fires. Toggle this off to pause a workflow without deleting
-                it.
+                <b>Active</b> - only active workflows are matched when a trigger
+                event fires. Toggle this off to pause a workflow without deleting it.
             </li>
         </ul>
 
@@ -116,7 +114,7 @@ export const buildingAWorkflowArticle = (
             Before saving, the designer checks whether any step contains a
             hardcoded principal UUID in an assignee entry. If it does, a portability
             warning appears in the save bar. Hardcoded UUIDs work in your org but
-            cannot be reused if the definition is cloned by another org. Replace
+            cannot be reused if the workflow is cloned by another org. Replace
             them with{" "}
             <a href="#"
                data-help-article="assignees-and-portability">
@@ -127,24 +125,23 @@ export const buildingAWorkflowArticle = (
 
         <h3>Step 5: save</h3>
         <p>
-            Click <b>Save workflow</b>. The definition is created (POST) or updated
-            (PUT) immediately. If the Active toggle is on, the engine will match
-            this definition the next time the trigger event fires for an Exchange
-            in your organization.
+            Click <b>Save workflow</b>. The workflow is created (POST) or updated
+            (PUT) immediately. If the Active toggle is on, the engine will use it
+            the next time the trigger event fires for an Exchange in your organization.
         </p>
 
         <h3>Editing a live workflow</h3>
         <p>
-            You cannot edit a definition while it has at least one running
-            instance. The edit button is disabled and a message explains why. Wait
-            for the running instances to complete or cancel them before editing.
+            You cannot edit a workflow while it is still in progress for one or
+            more Exchanges. The message lists the affected Exchanges so you know
+            what still needs to finish or be cancelled before you try again.
         </p>
 
         <h3>Deleting a workflow</h3>
         <p>
-            Delete deactivates the definition (soft delete). It cannot be deleted
-            while running instances reference it. Completed historical instances
-            are preserved for audit purposes.
+            Delete deactivates the workflow (soft delete). It cannot be deleted
+            while in-progress workflow runs still use it. Completed history is
+            preserved for audit purposes.
         </p>
     </>
 );

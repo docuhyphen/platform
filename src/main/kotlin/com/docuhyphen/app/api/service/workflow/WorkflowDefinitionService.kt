@@ -13,12 +13,14 @@ import com.docuhyphen.app.api.model.dto.WorkflowStepInstanceResponseDto
 import com.docuhyphen.app.api.model.dto.WorkflowSubjectFieldResponseDto
 import com.docuhyphen.app.api.model.dto.WorkflowTriggerEventResponseDto
 import com.docuhyphen.app.api.model.entity.AppUser
+import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.WorkflowDefinition
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
 import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
 import com.docuhyphen.app.api.model.entity.WorkflowScope
 import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
 import com.docuhyphen.app.api.model.entity.RoleScopeType
+import com.docuhyphen.app.api.repository.ExchangeRepository
 import com.docuhyphen.app.api.repository.PrincipalGroupRepository
 import com.docuhyphen.app.api.repository.WorkflowDefinitionRepository
 import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
@@ -57,6 +59,7 @@ class WorkflowDefinitionService @Inject constructor(
     private val userContactService: UserContactService,
     private val principalGroupRepository: PrincipalGroupRepository,
     private val appUserService: AppUserService,
+    private val exchangeRepository: ExchangeRepository,
 )
 {
     private val logger = LoggerFactory.getLogger(WorkflowDefinitionService::class.java)
@@ -165,12 +168,10 @@ class WorkflowDefinitionService @Inject constructor(
             ?: throw IllegalArgumentException("Workflow definition not found: $id")
         checkWriteAccess(def, callerUserId, callerOrgId, isAppAdmin)
 
-        val running = instanceRepository.findRunningForDefinition(id)
+        val running = findBlockingInstances(id)
         if (running.isNotEmpty())
         {
-            throw IllegalStateException(
-                "Cannot update definition while ${running.size} workflow instance(s) are running against it"
-            )
+            throw IllegalStateException(buildBlockingMessage(running, "update"))
         }
 
         request.name?.trim()?.let { if (it.isNotBlank()) def.name = it }
@@ -236,12 +237,10 @@ class WorkflowDefinitionService @Inject constructor(
             ?: throw IllegalArgumentException("Workflow definition not found: $id")
         checkWriteAccess(def, callerUserId, callerOrgId, isAppAdmin)
 
-        val running = instanceRepository.findRunningForDefinition(id)
+        val running = findBlockingInstances(id)
         if (running.isNotEmpty())
         {
-            throw IllegalStateException(
-                "Cannot delete definition while ${running.size} workflow instance(s) are running against it"
-            )
+            throw IllegalStateException(buildBlockingMessage(running, "delete"))
         }
 
         def.isDeleted = true
@@ -609,6 +608,58 @@ class WorkflowDefinitionService @Inject constructor(
         stepsJson = stepsJson,
         createdAt = createdAt,
     )
+
+    private fun findBlockingInstances(definitionId: UUID): List<WorkflowInstance> =
+        instanceRepository.findRunningForDefinition(definitionId)
+            .filterNot(::isDeletedExchangeInstance)
+
+    private fun isDeletedExchangeInstance(instance: WorkflowInstance): Boolean
+    {
+        if (instance.subjectResourceType != ResourceType.EXCHANGE.name)
+        {
+            return false
+        }
+
+        val exchangeId = instance.subjectResourceId ?: return false
+        val exchange = exchangeRepository.findById(exchangeId)
+        return exchange?.isDeleted == true
+    }
+
+    private fun buildBlockingMessage(running: List<WorkflowInstance>, action: String): String
+    {
+        val exchangeNames = running
+            .mapNotNull(::resolveExchangeName)
+            .distinct()
+            .sorted()
+        val subjectLabel = if (exchangeNames.isNotEmpty())
+        {
+            val preview = exchangeNames.take(5)
+            val suffix = if (exchangeNames.size > preview.size)
+            {
+                " and ${exchangeNames.size - preview.size} more"
+            }
+            else
+            {
+                ""
+            }
+            "These Exchanges are still using it: ${preview.joinToString(", ")}$suffix."
+        }
+        else
+        {
+            "It still has ${running.size} in-progress workflow run(s)."
+        }
+
+        return "This workflow cannot be $action right now. $subjectLabel Finish or cancel those workflow runs, then try again."
+    }
+
+    private fun resolveExchangeName(instance: WorkflowInstance): String? =
+        instance.subjectResourceId
+            ?.takeIf { instance.subjectResourceType == ResourceType.EXCHANGE.name }
+            ?.let { exchangeRepository.findById(it) }
+            ?.takeIf { !it.isDeleted }
+            ?.name
+            ?.trim()
+            ?.ifBlank { null }
 
     private fun WorkflowDefinition.toListItemDto() = WorkflowDefinitionListItemDto(
         id = id,
