@@ -59,6 +59,11 @@ const NoAuthExchange: React.FC = () =>
             {
                 setExchangeAccepted(true);
             }
+            else if (exchange.status === ExchangeStatus.RESCINDED)
+            {
+                navigate('/sign-in');
+                return;
+            }
             else
             {
                 navigate('/sign-in');

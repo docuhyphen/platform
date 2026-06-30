@@ -105,6 +105,7 @@ class ExchangeEmailTemplateService @Inject constructor(
             ExchangeStatus.ACCEPTED_STARTED -> "exchange-status-accepted.ftl"
             ExchangeStatus.REJECTED -> "exchange-status-rejected.ftl"
             ExchangeStatus.ENDED -> "exchange-status-ended.ftl"
+            ExchangeStatus.RESCINDED -> "exchange-status-rescinded.ftl"
         }
 
         return RenderedEmailTemplate(
@@ -172,6 +173,12 @@ class ExchangeEmailTemplateService @Inject constructor(
             {
                 ExchangeStatusEmailAudience.INITIATOR -> "Ended: Exchange closed - $name"
                 ExchangeStatusEmailAudience.RECIPIENT -> "Notice: Exchange ended - $name"
+            }
+
+            ExchangeStatus.RESCINDED -> when (audience)
+            {
+                ExchangeStatusEmailAudience.INITIATOR -> "Rescinded: Exchange cancelled - $name"
+                ExchangeStatusEmailAudience.RECIPIENT -> "Notice: Exchange was rescinded - $name"
             }
         }
     }

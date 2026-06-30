@@ -15,6 +15,7 @@ const STATUS_LABELS: Record<string, string> = {
     ACCEPTED_STARTED: "Active",
     REJECTED: "Rejected",
     ENDED: "Ended",
+    RESCINDED: "Rescinded",
 };
 
 const getStatusAppearance = (): "filled" | "tint" | "ghost" | "outline" => "tint";
@@ -29,6 +30,8 @@ const getStatusColor = (status?: string): "brand" | "danger" | "important" | "in
             return "subtle";
         case ExchangeStatus.REJECTED:
             return "danger";
+        case ExchangeStatus.RESCINDED:
+            return "warning";
         default:
             return "informative";
     }

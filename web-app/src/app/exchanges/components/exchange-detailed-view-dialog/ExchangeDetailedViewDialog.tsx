@@ -48,6 +48,8 @@ const ExchangeDetailedViewDialog: React.FC<ExchangeDetailedViewDialogProps> = (
                 return ExchangeStatus.ACCEPTED_STARTED;
             case ExchangeStatus.REJECTED:
                 return ExchangeStatus.REJECTED;
+            case ExchangeStatus.RESCINDED:
+                return ExchangeStatus.RESCINDED;
             case ExchangeStatus.ENDED:
             case "COMPLETED":
             case "CLOSED":
@@ -69,6 +71,8 @@ const ExchangeDetailedViewDialog: React.FC<ExchangeDetailedViewDialogProps> = (
                 return "In Progress";
             case ExchangeStatus.REJECTED:
                 return "Rejected";
+            case ExchangeStatus.RESCINDED:
+                return "Rescinded";
             case ExchangeStatus.INITIATED:
                 return "Initiated";
             case ExchangeStatus.ENDED:
@@ -100,6 +104,8 @@ const ExchangeDetailedViewDialog: React.FC<ExchangeDetailedViewDialogProps> = (
                 return {appearance: "filled" as const, color: "brand" as const};
             case ExchangeStatus.REJECTED:
                 return {appearance: "filled" as const, color: "danger" as const};
+            case ExchangeStatus.RESCINDED:
+                return {appearance: "filled" as const, color: "warning" as const};
             case ExchangeStatus.ENDED:
                 return {appearance: "filled" as const, color: "subtle" as const};
             case ExchangeStatus.INITIATED:

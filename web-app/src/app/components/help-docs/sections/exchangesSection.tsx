@@ -39,6 +39,7 @@ export const exchangesSection: HelpDocSectionInput = {
                         <li><b>Active:</b> Recipients can interact with the shared documents.</li>
                         <li><b>Completed/Ended:</b> Exchange is closed and no further changes should occur.</li>
                         <li><b>Rejected:</b> A recipient declined the Exchange, or an approval workflow rejected it.</li>
+                        <li><b>Rescinded:</b> The initiator cancelled the Exchange without deleting it. It moves to archive and becomes read-only.</li>
                     </ul>
 
                     <h3>Standard lifecycle steps</h3>
@@ -47,6 +48,7 @@ export const exchangesSection: HelpDocSectionInput = {
                         <li>Upload required documents and verify file quality.</li>
                         <li>Send the Exchange and monitor recipient acceptance or rejection.</li>
                         <li>Address comments and updates while the Exchange is Active.</li>
+                        <li>Rescind the Exchange if it was sent in error or needs to be withdrawn before normal completion.</li>
                         <li>End the Exchange once the business outcome is achieved.</li>
                         <li>Review audit history for compliance and record retention.</li>
                     </ol>

@@ -742,7 +742,8 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         if (!pdfUrl && !exchangeDocument?.uploadDate)
         {
             const isArchivedExchange = exchange?.status === ExchangeStatus.ENDED
-                || exchange?.status === ExchangeStatus.REJECTED;
+                || exchange?.status === ExchangeStatus.REJECTED
+                || exchange?.status === ExchangeStatus.RESCINDED;
 
             if (isArchivedExchange)
             {

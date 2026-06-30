@@ -30,6 +30,16 @@ const ExchangeListItem: React.FC<ExchangeListItemProps> = ({exchange, isSelected
             };
         }
 
+        if (exchange.status === ExchangeStatus.RESCINDED)
+        {
+            return {
+                label: 'Rescinded',
+                className: styles.archiveStatusChipEnded,
+                appearance: 'outline' as const,
+                color: 'warning' as const,
+            };
+        }
+
         return {
             label: 'Ended',
             className: styles.archiveStatusChipEnded,

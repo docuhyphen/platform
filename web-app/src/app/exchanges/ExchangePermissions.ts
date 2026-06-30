@@ -46,7 +46,8 @@ export const getPermissions = (
     const isInitiator = !!exchange.initiator?.id && exchange.initiator.id === appUser.id;
     const isTerminalStatus =
         exchange.status === ExchangeStatus.ENDED ||
-        exchange.status === ExchangeStatus.REJECTED;
+        exchange.status === ExchangeStatus.REJECTED ||
+        exchange.status === ExchangeStatus.RESCINDED;
 
     if (isTerminalStatus)
     {

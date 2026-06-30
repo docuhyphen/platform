@@ -145,6 +145,11 @@ export const useExchangeDetailsHeaderStyles = makeStyles({
         borderLeftColor: tokens.colorPaletteRedForeground1
     },
 
+    containerStatusRESCINDED: {
+        borderLeft: "5px solid",
+        borderLeftColor: tokens.colorPaletteDarkOrangeForeground1
+    },
+
     actions: {
         display: "flex",
         gap: "8px",

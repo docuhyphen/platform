@@ -37,6 +37,7 @@ interface ExchangeDetailsHeaderProps
     exchangeDetails: ExchangeDetailedDto | null;
     setIsDocumentAddDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     setIsExchangeEndDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    setIsExchangeRescindDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     setIsDeletedExchangeDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     setIsExchangeDetailedViewDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     setIsExchangeEditDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -56,6 +57,7 @@ const ExchangeDetailsHeader: React.FC<ExchangeDetailsHeaderProps> = (
         exchangeDetails,
         setIsDocumentAddDialogOpen,
         setIsExchangeEndDialogOpen,
+        setIsExchangeRescindDialogOpen,
         setIsExchangeDetailedViewDialogOpen,
         setIsDeletedExchangeDialogOpen,
         setIsExchangeEditDialogOpen,
@@ -163,7 +165,11 @@ const ExchangeDetailsHeader: React.FC<ExchangeDetailsHeaderProps> = (
                                             icon={<DocumentAddIcon/>}
                                             appearance="primary"
                                             shape={"circular"}
-                                            disabled={exchangeDetails.status === ExchangeStatus.ENDED || !exchangePermissions.canAddExchangeDocument}
+                                            disabled={
+                                                exchangeDetails.status === ExchangeStatus.ENDED ||
+                                                exchangeDetails.status === ExchangeStatus.RESCINDED ||
+                                                !exchangePermissions.canAddExchangeDocument
+                                            }
                                             onClick={() => setIsDocumentAddDialogOpen(true)}
                                         />
                                     </Tooltip>
@@ -171,7 +177,11 @@ const ExchangeDetailsHeader: React.FC<ExchangeDetailsHeaderProps> = (
                                         <Button
                                             id="exchange-details-header-edit-exchange"
                                             icon={<EditExchangeIcon/>}
-                                            disabled={exchangeDetails.status === ExchangeStatus.ENDED || !exchangePermissions.canEditSharingOptions}
+                                            disabled={
+                                                exchangeDetails.status === ExchangeStatus.ENDED ||
+                                                exchangeDetails.status === ExchangeStatus.RESCINDED ||
+                                                !exchangePermissions.canEditSharingOptions
+                                            }
                                             appearance={"subtle"}
                                             shape={"circular"}
                                             onClick={() => setIsExchangeEditDialogOpen(true)}
@@ -181,7 +191,11 @@ const ExchangeDetailsHeader: React.FC<ExchangeDetailsHeaderProps> = (
                                         <Button
                                             id="exchange-details-header-manage-access"
                                             icon={<ManageAccessIcon/>}
-                                            disabled={exchangeDetails.status === ExchangeStatus.ENDED || !exchangePermissions.canEditSharingOptions}
+                                            disabled={
+                                                exchangeDetails.status === ExchangeStatus.ENDED ||
+                                                exchangeDetails.status === ExchangeStatus.RESCINDED ||
+                                                !exchangePermissions.canEditSharingOptions
+                                            }
                                             appearance={"subtle"}
                                             shape={"circular"}
                                             onClick={() => setIsExchangeAccessManagementDialogOpen(true)}
@@ -212,21 +226,33 @@ const ExchangeDetailsHeader: React.FC<ExchangeDetailsHeaderProps> = (
                                                 <MenuItem
                                                     id="exchange-details-header-menu-add-document"
                                                     icon={<DocumentAddIcon/>}
-                                                    disabled={exchangeDetails.status === ExchangeStatus.ENDED || !exchangePermissions.canAddExchangeDocument}
+                                                    disabled={
+                                                        exchangeDetails.status === ExchangeStatus.ENDED ||
+                                                        exchangeDetails.status === ExchangeStatus.RESCINDED ||
+                                                        !exchangePermissions.canAddExchangeDocument
+                                                    }
                                                     onClick={() => setIsDocumentAddDialogOpen(true)}>
                                                     Add document
                                                 </MenuItem>
                                                 <MenuItem
                                                     id="exchange-details-header-menu-edit-exchange"
                                                     icon={<EditExchangeIcon/>}
-                                                    disabled={exchangeDetails.status === ExchangeStatus.ENDED || !exchangePermissions.canEditSharingOptions}
+                                                    disabled={
+                                                        exchangeDetails.status === ExchangeStatus.ENDED ||
+                                                        exchangeDetails.status === ExchangeStatus.RESCINDED ||
+                                                        !exchangePermissions.canEditSharingOptions
+                                                    }
                                                     onClick={() => setIsExchangeEditDialogOpen(true)}>
                                                     Edit exchange
                                                 </MenuItem>
                                                 <MenuItem
                                                     id="exchange-details-header-menu-manage-access"
                                                     icon={<ManageAccessIcon/>}
-                                                    disabled={exchangeDetails.status === ExchangeStatus.ENDED || !exchangePermissions.canEditSharingOptions}
+                                                    disabled={
+                                                        exchangeDetails.status === ExchangeStatus.ENDED ||
+                                                        exchangeDetails.status === ExchangeStatus.RESCINDED ||
+                                                        !exchangePermissions.canEditSharingOptions
+                                                    }
                                                     onClick={() => setIsExchangeAccessManagementDialogOpen(true)}>
                                                     Manage access
                                                 </MenuItem>
@@ -252,9 +278,26 @@ const ExchangeDetailsHeader: React.FC<ExchangeDetailsHeaderProps> = (
 
                                         }
                                         <MenuItem
+                                            id="exchange-details-header-menu-rescind"
+                                            icon={<DeleteIcon/>}
+                                            disabled={
+                                                (
+                                                    exchangeDetails.status !== ExchangeStatus.INITIATED &&
+                                                    exchangeDetails.status !== ExchangeStatus.ACCEPTED_STARTED
+                                                ) ||
+                                                !exchangePermissions.canDeleteExchange
+                                            }
+                                            onClick={() => setIsExchangeRescindDialogOpen(true)}>
+                                            Rescind
+                                        </MenuItem>
+                                        <MenuItem
                                             id="exchange-details-header-menu-end"
                                             icon={<ExchangeEndIcon/>}
-                                            disabled={exchangeDetails.status === ExchangeStatus.ENDED || !exchangePermissions.canEndExchange}
+                                            disabled={
+                                                exchangeDetails.status === ExchangeStatus.ENDED ||
+                                                exchangeDetails.status === ExchangeStatus.RESCINDED ||
+                                                !exchangePermissions.canEndExchange
+                                            }
                                             onClick={() => setIsExchangeEndDialogOpen(true)}>
                                             End
                                         </MenuItem>

@@ -58,7 +58,8 @@ const ExchangeDocumentsList: React.FC<ExchangeDocumentsListProps> = (props) => {
         visibleDocuments.length
     );
     const isArchived = props.exchangeDetails?.status === ExchangeStatus.ENDED ||
-        props.exchangeDetails?.status === ExchangeStatus.REJECTED;
+        props.exchangeDetails?.status === ExchangeStatus.REJECTED ||
+        props.exchangeDetails?.status === ExchangeStatus.RESCINDED;
     const canUpload = !isArchived && !!props.permissions?.canUploadDocument;
     const hasOverflow = canScrollLeft || canScrollRight;
 

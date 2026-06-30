@@ -48,7 +48,7 @@ const getTabFilters = (tab: ExchangeListTab, inboxRole: InboxRole): { status: st
         case 'active':
             return {status: 'ACCEPTED_STARTED', initiatedBy: null};
         case 'archive':
-            return {status: 'ENDED,REJECTED', initiatedBy: null};
+            return {status: 'ENDED,REJECTED,RESCINDED', initiatedBy: null};
     }
 };
 
@@ -63,7 +63,11 @@ const isStatusInTab = (status: ExchangeStatus | undefined, tab: ExchangeListTab)
         case 'active':
             return status === ExchangeStatus.ACCEPTED_STARTED;
         case 'archive':
-            return status === ExchangeStatus.ENDED || status === ExchangeStatus.REJECTED;
+            return (
+                status === ExchangeStatus.ENDED ||
+                status === ExchangeStatus.REJECTED ||
+                status === ExchangeStatus.RESCINDED
+            );
         default:
             return false;
     }
@@ -75,7 +79,11 @@ const statusToTab = (status: ExchangeStatus | undefined): ExchangeListTab | null
 
     if (status === ExchangeStatus.INITIATED) return 'inbox';
     if (status === ExchangeStatus.ACCEPTED_STARTED) return 'active';
-    if (status === ExchangeStatus.ENDED || status === ExchangeStatus.REJECTED) return 'archive';
+    if (
+        status === ExchangeStatus.ENDED ||
+        status === ExchangeStatus.REJECTED ||
+        status === ExchangeStatus.RESCINDED
+    ) return 'archive';
 
     return null;
 };
@@ -291,7 +299,7 @@ const ExchangeList: React.FC<ExchangeListProps> = (
             {
                 const [activeResponse, archiveResponse] = await Promise.all([
                     searchExchanges(undefined, 'ACCEPTED_STARTED', undefined, 0, 1, 'createdDate', 'DESC'),
-                    searchExchanges(undefined, 'ENDED,REJECTED', undefined, 0, 1, 'createdDate', 'DESC')
+                    searchExchanges(undefined, 'ENDED,REJECTED,RESCINDED', undefined, 0, 1, 'createdDate', 'DESC')
                 ]);
 
                 if (cancelled) return;

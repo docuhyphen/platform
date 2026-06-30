@@ -92,6 +92,7 @@ const Exchanges: React.FC = () =>
     const [isExchangeAccessManagementDialogOpen, setIsExchangeAccessManagementDialogOpen] = React.useState(false);
     const [isDeletedExchangeDialogOpen, setIsDeletedExchangeDialogOpen] = React.useState(false);
     const [isExchangeEndDialogOpen, setIsExchangeEndDialogOpen] = React.useState(false);
+    const [isExchangeRescindDialogOpen, setIsExchangeRescindDialogOpen] = React.useState(false);
     const [selectedExchangeDocument, setSelectedExchangeDocument] = React.useState<DocumentDetailedDto | undefined>(undefined);
     const [selectedUpdateExchangeDocument, setSelectedUpdateExchangeDocument] = React.useState<DocumentDetailedDto>(undefined);
     const [exchangeDetails, setExchangeDetails] = useState<ExchangeDetailedDto | null>(null);
@@ -415,7 +416,10 @@ const Exchanges: React.FC = () =>
     {
         if (exchangeDetails)
         {
-            setIsExchangeEnded(exchangeDetails.status == ExchangeStatus.ENDED);
+            setIsExchangeEnded(
+                exchangeDetails.status == ExchangeStatus.ENDED ||
+                exchangeDetails.status == ExchangeStatus.RESCINDED
+            );
         }
     }, [exchangeDetails]);
 
@@ -432,7 +436,8 @@ const Exchanges: React.FC = () =>
         }
         else if (
             exchangeDetails.status === ExchangeStatus.ENDED ||
-            exchangeDetails.status === ExchangeStatus.REJECTED
+            exchangeDetails.status === ExchangeStatus.REJECTED ||
+            exchangeDetails.status === ExchangeStatus.RESCINDED
         )
         {
             targetTab = 'archive';
@@ -644,6 +649,12 @@ const Exchanges: React.FC = () =>
         setExchangeDetails(exchange);
     };
 
+    const onExchangeRescinded = (exchange: ExchangeDetailedDto) =>
+    {
+        setExchangeDetails(exchange);
+        setActiveListTab('archive');
+    };
+
     const onExchangeEdited = (exchange: ExchangeDetailedDto) =>
     {
         setExchangeDetails(exchange);
@@ -672,6 +683,8 @@ const Exchanges: React.FC = () =>
                 setIsDeletedExchangeDialogOpen={setIsDeletedExchangeDialogOpen}
                 isExchangeEndDialogOpen={isExchangeEndDialogOpen}
                 setIsExchangeEndDialogOpen={setIsExchangeEndDialogOpen}
+                isExchangeRescindDialogOpen={isExchangeRescindDialogOpen}
+                setIsExchangeRescindDialogOpen={setIsExchangeRescindDialogOpen}
                 isDocumentAddDialogOpen={isDocumentAddDialogOpen}
                 setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}
                 isUploadDocumentDialogOpen={isUploadDocumentDialogOpen}
@@ -696,6 +709,7 @@ const Exchanges: React.FC = () =>
                 onDocumentUpdated={onDocumentUpdated}
                 onExchangeDeleted={onExchangeDeleted}
                 onExchangeEnded={onExchangeEnded}
+                onExchangeRescinded={onExchangeRescinded}
                 onExchangeEdited={onExchangeEdited}
                 onExchangeAccessManagementUpdated={onExchangeAccessManagementUpdated}
             />
@@ -869,6 +883,7 @@ const Exchanges: React.FC = () =>
                             exchangeDetails={exchangeDetails}
                             setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}
                             setIsExchangeEndDialogOpen={setIsExchangeEndDialogOpen}
+                            setIsExchangeRescindDialogOpen={setIsExchangeRescindDialogOpen}
                             setIsDeletedExchangeDialogOpen={setIsDeletedExchangeDialogOpen}
                             setIsExchangeEditDialogOpen={setIsExchangeEditDialogOpen}
                             setIsExchangeDetailedViewDialogOpen={setIsExchangeDetailedViewDialogOpen}

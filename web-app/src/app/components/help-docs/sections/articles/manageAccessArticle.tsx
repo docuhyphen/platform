@@ -13,8 +13,8 @@ export const manageAccessArticle = (
         <ul>
             <li>
                 <strong>Owner</strong> - Full control over the exchange. Can manage access, edit settings,
-                add/remove documents, and end the exchange. This role is structural and cannot be assigned
-                or revoked.
+                add/remove documents, rescind or end the exchange, and manage its final lifecycle state.
+                This role is structural and cannot be assigned or revoked.
             </li>
             <li>
                 <strong>Editor</strong> - Can add, update, upload, and manage documents within the exchange.
@@ -120,7 +120,8 @@ export const manageAccessArticle = (
 
         <p>
             <em>Changes to access and permissions take effect immediately after saving. Protected entries
-            (your own access and the exchange owner) cannot be modified or revoked.</em>
+            (your own access and the exchange owner) cannot be modified or revoked. Once an exchange is
+            rescinded or ended, document and access changes are no longer available.</em>
         </p>
     </>
 );

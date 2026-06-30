@@ -110,6 +110,11 @@ class ExchangeUpdateService @Inject constructor(
         {
             val newStatus = request.status!!
 
+            if (newStatus == ExchangeStatus.RESCINDED)
+            {
+                throw IllegalArgumentException("Use the rescind action to cancel an outgoing exchange")
+            }
+
             // --- Workflow routing for ACCEPTED_STARTED and REJECTED -----------------------
             // If an acceptance workflow is running for this exchange, route the decision
             // through the engine instead of writing the status directly. The engine's event
@@ -194,7 +199,11 @@ class ExchangeUpdateService @Inject constructor(
                 exchangeRepository.updateEndDate(sessionUUID, Timestamp.from(Instant.now()))
             }
 
-            if (newStatus == ExchangeStatus.ENDED || newStatus == ExchangeStatus.REJECTED)
+            if (
+                newStatus == ExchangeStatus.ENDED ||
+                newStatus == ExchangeStatus.REJECTED ||
+                newStatus == ExchangeStatus.RESCINDED
+            )
             {
                 shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID)
             }
@@ -313,6 +322,54 @@ class ExchangeUpdateService @Inject constructor(
         logger.info("Exchange ${updatedSession.name} completed")
     }
 
+    @Transactional
+    fun rescindExchange(exchangeId: String): Exchange
+    {
+        val exchangeUuid = UUID.fromString(exchangeId)
+        val exchange = exchangeRepository.findById(exchangeUuid)
+            ?: throw ExchangeNotFoundException("Exchange not found")
+
+        val currentUserId = authTokenContext.authToken.appUser?.id
+            ?: throw ForbiddenException("Only the initiator can rescind this exchange")
+
+        if (exchange.initiator?.id != currentUserId)
+        {
+            throw ForbiddenException("Only the initiator can rescind this exchange")
+        }
+
+        if (exchange.status == ExchangeStatus.RESCINDED)
+        {
+            return exchange
+        }
+
+        if (exchange.status != ExchangeStatus.INITIATED && exchange.status != ExchangeStatus.ACCEPTED_STARTED)
+        {
+            throw IllegalArgumentException("Only initiated or active exchanges can be rescinded")
+        }
+
+        val rescindedAt = Timestamp.from(Instant.now())
+        exchangeRepository.updateStatus(exchangeUuid, ExchangeStatus.RESCINDED)
+        exchangeRepository.updateEndDate(exchangeUuid, rescindedAt)
+        exchangeRepository.updateLastActivity(exchangeUuid, rescindedAt)
+
+        workflowInstanceRepository.findAllRunningForSubject(ResourceType.EXCHANGE.name, exchangeUuid)
+            .forEach { instance ->
+                workflowEngineService.cancel(instance.id, "Exchange rescinded")
+            }
+
+        shareService.revokeAllForResource(ResourceType.EXCHANGE, exchangeUuid)
+
+        val updatedExchange = exchangeRepository.findById(exchangeUuid)
+            ?: throw ExchangeNotFoundException("Exchange not found")
+
+        sendStatusChangeEmails(updatedExchange, ExchangeStatus.RESCINDED)
+        broadcastStatusChange(updatedExchange, ExchangeStatus.RESCINDED)
+
+        logger.info("Exchange {} rescinded by initiator {}", exchangeUuid, currentUserId)
+
+        return updatedExchange
+    }
+
     fun deleteExchange(exchangeId: String?)
     {
         if (exchangeId == null)
@@ -380,7 +437,11 @@ class ExchangeUpdateService @Inject constructor(
             )
         }
 
-        if (session.status == ExchangeStatus.ENDED || session.status == ExchangeStatus.REJECTED)
+        if (
+            session.status == ExchangeStatus.ENDED ||
+            session.status == ExchangeStatus.REJECTED ||
+            session.status == ExchangeStatus.RESCINDED
+        )
         {
             logger.error("Attempted to update a exchange that has ended or rejected: $sessionStatus")
             throw NoAuthOtpException(
@@ -515,7 +576,11 @@ class ExchangeUpdateService @Inject constructor(
             throw ForbiddenException("Exchange not found")
         }
 
-        if (session.status == ExchangeStatus.ENDED || session.status == ExchangeStatus.REJECTED)
+        if (
+            session.status == ExchangeStatus.ENDED ||
+            session.status == ExchangeStatus.REJECTED ||
+            session.status == ExchangeStatus.RESCINDED
+        )
         {
             throw IllegalArgumentException("Exchange has already ended")
         }
@@ -554,7 +619,11 @@ class ExchangeUpdateService @Inject constructor(
             )
         }
 
-        if (session.status == ExchangeStatus.ENDED || session.status == ExchangeStatus.REJECTED)
+        if (
+            session.status == ExchangeStatus.ENDED ||
+            session.status == ExchangeStatus.REJECTED ||
+            session.status == ExchangeStatus.RESCINDED
+        )
         {
             throw IllegalArgumentException("Exchange has already ended")
         }
@@ -814,6 +883,21 @@ class ExchangeUpdateService @Inject constructor(
                     rejectionReasonOverride = rejectionReasonOverride,
                 )
             }
+
+            ExchangeStatus.RESCINDED -> {
+                sendStatusChangeEmailForAudience(
+                    session = session,
+                    status = status,
+                    audience = EmailAudience.INITIATOR,
+                    rejectionReasonOverride = rejectionReasonOverride,
+                )
+                sendStatusChangeEmailForAudience(
+                    session = session,
+                    status = status,
+                    audience = EmailAudience.RECIPIENT,
+                    rejectionReasonOverride = rejectionReasonOverride,
+                )
+            }
         }
     }
 
@@ -827,10 +911,17 @@ class ExchangeUpdateService @Inject constructor(
         val destination = when (audience)
         {
             EmailAudience.INITIATOR -> session.initiator?.email
-            EmailAudience.RECIPIENT -> resolveRecipientEmail(session.id, includeInactive = status == ExchangeStatus.REJECTED)
+            EmailAudience.RECIPIENT ->
+                resolveRecipientEmail(
+                    session.id,
+                    includeInactive = status == ExchangeStatus.REJECTED || status == ExchangeStatus.RESCINDED,
+                )
         } ?: return
 
-        val includeInactiveRecipient = status == ExchangeStatus.REJECTED || status == ExchangeStatus.ENDED
+        val includeInactiveRecipient =
+            status == ExchangeStatus.REJECTED ||
+                status == ExchangeStatus.ENDED ||
+                status == ExchangeStatus.RESCINDED
 
         val template = emailTemplateService.renderExchangeStatusEmail(
             status = status,

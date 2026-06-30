@@ -425,6 +425,52 @@ class ExchangeResource @Inject constructor(
     }
 
     @POST
+    @Path("/{exchangeId}/rescind")
+    fun rescindExchange(@PathParam("exchangeId") exchangeId: String): Response
+    {
+        return try
+        {
+            exchangeUpdateService.rescindExchange(exchangeId)
+            val exchange = exchangeRetrievalService.getExchange(exchangeId)
+            Response.ok(DetailedEntityToDtoTransformer.toDto(exchange)).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is ExchangeNotFoundException ->
+                {
+                    Response.status(Response.Status.NOT_FOUND)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
+                is ForbiddenException ->
+                {
+                    Response.status(Response.Status.FORBIDDEN)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
+                is IllegalArgumentException ->
+                {
+                    Response.status(Response.Status.BAD_REQUEST)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
+                else ->
+                {
+                    logger.error("Error rescinding exchange", exception)
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while rescinding exchange"))
+                        .build()
+                }
+            }
+        }
+    }
+
+    @POST
     @Path("/{exchangeId}/recipient-otp")
     fun issueSessionRecipientOtp(@PathParam("exchangeId") exchangeId: String): Response
     {

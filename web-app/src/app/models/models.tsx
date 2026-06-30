@@ -230,7 +230,8 @@ export enum ExchangeStatus
     INITIATED = "INITIATED",
     ACCEPTED_STARTED = "ACCEPTED_STARTED",
     ENDED = "ENDED",
-    REJECTED = "REJECTED"
+    REJECTED = "REJECTED",
+    RESCINDED = "RESCINDED"
 }
 
 export interface UpdateExchangeRequest

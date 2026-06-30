@@ -116,6 +116,11 @@ export const deleteExchange = (exchangeId: string) =>
         apiClient.delete(`/exchanges/${exchangeId}`)
     );
 
+export const rescindExchange = (exchangeId: string) =>
+    executeRequest(() =>
+        apiClient.post(`/exchanges/${exchangeId}/rescind`)
+    );
+
 export const updateExchangeDocument = (exchangeId: string, documentId: string, request: ExchangeRequestDocumentRequest) =>
     executeRequest(() =>
         apiClient.put(`/exchanges/${exchangeId}/documents/${documentId}`, request)

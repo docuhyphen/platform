@@ -6,4 +6,5 @@ enum class ExchangeStatus
     ACCEPTED_STARTED,
     ENDED,
     REJECTED,
+    RESCINDED,
 }

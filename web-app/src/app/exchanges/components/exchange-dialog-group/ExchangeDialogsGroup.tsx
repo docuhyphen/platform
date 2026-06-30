@@ -10,6 +10,7 @@ import ExchangeDocumentZipDownloadDialog
 import ExchangeEditDialog from "../exchange-edit-dialog/ExchangeEditDialog.tsx";
 import ExchangeAccessManagementDialog from "../exchange-access-management-dialog/ExchangeAccessManagementDialog.tsx";
 import ExchangeDetailedViewDialog from "../exchange-detailed-view-dialog/ExchangeDetailedViewDialog.tsx";
+import ExchangeRescindDialog from "../exchange-rescind-dialog/ExchangeRescindDialog.tsx";
 
 interface ExchangeDialogsGroupProps
 {
@@ -17,6 +18,8 @@ interface ExchangeDialogsGroupProps
     setIsDeletedExchangeDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     isExchangeEndDialogOpen: boolean;
     setIsExchangeEndDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    isExchangeRescindDialogOpen: boolean;
+    setIsExchangeRescindDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     isDocumentAddDialogOpen: boolean;
     setIsDocumentAddDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     isUploadDocumentDialogOpen: boolean;
@@ -41,6 +44,7 @@ interface ExchangeDialogsGroupProps
     onDocumentUpdated: (updatedDocument: DocumentDetailedDto) => void;
     onExchangeDeleted: (exchangeId: string) => void;
     onExchangeEnded: (exchange: ExchangeDetailedDto) => void;
+    onExchangeRescinded: (exchange: ExchangeDetailedDto) => void;
     onExchangeEdited: (exchange: ExchangeDetailedDto) => void;
     onExchangeAccessManagementUpdated: (exchange: ExchangeDetailedDto) => void;
 }
@@ -51,6 +55,8 @@ const ExchangeDialogsGroup: React.FC<ExchangeDialogsGroupProps> = (
         setIsDeletedExchangeDialogOpen,
         isExchangeEndDialogOpen,
         setIsExchangeEndDialogOpen,
+        isExchangeRescindDialogOpen,
+        setIsExchangeRescindDialogOpen,
         isDocumentAddDialogOpen,
         setIsDocumentAddDialogOpen,
         isUploadDocumentDialogOpen,
@@ -75,6 +81,7 @@ const ExchangeDialogsGroup: React.FC<ExchangeDialogsGroupProps> = (
         onDocumentUpdated,
         onExchangeDeleted,
         onExchangeEnded,
+        onExchangeRescinded,
         onExchangeEdited,
         onExchangeAccessManagementUpdated,
     }) =>
@@ -92,9 +99,16 @@ const ExchangeDialogsGroup: React.FC<ExchangeDialogsGroupProps> = (
                                onExchangeEdited={onExchangeEdited}/>
 
             <ExchangeEndDialog isOpen={isExchangeEndDialogOpen}
-                              onDismiss={() => setIsExchangeEndDialogOpen(false)}
-                              exchange={exchangeDetails}
-                              onExchangeEnded={onExchangeEnded}/>
+                               onDismiss={() => setIsExchangeEndDialogOpen(false)}
+                               exchange={exchangeDetails}
+                               onExchangeEnded={onExchangeEnded}/>
+
+            <ExchangeRescindDialog
+                isOpen={isExchangeRescindDialogOpen}
+                onDismiss={() => setIsExchangeRescindDialogOpen(false)}
+                exchange={exchangeDetails}
+                onExchangeRescinded={onExchangeRescinded}
+            />
 
             <ExchangeAccessManagementDialog isOpen={isExchangeAccessManagementDialogOpen}
                                            onDismiss={() => setIsExchangeAccessManagementDialogOpen(false)}

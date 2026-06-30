@@ -235,7 +235,11 @@ class ExchangeDocumentService @Inject constructor(
             throw IllegalArgumentException("Exchange not found")
         }
 
-        if (exchange.status == ExchangeStatus.ENDED || exchange.status == ExchangeStatus.REJECTED)
+        if (
+            exchange.status == ExchangeStatus.ENDED ||
+            exchange.status == ExchangeStatus.REJECTED ||
+            exchange.status == ExchangeStatus.RESCINDED
+        )
         {
             logger.error("Attempted to update a exchange that has ended or rejected: ${exchange.status}")
             throw IllegalArgumentException("Exchange not found")
@@ -319,7 +323,11 @@ class ExchangeDocumentService @Inject constructor(
             throw IllegalArgumentException("Exchange not found")
         }
 
-        if (exchange.status == ExchangeStatus.ENDED || exchange.status == ExchangeStatus.REJECTED)
+        if (
+            exchange.status == ExchangeStatus.ENDED ||
+            exchange.status == ExchangeStatus.REJECTED ||
+            exchange.status == ExchangeStatus.RESCINDED
+        )
         {
             logger.error("Attempted to update a exchange that has ended or rejected: ${exchange.status}")
             throw IllegalArgumentException("Exchange not found")
