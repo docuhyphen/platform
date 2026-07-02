@@ -27,7 +27,7 @@ import {fetchMyOrganizationUsers, updateOrganizationGroup} from "../../../../ser
 import {AppUserDetailedDto, OrganizationDetailedDto, OrganizationGroupDetailedDto} from "../../../models/models.tsx";
 import {useEditGroupDialogStyles} from "./EditGroupDialogStyles.tsx";
 import {DeleteRegular, DismissRegular} from "@fluentui/react-icons";
-import {GroupRole, GroupRoleDisplayNames} from "../../../../services/types/roles";
+import {PrincipalGroupRoleDisplayNames, PrincipalGroupRoleName} from "../../../../services/types/roles";
 import MultiPersonPicker from "../../../components/person-picker/multi-person-picker/MultiPersonPicker.tsx";
 import {PersonPickerItem} from "../../../components/person-picker/personPickerTypes.ts";
 
@@ -63,7 +63,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
     const [isActive, setIsActive] = useState(true);
     const [users, setUsers] = useState<AppUserDetailedDto[]>([]);
     const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
-    const [memberRoles, setMemberRoles] = useState<Map<string, GroupRole>>(new Map());
+    const [memberRoles, setMemberRoles] = useState<Map<string, PrincipalGroupRoleName>>(new Map());
     const [savingData, setSavingData] = useState(false);
     const [loadingUsers, setLoadingUsers] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -88,7 +88,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
             loadUsers().then((fetchedUsers) =>
             {
                 const newMembers = new Set<string>();
-                const rolesMap = new Map<string, GroupRole>();
+                const rolesMap = new Map<string, PrincipalGroupRoleName>();
 
                 group.members?.forEach((member: any) =>
                 {
@@ -96,8 +96,8 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                     if (!uid) return;
                     const isFetched = fetchedUsers.some(u => u.id === uid || u.id == uid);
                     if (isFetched) newMembers.add(String(uid));
-                    const role = member.groupRole || member.permissions?.groupRole || GroupRole.MEMBER;
-                    rolesMap.set(String(uid), role as GroupRole);
+                    const role = member.groupRole || member.permissions?.groupRole || PrincipalGroupRoleName.MEMBER;
+                    rolesMap.set(String(uid), role as PrincipalGroupRoleName);
                 });
 
                 setSelectedMembers(newMembers);
@@ -138,7 +138,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
             return;
         }
 
-        const hasOwner = Array.from(selectedMembers).some(uid => memberRoles.get(uid) === GroupRole.OWNER);
+        const hasOwner = Array.from(selectedMembers).some(uid => memberRoles.get(uid) === PrincipalGroupRoleName.OWNER);
         if (!hasOwner)
         {
             setError("The group must have at least one member with the Owner role.");
@@ -151,7 +151,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
         {
             const members = Array.from(selectedMembers).map(uid => ({
                 appUserId: uid,
-                groupRole: memberRoles.get(uid) || GroupRole.MEMBER,
+                groupRole: memberRoles.get(uid) || PrincipalGroupRoleName.MEMBER,
             }));
 
             await updateOrganizationGroup(
@@ -194,7 +194,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
         setMemberRoles(prev =>
         {
             const next = new Map(prev);
-            if (!next.has(userId)) next.set(userId, GroupRole.MEMBER);
+            if (!next.has(userId)) next.set(userId, PrincipalGroupRoleName.MEMBER);
             return next;
         });
     };
@@ -363,19 +363,19 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                                                                 size="small"
                                                                 disabled={permissionDenied}
                                                                 className={styles.roleDropdown}
-                                                                value={GroupRoleDisplayNames[memberRoles.get(uid) || GroupRole.MEMBER]}
-                                                                selectedOptions={[memberRoles.get(uid) || GroupRole.MEMBER]}
+                                                                value={PrincipalGroupRoleDisplayNames[memberRoles.get(uid) || PrincipalGroupRoleName.MEMBER]}
+                                                                selectedOptions={[memberRoles.get(uid) || PrincipalGroupRoleName.MEMBER]}
                                                                 onOptionSelect={(_e, d) =>
                                                                 {
                                                                     setMemberRoles(prev =>
                                                                     {
                                                                         const next = new Map(prev);
-                                                                        next.set(uid, (d.optionValue || GroupRole.MEMBER) as GroupRole);
+                                                                        next.set(uid, (d.optionValue || PrincipalGroupRoleName.MEMBER) as PrincipalGroupRoleName);
                                                                         return next;
                                                                     });
                                                                 }}
                                                             >
-                                                                {Object.entries(GroupRoleDisplayNames).map(([k, v]) => (
+                                                                {Object.entries(PrincipalGroupRoleDisplayNames).map(([k, v]) => (
                                                                     <Option key={k} value={k}>{v}</Option>
                                                                 ))}
                                                             </Dropdown>

@@ -1,12 +1,12 @@
 ﻿import React, {useEffect, useState} from "react";
 import {useNavigate} from "react-router-dom";
-import {NoAuthExchangeBasicDto, ExchangeStatus} from "../models/models.tsx";
+import {NoAuthExchangeBasicDto, ExchangeStatus, DocumentDetailedDto} from "../models/models.tsx";
 import NoAuthExchangeHeader from "./components/header/NoAuthExchangeHeader.tsx";
 import {useNoAuthExchangeStyles} from "./NoAuthExchangeStyles.tsx";
 import NoAuthExchangeUserDecision from "./components/exchange-use-decision/NoAuthExchangeUserDecision.tsx";
-import NoAuthExchangeDocumentList from "./components/document-list/NoAuthExchangeDocumentList.tsx";
-import {Spinner, Text} from "@fluentui/react-components";
+import {Spinner} from "@fluentui/react-components";
 import {fetchNoAuthExchange} from "../../services/exchangeApi.ts";
+import NoAuthExchangeWorkspace from "./components/exchange-workspace/NoAuthExchangeWorkspace.tsx";
 
 const NoAuthExchange: React.FC = () =>
 {
@@ -96,33 +96,49 @@ const NoAuthExchange: React.FC = () =>
         setExchangeAccepted(true)
     }
 
+    const onDocumentUploaded = (uploadedDocument: DocumentDetailedDto) =>
+    {
+        setExchange((prev) =>
+        {
+            if (!prev)
+            {
+                return prev;
+            }
+            const updatedDocuments = (prev.documents || []).map((document) =>
+                document.id === uploadedDocument.id ? {...document, ...uploadedDocument} : document
+            );
+            return {...prev, documents: updatedDocuments};
+        });
+    }
+
     return (
-        <section className={styles.container}>
+        <section
+            id={"no-auth-exchange-page"}
+            className={styles.container}
+        >
             <NoAuthExchangeHeader/>
 
             {isLoadingExchange && (
-                <div className={styles.exchangeLoadingContainer}>
-                    <Spinner size={"small"} label={"Loading..."}/>
+                <div
+                    id={"no-auth-exchange-loading"}
+                    className={styles.exchangeLoadingContainer}
+                >
+                    <Spinner
+                        size={"medium"}
+                        label={"Preparing your secure document request"}
+                    />
                 </div>
             )}
 
             {!isLoadingExchange && exchange && (
                 <>
                     {exchangeAccepted ? (
-                        <section className={styles.exchangeContainer}>
-                            <div className={styles.name}>
-                                {(exchange.initiatorLastName && exchange.initiatorFirstName) &&
-                                    <Text>
-                                        Requested by {exchange.initiatorFirstName} {exchange.initiatorLastName}
-                                    </Text>
-                                }
-                                <Text size={600}>{exchange.name}</Text>
-                            </div>
-                            <NoAuthExchangeDocumentList
-                                exchange={exchange}/>
-                        </section>
+                        <NoAuthExchangeWorkspace exchange={exchange} onDocumentUploaded={onDocumentUploaded}/>
                     ) : (
-                        <section className={styles.exchangeDecisionContainer}>
+                        <section
+                            id={"no-auth-exchange-decision"}
+                            className={styles.exchangeDecisionContainer}
+                        >
                             <NoAuthExchangeUserDecision
                                 exchange={exchange}
                                 onAccepted={onExchangeAccepted}

@@ -3,14 +3,13 @@ package com.docuhyphen.app.api.resource
 import com.docuhyphen.app.api.exception.AppUserNotFoundException
 import com.docuhyphen.app.api.exception.LastAppAdminException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.RoleName
+import com.docuhyphen.app.api.model.entity.AppRoleName
 import com.docuhyphen.app.api.resource.model.AppAdminDto
 import com.docuhyphen.app.api.resource.model.AppUserSearchResultDto
 import com.docuhyphen.app.api.resource.model.GrantAppAdminRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.AppUserService
-import com.docuhyphen.app.api.service.auth.RoleAssignmentService
-import com.docuhyphen.app.api.service.auth.UserRoleService
+import com.docuhyphen.app.api.service.auth.AppRoleAssignmentService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.GenericEntity
@@ -30,10 +29,8 @@ import java.util.UUID
 @Consumes(APPLICATION_JSON)
 class AppRoleResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
-    private val userRoleService: UserRoleService,
-    private val roleAssignmentService: RoleAssignmentService,
+    private val appRoleAssignmentService: AppRoleAssignmentService,
     private val appUserService: AppUserService,
-    private val appUserRepository: com.docuhyphen.app.api.repository.AppUserRepository,
 )
 {
     companion object
@@ -44,7 +41,7 @@ class AppRoleResource @Inject constructor(
     @GET
     @Path("/app-admins")
     fun listAppAdmins(): Response = guarded {
-        val admins = roleAssignmentService.listAppAdmins().map { ra ->
+        val admins = appRoleAssignmentService.listAppAdmins().map { ra ->
             val appUser = ra.appUserId?.let { appUserService.getById(it) }
             AppAdminDto(
                 assignmentId = ra.id.toString(),
@@ -66,7 +63,7 @@ class AppRoleResource @Inject constructor(
             ?.let { runCatching { UUID.fromString(it) }.getOrElse { throw IllegalArgumentException("Invalid appUserId") } }
             ?: throw IllegalArgumentException("appUserId is required")
 
-        val assignment = roleAssignmentService.grantAppRole(targetId, RoleName.APP_ADMIN, actorId())
+        val assignment = appRoleAssignmentService.grantAppRole(targetId, AppRoleName.APP_ADMIN, actorId())
         Response.status(CREATED)
             .entity(AppAdminDto(assignmentId = assignment.id.toString(), appUserId = assignment.appUserId?.toString()))
             .build()
@@ -77,7 +74,7 @@ class AppRoleResource @Inject constructor(
     fun revokeAppAdmin(@PathParam("assignmentId") assignmentId: String): Response = guarded {
         val id = runCatching { UUID.fromString(assignmentId) }
             .getOrElse { throw IllegalArgumentException("Invalid assignmentId") }
-        roleAssignmentService.revokeAppRole(id, actorId())
+        appRoleAssignmentService.revokeAppRole(id, actorId())
         Response.status(NO_CONTENT).build()
     }
 
@@ -98,7 +95,7 @@ class AppRoleResource @Inject constructor(
         {
             return@guarded Response.ok(object : GenericEntity<List<AppUserSearchResultDto>>(emptyList()) {}).build()
         }
-        val hits = appUserRepository.searchActiveUsers(query, limit).map { u ->
+        val hits = appUserService.searchActiveUsers(query, limit).map { u ->
             AppUserSearchResultDto(
                 id = u.id.toString(),
                 email = u.email,
@@ -121,21 +118,7 @@ class AppRoleResource @Inject constructor(
             val actor = authTokenContext.authToken.appUser
                 ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Authentication required")).build()
 
-            if (!userRoleService.isAppAdmin(actor.id))
-            {
-                val noActiveAppAdmins = roleAssignmentService.listAppAdmins().isEmpty()
-                if (noActiveAppAdmins && userRoleService.isOrgAdmin(actor.id))
-                {
-                    roleAssignmentService.grantAppRole(actor.id, RoleName.APP_ADMIN, actor.id)
-                    logger.info("Bootstrapped APP_ADMIN from /admin/roles access for org admin {}", actor.id)
-                }
-            }
-
-            if (!userRoleService.isAppAdmin(actor.id))
-            {
-                return Response.status(FORBIDDEN)
-                    .entity(ResponseError("App administrator privilege required")).build()
-            }
+            appRoleAssignmentService.requireAppAdmin(actor.id)
             block()
         }
         catch (exception: Exception)
@@ -150,6 +133,8 @@ class AppRoleResource @Inject constructor(
                     Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
                 is IllegalArgumentException ->
                     Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+                is SecurityException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
                 else ->
                     Response.status(INTERNAL_SERVER_ERROR)
                         .entity(ResponseError("An error occurred while managing app roles")).build()

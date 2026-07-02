@@ -3,10 +3,11 @@
 import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.dto.SessionAccessEntryDto
 import com.docuhyphen.app.api.model.entity.ExternalParticipant
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.RoleName
+import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
 import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareSource
 import com.docuhyphen.app.api.model.entity.Exchange
@@ -46,6 +47,7 @@ class ExchangeAccessManagementService @Inject constructor(
     private val exchangeRepository: ExchangeRepository,
     private val shareRepository: ShareRepository,
     private val shareService: ShareService,
+    private val shareQueryService: ShareQueryService,
     private val appUserService: AppUserService,
     private val externalParticipantRepository: ExternalParticipantRepository,
     private val authTokenContext: AuthTokenContext,
@@ -66,7 +68,7 @@ class ExchangeAccessManagementService @Inject constructor(
         exchangeId: UUID,
         principalKind: String,
         principalId: String,
-        roleName: String,
+        roleName: ExchangeShareRoleName,
         constraintsJson: String? = null,
         expiresAtEpochMillis: Long? = null,
     )
@@ -74,7 +76,7 @@ class ExchangeAccessManagementService @Inject constructor(
         val session = requireSessionOwnerAndReturn(exchangeId)
 
         val requestedKind = parsePrincipalKind(principalKind)
-        val role = parseRole(roleName)
+        val role = roleName
 
         // Prevent the caller from granting themselves a share (they already have OWNER).
         val callerAppUserId = authTokenContext.authToken.appUser?.id
@@ -113,7 +115,7 @@ class ExchangeAccessManagementService @Inject constructor(
     }
 
     @Transactional
-    fun changeRole(exchangeId: UUID, shareId: UUID, roleName: String, constraintsJson: String? = null)
+    fun changeRole(exchangeId: UUID, shareId: UUID, roleName: ExchangeShareRoleName, constraintsJson: String? = null)
     {
         requireSessionOwner(exchangeId)
         requireMutableAccessShare(exchangeId, shareId)
@@ -121,7 +123,7 @@ class ExchangeAccessManagementService @Inject constructor(
         val normalizedConstraints = if (hasConstraintsPayload) ShareConstraints.normalizeForStorage(constraintsJson) else null
         shareService.updateRoleAndConstraints(
             shareId = shareId,
-            roleName = parseRole(roleName),
+            roleName = roleName,
             constraintsJson = normalizedConstraints,
             applyConstraints = hasConstraintsPayload,
         )
@@ -133,6 +135,24 @@ class ExchangeAccessManagementService @Inject constructor(
         requireSessionOwner(exchangeId)
         requireMutableAccessShare(exchangeId, shareId)
         shareService.revoke(shareId, authTokenContext.authToken.appUser?.id)
+    }
+
+    fun getSessionAccessView(exchangeId: UUID): List<SessionAccessEntryDto>
+    {
+        val principal = authorizationContextFactory.currentPrincipal()
+            ?: throw ExchangeNotFoundException("Exchange not found")
+        loadSessionOrThrow(exchangeId)
+        val decision = authorizationService.authorize(
+            principal = principal,
+            action = Action.EXCHANGE_MANAGE_ACCESS,
+            resource = ResourceRef.exchange(exchangeId),
+            context = authorizationContextFactory.currentContext(),
+        )
+        if (decision is Decision.Deny)
+        {
+            throw ExchangeNotFoundException("Exchange not found")
+        }
+        return shareQueryService.getSessionAccessView(exchangeId)
     }
 
     // -------------------------------------------------------------------------
@@ -201,7 +221,7 @@ class ExchangeAccessManagementService @Inject constructor(
         val decision = authorizationService.authorize(
             principal = principal,
             action = Action.EXCHANGE_MANAGE_ACCESS,
-            resource = ResourceRef.session(exchangeId),
+            resource = ResourceRef.exchange(exchangeId),
             context = authorizationContextFactory.currentContext(),
         )
         if (decision is Decision.Deny)
@@ -220,7 +240,7 @@ class ExchangeAccessManagementService @Inject constructor(
         val decision = authorizationService.authorize(
             principal = principal,
             action = Action.EXCHANGE_MANAGE_ACCESS,
-            resource = ResourceRef.session(exchangeId),
+            resource = ResourceRef.exchange(exchangeId),
             context = authorizationContextFactory.currentContext(),
         )
         if (decision is Decision.Deny)
@@ -246,7 +266,7 @@ class ExchangeAccessManagementService @Inject constructor(
             initiatorId != null &&
             share.principalKind == PrincipalKind.USER &&
             share.principalId == initiatorId &&
-            share.roleName == RoleName.OWNER.name &&
+            share.roleName == ExchangeShareRoleName.OWNER &&
             share.source == ShareSource.DIRECT
         )
         {
@@ -282,10 +302,6 @@ class ExchangeAccessManagementService @Inject constructor(
             }
         }
             .getOrElse { throw IllegalArgumentException("Invalid principal kind: $value") }
-
-    private fun parseRole(value: String): RoleName =
-        runCatching { RoleName.valueOf(value.trim().uppercase()) }
-            .getOrElse { throw IllegalArgumentException("Invalid role: $value") }
 
     private fun parseUuid(value: String, field: String): UUID =
         runCatching { UUID.fromString(value.trim()) }

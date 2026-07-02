@@ -6,6 +6,7 @@ import com.docuhyphen.app.api.model.dto.PrincipalGroupMemberDto
 import com.docuhyphen.app.api.model.entity.PrincipalGroup
 import com.docuhyphen.app.api.model.entity.PrincipalGroupScope
 import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
 import com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.PrincipalGroupRepository
 import com.docuhyphen.app.api.resource.model.ResponseError
@@ -71,7 +72,7 @@ class PersonalGroupResource @Inject constructor(
     data class MemberEntry(
         val principalId: String? = null,
         val principalKind: String = "USER",
-        val groupRole: String = "MEMBER",
+        val groupRole: PrincipalGroupRoleName = PrincipalGroupRoleName.MEMBER,
     )
 
     // ---- Endpoints -----------------------------------------------------------
@@ -194,9 +195,11 @@ class PersonalGroupResource @Inject constructor(
                     ?: throw IllegalArgumentException("principalId is required")
                 val kind = runCatching { PrincipalKind.valueOf(entry.principalKind.trim().uppercase()) }
                     .getOrElse { throw IllegalArgumentException("Invalid principalKind: ${entry.principalKind}") }
-                val role = runCatching { com.docuhyphen.app.api.model.entity.GroupRole.valueOf(entry.groupRole.trim().uppercase()) }
-                    .getOrElse { throw IllegalArgumentException("Invalid groupRole: ${entry.groupRole}") }
-                PrincipalGroupService.GroupMemberSpec(principalId = pid, principalKind = kind, groupRole = role)
+                PrincipalGroupService.GroupMemberSpec(
+                    principalId = pid,
+                    principalKind = kind,
+                    groupRole = entry.groupRole,
+                )
             }
 
             principalGroupService.addPersonalMembers(gid, specs, principal.id)
@@ -345,7 +348,7 @@ class PersonalGroupResource @Inject constructor(
             val user = if (member.principalKind == PrincipalKind.USER)
                 appUserService.getById(member.principalId)?.let { DetailedEntityToDtoTransformer.toDto(it) }
             else null
-            PrincipalGroupMemberDto(user = user, groupRole = member.groupRole.name)
+            PrincipalGroupMemberDto(user = user, groupRole = member.groupRole)
         }
         return PrincipalGroupDto(
             id = group.id,

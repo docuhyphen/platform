@@ -54,6 +54,11 @@ class AppUserService @Inject constructor(
         return appUserRepository.findByEmail(email)
     }
 
+    fun searchActiveUsers(query: String, limit: Int = 20): List<AppUser>
+    {
+        return appUserRepository.searchActiveUsers(query, limit)
+    }
+
     fun create(user: AppUser): AppUser
     {
         return appUserRepository.save(user)

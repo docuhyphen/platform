@@ -11,6 +11,14 @@ import com.docuhyphen.app.api.model.entity.CommunicationScope
 import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.repository.CommunicationRepository
 import com.docuhyphen.app.api.repository.OrganizationRepository
+import com.docuhyphen.app.api.service.auth.UserRoleService
+import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.Decision
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.variable.TemplateVariableInterpolator
 import com.docuhyphen.app.api.service.variable.VariableResolutionContext
 import io.quarkus.security.ForbiddenException
@@ -31,6 +39,9 @@ class CommunicationService @Inject constructor(
     private val appUserRepository: AppUserRepository,
     private val organizationRepository: OrganizationRepository,
     private val interpolator: TemplateVariableInterpolator,
+    private val authorizationService: AuthorizationService,
+    private val authorizationContextFactory: AuthorizationContextFactory,
+    private val userRoleService: UserRoleService,
 )
 {
     private val logger = LoggerFactory.getLogger(CommunicationService::class.java)
@@ -38,17 +49,15 @@ class CommunicationService @Inject constructor(
 
     // ── Read ──────────────────────────────────────────────────────────────────
 
-    fun listTemplates(
-        callerUserId: UUID,
-        callerOrgId: UUID?,
-        isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
-        scope: String?,
-        tag: String?,
-        isTemplate: Boolean?,
-    ): List<CommunicationDto>
+    fun listTemplates(scope: String?, tag: String?, isTemplate: Boolean?): List<CommunicationDto>
     {
-        return repository.findAllAccessibleForCaller(callerUserId, callerOrgId, isOrgAdmin, isAppAdmin)
+        val principal = currentPrincipal()
+        val context = currentContext()
+        val activeOrgId = context.activeOrgId
+        val isOrgAdmin = activeOrgId != null && userRoleService.isOrgAdminIn(principal.id, activeOrgId)
+        val isAppAdmin = userRoleService.isAppAdmin(principal.id)
+
+        return repository.findAllAccessibleForCaller(principal.id, activeOrgId, isOrgAdmin, isAppAdmin)
             .asSequence()
             .filter { scope == null || it.scope.name == scope.uppercase() }
             .filter { tag == null || decodeTags(it.generalTags).contains(tag) }
@@ -57,29 +66,31 @@ class CommunicationService @Inject constructor(
             .toList()
     }
 
-    fun getTemplate(id: UUID, callerUserId: UUID, callerOrgId: UUID?, isAppAdmin: Boolean): CommunicationDto
+    fun getTemplate(id: UUID): CommunicationDto
     {
+        val principal = currentPrincipal()
+        val context = currentContext()
         val communication = repository.findById(id)
             ?: throw IllegalArgumentException("Communication not found: $id")
-        checkReadAccess(communication, callerUserId, callerOrgId, isAppAdmin)
+        checkReadAccess(communication, principal, context)
         return communication.toDto()
     }
 
     // ── Write ─────────────────────────────────────────────────────────────────
 
     @Transactional
-    fun createTemplate(
-        request: CreateCommunicationRequest,
-        callerUserId: UUID,
-        callerOrgId: UUID?,
-        isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
-    ): CommunicationDto
+    fun createTemplate(request: CreateCommunicationRequest): CommunicationDto
     {
         if (request.subject.isBlank()) throw IllegalArgumentException("subject is required")
         if (request.body.isBlank()) throw IllegalArgumentException("body is required")
 
-        val resolvedScope = resolveScope(request.scope, callerOrgId, isOrgAdmin, isAppAdmin)
+        val principal = currentPrincipal()
+        val context = currentContext()
+        val activeOrgId = context.activeOrgId
+        val isOrgAdmin = activeOrgId != null && userRoleService.isOrgAdminIn(principal.id, activeOrgId)
+        val isAppAdmin = userRoleService.isAppAdmin(principal.id)
+
+        val resolvedScope = resolveScope(request.scope, activeOrgId, isOrgAdmin, isAppAdmin)
         val communication = Communication().apply {
             name = request.name.trim()
             subject = request.subject.trim()
@@ -89,25 +100,21 @@ class CommunicationService @Inject constructor(
             generalTags = encodeTags(request.generalTags)
             isActive = request.isActive
             scope = resolvedScope
-            organizationId = if (resolvedScope == CommunicationScope.PERSONAL) null else callerOrgId
+            organizationId = if (resolvedScope == CommunicationScope.PERSONAL) null else activeOrgId
             isTemplate = if (isAppAdmin && resolvedScope == CommunicationScope.PLATFORM) request.isTemplate else false
-            createdByAppUserId = callerUserId
+            createdByAppUserId = principal.id
         }
         return repository.save(communication).toDto()
     }
 
     @Transactional
-    fun updateTemplate(
-        id: UUID,
-        request: UpdateCommunicationRequest,
-        callerUserId: UUID,
-        callerOrgId: UUID?,
-        isAppAdmin: Boolean,
-    ): CommunicationDto
+    fun updateTemplate(id: UUID, request: UpdateCommunicationRequest): CommunicationDto
     {
+        val principal = currentPrincipal()
+        val context = currentContext()
         val communication = repository.findById(id)
             ?: throw IllegalArgumentException("Communication not found: $id")
-        checkWriteAccess(communication, callerUserId, callerOrgId, isAppAdmin)
+        checkWriteAccess(communication, principal, context)
 
         request.name?.trim()?.let { if (it.isNotBlank()) communication.name = it }
         request.subject?.trim()?.let { if (it.isNotBlank()) communication.subject = it }
@@ -121,17 +128,13 @@ class CommunicationService @Inject constructor(
     }
 
     @Transactional
-    fun patchPublished(
-        id: UUID,
-        request: PatchCommunicationPublishedRequest,
-        callerUserId: UUID,
-        callerOrgId: UUID?,
-        isAppAdmin: Boolean,
-    ): CommunicationDto
+    fun patchPublished(id: UUID, request: PatchCommunicationPublishedRequest): CommunicationDto
     {
+        val principal = currentPrincipal()
+        val context = currentContext()
         val communication = repository.findById(id)
             ?: throw IllegalArgumentException("Communication not found: $id")
-        checkWriteAccess(communication, callerUserId, callerOrgId, isAppAdmin)
+        checkWriteAccess(communication, principal, context)
         if (communication.scope == CommunicationScope.PERSONAL)
         {
             throw ForbiddenException("Personal communications cannot be published")
@@ -142,47 +145,41 @@ class CommunicationService @Inject constructor(
     }
 
     @Transactional
-    fun patchStatus(
-        id: UUID,
-        request: PatchCommunicationStatusRequest,
-        callerUserId: UUID,
-        callerOrgId: UUID?,
-        isAppAdmin: Boolean,
-    ): CommunicationDto
+    fun patchStatus(id: UUID, request: PatchCommunicationStatusRequest): CommunicationDto
     {
+        val principal = currentPrincipal()
+        val context = currentContext()
         val communication = repository.findById(id)
             ?: throw IllegalArgumentException("Communication not found: $id")
-        checkWriteAccess(communication, callerUserId, callerOrgId, isAppAdmin)
+        checkWriteAccess(communication, principal, context)
         communication.isActive = request.isActive
         communication.updatedAt = Timestamp.from(Instant.now())
         return repository.update(communication).toDto()
     }
 
     @Transactional
-    fun deleteTemplate(id: UUID, callerUserId: UUID, callerOrgId: UUID?, isAppAdmin: Boolean)
+    fun deleteTemplate(id: UUID)
     {
+        val principal = currentPrincipal()
+        val context = currentContext()
         val communication = repository.findById(id)
             ?: throw IllegalArgumentException("Communication not found: $id")
-        checkWriteAccess(communication, callerUserId, callerOrgId, isAppAdmin)
+        checkWriteAccess(communication, principal, context)
         communication.isDeleted = true
         communication.isActive = false
         communication.updatedAt = Timestamp.from(Instant.now())
         repository.update(communication)
-        logger.info("Communication {} soft-deleted by user {}", id, callerUserId)
+        logger.info("Communication {} soft-deleted by user {}", id, principal.id)
     }
 
     @Transactional
-    fun cloneTemplate(
-        id: UUID,
-        request: CloneCommunicationRequest,
-        callerUserId: UUID,
-        callerOrgId: UUID?,
-        isAppAdmin: Boolean,
-    ): CommunicationDto
+    fun cloneTemplate(id: UUID, request: CloneCommunicationRequest): CommunicationDto
     {
+        val principal = currentPrincipal()
+        val context = currentContext()
         val source = repository.findById(id)
             ?: throw IllegalArgumentException("Communication not found: $id")
-        checkReadAccess(source, callerUserId, callerOrgId, isAppAdmin)
+        checkReadAccess(source, principal, context)
 
         val clone = Communication().apply {
             name = request.newName?.trim()?.ifBlank { null } ?: "${source.name} (copy)"
@@ -196,28 +193,24 @@ class CommunicationService @Inject constructor(
             organizationId = null
             isTemplate = false
             sourceTemplateId = source.id
-            createdByAppUserId = callerUserId
+            createdByAppUserId = principal.id
         }
         return repository.save(clone).toDto()
     }
 
     // ── Preview ───────────────────────────────────────────────────────────────
 
-    fun preview(
-        id: UUID,
-        sampleVariables: Map<String, String>,
-        callerUserId: UUID,
-        callerOrgId: UUID?,
-        isAppAdmin: Boolean,
-    ): RenderedCommunication
+    fun preview(id: UUID, sampleVariables: Map<String, String>): RenderedCommunication
     {
+        val principal = currentPrincipal()
+        val context = currentContext()
         val communication = repository.findById(id)
             ?: throw IllegalArgumentException("Communication not found: $id")
-        checkReadAccess(communication, callerUserId, callerOrgId, isAppAdmin)
+        checkReadAccess(communication, principal, context)
 
-        val user = appUserRepository.findById(callerUserId)
-            ?: throw IllegalArgumentException("User not found: $callerUserId")
-        val org = callerOrgId?.let { organizationRepository.findById(it) }
+        val user = appUserRepository.findById(principal.id)
+            ?: throw IllegalArgumentException("User not found: ${principal.id}")
+        val org = context.activeOrgId?.let { organizationRepository.findById(it) }
 
         val ctx = VariableResolutionContext(
             user = user,
@@ -246,38 +239,40 @@ class CommunicationService @Inject constructor(
 
     // ── Access control ────────────────────────────────────────────────────────
 
-    private fun checkReadAccess(communication: Communication, callerUserId: UUID, callerOrgId: UUID?, isAppAdmin: Boolean)
+    private fun checkReadAccess(communication: Communication, principal: PrincipalRef, context: AuthorizationContext)
     {
-        if (isAppAdmin) return
+        if (userRoleService.isAppAdmin(principal.id)) return
         when (communication.scope)
         {
             CommunicationScope.PERSONAL ->
-            {
-                if (communication.createdByAppUserId != callerUserId)
+                if (communication.createdByAppUserId != principal.id)
                     throw ForbiddenException("Access denied to communication ${communication.id}")
-            }
             CommunicationScope.ORG ->
             {
-                if (callerOrgId == null || communication.organizationId != callerOrgId)
+                val decision = authorizationService.authorize(
+                    principal, Action.COMMUNICATION_VIEW, ResourceRef.communication(communication.id), context,
+                )
+                if (decision is Decision.Deny)
                     throw ForbiddenException("Access denied to communication ${communication.id}")
             }
-            CommunicationScope.PLATFORM -> { /* public read */ }
+            CommunicationScope.PLATFORM -> { }
         }
     }
 
-    private fun checkWriteAccess(communication: Communication, callerUserId: UUID, callerOrgId: UUID?, isAppAdmin: Boolean)
+    private fun checkWriteAccess(communication: Communication, principal: PrincipalRef, context: AuthorizationContext)
     {
-        if (isAppAdmin) return
+        if (userRoleService.isAppAdmin(principal.id)) return
         when (communication.scope)
         {
             CommunicationScope.PERSONAL ->
-            {
-                if (communication.createdByAppUserId != callerUserId)
+                if (communication.createdByAppUserId != principal.id)
                     throw ForbiddenException("Access denied to communication ${communication.id}")
-            }
             CommunicationScope.ORG ->
             {
-                if (callerOrgId == null || communication.organizationId != callerOrgId)
+                val decision = authorizationService.authorize(
+                    principal, Action.COMMUNICATION_EDIT, ResourceRef.communication(communication.id), context,
+                )
+                if (decision is Decision.Deny)
                     throw ForbiddenException("Access denied to communication ${communication.id}")
             }
             CommunicationScope.PLATFORM ->
@@ -287,9 +282,16 @@ class CommunicationService @Inject constructor(
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    private fun currentPrincipal(): PrincipalRef =
+        authorizationContextFactory.currentPrincipal()
+            ?: throw ForbiddenException("Not authenticated")
+
+    private fun currentContext(): AuthorizationContext =
+        authorizationContextFactory.currentContext()
+
     private fun resolveScope(
         requestedScope: String?,
-        callerOrgId: UUID?,
+        activeOrgId: UUID?,
         isOrgAdmin: Boolean,
         isAppAdmin: Boolean,
     ): CommunicationScope
@@ -307,7 +309,7 @@ class CommunicationService @Inject constructor(
         return when
         {
             isAppAdmin -> CommunicationScope.PLATFORM
-            isOrgAdmin && callerOrgId != null -> CommunicationScope.ORG
+            isOrgAdmin && activeOrgId != null -> CommunicationScope.ORG
             else -> CommunicationScope.PERSONAL
         }
     }

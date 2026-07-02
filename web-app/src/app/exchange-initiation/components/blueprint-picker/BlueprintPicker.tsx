@@ -26,6 +26,7 @@ import {listBlueprints} from '../../../../services/blueprintService.ts';
 import {AddIcon, CheckmarkIcon, FilterIcon, SortDownIcon, SortUpIcon} from "../../../components/IconBundles.tsx";
 import {useExchangeInitiationStyles} from '../../ExchangeInitiationStyles.tsx';
 import ExchangeListPagination from '../../../exchanges/components/exchange-list/exchange-list-pagination/ExchangeListPagination.tsx';
+import {useAuth} from '../../../../context/AuthContext.tsx';
 
 interface BlueprintPickerProps
 {
@@ -47,6 +48,8 @@ const tabLabel: Record<PickerTab, string> = {
 const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =>
 {
     const styles = useExchangeInitiationStyles();
+    const {appUserPersonOrganization} = useAuth();
+    const hasOrganization = !!appUserPersonOrganization?.isActive;
 
     const [activeTab, setActiveTab] = useState<PickerTab>('PERSONAL');
     const [blueprints, setBlueprints] = useState<BlueprintDefinitionSummaryDto[]>([]);
@@ -58,6 +61,15 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
     const [sortOrder, setSortOrder] = useState<SortOrder>('default');
     const [currentPage, setCurrentPage] = useState(0);
     const [filterSearch, setFilterSearch] = useState('');
+
+    useEffect(() =>
+    {
+        if (!hasOrganization && activeTab === 'ORG')
+        {
+            setActiveTab('PERSONAL');
+            resetControls();
+        }
+    }, [activeTab, hasOrganization]);
 
     useEffect(() =>
     {
@@ -135,13 +147,13 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
                     }}
                 >
                     <Tab value="PERSONAL">{tabLabel.PERSONAL}</Tab>
-                    <Tab value="ORG">{tabLabel.ORG}</Tab>
+                    {hasOrganization && <Tab value="ORG">{tabLabel.ORG}</Tab>}
                     <Tab value="APP">{tabLabel.APP}</Tab>
                 </TabList>
 
             <div className={styles.blueprintPickerControls}>
                 <div className={styles.blueprintPickerSearchRow}>
-                    <Field style={{flex: 1}}>
+                    <Field className={styles.blueprintPickerSearchField}>
                         <SearchBox
                             id="blueprint-picker-search"
                             placeholder="Search blueprints"
@@ -187,7 +199,7 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
                                         />
                                     ))}
                                     {filteredTagOptions.length === 0 && (
-                                        <Text size={200} style={{padding: '4px 8px', color: 'var(--colorNeutralForeground3)'}}>
+                                        <Text size={200} className={styles.blueprintPickerFilterEmptyText}>
                                             No tags found
                                         </Text>
                                     )}

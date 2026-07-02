@@ -64,11 +64,6 @@ export const manageAccessArticle = (
                 <strong>Require MFA</strong> - Requires the participant to complete multi-factor
                 authentication before accessing exchange documents.
             </li>
-            <li>
-                <strong>Max views</strong> - Limits the number of times a participant can view the exchange
-                documents. Once the limit is reached, access is automatically revoked. Leave blank for
-                unlimited views.
-            </li>
         </ul>
 
         <h3>Adding a person</h3>

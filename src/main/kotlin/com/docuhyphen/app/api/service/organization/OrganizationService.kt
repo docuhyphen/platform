@@ -46,9 +46,15 @@ class OrganizationService @Inject constructor(
         adminApprovalContext: AdminApprovalContext,
     )
     {
-        if (authTokenContext.authToken.appUser?.id?.let { userRoleService.isOrgAdmin(it) } != true)
+        if (organizationId.isNullOrBlank())
         {
-            throw UnauthorizedException("User does not have permission to update organizations")
+            throw OrganizationNotFoundException("Organization ID cannot be null or blank")
+        }
+        val targetOrgId = try { UUID.fromString(organizationId) }
+            catch (e: IllegalArgumentException) { throw OrganizationNotFoundException("Invalid organization ID") }
+        if (authTokenContext.authToken.appUser?.id?.let { userRoleService.isOrgAdminIn(it, targetOrgId) } != true)
+        {
+            throw UnauthorizedException("User does not have permission to update this organization")
         }
 
         adminActionGuardService.enforce(
@@ -56,11 +62,6 @@ class OrganizationService @Inject constructor(
             actorId = authTokenContext.authToken.appUser?.id,
             context = adminApprovalContext,
         )
-
-        if (organizationId.isNullOrBlank())
-        {
-            throw OrganizationNotFoundException("Organization ID cannot be null or blank")
-        }
 
         val organization = organizationGroupService.getOrganizationById(UUID.fromString(organizationId))
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")

@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.model.dto
 
+import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
@@ -10,7 +11,7 @@ import java.util.UUID
 @Serializable
 data class PrincipalGroupMemberDto(
     val user: AppUserDetailedDto?,
-    val groupRole: String,
+    val groupRole: PrincipalGroupRoleName,
 )
 
 /**

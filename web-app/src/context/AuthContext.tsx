@@ -1,13 +1,14 @@
 ﻿import React, {createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState} from 'react';
-import {fetchAppUser, fetchAppUserPersonOrganization} from '../services/appUserApi.ts';
-import {AppUserDetailedDto, AppUserRole, OrganizationDetailedDto} from "../app/models/models.tsx";
+import {fetchAppUser, fetchAppUserPersonOrganization, fetchCurrentSession} from '../services/appUserApi.ts';
+import {AppUserDetailedDto, Capability, CurrentSessionDto, OrganizationDetailedDto} from "../app/models/models.tsx";
 import {getTokenSecondsToExpiry, isTokenExpired} from "../utils/helpers.ts";
 import {useLocation, useNavigate} from "react-router-dom";
-import {setApiClientAuthToken} from "../services/apiClient.ts";
+import {setApiClientAuthToken, setApiClientActiveOrganizationId} from "../services/apiClient.ts";
 import {refreshTokens as refreshTokensApi} from "../services/authApi.ts";
 
 const AUTH_EVENT_STORAGE_KEY = 'docuhyphen:auth:event';
 const AUTH_USER_STORAGE_KEY = 'docuhyphen:auth:user-id';
+const AUTH_ACTIVE_ORG_STORAGE_KEY = 'docuhyphen:auth:active-org-id';
 
 interface AuthContextType
 {
@@ -21,6 +22,23 @@ interface AuthContextType
     setAppUser: (user: AppUserDetailedDto | null) => void;
     appUserPersonOrganization: OrganizationDetailedDto | null;
     setAppUserPersonOrganization: (organization: OrganizationDetailedDto | null) => void;
+    /**
+     * Current-session contract: user identity, explicitly selected organization,
+     * applicable scoped roles, and effective capabilities. Null until the user is
+     * authenticated and the session endpoint has been fetched.
+     */
+    currentSession: CurrentSessionDto | null;
+    /**
+     * True when the caller's current session includes the given capability.
+     * Returns false when no session has been loaded yet.
+     */
+    hasCapability: (cap: Capability) => boolean;
+    /**
+     * Switch the active organization. Stores the selection, updates the API client header,
+     * and re-fetches the current session so capabilities reflect the new context immediately.
+     * Pass null to clear the active org (personal-product mode).
+     */
+    switchOrganization: (orgId: string | null) => Promise<void>;
     refreshTokens: () => Promise<void>;
     /**
      * True until the initial refresh-token probe on mount has resolved.
@@ -47,6 +65,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
     const previousAccessTokenRef = useRef<string | null>(accessToken);
     const [appUser, setAppUser] = useState<AppUserDetailedDto | null>(null);
     const [appUserPersonOrganization, setAppUserPersonOrganization] = useState<OrganizationDetailedDto | null>(null);
+    const [currentSession, setCurrentSession] = useState<CurrentSessionDto | null>(null);
+
+    // Restore and apply the persisted active org selection on mount so every API request
+    // carries the correct header before the first fetch completes.
+    useEffect(() =>
+    {
+        const storedOrgId = localStorage.getItem(AUTH_ACTIVE_ORG_STORAGE_KEY);
+        setApiClientActiveOrganizationId(storedOrgId);
+    }, []);
     // Start bootstrapping whenever we don't have a usable access token in sessionStorage.
     // If we already have one (in-tab reload), we can render immediately.
     const [isBootstrapping, setIsBootstrapping] = useState<boolean>(() =>
@@ -113,6 +140,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         setIdToken(null);
         setAppUser(null);
         setAppUserPersonOrganization(null);
+        setCurrentSession(null);
+        localStorage.removeItem(AUTH_ACTIVE_ORG_STORAGE_KEY);
+        setApiClientActiveOrganizationId(null);
         navigate(path);
     }, [setAccessToken, setIdToken, navigate]);
 
@@ -173,6 +203,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
             setIdToken(null);
             setAppUser(null);
             setAppUserPersonOrganization(null);
+            setCurrentSession(null);
+            localStorage.removeItem(AUTH_ACTIVE_ORG_STORAGE_KEY);
+            setApiClientActiveOrganizationId(null);
             // navigate is stable across renders (React Router v6 guarantee), so calling it
             // directly avoids the stale-closure on redirectToSessionExpired which captures
             // location.pathname from the first render and may suppress navigation if that
@@ -334,6 +367,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         {
             setAppUser(null);
             setAppUserPersonOrganization(null);
+            setCurrentSession(null);
             return;
         }
 
@@ -364,22 +398,36 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
 
             if (appUser?.person && !appUserPersonOrganization && accessToken)
             {
-                if (appUser.role === AppUserRole.APP_USER)
+                if (appUser.organizationRoles.length === 0)
                 {
                     // Individual users do not necessarily belong to an organization.
-                    return;
                 }
+                else
+                {
+                    try
+                    {
+                        setAppUserPersonOrganization(await fetchAppUserPersonOrganization(appUser?.id, appUser?.person?.id, accessToken));
+                    }
+                    catch (error: any)
+                    {
+                        if (error.response?.status === 404)
+                        {
+                            console.log("Organization not found for user");
+                        }
+                    }
+                }
+            }
 
+            if (appUser && !currentSession)
+            {
                 try
                 {
-                    setAppUserPersonOrganization(await fetchAppUserPersonOrganization(appUser?.id, appUser?.person?.id, accessToken));
+                    const session = await fetchCurrentSession();
+                    setCurrentSession(session);
                 }
                 catch (error: any)
                 {
-                    if (error.response?.status === 404)
-                    {
-                        console.log("Organization not found for user");
-                    }
+                    console.error("Failed to fetch current session:", error);
                 }
             }
         }
@@ -391,6 +439,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
             redirectToLogin();
         }
     };
+
+    const hasCapability = useCallback((cap: Capability): boolean =>
+    {
+        return currentSession?.capabilities?.includes(cap) === true;
+    }, [currentSession]);
+
+    const switchOrganization = useCallback(async (orgId: string | null) =>
+    {
+        if (orgId)
+        {
+            localStorage.setItem(AUTH_ACTIVE_ORG_STORAGE_KEY, orgId);
+        }
+        else
+        {
+            localStorage.removeItem(AUTH_ACTIVE_ORG_STORAGE_KEY);
+        }
+        setApiClientActiveOrganizationId(orgId);
+        setCurrentSession(null);
+
+        try
+        {
+            const session = await fetchCurrentSession();
+            setCurrentSession(session);
+        }
+        catch (error: any)
+        {
+            console.error("Failed to refresh session after org switch:", error);
+        }
+    }, []);
 
     const redirectToLogin = () =>
     {
@@ -423,6 +500,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
                 setAppUser,
                 appUserPersonOrganization,
                 setAppUserPersonOrganization,
+                currentSession,
+                hasCapability,
+                switchOrganization,
                 refreshTokens,
                 isBootstrapping,
             }}>

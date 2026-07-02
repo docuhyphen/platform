@@ -8,7 +8,7 @@ import jakarta.inject.Inject
 
 /**
  * Action-level authorization checks for user/org settings flows. Roles are resolved through
- * [UserRoleService] (organization_membership / role_assignment), the legacy `AppUser.role`
+ * [UserRoleService] (organization_membership_role and app_role_assignment), the legacy `AppUser.role`
  * enum is gone.
  */
 @ApplicationScoped
@@ -90,7 +90,7 @@ class ServiceActionAuthorizationService @Inject constructor(
     fun validateUserProfileUpdate(appUser: AppUser, organization: Organization)
     {
         if (userRoleService.isOrgAdminIn(appUser.id, organization.id)) return
-        if (userRoleService.orgRoleIn(appUser.id, organization.id) != null &&
+        if (userRoleService.orgRolesIn(appUser.id, organization.id).isNotEmpty() &&
             organization.settings?.allowProfileUpdate == true)
         {
             return
@@ -101,7 +101,7 @@ class ServiceActionAuthorizationService @Inject constructor(
     fun validateUserEmailUpdate(appUser: AppUser, organization: Organization)
     {
         if (userRoleService.isOrgAdminIn(appUser.id, organization.id)) return
-        if (userRoleService.orgRoleIn(appUser.id, organization.id) != null &&
+        if (userRoleService.orgRolesIn(appUser.id, organization.id).isNotEmpty() &&
             organization.settings?.allowEmailUpdate == true)
         {
             return

@@ -1,15 +1,17 @@
-﻿package com.docuhyphen.app.api.service.auth.authz
+package com.docuhyphen.app.api.service.auth.authz
 
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.RoleScopeType
 import com.docuhyphen.app.api.model.entity.Share
+import com.docuhyphen.app.api.model.entity.ShareLinkStatus
 import com.docuhyphen.app.api.model.entity.ShareStatus
 import com.docuhyphen.app.api.repository.OrganizationMembershipRepository
 import com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.PrincipalGroupRepository
-import com.docuhyphen.app.api.repository.RoleAssignmentRepository
+import com.docuhyphen.app.api.repository.AppRoleAssignmentRepository
+import com.docuhyphen.app.api.repository.ShareLinkRepository
 import com.docuhyphen.app.api.repository.ShareRepository
+import com.docuhyphen.app.api.service.application.ApplicationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
@@ -18,37 +20,39 @@ import java.time.Instant
 /**
  * Default implementation of [AuthorizationService].
  *
- * Algorithm (see plan-sharingCollaborationRedesign.v2.prompt.md §2.1):
+ * Algorithm:
  *
  *  1. Collect direct role assignments for the principal across applicable scopes
- *     (APP, ORG matching activeOrgId, PRINCIPAL_GROUP for groups the principal is in,
- *     RESOURCE for this exact resource).
+ *     (APP, ORG matching the resource owner org, PRINCIPAL_GROUP for groups the principal
+ *     is in, RESOURCE for this exact resource).
  *  2. Collect direct shares for the principal on this resource, plus shares granted to
- *     any [PrincipalGroup] the principal belongs to (V8 caps nesting depth at 1, true
- *     transitive membership lands in a later iteration).
+ *     any [com.docuhyphen.app.api.model.entity.PrincipalGroup] the principal belongs to.
  *  3. Translate every grant to a Capability set via [RoleCapabilities].
  *  4. Union the capability sets.
  *  5. Apply per-share constraints (require_mfa, ip_allowlist, expiry, status).
- *  6. Apply resource-state denies (SUSPENDED / ARCHIVED session denies non-admin writes
- *    , looked up in iteration 4 once Exchange state machine ships).
- *  7. Return Allow if required capability ∈ union, else Deny.
+ *  6. Apply resource-state denies: archived or suspended resources deny non-admin writes,
+ *     resolved via [ResourceAuthorizationContextRegistry].
+ *  7. Return Allow if required capability is in the union, else Deny.
  *
- * NOTE: This is the *foundational* implementation. It intentionally does not yet:
- *   - resolve PUBLIC_LINK tokens (iteration 5)
- *   - enforce Exchange state machine (iteration 4)
- *   - apply org-level sharing policy denies (iteration 6)
- *   - walk nested group membership (iteration 2)
- * Each of those is a localised follow-up; the contract above doesn't change.
+ * PUBLIC_LINK grants are resolved from the [ShareLinkRepository] when
+ * [AuthorizationContext.shareLinkTokenHash] is present in the context.
+ *
+ * NOTE: The following are not yet implemented:
+ *   - org-level sharing policy denies (iteration 6)
+ *   - nested group membership walking (iteration 2)
  */
 @ApplicationScoped
-class DefaultAuthorizationService : AuthorizationService
+class DefaultAuthorizationService @Inject constructor(
+    private val shareRepository: ShareRepository,
+    private val shareLinkRepository: ShareLinkRepository,
+    private val appRoleAssignmentRepository: AppRoleAssignmentRepository,
+    private val principalGroupMemberRepository: PrincipalGroupMemberRepository,
+    private val organizationMembershipRepository: OrganizationMembershipRepository,
+    private val principalGroupRepository: PrincipalGroupRepository,
+    private val applicationService: ApplicationService,
+    private val resourceContextRegistry: ResourceAuthorizationContextRegistry,
+) : AuthorizationService
 {
-    @Inject private lateinit var shareRepository: ShareRepository
-    @Inject private lateinit var roleAssignmentRepository: RoleAssignmentRepository
-    @Inject private lateinit var principalGroupMemberRepository: PrincipalGroupMemberRepository
-    @Inject private lateinit var organizationMembershipRepository: OrganizationMembershipRepository
-    @Inject private lateinit var principalGroupRepository: PrincipalGroupRepository
-
     override fun authorize(
         principal: PrincipalRef,
         action: Action,
@@ -68,6 +72,21 @@ class DefaultAuthorizationService : AuthorizationService
             return Decision.Deny(Decision.REASON_NO_GRANT, "Missing capability ${action.required} for $action")
         }
 
+        // Step 6: resource-state denies. Archived and suspended resources block non-admin
+        // writes. Admin-capable callers (EXCHANGE_ADMIN) bypass this check.
+        val resourceCtx = resourceContextRegistry.resolve(resource)
+        if (resourceCtx != null && !union.contains(Capability.EXCHANGE_ADMIN))
+        {
+            if (resourceCtx.isArchived)
+            {
+                return Decision.Deny(Decision.REASON_EXCHANGE_ARCHIVED, "Exchange ${resource.id} is archived")
+            }
+            if (resourceCtx.isSuspended)
+            {
+                return Decision.Deny(Decision.REASON_EXCHANGE_SUSPENDED, "Exchange ${resource.id} is suspended")
+            }
+        }
+
         // Constraint denies are evaluated against the *shares* (not role assignments).
         // A user holding a role that grants the capability still needs to satisfy any
         // share-level MFA/IP constraint that applies, if their access comes via that share.
@@ -81,9 +100,7 @@ class DefaultAuthorizationService : AuthorizationService
             if (deny != null)
             {
                 // Only block if *all* grants to this principal come via shares (no role
-                // assignment is independently sufficient). The simple rule for V8: if a
-                // share-derived grant is the only source of `action.required`, the
-                // share's constraints must pass.
+                // assignment is independently sufficient).
                 val viaRoleAssignment = grants.any {
                     it.sourceKind == Grant.SourceKind.ROLE_ASSIGNMENT &&
                         action.required in it.capabilities
@@ -114,28 +131,33 @@ class DefaultAuthorizationService : AuthorizationService
         val grants = mutableListOf<Grant>()
         val now = Timestamp.from(Instant.now())
 
-        // 1) Role assignments, only for USER / SERVICE_ACCOUNT principals.
-        if (principal.kind == PrincipalKind.USER || principal.kind == PrincipalKind.SERVICE_ACCOUNT)
+        // 1) Human platform roles apply only to USER principals.
+        if (principal.kind == PrincipalKind.USER)
         {
             grants += collectRoleAssignmentGrants(principal, resource, context, now)
         }
 
-        // 1b) Org-membership role grants. Org roles live on `organization_membership.role_name`
-        // (NOT in role_assignment), so without this bridge an ORG_ADMIN/ORG_OWNER would hold no
-        // capabilities at all. The relevant org is the one that owns the resource when it is a
-        // group (so group management is checked against the *group's* org, not whatever org the
-        // caller happens to have active), otherwise the caller's active org from context.
-        // Org roles only ever yield ORG_*/GROUP_* capabilities (see RoleCapabilities), so this
-        // never widens SESSION/DOCUMENT authorization.
+        // 1a) APPLICATION principal role grants. The APPLICATION role maps to emptySet() by
+        // default; all resource-level capabilities come from explicit Share grants or Phase 5
+        // capability grants. Collecting the role grant here routes APPLICATION principals through
+        // the same centralized path rather than relying solely on token scope and endpoint prefix.
+        if (principal.kind == PrincipalKind.APPLICATION)
+        {
+            grants += collectApplicationRoleGrants(principal, context)
+        }
+
+        // 1b) Organization membership role grants. The relevant organization is the one that
+        // owns the resource, resolved via [ResourceAuthorizationContextRegistry] for EXCHANGE
+        // resources. For PRINCIPAL_GROUP resources the group's owning org is used. The
+        // active org from context is used only as a fallback for resource types without a
+        // registered provider. Org roles only ever yield ORG_*/GROUP_* capabilities, so this
+        // never widens EXCHANGE/DOCUMENT authorization.
         if (principal.kind == PrincipalKind.USER)
         {
             grants += collectOrgMembershipGrants(principal, resource, context)
         }
 
-        // 1c) Group-membership role grants. Only meaningful when the resource *is* the group:
-        // a member's GroupRole (OWNER/MANAGER/MEMBER/OBSERVER) maps to capabilities on that
-        // group. This is what lets a group OWNER/MANAGER manage members without being an org
-        // admin. Bounded to PRINCIPAL_GROUP resources, so blast radius is nil elsewhere.
+        // 1c) Group-membership role grants. Only meaningful when the resource *is* the group.
         if (principal.kind == PrincipalKind.USER && resource.type == ResourceType.PRINCIPAL_GROUP)
         {
             grants += collectGroupMembershipGrants(principal, resource)
@@ -155,10 +177,7 @@ class DefaultAuthorizationService : AuthorizationService
         }
 
         // 3) Group-mediated shares: every group the principal is a member of may itself
-        // have an active share on this resource. Materialised inheritance is preferred
-        // (V8 backfills + iteration-4 service refactor will create INHERITED_FROM_GROUP
-        // rows), but we still walk groups here to cover groups whose shares haven't
-        // been materialised yet.
+        // have an active share on this resource.
         if (principal.kind == PrincipalKind.USER || principal.kind == PrincipalKind.PARTICIPANT)
         {
             val groups = principalGroupMemberRepository.findGroupsForPrincipal(principal.kind, principal.id)
@@ -170,8 +189,6 @@ class DefaultAuthorizationService : AuthorizationService
                 for (share in groupShares)
                 {
                     if (!isShareCurrentlyEffective(share, now)) continue
-                    // Avoid double-counting if a materialised INHERITED_FROM_GROUP row
-                    // already exists for this principal pointing at this share.
                     val alreadyMaterialised = directShares.any { it.sourceShareId == share.id }
                     if (alreadyMaterialised) continue
                     grants += share.toGrant(Grant.SourceKind.INHERITED_GROUP_SHARE)
@@ -179,9 +196,20 @@ class DefaultAuthorizationService : AuthorizationService
             }
         }
 
-        // 4) PUBLIC_LINK: deferred to iteration 5, once ShareLinkValidationService
-        // resolves the token, the caller passes the resulting Share as a synthetic
-        // grant on the AuthorizationContext.
+        // 4) PUBLIC_LINK: resolve via share link token hash in context.
+        // The raw token is presented by the client (X-Share-Link-Token header); the filter
+        // hashes it before placing it in AuthorizationContext. If a valid, non-exhausted
+        // ShareLink exists and its associated Share covers this resource, we add a SHARE_LINK
+        // grant. An invalid/exhausted link adds no grant — the principal gets NO_GRANT.
+        val linkHash = context.shareLinkTokenHash
+        if (linkHash != null)
+        {
+            val linkShare = resolveLinkGrant(linkHash, resource, context, now)
+            if (linkShare != null)
+            {
+                grants += linkShare
+            }
+        }
 
         return grants
     }
@@ -198,31 +226,21 @@ class DefaultAuthorizationService : AuthorizationService
     ): List<Grant>
     {
         val userId = principal.id.takeIf { principal.kind == PrincipalKind.USER } ?: return emptyList()
-        // SERVICE_ACCOUNT role lookup is symmetric, added in iteration 2.
 
         val results = mutableListOf<Grant>()
-        val assignments = roleAssignmentRepository.findActiveForUser(userId)
+        val assignments = appRoleAssignmentRepository.findActiveForUser(userId)
 
         for (ra in assignments)
         {
             if (ra.expiresAt != null && ra.expiresAt!!.before(now)) continue
 
-            val applies = when (ra.scopeType)
-            {
-                RoleScopeType.APP -> true
-                RoleScopeType.ORG -> ra.scopeId == context.activeOrgId
-                RoleScopeType.PRINCIPAL_GROUP -> isPrincipalInGroup(principal, ra.scopeId)
-                RoleScopeType.RESOURCE -> ra.scopeId == resource.id
-            }
-            if (!applies) continue
-
-            val caps = RoleCapabilities.forRole(ra.roleName)
+            val caps = RoleCapabilities.forAppRole(ra.roleName)
             if (caps.isEmpty()) continue
 
             results += Grant(
                 sourceKind = Grant.SourceKind.ROLE_ASSIGNMENT,
                 sourceId = ra.id,
-                roleName = ra.roleName,
+                roleName = ra.roleName.name,
                 capabilities = caps,
                 expiresAtEpochMillis = ra.expiresAt?.time,
             )
@@ -231,9 +249,60 @@ class DefaultAuthorizationService : AuthorizationService
     }
 
     /**
+     * Resolves the registered [com.docuhyphen.app.api.model.entity.Application] and produces a
+     * [Grant] combining the APPLICATION role's base capabilities (emptySet by default) with any
+     * capabilities explicitly granted to the specific application via
+     * [com.docuhyphen.app.api.model.entity.Application.grantedCapabilitiesJson].
+     *
+     * This is the mechanism by which, for example, a CLM integration receives EXCHANGE_INITIATE
+     * for a specific owner organization without inheriting any other Exchange or customer-content
+     * capability from the APPLICATION role itself.
+     */
+    private fun collectApplicationRoleGrants(
+        principal: PrincipalRef,
+        context: AuthorizationContext,
+    ): List<Grant>
+    {
+        val appId = context.applicationId ?: return emptyList()
+        if (appId != principal.id) return emptyList()
+
+        val application = applicationService.findActive(appId) ?: return emptyList()
+        val roleCaps = RoleCapabilities.forApplicationRole(application.roleName)
+        val grantedCaps = parseApplicationCapabilities(application.grantedCapabilitiesJson)
+        val allCaps = roleCaps + grantedCaps
+
+        return listOf(
+            Grant(
+                sourceKind = Grant.SourceKind.APPLICATION_ROLE,
+                sourceId = application.id,
+                roleName = application.roleName.name,
+                capabilities = allCaps,
+                expiresAtEpochMillis = null,
+            )
+        )
+    }
+
+    private fun parseApplicationCapabilities(json: String): Set<Capability>
+    {
+        val trimmed = json.trim()
+        if (trimmed == "[]" || trimmed.isBlank()) return emptySet()
+        return trimmed.removePrefix("[").removeSuffix("]")
+            .split(",")
+            .map { it.trim().trim('"') }
+            .filter { it.isNotBlank() }
+            .mapNotNull { name -> runCatching { Capability.valueOf(name) }.getOrNull() }
+            .toSet()
+    }
+
+    /**
      * Translates the caller's [com.docuhyphen.app.api.model.entity.OrganizationMembership] role
-     * into a [Grant]. The org chosen is the resource's owning org when the resource is a group
-     * (so group ops are authorised against the group's org), else the active org from context.
+     * into a [Grant].
+     *
+     * The org used for authorization is the one that owns the target resource, resolved via
+     * [ResourceAuthorizationContextRegistry]. For EXCHANGE resources this means the exchange's
+     * stored owner org, not the caller's active org. A personal exchange (Personal owner) yields
+     * no org membership grants. The fallback to [AuthorizationContext.activeOrgId] applies only
+     * for resource types that have no registered provider.
      */
     private fun collectOrgMembershipGrants(
         principal: PrincipalRef,
@@ -245,27 +314,31 @@ class DefaultAuthorizationService : AuthorizationService
         {
             ResourceType.PRINCIPAL_GROUP ->
                 principalGroupRepository.findById(resource.id)?.ownerOrganizationId
-            else -> context.activeOrgId
+            else ->
+            {
+                val resolved = resourceContextRegistry.resolve(resource)
+                if (resolved != null)
+                    (resolved.ownerContext as? OwnerContext.Organization)?.organizationId
+                else
+                    context.activeOrgId
+            }
         } ?: return emptyList()
 
         val membership = organizationMembershipRepository.findActiveByUserAndOrg(principal.id, orgId)
             ?: return emptyList()
-        val caps = RoleCapabilities.forRole(membership.roleName)
-        if (caps.isEmpty()) return emptyList()
-
-        return listOf(
+        return membership.roles.map { role ->
             Grant(
                 sourceKind = Grant.SourceKind.ORG_MEMBERSHIP,
                 sourceId = membership.id,
-                roleName = membership.roleName,
-                capabilities = caps,
+                roleName = role.name,
+                capabilities = RoleCapabilities.forOrganizationRole(role),
                 expiresAtEpochMillis = null,
             )
-        )
+        }
     }
 
     /**
-     * Translates the caller's [com.docuhyphen.app.api.model.entity.GroupRole] within the target
+     * Translates the caller's Principal Group role within the target
      * group into a [Grant]. Only called when the resource is the group itself.
      */
     private fun collectGroupMembershipGrants(
@@ -277,7 +350,7 @@ class DefaultAuthorizationService : AuthorizationService
             .findMembership(resource.id, PrincipalKind.USER, principal.id)
             ?.takeIf { it.isActive }
             ?: return emptyList()
-        val caps = RoleCapabilities.forRole(member.groupRole.name)
+        val caps = RoleCapabilities.forPrincipalGroupRole(member.groupRole)
         if (caps.isEmpty()) return emptyList()
 
         return listOf(
@@ -291,15 +364,42 @@ class DefaultAuthorizationService : AuthorizationService
         )
     }
 
-    private fun isPrincipalInGroup(principal: PrincipalRef, groupId: java.util.UUID?): Boolean
+    /**
+     * Resolves a [com.docuhyphen.app.api.model.entity.ShareLink] from [tokenHash] and, when
+     * valid and covering [resource], returns a [Grant.SourceKind.SHARE_LINK] grant.
+     *
+     * Validation gates (all must pass):
+     *  - ShareLink found by token hash.
+     *  - ShareLink status is ACTIVE and not past its expiry.
+     *  - usedCount is below maxUses (when maxUses is set).
+     *  - The associated Share is ACTIVE, not expired, and covers this resource.
+     *  - MFA constraint satisfied (when requireMfa = true).
+     *
+     * Returning null means no grant is added; the principal will receive NO_GRANT.
+     */
+    private fun resolveLinkGrant(
+        tokenHash: String,
+        resource: ResourceRef,
+        context: AuthorizationContext,
+        now: Timestamp,
+    ): Grant?
     {
-        if (groupId == null) return false
-        val kind = when (principal.kind)
-        {
-            PrincipalKind.USER, PrincipalKind.PARTICIPANT -> principal.kind
-            else -> return false
-        }
-        return principalGroupMemberRepository.findMembership(groupId, kind, principal.id) != null
+        val shareLink = shareLinkRepository.findByTokenHash(tokenHash) ?: return null
+
+        if (shareLink.status == ShareLinkStatus.REVOKED) return null
+        if (shareLink.status == ShareLinkStatus.EXPIRED) return null
+        if (shareLink.expiresAt != null && !shareLink.expiresAt!!.after(now)) return null
+
+        val maxUses = shareLink.maxUses
+        if (maxUses != null && shareLink.usedCount >= maxUses) return null
+
+        if (shareLink.requireMfa && !context.mfaSatisfied) return null
+
+        val share = shareRepository.findById(shareLink.shareId) ?: return null
+        if (!isShareCurrentlyEffective(share, now)) return null
+        if (share.resourceType != resource.type || share.resourceId != resource.id) return null
+
+        return share.toGrant(Grant.SourceKind.SHARE_LINK)
     }
 
     private fun isShareCurrentlyEffective(share: Share, now: Timestamp): Boolean
@@ -312,12 +412,12 @@ class DefaultAuthorizationService : AuthorizationService
 
     /**
      * Returns a [Decision.Deny] if a share's constraints disallow access in this
-     * [AuthorizationContext]; null if it's fine.
+     * [AuthorizationContext]; null if the constraints pass.
      *
-     * Enforces status / expiry / require_mfa. Capability-shaping constraints
-     * (`can_download`, `can_reshare`) are applied in [toGrant] so they fold into the
-     * capability-union check; watermark / max_views are non-blocking obligations attached
-     * to the [Decision] in [computeObligations].
+     * Enforces status / expiry / require_mfa / ip_allowlist. Capability-shaping constraints
+     * (can_download, can_reshare) are applied in [toGrant] so they fold into the
+     * capability-union check; watermark / allowedDownloadFormats are non-blocking obligations
+     * attached to the [Decision] in [computeObligations].
      */
     private fun evaluateShareConstraints(
         share: Share,
@@ -335,48 +435,66 @@ class DefaultAuthorizationService : AuthorizationService
         }
 
         val constraints = ShareConstraints.parse(share.constraintsJson)
+            ?: return Decision.Deny(Decision.REASON_INVALID_CONSTRAINTS, "Share ${share.id} has malformed constraints")
+
         if (constraints.requireMfa && !context.mfaSatisfied)
         {
             return Decision.Deny(Decision.REASON_MFA_REQUIRED, "Share ${share.id} requires MFA")
         }
+
+        val ranges = constraints.allowedIpRanges
+        if (!ranges.isNullOrEmpty() && !ShareConstraints.isIpAllowed(context.clientIp, ranges))
+        {
+            return Decision.Deny(
+                Decision.REASON_IP_DENIED,
+                "Share ${share.id} denied: client IP ${context.clientIp} not in allowed ranges",
+            )
+        }
+
         return null
     }
 
     /**
      * Most-restrictive union of obligations across the principal's currently-effective
-     * shares: any watermark wins; the smallest declared max_views wins.
+     * shares: any watermark wins; the intersection of all allowed download format sets wins
+     * (a null from any share means unrestricted; otherwise intersect all non-null sets).
      */
     private fun computeObligations(shares: List<Share>, now: Timestamp): ShareObligations
     {
         var watermark = false
-        var maxViews: Int? = null
+        var formatRestricted = false
+        var allowedFormats: Set<String>? = null
+
         for (share in shares)
         {
             if (!isShareCurrentlyEffective(share, now)) continue
-            val c = ShareConstraints.parse(share.constraintsJson)
+            val c = ShareConstraints.parse(share.constraintsJson) ?: continue
             if (c.watermark) watermark = true
-            val mv = c.maxViews
-            if (mv != null) maxViews = if (maxViews == null) mv else minOf(maxViews!!, mv)
+            val formats = c.allowedDownloadFormats
+            if (formats != null)
+            {
+                formatRestricted = true
+                allowedFormats = if (allowedFormats == null) formats.toSet()
+                else allowedFormats!!.intersect(formats.toSet())
+            }
         }
-        return ShareObligations(watermark = watermark, maxViews = maxViews)
+
+        return ShareObligations(
+            watermark = watermark,
+            allowedDownloadFormats = if (formatRestricted) allowedFormats ?: emptySet() else null,
+        )
     }
 
     private fun Share.toGrant(sourceKind: Grant.SourceKind): Grant
     {
-        // Base role caps, then shaped by this share's constraints: VIEWER/PARTICIPANT only
-        // gain DOCUMENT_DOWNLOAD via can_download=true; an explicit can_download=false strips
-        // it from richer roles; can_reshare=false strips EXCHANGE_SHARE.
-        val base = RoleCapabilities.forRole(this.roleName)
-        val caps = ShareConstraints.parse(this.constraintsJson).adjustCapabilities(base)
+        val base = RoleCapabilities.forExchangeShareRole(this.roleName)
+        val caps = ShareConstraints.parse(this.constraintsJson)?.adjustCapabilities(base) ?: base
         return Grant(
             sourceKind = sourceKind,
             sourceId = this.id,
-            roleName = this.roleName,
+            roleName = this.roleName.name,
             capabilities = caps,
             expiresAtEpochMillis = this.expiresAt?.time,
         )
     }
 }
-
-
-

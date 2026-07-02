@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.resource.scim
 
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Person
-import com.docuhyphen.app.api.model.entity.RoleName
+import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.AuthAuditService
@@ -126,7 +126,7 @@ class ScimUserResource @Inject constructor(
             organizationMembershipService.assignOrgRole(
                 appUserId = saved.id,
                 organizationId = organization.id,
-                role = RoleName.ORG_MEMBER,
+                role = OrganizationRoleName.ORG_MEMBER,
                 isPrimary = true,
             )
         }

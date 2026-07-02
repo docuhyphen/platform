@@ -45,7 +45,7 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
             "(s.status <> :initiatedStatus OR s.initiator.id = :appUserId OR EXISTS (" +
                 "SELECT sh2 FROM Share sh2 WHERE sh2.resourceType = :srt AND sh2.resourceId = s.id " +
                 "AND sh2.principalKind = :upk AND sh2.principalId = :appUserId AND sh2.status = :ass " +
-                "AND sh2.roleName <> 'PARTICIPANT'))"
+                "AND sh2.roleName <> PARTICIPANT))"
 
         /**
          * Free-text predicate for [searchSessions] / [countSearchResults]. Matches the session's
@@ -109,7 +109,7 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
                 """SELECT DISTINCT s FROM Exchange s WHERE EXISTS (
                    SELECT sh FROM Share sh WHERE sh.resourceType = :srt AND sh.resourceId = s.id
                    AND sh.principalKind = :upk AND sh.principalId = :appUserId AND sh.status = :ass
-                   AND sh.roleName <> 'OWNER')""",
+                   AND sh.roleName <> OWNER)""",
                 Exchange::class.java,
             ),
             recipient,

@@ -1,5 +1,9 @@
 # Configurable Fields and Business Schema Engine Architecture
 
+> Implementation is blocked until the Fields Foundation Readiness Gate in
+> `PRE-FIELDS-AUTHORIZATION-HARDENING-PLAN.md` passes. This document remains architecture guidance
+> only while that prerequisite is open.
+
 ## Document Purpose
 
 This document defines the architectural direction for configurable Fields in DocuHyphen. The goal is

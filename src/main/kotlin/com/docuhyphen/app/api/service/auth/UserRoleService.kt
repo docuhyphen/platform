@@ -1,16 +1,16 @@
 package com.docuhyphen.app.api.service.auth
 
-import com.docuhyphen.app.api.model.entity.RoleName
-import com.docuhyphen.app.api.model.entity.RoleScopeType
+import com.docuhyphen.app.api.model.entity.AppRoleName
+import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.repository.OrganizationMembershipRepository
-import com.docuhyphen.app.api.repository.RoleAssignmentRepository
+import com.docuhyphen.app.api.repository.AppRoleAssignmentRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.util.UUID
 
 /**
- * Resolves a user's effective roles from the unified model, `role_assignment` (APP scope)
- * and `organization_membership.role_name` (ORG scope). Replaces the retired single
+ * Resolves a user's effective roles from `app_role_assignment` and
+ * `organization_membership_role`. Replaces the retired single
  * `AppUser.role` enum.
  *
  * Where a call site historically assumed a single org (the legacy single-tenant model), the
@@ -21,38 +21,37 @@ import java.util.UUID
 @ApplicationScoped
 class UserRoleService @Inject constructor(
     private val membershipRepository: OrganizationMembershipRepository,
-    private val roleAssignmentRepository: RoleAssignmentRepository,
+    private val appRoleAssignmentRepository: AppRoleAssignmentRepository,
 )
 {
     /** Application-level administrator (replaces legacy PLATFORM_ADMIN / APPLICATION). */
     fun isAppAdmin(appUserId: UUID): Boolean =
-        roleAssignmentRepository.findActiveForUserInScope(appUserId, RoleScopeType.APP, null)
-            .any { it.roleName == RoleName.APP_ADMIN.name }
+        AppRoleName.APP_ADMIN in appRoles(appUserId)
+
+    fun appRoles(appUserId: UUID): Set<AppRoleName> =
+        appRoleAssignmentRepository.findActiveForUser(appUserId).map { it.roleName }.toSet()
 
     /** Org role on the user's primary (or first active) membership, or null if none. */
-    fun primaryOrgRole(appUserId: UUID): RoleName?
+    fun primaryOrgRoles(appUserId: UUID): Set<OrganizationRoleName>
     {
         val membership = membershipRepository.findPrimaryForUser(appUserId)
             ?: membershipRepository.findActiveByUser(appUserId).firstOrNull()
-        return membership?.roleName?.toRoleNameOrNull()
+        return membership?.roles?.toSet().orEmpty()
     }
 
     /** Org role the user holds in a specific organization, or null if not a member. */
-    fun orgRoleIn(appUserId: UUID, organizationId: UUID): RoleName? =
-        membershipRepository.findActiveByUserAndOrg(appUserId, organizationId)?.roleName?.toRoleNameOrNull()
+    fun orgRolesIn(appUserId: UUID, organizationId: UUID): Set<OrganizationRoleName> =
+        membershipRepository.findActiveByUserAndOrg(appUserId, organizationId)?.roles?.toSet().orEmpty()
 
-    fun isOrgAdmin(appUserId: UUID): Boolean = primaryOrgRole(appUserId).isAdminRole()
+    fun isOrgAdmin(appUserId: UUID): Boolean = primaryOrgRoles(appUserId).hasAdminRole()
 
     fun isOrgAdminIn(appUserId: UUID, organizationId: UUID): Boolean =
-        orgRoleIn(appUserId, organizationId).isAdminRole()
+        orgRolesIn(appUserId, organizationId).hasAdminRole()
 
     /** True if the user holds any active org membership (admin or member). */
     fun isOrgMember(appUserId: UUID): Boolean =
         membershipRepository.findActiveByUser(appUserId).isNotEmpty()
 
-    private fun RoleName?.isAdminRole(): Boolean =
-        this == RoleName.ORG_ADMIN || this == RoleName.ORG_OWNER
-
-    private fun String.toRoleNameOrNull(): RoleName? =
-        runCatching { RoleName.valueOf(this) }.getOrNull()
+    private fun Set<OrganizationRoleName>.hasAdminRole(): Boolean =
+        OrganizationRoleName.ORG_ADMIN in this || OrganizationRoleName.ORG_OWNER in this
 }

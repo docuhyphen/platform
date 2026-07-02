@@ -1,8 +1,3 @@
-﻿export const AppUserRoleDisplayNames = {
-    'ORG_ADMIN': 'Organization Admin',
-    'ORG_MEMBER': 'Organization Member'
-};
-
 export enum ExchangeParticipantRole
 {
     VIEWER = "VIEWER",
@@ -139,19 +134,6 @@ export interface Organization
     appUsers: AppUser[];
 }
 
-export enum AppUserRole
-{
-    APPLICATION = "APPLICATION",
-
-    APP_USER = "APP_USER",
-
-    ORG_ADMIN = "ORG_ADMIN",
-
-    ORG_GROUP_ADMIN = "ORG_GROUP_ADMIN",
-
-    ORG_MEMBER = "ORG_MEMBER",
-}
-
 export interface AppUser
 {
     id: string;
@@ -162,7 +144,8 @@ export interface AppUser
     signInAttempts: number;
     mfaType: MultifactorAuthenticationType;
     person?: Person;
-    role: AppUserRole;
+    appRoles: string[];
+    organizationRoles: string[];
     isTemporary: boolean;
 }
 
@@ -341,6 +324,7 @@ export interface NoAuthExchangeBasicDto
     initiatorFirstName?: string;
     initiatorLastName?: string;
     noAuthAccessValidityDays?: number;
+    documents?: DocumentBasicDto[];
 }
 
 export interface ContactDetailsBasicDto
@@ -431,7 +415,6 @@ export interface ExchangeDetailedDto
     noAuthAccessValidityDays?: number;
     participants?: ExchangeParticipantDetailedDto[];
     watermark?: boolean;
-    maxViews?: number;
     requireMfa?: boolean;
     allowedDownloadFormats?: string[];   // mirrors backend DTO
 }
@@ -474,11 +457,127 @@ export interface AppUserDetailedDto
     createdDate?: string
     isActive: boolean
     email: string
-    role: AppUserRole
+    appRoles: string[]
+    organizationRoles: string[]
     person: PersonDetailedDto
     settings: AppUserSettingsDto
     identityProviders?: IdentityProviderLinkDto[]
     avatarUrl?: string | null
+}
+
+export enum Capability
+{
+    // Exchange lifecycle
+    EXCHANGE_INITIATE = 'EXCHANGE_INITIATE',
+    EXCHANGE_READ = 'EXCHANGE_READ',
+    EXCHANGE_WRITE = 'EXCHANGE_WRITE',
+    EXCHANGE_DELETE = 'EXCHANGE_DELETE',
+    EXCHANGE_ADMIN = 'EXCHANGE_ADMIN',
+    EXCHANGE_OWNER = 'EXCHANGE_OWNER',
+    EXCHANGE_SHARE = 'EXCHANGE_SHARE',
+    EXCHANGE_RESCIND = 'EXCHANGE_RESCIND',
+
+    // Exchange document
+    DOCUMENT_READ = 'DOCUMENT_READ',
+    DOCUMENT_DOWNLOAD = 'DOCUMENT_DOWNLOAD',
+    DOCUMENT_WRITE = 'DOCUMENT_WRITE',
+    DOCUMENT_DELETE = 'DOCUMENT_DELETE',
+    DOCUMENT_COMMENT = 'DOCUMENT_COMMENT',
+    DOCUMENT_SIGN = 'DOCUMENT_SIGN',
+
+    // Document Library
+    DOC_LIBRARY_DISCOVER = 'DOC_LIBRARY_DISCOVER',
+    DOC_LIBRARY_READ = 'DOC_LIBRARY_READ',
+    DOC_LIBRARY_USE = 'DOC_LIBRARY_USE',
+    DOC_LIBRARY_WRITE = 'DOC_LIBRARY_WRITE',
+    DOC_LIBRARY_DELETE = 'DOC_LIBRARY_DELETE',
+    DOC_LIBRARY_ADMIN = 'DOC_LIBRARY_ADMIN',
+
+    // Blueprint
+    BLUEPRINT_DISCOVER = 'BLUEPRINT_DISCOVER',
+    BLUEPRINT_READ = 'BLUEPRINT_READ',
+    BLUEPRINT_USE = 'BLUEPRINT_USE',
+    BLUEPRINT_WRITE = 'BLUEPRINT_WRITE',
+    BLUEPRINT_DELETE = 'BLUEPRINT_DELETE',
+    BLUEPRINT_CLONE = 'BLUEPRINT_CLONE',
+    BLUEPRINT_PUBLISH = 'BLUEPRINT_PUBLISH',
+    BLUEPRINT_ADMIN = 'BLUEPRINT_ADMIN',
+
+    // Workflow Definition
+    WORKFLOW_DISCOVER = 'WORKFLOW_DISCOVER',
+    WORKFLOW_READ = 'WORKFLOW_READ',
+    WORKFLOW_USE = 'WORKFLOW_USE',
+    WORKFLOW_WRITE = 'WORKFLOW_WRITE',
+    WORKFLOW_DELETE = 'WORKFLOW_DELETE',
+    WORKFLOW_CLONE = 'WORKFLOW_CLONE',
+    WORKFLOW_PUBLISH = 'WORKFLOW_PUBLISH',
+    WORKFLOW_ADMIN = 'WORKFLOW_ADMIN',
+
+    // Workflow Webhook
+    WEBHOOK_ADMIN = 'WEBHOOK_ADMIN',
+    WEBHOOK_DELIVER = 'WEBHOOK_DELIVER',
+    WEBHOOK_AUDIT_READ = 'WEBHOOK_AUDIT_READ',
+
+    // Sequence
+    SEQUENCE_DISCOVER = 'SEQUENCE_DISCOVER',
+    SEQUENCE_READ = 'SEQUENCE_READ',
+    SEQUENCE_CONSUME = 'SEQUENCE_CONSUME',
+    SEQUENCE_WRITE = 'SEQUENCE_WRITE',
+    SEQUENCE_DELETE = 'SEQUENCE_DELETE',
+    SEQUENCE_ADMIN = 'SEQUENCE_ADMIN',
+
+    // Variable
+    VARIABLE_DISCOVER = 'VARIABLE_DISCOVER',
+    VARIABLE_READ = 'VARIABLE_READ',
+    VARIABLE_USE = 'VARIABLE_USE',
+    VARIABLE_WRITE = 'VARIABLE_WRITE',
+    VARIABLE_DELETE = 'VARIABLE_DELETE',
+    VARIABLE_ADMIN = 'VARIABLE_ADMIN',
+
+    // Communication
+    COMMUNICATION_DISCOVER = 'COMMUNICATION_DISCOVER',
+    COMMUNICATION_READ = 'COMMUNICATION_READ',
+    COMMUNICATION_USE = 'COMMUNICATION_USE',
+    COMMUNICATION_WRITE = 'COMMUNICATION_WRITE',
+    COMMUNICATION_DELETE = 'COMMUNICATION_DELETE',
+    COMMUNICATION_PUBLISH = 'COMMUNICATION_PUBLISH',
+    COMMUNICATION_ADMIN = 'COMMUNICATION_ADMIN',
+
+    // Principal Group
+    GROUP_READ = 'GROUP_READ',
+    GROUP_EDIT = 'GROUP_EDIT',
+    GROUP_ADMIN = 'GROUP_ADMIN',
+    GROUP_DELETE = 'GROUP_DELETE',
+
+    // Organization (administrative)
+    ORG_MEMBER_MANAGE = 'ORG_MEMBER_MANAGE',
+    ORG_POLICY_MANAGE = 'ORG_POLICY_MANAGE',
+    ORG_BILLING_MANAGE = 'ORG_BILLING_MANAGE',
+    ORG_AUDIT_READ = 'ORG_AUDIT_READ',
+
+    // Platform
+    APP_ADMIN = 'APP_ADMIN',
+    APP_AUDIT_READ = 'APP_AUDIT_READ',
+    APP_SUPPORT = 'APP_SUPPORT',
+
+    // Application Registration
+    APP_REG_READ = 'APP_REG_READ',
+    APP_REG_ADMIN = 'APP_REG_ADMIN',
+}
+
+/**
+ * Current-session contract returned by GET /app-user/session.
+ * The frontend derives menu visibility, action controls, and settings tab gates from
+ * capabilities rather than from raw role strings.
+ */
+export interface CurrentSessionDto
+{
+    userId: string
+    email: string
+    appRoles: string[]
+    activeOrganizationId: string | null
+    organizationRoles: string[]
+    capabilities: Capability[]
 }
 
 // ── OAuth / Multi-IDP Types ──
@@ -917,7 +1016,7 @@ export interface ExchangeClearanceStatusDto
 // ── Workflow Designer DSL types (mirror of WorkflowSpec Kotlin DSL) ────────────
 
 export type WorkflowStepType = 'APPROVAL' | 'NOTIFICATION' | 'CONDITION' | 'ACTION' | 'WAIT_FOR_COUNTERPARTY_CLEARANCE';
-export type AssigneeKind = 'PRINCIPAL' | 'GROUP_ROLE' | 'ROLE';
+export type AssigneeKind = 'PRINCIPAL' | 'GROUP_ROLE' | 'APP_ROLE' | 'ORGANIZATION_ROLE';
 export type QuorumKind = 'ANY' | 'ALL' | 'N_OF_M';
 export type EscalationAction = 'ESCALATE' | 'AUTO_REJECT' | 'AUTO_APPROVE';
 export type AddonKind = 'REMINDER_BEFORE_DUE' | 'REMINDER_IF_NO_DECISION';
@@ -930,9 +1029,8 @@ export interface AssigneeSpecDraft
     principalId?: string;     // PRINCIPAL
     groupIdRef?: string;      // GROUP_ROLE: UUID or $subject.<field>
     groupRole?: string;       // GROUP_ROLE: OWNER | MANAGER | MEMBER | OBSERVER
-    roleName?: string;        // ROLE | GROUP_ROLE
-    scopeType?: WorkflowScopeType; // ROLE
-    scopeIdRef?: string;      // ROLE: literal id or $subject.<field>
+    roleName?: string;        // APP_ROLE | ORGANIZATION_ROLE
+    organizationIdRef?: string; // ORGANIZATION_ROLE: literal id or $subject.<field>
 }
 
 export interface QuorumSpecDraft

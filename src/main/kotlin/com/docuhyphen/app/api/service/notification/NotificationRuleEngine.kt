@@ -216,15 +216,20 @@ class NotificationRuleEngine
         @kotlinx.serialization.SerialName("GROUP_ROLE")
         data class GroupRoleAssignees(
             val groupIdRef: String,
-            val groupRole: com.docuhyphen.app.api.model.entity.GroupRole,
+            val groupRole: com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName,
         ) : NotifAssigneeSpec()
 
         @Serializable
-        @kotlinx.serialization.SerialName("ROLE")
-        data class RoleAssignees(
-            val roleName: String,
-            val scopeType: com.docuhyphen.app.api.model.entity.RoleScopeType,
-            val scopeIdRef: String? = null,
+        @kotlinx.serialization.SerialName("APP_ROLE")
+        data class AppRoleAssignees(
+            val roleName: com.docuhyphen.app.api.model.entity.AppRoleName,
+        ) : NotifAssigneeSpec()
+
+        @Serializable
+        @kotlinx.serialization.SerialName("ORGANIZATION_ROLE")
+        data class OrganizationRoleAssignees(
+            val roleName: com.docuhyphen.app.api.model.entity.OrganizationRoleName,
+            val organizationIdRef: String,
         ) : NotifAssigneeSpec()
 
         /** Bridges PRINCIPAL/GROUP_ROLE/ROLE variants to the workflow assignee DSL. */
@@ -232,7 +237,9 @@ class NotificationRuleEngine
         {
             is Principal -> AssigneeSpec.Principal(principalKind, principalId)
             is GroupRoleAssignees -> AssigneeSpec.GroupRoleAssignees(groupIdRef, groupRole)
-            is RoleAssignees -> AssigneeSpec.RoleAssignees(roleName, scopeType, scopeIdRef)
+            is AppRoleAssignees -> AssigneeSpec.AppRoleAssignees(roleName)
+            is OrganizationRoleAssignees ->
+                AssigneeSpec.OrganizationRoleAssignees(roleName, organizationIdRef)
             is EventPayload -> error("EVENT_PAYLOAD must be handled by NotificationRuleEngine, not delegated")
         }
     }

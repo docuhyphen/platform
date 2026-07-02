@@ -31,7 +31,8 @@ class BlueprintParticipantDefault
     lateinit var principalId: String
 
     @Column(name = "role_name", nullable = false, length = 64)
-    lateinit var roleName: String
+    @Enumerated(EnumType.STRING)
+    var roleName: ExchangeShareRoleName = ExchangeShareRoleName.VIEWER
 
     @Column(name = "display_order", nullable = false)
     var displayOrder: Int = 0

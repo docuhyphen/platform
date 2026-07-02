@@ -1,10 +1,34 @@
 package com.docuhyphen.app.api.model.dto
 
+import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.util.UUID
+
+/**
+ * Current-session contract returned by GET /app-user/session.
+ *
+ * Carries user identity, the explicitly selected organization (null when the caller has not
+ * selected one), all applicable scoped roles for the active context, and the union of effective
+ * capabilities derived from those roles. The frontend drives menu visibility, action controls,
+ * and settings tabs from [capabilities] rather than from raw role strings.
+ *
+ * Capabilities are computed server-side at request time from live role assignments so stale role
+ * changes are reflected within the next session fetch.
+ */
+@Serializable
+data class CurrentSessionDto(
+    @Serializable(with = UUIDSerializer::class)
+    val userId: UUID,
+    val email: String,
+    val appRoles: List<String>,
+    @Serializable(with = UUIDSerializer::class)
+    val activeOrganizationId: UUID?,
+    val organizationRoles: List<String>,
+    val capabilities: List<String>,
+)
 
 /**
  * One entry in a resource's unified access view (see v2 plan §6.2). Sourced from the `share`
@@ -19,7 +43,7 @@ data class SessionAccessEntryDto(
     val principalId: UUID,
     /** Best-effort human label (user email / group name); null if it can't be resolved. */
     val displayName: String? = null,
-    val roleName: String,
+    val roleName: ExchangeShareRoleName,
     val source: String,
     val status: String,
     @Serializable(with = UUIDSerializer::class)

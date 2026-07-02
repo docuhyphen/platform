@@ -169,11 +169,6 @@ const ExchangeDetailsTab: React.FC<ExchangeDetailsTabProps> = ({exchangeDetails}
                     {renderBooleanSetting("Watermark", exchangeDetails.watermark)}
                     {renderBooleanSetting("Require MFA", exchangeDetails.requireMfa)}
                 </div>
-                {exchangeDetails.maxViews != null && (
-                    <div className={styles.maxViewsContainer}>
-                        {renderDetailRow("Max views", String(exchangeDetails.maxViews))}
-                    </div>
-                )}
             </div>
 
         </div>

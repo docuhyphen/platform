@@ -2,7 +2,7 @@
 
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.RoleName
+import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
 import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareSource
 import com.docuhyphen.app.api.model.entity.ShareStatus
@@ -16,13 +16,9 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Write-side service for the unified [Share] model. Replaces the legacy three-way recipient
- * columns on `exchange` (recipient_id / recipient_type / group_id) and the per-session
- * `allow_document_*` flags.
- *
- * During the dual-write window the legacy columns stay authoritative for reads; this service
- * mirrors each recipient into a `share` row so [com.docuhyphen.app.api.service.auth.authz.AuthorizationService]
- * can resolve access from the new model once the read path flips.
+ * Write-side service for the unified [Share] model. The legacy recipient columns
+ * (`recipient_id`, `recipient_type`, `group_id`, `allow_document_*`) were removed;
+ * all access is now resolved exclusively through [Share] rows.
  *
  * Group inheritance is *materialised*: sharing with a `PRINCIPAL_GROUP` creates the DIRECT
  * grant for the group plus `INHERITED_FROM_GROUP` rows for each active member (pointing back
@@ -48,7 +44,7 @@ class ShareService @Inject constructor(
         resourceId: UUID,
         principalKind: PrincipalKind,
         principalId: UUID,
-        roleName: RoleName,
+        roleName: ExchangeShareRoleName,
         grantedByAppUserId: UUID? = null,
         source: ShareSource = ShareSource.DIRECT,
         constraintsJson: String? = null,
@@ -69,7 +65,7 @@ class ShareService @Inject constructor(
             this.resourceId = resourceId
             this.principalKind = principalKind
             this.principalId = principalId
-            this.roleName = roleName.name
+            this.roleName = roleName
             this.source = source
             this.sourceShareId = null
             this.status = status
@@ -168,20 +164,20 @@ class ShareService @Inject constructor(
      * propagated to its inherited member shares so the group stays internally consistent.
      * Returns the updated share, or null if it doesn't exist.
      */
-    fun updateRole(shareId: UUID, roleName: RoleName): Share?
+    fun updateRole(shareId: UUID, roleName: ExchangeShareRoleName): Share?
     {
         return updateRoleAndConstraints(shareId, roleName, constraintsJson = null, applyConstraints = false)
     }
 
     fun updateRoleAndConstraints(
         shareId: UUID,
-        roleName: RoleName,
+        roleName: ExchangeShareRoleName,
         constraintsJson: String?,
         applyConstraints: Boolean,
     ): Share?
     {
         val share = shareRepository.findById(shareId) ?: return null
-        share.roleName = roleName.name
+        share.roleName = roleName
         if (applyConstraints)
         {
             share.constraintsJson = constraintsJson
@@ -189,7 +185,7 @@ class ShareService @Inject constructor(
         val updated = shareRepository.update(share)
 
         shareRepository.findBySourceShareId(shareId).forEach { child ->
-            child.roleName = roleName.name
+            child.roleName = roleName
             if (applyConstraints)
             {
                 child.constraintsJson = constraintsJson
@@ -207,7 +203,7 @@ class ShareService @Inject constructor(
         shareRepository.findActiveByResource(ResourceType.EXCHANGE, exchangeId)
             .filter {
                 it.principalKind == PrincipalKind.USER &&
-                    it.roleName != RoleName.OWNER.name
+                    it.roleName != ExchangeShareRoleName.OWNER
             }
 
     /**
@@ -218,7 +214,7 @@ class ShareService @Inject constructor(
     private fun allRecipientShares(exchangeId: UUID): List<Share> =
         shareRepository.findActiveByResource(ResourceType.EXCHANGE, exchangeId)
             .filter {
-                it.roleName != RoleName.OWNER.name
+                it.roleName != ExchangeShareRoleName.OWNER
             }
 
     fun recipientUserIds(exchangeId: UUID): List<UUID> =
@@ -232,7 +228,7 @@ class ShareService @Inject constructor(
         shareRepository.findActiveByResource(ResourceType.EXCHANGE, exchangeId)
             .firstOrNull {
                 it.principalKind == PrincipalKind.USER &&
-                    it.roleName != RoleName.OWNER.name &&
+                    it.roleName != ExchangeShareRoleName.OWNER &&
                     it.source == ShareSource.DIRECT
             }?.principalId
 
@@ -241,7 +237,7 @@ class ShareService @Inject constructor(
         shareRepository.findActiveByResource(ResourceType.EXCHANGE, exchangeId)
             .filter {
                 it.principalKind == PrincipalKind.PRINCIPAL_GROUP &&
-                    it.roleName != RoleName.OWNER.name
+                    it.roleName != ExchangeShareRoleName.OWNER
             }
             .firstOrNull()?.principalId
 
@@ -254,7 +250,7 @@ class ShareService @Inject constructor(
         shareRepository.findAllByResource(ResourceType.EXCHANGE, exchangeId)
             .firstOrNull {
                 it.principalKind == PrincipalKind.USER &&
-                    it.roleName != RoleName.OWNER.name &&
+                    it.roleName != ExchangeShareRoleName.OWNER &&
                     it.source == ShareSource.DIRECT
             }?.principalId
 
@@ -266,7 +262,7 @@ class ShareService @Inject constructor(
         shareRepository.findAllByResource(ResourceType.EXCHANGE, exchangeId)
             .firstOrNull {
                 it.principalKind == PrincipalKind.PRINCIPAL_GROUP &&
-                    it.roleName != RoleName.OWNER.name
+                    it.roleName != ExchangeShareRoleName.OWNER
             }?.principalId
 
     /** Whether the session's recipient share permits the given constraint flag (e.g. "allow_document_upload"). */

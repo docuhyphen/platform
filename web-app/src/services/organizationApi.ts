@@ -6,6 +6,7 @@ import {
     OrganizationSettingsDto,
     PersonDetailedDto
 } from "../app/models/models.tsx";
+import {OrganizationRoleName, PrincipalGroupRoleName} from './types/roles.ts';
 
 export const fetchOrganization = async (organizationId: string, token?: string) =>
 {
@@ -85,7 +86,7 @@ export const addOrganizationGroup = async (
         name: string;
         members: Array<{
             appUserId: string;
-            groupRole: string;
+            groupRole: PrincipalGroupRoleName;
         }>;
         externallyPublished?: boolean;
     },
@@ -113,7 +114,7 @@ export const updateOrganizationGroup = async (
         isActive: boolean;
         members: Array<{
             appUserId: string;
-            groupRole: string;
+            groupRole: PrincipalGroupRoleName;
         }>;
         externallyPublished?: boolean;
     },
@@ -216,7 +217,7 @@ export const fetchOrganizationUsers = async (organizationId: string, token?: str
 
 export const addOrganizationUser = async (
     organizationId: string,
-    data: { role: string, email: string, person?: PersonDetailedDto },
+    data: { roles: OrganizationRoleName[], email: string, person?: PersonDetailedDto },
     token?: string
 ) =>
 {
@@ -236,7 +237,13 @@ export const addOrganizationUser = async (
 export const updateOrganizationUser = async (
     organizationId: string,
     appUserId: string,
-    data: { isActive?: boolean, email?: string, role?: string, person?: PersonDetailedDto },
+    data: {
+        isActive?: boolean;
+        email?: string;
+        rolesToAdd?: OrganizationRoleName[];
+        rolesToRemove?: OrganizationRoleName[];
+        person?: PersonDetailedDto;
+    },
     token?: string
 ) =>
 {

@@ -15,13 +15,16 @@ export const usingBlueprintsArticle = (
 
         <h3>Choosing a blueprint</h3>
         <p>
-            The picker has three tabs:
+            The picker always includes these tabs:
         </p>
         <ul>
             <li><b>My Blueprints</b> - your personal saved blueprints.</li>
-            <li><b>Organization</b> - blueprints published by your organization's admins.</li>
             <li><b>Platform</b> - ready-made blueprints provided by DocuHyphen.</li>
         </ul>
+        <p>
+            If you are an active member of a registered organization, you also see an
+            <b> Organization</b> tab with blueprints published by your organization's admins.
+        </p>
         <p>
             Click <b>Use Blueprint</b> on the card you want. The picker closes and
             the exchange form is pre-filled with all the saved settings.

@@ -17,7 +17,8 @@ import {PersonAddIcon} from "../../components/IconBundles.tsx";
 import {useOrganizationPeopleTabStyles} from "./OrganizationPeopleTabStyles.tsx";
 import {fetchMyOrganizationUsers} from "../../../services/organizationApi.ts";
 import {useAuth} from "../../../context/AuthContext.tsx";
-import {AppUserDetailedDto, AppUserRoleDisplayNames, OrgMemberCapacityResponse} from "../../models/models.tsx";
+import {AppUserDetailedDto, OrgMemberCapacityResponse} from "../../models/models.tsx";
+import {OrganizationRoleDisplayNames, OrganizationRoleName} from '../../../services/types/roles.ts';
 import {getOrgMemberCapacity} from "../../../services/authApi.ts";
 import AddAppUserDialog from "./add-app-user-dialog/AddAppUserDialog.tsx";
 import EditUserDialog from "./app-user-edit-dialog/EditUserDialog.tsx";
@@ -192,7 +193,9 @@ const OrganizationPeopleTab = () =>
                                     <div className={styles.truncateCell}>{user.email}</div>
                                 </TableCell>
                                 <TableCell>
-                                    {AppUserRoleDisplayNames[user.role as keyof typeof AppUserRoleDisplayNames] || user.role}
+                                    {user.organizationRoles
+                                        .map((role) => OrganizationRoleDisplayNames[role as OrganizationRoleName] || role)
+                                        .join(', ')}
                                 </TableCell>
                                 <TableCell className={styles.statusCell}>
                                     <Badge

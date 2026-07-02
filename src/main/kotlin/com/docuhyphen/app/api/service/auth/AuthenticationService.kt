@@ -78,13 +78,16 @@ class AuthenticationService @Inject constructor(
         val expiration = Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(expiryMinutes))
         val authTime = authTimeEpochSeconds ?: (System.currentTimeMillis() / 1000)
 
-        val roleClaim = if (userRoleService.isAppAdmin(appUser.id)) "APP_ADMIN"
-            else userRoleService.primaryOrgRole(appUser.id)?.name ?: "END_USER"
+        val roleClaims = buildSet {
+            if (userRoleService.isAppAdmin(appUser.id)) add("APP_ADMIN")
+            addAll(userRoleService.primaryOrgRoles(appUser.id).map { it.name })
+            if (isEmpty()) add("APP_USER")
+        }
 
         val builder = Jwts.builder()
             .subject(appUser.id.toString())
             .claim("email", appUser.email)
-            .claim("role", roleClaim)
+            .claim("roles", roleClaims.toList())
             .claim("exchange_version", appUser.sessionVersion)
             .claim("token_type", ACCESS.name)
             .claim("auth_time", authTime)
@@ -107,8 +110,11 @@ class AuthenticationService @Inject constructor(
         val expiration = Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(expiryMinutes))
         val normalizedScopes = scopes.map { it.trim() }.filter { it.isNotBlank() }.toSet()
 
+        val issuer = configurationService.getJwtIssuer()
         return Jwts.builder()
             .subject(applicationId.toString())
+            .issuer(issuer)
+            .audience().add(issuer).and()
             .claim("token_type", ACCESS.name)
             .claim("principal_type", "APPLICATION")
             .claim("type", "APPLICATION")

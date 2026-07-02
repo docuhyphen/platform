@@ -13,6 +13,7 @@ import com.docuhyphen.app.api.resource.model.UpdateNoAuthExchange
 import com.docuhyphen.app.api.service.exchange.ExchangeDocumentService
 import com.docuhyphen.app.api.service.exchange.ExchangeRetrievalService
 import com.docuhyphen.app.api.service.exchange.ExchangeUpdateService
+import com.docuhyphen.app.api.service.exchange.ShareLinkValidationService
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
@@ -25,6 +26,7 @@ import jakarta.ws.rs.core.Response.Status.TOO_MANY_REQUESTS
 import org.jboss.resteasy.reactive.RestForm
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.util.UUID
 
 @Path("no-auth/exchanges")
 @Produces(MediaType.APPLICATION_JSON)
@@ -34,6 +36,7 @@ class NoAuthExchangeResource @Inject constructor(
     private val exchangeUpdateService: ExchangeUpdateService,
     private val exchangeDocumentService: ExchangeDocumentService,
     private val fileStorageService: FileStorageService,
+    private val shareLinkValidationService: ShareLinkValidationService,
 )
 {
     companion object
@@ -41,12 +44,41 @@ class NoAuthExchangeResource @Inject constructor(
         private val logger = LoggerFactory.getLogger(NoAuthExchangeResource::class.java)
     }
 
+    /**
+     * Returns basic exchange metadata for participant and public-link access.
+     *
+     * When an X-Share-Link-Token header is present the token is validated against the
+     * exchange before any data is returned. An invalid, revoked, exhausted, or mismatched
+     * link results in 403. When no token is present the endpoint serves the OTP-based
+     * participant flow (participants have a named Share grant validated at OTP time).
+     */
     @GET
     @Path("/{exchangeId}")
-    fun getNoAuthExchange(@PathParam("exchangeId") exchangeId: String): Response
+    fun getNoAuthExchange(
+        @PathParam("exchangeId") exchangeId: String,
+        @HeaderParam("X-Share-Link-Token") shareLinkToken: String?,
+    ): Response
     {
         return try
         {
+            if (!shareLinkToken.isNullOrBlank())
+            {
+                val exchangeUuid = try
+                {
+                    UUID.fromString(exchangeId)
+                }
+                catch (_: Exception)
+                {
+                    return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(ResponseError("Invalid exchange id"))
+                        .build()
+                }
+                shareLinkValidationService.validateForNoAuth(
+                    rawToken = shareLinkToken,
+                    exchangeId = exchangeUuid,
+                )
+            }
+
             val exchange = exchangeRetrievalService.getNoAuthExchange(exchangeId)
 
             Response.ok(BasicEntityToDtoTransformer.toNoAuthDto(exchange)).build()
@@ -55,6 +87,15 @@ class NoAuthExchangeResource @Inject constructor(
         {
             when (exception)
             {
+                is ForbiddenException ->
+                {
+                    logger.warn("No-auth exchange access denied ({}): {}", exchangeId, exception.message)
+                    Response
+                        .status(Response.Status.FORBIDDEN)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
                 is ExchangeNotFoundException ->
                 {
                     logger.error("Error getting exchange", exception)

@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.exception.WorkflowConflictException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.RoleName
+import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
 import com.docuhyphen.app.api.model.entity.ShareSource
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
@@ -22,11 +22,15 @@ import com.docuhyphen.app.api.repository.WorkflowStepInstanceRepository
 import com.docuhyphen.app.api.resource.model.UpdateExchangeRequest
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.UserContactService
+import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.Decision as AuthDecision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
-import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.workflow.Decision
 import com.docuhyphen.app.api.service.workflow.TriggerRequest
 import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
@@ -61,7 +65,8 @@ class ExchangeUpdateService @Inject constructor(
     private val workflowStepRepository: WorkflowStepInstanceRepository,
     private val workflowEngineService: WorkflowEngineService,
     private val authTokenContext: AuthTokenContext,
-    private val organizationMembershipService: OrganizationMembershipService,
+    private val authorizationService: AuthorizationService,
+    private val authorizationContextFactory: AuthorizationContextFactory,
 )
 {
     @PersistenceContext
@@ -94,6 +99,32 @@ class ExchangeUpdateService @Inject constructor(
     )
     {
         val sessionUUID = UUID.fromString(exchangeId)
+
+        // Any caller must have at least EXCHANGE_READ. Returns 404 to avoid leaking existence.
+        val principal = authorizationContextFactory.currentPrincipal()
+            ?: throw ExchangeNotFoundException("Exchange not found")
+        val authCtx = authorizationContextFactory.currentContext()
+        if (authorizationService.authorize(principal, Action.EXCHANGE_VIEW, ResourceRef.exchange(sessionUUID), authCtx)
+                is AuthDecision.Deny)
+        {
+            throw ExchangeNotFoundException("Exchange not found")
+        }
+
+        // Owner-only mutations and ENDED status require EXCHANGE_WRITE.
+        val hasOwnerMutation = request?.name != null || request?.description != null ||
+            request?.requireRecipientSignIn != null || request?.noAuthAccessValidityDays != null ||
+            request?.allowDocumentAddition != null || request?.allowDocumentDeletion != null ||
+            request?.allowDocumentDownload != null || request?.allowDocumentUpdate != null ||
+            request?.allowDocumentUpload != null || request?.allowedDownloadFormats != null ||
+            request?.status == ExchangeStatus.ENDED
+        if (hasOwnerMutation)
+        {
+            if (authorizationService.authorize(principal, Action.EXCHANGE_EDIT, ResourceRef.exchange(sessionUUID), authCtx)
+                    is AuthDecision.Deny)
+            {
+                throw ForbiddenException("Not authorized to edit this exchange")
+            }
+        }
 
         exchangeRepository.findById(sessionUUID)
             ?: throw ExchangeNotFoundException("Exchange not found")
@@ -166,7 +197,7 @@ class ExchangeUpdateService @Inject constructor(
             if (newStatus == ExchangeStatus.ENDED)
             {
                 val exchange = exchangeRepository.findById(sessionUUID)!!
-                val orgId = exchange.initiator?.id?.let { organizationMembershipService.primaryOrganizationId(it) }
+                val orgId = exchange.ownerOrganizationId
                 val triggerResult = workflowEngineService.trigger(
                     TriggerRequest(
                         triggerEvent = "exchange.ending",
@@ -230,6 +261,7 @@ class ExchangeUpdateService @Inject constructor(
             // Read the current constraints to preserve flags that aren't being changed.
             val currentJson = shareService.recipientConstraintsJson(sessionUUID) ?: "{}"
             val currentConstraints = com.docuhyphen.app.api.service.auth.authz.ShareConstraints.parse(currentJson)
+                ?: com.docuhyphen.app.api.service.auth.authz.ShareConstraints.PERMISSIVE
             val addition = request?.allowDocumentAddition
                 ?: currentJson.contains("\"allow_document_addition\":true")
             val deletion = request?.allowDocumentDeletion
@@ -306,8 +338,8 @@ class ExchangeUpdateService @Inject constructor(
                     .filter {
                         it.principalKind == PrincipalKind.USER &&
                             it.principalId != initiator.id &&
-                            it.roleName != RoleName.OWNER.name &&
-                            it.roleName != RoleName.PARTICIPANT.name
+                            it.roleName != ExchangeShareRoleName.OWNER &&
+                            it.roleName != ExchangeShareRoleName.PARTICIPANT
                     }
                     .map { it.principalId }
                     .distinct()
@@ -329,10 +361,11 @@ class ExchangeUpdateService @Inject constructor(
         val exchange = exchangeRepository.findById(exchangeUuid)
             ?: throw ExchangeNotFoundException("Exchange not found")
 
-        val currentUserId = authTokenContext.authToken.appUser?.id
-            ?: throw ForbiddenException("Only the initiator can rescind this exchange")
-
-        if (exchange.initiator?.id != currentUserId)
+        val principal = authorizationContextFactory.currentPrincipal()
+            ?: throw ForbiddenException("Authentication required to rescind this exchange")
+        if (authorizationService.authorize(
+                principal, Action.EXCHANGE_RESCIND, ResourceRef.exchange(exchangeUuid),
+                authorizationContextFactory.currentContext()) is AuthDecision.Deny)
         {
             throw ForbiddenException("Only the initiator can rescind this exchange")
         }
@@ -365,7 +398,7 @@ class ExchangeUpdateService @Inject constructor(
         sendStatusChangeEmails(updatedExchange, ExchangeStatus.RESCINDED)
         broadcastStatusChange(updatedExchange, ExchangeStatus.RESCINDED)
 
-        logger.info("Exchange {} rescinded by initiator {}", exchangeUuid, currentUserId)
+        logger.info("Exchange {} rescinded by initiator {}", exchangeUuid, authTokenContext.authToken.appUser?.id)
 
         return updatedExchange
     }
@@ -378,6 +411,15 @@ class ExchangeUpdateService @Inject constructor(
         }
 
         val sessionUUID = UUID.fromString(exchangeId)
+
+        val principal = authorizationContextFactory.currentPrincipal()
+            ?: throw ExchangeNotFoundException("Exchange not found")
+        if (authorizationService.authorize(
+                principal, Action.EXCHANGE_DELETE, ResourceRef.exchange(sessionUUID),
+                authorizationContextFactory.currentContext()) is AuthDecision.Deny)
+        {
+            throw ExchangeNotFoundException("Exchange not found")
+        }
 
         var session = exchangeRepository.findById(sessionUUID)?.apply {
 
@@ -597,6 +639,7 @@ class ExchangeUpdateService @Inject constructor(
     fun issueRecipientOtp(exchangeId: String): Exchange
     {
         val sessionUUID = UUID.fromString(exchangeId)
+
         val session = exchangeRepository.findById(sessionUUID)
             ?: throw ExchangeNotFoundException("Exchange not found")
 
@@ -606,17 +649,11 @@ class ExchangeUpdateService @Inject constructor(
             throw ForbiddenException("Exchange not found")
         }
 
-        throwIfOtpLocked(sessionUUID)
-
-        val retryAfterSeconds = recipientOtpResendRetryAfterSeconds(session)
-        if (retryAfterSeconds > 0)
+        if (session.status == ExchangeStatus.ACCEPTED_STARTED)
         {
-            logger.info("noAuthOtp.issue.rejected exchangeId={} reason=OTP_RATE_LIMITED retryAfterSeconds={}", exchangeId, retryAfterSeconds)
-            throw NoAuthOtpException(
-                message = "Please wait before requesting another verification code",
-                reasonCode = "OTP_RATE_LIMITED",
-                retryAfterSeconds = retryAfterSeconds,
-            )
+            // Recipient already verified and accepted — OTP re-issuance via this endpoint is
+            // not permitted. Any re-verification is handled by the initiator from Manage Access.
+            throw ForbiddenException("Exchange not found")
         }
 
         if (
@@ -626,6 +663,18 @@ class ExchangeUpdateService @Inject constructor(
         )
         {
             throw IllegalArgumentException("Exchange has already ended")
+        }
+
+        throwIfOtpLocked(sessionUUID)
+
+        // If a valid OTP already exists (including the long-lived initial invite code), silently
+        // succeed without sending another email. The frontend calls this on page load — returning
+        // 204 lets the user proceed to enter the code they already received.
+        val existingExpiry = session.recipientOtpExpiry?.toInstant()
+        if (existingExpiry != null && existingExpiry.isAfter(Instant.now()))
+        {
+            logger.info("noAuthOtp.issue.skipped exchangeId={} reason=EXISTING_OTP_VALID", exchangeId)
+            return session
         }
         val recipientEmail = resolveRecipientEmail(session.id)
             ?: throw IllegalArgumentException("Exchange has no recipient email")
@@ -801,7 +850,7 @@ class ExchangeUpdateService @Inject constructor(
         else shareRepository.findActiveByResource(ResourceType.EXCHANGE, exchangeId))
             .firstOrNull {
                 it.principalKind == PrincipalKind.PARTICIPANT &&
-                    it.roleName != RoleName.OWNER.name &&
+                    it.roleName != ExchangeShareRoleName.OWNER &&
                     it.source == ShareSource.DIRECT
             }
             ?.principalId

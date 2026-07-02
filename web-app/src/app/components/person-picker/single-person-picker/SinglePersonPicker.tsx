@@ -2,6 +2,9 @@ import {Combobox, ComboboxProps, Option, Spinner} from "@fluentui/react-componen
 import PersonOption from "../person-option/PersonOption.tsx";
 import {getPersonName, PersonPickerItem} from "../personPickerTypes.ts";
 
+const toSafeDomIdSegment = (value: string): string =>
+    encodeURIComponent(value).replace(/%/g, '_');
+
 interface Props
 {
     id: string;
@@ -74,13 +77,13 @@ const SinglePersonPicker = ({
             )}
             {!loading && people.map(person => (
                 <Option
-                    id={`${id}-option-${person.id}`}
+                    id={`${id}-option-${toSafeDomIdSegment(person.id)}`}
                     key={person.id}
                     value={person.id}
                     text={`${getPersonName(person)} ${person.email}`}
                 >
                     <PersonOption
-                        id={`${id}-persona-${person.id}`}
+                        id={`${id}-persona-${toSafeDomIdSegment(person.id)}`}
                         person={person}
                     />
                 </Option>

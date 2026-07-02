@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
     Badge,
     Button,
@@ -24,7 +24,6 @@ import {
 import {MoreVerticalRegular} from '@fluentui/react-icons';
 import {
     ActivateIcon, AddIcon,
-    BlueprintAddIcon,
     CheckmarkIcon,
     CopyIcon,
     DeactivateIcon,
@@ -37,7 +36,8 @@ import {
     UnpublishIcon,
 } from '../../components/IconBundles.tsx';
 import {useTemplatesTabStyles} from './BlueprintsTabStyles.tsx';
-import {AppUserRole, BlueprintDefinitionSummaryDto, BlueprintScope, ViewMode} from '../../models/models.tsx';
+import {BlueprintDefinitionSummaryDto, BlueprintScope, ViewMode} from '../../models/models.tsx';
+import {Capability} from '../../models/models.tsx';
 import {
     cloneBlueprint,
     deleteBlueprint,
@@ -67,12 +67,6 @@ const emptyMessage: Record<ActiveTab, string> = {
     APP: 'No platform blueprints yet.',
 };
 
-const createLabel: Record<ActiveTab, string> = {
-    PERSONAL: 'Create ',
-    ORG: 'Create',
-    APP: 'Create',
-};
-
 const PAGE_SIZE = 12;
 
 type SortOrder = 'default' | 'nameAsc' | 'nameDesc';
@@ -81,14 +75,13 @@ const BlueprintsTab = () =>
 {
     const globalStyles = useGlobalStyles();
     const styles = useTemplatesTabStyles();
-    const {appUser, setAppUser, token, appUserPersonOrganization} = useAuth();
+    const {appUser, setAppUser, token, appUserPersonOrganization, hasCapability} = useAuth();
 
-    const roleValue = `${appUser?.role ?? ''}`;
     const hasOrg = !!appUserPersonOrganization?.isActive;
     const canManageOrganization =
         appUserPersonOrganization?.isActive &&
-        (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN');
-    const isAppAdmin = roleValue === 'APP_ADMIN';
+        (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
+    const isAppAdmin = hasCapability(Capability.APP_ADMIN);
 
     const [viewMode, setViewMode] = useState<ViewMode>(appUser?.settings?.blueprintsView ?? 'cards');
 
@@ -142,14 +135,20 @@ const BlueprintsTab = () =>
         setCurrentPage(0);
     };
 
+    // Guards against a stale in-flight request (e.g. the reload fired after a clone on the APP tab)
+    // resolving after a newer request for a different scope, which would render the wrong scope's
+    // blueprints until the next navigation. Only the most recent request may apply its result.
+    const requestSeq = useRef(0);
+
     const loadBlueprints = () =>
     {
+        const seq = ++requestSeq.current;
         setLoading(true);
         setError(null);
         listBlueprints({scope: activeTab})
-            .then(setBlueprints)
-            .catch(() => setError('Failed to load blueprints'))
-            .finally(() => setLoading(false));
+            .then(data => { if (seq === requestSeq.current) setBlueprints(data); })
+            .catch(() => { if (seq === requestSeq.current) setError('Failed to load blueprints'); })
+            .finally(() => { if (seq === requestSeq.current) setLoading(false); });
     };
 
     useEffect(() => { loadBlueprints(); }, [activeTab]);

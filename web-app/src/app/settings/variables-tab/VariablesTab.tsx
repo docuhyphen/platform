@@ -16,7 +16,8 @@ import {
     Text,
 } from '@fluentui/react-components';
 import {AddRegular} from '@fluentui/react-icons';
-import {AppUserRole, SystemVariableDto, ViewMode} from '../../models/models';
+import {SystemVariableDto, ViewMode} from '../../models/models';
+import {Capability} from '../../models/models';
 import {getAvailableVariables} from '../../../services/variableService';
 import OrganizationVariablesTab, {OrganizationVariablesTabHandle} from '../organization-variables-tab/OrganizationVariablesTab';
 import PersonalVariablesTab, {PersonalVariablesTabHandle} from '../personal-variables-tab/PersonalVariablesTab';
@@ -106,12 +107,11 @@ const PlatformVariablesView = () =>
 const VariablesTab = () =>
 {
     const styles = useVariablesTabStyles();
-    const {appUser, setAppUser, token, appUserPersonOrganization} = useAuth();
-    const roleValue = `${appUser?.role ?? ''}`;
+    const {appUser, setAppUser, token, appUserPersonOrganization, hasCapability} = useAuth();
     const hasOrg = !!appUserPersonOrganization?.isActive;
     const canManageOrg =
         appUserPersonOrganization?.isActive &&
-        (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN');
+        (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('PERSONAL');
     const [viewMode, setViewMode] = useState<ViewMode>(appUser?.settings?.variablesView ?? 'cards');

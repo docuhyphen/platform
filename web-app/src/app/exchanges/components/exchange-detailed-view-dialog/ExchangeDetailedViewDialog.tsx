@@ -220,12 +220,6 @@ const ExchangeDetailedViewDialog: React.FC<ExchangeDetailedViewDialogProps> = (
                                 <Text className={styles.keyLabel}>Require MFA</Text>
                                 <Text>{getBooleanLabel(exchange.requireMfa)}</Text>
 
-                                {exchange.maxViews != null && (
-                                    <>
-                                        <Text className={styles.keyLabel}>Max views</Text>
-                                        <Text>{exchange.maxViews}</Text>
-                                    </>
-                                )}
                             </div>
                         </div>
                     </DialogContent>

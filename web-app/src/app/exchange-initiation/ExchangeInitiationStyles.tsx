@@ -226,6 +226,9 @@ export const useExchangeInitiationStyles = makeStyles({
         gap: "8px",
         width: "100%",
     },
+    blueprintPickerSearchField: {
+        flex: 1,
+    },
     blueprintPickerActiveTagsRow: {
         display: "flex",
         flexWrap: "wrap",
@@ -246,6 +249,10 @@ export const useExchangeInitiationStyles = makeStyles({
         overflowY: "auto",
         display: "flex",
         flexDirection: "column",
+    },
+    blueprintPickerFilterEmptyText: {
+        padding: "4px 8px",
+        color: "var(--colorNeutralForeground3)",
     },
     blueprintPickerSpinnerWrapper: {
         display: "flex",

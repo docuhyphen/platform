@@ -1,6 +1,7 @@
 ﻿package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.repository.OrganizationMembershipRepository
 import com.docuhyphen.app.api.resource.model.AuthAuditEventResponse
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.AuthAuditService
@@ -22,6 +23,7 @@ class AuthAuditResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val authAuditService: AuthAuditService,
     private val userRoleService: UserRoleService,
+    private val membershipRepository: OrganizationMembershipRepository,
 )
 {
     @GET
@@ -35,18 +37,27 @@ class AuthAuditResource @Inject constructor(
         val actor = authTokenContext.authToken.appUser
             ?: return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
-        if (!userRoleService.isOrgAdmin(actor.id))
+        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
+        val isOrgAdmin = userRoleService.isOrgAdmin(actor.id)
+
+        if (!isAppAdmin && !isOrgAdmin)
         {
             return Response.status(Response.Status.FORBIDDEN)
                 .entity(ResponseError("Insufficient privileges"))
                 .build()
         }
 
+        val scopedOrgId = if (isAppAdmin) null
+        else (membershipRepository.findPrimaryForUser(actor.id)
+            ?: membershipRepository.findActiveByUser(actor.id).firstOrNull())
+            ?.organizationId
+
         val events = authAuditService.findRecent(
             limit = limit,
             action = action?.trim()?.takeIf { it.isNotBlank() },
             outcome = outcome?.trim()?.takeIf { it.isNotBlank() },
             includeSnapshots = includeSnapshots,
+            organizationId = scopedOrgId,
         )
 
         val response = events.map { event ->

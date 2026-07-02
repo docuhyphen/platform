@@ -202,8 +202,7 @@ data class OrganizationRegistrationRequest(
 @Serializable
 data class AddOrganizationGroupMemberRequest(
     var appUserId: String? = null,
-    /** New role-based model: OWNER | MANAGER | MEMBER | OBSERVER. */
-    var groupRole: String = "MEMBER",
+    var groupRole: PrincipalGroupRoleName = PrincipalGroupRoleName.MEMBER,
 )
 
 @Serializable
@@ -266,14 +265,15 @@ data class AddOrganizationAppUserPersonRequest(
 
 @Serializable
 data class AddOrganizationAppUserRequest(
-    var role: RoleName? = null,
+    var roles: Set<OrganizationRoleName> = setOf(OrganizationRoleName.ORG_MEMBER),
     var email: String? = null,
     var person: AddOrganizationAppUserPersonRequest?,
 )
 
 @Serializable
 data class UpdateOrganizationAppUserRequest(
-    var role: String? = null,
+    var rolesToAdd: Set<OrganizationRoleName> = emptySet(),
+    var rolesToRemove: Set<OrganizationRoleName> = emptySet(),
     var isActive: Boolean? = null,
     var email: String? = null,
     var person: AddOrganizationAppUserPersonRequest?,
@@ -733,7 +733,7 @@ data class OrgMemberCapacityResponse(
 data class GrantSessionShareRequest(
     val principalKind: String,
     val principalId: String,
-    val roleName: String,
+    val roleName: ExchangeShareRoleName,
     val constraintsJson: String? = null,
     val expiresAtEpochMillis: Long? = null,
 )
@@ -741,7 +741,7 @@ data class GrantSessionShareRequest(
 /** Change the role on an existing session share. */
 @Serializable
 data class UpdateSessionShareRoleRequest(
-    val roleName: String,
+    val roleName: ExchangeShareRoleName,
     val constraintsJson: String? = null,
 )
 

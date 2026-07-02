@@ -13,30 +13,31 @@ export const assigneesAndPortabilityArticle = (
             resolves the actual set of users at runtime.
         </p>
 
-        <h3>ROLE</h3>
+        <h3>ORGANIZATION_ROLE</h3>
         <p>
-            Resolves to all users who hold a named role in a given scope. This is
-            the most portable option because it references a logical role rather
-            than specific people.
+            Resolves to users who hold a selected organization role in the
+            organization referenced by the workflow subject.
         </p>
         <p><b>Fields:</b></p>
         <ul>
             <li>
-                <b>Role name</b> - the role to target. Within-organization scope:
-                Organization Admin, Organization Member, Group Admin.
-                Platform-wide scope: App Admin, App User.
+                <b>Organization role</b> - Owner, Admin, Billing Admin, User
+                Manager, Auditor, Member, or Guest.
             </li>
             <li>
-                <b>Scope type</b> - either <b>Platform-wide</b> (APP) or{" "}
-                <b>Within organization</b> (ORG).
-            </li>
-            <li>
-                <b>Scope ID ref</b> - the organization to resolve roles against.
+                <b>Organization ID ref</b> - the organization to resolve roles against.
                 Defaults to <b>Caller's organization</b> (<code>$subject.orgId</code>),
                 which keeps the definition portable. Other subject fields from the
                 trigger event appear as additional options.
             </li>
         </ul>
+
+        <h3>APP_ROLE</h3>
+        <p>
+            Resolves to users who hold an App Admin, App Auditor, App Support, or
+            App User role. App roles are platform-wide and do not use an
+            organization reference.
+        </p>
 
         <h3>GROUP_ROLE</h3>
         <p>
@@ -83,14 +84,14 @@ export const assigneesAndPortabilityArticle = (
         <ul>
             <li>
                 If the definition is cloned by another organization, hardcoded
-                UUIDs are automatically replaced with portable ROLE placeholders.
+                UUIDs are automatically replaced with portable ORGANIZATION_ROLE placeholders.
                 The receiving org should review and adjust those entries after
                 cloning.
             </li>
             <li>
                 If you plan to publish this definition as a platform template,
                 resolve all portability warnings first by replacing PRINCIPAL
-                entries with ROLE or GROUP_ROLE entries.
+                entries with ORGANIZATION_ROLE, APP_ROLE, or GROUP_ROLE entries.
             </li>
         </ul>
 
@@ -117,12 +118,12 @@ export const assigneesAndPortabilityArticle = (
         <h3>Best practices</h3>
         <ol>
             <li>
-                Prefer ROLE or GROUP_ROLE assignees over PRINCIPAL to keep
+                Prefer ORGANIZATION_ROLE, APP_ROLE, or GROUP_ROLE assignees over PRINCIPAL to keep
                 definitions reusable.
             </li>
             <li>
                 Use <code>$subject.orgId</code> instead of your own org UUID in
-                ROLE scope ID refs.
+                ORGANIZATION_ROLE organization ID refs.
             </li>
             <li>
                 Use <code>$subject.recipientGroupId</code> for GROUP_ROLE entries

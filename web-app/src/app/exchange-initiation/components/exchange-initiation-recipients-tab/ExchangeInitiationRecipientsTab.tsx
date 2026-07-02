@@ -13,7 +13,7 @@ import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
 import {
     ASSIGNABLE_ROLES,
     CONSTRAINED_ROLES,
-    ExchangeShareRole,
+    ExchangeShareRoleName,
     ExchangeShareRoleDisplayNames,
 } from '../../../../services/types/roles.ts';
 import {ShareConstraints} from '../../../../services/types/dtos.ts';
@@ -43,8 +43,8 @@ interface ExchangeRecipientsTabProps
     newRecipient: ExchangeNewMainRecipient | undefined;
     setNewRecipient: (recipient: ExchangeNewMainRecipient | undefined) => void;
     isRequestingDocuments: boolean | null | undefined;
-    recipientRole: ExchangeShareRole | undefined;
-    setRecipientRole: (role: ExchangeShareRole | undefined) => void;
+    recipientRole: ExchangeShareRoleName | undefined;
+    setRecipientRole: (role: ExchangeShareRoleName | undefined) => void;
     recipientConstraints: ShareConstraints;
     setRecipientConstraints: (c: ShareConstraints) => void;
 }
@@ -247,7 +247,7 @@ const ExchangeInitiationRecipientsTab: React.FC<ExchangeRecipientsTabProps> = (p
                                 props.setRecipientRole(undefined);
                                 return;
                             }
-                            props.setRecipientRole(v as ExchangeShareRole);
+                            props.setRecipientRole(v as ExchangeShareRoleName);
                         }}
                     >
                         <Option value="AUTO" text="Auto">Auto (derive from document permissions)</Option>

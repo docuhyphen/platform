@@ -1,6 +1,6 @@
 ﻿import React, {useState} from "react";
 import {useNoAuthExchangeDocumentListStyles} from "./NoAuthExchangeDocumentListStyles";
-import {DocumentBasicDto, NoAuthExchangeBasicDto} from "../../../models/models";
+import {DocumentBasicDto, DocumentDetailedDto, NoAuthExchangeBasicDto} from "../../../models/models";
 import {Button, Card, CardHeader, Field, Input, MessageBar, MessageBarBody, ProgressBar, Spinner, Text} from "@fluentui/react-components";
 import {mergeClasses} from "@fluentui/react-components";
 import {DocumentAddIcon, DownloadIcon, UploadIcon} from "../../../components/IconBundles";
@@ -14,9 +14,10 @@ import {
 interface NoAuthExchangeDocumentListProps
 {
     exchange: NoAuthExchangeBasicDto;
+    onDocumentUploaded: (document: DocumentDetailedDto) => void;
 }
 
-const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({exchange}) =>
+const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({exchange, onDocumentUploaded}) =>
 {
     const styles = useNoAuthExchangeDocumentListStyles();
     const [uploading, setUploading] = useState<Record<string, boolean>>({});
@@ -29,8 +30,7 @@ const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({
     const [verifyingAccessCode, setVerifyingAccessCode] = useState<boolean>(false);
     const [accessVerificationRequired, setAccessVerificationRequired] = useState<boolean>(false);
     const [accessVerificationNotice, setAccessVerificationNotice] = useState<string>('');
-    const exchangeDocuments: DocumentBasicDto[] =
-        ((exchange as unknown as { documents?: DocumentBasicDto[] }).documents || []);
+    const exchangeDocuments: DocumentBasicDto[] = exchange.documents || [];
     const accessWindowDays = Math.max(1, exchange.noAuthAccessValidityDays ?? 7);
 
     const getErrorMessage = (error: unknown, fallback: string): string =>
@@ -144,11 +144,13 @@ const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({
 
         try
         {
-            await uploadNoAuthExchangeDocument(exchange.id, docId, formData, (event: ProgressEvent) =>
+            const uploadedDocument = await uploadNoAuthExchangeDocument(exchange.id, docId, formData, (event: ProgressEvent) =>
             {
                 const percentCompleted = Math.round((event.loaded * 100) / event.total);
                 setProgress((prev) => ({...prev, [docId]: percentCompleted}));
             });
+            onDocumentUploaded(uploadedDocument);
+            setSelectedFiles((prev) => ({...prev, [docId]: null}));
         }
         catch (error)
         {
@@ -220,7 +222,11 @@ const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({
         const selectedFile = selectedFiles[doc.id];
         const fileName = selectedFile ? selectedFile.name : "";
         return (
-            <Card key={doc.id} className={styles.documentCard}>
+            <Card
+                id={`no-auth-exchange-document-card-${doc.id}`}
+                key={doc.id}
+                className={styles.documentCard}
+            >
                 {!!uploadErrors[doc.id] && (
                     <MessageBar intent="error" className={styles.documentError}>
                         <MessageBarBody className={styles.documentErrorBody}>{uploadErrors[doc.id]}</MessageBarBody>
@@ -230,9 +236,17 @@ const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({
                     className={styles.documentCardHeader}
                     header={
                         <div className={styles.documentName}>
-                            <Text size={500} className={styles.documentTitle}>{doc.title}</Text>
+                            <Text
+                                size={500}
+                                weight={"semibold"}
+                                className={styles.documentTitle}
+                            >
+                                {doc.title}
+                            </Text>
                             {doc.uploadDate && (
-                                <Text className={styles.uploadedDate}>Uploaded {formatDateTimeWithOrdinal(doc.uploadDate)}</Text>
+                                <Text className={styles.uploadedDate}>
+                                    File received {formatDateTimeWithOrdinal(doc.uploadDate)}
+                                </Text>
                             )}
                         </div>
                     }
@@ -242,7 +256,7 @@ const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({
                         <div className={styles.uploadActions}>
                             <Button
                                 id={`no-auth-exchange-doc-choose-file-btn-${doc.id}`}
-                                appearance="subtle"
+                                appearance="secondary"
                                 icon={<DocumentAddIcon/>}
                                 shape="circular"
                                 disabled={uploading[doc.id] || isUploadBlockedBySignInRequirement}
@@ -258,20 +272,20 @@ const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({
                             </Button>
                             <Button
                                 id={`no-auth-exchange-doc-upload-btn-${doc.id}`}
-                                appearance="subtle"
+                                appearance="primary"
                                 icon={<UploadIcon/>}
                                 shape="circular"
                                 onClick={() => handleDocumentUpload(doc.id)}
                                 disabled={uploading[doc.id] || isUploadBlockedBySignInRequirement || accessVerificationRequired}
                                 className={styles.actionButton}
                             >
-                                {uploading[doc.id] ? <Spinner size="tiny"/> : "Upload new document"}
+                                {uploading[doc.id] ? <Spinner size="tiny"/> : "Upload file"}
                             </Button>
                         </div>
                         {doc.uploadDate && (
                             <Button
                                 id={`no-auth-exchange-doc-download-btn-${doc.id}`}
-                                appearance="subtle"
+                                appearance="secondary"
                                 disabled={downloadingDocument}
                                 shape="circular"
                                 icon={<DownloadIcon/>}
@@ -298,7 +312,8 @@ const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({
     return (
         <section className={styles.container}>
             <Text size={200} className={styles.accessWindowHint}>
-                Your verified access works across browsers and devices for {accessWindowDays} day{accessWindowDays === 1 ? '' : 's'}. After that, ask the requester to resend an access code.
+                Your verified access works across browsers and devices for {accessWindowDays} day{accessWindowDays === 1 ? '' : 's'}.
+                After that, ask the requester to resend a new access code.
             </Text>
             {accessVerificationRequired && (
                 <section className={styles.verificationPanel}>

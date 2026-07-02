@@ -13,7 +13,7 @@ import {useAuth} from "../../../context/AuthContext";
 import {fetchAppUserPersonOrganization} from "../../../services/appUserApi";
 import {updateOrganizationSettings} from "../../../services/organizationApi";
 import {ContactDetailsDetailedDto, OrganizationDetailedDto, OrganizationSettingsDto} from "../../models/models.tsx";
-import {AppUserRole} from "../../models/models.tsx";
+import {Capability} from '../../models/models.tsx';
 import {
     ProfileEditBasicDetailsIcon
 } from "../../components/IconBundles.tsx";
@@ -28,7 +28,7 @@ const OrganizationDetailsTab = () =>
 {
 
     const styles = useOrganizationTabStyles()
-    const {appUser, token, appUserPersonOrganization} = useAuth();
+    const {appUser, token, appUserPersonOrganization, hasCapability} = useAuth();
     const [organization, setOrganization] = useState<OrganizationDetailedDto | null>(null);
     const [fetchingOrganization, setFetchingOrganization] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -40,9 +40,8 @@ const OrganizationDetailsTab = () =>
     const [phoneManagementMode, setPhoneManagementMode] = useState(PhoneManagementMode.ADD);
     const [emailManagementMode, setEmailManagementMode] = useState(EmailManagementMode.ADD);
     const [isOnboardingDialogOpen, setOnboardingDialogOpen] = useState(false);
-    const roleValue = `${appUser?.role ?? ''}`;
     const canManageOrganization = appUserPersonOrganization?.isActive &&
-        (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN');
+        (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
 
     const getOrganization = async () =>
     {

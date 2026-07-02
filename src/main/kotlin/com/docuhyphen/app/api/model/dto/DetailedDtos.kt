@@ -96,7 +96,6 @@ data class ExchangeDetailedDto(
     var allowDocumentUpdate: Boolean = false,
     var allowDocumentUpload: Boolean = false,
     var watermark: Boolean = false,
-    var maxViews: Int? = null,
     var requireMfa: Boolean = false,
     var allowedDownloadFormats: List<String>? = null,
 )
@@ -133,8 +132,8 @@ data class AppUserDetailedDto(
     val createdDate: Timestamp?,
     val isActive: Boolean,
     val email: String,
-    /** Effective org role label, resolved from organization_membership; null if not an org member. */
-    val role: String? = null,
+    val appRoles: List<String> = emptyList(),
+    val organizationRoles: List<String> = emptyList(),
     val person: PersonDetailedDto?,
     val settings: AppUserSettingsDto,
     val avatarUrl: String? = null,

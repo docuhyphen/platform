@@ -10,12 +10,12 @@ import {
     Textarea,
 } from '@fluentui/react-components';
 import {
-    AppUserRole,
     BlueprintDocumentConfig,
     BlueprintParticipantConfig,
     BlueprintScope,
     CreateBlueprintRequest,
 } from '../../../models/models.tsx';
+import {Capability} from '../../../models/models.tsx';
 import {createBlueprint, patchBlueprintPublished} from '../../../../services/blueprintService.ts';
 import {useAuth} from '../../../../context/AuthContext.tsx';
 import {useDocumentsTabStyles} from '../../../settings/document-library-tab/DocumentLibraryTabStyles.tsx';
@@ -44,13 +44,12 @@ const SaveBlueprintPanel: React.FC<SaveBlueprintPanelProps> = (
         participants,
     }) =>
 {
-    const {appUser, appUserPersonOrganization} = useAuth();
+    const {appUserPersonOrganization, hasCapability} = useAuth();
     const docStyles = useDocumentsTabStyles();
     const styles = useExchangeInitiationStyles();
-    const roleValue = `${appUser?.role ?? ''}`;
     const isAdmin =
         appUserPersonOrganization?.isActive &&
-        (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN');
+        (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
 
     const [name, setName] = useState(initialName || '');
     const [summary, setSummary] = useState('');

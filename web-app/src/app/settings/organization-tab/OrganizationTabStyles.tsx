@@ -5,8 +5,24 @@ export const useOrganizationTabStyles = makeStyles({
     orgOnboardingContainer: {
         display: "flex",
         flexDirection: "column",
-        width: "400px",
-        gap: "16px"
+        width: "100%",
+        maxWidth: "40rem",
+        minHeight: `calc(100vh - ${SETTINGS_HEADER_HEIGHT} - 8rem)`,
+        gap: "16px",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        margin: "0 auto",
+        padding: "16px",
+        boxSizing: "border-box",
+    },
+
+    organizationEmptyStateIllustration: {
+        width: "100%",
+        maxWidth: "520px",
+        height: "auto",
+        color: tokens.colorBrandForeground1,
+        marginBottom: "0",
     },
 
     container: {

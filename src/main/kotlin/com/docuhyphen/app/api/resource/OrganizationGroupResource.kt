@@ -4,7 +4,6 @@ import com.docuhyphen.app.api.exception.OrganizationGroupNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationLinkNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
-import com.docuhyphen.app.api.model.entity.GroupRole
 import com.docuhyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
 import com.docuhyphen.app.api.repository.PrincipalGroupRepository
 import com.docuhyphen.app.api.resource.model.AddOrganizationGroupRequest
@@ -41,9 +40,6 @@ class OrganizationGroupResource @Inject constructor(
     {
         private val logger = LoggerFactory.getLogger(OrganizationGroupResource::class.java)
 
-        private fun parseGroupRole(value: String): GroupRole =
-            runCatching { GroupRole.valueOf(value.trim().uppercase()) }
-                .getOrElse { throw IllegalArgumentException("Invalid group role: $value") }
     }
 
     @Path("/{organizationId}/groups")
@@ -61,7 +57,7 @@ class OrganizationGroupResource @Inject constructor(
             val members = addOrganizationGroupRequest.members?.map { member ->
                 OrganizationGroupMemberModel(
                     appUserId = member.appUserId ?: throw IllegalArgumentException("Member ID cannot be null"),
-                    groupRole = parseGroupRole(member.groupRole),
+                    groupRole = member.groupRole,
                 )
             } ?: emptyList()
 
@@ -133,7 +129,7 @@ class OrganizationGroupResource @Inject constructor(
             val groupMembers = updateOrganizationGroupRequest.members?.map { member ->
                 OrganizationGroupMemberModel(
                     appUserId = member.appUserId ?: throw IllegalArgumentException("Member ID cannot be null"),
-                    groupRole = parseGroupRole(member.groupRole),
+                    groupRole = member.groupRole,
                 )
             } ?: emptyList()
 

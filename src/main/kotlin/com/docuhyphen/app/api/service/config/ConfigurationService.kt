@@ -86,7 +86,7 @@ class ConfigurationService @Inject constructor(
 
     /**
      * Email of the user to auto-promote to APP_ADMIN at startup when no active App Admin exists
-     * (dev/first-run bootstrap). Blank/absent disables bootstrapping. See [RoleAssignmentService].
+     * (dev/first-run bootstrap). Blank/absent disables bootstrapping. See [AppRoleAssignmentService].
      */
     fun getBootstrapAppAdminEmail(): String? =
         bootstrapAppAdminEmailConfig.orElse(null)?.trim()?.takeIf { it.isNotBlank() }
@@ -124,6 +124,9 @@ class ConfigurationService @Inject constructor(
         .map { it.trim().uppercase() }
         .filter { it.isNotBlank() }
         .toSet()
+
+    /** JWT issuer and audience value for tokens produced by this deployment. */
+    fun getJwtIssuer(): String = baseUrl
 
     // -------------------------------------------------------------------------
     // JWT secret resolution

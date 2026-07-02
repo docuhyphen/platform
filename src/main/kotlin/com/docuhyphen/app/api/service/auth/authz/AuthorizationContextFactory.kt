@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.auth.authz
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.repository.OrganizationMembershipRepository
+import com.docuhyphen.app.api.service.auth.StepUpAuthService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 
@@ -9,36 +9,50 @@ import jakarta.inject.Inject
  * Builds the [PrincipalRef] and [AuthorizationContext] for the current request from the
  * authenticated [AuthTokenContext].
  *
- * Until the JWT carries an explicit `active_membership_id` claim (the multi-org context work),
- * the active org/membership is derived from the user's primary [com.docuhyphen.app.api.model.entity.OrganizationMembership]
- * (falling back to their first active membership). `mfaSatisfied` and `clientIp` are not yet
- * threaded through the request pipeline and default to conservative values; they become
- * meaningful once the auth filter populates them.
+ * Active org and membership come exclusively from [AuthTokenContext.activeOrganizationId] and
+ * [AuthTokenContext.activeMembershipId], which are populated by [EndpointVerificationFilter]
+ * only when the caller provides a valid X-Active-Organization-Id header backed by an active
+ * membership. No primary-organization fallback is performed; a request with no header produces
+ * a context with null active org (personal-product mode).
  */
 @ApplicationScoped
 class AuthorizationContextFactory @Inject constructor(
     private val authTokenContext: AuthTokenContext,
-    private val organizationMembershipRepository: OrganizationMembershipRepository,
+    private val stepUpAuthService: StepUpAuthService,
 )
 {
     /** The current caller as a USER principal, or null if unauthenticated. */
-    fun currentPrincipal(): PrincipalRef? =
-        authTokenContext.authToken.appUser?.id?.let { PrincipalRef.user(it) }
+    fun currentPrincipal(): PrincipalRef?
+    {
+        val token = authTokenContext.authToken
+        return token.appUser?.id?.let(PrincipalRef::user)
+            ?: token.applicationId?.let(PrincipalRef::application)
+    }
 
     /** Best-effort authorization context for the current request. */
     fun currentContext(): AuthorizationContext
     {
-        val user = authTokenContext.authToken.appUser ?: return AuthorizationContext.ANONYMOUS
+        val token = authTokenContext.authToken
 
-        val membership = organizationMembershipRepository.findPrimaryForUser(user.id)
-            ?: organizationMembershipRepository.findActiveByUser(user.id).firstOrNull()
+        val application = token.application
+        if (application != null)
+        {
+            return AuthorizationContext(
+                applicationId = application.id,
+                clientIp = authTokenContext.clientIp,
+                shareLinkTokenHash = authTokenContext.shareLinkTokenHash,
+            )
+        }
+
+        val user = token.appUser ?: return AuthorizationContext.ANONYMOUS
 
         return AuthorizationContext(
             actingUser = user,
-            activeMembershipId = membership?.id,
-            activeOrgId = membership?.organizationId,
-            mfaSatisfied = false,
-            clientIp = null,
+            activeMembershipId = authTokenContext.activeMembershipId,
+            activeOrgId = authTokenContext.activeOrganizationId,
+            mfaSatisfied = runCatching { stepUpAuthService.isFresh() }.getOrDefault(false),
+            clientIp = authTokenContext.clientIp,
+            shareLinkTokenHash = authTokenContext.shareLinkTokenHash,
         )
     }
 }

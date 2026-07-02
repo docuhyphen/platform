@@ -24,7 +24,7 @@ import {ShareConstraints} from '../../../../services/types/dtos';
 import {
     AssignableRoleDisplayNames,
     CONSTRAINED_ROLES,
-    ExchangeShareRole,
+    ExchangeShareRoleName,
     ExchangeShareRoleDisplayNames,
 } from '../../../../services/types/roles';
 import {BackIcon} from '../../../components/IconBundles.tsx';
@@ -55,8 +55,8 @@ const CONSTRAINT_OPTIONS: Array<{value: ConstraintTag; label: string}> = [
     {value: 'REQUIRE_MFA', label: 'Require MFA'},
 ];
 
-function isConstrainedRole(roleName: string): boolean {
-    return CONSTRAINED_ROLES.has(roleName as ExchangeShareRole);
+function isConstrainedRole(roleName: ExchangeShareRoleName): boolean {
+    return CONSTRAINED_ROLES.has(roleName);
 }
 
 function constraintsFromTags(tags: ConstraintTag[]): ShareConstraints {
@@ -83,7 +83,7 @@ const AddPersonPanel: React.FC<Props> = ({exchangeId, onBack, onPersonAdded}) =>
     const styles = useAddPersonPanelStyles();
 
     const [email, setEmail] = useState('');
-    const [role, setRole] = useState<string>(ExchangeShareRole.VIEWER);
+    const [role, setRole] = useState<ExchangeShareRoleName>(ExchangeShareRoleName.VIEWER);
     const [constraintTags, setConstraintTags] = useState<ConstraintTag[]>([]);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -199,10 +199,12 @@ const AddPersonPanel: React.FC<Props> = ({exchangeId, onBack, onPersonAdded}) =>
                     <Field label="Access role">
                         <Combobox
                             id={"combobox-add-person-role"}
-                            value={AssignableRoleDisplayNames[role] || ExchangeShareRoleDisplayNames[role as ExchangeShareRole] || role}
+                            value={AssignableRoleDisplayNames[role] || ExchangeShareRoleDisplayNames[role as ExchangeShareRoleName] || role}
                             selectedOptions={[role]}
                             disabled={busy}
-                            onOptionSelect={(_e, d) => setRole(d.optionValue || ExchangeShareRole.VIEWER)}
+                            onOptionSelect={(_e, d) => setRole(
+                                (d.optionValue as ExchangeShareRoleName | undefined) ?? ExchangeShareRoleName.VIEWER,
+                            )}
                         >
                             {Object.entries(AssignableRoleDisplayNames).map(([k, v]) => (
                                 <Option key={k} value={k}>{v}</Option>

@@ -16,30 +16,39 @@ export const adminOperationsSection: HelpDocSectionInput = {
 
                     <h3>Role overview</h3>
                     <ul>
-                        <li><b>Organization Admin:</b> Full org-level configuration and access governance.</li>
-                        <li><b>Manager:</b> Exchange-level operational control within assigned scope.</li>
-                        <li><b>Member:</b> Participant access to assigned Exchanges and documents.</li>
+                        <li><b>App roles:</b> Platform-wide administration, audit, support, or standard user access.</li>
+                        <li><b>Organization roles:</b> Organization Owner, Admin, Billing Admin, User Manager, Auditor, Member, and Guest.</li>
+                        <li><b>Group roles:</b> Owner, Manager, Member, and Observer within one Principal Group.</li>
+                        <li><b>Exchange roles:</b> Owner, Editor, Reviewer, Signer, Viewer, Commenter, and Participant on one Exchange.</li>
                     </ul>
 
-                    <h3>Permission matrix (high level)</h3>
+                    <h3>Additive organization roles</h3>
+                    <p>
+                        A person can hold several organization roles at the same time. Adding or
+                        removing one role does not replace their other organization roles.
+                    </p>
                     <ul>
-                        <li><b>Manage organization settings:</b> Admin only.</li>
-                        <li><b>Manage users and roles:</b> Admin only.</li>
-                        <li><b>Create and manage Exchanges:</b> Admin and Manager.</li>
-                        <li><b>Upload/edit Exchange documents:</b> Admin and Manager (or delegated Member where allowed).</li>
-                        <li><b>Close/end Exchanges:</b> Admin and Manager.</li>
-                        <li><b>View broad audit records:</b> Admin (Manager may see scoped Exchange history).</li>
-                        <li><b>Create and manage org variables:</b> Admin only.</li>
-                        <li><b>View org variables (resolved in exchanges):</b> All members.</li>
-                        <li><b>Create and manage personal variables:</b> Any authenticated user (own variables only).</li>
-                        <li><b>Create and manage sequences:</b> Admin only.</li>
-                        <li><b>Use variable tokens in blueprints and exchanges:</b> Any authenticated user.</li>
+                        <li><b>Owner:</b> Organization policy, users, billing, audit, and group administration.</li>
+                        <li><b>Admin:</b> Organization policy, users, audit, and group administration.</li>
+                        <li><b>Billing Admin:</b> Billing management and organization audit access.</li>
+                        <li><b>User Manager:</b> Organization member management and group visibility.</li>
+                        <li><b>Auditor:</b> Read-only audit, Exchange, document, and group visibility.</li>
+                        <li><b>Member:</b> Standard organization membership and group visibility.</li>
+                        <li><b>Guest:</b> No organization-wide capabilities by default.</li>
+                    </ul>
+
+                    <h3>Scope isolation</h3>
+                    <ul>
+                        <li>An organization role does not grant access to an Exchange by itself.</li>
+                        <li>A group Manager role applies only to that group, not to the organization or an Exchange.</li>
+                        <li>An Exchange role applies only to the relevant Exchange and its documents.</li>
+                        <li>The Owner label in a group is separate from the Owner label on an Exchange.</li>
                     </ul>
 
                     <h3>Assignment best practices</h3>
                     <ol>
                         <li>Assign the minimum role required for each person.</li>
-                        <li>Use time-bound elevated access for temporary admin work.</li>
+                        <li>Combine specialized organization roles only when duties require it.</li>
                         <li>Review role assignments on a recurring cadence.</li>
                         <li>Revoke unused or stale access promptly during offboarding.</li>
                     </ol>
@@ -54,9 +63,10 @@ export const adminOperationsSection: HelpDocSectionInput = {
 
                     <h3>Common pitfalls</h3>
                     <ul>
-                        <li>Granting admin rights for routine Exchange tasks.</li>
+                        <li>Granting organization admin rights for routine Exchange tasks.</li>
                         <li>Forgetting to remove inherited access after team changes.</li>
                         <li>Assuming Exchange access implies org-level permissions.</li>
+                        <li>Assuming roles with the same label share permissions across scopes.</li>
                     </ul>
                 </>
             ),

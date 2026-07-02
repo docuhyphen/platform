@@ -7,9 +7,7 @@ import com.docuhyphen.app.api.model.dto.PatchDocumentLibraryPublishedRequest
 import com.docuhyphen.app.api.model.dto.PatchDocumentLibraryStatusRequest
 import com.docuhyphen.app.api.model.dto.UpdateDocumentLibraryEntryRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.documentlibrary.DocumentLibraryService
-import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes
@@ -55,8 +53,6 @@ import java.util.UUID
 class DocumentLibraryResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val documentLibraryService: DocumentLibraryService,
-    private val userRoleService: UserRoleService,
-    private val organizationMembershipService: OrganizationMembershipService,
 )
 {
     companion object
@@ -70,16 +66,12 @@ class DocumentLibraryResource @Inject constructor(
         @QueryParam("tag") tag: String?,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId != null && userRoleService.isOrgAdminIn(actor.id, callerOrgId)
 
         return try
         {
-            val items = documentLibraryService.listEntries(actor.id, callerOrgId, isOrgAdmin, isAppAdmin, scope, tag)
+            val items = documentLibraryService.listEntries(scope, tag)
             Response.ok(items.toTypedArray()).build()
         }
         catch (e: Exception)
@@ -92,7 +84,7 @@ class DocumentLibraryResource @Inject constructor(
     @POST
     fun createEntry(request: CreateDocumentLibraryEntryRequest): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         if (request.title.isBlank())
@@ -100,13 +92,9 @@ class DocumentLibraryResource @Inject constructor(
             return Response.status(BAD_REQUEST).entity(ResponseError("title is required")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId != null && userRoleService.isOrgAdminIn(actor.id, callerOrgId)
-
         return try
         {
-            val dto = documentLibraryService.createEntry(request, actor.id, callerOrgId, isOrgAdmin, isAppAdmin)
+            val dto = documentLibraryService.createEntry(request)
             Response.status(CREATED).entity(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -128,19 +116,16 @@ class DocumentLibraryResource @Inject constructor(
     @Path("/{id}")
     fun getEntry(@PathParam("id") id: String): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val entryId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid document library entry id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            val dto = documentLibraryService.getEntry(entryId, actor.id, callerOrgId, isAppAdmin)
+            val dto = documentLibraryService.getEntry(entryId)
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -162,19 +147,16 @@ class DocumentLibraryResource @Inject constructor(
     @Path("/{id}")
     fun updateEntry(@PathParam("id") id: String, request: UpdateDocumentLibraryEntryRequest): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val entryId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid document library entry id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            val dto = documentLibraryService.updateEntry(entryId, request, actor.id, callerOrgId, isAppAdmin)
+            val dto = documentLibraryService.updateEntry(entryId, request)
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -196,19 +178,16 @@ class DocumentLibraryResource @Inject constructor(
     @Path("/{id}/status")
     fun patchStatus(@PathParam("id") id: String, request: PatchDocumentLibraryStatusRequest): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val entryId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid document library entry id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            val dto = documentLibraryService.patchStatus(entryId, request, actor.id, callerOrgId, isAppAdmin)
+            val dto = documentLibraryService.patchStatus(entryId, request)
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -230,25 +209,16 @@ class DocumentLibraryResource @Inject constructor(
     @Path("/{id}/published")
     fun patchPublished(@PathParam("id") id: String, request: PatchDocumentLibraryPublishedRequest): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val entryId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid document library entry id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId != null && userRoleService.isOrgAdminIn(actor.id, callerOrgId)
-
-        if (!isOrgAdmin && !isAppAdmin)
-        {
-            return Response.status(FORBIDDEN).entity(ResponseError("Org admin or app admin role required")).build()
-        }
-
         return try
         {
-            val dto = documentLibraryService.patchPublished(entryId, request, actor.id, callerOrgId, isAppAdmin)
+            val dto = documentLibraryService.patchPublished(entryId, request)
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -270,19 +240,16 @@ class DocumentLibraryResource @Inject constructor(
     @Path("/{id}")
     fun deleteEntry(@PathParam("id") id: String): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val entryId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid document library entry id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            documentLibraryService.deleteEntry(entryId, actor.id, callerOrgId, isAppAdmin)
+            documentLibraryService.deleteEntry(entryId)
             Response.noContent().build()
         }
         catch (e: IllegalArgumentException)
@@ -309,7 +276,7 @@ class DocumentLibraryResource @Inject constructor(
         @PathParam("id") id: String,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         if (file == null)
@@ -325,12 +292,9 @@ class DocumentLibraryResource @Inject constructor(
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid document library entry id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            val dto = documentLibraryService.uploadFile(entryId, file, extension, actor.id, callerOrgId, isAppAdmin)
+            val dto = documentLibraryService.uploadFile(entryId, file, extension)
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -353,19 +317,16 @@ class DocumentLibraryResource @Inject constructor(
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
     fun downloadFile(@PathParam("id") id: String): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val entryId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid document library entry id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            val file = documentLibraryService.downloadFile(entryId, actor.id, callerOrgId, isAppAdmin)
+            val file = documentLibraryService.downloadFile(entryId)
             Response.ok(file.inputStream())
                 .header("Content-Disposition", "attachment; filename=\"${file.name}\"")
                 .header("Content-Length", file.length())
@@ -390,20 +351,16 @@ class DocumentLibraryResource @Inject constructor(
     @Path("/{id}/clone")
     fun cloneEntry(@PathParam("id") id: String, request: CloneDocumentLibraryEntryRequest): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val entryId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid document library entry id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId != null && userRoleService.isOrgAdminIn(actor.id, callerOrgId)
-
         return try
         {
-            val dto = documentLibraryService.cloneEntry(entryId, request, actor.id, callerOrgId, isOrgAdmin, isAppAdmin)
+            val dto = documentLibraryService.cloneEntry(entryId, request)
             Response.status(CREATED).entity(dto).build()
         }
         catch (e: IllegalArgumentException)

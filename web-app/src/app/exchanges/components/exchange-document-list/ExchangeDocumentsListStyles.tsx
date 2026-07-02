@@ -100,6 +100,9 @@ export const useExchangeDocumentsListStyles = makeStyles({
         display: "block",
         width: "100%",
         minWidth: 0,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
         lineHeight: tokens.lineHeightBase300,
     },
     cardFooter: {

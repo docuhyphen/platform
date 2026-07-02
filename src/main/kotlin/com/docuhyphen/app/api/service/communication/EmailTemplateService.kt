@@ -250,6 +250,26 @@ class EmailTemplateService @Inject constructor(
         endedAt,
     )
 
+    fun renderExchangeCreatedNoAuthRecipientEmail(
+        exchangeId: String,
+        name: String,
+        initiatorName: String,
+        initiatorOrganization: String?,
+        sessionMessage: String?,
+        documents: List<String>,
+        otp: String,
+        expiryLabel: String,
+    ): RenderedEmailTemplate = exchangeTemplates.renderExchangeCreatedNoAuthRecipientEmail(
+        exchangeId,
+        name,
+        initiatorName,
+        initiatorOrganization,
+        sessionMessage,
+        documents,
+        otp,
+        expiryLabel,
+    )
+
     fun renderNoAuthExchangeOtpEmail(
         exchangeId: String,
         name: String,

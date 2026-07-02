@@ -98,10 +98,12 @@ CREATE TABLE application (
     id uuid NOT NULL,
     api_key VARCHAR(255) NOT NULL,
     api_secret VARCHAR(255) NOT NULL,
+    role_name VARCHAR(32) DEFAULT 'APPLICATION' NOT NULL,
     application_type VARCHAR(255) NOT NULL,
     description VARCHAR(255),
     name VARCHAR(255) NOT NULL,
-    CONSTRAINT application_application_type_check CHECK ((application_type IN ('WEB', 'MOBILE', 'SERVICE', 'INTEGRATION')))
+    CONSTRAINT application_application_type_check CHECK ((application_type IN ('WEB', 'MOBILE', 'SERVICE', 'INTEGRATION'))),
+    CONSTRAINT application_role_name_check CHECK (role_name = 'APPLICATION')
 );
 
 
@@ -470,7 +472,6 @@ CREATE TABLE organization_membership (
     id uuid NOT NULL,
     app_user_id uuid NOT NULL,
     organization_id uuid NOT NULL,
-    role_name VARCHAR(64) NOT NULL,
     status VARCHAR(32) NOT NULL,
     is_primary boolean DEFAULT false NOT NULL,
     joined_at TIMESTAMP(6) NOT NULL,
@@ -479,6 +480,27 @@ CREATE TABLE organization_membership (
     deprovisioned_at TIMESTAMP(6),
     created_date TIMESTAMP(6) NOT NULL,
     CONSTRAINT organization_membership_status_check CHECK ((status IN ('INVITED', 'ACTIVE', 'SUSPENDED', 'LEFT')))
+);
+
+
+--
+-- Name: organization_membership_role; Type: TABLE
+--
+
+CREATE TABLE organization_membership_role (
+    organization_membership_id uuid NOT NULL,
+    role_name VARCHAR(64) NOT NULL,
+    CONSTRAINT organization_membership_role_name_check CHECK (
+        role_name IN (
+            'ORG_OWNER',
+            'ORG_ADMIN',
+            'ORG_BILLING_ADMIN',
+            'ORG_USER_MANAGER',
+            'ORG_AUDITOR',
+            'ORG_MEMBER',
+            'ORG_GUEST'
+        )
+    )
 );
 
 
@@ -620,23 +642,20 @@ CREATE TABLE refresh_token (
 
 
 --
--- Name: role_assignment; Type: TABLE
+-- Name: app_role_assignment; Type: TABLE
 --
 
-CREATE TABLE role_assignment (
+CREATE TABLE app_role_assignment (
     id uuid NOT NULL,
-    app_user_id uuid,
-    service_account_id uuid,
+    app_user_id uuid NOT NULL,
     role_name VARCHAR(64) NOT NULL,
-    scope_type VARCHAR(32) NOT NULL,
-    scope_id uuid,
     granted_by_app_user_id uuid,
     granted_at TIMESTAMP(6) NOT NULL,
     expires_at TIMESTAMP(6),
     is_active boolean DEFAULT true NOT NULL,
-    CONSTRAINT ck_role_assignment_scope CHECK (((((scope_type) = 'APP') AND (scope_id IS NULL)) OR (((scope_type) <> 'APP') AND (scope_id IS NOT NULL)))),
-    CONSTRAINT ck_role_assignment_subject CHECK ((((app_user_id IS NOT NULL) AND (service_account_id IS NULL)) OR ((app_user_id IS NULL) AND (service_account_id IS NOT NULL)))),
-    CONSTRAINT role_assignment_scope_type_check CHECK ((scope_type IN ('APP', 'ORG', 'PRINCIPAL_GROUP', 'RESOURCE')))
+    CONSTRAINT app_role_assignment_role_name_check CHECK (
+        role_name IN ('APP_ADMIN', 'APP_AUDITOR', 'APP_SUPPORT', 'APP_USER')
+    )
 );
 
 
@@ -692,7 +711,8 @@ CREATE TABLE share (
     revoked_by_app_user_id uuid,
     constraints_json text,
     CONSTRAINT ck_share_expiry CHECK (((expires_at IS NULL) OR (expires_at > granted_at))),
-    CONSTRAINT share_principal_kind_check CHECK ((principal_kind IN ('USER', 'PARTICIPANT', 'PRINCIPAL_GROUP', 'ORGANIZATION', 'SERVICE_ACCOUNT', 'PUBLIC_LINK'))),
+    CONSTRAINT share_principal_kind_check CHECK ((principal_kind IN ('USER', 'PARTICIPANT', 'PRINCIPAL_GROUP', 'ORGANIZATION', 'APPLICATION', 'SERVICE_ACCOUNT', 'PUBLIC_LINK'))),
+    CONSTRAINT share_role_name_check CHECK ((role_name IN ('OWNER', 'EDITOR', 'REVIEWER', 'SIGNER', 'VIEWER', 'COMMENTER', 'PARTICIPANT'))),
     CONSTRAINT share_resource_type_check CHECK ((resource_type IN ('EXCHANGE', 'DOCUMENT', 'PRINCIPAL_GROUP'))),
     CONSTRAINT share_source_check CHECK ((source IN ('DIRECT', 'INVITE', 'LINK', 'INHERITED_FROM_GROUP', 'INHERITED_FROM_ORG'))),
     CONSTRAINT share_status_check CHECK ((status IN ('PENDING_APPROVAL', 'ACTIVE', 'REVOKED', 'EXPIRED')))
@@ -1113,6 +1133,10 @@ ALTER TABLE organization_membership
     ADD CONSTRAINT organization_membership_pkey PRIMARY KEY (id);
 
 
+ALTER TABLE organization_membership_role
+    ADD CONSTRAINT organization_membership_role_pkey PRIMARY KEY (organization_membership_id, role_name);
+
+
 --
 -- Name: organization_notification_channel organization_notification_channel_pkey; Type: CONSTRAINT
 --
@@ -1210,11 +1234,15 @@ ALTER TABLE refresh_token
 
 
 --
--- Name: role_assignment role_assignment_pkey; Type: CONSTRAINT
+-- Name: app_role_assignment app_role_assignment_pkey; Type: CONSTRAINT
 --
 
-ALTER TABLE role_assignment
-    ADD CONSTRAINT role_assignment_pkey PRIMARY KEY (id);
+ALTER TABLE app_role_assignment
+    ADD CONSTRAINT app_role_assignment_pkey PRIMARY KEY (id);
+
+
+ALTER TABLE app_role_assignment
+    ADD CONSTRAINT uq_app_role_assignment_user_role UNIQUE (app_user_id, role_name);
 
 
 --
@@ -1504,24 +1532,10 @@ CREATE INDEX ix_pgroup_user ON principal_group (owner_app_user_id);
 
 
 --
--- Name: ix_role_assignment_scope; Type: INDEX
+-- Name: ix_app_role_assignment_active; Type: INDEX
 --
 
-CREATE INDEX ix_role_assignment_scope ON role_assignment (scope_type, scope_id) WHERE (is_active = true);
-
-
---
--- Name: ix_role_assignment_svc_scope; Type: INDEX
---
-
-CREATE INDEX ix_role_assignment_svc_scope ON role_assignment (service_account_id, scope_type, scope_id) WHERE (is_active = true);
-
-
---
--- Name: ix_role_assignment_user_scope; Type: INDEX
---
-
-CREATE INDEX ix_role_assignment_user_scope ON role_assignment (app_user_id, scope_type, scope_id) WHERE (is_active = true);
+CREATE INDEX ix_app_role_assignment_active ON app_role_assignment (app_user_id, role_name) WHERE (is_active = true);
 
 
 --
@@ -1830,27 +1844,28 @@ ALTER TABLE principal_group
 
 
 --
--- Name: role_assignment fk_role_assignment_grantor; Type: FK CONSTRAINT
+-- Name: organization_membership_role fk_org_membership_role_membership; Type: FK CONSTRAINT
 --
 
-ALTER TABLE role_assignment
-    ADD CONSTRAINT fk_role_assignment_grantor FOREIGN KEY (granted_by_app_user_id) REFERENCES app_user(id);
-
-
---
--- Name: role_assignment fk_role_assignment_svc; Type: FK CONSTRAINT
---
-
-ALTER TABLE role_assignment
-    ADD CONSTRAINT fk_role_assignment_svc FOREIGN KEY (service_account_id) REFERENCES service_account(id);
+ALTER TABLE organization_membership_role
+    ADD CONSTRAINT fk_org_membership_role_membership FOREIGN KEY (organization_membership_id)
+        REFERENCES organization_membership(id) ON DELETE CASCADE;
 
 
 --
--- Name: role_assignment fk_role_assignment_user; Type: FK CONSTRAINT
+-- Name: app_role_assignment fk_app_role_assignment_grantor; Type: FK CONSTRAINT
 --
 
-ALTER TABLE role_assignment
-    ADD CONSTRAINT fk_role_assignment_user FOREIGN KEY (app_user_id) REFERENCES app_user(id);
+ALTER TABLE app_role_assignment
+    ADD CONSTRAINT fk_app_role_assignment_grantor FOREIGN KEY (granted_by_app_user_id) REFERENCES app_user(id);
+
+
+--
+-- Name: app_role_assignment fk_app_role_assignment_user; Type: FK CONSTRAINT
+--
+
+ALTER TABLE app_role_assignment
+    ADD CONSTRAINT fk_app_role_assignment_user FOREIGN KEY (app_user_id) REFERENCES app_user(id);
 
 
 --
@@ -2083,6 +2098,4 @@ ALTER TABLE contact_details
 
 ALTER TABLE identity_provider_link
     ADD CONSTRAINT fk_identity_provider_link_user FOREIGN KEY (app_user_id) REFERENCES app_user(id);
-
-
 

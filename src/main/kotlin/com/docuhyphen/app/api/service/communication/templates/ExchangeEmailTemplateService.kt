@@ -114,6 +114,36 @@ class ExchangeEmailTemplateService @Inject constructor(
         )
     }
 
+    fun renderExchangeCreatedNoAuthRecipientEmail(
+        exchangeId: String,
+        name: String,
+        initiatorName: String,
+        initiatorOrganization: String?,
+        sessionMessage: String?,
+        documents: List<String>,
+        otp: String,
+        expiryLabel: String,
+    ): RenderedEmailTemplate
+    {
+        val exchangeLink = "${configurationService.baseUrl}/nas?s=$exchangeId"
+        val model = mutableMapOf<String, Any>(
+            "appName" to configurationService.emailSubjectTitle,
+            "name" to name,
+            "initiatorName" to initiatorName,
+            "documents" to documents,
+            "verificationCode" to otp,
+            "expiryLabel" to expiryLabel,
+            "exchangeLink" to exchangeLink,
+        )
+        if (!initiatorOrganization.isNullOrBlank()) model["initiatorOrganization"] = initiatorOrganization
+        if (!sessionMessage.isNullOrBlank()) model["sessionMessage"] = sessionMessage
+
+        return RenderedEmailTemplate(
+            subject = "Document request from $initiatorName",
+            body = renderer.render("exchange-created-no-auth-recipient.ftl", model),
+        )
+    }
+
     fun renderNoAuthExchangeOtpEmail(
         exchangeId: String,
         name: String,
@@ -160,7 +190,7 @@ class ExchangeEmailTemplateService @Inject constructor(
             ExchangeStatus.ACCEPTED_STARTED -> when (audience)
             {
                 ExchangeStatusEmailAudience.INITIATOR -> "Accepted: Exchange is now active - $name"
-                ExchangeStatusEmailAudience.RECIPIENT -> "Confirmed: You accepted the sharing request - $name"
+                ExchangeStatusEmailAudience.RECIPIENT -> "Confirmed: You have accepted an exchange request - $name"
             }
 
             ExchangeStatus.REJECTED -> when (audience)

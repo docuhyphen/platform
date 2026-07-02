@@ -8,9 +8,7 @@ import com.docuhyphen.app.api.model.dto.PatchBlueprintStatusRequest
 import com.docuhyphen.app.api.model.dto.UpdateBlueprintRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
-import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.blueprint.BlueprintDefinitionService
-import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes
@@ -53,8 +51,6 @@ import java.util.UUID
 class BlueprintDefinitionResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val blueprintService: BlueprintDefinitionService,
-    private val userRoleService: UserRoleService,
-    private val organizationMembershipService: OrganizationMembershipService,
 )
 {
     companion object
@@ -69,16 +65,12 @@ class BlueprintDefinitionResource @Inject constructor(
         @QueryParam("isTemplate") isTemplate: Boolean?,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId != null && userRoleService.isOrgAdminIn(actor.id, callerOrgId)
 
         return try
         {
-            val items = blueprintService.listBlueprints(actor.id, callerOrgId, isOrgAdmin, isAppAdmin, scope, tag, isTemplate)
+            val items = blueprintService.listBlueprints(scope, tag, isTemplate)
             Response.ok(items.toTypedArray()).build()
         }
         catch (e: Exception)
@@ -94,7 +86,7 @@ class BlueprintDefinitionResource @Inject constructor(
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         if (request.name.isBlank())
@@ -102,20 +94,9 @@ class BlueprintDefinitionResource @Inject constructor(
             return Response.status(BAD_REQUEST).entity(ResponseError("name is required")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId != null && userRoleService.isOrgAdminIn(actor.id, callerOrgId)
-
         return try
         {
-            val dto = blueprintService.createBlueprint(
-                request,
-                actor.id,
-                callerOrgId,
-                isOrgAdmin,
-                isAppAdmin,
-                AdminApprovalContext(requestId = requestId),
-            )
+            val dto = blueprintService.createBlueprint(request, AdminApprovalContext(requestId = requestId))
             Response.status(CREATED).entity(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -138,19 +119,16 @@ class BlueprintDefinitionResource @Inject constructor(
     @Path("/{id}")
     fun getBlueprint(@PathParam("id") id: String): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val bpId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid blueprint id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            val dto = blueprintService.getBlueprint(bpId, actor.id, callerOrgId, isAppAdmin)
+            val dto = blueprintService.getBlueprint(bpId)
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -176,26 +154,16 @@ class BlueprintDefinitionResource @Inject constructor(
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val bpId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid blueprint id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            val dto = blueprintService.updateBlueprint(
-                bpId,
-                request,
-                actor.id,
-                callerOrgId,
-                isAppAdmin,
-                AdminApprovalContext(requestId = requestId),
-            )
+            val dto = blueprintService.updateBlueprint(bpId, request, AdminApprovalContext(requestId = requestId))
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -222,26 +190,16 @@ class BlueprintDefinitionResource @Inject constructor(
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val bpId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid blueprint id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            val dto = blueprintService.patchStatus(
-                bpId,
-                request,
-                actor.id,
-                callerOrgId,
-                isAppAdmin,
-                AdminApprovalContext(requestId = requestId),
-            )
+            val dto = blueprintService.patchStatus(bpId, request, AdminApprovalContext(requestId = requestId))
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -268,32 +226,16 @@ class BlueprintDefinitionResource @Inject constructor(
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val bpId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid blueprint id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId != null && userRoleService.isOrgAdminIn(actor.id, callerOrgId)
-
-        if (!isOrgAdmin && !isAppAdmin)
-        {
-            return Response.status(FORBIDDEN).entity(ResponseError("Org admin or app admin role required")).build()
-        }
-
         return try
         {
-            val dto = blueprintService.patchPublished(
-                bpId,
-                request,
-                actor.id,
-                callerOrgId,
-                isAppAdmin,
-                AdminApprovalContext(requestId = requestId),
-            )
+            val dto = blueprintService.patchPublished(bpId, request, AdminApprovalContext(requestId = requestId))
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -319,25 +261,16 @@ class BlueprintDefinitionResource @Inject constructor(
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val bpId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid blueprint id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            blueprintService.deleteBlueprint(
-                bpId,
-                actor.id,
-                callerOrgId,
-                isAppAdmin,
-                AdminApprovalContext(requestId = requestId),
-            )
+            blueprintService.deleteBlueprint(bpId, AdminApprovalContext(requestId = requestId))
             Response.noContent().build()
         }
         catch (e: IllegalArgumentException)
@@ -364,28 +297,16 @@ class BlueprintDefinitionResource @Inject constructor(
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val bpId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid blueprint id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId != null && userRoleService.isOrgAdminIn(actor.id, callerOrgId)
-
         return try
         {
-            val dto = blueprintService.cloneBlueprint(
-                bpId,
-                request,
-                actor.id,
-                callerOrgId,
-                isOrgAdmin,
-                isAppAdmin,
-                AdminApprovalContext(requestId = requestId),
-            )
+            val dto = blueprintService.cloneBlueprint(bpId, request, AdminApprovalContext(requestId = requestId))
             Response.status(CREATED).entity(dto).build()
         }
         catch (e: IllegalArgumentException)

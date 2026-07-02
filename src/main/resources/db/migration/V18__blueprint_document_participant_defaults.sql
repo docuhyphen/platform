@@ -30,6 +30,9 @@ CREATE TABLE blueprint_participant_default (
     principal_id            VARCHAR(64)  NOT NULL,
     role_name               VARCHAR(64)  NOT NULL,
     display_order           INTEGER      NOT NULL DEFAULT 0,
+    CONSTRAINT blueprint_participant_default_role_check CHECK (
+        role_name IN ('OWNER', 'EDITOR', 'REVIEWER', 'SIGNER', 'VIEWER', 'COMMENTER', 'PARTICIPANT')
+    ),
     CONSTRAINT blueprint_participant_default_pkey PRIMARY KEY (id)
 );
 

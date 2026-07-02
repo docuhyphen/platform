@@ -19,24 +19,48 @@ import {
     matchesPersonQuery,
     PersonPickerItem,
 } from "../../../components/person-picker/personPickerTypes.ts";
+import {
+    AppRoleDisplayNames,
+    AppRoleName,
+    OrganizationRoleDisplayNames,
+    OrganizationRoleName,
+    PrincipalGroupRoleDisplayNames,
+    PrincipalGroupRoleName,
+} from "../../../../services/types/roles.ts";
 
-const ORG_ROLES = [
-    {value: "ORG_ADMIN", label: "Organization Admin"},
-    {value: "ORG_MEMBER", label: "Organization Member"},
-    {value: "ORG_GROUP_ADMIN", label: "Group Admin"},
-];
+const APP_ROLES = Object.values(AppRoleName).map(value => ({
+    value,
+    label: AppRoleDisplayNames[value],
+}));
 
-const APP_ROLES = [
-    {value: "APP_ADMIN", label: "App Admin"},
-    {value: "APP_USER", label: "App User"},
-];
+const ORGANIZATION_ROLES = Object.values(OrganizationRoleName).map(value => ({
+    value,
+    label: OrganizationRoleDisplayNames[value],
+}));
 
-const GROUP_ROLES = [
-    {value: "OWNER", label: "Owner"},
-    {value: "MANAGER", label: "Manager"},
-    {value: "MEMBER", label: "Member"},
-    {value: "OBSERVER", label: "Observer"},
-];
+const GROUP_ROLES = Object.values(PrincipalGroupRoleName).map(value => ({
+    value,
+    label: PrincipalGroupRoleDisplayNames[value],
+}));
+
+const createAssignee = (kind: AssigneeKind): AssigneeSpecDraft =>
+{
+    switch (kind)
+    {
+        case "APP_ROLE":
+            return {kind, roleName: AppRoleName.APP_USER};
+        case "ORGANIZATION_ROLE":
+            return {
+                kind,
+                roleName: OrganizationRoleName.ORG_ADMIN,
+                organizationIdRef: "$subject.orgId",
+            };
+        case "GROUP_ROLE":
+            return {kind, groupRole: PrincipalGroupRoleName.MANAGER};
+        case "PRINCIPAL":
+            return {kind, principalKind: "USER"};
+    }
+};
 
 interface Props
 {
@@ -80,15 +104,17 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
     const update = (index: number, patch: Partial<AssigneeSpecDraft>) =>
         onChange(assignees.map((a, i) => (i === index ? {...a, ...patch} : a)));
 
+    const replace = (index: number, assignee: AssigneeSpecDraft) =>
+        onChange(assignees.map((current, currentIndex) => currentIndex === index ? assignee : current));
+
     const remove = (index: number) => onChange(assignees.filter((_, i) => i !== index));
 
     const add = () => onChange([
         ...assignees,
-        {kind: "ROLE", roleName: "ORG_ADMIN", scopeType: "ORG", scopeIdRef: "$subject.orgId"},
+        createAssignee("ORGANIZATION_ROLE"),
     ]);
 
-    // Subject-field placeholders for scope refs (all) and group refs (UUID fields)
-    const scopeRefOptions = [
+    const organizationRefOptions = [
         {value: "$subject.orgId", label: "Caller's organization"},
         ...subjectFields
             .filter(f => f.name !== 'orgId')
@@ -102,7 +128,6 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
             .map(f => ({value: `$subject.${f.name}`, label: `${f.description ?? f.name} (from trigger)`})),
     ];
 
-    const roleOptions = (scopeType?: string) => scopeType === 'APP' ? APP_ROLES : ORG_ROLES;
     const people = users.map(toPersonPickerItem).filter(person => person.id);
 
     return (
@@ -122,50 +147,69 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
                             id={`assignee-kind-select-${i}`}
                             className={styles.kindSelect}
                             value={a.kind}
-                            onChange={(_, d) => update(i, {kind: d.value as AssigneeKind})}
+                            onChange={(_, d) => replace(i, createAssignee(d.value as AssigneeKind))}
                             size="small"
                         >
-                            <option value="ROLE">By Role</option>
+                            <option value="ORGANIZATION_ROLE">Organization Role</option>
+                            <option value="APP_ROLE">App Role</option>
                             <option value="PRINCIPAL">Specific User</option>
                             <option value="GROUP_ROLE">Group Members</option>
                         </Select>
 
-                        {/* ROLE: scope type + role name select + scope ref */}
-                        {a.kind === "ROLE" && (<>
+                        {a.kind === "APP_ROLE" && (
                             <Select
-                                id={`assignee-scope-type-select-${i}`}
-                                value={a.scopeType ?? "ORG"}
-                                onChange={(_, d) => update(i, {scopeType: d.value as "APP" | "ORG", roleName: ""})}
-                                size="small"
-                            >
-                                <option value="ORG">Within organization</option>
-                                <option value="APP">Platform-wide</option>
-                            </Select>
-                            <Select
-                                id={`assignee-role-name-select-${i}`}
+                                id={`assignee-app-role-name-select-${i}`}
                                 className={styles.fieldInput}
                                 value={a.roleName ?? ""}
                                 onChange={(_, d) => update(i, {roleName: d.value})}
                                 size="small"
                             >
-                                <option value="">Select role...</option>
-                                {roleOptions(a.scopeType).map(r => (
-                                    <option key={r.value} value={r.value}>{r.label}</option>
+                                <option value="">Select app role...</option>
+                                {APP_ROLES.map(role => (
+                                    <option
+                                        key={role.value}
+                                        value={role.value}
+                                    >
+                                        {role.label}
+                                    </option>
                                 ))}
                             </Select>
-                            {a.scopeType !== "APP" && (
-                                <Select
-                                    id={`assignee-scope-id-ref-select-${i}`}
-                                    className={styles.fieldInput}
-                                    value={a.scopeIdRef ?? "$subject.orgId"}
-                                    onChange={(_, d) => update(i, {scopeIdRef: d.value})}
-                                    size="small"
-                                >
-                                    {scopeRefOptions.map(r => (
-                                        <option key={r.value} value={r.value}>{r.label}</option>
-                                    ))}
-                                </Select>
-                            )}
+                        )}
+
+                        {a.kind === "ORGANIZATION_ROLE" && (<>
+                            <Select
+                                id={`assignee-organization-role-name-select-${i}`}
+                                className={styles.fieldInput}
+                                value={a.roleName ?? ""}
+                                onChange={(_, d) => update(i, {roleName: d.value})}
+                                size="small"
+                            >
+                                <option value="">Select organization role...</option>
+                                {ORGANIZATION_ROLES.map(role => (
+                                    <option
+                                        key={role.value}
+                                        value={role.value}
+                                    >
+                                        {role.label}
+                                    </option>
+                                ))}
+                            </Select>
+                            <Select
+                                id={`assignee-organization-id-ref-select-${i}`}
+                                className={styles.fieldInput}
+                                value={a.organizationIdRef ?? "$subject.orgId"}
+                                onChange={(_, d) => update(i, {organizationIdRef: d.value})}
+                                size="small"
+                            >
+                                {organizationRefOptions.map(reference => (
+                                    <option
+                                        key={reference.value}
+                                        value={reference.value}
+                                    >
+                                        {reference.label}
+                                    </option>
+                                ))}
+                            </Select>
                         </>)}
 
                         {/* PRINCIPAL: user picker */}
@@ -226,7 +270,9 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
             ))}
 
             <div className={styles.addRow}>
-                <Button size="small"
+                <Button
+                        id={"add-assignee-button"}
+                        size="small"
                         shape={"circular"}
                         appearance="secondary"
                         icon={<AddIcon/>}

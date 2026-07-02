@@ -23,7 +23,6 @@ import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
@@ -54,7 +53,6 @@ class OrganizationGroupService @Inject constructor(
     private val configurationService: ConfigurationService,
     private val orgLinkRepository: OrganizationExchangeLinkRepository,
     private val principalGroupService: PrincipalGroupService,
-    private val userRoleService: UserRoleService,
     private val principalGroupRepository: PrincipalGroupRepository,
     private val principalGroupMemberRepository: PrincipalGroupMemberRepository,
     private val shareRepository: ShareRepository,
@@ -95,10 +93,10 @@ class OrganizationGroupService @Inject constructor(
     )
     {
         val orgId = UUID.fromString(organizationId)
-        // Creating a group is an org-level action against this specific org, there is no group
-        // resource yet to authorize on, so we require an admin role *in this org* (not merely the
-        // caller's primary org, which the old initiator-only check conflated).
-        requireOrgAdminIn(orgId)
+        // Creating a group is an org-level action: no group resource exists yet, so we authorize
+        // against the org itself. ORG_MANAGE_MEMBERS requires ORG_ADMIN/ORG_OWNER/ORG_USER_MANAGER
+        // in exactly this org, not merely the caller's primary org.
+        authorizeOrg(Action.ORG_MANAGE_MEMBERS, orgId)
         adminActionGuardService.enforce(
             action = "ORG_GROUP_ADD",
             actorId = authTokenContext.authToken.appUser?.id,
@@ -379,11 +377,22 @@ class OrganizationGroupService @Inject constructor(
     // helpers
     // -------------------------------------------------------------------------
 
-    /** Caller must hold an admin role (ORG_ADMIN/ORG_OWNER) *in the given org*. */
-    private fun requireOrgAdminIn(organizationId: UUID)
+    /**
+     * Authorize the caller for [action] against an organization resource via the unified
+     * [AuthorizationService]. Org-level actions (e.g. group creation) authorize on the org
+     * itself so role resolution uses the caller's membership grants in that specific org.
+     */
+    private fun authorizeOrg(action: Action, organizationId: UUID)
     {
-        val userId = authTokenContext.authToken.appUser?.id
-        if (userId == null || !userRoleService.isOrgAdminIn(userId, organizationId))
+        val principal = authorizationContextFactory.currentPrincipal()
+            ?: throw IllegalArgumentException("Authentication required to manage organization groups")
+        val decision = authorizationService.authorize(
+            principal = principal,
+            action = action,
+            resource = ResourceRef.organization(organizationId),
+            context = authorizationContextFactory.currentContext(),
+        )
+        if (decision is Decision.Deny)
         {
             throw IllegalArgumentException("User does not have permission to manage groups")
         }
@@ -391,7 +400,7 @@ class OrganizationGroupService @Inject constructor(
 
     /**
      * Authorize the caller for [action] on the given group via the unified
-     * [AuthorizationService]. The membership→grant bridge resolves both the caller's org role
+     * [AuthorizationService]. The membership-to-grant bridge resolves both the caller's org role
      * (org admins of the group's org) and their group role (OWNER/MANAGER).
      */
     private fun authorizeGroup(action: Action, groupId: UUID)
@@ -436,7 +445,7 @@ class OrganizationGroupService @Inject constructor(
             val user = if (member.principalKind == PrincipalKind.USER)
                 appUserService.getById(member.principalId)?.let { DetailedEntityToDtoTransformer.toDto(it) }
             else null
-            PrincipalGroupMemberDto(user = user, groupRole = member.groupRole.name)
+            PrincipalGroupMemberDto(user = user, groupRole = member.groupRole)
         }
         return PrincipalGroupDto(
             id = group.id,

@@ -1,117 +1,184 @@
 package com.docuhyphen.app.api.service.auth.authz
 
-import com.docuhyphen.app.api.model.entity.RoleName
+import com.docuhyphen.app.api.model.entity.AppRoleName
+import com.docuhyphen.app.api.model.entity.ApplicationRoleName
+import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
+import com.docuhyphen.app.api.model.entity.OrganizationRoleName
+import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
 
-/**
- * Static mapping from [RoleName] to the set of [Capability]s it grants. This is the
- * single source of truth for "what can role X do", no booleans scattered across entities.
- *
- * Resolution is most-permissive: when multiple roles apply, the union of their
- * capabilities wins. Explicit denies (from share constraints, org policy, session state)
- * are layered on top in `DefaultAuthorizationService`.
- */
 object RoleCapabilities
 {
-    private val MAP: Map<RoleName, Set<Capability>> = mapOf(
-        // --- System layer ---------------------------------------------------------
-        RoleName.APP_ADMIN to enumValues<Capability>().toSet(),     // god mode, audited
-        RoleName.APP_AUDITOR to setOf(
+    private val APP: Map<AppRoleName, Set<Capability>> = mapOf(
+        AppRoleName.APP_ADMIN to setOf(
+            Capability.APP_ADMIN,
+            Capability.APP_AUDIT_READ,
+            Capability.APP_REG_READ,
+            Capability.APP_REG_ADMIN,
+        ),
+        AppRoleName.APP_AUDITOR to setOf(
             Capability.APP_AUDIT_READ,
             Capability.ORG_AUDIT_READ,
-            Capability.EXCHANGE_READ,
-            Capability.DOCUMENT_READ,
-            Capability.GROUP_READ,
+            Capability.APP_REG_READ,
         ),
-        RoleName.APP_SUPPORT to setOf(
+        AppRoleName.APP_SUPPORT to setOf(
             Capability.APP_SUPPORT,
+        ),
+        AppRoleName.APP_USER to setOf(
+            Capability.EXCHANGE_INITIATE,
+        ),
+    )
+
+    // The APPLICATION role maps to emptySet() by default.
+    // EXCHANGE_INITIATE and other machine capabilities are granted per-application
+    // via Application.grantedCapabilitiesJson, resolved in DefaultAuthorizationService.
+    private val APPLICATION: Map<ApplicationRoleName, Set<Capability>> = mapOf(
+        ApplicationRoleName.APPLICATION to emptySet(),
+    )
+
+    private val ORG_OWNER_AND_ADMIN_COMMON: Set<Capability> = setOf(
+        Capability.EXCHANGE_INITIATE,
+        Capability.GROUP_READ,
+        Capability.GROUP_EDIT,
+        Capability.GROUP_ADMIN,
+        Capability.GROUP_DELETE,
+        Capability.DOC_LIBRARY_DISCOVER,
+        Capability.DOC_LIBRARY_READ,
+        Capability.DOC_LIBRARY_USE,
+        Capability.DOC_LIBRARY_WRITE,
+        Capability.DOC_LIBRARY_DELETE,
+        Capability.DOC_LIBRARY_ADMIN,
+        Capability.BLUEPRINT_DISCOVER,
+        Capability.BLUEPRINT_READ,
+        Capability.BLUEPRINT_USE,
+        Capability.BLUEPRINT_WRITE,
+        Capability.BLUEPRINT_DELETE,
+        Capability.BLUEPRINT_CLONE,
+        Capability.BLUEPRINT_PUBLISH,
+        Capability.BLUEPRINT_ADMIN,
+        Capability.WORKFLOW_DISCOVER,
+        Capability.WORKFLOW_READ,
+        Capability.WORKFLOW_USE,
+        Capability.WORKFLOW_WRITE,
+        Capability.WORKFLOW_DELETE,
+        Capability.WORKFLOW_CLONE,
+        Capability.WORKFLOW_PUBLISH,
+        Capability.WORKFLOW_ADMIN,
+        Capability.WEBHOOK_ADMIN,
+        Capability.WEBHOOK_AUDIT_READ,
+        Capability.SEQUENCE_DISCOVER,
+        Capability.SEQUENCE_READ,
+        Capability.SEQUENCE_CONSUME,
+        Capability.SEQUENCE_WRITE,
+        Capability.SEQUENCE_DELETE,
+        Capability.SEQUENCE_ADMIN,
+        Capability.VARIABLE_DISCOVER,
+        Capability.VARIABLE_READ,
+        Capability.VARIABLE_USE,
+        Capability.VARIABLE_WRITE,
+        Capability.VARIABLE_DELETE,
+        Capability.VARIABLE_ADMIN,
+        Capability.COMMUNICATION_DISCOVER,
+        Capability.COMMUNICATION_READ,
+        Capability.COMMUNICATION_USE,
+        Capability.COMMUNICATION_WRITE,
+        Capability.COMMUNICATION_DELETE,
+        Capability.COMMUNICATION_PUBLISH,
+        Capability.COMMUNICATION_ADMIN,
+        Capability.APP_REG_READ,
+        Capability.ORG_MEMBER_MANAGE,
+        Capability.ORG_POLICY_MANAGE,
+        Capability.ORG_AUDIT_READ,
+    )
+
+    private val ORGANIZATION: Map<OrganizationRoleName, Set<Capability>> = mapOf(
+        OrganizationRoleName.ORG_OWNER to ORG_OWNER_AND_ADMIN_COMMON + setOf(
+            Capability.ORG_BILLING_MANAGE,
+        ),
+        OrganizationRoleName.ORG_ADMIN to ORG_OWNER_AND_ADMIN_COMMON,
+        OrganizationRoleName.ORG_BILLING_ADMIN to setOf(
+            Capability.ORG_BILLING_MANAGE,
+            Capability.ORG_AUDIT_READ,
+        ),
+        OrganizationRoleName.ORG_USER_MANAGER to setOf(
+            Capability.ORG_MEMBER_MANAGE,
+            Capability.GROUP_READ,
+        ),
+        OrganizationRoleName.ORG_AUDITOR to setOf(
+            Capability.ORG_AUDIT_READ,
             Capability.EXCHANGE_READ,
             Capability.DOCUMENT_READ,
             Capability.GROUP_READ,
-            Capability.ORG_AUDIT_READ,
+            Capability.DOC_LIBRARY_DISCOVER,
+            Capability.DOC_LIBRARY_READ,
+            Capability.BLUEPRINT_DISCOVER,
+            Capability.BLUEPRINT_READ,
+            Capability.WORKFLOW_DISCOVER,
+            Capability.WORKFLOW_READ,
+            Capability.WEBHOOK_AUDIT_READ,
+            Capability.SEQUENCE_DISCOVER,
+            Capability.SEQUENCE_READ,
+            Capability.VARIABLE_DISCOVER,
+            Capability.COMMUNICATION_DISCOVER,
+            Capability.COMMUNICATION_READ,
         ),
-        RoleName.END_USER to emptySet(),
+        OrganizationRoleName.ORG_MEMBER to setOf(
+            Capability.GROUP_READ,
+            Capability.EXCHANGE_INITIATE,
+            Capability.DOC_LIBRARY_DISCOVER,
+            Capability.DOC_LIBRARY_READ,
+            Capability.DOC_LIBRARY_USE,
+            Capability.BLUEPRINT_DISCOVER,
+            Capability.BLUEPRINT_READ,
+            Capability.BLUEPRINT_USE,
+            Capability.BLUEPRINT_CLONE,
+            Capability.WORKFLOW_DISCOVER,
+            Capability.WORKFLOW_READ,
+            Capability.WORKFLOW_USE,
+            Capability.WORKFLOW_CLONE,
+            Capability.SEQUENCE_DISCOVER,
+            Capability.SEQUENCE_READ,
+            Capability.SEQUENCE_CONSUME,
+            Capability.VARIABLE_DISCOVER,
+            Capability.VARIABLE_USE,
+            Capability.COMMUNICATION_DISCOVER,
+            Capability.COMMUNICATION_READ,
+            Capability.COMMUNICATION_USE,
+        ),
+        OrganizationRoleName.ORG_GUEST to emptySet(),
+    )
 
-        // --- Org layer ------------------------------------------------------------
-        RoleName.ORG_OWNER to setOf(
-            Capability.ORG_MEMBER_MANAGE,
-            Capability.ORG_POLICY_MANAGE,
-            Capability.ORG_BILLING_MANAGE,
-            Capability.ORG_AUDIT_READ,
-            Capability.GROUP_ADMIN,
+    private val PRINCIPAL_GROUP: Map<PrincipalGroupRoleName, Set<Capability>> = mapOf(
+        PrincipalGroupRoleName.OWNER to setOf(
             Capability.GROUP_READ,
+            Capability.GROUP_EDIT,
+            Capability.GROUP_ADMIN,
             Capability.GROUP_DELETE,
         ),
-        RoleName.ORG_ADMIN to setOf(
-            Capability.ORG_MEMBER_MANAGE,
-            Capability.ORG_POLICY_MANAGE,
-            Capability.ORG_AUDIT_READ,
+        PrincipalGroupRoleName.MANAGER to setOf(
+            Capability.GROUP_READ,
+            Capability.GROUP_EDIT,
             Capability.GROUP_ADMIN,
-            Capability.GROUP_READ,
-            Capability.GROUP_DELETE,
         ),
-        RoleName.ORG_BILLING_ADMIN to setOf(
-            Capability.ORG_BILLING_MANAGE,
-            Capability.ORG_AUDIT_READ,
-        ),
-        RoleName.ORG_USER_MANAGER to setOf(
-            Capability.ORG_MEMBER_MANAGE,
-            Capability.GROUP_READ,
-        ),
-        RoleName.ORG_AUDITOR to setOf(
-            Capability.ORG_AUDIT_READ,
-            Capability.EXCHANGE_READ,
-            Capability.DOCUMENT_READ,
-            Capability.GROUP_READ,
-        ),
-        RoleName.ORG_MEMBER to setOf(
-            Capability.GROUP_READ,
-        ),
-        RoleName.ORG_GUEST to emptySet(),
+        PrincipalGroupRoleName.MEMBER to setOf(Capability.GROUP_READ),
+        PrincipalGroupRoleName.OBSERVER to setOf(Capability.GROUP_READ),
+    )
 
-        // --- Group layer ----------------------------------------------------------
-        RoleName.OWNER to setOf(
-            Capability.GROUP_READ,
-            Capability.GROUP_ADMIN,
-            Capability.GROUP_DELETE,
+    private val EXCHANGE_SHARE: Map<ExchangeShareRoleName, Set<Capability>> = mapOf(
+        ExchangeShareRoleName.OWNER to setOf(
             Capability.EXCHANGE_OWNER,
             Capability.EXCHANGE_ADMIN,
             Capability.EXCHANGE_WRITE,
             Capability.EXCHANGE_READ,
             Capability.EXCHANGE_SHARE,
             Capability.EXCHANGE_DELETE,
+            Capability.EXCHANGE_RESCIND,
             Capability.DOCUMENT_READ,
             Capability.DOCUMENT_DOWNLOAD,
             Capability.DOCUMENT_WRITE,
             Capability.DOCUMENT_DELETE,
             Capability.DOCUMENT_COMMENT,
         ),
-        RoleName.MANAGER to setOf(
-            Capability.GROUP_READ,
-            Capability.GROUP_ADMIN,
-            Capability.EXCHANGE_READ,
-            Capability.EXCHANGE_WRITE,
-            Capability.EXCHANGE_ADMIN,
-            Capability.EXCHANGE_SHARE,
-            Capability.DOCUMENT_READ,
-            Capability.DOCUMENT_DOWNLOAD,
-            Capability.DOCUMENT_WRITE,
-            Capability.DOCUMENT_COMMENT,
-        ),
-        RoleName.MEMBER to setOf(
-            Capability.GROUP_READ,
-            Capability.EXCHANGE_READ,
-            Capability.DOCUMENT_READ,
-            Capability.DOCUMENT_DOWNLOAD,
-            Capability.DOCUMENT_COMMENT,
-        ),
-        RoleName.OBSERVER to setOf(
-            Capability.GROUP_READ,
-            Capability.EXCHANGE_READ,
-            Capability.DOCUMENT_READ,
-        ),
-
-        // --- Resource layer (on a Share) ------------------------------------------
-        RoleName.EDITOR to setOf(
+        ExchangeShareRoleName.EDITOR to setOf(
             Capability.EXCHANGE_READ,
             Capability.EXCHANGE_WRITE,
             Capability.DOCUMENT_READ,
@@ -119,38 +186,40 @@ object RoleCapabilities
             Capability.DOCUMENT_WRITE,
             Capability.DOCUMENT_COMMENT,
         ),
-        RoleName.REVIEWER to setOf(
+        ExchangeShareRoleName.REVIEWER to setOf(
             Capability.EXCHANGE_READ,
             Capability.DOCUMENT_READ,
             Capability.DOCUMENT_DOWNLOAD,
             Capability.DOCUMENT_COMMENT,
         ),
-        RoleName.SIGNER to setOf(
+        ExchangeShareRoleName.SIGNER to setOf(
             Capability.EXCHANGE_READ,
             Capability.DOCUMENT_READ,
             Capability.DOCUMENT_DOWNLOAD,
             Capability.DOCUMENT_SIGN,
         ),
-        RoleName.VIEWER to setOf(
+        ExchangeShareRoleName.VIEWER to setOf(
             Capability.EXCHANGE_READ,
             Capability.DOCUMENT_READ,
-            // DOCUMENT_DOWNLOAD is conditional on share constraints.can_download, applied
-            // dynamically by DefaultAuthorizationService.
         ),
-        RoleName.COMMENTER to setOf(
+        ExchangeShareRoleName.COMMENTER to setOf(
             Capability.EXCHANGE_READ,
             Capability.DOCUMENT_READ,
             Capability.DOCUMENT_COMMENT,
         ),
-        RoleName.PARTICIPANT to setOf(
+        ExchangeShareRoleName.PARTICIPANT to setOf(
             Capability.EXCHANGE_READ,
             Capability.DOCUMENT_READ,
         ),
     )
 
-    fun forRole(role: RoleName): Set<Capability> = MAP[role] ?: emptySet()
+    fun forAppRole(role: AppRoleName): Set<Capability> = APP.getValue(role)
 
-    fun forRole(roleName: String): Set<Capability> =
-        runCatching { RoleName.valueOf(roleName) }.getOrNull()?.let(::forRole) ?: emptySet()
+    fun forApplicationRole(role: ApplicationRoleName): Set<Capability> = APPLICATION.getValue(role)
+
+    fun forOrganizationRole(role: OrganizationRoleName): Set<Capability> = ORGANIZATION.getValue(role)
+
+    fun forPrincipalGroupRole(role: PrincipalGroupRoleName): Set<Capability> = PRINCIPAL_GROUP.getValue(role)
+
+    fun forExchangeShareRole(role: ExchangeShareRoleName): Set<Capability> = EXCHANGE_SHARE.getValue(role)
 }
-

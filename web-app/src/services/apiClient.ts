@@ -15,6 +15,7 @@ export const addBearerToHeaderToken = (token: string | null): string =>
 }
 
 let authToken: string | null = null;
+let activeOrganizationId: string | null = null;
 let refreshPromise: Promise<any> | null = null;
 
 export const setApiClientAuthToken = (token: string | null) =>
@@ -24,11 +25,23 @@ export const setApiClientAuthToken = (token: string | null) =>
 
 export const getApiClientAuthToken = (): string | null => authToken;
 
+export const setApiClientActiveOrganizationId = (orgId: string | null) =>
+{
+    activeOrganizationId = orgId;
+};
+
+export const getApiClientActiveOrganizationId = (): string | null => activeOrganizationId;
+
 apiClient.interceptors.request.use(async (config) =>
     {
         if (authToken)
         {
             config.headers['Authorization'] = `Bearer ${authToken}`;
+        }
+
+        if (activeOrganizationId)
+        {
+            config.headers['X-Active-Organization-Id'] = activeOrganizationId;
         }
 
         // DPoP: attach a fresh per-request proof when enabled. No-op when disabled.

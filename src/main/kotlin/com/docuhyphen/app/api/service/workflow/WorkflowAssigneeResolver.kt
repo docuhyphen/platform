@@ -1,10 +1,9 @@
 package com.docuhyphen.app.api.service.workflow
 
 import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.RoleScopeType
+import com.docuhyphen.app.api.repository.AppRoleAssignmentRepository
 import com.docuhyphen.app.api.repository.OrganizationMembershipRepository
 import com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
-import com.docuhyphen.app.api.repository.RoleAssignmentRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -25,7 +24,7 @@ import java.util.UUID
 class WorkflowAssigneeResolver
 {
     @Inject private lateinit var groupMemberRepository: PrincipalGroupMemberRepository
-    @Inject private lateinit var roleAssignmentRepository: RoleAssignmentRepository
+    @Inject private lateinit var appRoleAssignmentRepository: AppRoleAssignmentRepository
     @Inject private lateinit var membershipRepository: OrganizationMembershipRepository
 
     private val json: Json = WorkflowSpecJson.instance
@@ -52,49 +51,18 @@ class WorkflowAssigneeResolver
                     .map { PrincipalRef(it.principalKind, it.principalId) }
             }
 
-            is AssigneeSpec.RoleAssignees ->
-            {
-                val scopeId = spec.scopeIdRef?.let { resolveRef(it, subjectFields) }
-                resolvePrincipalsHoldingRole(spec.roleName, spec.scopeType, scopeId)
-            }
+            is AssigneeSpec.AppRoleAssignees ->
+                appRoleAssignmentRepository.findAll()
+                    .filter { it.isActive && it.roleName == spec.roleName }
+                    .map { PrincipalRef(PrincipalKind.USER, it.appUserId) }
+
+            is AssigneeSpec.OrganizationRoleAssignees ->
+                resolveRef(spec.organizationIdRef, subjectFields)?.let { organizationId ->
+                    membershipRepository.findActiveMembersOfOrg(organizationId)
+                        .filter { spec.roleName in it.roles }
+                        .map { PrincipalRef(PrincipalKind.USER, it.appUserId) }
+                }.orEmpty()
         }
-
-    // -- helpers --------------------------------------------------------------
-
-    /**
-     * Looks up users who currently hold [roleName] in the given scope. For
-     * ORG-scope roles, also folds in [OrganizationMembership.roleName] matches so
-     * org-role assignment that lives on the membership row is honoured (the
-     * canonical org-role storage in iteration 1).
-     */
-    private fun resolvePrincipalsHoldingRole(
-        roleName: String,
-        scopeType: RoleScopeType,
-        scopeId: UUID?,
-    ): List<PrincipalRef>
-    {
-        val viaRoleAssignment = roleAssignmentRepository
-            .findAll()
-            .asSequence()
-            .filter { it.isActive }
-            .filter { it.roleName == roleName }
-            .filter { it.scopeType == scopeType }
-            .filter { scopeType == RoleScopeType.APP || it.scopeId == scopeId }
-            .mapNotNull { it.appUserId?.let { uid -> PrincipalRef(PrincipalKind.USER, uid) } }
-            .toList()
-
-        val viaMembership = if (scopeType == RoleScopeType.ORG && scopeId != null)
-        {
-            membershipRepository.findActiveMembersOfOrg(scopeId)
-                .asSequence()
-                .filter { it.roleName == roleName }
-                .map { PrincipalRef(PrincipalKind.USER, it.appUserId) }
-                .toList()
-        }
-        else emptyList()
-
-        return (viaRoleAssignment + viaMembership).distinct()
-    }
 
     /** Resolves a literal UUID, or a `$subject.<field>` placeholder lookup. */
     private fun resolveRef(ref: String, subjectFields: Map<String, String>): UUID?

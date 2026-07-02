@@ -2,10 +2,9 @@ package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.exception.AppUserNotFoundException
 import com.docuhyphen.app.api.exception.LastAppAdminException
-import com.docuhyphen.app.api.model.entity.RoleAssignment
-import com.docuhyphen.app.api.model.entity.RoleName
-import com.docuhyphen.app.api.model.entity.RoleScopeType
-import com.docuhyphen.app.api.repository.RoleAssignmentRepository
+import com.docuhyphen.app.api.model.entity.AppRoleAssignment
+import com.docuhyphen.app.api.model.entity.AppRoleName
+import com.docuhyphen.app.api.repository.AppRoleAssignmentRepository
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import io.quarkus.runtime.StartupEvent
@@ -17,7 +16,7 @@ import org.slf4j.LoggerFactory
 import java.util.UUID
 
 /**
- * Write-side API over APP-scope [RoleAssignment]s. Lets multiple App Admins be
+ * Write-side API over app role assignments. Lets multiple App Admins be
  * granted / revoked at runtime, with a "never drop below one App Admin" invariant. App roles
  * are *additive*, a user keeps all their org/group/personal grants; an APP_ADMIN row simply
  * unions APP-wide capabilities on top (see [com.docuhyphen.app.api.service.auth.authz.DefaultAuthorizationService]).
@@ -26,37 +25,47 @@ import java.util.UUID
  * ([com.docuhyphen.app.api.resource.AppRoleResource]); this service trusts its actorId.
  */
 @ApplicationScoped
-class RoleAssignmentService @Inject constructor(
-    private val roleAssignmentRepository: RoleAssignmentRepository,
+class AppRoleAssignmentService @Inject constructor(
+    private val appRoleAssignmentRepository: AppRoleAssignmentRepository,
     private val appUserService: AppUserService,
     private val configurationService: ConfigurationService,
     private val authAuditService: AuthAuditService,
+    private val userRoleService: UserRoleService,
 )
 {
     companion object
     {
-        private val logger = LoggerFactory.getLogger(RoleAssignmentService::class.java)
+        private val logger = LoggerFactory.getLogger(AppRoleAssignmentService::class.java)
 
         /** Roles that may be granted at APP scope via this service. */
         private val GRANTABLE_APP_ROLES = setOf(
-            RoleName.APP_ADMIN,
-            RoleName.APP_AUDITOR,
-            RoleName.APP_SUPPORT,
+            AppRoleName.APP_ADMIN,
+            AppRoleName.APP_AUDITOR,
+            AppRoleName.APP_SUPPORT,
         )
     }
 
     /** Active APP_ADMIN assignments. */
-    fun listAppAdmins(): List<RoleAssignment> = roleAssignmentRepository.findActiveAppAdmins()
+    fun listAppAdmins(): List<AppRoleAssignment> = appRoleAssignmentRepository.findActiveAppAdmins()
+
+    /** Require app administration privilege. Throws [SecurityException] if the actor lacks it. */
+    fun requireAppAdmin(actorId: UUID)
+    {
+        if (!userRoleService.isAppAdmin(actorId))
+        {
+            throw SecurityException("App administrator privilege required")
+        }
+    }
 
     /** Grant an APP-scope role to a user. Idempotent: reactivates a soft-deleted row if present. */
     @Transactional
-    fun grantAppRole(targetAppUserId: UUID, roleName: RoleName, actorId: UUID?): RoleAssignment
+    fun grantAppRole(targetAppUserId: UUID, roleName: AppRoleName, actorId: UUID?): AppRoleAssignment
     {
         require(roleName in GRANTABLE_APP_ROLES) { "Role $roleName is not grantable at APP scope" }
         appUserService.getById(targetAppUserId)
             ?: throw AppUserNotFoundException("User not found for id: $targetAppUserId")
 
-        val existing = roleAssignmentRepository.findAppRoleForUser(targetAppUserId, roleName.name)
+        val existing = appRoleAssignmentRepository.findAppRoleForUser(targetAppUserId, roleName)
         if (existing != null)
         {
             if (!existing.isActive)
@@ -64,21 +73,19 @@ class RoleAssignmentService @Inject constructor(
                 existing.isActive = true
                 existing.grantedByAppUserId = actorId
                 existing.expiresAt = null
-                roleAssignmentRepository.update(existing)
+                appRoleAssignmentRepository.update(existing)
                 emitAudit("APP_ROLE_GRANT", actorId, targetAppUserId, roleName, "reactivated")
             }
             return existing
         }
 
-        val assignment = RoleAssignment().apply {
+        val assignment = AppRoleAssignment().apply {
             appUserId = targetAppUserId
-            this.roleName = roleName.name
-            scopeType = RoleScopeType.APP
-            scopeId = null // APP scope <=> scope_id NULL (DDL invariant)
+            this.roleName = roleName
             grantedByAppUserId = actorId
             isActive = true
         }
-        roleAssignmentRepository.save(assignment)
+        appRoleAssignmentRepository.save(assignment)
         emitAudit("APP_ROLE_GRANT", actorId, targetAppUserId, roleName, "granted")
         return assignment
     }
@@ -89,22 +96,20 @@ class RoleAssignmentService @Inject constructor(
     @Transactional
     fun revokeAppRole(assignmentId: UUID, actorId: UUID?)
     {
-        val assignment = roleAssignmentRepository.findById(assignmentId)
+        val assignment = appRoleAssignmentRepository.findById(assignmentId)
             ?: throw IllegalArgumentException("Role assignment not found")
-        require(assignment.scopeType == RoleScopeType.APP) { "Not an APP-scope assignment" }
 
         if (!assignment.isActive) return // already revoked, idempotent
 
-        val isAppAdmin = assignment.roleName == RoleName.APP_ADMIN.name
-        if (isAppAdmin && roleAssignmentRepository.countActiveAppAdmins() <= 1)
+        val isAppAdmin = assignment.roleName == AppRoleName.APP_ADMIN
+        if (isAppAdmin && appRoleAssignmentRepository.countActiveAppAdmins() <= 1)
         {
             throw LastAppAdminException()
         }
 
         assignment.isActive = false
-        roleAssignmentRepository.update(assignment)
-        val role = runCatching { RoleName.valueOf(assignment.roleName) }.getOrNull()
-        emitAudit("APP_ROLE_REVOKE", actorId, assignment.appUserId, role, "revoked")
+        appRoleAssignmentRepository.update(assignment)
+        emitAudit("APP_ROLE_REVOKE", actorId, assignment.appUserId, assignment.roleName, "revoked")
     }
 
     /**
@@ -117,7 +122,7 @@ class RoleAssignmentService @Inject constructor(
     fun bootstrapFirstAppAdmin(@Observes event: StartupEvent)
     {
         val email = configurationService.getBootstrapAppAdminEmail() ?: return
-        if (roleAssignmentRepository.countActiveAppAdmins() > 0)
+        if (appRoleAssignmentRepository.countActiveAppAdmins() > 0)
         {
             logger.debug("App Admin bootstrap skipped: an active App Admin already exists")
             return
@@ -128,11 +133,11 @@ class RoleAssignmentService @Inject constructor(
             logger.warn("App Admin bootstrap: no user found for configured email '{}', skipping", email)
             return
         }
-        grantAppRole(user.id, RoleName.APP_ADMIN, actorId = null)
+        grantAppRole(user.id, AppRoleName.APP_ADMIN, actorId = null)
         logger.info("App Admin bootstrap: granted APP_ADMIN to '{}'", email)
     }
 
-    private fun emitAudit(action: String, actorId: UUID?, targetUserId: UUID?, role: RoleName?, reason: String)
+    private fun emitAudit(action: String, actorId: UUID?, targetUserId: UUID?, role: AppRoleName?, reason: String)
     {
         runCatching {
             authAuditService.emit(

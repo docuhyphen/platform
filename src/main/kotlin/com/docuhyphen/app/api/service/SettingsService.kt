@@ -155,7 +155,10 @@ class SettingsService @Inject constructor(
     {
         val currentUser = authTokenContext.authToken.appUser!!
 
-        if (!userRoleService.isOrgAdmin(currentUser.id))
+        val orgUuid = try { UUID.fromString(organizationId) }
+            catch (e: IllegalArgumentException) { throw DataIntegrityException("Invalid organization ID format: $organizationId") }
+
+        if (!userRoleService.isOrgAdminIn(currentUser.id, orgUuid))
         {
             throw UnauthorizedException("User does not have permission to update organization settings")
         }
@@ -167,18 +170,7 @@ class SettingsService @Inject constructor(
         )
 
         // Get the organization
-        val organization = try
-        {
-            val uuid = UUID.fromString(organizationId)
-            organizationService.getOrganizationById(uuid)
-        }
-        catch (e: IllegalArgumentException)
-        {
-            throw DataIntegrityException("Invalid organization ID format: $organizationId")
-        }
-
-        // Validate the user has permission to update organization settings
-        authorizationService.validateUpdateOrganizationSettings(currentUser)
+        val organization = organizationService.getOrganizationById(orgUuid)
 
         // Get existing settings or create new ones if null
         val settings = organization.settings ?: OrganizationSettings().also {

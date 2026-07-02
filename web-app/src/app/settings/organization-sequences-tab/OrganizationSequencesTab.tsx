@@ -19,7 +19,8 @@ import {
     Text,
 } from '@fluentui/react-components';
 import {AddRegular, ArrowCounterclockwiseRegular, DeleteRegular, EditRegular, MoreVerticalRegular} from '@fluentui/react-icons';
-import {AppUserRole, CreateSequenceRequest, SequenceDefinitionDto, SequenceResetPeriod, UpdateSequenceRequest, ViewMode} from '../../models/models';
+import {CreateSequenceRequest, SequenceDefinitionDto, SequenceResetPeriod, UpdateSequenceRequest, ViewMode} from '../../models/models';
+import {Capability} from '../../models/models';
 import {
     createSequence,
     deleteSequence,
@@ -59,11 +60,10 @@ const formatPreview = (form: CreateSequenceRequest | UpdateSequenceRequest, curr
 const OrganizationSequencesTab = () =>
 {
     const styles = useOrganizationSequencesTabStyles();
-    const {appUser, setAppUser, token, appUserPersonOrganization} = useAuth();
-    const roleValue = `${appUser?.role ?? ''}`;
+    const {appUser, setAppUser, token, appUserPersonOrganization, hasCapability} = useAuth();
     const canManage =
         appUserPersonOrganization?.isActive &&
-        (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN');
+        (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
 
     const [viewMode, setViewMode] = useState<ViewMode>(appUser?.settings?.sequencesView ?? 'cards');
 

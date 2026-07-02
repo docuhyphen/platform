@@ -13,7 +13,7 @@ import {useAuth} from "../../../context/AuthContext";
 import {fetchAppUserPersonOrganization} from "../../../services/appUserApi";
 import {updateOrganizationSettings} from "../../../services/organizationApi";
 import {ContactDetailsDetailedDto, OrganizationDetailedDto, OrganizationSettingsDto} from "../../models/models.tsx";
-import {AppUserRole} from "../../models/models.tsx";
+import {Capability} from '../../models/models.tsx';
 import {
     PairOrgTabIcon,
     ProfileEditBasicDetailsIcon, SettingsAppAdminsIcon,
@@ -41,6 +41,8 @@ import OrganizationPairingTab from "../organization-pairing-tab/OrganizationPair
 import AppAdminsTab from "../app-admins-tab/AppAdminsTab.tsx";
 import TemplatesTab from "../blueprints-tab/BlueprintsTab.tsx";
 import OrganizationDetailsTab from "../organization-details-tab/OrganizationDetailsTab.tsx";
+import OrganizationEmptyStateIllustration
+    from "./organization-empty-state-illustration/OrganizationEmptyStateIllustration.tsx";
 
 
 const OrganizationTab = () =>
@@ -57,7 +59,7 @@ const OrganizationTab = () =>
     }
 
     const styles = useOrganizationTabStyles()
-    const {appUser, token, appUserPersonOrganization} = useAuth();
+    const {appUser, token, appUserPersonOrganization, hasCapability} = useAuth();
     const [organization, setOrganization] = useState<OrganizationDetailedDto | null>(null);
     const [fetchingOrganization, setFetchingOrganization] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -69,16 +71,16 @@ const OrganizationTab = () =>
     const [phoneManagementMode, setPhoneManagementMode] = useState(PhoneManagementMode.ADD);
     const [emailManagementMode, setEmailManagementMode] = useState(EmailManagementMode.ADD);
     const [isOnboardingDialogOpen, setOnboardingDialogOpen] = useState(false);
-    const roleValue = `${appUser?.role ?? ''}`;
     const [selectedValue, setSelectedValue] = useState<TabValue>(tabIds.organization);
 
     const onTabSelect = (_event: SelectTabEvent, data: SelectTabData) =>
     {
         setSelectedValue(data.value);
     };
-    const canManageOrganization =  () =>
+    const canManageOrganization = () =>
     {
-        return appUserPersonOrganization?.isActive && (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN')
+        return appUserPersonOrganization?.isActive &&
+            (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
     }
 
     const getOrganization = async () =>
@@ -294,15 +296,20 @@ const OrganizationTab = () =>
         )}
 
         {!organization && !fetchingOrganization && <>
-            <section className={styles.orgOnboardingContainer}>
-                <Text>
+            <section
+                id={"organization-empty-state"}
+                className={styles.orgOnboardingContainer}>
+                <OrganizationEmptyStateIllustration/>
+                <Text
+                    id={"organization-empty-state-message"}
+                    align={"center"}>
                     You are not part of an organization. You can onboard your organization to use the full potential of the platform.
                 </Text>
-                <div>
+                <div id={"organization-empty-state-action"}>
                     <Button
                         id={"button-org-register"}
                         shape={"circular"}
-                        appearance={"secondary"}
+                        appearance={"primary"}
                         onClick={() => setOnboardingDialogOpen(true)}
                         icon={<></>}
                     >

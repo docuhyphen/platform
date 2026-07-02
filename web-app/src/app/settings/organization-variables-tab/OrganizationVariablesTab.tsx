@@ -18,7 +18,8 @@ import {
     Text,
 } from '@fluentui/react-components';
 import {DeleteRegular, EditRegular, MoreVerticalRegular} from '@fluentui/react-icons';
-import {AppUserRole, CreateVariableRequest, UpdateVariableRequest, VariableDefinitionDto, ViewMode} from '../../models/models';
+import {CreateVariableRequest, UpdateVariableRequest, VariableDefinitionDto, ViewMode} from '../../models/models';
+import {Capability} from '../../models/models';
 import {createVariable, deleteVariable, listVariables, updateVariable} from '../../../services/variableService';
 import {useOrganizationVariablesTabStyles} from './OrganizationVariablesTabStyles';
 
@@ -41,11 +42,10 @@ interface OrganizationVariablesTabProps
 const OrganizationVariablesTab = forwardRef<OrganizationVariablesTabHandle, OrganizationVariablesTabProps>(({viewMode = 'cards'}, ref) =>
 {
     const styles = useOrganizationVariablesTabStyles();
-    const {appUser, appUserPersonOrganization} = useAuth();
-    const roleValue = `${appUser?.role ?? ''}`;
+    const {appUserPersonOrganization, hasCapability} = useAuth();
     const canManage =
         appUserPersonOrganization?.isActive &&
-        (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN');
+        (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
 
     const [variables, setVariables] = useState<VariableDefinitionDto[]>([]);
     const [loading, setLoading] = useState(false);

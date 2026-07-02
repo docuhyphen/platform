@@ -40,7 +40,8 @@ import ViewModeToggle from '../../components/ViewModeToggle.tsx';
 import TagList from '../../components/TagList.tsx';
 import {updateAppUserSettings} from '../../../services/appUserApi';
 import {useDocumentsTabStyles} from './DocumentLibraryTabStyles.tsx';
-import {AppUserRole, DocumentLibraryEntrySummaryDto, DocumentLibraryScope, ViewMode} from '../../models/models.tsx';
+import {DocumentLibraryEntrySummaryDto, DocumentLibraryScope, ViewMode} from '../../models/models.tsx';
+import {Capability} from '../../models/models.tsx';
 import {
     cloneDocumentLibraryEntry,
     deleteDocumentLibraryEntry,
@@ -75,14 +76,13 @@ const emptyMessage: Record<ActiveTab, string> = {
 const DocumentLibraryTab = () =>
 {
     const styles = useDocumentsTabStyles();
-    const {appUser, setAppUser, token, appUserPersonOrganization} = useAuth();
+    const {appUser, setAppUser, token, appUserPersonOrganization, hasCapability} = useAuth();
 
-    const roleValue = `${appUser?.role ?? ''}`;
     const hasOrg = !!appUserPersonOrganization?.isActive;
     const canManageOrganization =
         appUserPersonOrganization?.isActive &&
-        (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN');
-    const isAppAdmin = roleValue === 'APP_ADMIN';
+        (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
+    const isAppAdmin = hasCapability(Capability.APP_ADMIN);
 
     const [viewMode, setViewMode] = useState<ViewMode>(appUser?.settings?.documentLibraryView ?? 'cards');
 

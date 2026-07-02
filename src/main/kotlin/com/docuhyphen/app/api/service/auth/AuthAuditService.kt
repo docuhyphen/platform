@@ -24,9 +24,20 @@ class AuthAuditService @Inject constructor(
         private val logger = LoggerFactory.getLogger(AuthAuditService::class.java)
     }
 
-    fun findRecent(limit: Int, action: String?, outcome: String?, includeSnapshots: Boolean): List<AuthAuditEvent>
+    fun findRecent(
+        limit: Int,
+        action: String?,
+        outcome: String?,
+        includeSnapshots: Boolean,
+        organizationId: UUID? = null,
+    ): List<AuthAuditEvent>
     {
-        val events = authAuditEventRepository.findRecent(limit = limit, action = action, outcome = outcome)
+        val events = authAuditEventRepository.findRecent(
+            limit = limit,
+            action = action,
+            outcome = outcome,
+            organizationId = organizationId,
+        )
         if (includeSnapshots)
         {
             return events

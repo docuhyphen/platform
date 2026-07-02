@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import {Checkbox, Field, InfoLabel, Input, Text} from '@fluentui/react-components';
+import {Checkbox, Field, InfoLabel, Text} from '@fluentui/react-components';
 import {ShareConstraints} from '../../../services/types/dtos';
 import {useShareConstraintTogglesStyles} from "./ShareConstraintTogglesStyles.tsx";
 
@@ -63,20 +63,6 @@ const ShareConstraintToggles: React.FC<ShareConstraintTogglesProps> = ({constrai
                     checked={!!constraints.require_mfa}
                     disabled={disabled}
                     onChange={(_e, d) => update({require_mfa: !!d.checked})}
-                />
-            </Field>
-            <Field label="Max views (0 = unlimited)">
-                <Input
-                    id={"share-constraint-max-views"}
-                    type="number"
-                    size="small"
-                    disabled={disabled}
-                    value={constraints.max_views?.toString() || ''}
-                    onChange={(_e, d) =>
-                    {
-                        const val = parseInt(d.value, 10);
-                        update({max_views: isNaN(val) || val <= 0 ? undefined : val});
-                    }}
                 />
             </Field>
         </div>

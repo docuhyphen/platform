@@ -30,8 +30,12 @@ class Application
     @Column(name = "api_key", nullable = false)
     lateinit var apiKey: String
 
-    @Column(name = "api_secret", nullable = false)
-    lateinit var apiSecret: String
+    @Column(name = "api_secret_hash", nullable = false)
+    lateinit var apiSecretHash: String
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role_name", nullable = false, length = 32)
+    var roleName: ApplicationRoleName = ApplicationRoleName.APPLICATION
 
     @Column(name = "is_active", nullable = false)
     var isActive: Boolean = true
@@ -43,6 +47,17 @@ class Application
     @Column(name = "last_access_date")
     @Serializable(with = TimestampSerializer::class)
     var lastAccessDate: Timestamp? = null
+
+    @Serializable(with = UUIDSerializer::class)
+    @Column(name = "owner_organization_id")
+    var ownerOrganizationId: UUID? = null
+
+    // JSON array of Capability enum names explicitly granted to this application.
+    // Resolved to Set<Capability> in DefaultAuthorizationService. Stored as a plain
+    // JSON string rather than a relation because capability grants are a small, stable
+    // set managed by app-admins, not a high-churn join table.
+    @Column(name = "granted_capabilities", nullable = false)
+    var grantedCapabilitiesJson: String = "[]"
 
     constructor()
 }

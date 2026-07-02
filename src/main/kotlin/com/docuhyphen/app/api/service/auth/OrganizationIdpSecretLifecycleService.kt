@@ -2,7 +2,6 @@ package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.repository.OrganizationIdentityProviderConfigRepository
-import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.service.config.AwsSecretsManagerService
 import com.docuhyphen.app.api.service.config.SecretLifecycleStatus
 import com.docuhyphen.app.api.service.config.SecretRotationResult
@@ -42,7 +41,6 @@ data class OrganizationIdpSecretRollbackOutcome(
 @RequestScoped
 class OrganizationIdpSecretLifecycleService @Inject constructor(
     private val organizationIdentityProviderConfigRepository: OrganizationIdentityProviderConfigRepository,
-    private val organizationRepository: OrganizationRepository,
     private val authTokenContext: AuthTokenContext,
     private val adminActionGuardService: AdminActionGuardService,
     private val authAuditService: AuthAuditService,
@@ -351,20 +349,12 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
         val currentUser = authTokenContext.authToken.appUser
             ?: throw UnauthorizedException("User is not authenticated")
 
-        if (!userRoleService.isOrgAdmin(currentUser.id))
-        {
-            throw UnauthorizedException("User does not have permission to manage IdP secrets")
-        }
-
         val orgId = runCatching { UUID.fromString(organizationId) }.getOrNull()
             ?: throw IllegalArgumentException("Invalid organization ID format")
 
-        val currentUserOrg = organizationRepository.findByAppUserIdAndPersonId(currentUser.id, currentUser.person?.id!!)
-            ?: throw UnauthorizedException("User is not associated with an organization")
-
-        if (currentUserOrg.id != orgId)
+        if (!userRoleService.isOrgAdminIn(currentUser.id, orgId))
         {
-            throw UnauthorizedException("User cannot manage another organization's IdP secrets")
+            throw UnauthorizedException("User does not have permission to manage IdP secrets")
         }
 
         return currentUser

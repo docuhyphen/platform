@@ -10,7 +10,11 @@ import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.model.entity.ExchangeStatus.ACCEPTED_STARTED
 import com.docuhyphen.app.api.model.entity.ExchangeStatus.INITIATED
 import com.docuhyphen.app.api.repository.ExchangeRepository
-import com.docuhyphen.app.api.resource.ResourceEndpointDelayHelper
+import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.Decision
+import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
@@ -31,7 +35,9 @@ data class SearchResult(
 @ApplicationScoped
 class ExchangeRetrievalService @Inject constructor(
     private val exchangeRepository: ExchangeRepository,
-    private val authTokenContext: AuthTokenContext
+    private val authTokenContext: AuthTokenContext,
+    private val authorizationService: AuthorizationService,
+    private val authorizationContextFactory: AuthorizationContextFactory,
 )
 {
     @PersistenceContext
@@ -46,6 +52,19 @@ class ExchangeRetrievalService @Inject constructor(
     {
         val session = exchangeRepository.findByIdWithDocumentsOrderedByTitle(UUID.fromString(exchangeId))
             ?: throw ExchangeNotFoundException("Exchange not found")
+
+        val principal = authorizationContextFactory.currentPrincipal()
+            ?: throw ExchangeNotFoundException("Exchange not found")
+        val decision = authorizationService.authorize(
+            principal = principal,
+            action = Action.EXCHANGE_VIEW,
+            resource = ResourceRef.exchange(session.id),
+            context = authorizationContextFactory.currentContext(),
+        )
+        if (decision is Decision.Deny)
+        {
+            throw ExchangeNotFoundException("Exchange not found")
+        }
 
         session.documents = session.documents.filter { it.isDeleted == false } as MutableList<Document>
 

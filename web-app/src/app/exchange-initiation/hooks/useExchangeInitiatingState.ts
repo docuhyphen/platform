@@ -6,7 +6,7 @@ import {
 import {
     ExchangeNewMainRecipient
 } from "../components/exchange-initiation-recipients-tab/new-recipient/NewRecipient.tsx";
-import {ExchangeShareRole} from '../../../services/types/roles.ts';
+import {ExchangeShareRoleName} from '../../../services/types/roles.ts';
 import {ShareConstraints} from '../../../services/types/dtos.ts';
 
 const useExchangeInitiatingState = () =>
@@ -38,7 +38,7 @@ const useExchangeInitiatingState = () =>
         firstName: '',
         lastName: ''
     });
-    const [recipientRole, setRecipientRole] = useState<ExchangeShareRole | undefined>(undefined);
+    const [recipientRole, setRecipientRole] = useState<ExchangeShareRoleName | undefined>(undefined);
     const [recipientConstraints, setRecipientConstraints] = useState<ShareConstraints>({});
     const [allowedDownloadFormats, setAllowedDownloadFormats] = useState<string[] | undefined>(undefined);
 

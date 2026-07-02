@@ -147,7 +147,7 @@ class ExchangeDocumentVersionService @Inject constructor(
         val decision = authorizationService.authorize(
             principal = PrincipalRef.user(appUser.id),
             action = Action.DOCUMENT_UPLOAD,
-            resource = ResourceRef.session(exchange.id),
+            resource = ResourceRef.exchange(exchange.id),
             context = authorizationContextFactory.currentContext(),
         )
 
@@ -165,7 +165,7 @@ class ExchangeDocumentVersionService @Inject constructor(
         val decision = authorizationService.authorize(
             principal = PrincipalRef.user(appUser.id),
             action = Action.DOCUMENT_DOWNLOAD,
-            resource = ResourceRef.session(exchange.id),
+            resource = ResourceRef.exchange(exchange.id),
             context = authorizationContextFactory.currentContext(),
         )
 

@@ -1,22 +1,24 @@
 package com.docuhyphen.app.api.service.auth.authz
 
 /**
- * High-level operations callers ask `AuthorizationService.authorize(...)` about.
- * Each Action declares the [Capability] it requires. Add new actions here rather than
- * re-deriving the mapping at call sites, keeps the matrix in one place.
+ * High-level operations callers ask [AuthorizationService.authorize] about.
+ * Each Action maps to exactly one required [Capability]. Add new actions here; never
+ * re-derive the mapping at call sites.
  */
 enum class Action(val required: Capability)
 {
-    // Exchange
+    // Exchange lifecycle
+    EXCHANGE_INITIATE(Capability.EXCHANGE_INITIATE),
     EXCHANGE_VIEW(Capability.EXCHANGE_READ),
     EXCHANGE_EDIT(Capability.EXCHANGE_WRITE),
     EXCHANGE_DELETE(Capability.EXCHANGE_DELETE),
     EXCHANGE_SUSPEND(Capability.EXCHANGE_ADMIN),
     EXCHANGE_END(Capability.EXCHANGE_ADMIN),
+    EXCHANGE_RESCIND(Capability.EXCHANGE_RESCIND),
     EXCHANGE_TRANSFER_OWNERSHIP(Capability.EXCHANGE_OWNER),
     EXCHANGE_MANAGE_ACCESS(Capability.EXCHANGE_SHARE),
 
-    // Documents
+    // Exchange documents
     DOCUMENT_VIEW(Capability.DOCUMENT_READ),
     DOCUMENT_DOWNLOAD(Capability.DOCUMENT_DOWNLOAD),
     DOCUMENT_UPLOAD(Capability.DOCUMENT_WRITE),
@@ -25,19 +27,95 @@ enum class Action(val required: Capability)
     DOCUMENT_COMMENT(Capability.DOCUMENT_COMMENT),
     DOCUMENT_SIGN(Capability.DOCUMENT_SIGN),
 
-    // Groups
+    // Document Library
+    DOC_LIBRARY_DISCOVER(Capability.DOC_LIBRARY_DISCOVER),
+    DOC_LIBRARY_VIEW(Capability.DOC_LIBRARY_READ),
+    DOC_LIBRARY_USE(Capability.DOC_LIBRARY_USE),
+    DOC_LIBRARY_CREATE(Capability.DOC_LIBRARY_WRITE),
+    DOC_LIBRARY_EDIT(Capability.DOC_LIBRARY_WRITE),
+    DOC_LIBRARY_DELETE(Capability.DOC_LIBRARY_DELETE),
+    DOC_LIBRARY_MANAGE(Capability.DOC_LIBRARY_ADMIN),
+
+    // Blueprint
+    BLUEPRINT_DISCOVER(Capability.BLUEPRINT_DISCOVER),
+    BLUEPRINT_VIEW(Capability.BLUEPRINT_READ),
+    BLUEPRINT_USE(Capability.BLUEPRINT_USE),
+    BLUEPRINT_CREATE(Capability.BLUEPRINT_WRITE),
+    BLUEPRINT_EDIT(Capability.BLUEPRINT_WRITE),
+    BLUEPRINT_DELETE(Capability.BLUEPRINT_DELETE),
+    BLUEPRINT_CLONE(Capability.BLUEPRINT_CLONE),
+    BLUEPRINT_PUBLISH(Capability.BLUEPRINT_PUBLISH),
+    BLUEPRINT_MANAGE(Capability.BLUEPRINT_ADMIN),
+
+    // Workflow Definition
+    WORKFLOW_DISCOVER(Capability.WORKFLOW_DISCOVER),
+    WORKFLOW_VIEW(Capability.WORKFLOW_READ),
+    WORKFLOW_USE(Capability.WORKFLOW_USE),
+    WORKFLOW_CREATE(Capability.WORKFLOW_WRITE),
+    WORKFLOW_EDIT(Capability.WORKFLOW_WRITE),
+    WORKFLOW_DELETE(Capability.WORKFLOW_DELETE),
+    WORKFLOW_CLONE(Capability.WORKFLOW_CLONE),
+    WORKFLOW_PUBLISH(Capability.WORKFLOW_PUBLISH),
+    WORKFLOW_MANAGE(Capability.WORKFLOW_ADMIN),
+
+    // Workflow Webhook
+    WEBHOOK_CONFIGURE(Capability.WEBHOOK_ADMIN),
+    WEBHOOK_ENABLE(Capability.WEBHOOK_ADMIN),
+    WEBHOOK_DISABLE(Capability.WEBHOOK_ADMIN),
+    WEBHOOK_DELIVER(Capability.WEBHOOK_DELIVER),
+    WEBHOOK_RETRY(Capability.WEBHOOK_DELIVER),
+    WEBHOOK_VIEW_HISTORY(Capability.WEBHOOK_AUDIT_READ),
+
+    // Sequence
+    SEQUENCE_DISCOVER(Capability.SEQUENCE_DISCOVER),
+    SEQUENCE_VIEW(Capability.SEQUENCE_READ),
+    SEQUENCE_CONSUME(Capability.SEQUENCE_CONSUME),
+    SEQUENCE_CREATE(Capability.SEQUENCE_WRITE),
+    SEQUENCE_EDIT(Capability.SEQUENCE_WRITE),
+    SEQUENCE_DELETE(Capability.SEQUENCE_DELETE),
+    SEQUENCE_MANAGE(Capability.SEQUENCE_ADMIN),
+
+    // Variable
+    VARIABLE_DISCOVER(Capability.VARIABLE_DISCOVER),
+    VARIABLE_VIEW_VALUE(Capability.VARIABLE_READ),
+    VARIABLE_USE(Capability.VARIABLE_USE),
+    VARIABLE_CREATE(Capability.VARIABLE_WRITE),
+    VARIABLE_EDIT(Capability.VARIABLE_WRITE),
+    VARIABLE_DELETE(Capability.VARIABLE_DELETE),
+    VARIABLE_MANAGE(Capability.VARIABLE_ADMIN),
+
+    // Communication
+    COMMUNICATION_DISCOVER(Capability.COMMUNICATION_DISCOVER),
+    COMMUNICATION_VIEW(Capability.COMMUNICATION_READ),
+    COMMUNICATION_USE(Capability.COMMUNICATION_USE),
+    COMMUNICATION_CREATE(Capability.COMMUNICATION_WRITE),
+    COMMUNICATION_EDIT(Capability.COMMUNICATION_WRITE),
+    COMMUNICATION_DELETE(Capability.COMMUNICATION_DELETE),
+    COMMUNICATION_PUBLISH(Capability.COMMUNICATION_PUBLISH),
+    COMMUNICATION_MANAGE(Capability.COMMUNICATION_ADMIN),
+
+    // Principal Group
     GROUP_VIEW(Capability.GROUP_READ),
+    GROUP_EDIT(Capability.GROUP_EDIT),
     GROUP_MANAGE_MEMBERS(Capability.GROUP_ADMIN),
     GROUP_DELETE(Capability.GROUP_DELETE),
 
-    // Org
+    // Organization
     ORG_MANAGE_MEMBERS(Capability.ORG_MEMBER_MANAGE),
     ORG_MANAGE_POLICY(Capability.ORG_POLICY_MANAGE),
     ORG_MANAGE_BILLING(Capability.ORG_BILLING_MANAGE),
     ORG_READ_AUDIT(Capability.ORG_AUDIT_READ),
 
-    // App
+    // Platform
     APP_ADMINISTRATE(Capability.APP_ADMIN),
     APP_READ_AUDIT(Capability.APP_AUDIT_READ),
-}
+    APP_SUPPORT_OPERATE(Capability.APP_SUPPORT),
 
+    // Application Registration
+    APP_REG_LIST(Capability.APP_REG_READ),
+    APP_REG_VIEW(Capability.APP_REG_READ),
+    APP_REG_CREATE(Capability.APP_REG_ADMIN),
+    APP_REG_ROTATE_CREDENTIALS(Capability.APP_REG_ADMIN),
+    APP_REG_GRANT_CAPABILITIES(Capability.APP_REG_ADMIN),
+    APP_REG_DEACTIVATE(Capability.APP_REG_ADMIN),
+}

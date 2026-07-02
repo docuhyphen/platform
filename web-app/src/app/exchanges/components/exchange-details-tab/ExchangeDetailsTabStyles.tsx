@@ -79,9 +79,6 @@ export const useExchangeDetailsTabStyles = makeStyles({
     additionalParticipantsLabel: {
         color: tokens.colorNeutralForeground3,
     },
-    maxViewsContainer: {
-        marginTop: "8px",
-    },
     initialShareMessageText: {
         marginTop: "6px",
         fontStyle: "italic",

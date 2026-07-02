@@ -44,10 +44,9 @@ insert into workflow_definition (
             "afterSlaBreach": "ESCALATE",
             "escalateTo": [
               {
-                "kind": "ROLE",
+                "kind": "ORGANIZATION_ROLE",
                 "roleName": "ORG_ADMIN",
-                "scopeType": "ORG",
-                "scopeIdRef": "$subject.orgId"
+                "organizationIdRef": "$subject.orgId"
               }
             ]
           },

@@ -10,6 +10,14 @@ import com.docuhyphen.app.api.model.dto.UpdateDocumentLibraryEntryRequest
 import com.docuhyphen.app.api.model.entity.BlueprintScope
 import com.docuhyphen.app.api.model.entity.DocumentLibraryEntry
 import com.docuhyphen.app.api.repository.DocumentLibraryRepository
+import com.docuhyphen.app.api.service.auth.UserRoleService
+import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.Decision
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
@@ -28,6 +36,9 @@ import java.util.UUID
 class DocumentLibraryService @Inject constructor(
     private val repository: DocumentLibraryRepository,
     private val fileStorageService: FileStorageService,
+    private val authorizationService: AuthorizationService,
+    private val authorizationContextFactory: AuthorizationContextFactory,
+    private val userRoleService: UserRoleService,
 )
 {
     private val logger = LoggerFactory.getLogger(DocumentLibraryService::class.java)
@@ -35,16 +46,14 @@ class DocumentLibraryService @Inject constructor(
 
     // ── Read ──────────────────────────────────────────────────────────────────
 
-    fun listEntries(
-        callerUserId: UUID,
-        callerOrgId: UUID?,
-        isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
-        scope: String?,
-        tag: String?,
-    ): List<DocumentLibraryEntrySummaryDto>
+    fun listEntries(scope: String?, tag: String?): List<DocumentLibraryEntrySummaryDto>
     {
-        return repository.findAllAccessibleForCaller(callerUserId, callerOrgId, isOrgAdmin, isAppAdmin)
+        val principal = currentPrincipal()
+        val activeOrgId = currentContext().activeOrgId
+        val isOrgAdmin = activeOrgId != null && userRoleService.isOrgAdminIn(principal.id, activeOrgId)
+        val isAppAdmin = userRoleService.isAppAdmin(principal.id)
+
+        return repository.findAllAccessibleForCaller(principal.id, activeOrgId, isOrgAdmin, isAppAdmin)
             .asSequence()
             .filter { scope == null || it.scope.name == scope.uppercase() }
             .filter { tag == null || decodeTags(it.generalTags).contains(tag) }
@@ -52,33 +61,34 @@ class DocumentLibraryService @Inject constructor(
             .toList()
     }
 
-    fun getEntry(id: UUID, callerUserId: UUID, callerOrgId: UUID?, isAppAdmin: Boolean): DocumentLibraryEntryDto
+    fun getEntry(id: UUID): DocumentLibraryEntryDto
     {
+        val principal = currentPrincipal()
+        val context = currentContext()
         val entry = repository.findById(id)
             ?: throw IllegalArgumentException("Document library entry not found: $id")
-        checkReadAccess(entry, callerUserId, callerOrgId, isAppAdmin)
+        checkReadAccess(entry, principal, context)
         return entry.toDto()
     }
 
     // ── Write ─────────────────────────────────────────────────────────────────
 
     @Transactional
-    fun createEntry(
-        request: CreateDocumentLibraryEntryRequest,
-        callerUserId: UUID,
-        callerOrgId: UUID?,
-        isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
-    ): DocumentLibraryEntryDto
+    fun createEntry(request: CreateDocumentLibraryEntryRequest): DocumentLibraryEntryDto
     {
-        val resolvedScope = resolveScope(request.scope, callerOrgId, isOrgAdmin, isAppAdmin)
+        val principal = currentPrincipal()
+        val activeOrgId = currentContext().activeOrgId
+        val isOrgAdmin = activeOrgId != null && userRoleService.isOrgAdminIn(principal.id, activeOrgId)
+        val isAppAdmin = userRoleService.isAppAdmin(principal.id)
+
+        val resolvedScope = resolveScope(request.scope, activeOrgId, isOrgAdmin, isAppAdmin)
         val entry = DocumentLibraryEntry().apply {
             title = request.title.trim()
             description = request.description?.trim()
             generalTags = encodeTags(request.generalTags)
             scope = resolvedScope
-            organizationId = if (resolvedScope == BlueprintScope.PERSONAL) null else callerOrgId
-            createdByAppUserId = callerUserId
+            organizationId = if (resolvedScope == BlueprintScope.PERSONAL) null else activeOrgId
+            createdByAppUserId = principal.id
             restrictType = request.restrictType
             restrictedType = request.restrictedType
             required = request.required
@@ -87,17 +97,13 @@ class DocumentLibraryService @Inject constructor(
     }
 
     @Transactional
-    fun updateEntry(
-        id: UUID,
-        request: UpdateDocumentLibraryEntryRequest,
-        callerUserId: UUID,
-        callerOrgId: UUID?,
-        isAppAdmin: Boolean,
-    ): DocumentLibraryEntryDto
+    fun updateEntry(id: UUID, request: UpdateDocumentLibraryEntryRequest): DocumentLibraryEntryDto
     {
+        val principal = currentPrincipal()
+        val context = currentContext()
         val entry = repository.findById(id)
             ?: throw IllegalArgumentException("Document library entry not found: $id")
-        checkWriteAccess(entry, callerUserId, callerOrgId, isAppAdmin)
+        checkWriteAccess(entry, principal, context)
 
         request.title?.trim()?.let { if (it.isNotBlank()) entry.title = it }
         request.description?.let { entry.description = it.trim().ifBlank { null } }
@@ -111,18 +117,13 @@ class DocumentLibraryService @Inject constructor(
     }
 
     @Transactional
-    fun uploadFile(
-        id: UUID,
-        file: File,
-        extension: String,
-        callerUserId: UUID,
-        callerOrgId: UUID?,
-        isAppAdmin: Boolean,
-    ): DocumentLibraryEntryDto
+    fun uploadFile(id: UUID, file: File, extension: String): DocumentLibraryEntryDto
     {
+        val principal = currentPrincipal()
+        val context = currentContext()
         val entry = repository.findById(id)
             ?: throw IllegalArgumentException("Document library entry not found: $id")
-        checkWriteAccess(entry, callerUserId, callerOrgId, isAppAdmin)
+        checkWriteAccess(entry, principal, context)
 
         val ext = extension.lowercase().trimStart('.')
         val storageKey = "lib/${entry.id}.$ext"
@@ -138,16 +139,13 @@ class DocumentLibraryService @Inject constructor(
         return repository.update(entry).toDto()
     }
 
-    fun downloadFile(
-        id: UUID,
-        callerUserId: UUID,
-        callerOrgId: UUID?,
-        isAppAdmin: Boolean,
-    ): File
+    fun downloadFile(id: UUID): File
     {
+        val principal = currentPrincipal()
+        val context = currentContext()
         val entry = repository.findById(id)
             ?: throw IllegalArgumentException("Document library entry not found: $id")
-        checkReadAccess(entry, callerUserId, callerOrgId, isAppAdmin)
+        checkReadAccess(entry, principal, context)
 
         val path = entry.storagePath
             ?: throw IllegalArgumentException("No file uploaded for document library entry $id")
@@ -156,34 +154,26 @@ class DocumentLibraryService @Inject constructor(
     }
 
     @Transactional
-    fun patchStatus(
-        id: UUID,
-        request: PatchDocumentLibraryStatusRequest,
-        callerUserId: UUID,
-        callerOrgId: UUID?,
-        isAppAdmin: Boolean,
-    ): DocumentLibraryEntryDto
+    fun patchStatus(id: UUID, request: PatchDocumentLibraryStatusRequest): DocumentLibraryEntryDto
     {
+        val principal = currentPrincipal()
+        val context = currentContext()
         val entry = repository.findById(id)
             ?: throw IllegalArgumentException("Document library entry not found: $id")
-        checkWriteAccess(entry, callerUserId, callerOrgId, isAppAdmin)
+        checkWriteAccess(entry, principal, context)
         entry.isActive = request.isActive
         entry.updatedAt = Timestamp.from(Instant.now())
         return repository.update(entry).toDto()
     }
 
     @Transactional
-    fun patchPublished(
-        id: UUID,
-        request: PatchDocumentLibraryPublishedRequest,
-        callerUserId: UUID,
-        callerOrgId: UUID?,
-        isAppAdmin: Boolean,
-    ): DocumentLibraryEntryDto
+    fun patchPublished(id: UUID, request: PatchDocumentLibraryPublishedRequest): DocumentLibraryEntryDto
     {
+        val principal = currentPrincipal()
+        val context = currentContext()
         val entry = repository.findById(id)
             ?: throw IllegalArgumentException("Document library entry not found: $id")
-        checkWriteAccess(entry, callerUserId, callerOrgId, isAppAdmin)
+        checkWriteAccess(entry, principal, context)
         if (entry.scope == BlueprintScope.PERSONAL)
         {
             throw ForbiddenException("Personal library entries cannot be published")
@@ -194,42 +184,43 @@ class DocumentLibraryService @Inject constructor(
     }
 
     @Transactional
-    fun deleteEntry(id: UUID, callerUserId: UUID, callerOrgId: UUID?, isAppAdmin: Boolean)
+    fun deleteEntry(id: UUID)
     {
+        val principal = currentPrincipal()
+        val context = currentContext()
         val entry = repository.findById(id)
             ?: throw IllegalArgumentException("Document library entry not found: $id")
-        checkWriteAccess(entry, callerUserId, callerOrgId, isAppAdmin)
+        checkWriteAccess(entry, principal, context)
         entry.isDeleted = true
         entry.isActive = false
         entry.updatedAt = Timestamp.from(Instant.now())
         repository.update(entry)
-        logger.info("Document library entry {} soft-deleted by user {}", id, callerUserId)
+        logger.info("Document library entry {} soft-deleted by user {}", id, principal.id)
     }
 
     @Transactional
-    fun cloneEntry(
-        id: UUID,
-        request: CloneDocumentLibraryEntryRequest,
-        callerUserId: UUID,
-        callerOrgId: UUID?,
-        isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
-    ): DocumentLibraryEntryDto
+    fun cloneEntry(id: UUID, request: CloneDocumentLibraryEntryRequest): DocumentLibraryEntryDto
     {
+        val principal = currentPrincipal()
+        val context = currentContext()
+        val activeOrgId = context.activeOrgId
+        val isOrgAdmin = activeOrgId != null && userRoleService.isOrgAdminIn(principal.id, activeOrgId)
+        val isAppAdmin = userRoleService.isAppAdmin(principal.id)
+
         val source = repository.findById(id)
             ?: throw IllegalArgumentException("Document library entry not found: $id")
-        checkReadAccess(source, callerUserId, callerOrgId, isAppAdmin)
+        checkReadAccess(source, principal, context)
 
-        val targetScope = resolveCloneTargetScope(request.targetScope, callerOrgId, isOrgAdmin, isAppAdmin)
+        val targetScope = resolveCloneTargetScope(request.targetScope, activeOrgId, isOrgAdmin, isAppAdmin)
         val clone = DocumentLibraryEntry().apply {
             title = request.newName?.trim()?.ifBlank { null } ?: "${source.title} (copy)"
             description = source.description
             generalTags = source.generalTags
             isActive = false
             scope = targetScope
-            organizationId = if (targetScope == BlueprintScope.ORG) callerOrgId else null
+            organizationId = if (targetScope == BlueprintScope.ORG) activeOrgId else null
             sourceDocumentId = source.id
-            createdByAppUserId = callerUserId
+            createdByAppUserId = principal.id
         }
         return repository.save(clone).toDto()
     }
@@ -243,38 +234,40 @@ class DocumentLibraryService @Inject constructor(
 
     // ── Access control ────────────────────────────────────────────────────────
 
-    private fun checkReadAccess(entry: DocumentLibraryEntry, callerUserId: UUID, callerOrgId: UUID?, isAppAdmin: Boolean)
+    private fun checkReadAccess(entry: DocumentLibraryEntry, principal: PrincipalRef, context: AuthorizationContext)
     {
-        if (isAppAdmin) return
+        if (userRoleService.isAppAdmin(principal.id)) return
         when (entry.scope)
         {
             BlueprintScope.PERSONAL ->
-            {
-                if (entry.createdByAppUserId != callerUserId)
+                if (entry.createdByAppUserId != principal.id)
                     throw ForbiddenException("Access denied to document library entry ${entry.id}")
-            }
             BlueprintScope.ORG ->
             {
-                if (callerOrgId == null || entry.organizationId != callerOrgId)
+                val decision = authorizationService.authorize(
+                    principal, Action.DOC_LIBRARY_VIEW, ResourceRef.docLibrary(entry.id), context,
+                )
+                if (decision is Decision.Deny)
                     throw ForbiddenException("Access denied to document library entry ${entry.id}")
             }
             BlueprintScope.APP -> { }
         }
     }
 
-    private fun checkWriteAccess(entry: DocumentLibraryEntry, callerUserId: UUID, callerOrgId: UUID?, isAppAdmin: Boolean)
+    private fun checkWriteAccess(entry: DocumentLibraryEntry, principal: PrincipalRef, context: AuthorizationContext)
     {
-        if (isAppAdmin) return
+        if (userRoleService.isAppAdmin(principal.id)) return
         when (entry.scope)
         {
             BlueprintScope.PERSONAL ->
-            {
-                if (entry.createdByAppUserId != callerUserId)
+                if (entry.createdByAppUserId != principal.id)
                     throw ForbiddenException("Access denied to document library entry ${entry.id}")
-            }
             BlueprintScope.ORG ->
             {
-                if (callerOrgId == null || entry.organizationId != callerOrgId)
+                val decision = authorizationService.authorize(
+                    principal, Action.DOC_LIBRARY_EDIT, ResourceRef.docLibrary(entry.id), context,
+                )
+                if (decision is Decision.Deny)
                     throw ForbiddenException("Access denied to document library entry ${entry.id}")
             }
             BlueprintScope.APP ->
@@ -284,9 +277,16 @@ class DocumentLibraryService @Inject constructor(
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    private fun currentPrincipal(): PrincipalRef =
+        authorizationContextFactory.currentPrincipal()
+            ?: throw ForbiddenException("Not authenticated")
+
+    private fun currentContext(): AuthorizationContext =
+        authorizationContextFactory.currentContext()
+
     private fun resolveScope(
         requestedScope: String?,
-        callerOrgId: UUID?,
+        activeOrgId: UUID?,
         isOrgAdmin: Boolean,
         isAppAdmin: Boolean,
     ): BlueprintScope
@@ -304,14 +304,14 @@ class DocumentLibraryService @Inject constructor(
         return when
         {
             isAppAdmin -> BlueprintScope.APP
-            isOrgAdmin && callerOrgId != null -> BlueprintScope.ORG
+            isOrgAdmin && activeOrgId != null -> BlueprintScope.ORG
             else -> BlueprintScope.PERSONAL
         }
     }
 
     private fun resolveCloneTargetScope(
         requested: String?,
-        callerOrgId: UUID?,
+        activeOrgId: UUID?,
         isOrgAdmin: Boolean,
         isAppAdmin: Boolean,
     ): BlueprintScope
@@ -324,7 +324,7 @@ class DocumentLibraryService @Inject constructor(
             {
                 if (!isOrgAdmin && !isAppAdmin)
                     throw ForbiddenException("Org admin role required to clone into the organization collection")
-                if (callerOrgId == null)
+                if (activeOrgId == null)
                     throw ForbiddenException("No organization membership found")
                 BlueprintScope.ORG
             }

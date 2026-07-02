@@ -71,7 +71,8 @@ class Share
     lateinit var principalId: UUID
 
     @Column(name = "role_name", nullable = false, length = 64)
-    var roleName: String = RoleName.VIEWER.name
+    @Enumerated(EnumType.STRING)
+    var roleName: ExchangeShareRoleName = ExchangeShareRoleName.VIEWER
 
     @Column(name = "source", nullable = false, length = 32)
     @Enumerated(EnumType.STRING)

@@ -14,6 +14,8 @@ import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import com.docuhyphen.app.api.service.auth.SessionService
+import com.docuhyphen.app.api.service.auth.UserRoleService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -32,7 +34,9 @@ class AppUserResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val organizationGroupService: OrganizationGroupService,
     private val membershipService: OrganizationMembershipService,
+    private val userRoleService: UserRoleService,
     private val appUserService: AppUserService,
+    private val sessionService: SessionService,
 )
 {
     companion object
@@ -48,13 +52,22 @@ class AppUserResource @Inject constructor(
             authTokenContext.authToken.appUser?.let {
                 membershipService.primaryOrganizationId(it.id)?.let { orgId ->
 
-                    val userRole = membershipService.roleOf(it.id, orgId)
+                    val organizationRoles = membershipService.rolesOf(it.id, orgId)
+                    Response.ok(
+                        DetailedEntityToDtoTransformer.toDto(
+                            it,
+                            userRoleService.appRoles(it.id),
+                            organizationRoles,
+                        )
+                    ).build()
 
-                    if(userRole != null) {
-                        Response.ok(DetailedEntityToDtoTransformer.toDto(it, userRole)).build()
-                    } else null
-
-                } ?: Response.ok(DetailedEntityToDtoTransformer.toDto(it)).build()
+                } ?: Response.ok(
+                    DetailedEntityToDtoTransformer.toDto(
+                        it,
+                        userRoleService.appRoles(it.id),
+                        emptySet(),
+                    )
+                ).build()
 
             } ?: Response.status(BAD_REQUEST).entity(ResponseError("No user found")).build()
         }
@@ -63,6 +76,41 @@ class AppUserResource @Inject constructor(
             logger.error("Error initiating sign up", exception)
             val responseError = ResponseError("A server error occurred while signing up.")
             Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+        }
+    }
+
+    /**
+     * Returns the current-session contract: user identity, the explicitly selected organization,
+     * all applicable scoped roles, and the union of effective capabilities for this context.
+     *
+     * The frontend derives menu visibility, action controls, and settings tab gates from the
+     * returned capabilities rather than from raw role strings.
+     */
+    @GET
+    @Path("/session")
+    fun getCurrentSession(): Response
+    {
+        return try
+        {
+            Response.ok(sessionService.currentSession()).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is UnauthorizedException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.UNAUTHORIZED).entity(responseError).build()
+                }
+
+                else ->
+                {
+                    logger.error("Error fetching current session", exception)
+                    val responseError = ResponseError("A server error occurred while fetching the session.")
+                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
         }
     }
 

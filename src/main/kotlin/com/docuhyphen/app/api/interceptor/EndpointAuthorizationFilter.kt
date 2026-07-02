@@ -3,8 +3,11 @@
 import com.docuhyphen.app.api.model.entity.AuthToken
 import com.docuhyphen.app.api.model.entity.AuthTokenType.ACCESS
 import com.docuhyphen.app.api.service.AppUserService
+import java.security.MessageDigest
+import com.docuhyphen.app.api.service.application.ApplicationService
 import com.docuhyphen.app.api.service.auth.ApplicationTokenBoundaryService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
+import com.docuhyphen.app.api.repository.OrganizationMembershipRepository
 import com.docuhyphen.app.api.service.auth.OrganizationMembershipValidationService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.RequestScoped
@@ -35,6 +38,27 @@ class AuthTokenContext
         {
             _authToken = value
         }
+
+    /** Best-effort client IP extracted from X-Forwarded-For / X-Real-IP request headers. */
+    var clientIp: String? = null
+
+    /**
+     * SHA-256 hex of the raw share-link token from the X-Share-Link-Token header.
+     * Set for all requests (including no-auth) when the header is present.
+     * Used by [com.docuhyphen.app.api.service.auth.authz.DefaultAuthorizationService]
+     * to resolve a PUBLIC_LINK grant without storing or logging the raw token.
+     */
+    var shareLinkTokenHash: String? = null
+
+    /**
+     * The organization the caller has explicitly selected for this session, extracted from the
+     * X-Active-Organization-Id header after the filter validates membership. Null when the
+     * caller has not selected an organization (personal-product flows).
+     */
+    var activeOrganizationId: UUID? = null
+
+    /** The OrganizationMembership row ID corresponding to [activeOrganizationId]. */
+    var activeMembershipId: UUID? = null
 }
 
 class AuthTokenProducer
@@ -54,11 +78,13 @@ class AuthTokenProducer
 class EndpointVerificationFilter @Inject constructor(
     private val authenticationService: AuthenticationService,
     private val applicationTokenBoundaryService: ApplicationTokenBoundaryService,
+    private val applicationService: ApplicationService,
     private val appUserService: AppUserService,
     private val userSessionService: com.docuhyphen.app.api.service.auth.UserSessionService,
     private val sessionRevocationCache: com.docuhyphen.app.api.service.auth.SessionRevocationCache,
     private val dpopValidationService: com.docuhyphen.app.api.service.auth.DpopValidationService,
     private val organizationMembershipValidationService: OrganizationMembershipValidationService,
+    private val organizationMembershipRepository: OrganizationMembershipRepository,
     private val configurationService: ConfigurationService,
     private val authSessionPolicyService: com.docuhyphen.app.api.service.auth.AuthSessionPolicyService,
     private val authAuditService: com.docuhyphen.app.api.service.auth.AuthAuditService,
@@ -91,6 +117,16 @@ class EndpointVerificationFilter @Inject constructor(
     {
         val requestUri = requestContext.uriInfo.path
         logger.info("Intercepted request to URI: $requestUri")
+
+        authenticationContext.clientIp = requestContext.getHeaderString("X-Forwarded-For")
+            ?.split(",")?.firstOrNull()?.trim()
+            ?: requestContext.getHeaderString("X-Real-IP")?.trim()
+
+        val rawLinkToken = requestContext.getHeaderString("X-Share-Link-Token")?.trim()
+        if (!rawLinkToken.isNullOrBlank())
+        {
+            authenticationContext.shareLinkTokenHash = sha256Hex(rawLinkToken)
+        }
 
         if (excludedEndpoints.any { requestUri.contains(it) })
         {
@@ -126,6 +162,13 @@ class EndpointVerificationFilter @Inject constructor(
 
         if (applicationTokenBoundaryService.isApplicationPrincipal(claims))
         {
+            val applicationId = runCatching { UUID.fromString(claims.subject) }.getOrNull()
+            if (applicationId == null)
+            {
+                logger.warn("Application token has an invalid subject for uri={}", requestUri)
+                abortRequest(requestContext, "Unauthorized request")
+                return
+            }
             val scopes = applicationTokenBoundaryService.extractScopes(claims)
             if (!applicationTokenBoundaryService.isApplicationTokenAllowedForPath(requestUri, scopes))
             {
@@ -134,13 +177,23 @@ class EndpointVerificationFilter @Inject constructor(
                 return
             }
 
+            val application = applicationService.findActive(applicationId)
+            if (application == null)
+            {
+                logger.warn("Application token references unknown or inactive application={} uri={}", applicationId, requestUri)
+                abortRequest(requestContext, "Unauthorized request")
+                return
+            }
+
             val virtualToken = AuthToken().apply {
                 this.token = token
                 this.tokenType = ACCESS
+                this.applicationId = applicationId
+                this.application = application
             }
 
             authenticationContext.authToken = virtualToken
-            logger.info("Successfully authorized application token for uri={}", requestUri)
+            logger.info("Successfully authorized application token for application={} uri={}", applicationId, requestUri)
             return
         }
 
@@ -291,6 +344,29 @@ class EndpointVerificationFilter @Inject constructor(
             }
         }
 
+        val rawActiveOrgHeader = requestContext.getHeaderString("X-Active-Organization-Id")?.trim()
+        if (!rawActiveOrgHeader.isNullOrBlank())
+        {
+            val requestedOrgId = runCatching { UUID.fromString(rawActiveOrgHeader) }.getOrNull()
+            if (requestedOrgId == null)
+            {
+                logger.warn("Malformed X-Active-Organization-Id header user={}", userId)
+                abortWithForbidden(requestContext, "Invalid organization ID")
+                return
+            }
+
+            val membership = organizationMembershipRepository.findActiveByUserAndOrg(userId, requestedOrgId)
+            if (membership == null)
+            {
+                logger.warn("User={} requested active org={} but has no active membership", userId, requestedOrgId)
+                abortWithForbidden(requestContext, "No active membership in the selected organization")
+                return
+            }
+
+            authenticationContext.activeOrganizationId = requestedOrgId
+            authenticationContext.activeMembershipId = membership.id
+        }
+
         val virtualToken = AuthToken().apply {
             this.appUser = appUser
             this.token = token
@@ -308,5 +384,21 @@ class EndpointVerificationFilter @Inject constructor(
                 .entity(message)
                 .build()
         )
+    }
+
+    private fun abortWithForbidden(requestContext: ContainerRequestContext, message: String)
+    {
+        requestContext.abortWith(
+            Response.status(Response.Status.FORBIDDEN)
+                .entity(message)
+                .build()
+        )
+    }
+
+    private fun sha256Hex(raw: String): String
+    {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val bytes = digest.digest(raw.toByteArray(Charsets.UTF_8))
+        return bytes.joinToString("") { "%02x".format(it) }
     }
 }

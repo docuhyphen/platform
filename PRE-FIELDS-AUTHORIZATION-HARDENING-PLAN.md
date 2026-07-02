@@ -1,5 +1,251 @@
 # Pre-Fields Authorization Hardening Implementation Plan
 
+## Implementation Status
+
+- Status as of 2026-07-01 (updated): All 8 critical cross-cutting findings are fixed.
+  Phase 0 is complete. Phase 1 is complete (all 13 items done, including item 13 completed
+  2026-07-01). Phase 2 is complete (all 19 cross-org tests pass). Phase 3 is complete (OwnerContext/ScopeReference/
+  ResourceReference canonical contracts defined; V30+V31 DB CHECK constraints added; ownership
+  verified in all create service paths).
+  Phase 4 is complete (ResourceAuthorizationContextRegistry + ExchangeAuthorizationContextProvider
+  introduced; DefaultAuthorizationService now resolves owner from target resource for EXCHANGE
+  and PRINCIPAL_GROUP; resource-state deny for archived/suspended exchanges wired in;
+  ResourceRef.session() alias removed and all 8 callers renamed to ResourceRef.exchange();
+  DefaultAuthorizationService refactored to constructor injection; 5 exit tests pass, 31/31
+  total tests green). Phase 5 is complete (Action/Capability model: EXCHANGE_RESCIND,
+  EXCHANGE_INITIATE, APP_ADMIN wildcard removed; 7 Phase5 tests pass). Phase 6 is complete
+  (Application management: signing secrets, webhook destination policy; 24 Phase6 tests pass).
+  Phase 7 is complete (Share constraint enforcement: malformed JSON denies, IP allowlist CIDR
+  enforcement, MFA enforcement, allowedDownloadFormats intersection obligations, PUBLIC_LINK
+  ShareLink grant resolution via X-Share-Link-Token header, SHA-256 hash pipeline through
+  EndpointAuthorizationFilter -> AuthorizationContextFactory, ShareLinkValidationService for
+  no-auth path, maxViews removed from contract; 12 PublicLinkShare + 28 ShareConstraint
+  exit tests pass; 135/135 total tests green 2026-07-01). Phase 8 is complete (see Phase 8 section
+  below). Phase 9 is complete (2026-07-01): org group creation now authorizes via
+  AuthorizationService against ResourceRef.organization(orgId) (OrganizationAuthorizationContextProvider,
+  ResourceType.ORGANIZATION, ResourceRef.organization() added); ExchangeDocumentService APPLICATION
+  principal support: validateUserPermissions now uses currentPrincipal() not hardcoded
+  PrincipalRef.user(appUser!!.id), all audit paths handle APPLICATION via actorEmail() helper;
+  webhook delivery hardened: signingSecretHash renamed to signingSecretToken (raw Base64, V34
+  migration), WebhookDeliveryService and WebhookWorkflowActionHandler implemented (HMAC-SHA256
+  X-DocuHyphen-Signature-256); document path validation and UUID bypass already done;
+  ResourceAuthorizationTest (25 tests) and OrgGroupAuthorizationTest (10 tests) pass;
+  201/201 total tests green 2026-07-01. Phase 10 is complete (2026-07-02): complete test matrix
+  verified, 11 new Phase 10 tests added (GroupMediatedShareTest 5 tests, RescindSideEffectsTest
+  6 tests), 212/212 total tests green; help docs (adminOperationsSection, manageAccessArticle)
+  reviewed and confirmed accurate with no updates required.
+- Fields implementation status: UNBLOCKED. Fields Foundation Readiness Gate PASSED 2026-07-02.
+
+### All 8 critical findings — resolved
+
+1. **`GET /exchanges/{id}` no auth** — `ExchangeRetrievalService.getExchange()` now authorizes
+   `EXCHANGE_VIEW` and throws `ExchangeNotFoundException` for both 404 and 403 (UUID enumeration
+   concealment). `GET /exchanges/{id}/access` routed through
+   `ExchangeAccessManagementService.getSessionAccessView()`, which enforces `EXCHANGE_MANAGE_ACCESS`.
+   TEMP DEBUG logging block removed from `ExchangeResource`.
+2. **`APP_ADMIN` capability wildcard** — `RoleCapabilities.kt`: `APP_ADMIN` now maps to an explicit
+   set `{APP_ADMIN, APP_AUDIT_READ}`; `APP_AUDITOR` to `{APP_AUDIT_READ, ORG_AUDIT_READ}`;
+   `APP_SUPPORT` to `{APP_SUPPORT}`. Customer-content reads (`EXCHANGE_READ`, `DOCUMENT_READ`,
+   `GROUP_READ`) removed from `APP_AUDITOR` and `APP_SUPPORT`.
+3. **Cross-org privilege gaps** — all identified services now use `isOrgAdminIn(userId, targetOrgId)`
+   with the org ID parsed before the auth check: `OrganizationAppUserService` (add/update/delete),
+   `OrganizationService.updateOrganization`, `SettingsService.updateOrganizationSettings`,
+   `OrganizationExchangeLinkService` (all 5 methods, dead TODO/commented checks removed),
+   `OrganizationAuthSessionPolicyResource` (get/settings), `OrganizationIdpSecretRotationRunbookService`,
+   `OrganizationIdentityProviderConfigService`, `OrganizationIdpSecretLifecycleService`.
+   `AuthAuditResource` now scopes results to the actor's organization (APP_ADMIN sees all).
+   `SecurityIncidentResource` now requires `isAppAdmin` (platform-level data).
+4. **Exchange has no persisted owner** — `Exchange` entity has `ownerOrganizationId: UUID?` and
+   `ownerUserId: UUID?`; V28 migration adds both columns; `ExchangeInitiationService` sets one of the
+   two in the same transaction as creation.
+5. **Plaintext application credentials** — column renamed `api_secret` → `api_secret_hash` (V29
+   migration); `ApplicationRepository` and `ApplicationService` created; `ApplicationService`
+   uses `BCrypt.checkpw`, checks `isActive`, updates `lastAccessDate`, issues JWT;
+   `ApplicationAuthResource` is now thin (no entity queries, no raw key logging).
+6. **`ShareConstraints.parse()` fail-open** — returns `null` on malformed JSON; all callers updated:
+   `DefaultAuthorizationService` denies with `INVALID_CONSTRAINTS`; `ExchangeResource`,
+   `ExchangeUpdateService`, `ExchangeDocumentService` handle null safely.
+7. **`ShareService` dual-write comment** — stale class doc removed; confirmed legacy columns already
+   dropped.
+8. **`mfaSatisfied`/`clientIp` always zero/null** — `AuthTokenContext` now carries `clientIp: String?`
+   populated by `EndpointVerificationFilter` from `X-Forwarded-For`/`X-Real-IP` headers.
+   `AuthorizationContextFactory` injects `StepUpAuthService` and calls `isFresh()` for `mfaSatisfied`.
+   The `requireMfa` Share constraint now evaluates a real value.
+
+### Phase 1 item 13 — resolved (2026-07-01)
+
+**`APPLICATION` principal wired into centralized capability evaluation.** Token-scope and
+endpoint-prefix gating now acts as a boundary check only; business authorization flows through
+`DefaultAuthorizationService` for all principal kinds.
+
+Changed files (all uncommitted, working tree):
+
+- `interceptor/EndpointAuthorizationFilter.kt` — injects `ApplicationService`; loads
+  `Application` entity via `ApplicationService.findActive(applicationId)` in the APPLICATION token
+  branch; aborts 401 if the application is missing or inactive; sets `authToken.application =
+  application` so downstream code has the full entity without a second DB round-trip.
+- `model/entity/AuthToken.kt` — added `@Transient var application: Application?`.
+- `service/application/ApplicationService.kt` — added `findActive(id: UUID): Application?`
+  delegating to `ApplicationRepository.findActiveById`.
+- `service/auth/authz/AuthorizationContext.kt` — added `applicationId: UUID? = null`; APPLICATION
+  requests now carry a real context instead of resolving to `ANONYMOUS`.
+- `service/auth/authz/AuthorizationContextFactory.kt` — `currentContext()` checks
+  `token.application` first and returns `AuthorizationContext(applicationId = application.id, ...)`
+  for application tokens; user path is unchanged.
+- `service/auth/authz/DefaultAuthorizationService.kt` — injects `ApplicationService`; `grantsOn()`
+  calls new `collectApplicationRoleGrants()` for `APPLICATION` kind principals. The APPLICATION role
+  maps to `emptySet()` in `RoleCapabilities` today; resource capabilities come from Share grants.
+  The plumbing is in place for Phase 5 to add machine capabilities without structural change.
+- `service/auth/authz/Decision.kt` — added `Grant.SourceKind.APPLICATION_ROLE` for audit
+  attribution distinct from human `ROLE_ASSIGNMENT`.
+- `exception/Exceptions.kt` — added `RoleScopeViolationException`.
+- `exception/RoleScopeViolationExceptionMapper.kt` (new) — `@Provider`; maps
+  `RoleScopeViolationException` to 400 with `reasonCode = ROLE_SCOPE_VIOLATION`.
+
+### Delivery-rule gate
+
+Phase 1 is fully closed. Phase 2 exit criteria (cross-organization negative tests) have not been
+met. The plan rule requires Phase 2 to be closed before moving deeper into Phases 3–9.
+
+### Phase 2 work completed 2026-07-01
+
+**Authorization fix:** `OrganizationAppUserService.getAppUsers` was missing an org-boundary check.
+Added `isOrgAdminIn` guard matching the pattern used in `addAppUser`, `updateAppUser`, and
+`deleteAppUser` (`src/main/kotlin/.../service/organization/OrganizationAppUserService.kt`).
+
+**Test files written (all in `src/test/kotlin/...`):**
+
+- `service/organization/CrossOrgMemberManagementTest.kt` — 8 tests covering `addAppUser`,
+  `updateAppUser`, `deleteAppUser`, `getAppUsers` for negative (OrgB target denied) and positive
+  (OrgA target passes auth gate) cases. Target: `OrganizationAppUserService`.
+- `service/organization/CrossOrgExchangeLinkTest.kt` — 8 tests covering `createLink`, `acceptLink`,
+  `deLink`, `getLinksByOrganization` for negative and positive cases. Target:
+  `OrganizationExchangeLinkService`.
+- `resource/CrossOrgAuditScopeTest.kt` — 3 tests: ORG_ADMIN gets 200 with events scoped to own
+  org; ORG_ADMIN does not receive APP_ADMIN (null-org) scope; non-admin gets 403. Target:
+  `AuthAuditResource`.
+
+**Next session start**
+
+Read `AGENTS.md` and this plan in full before writing any code.
+
+**Phase 4 complete.** `ResourceAuthorizationContextRegistry` and `ExchangeAuthorizationContextProvider`
+introduced; `DefaultAuthorizationService` now resolves the owner organization from the target
+Exchange, not from `context.activeOrgId`. Resource-state denies (archived / suspended) wired in.
+`ResourceRef.session()` alias removed; all callers use `ResourceRef.exchange()`. Constructor
+injection adopted in `DefaultAuthorizationService`. 5/5 Phase 4 tests pass; 31/31 total green.
+
+**Phase 5 complete (2026-07-01).** Action and Capability model fully expanded.
+
+Changed files (all uncommitted, working tree):
+
+- `service/auth/authz/Action.kt` — expanded from 22 to 98 actions covering Exchange
+  (INITIATE, RESCIND added), Exchange documents, Document Library, Blueprint, Workflow
+  Definition, Workflow Webhook, Sequence, Variable, Communication, Principal Group (GROUP_EDIT
+  added), Organization, Platform (APP_SUPPORT_OPERATE added), and Application Registration.
+- `service/auth/authz/Capability.kt` — expanded from 23 to 80 capabilities. EXCHANGE_INITIATE
+  and EXCHANGE_RESCIND added. DOC_LIBRARY_*, BLUEPRINT_*, WORKFLOW_*, WEBHOOK_*, SEQUENCE_*,
+  VARIABLE_*, COMMUNICATION_*, GROUP_EDIT, APP_REG_READ, APP_REG_ADMIN added. All new
+  capabilities default to no role (default-deny extension point confirmed by WEBHOOK_DELIVER test).
+- `service/auth/authz/RoleCapabilities.kt` — all role families updated with intentional
+  capabilities for their scope. EXCHANGE_RESCIND added to OWNER Share role only. EXCHANGE_INITIATE
+  added to APP_USER and ORG_MEMBER. APPLICATION role remains emptySet() (EXCHANGE_INITIATE
+  comes from Application.grantedCapabilitiesJson only). ORG_OWNER and ORG_ADMIN receive full
+  org-resource admin capabilities. ORG_MEMBER receives discover/read/use only (no write/admin).
+  GROUP_EDIT added to group OWNER and MANAGER. APP_ADMIN gains APP_REG_READ + APP_REG_ADMIN.
+  ORG_BILLING_MANAGE reserved to ORG_OWNER; ORG_ADMIN does not receive it.
+- `model/entity/ResourceType.kt` — six new values: DOC_LIBRARY, BLUEPRINT, WORKFLOW_DEFINITION,
+  SEQUENCE, VARIABLE, COMMUNICATION.
+- `service/auth/authz/ResourceAuthorizationContextRegistry.kt` — exhaustive `when` in
+  `toResourceKind()` extended to map all six new ResourceType values to their ResourceKind.
+- `model/entity/Application.kt` — added `ownerOrganizationId: UUID?` and
+  `grantedCapabilitiesJson: String` (default `[]`).
+- `service/auth/authz/DefaultAuthorizationService.kt` — `collectApplicationRoleGrants()` now
+  unions role capabilities with `parseApplicationCapabilities(grantedCapabilitiesJson)`.
+  Added private `parseApplicationCapabilities()` helper (no external dependency; fail-closed
+  on malformed JSON).
+- `db/migration/V32__application_capability_grants.sql` — adds `owner_organization_id` and
+  `granted_capabilities` columns to the `application` table.
+- `test/.../Phase5ActionCapabilityModelTest.kt` — 29 tests: default-deny extension point,
+  EXCHANGE_RESCIND scope, EXCHANGE_INITIATE scope, ORG_MEMBER write restriction, GROUP_EDIT
+  scope, APP_ADMIN/APP_AUDITOR registration access, multi-role composition (Ethan scenario),
+  scope isolation, discover vs view vs value, Use does not imply Edit.
+- `test/.../Phase5ApplicationCapabilityGrantTest.kt` — 7 tests: CLM with EXCHANGE_INITIATE
+  grant allowed, CLM gains no other Exchange capabilities, application without grant denied,
+  authorize() Allow and Deny, inactive application denied, malformed JSON fails closed.
+
+Test result: 67/67 pass (38 Phase 5 + 29 prior phases).
+
+Fields-blocking items in Phase 5: EXCHANGE_INITIATE, EXCHANGE_RESCIND, APPLICATION capability
+resolution, and the default-deny extension point are all Fields-blocking. The new resource type
+capabilities (DOC_LIBRARY, BLUEPRINT, etc.) are broader platform hardening.
+
+**Phase 6 complete (2026-07-01).** Platform administrator, credential, and webhook hardening.
+
+Changed files (all uncommitted, working tree):
+
+- `service/auth/AppRoleAssignmentService.kt` — removed auto-bootstrap from `requireAppAdmin()`.
+  Method now simply checks `isAppAdmin(actorId)` and throws SecurityException if false. The
+  config-based startup bootstrap (`bootstrapFirstAppAdmin`) is the only remaining in-process path.
+- `service/auth/AuthenticationService.kt` — application JWT now includes `iss` and `aud` claims
+  (both set to `ConfigurationService.getJwtIssuer()` which is the deployment base URL).
+- `service/config/ConfigurationService.kt` — added `getJwtIssuer()` returning `baseUrl`.
+- `model/entity/ResourceType.kt` — added `APPLICATION` and `WORKFLOW_WEBHOOK_ENDPOINT`.
+- `service/auth/authz/ResourceAuthorizationContextRegistry.kt` — exhaustive `when` extended;
+  both new types map to `null` (no resource-state provider; resource-state checks skipped).
+- `service/auth/authz/Action.kt` — added `APP_REG_LIST` and `APP_REG_CREATE` actions.
+- `repository/ApplicationRepository.kt` — added `findAllOrdered()`.
+- `exception/Exceptions.kt` — added `ApplicationNotFoundException`.
+- `service/application/ApplicationManagementService.kt` (new) — list, get, create, deactivate,
+  rotateCredentials, updateGrantedCapabilities. Every operation authorized via `AuthorizationService`
+  using `APP_REG_READ` / `APP_REG_ADMIN` capability. Credential generation uses `SecureRandom`
+  (Base64url-encoded). Audit records emitted for every mutation.
+- `resource/ApplicationManagementResource.kt` (new) — thin adapter at `/admin/applications`.
+  All authorization delegated to `ApplicationManagementService`. Raw secret returned only at
+  create and rotate time; never stored in plaintext.
+- `model/entity/WorkflowWebhookEndpoint.kt` (new) — JPA entity with `signingSecretHash` stored
+  separately from `Application.apiSecretHash`. Separate `signingSecretVersion` for overlap-window
+  rotation.
+- `repository/WorkflowWebhookEndpointRepository.kt` (new).
+- `service/application/WebhookDestinationPolicy.kt` (new) — SSRF guard. Validates URLs against
+  loopback, link-local, private/site-local, and EC2 metadata-service address ranges. DNS resolution
+  at registration time. Non-http(s) schemes denied.
+- `service/application/WorkflowWebhookEndpointManagementService.kt` (new) — register, enable,
+  disable, rotateSigningSecret. Every operation authorized via `WEBHOOK_ADMIN` capability. Audit
+  records emitted. Target URL validated via `WebhookDestinationPolicy` before persist.
+- `resource/WorkflowWebhookEndpointResource.kt` (new) — thin adapter at
+  `/organizations/{orgId}/workflow-webhooks`.
+- `db/migration/V33__workflow_webhook_endpoint.sql` (new) — creates `workflow_webhook_endpoint`
+  table with CHECK constraints on target_url and signing_secret_version.
+- `pom.xml` — added `mockito-kotlin 5.4.0` test dependency.
+- `test/.../Phase6AppAdminGuardTest.kt` — 4 tests: SecurityException thrown when non-admin calls
+  requireAppAdmin; no save() called regardless of org-admin status; existing admin not blocked.
+- `test/.../Phase6ApplicationManagementTest.kt` — 10 tests: list/rotate/deactivate/capabilities
+  with Allow and Deny decisions; rotation produces new credentials each time; ApplicationNotFoundException.
+- `test/.../Phase6WebhookDestinationPolicyTest.kt` — 14 tests: valid public IP allowed; loopback,
+  link-local, EC2 metadata, private ranges, non-http(s) schemes, blank URLs denied.
+
+Test result: 95/95 pass (28 Phase 6 + 67 prior phases).
+
+Fields-blocking items in Phase 6: auto-bootstrap removal (prevents standing platform role
+self-escalation via REST), application credential management (revocable, least-privilege principals),
+webhook endpoint credential separation (signing secrets separate from API credentials). The full
+time-limited support-elevation workflow is broader platform hardening deferred per the plan boundary.
+
+### Next action (priority order)
+
+1. **Phase 8 — Organization context and frontend permissions:** Explicit active organization
+   selection, multi-org session model, frontend capability contract replacing literal role checks.
+
+2. **Phase 9:** Frontend permission rendering and action controls;
+   central authorization adoption platform-wide.
+
+No Fields entities, migrations, services, or user interfaces may be added until the Fields
+Foundation Readiness Gate passes.
+
+No Fields entities, migrations, services, or user interfaces may be added until the Fields
+Foundation Readiness Gate passes.
+
 ## Mandatory Starting Instruction
 
 Before performing any work in this plan, read `AGENTS.md` in full and treat it as the controlling
@@ -913,9 +1159,9 @@ gate if support access remains denied until it is complete.
 
 ### Next Step
 
-Begin Phase 7 by making Exchange Share constraints complete and fail closed.
+Phase 7 is complete. Begin Phase 8 by introducing explicit active organization context.
 
-## Phase 7: Complete Exchange Share and Constraint Enforcement
+## Phase 7: Complete Exchange Share and Constraint Enforcement (COMPLETE 2026-07-01)
 
 ### Objective
 
@@ -975,7 +1221,7 @@ constraint.
 Begin Phase 8 by introducing explicit active organization context and an effective frontend access
 contract.
 
-## Phase 8: Make Organization Context and Frontend Permissions Explicit
+## Phase 8: Make Organization Context and Frontend Permissions Explicit (COMPLETE 2026-07-01)
 
 ### Objective
 
@@ -1035,6 +1281,42 @@ states, and stop the frontend from inferring authorization from a single role st
 
 Begin Phase 9 by adopting central authorization across every governed resource and closing direct-ID
 bypasses.
+
+### Phase 8 Completion Evidence (2026-07-01)
+
+**Backend changes:**
+- `EndpointAuthorizationFilter.kt`: `AuthTokenContext` gains `activeOrganizationId` and
+  `activeMembershipId`; `EndpointVerificationFilter` parses `X-Active-Organization-Id` header,
+  validates membership via `OrganizationMembershipRepository.findActiveByUserAndOrg`, and aborts
+  with HTTP 403 on invalid or non-member org IDs.
+- `AuthorizationContextFactory.kt`: removed primary-org fallback entirely; reads active context
+  exclusively from `AuthTokenContext` fields set by the filter.
+- `AccessDtos.kt`: `CurrentSessionDto` added (`userId`, `email`, `appRoles`,
+  `activeOrganizationId`, `organizationRoles`, `capabilities`).
+- `SessionService.kt` (new): `@ApplicationScoped` service computing effective capabilities from
+  live role assignments; no stale token dependence.
+- `AppUserResource.kt`: `GET /app-user/session` endpoint returning `CurrentSessionDto`.
+
+**Test evidence:**
+- `Phase8OrgContextTest.kt` (new): 16 tests — no-header personal mode, role composition, ORG_ADMIN
+  / ORG_OWNER / ORG_BILLING_ADMIN caps, APP_ADMIN / APP_AUDITOR platform caps, sorted capabilities
+  list, stale-role refresh, AuthTokenContext isolation.
+- Full suite: **151/151 tests pass**.
+
+**Frontend changes:**
+- `models.tsx`: full 112-value `Capability` enum + `CurrentSessionDto` interface.
+- `apiClient.ts`: `X-Active-Organization-Id` header injected on every request via interceptor.
+- `appUserApi.ts`: `fetchCurrentSession()` added.
+- `AuthContext.tsx`: `currentSession`, `hasCapability`, `switchOrganization` wired; localStorage
+  persistence under `docuhyphen:auth:active-org-id`; cleared on logout and session expiry.
+- `roles.ts`: `isAppAdministrator` and `canAdministerOrganization` migrated to `Capability[]`
+  signature; `hasCapabilityIn` helper; `Capability` re-exported.
+- 10 caller files updated to use `hasCapability` from `useAuth()` directly: `Settings.tsx`,
+  `BlueprintsTab.tsx`, `SaveBlueprintDialog.tsx`, `OrganizationDetailsTab.tsx`,
+  `OrganizationVariablesTab.tsx`, `OrganizationTab.tsx`, `OrganizationSequencesTab.tsx`,
+  `VariablesTab.tsx`, `CommunicationsTab.tsx`, `DocumentLibraryTab.tsx`.
+
+**Type check:** `npx tsc --noEmit` — exit code 0, zero errors.
 
 ## Phase 9: Adopt Central Authorization Platform-Wide
 
@@ -1129,8 +1411,106 @@ program.
 
 ### Next Step
 
-Begin Phase 10 by completing regression coverage, documentation, clean-schema validation, and the final
-Fields readiness review.
+Continue Phase 9 by adopting central authorization for remaining governed resources (Principal Groups,
+organization administration) and by wiring APPLICATION principal capability evaluation for
+registered-application REST requests. Write `Phase9ResourceAuthorizationTest`. Then begin Phase 10.
+
+### Phase 9 Evidence (2026-07-01)
+
+**Exchange write-path authorization:**
+- `ExchangeUpdateService.kt`: added `AuthorizationService` + `AuthorizationContextFactory` to constructor;
+  removed `OrganizationMembershipService`.
+  - `updateExchange()`: `Action.EXCHANGE_VIEW` gate for all callers; `Action.EXCHANGE_EDIT` gate for
+    owner-only mutations (name, description, settings, ENDED status); recipient ACCEPTED/REJECTED path
+    requires only EXCHANGE_READ.
+  - `rescindExchange()`: replaced manual `initiator?.id != currentUserId` check with
+    `Action.EXCHANGE_RESCIND` via authorization service.
+  - `deleteExchange()`: `Action.EXCHANGE_DELETE` gate added.
+  - `issueRecipientOtp()`: `Action.EXCHANGE_EDIT` gate added.
+  - ENDED workflow trigger: replaced `organizationMembershipService.primaryOrganizationId(initiator.id)`
+    with `exchange.ownerOrganizationId` (direct column, no fallback).
+- `ExchangeResource.kt`: removed `OrganizationMembershipService` from constructor; fixed
+  `getExchangeWorkflowInstances()` and `getExchangeWorkflowClearanceStatus()` to use
+  `authTokenContext.activeOrganizationId` (Phase 8 primary-org fallback violations closed).
+
+**Endpoints already authorized (carried from earlier phases):**
+- `GET /exchanges/{id}` → `Action.EXCHANGE_VIEW` in `ExchangeRetrievalService`.
+- `GET /exchanges/{id}/access` → `Action.EXCHANGE_MANAGE_ACCESS` in `ExchangeAccessManagementService`.
+- `POST/PATCH/DELETE /exchanges/{id}/access[/{shareId}]` → `Action.EXCHANGE_MANAGE_ACCESS`.
+- `GET /no-auth/exchanges/{id}` with share-link token → `ShareLinkValidationService.validateForNoAuth`.
+
+**Content service authorization (2026-07-01):**
+- `DocumentLibraryService.kt`: injected `AuthorizationService`, `AuthorizationContextFactory`,
+  `UserRoleService`; removed all `callerUserId`/`callerOrgId`/`isOrgAdmin`/`isAppAdmin` parameters
+  from public methods; `checkReadAccess` uses `Action.DOC_LIBRARY_VIEW`, `checkWriteAccess` uses
+  `Action.DOC_LIBRARY_EDIT`; both have `isAppAdmin` bypass at top; APP-scope writes forbidden
+  (clone instead); `currentContext().activeOrgId` replaces `primaryOrganizationId`.
+- `DocumentLibraryResource.kt`: removed `UserRoleService` + `OrganizationMembershipService`.
+- `BlueprintDefinitionService.kt`: same pattern; `Action.BLUEPRINT_VIEW`/`BLUEPRINT_EDIT`;
+  `AdminApprovalContext` preserved as explicit parameter.
+- `BlueprintDefinitionResource.kt`: removed `UserRoleService` + `OrganizationMembershipService`;
+  resource-level `isOrgAdmin` pre-check on `patchPublished` removed (service enforces it).
+- `WorkflowDefinitionService.kt`: `checkReadAccess` uses `Action.WORKFLOW_VIEW` + published-state
+  guard (unpublished ORG defs blocked for non-admin org members); `checkWriteAccess` uses
+  `Action.WORKFLOW_EDIT`; `cloneDefinition` uses `Action.WORKFLOW_CLONE`; `listDefinitions`
+  computes `showUnpublished` internally from `isOrgAdmin || isAppAdmin`; `listInstances` and
+  `getInstanceDetail` derive active org from `currentContext().activeOrgId`.
+- `WorkflowDefinitionResource.kt`: removed `UserRoleService` + `OrganizationMembershipService`.
+- `SequenceDefinitionService.kt`: `checkReadAccess` uses `Action.SEQUENCE_VIEW`;
+  `checkWriteAccess` uses `Action.SEQUENCE_EDIT`; `listSequences(isActive)` gets `activeOrgId`
+  from context (returns empty when no org context).
+- `SequenceDefinitionResource.kt`: removed `UserRoleService` + `OrganizationMembershipService`.
+- `VariableDefinitionService.kt`: `checkWriteAccess` uses `Action.VARIABLE_EDIT` for ORG scope;
+  PERSONAL ownership check kept direct; `listVariables(scope)` gets caller identity/org internally.
+- `VariableDefinitionResource.kt`: removed role/org services; `getAvailableVariables` now uses
+  `authTokenContext.activeOrganizationId` instead of `primaryOrganizationId`.
+- `CommunicationService.kt`: `checkReadAccess` uses `Action.COMMUNICATION_VIEW`;
+  `checkWriteAccess` uses `Action.COMMUNICATION_EDIT`; PLATFORM writes forbidden (clone instead).
+- `CommunicationResource.kt`: removed role/org services; resource-level `isOrgAdmin` pre-check
+  on `patchPublished` removed.
+
+**Authorization infrastructure additions:**
+- `DocumentLibraryAuthorizationContextProvider.kt` (new): `ResourceKind.DOCUMENT_LIBRARY_ENTRY`.
+- `BlueprintAuthorizationContextProvider.kt` (new): `ResourceKind.BLUEPRINT`.
+- `WorkflowDefinitionAuthorizationContextProvider.kt` (new): `ResourceKind.WORKFLOW_DEFINITION`.
+- `SequenceDefinitionAuthorizationContextProvider.kt` (new): `ResourceKind.SEQUENCE_DEFINITION`.
+- `VariableDefinitionAuthorizationContextProvider.kt` (new): `ResourceKind.VARIABLE_DEFINITION`.
+- `CommunicationAuthorizationContextProvider.kt` (new): `ResourceKind.COMMUNICATION`.
+- `PrincipalRef.kt`: added `ResourceRef.docLibrary()`, `.blueprint()`, `.workflowDefinition()`,
+  `.sequence()`, `.variable()`, `.communication()` companion helpers.
+- `DefaultAuthorizationService.kt`: fixed cross-org bug in `collectOrgMembershipGrants()` —
+  now resolves owner org via registry before falling back to `context.activeOrgId`.
+
+**Phase 9 completion evidence (2026-07-01):**
+
+New files:
+- `OrganizationAuthorizationContextProvider.kt`: resolves `ResourceKind.ORGANIZATION` with
+  `OwnerContext.Organization(orgId)`; no archived/suspended concept for orgs.
+- `ResourceType.ORGANIZATION` enum value added; `ResourceRef.organization(id)` companion added to
+  `PrincipalRef.kt`; `ResourceType.ORGANIZATION -> ResourceKind.ORGANIZATION` mapping added to
+  `ResourceAuthorizationContextRegistry.toResourceKind()`.
+- `OrganizationGroupService.addOrganizationGroup()`: replaced `requireOrgAdminIn(orgId)` (bypassed
+  AuthorizationService) with new `authorizeOrg(Action.ORG_MANAGE_MEMBERS, orgId)` helper; removed
+  `userRoleService` dependency entirely.
+- `ExchangeDocumentService.validateUserPermissions()`: removed `appUser: AppUser` parameter, now
+  calls `authorizationContextFactory.currentPrincipal()` — works for USER and APPLICATION tokens.
+  Added `actorEmail()` helper for audit logging; all callers updated (addDocument, deleteDocument,
+  updateDocument, uploadDocument).
+- `WorkflowWebhookEndpoint.signingSecretHash` renamed to `signingSecretToken` (raw Base64);
+  `V34__webhook_signing_token.sql` migration added; `WorkflowWebhookEndpointManagementService`
+  now stores raw secret (BCrypt removed).
+- `WorkflowStepSpec` gains `webhookEndpointId: String?` and `webhookEventType: String?`.
+- `WebhookDeliveryService.kt`: loads endpoint, verifies enabled, builds payload (deliveryId,
+  eventType, workflowInstanceId, subjectResourceType, subjectResourceId, organizationId, timestamp),
+  signs with HMAC-SHA256 as `sha256=<hex>` in `X-DocuHyphen-Signature-256`, HTTP POSTs, audits.
+- `WebhookWorkflowActionHandler.kt`: key `"WEBHOOK_DELIVER"`, reads `webhookEndpointId` and
+  `webhookEventType` from step spec, delegates to `WebhookDeliveryService`.
+
+Test evidence:
+- `Phase9ResourceAuthorizationTest.kt`: 25 tests (PERSONAL/ORG/PLATFORM content service gates).
+- `Phase9OrgGroupAuthorizationTest.kt`: 10 tests (org provider, ORGANIZATION resource type mapping,
+  WebhookWorkflowActionHandler dispatch, WebhookDeliveryService endpoint-not-found).
+- Full suite: **201/201 tests pass**.
 
 ## Phase 10: Certification and Fields Foundation Readiness
 

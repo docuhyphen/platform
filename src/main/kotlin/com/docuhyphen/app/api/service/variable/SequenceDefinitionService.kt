@@ -9,6 +9,14 @@ import com.docuhyphen.app.api.model.entity.SequenceResetPeriod
 import com.docuhyphen.app.api.repository.SequenceDefinitionRepository
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.service.auth.UserRoleService
+import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.Decision
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -22,6 +30,9 @@ import java.util.*
 class SequenceDefinitionService @Inject constructor(
     private val repository: SequenceDefinitionRepository,
     private val adminActionGuardService: AdminActionGuardService,
+    private val authorizationService: AuthorizationService,
+    private val authorizationContextFactory: AuthorizationContextFactory,
+    private val userRoleService: UserRoleService,
 )
 {
     companion object
@@ -30,28 +41,33 @@ class SequenceDefinitionService @Inject constructor(
         private val KEY_REGEX = Regex("^[A-Z0-9_]{1,64}$")
     }
 
-    fun listSequences(organizationId: UUID, isActive: Boolean? = null): List<SequenceDefinitionDto> =
-        repository.findAllByOrganizationIdAndIsDeletedFalse(organizationId)
+    fun listSequences(isActive: Boolean? = null): List<SequenceDefinitionDto>
+    {
+        val activeOrgId = currentContext().activeOrgId ?: return emptyList()
+        return repository.findAllByOrganizationIdAndIsDeletedFalse(activeOrgId)
             .filter { seq -> isActive == null || seq.isActive == isActive }
             .map { it.toDto() }
+    }
 
-    fun getSequence(id: UUID, callerOrgId: UUID?, isOrgAdmin: Boolean, isAppAdmin: Boolean): SequenceDefinitionDto
+    fun getSequence(id: UUID): SequenceDefinitionDto
     {
+        val principal = currentPrincipal()
+        val context = currentContext()
         val seq = repository.findById(id) ?: throw IllegalArgumentException("Sequence not found")
-        checkReadAccess(seq, callerOrgId, isAppAdmin)
+        checkReadAccess(seq, principal, context)
         return seq.toDto()
     }
 
     @Transactional
-    fun createSequence(
-        organizationId: UUID,
-        request: CreateSequenceRequest,
-        callerUserId: UUID,
-        isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
-        context: AdminApprovalContext,
-    ): SequenceDefinitionDto
+    fun createSequence(request: CreateSequenceRequest, context: AdminApprovalContext): SequenceDefinitionDto
     {
+        val principal = currentPrincipal()
+        val authContext = currentContext()
+        val activeOrgId = authContext.activeOrgId
+            ?: throw ForbiddenException("Organization context required to manage sequences")
+        val isOrgAdmin = userRoleService.isOrgAdminIn(principal.id, activeOrgId)
+        val isAppAdmin = userRoleService.isAppAdmin(principal.id)
+
         if (!isOrgAdmin && !isAppAdmin)
             throw ForbiddenException("Org admin role required to manage sequences")
 
@@ -59,7 +75,7 @@ class SequenceDefinitionService @Inject constructor(
         if (!KEY_REGEX.matches(normalizedKey))
             throw IllegalArgumentException("Sequence key must be 1–64 uppercase alphanumeric characters or underscores")
 
-        if (repository.findByOrganizationIdAndKeyAndIsDeletedFalse(organizationId, normalizedKey) != null)
+        if (repository.findByOrganizationIdAndKeyAndIsDeletedFalse(activeOrgId, normalizedKey) != null)
             throw IllegalArgumentException("A sequence with key '$normalizedKey' already exists in this organization")
 
         val resetPeriod = runCatching { SequenceResetPeriod.valueOf(request.resetPeriod.uppercase()) }
@@ -67,39 +83,33 @@ class SequenceDefinitionService @Inject constructor(
 
         adminActionGuardService.enforce(
             action = "ORG_SEQUENCE_CREATE",
-            actorId = callerUserId,
+            actorId = principal.id,
             context = context,
         )
 
         val seq = SequenceDefinition().apply {
-            this.organizationId = organizationId
+            this.organizationId = activeOrgId
             this.name = request.name.trim()
             this.key = normalizedKey
             this.padWidth = request.padWidth.coerceAtLeast(0)
             this.prefix = request.prefix?.takeIf { it.isNotBlank() }
             this.suffix = request.suffix?.takeIf { it.isNotBlank() }
             this.resetPeriod = resetPeriod
-            this.createdByAppUserId = callerUserId
+            this.createdByAppUserId = principal.id
         }
         return repository.save(seq).toDto()
     }
 
     @Transactional
-    fun updateSequence(
-        id: UUID,
-        request: UpdateSequenceRequest,
-        callerOrgId: UUID?,
-        isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
-        callerUserId: UUID,
-        context: AdminApprovalContext,
-    ): SequenceDefinitionDto
+    fun updateSequence(id: UUID, request: UpdateSequenceRequest, context: AdminApprovalContext): SequenceDefinitionDto
     {
+        val principal = currentPrincipal()
+        val authContext = currentContext()
         val seq = repository.findById(id) ?: throw IllegalArgumentException("Sequence not found")
-        checkWriteAccess(seq, callerOrgId, isOrgAdmin, isAppAdmin)
+        checkWriteAccess(seq, principal, authContext)
         adminActionGuardService.enforce(
             action = "ORG_SEQUENCE_UPDATE",
-            actorId = callerUserId,
+            actorId = principal.id,
             context = context,
         )
 
@@ -117,20 +127,15 @@ class SequenceDefinitionService @Inject constructor(
     }
 
     @Transactional
-    fun deleteSequence(
-        id: UUID,
-        callerOrgId: UUID?,
-        isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
-        callerUserId: UUID,
-        context: AdminApprovalContext,
-    )
+    fun deleteSequence(id: UUID, context: AdminApprovalContext)
     {
+        val principal = currentPrincipal()
+        val authContext = currentContext()
         val seq = repository.findById(id) ?: throw IllegalArgumentException("Sequence not found")
-        checkWriteAccess(seq, callerOrgId, isOrgAdmin, isAppAdmin)
+        checkWriteAccess(seq, principal, authContext)
         adminActionGuardService.enforce(
             action = "ORG_SEQUENCE_DELETE",
-            actorId = callerUserId,
+            actorId = principal.id,
             context = context,
         )
         seq.isDeleted = true
@@ -140,20 +145,15 @@ class SequenceDefinitionService @Inject constructor(
     }
 
     @Transactional
-    fun resetCounter(
-        id: UUID,
-        callerOrgId: UUID?,
-        isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
-        callerUserId: UUID,
-        context: AdminApprovalContext,
-    ): SequenceDefinitionDto
+    fun resetCounter(id: UUID, context: AdminApprovalContext): SequenceDefinitionDto
     {
+        val principal = currentPrincipal()
+        val authContext = currentContext()
         val seq = repository.findById(id) ?: throw IllegalArgumentException("Sequence not found")
-        checkWriteAccess(seq, callerOrgId, isOrgAdmin, isAppAdmin)
+        checkWriteAccess(seq, principal, authContext)
         adminActionGuardService.enforce(
             action = "ORG_SEQUENCE_RESET",
-            actorId = callerUserId,
+            actorId = principal.id,
             context = context,
         )
         seq.currentValue = 0L
@@ -161,22 +161,34 @@ class SequenceDefinitionService @Inject constructor(
         return repository.update(seq).toDto()
     }
 
-    private fun checkReadAccess(seq: SequenceDefinition, callerOrgId: UUID?, isAppAdmin: Boolean)
+    // ── Access control ────────────────────────────────────────────────────────
+
+    private fun checkReadAccess(seq: SequenceDefinition, principal: PrincipalRef, context: AuthorizationContext)
     {
-        if (isAppAdmin) return
-        if (callerOrgId == null || seq.organizationId != callerOrgId)
+        if (userRoleService.isAppAdmin(principal.id)) return
+        val decision = authorizationService.authorize(
+            principal, Action.SEQUENCE_VIEW, ResourceRef.sequence(seq.id), context,
+        )
+        if (decision is Decision.Deny)
             throw ForbiddenException("Access denied to sequence ${seq.id}")
     }
 
-    private fun checkWriteAccess(
-        seq: SequenceDefinition,
-        callerOrgId: UUID?,
-        isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
-    )
+    private fun checkWriteAccess(seq: SequenceDefinition, principal: PrincipalRef, context: AuthorizationContext)
     {
-        if (isAppAdmin) return
-        if (!isOrgAdmin || callerOrgId == null || seq.organizationId != callerOrgId)
+        if (userRoleService.isAppAdmin(principal.id)) return
+        val decision = authorizationService.authorize(
+            principal, Action.SEQUENCE_EDIT, ResourceRef.sequence(seq.id), context,
+        )
+        if (decision is Decision.Deny)
             throw ForbiddenException("Org admin role required to modify sequence ${seq.id}")
     }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private fun currentPrincipal(): PrincipalRef =
+        authorizationContextFactory.currentPrincipal()
+            ?: throw ForbiddenException("Not authenticated")
+
+    private fun currentContext(): AuthorizationContext =
+        authorizationContextFactory.currentContext()
 }

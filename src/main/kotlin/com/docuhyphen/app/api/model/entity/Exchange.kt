@@ -6,7 +6,7 @@ import jakarta.persistence.*
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.*
+import java.util.UUID
 
 @Entity
 @Table(name = "exchange")
@@ -48,6 +48,14 @@ class Exchange
     @ManyToOne(cascade = [CascadeType.PERSIST], fetch = FetchType.EAGER)
     @JoinColumn(name = "initiator_id", unique = false)
     var initiator: AppUser? = null
+
+    @Column(name = "owner_organization_id", nullable = true)
+    @Serializable(with = UUIDSerializer::class)
+    var ownerOrganizationId: UUID? = null
+
+    @Column(name = "owner_user_id", nullable = true)
+    @Serializable(with = UUIDSerializer::class)
+    var ownerUserId: UUID? = null
 
     // Recipients, participants and per-document permissions now live in the unified Share model
     // (recipient_id / recipient_type / group_id / allow_document_* columns dropped by the cutover

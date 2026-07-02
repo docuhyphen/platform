@@ -2,8 +2,9 @@
 
 package com.docuhyphen.app.api.service.workflow
 
-import com.docuhyphen.app.api.model.entity.GroupRole
-import com.docuhyphen.app.api.model.entity.RoleScopeType
+import com.docuhyphen.app.api.model.entity.AppRoleName
+import com.docuhyphen.app.api.model.entity.OrganizationRoleName
+import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
 import com.docuhyphen.app.api.model.entity.WorkflowStepType
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -48,6 +49,10 @@ data class WorkflowStepSpec(
     val onReject: StepOutcomeSpec? = null,
     /** For ACTION steps: key of the registered WorkflowActionHandler bean to invoke (see Phase 2). */
     val actionHandlerKey: String? = null,
+    /** For ACTION steps using the WEBHOOK_DELIVER handler: ID of the WorkflowWebhookEndpoint to call. */
+    val webhookEndpointId: String? = null,
+    /** For ACTION steps using the WEBHOOK_DELIVER handler: event type string included in the outbound payload. */
+    val webhookEventType: String? = null,
     /** For NOTIFICATION steps: ID of the Communication to use for subject/body. */
     val communicationId: String? = null,
     /**
@@ -82,17 +87,21 @@ sealed class AssigneeSpec
     data class GroupRoleAssignees(
         /** Literal group id OR `$subject.<field>` placeholder. */
         val groupIdRef: String,
-        val groupRole: GroupRole,
+        val groupRole: PrincipalGroupRoleName,
     ) : AssigneeSpec()
 
-    /** Anyone holding [roleName] in [scopeType] / [scopeIdRef]. */
     @Serializable
-    @kotlinx.serialization.SerialName("ROLE")
-    data class RoleAssignees(
-        val roleName: String,
-        val scopeType: RoleScopeType,
-        /** Literal scope id OR `$subject.<field>` placeholder. Null for APP scope. */
-        val scopeIdRef: String? = null,
+    @kotlinx.serialization.SerialName("APP_ROLE")
+    data class AppRoleAssignees(
+        val roleName: AppRoleName,
+    ) : AssigneeSpec()
+
+    @Serializable
+    @kotlinx.serialization.SerialName("ORGANIZATION_ROLE")
+    data class OrganizationRoleAssignees(
+        val roleName: OrganizationRoleName,
+        /** Literal organization id or `$subject.<field>` placeholder. */
+        val organizationIdRef: String,
     ) : AssigneeSpec()
 }
 

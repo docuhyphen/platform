@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.service.organization
 
-import com.docuhyphen.app.api.model.entity.GroupRole
+import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
 import com.docuhyphen.app.api.model.entity.PrincipalGroup
 import com.docuhyphen.app.api.model.entity.PrincipalGroupMember
 import com.docuhyphen.app.api.model.entity.PrincipalGroupScope
@@ -36,7 +36,7 @@ class PrincipalGroupService @Inject constructor(
     data class GroupMemberSpec(
         val principalId: UUID,
         val principalKind: PrincipalKind = PrincipalKind.USER,
-        val groupRole: GroupRole = GroupRole.MEMBER,
+        val groupRole: PrincipalGroupRoleName = PrincipalGroupRoleName.MEMBER,
     )
     {
         /** Backwards-compat convenience for the ORG sync path that only deals with USER principals. */
@@ -145,7 +145,7 @@ class PrincipalGroupService @Inject constructor(
 
     /**
      * Creates a new PERSONAL-scope group owned by [ownerAppUserId]. The owner is automatically
-     * inserted as a [PrincipalGroupMember] with [GroupRole.OWNER].
+     * inserted as a [PrincipalGroupMember] with [PrincipalGroupRoleName.OWNER].
      */
     fun createPersonalGroup(
         ownerAppUserId: UUID,
@@ -171,7 +171,7 @@ class PrincipalGroupService @Inject constructor(
             this.principalGroupId = saved.id
             this.principalKind = PrincipalKind.USER
             this.principalId = ownerAppUserId
-            this.groupRole = GroupRole.OWNER
+            this.groupRole = PrincipalGroupRoleName.OWNER
             this.addedByAppUserId = ownerAppUserId
             this.isActive = true
         }
@@ -218,7 +218,8 @@ class PrincipalGroupService @Inject constructor(
             }
 
             // Prevent adding a role higher than MEMBER (only the owner should be OWNER).
-            val effectiveRole = if (spec.groupRole == GroupRole.OWNER) GroupRole.MEMBER else spec.groupRole
+            val effectiveRole = if (spec.groupRole == PrincipalGroupRoleName.OWNER)
+                PrincipalGroupRoleName.MEMBER else spec.groupRole
 
             val existing = memberRepository.findMembership(groupId, spec.principalKind, spec.principalId)
             if (existing == null)
@@ -248,7 +249,7 @@ class PrincipalGroupService @Inject constructor(
     {
         val member = memberRepository.findMembership(groupId, principalKind, principalId)
             ?: throw IllegalArgumentException("Member not found in group $groupId")
-        require(member.groupRole != GroupRole.OWNER) { "Cannot remove the group owner" }
+        require(member.groupRole != PrincipalGroupRoleName.OWNER) { "Cannot remove the group owner" }
         member.isActive = false
         memberRepository.update(member)
     }

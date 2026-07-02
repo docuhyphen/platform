@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.exception.AppUserNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.RoleName
+import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
 import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.repository.ShareRepository
 import com.docuhyphen.app.api.repository.ExchangeRepository
@@ -48,7 +48,7 @@ class ExchangeParticipantService @Inject constructor(
             resourceId = sessionUuid,
             principalKind = PrincipalKind.USER,
             principalId = participant.id,
-            roleName = RoleName.PARTICIPANT,
+            roleName = ExchangeShareRoleName.PARTICIPANT,
         )
         logger.info("Participant $participantId added to exchange $exchangeId")
     }

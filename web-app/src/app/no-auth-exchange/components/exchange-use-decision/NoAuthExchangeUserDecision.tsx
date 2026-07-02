@@ -1,4 +1,4 @@
-﻿import React, {useEffect, useRef, useState} from "react";
+﻿import React, {useRef, useState} from "react";
 import {
     Button,
     Dialog,
@@ -20,7 +20,7 @@ import {
 import {useNoAuthExchangeDocumentListStyles} from "./NoAuthExchangeUserDecisionStyles.tsx";
 import {DismissRegular} from "@fluentui/react-icons";
 import {NoAuthExchangeBasicDto, ExchangeStatus} from "../../../models/models.tsx";
-import {fetchNoAuthExchange, requestNoAuthExchangeOtp, updateNoAuthExchange} from "../../../../services/exchangeApi.ts";
+import {fetchNoAuthExchange, updateNoAuthExchange} from "../../../../services/exchangeApi.ts";
 import {getNoAuthOtpFriendlyMessage, normalizeApiError} from "../../../../utils/apiErrorUtils.ts";
 
 interface NoAuthExchangeUserDecisionProps
@@ -39,9 +39,8 @@ const NoAuthExchangeUserDecision: React.FC<NoAuthExchangeUserDecisionProps> = (
 {
     const minDeclineReasonLength = 10;
     const otpLength = 6;
-    const defaultResendCooldownSeconds = 30;
 
-    type DecisionStage = 'idle' | 'requesting-otp' | 'otp-sent' | 'verifying' | 'expired' | 'error';
+    type DecisionStage = 'idle' | 'otp-sent' | 'verifying' | 'expired' | 'error';
 
     const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
     const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState<boolean>(false);
@@ -50,27 +49,10 @@ const NoAuthExchangeUserDecision: React.FC<NoAuthExchangeUserDecisionProps> = (
     const [isDecliningExchange, setIsDecliningExchange] = useState<boolean>(false);
     const [decisionOtp, setDecisionOtp] = useState<string[]>(['', '', '', '', '', '']);
     const [declineReason, setDeclineReason] = useState<string>('');
-    const [isRequestingOtp, setIsRequestingOtp] = useState<boolean>(false);
     const [otpRequestNotice, setOtpRequestNotice] = useState<string | undefined>(undefined);
     const [decisionStage, setDecisionStage] = useState<DecisionStage>('idle');
-    const [resendCooldownRemainingSeconds, setResendCooldownRemainingSeconds] = useState<number>(0);
     const styles = useNoAuthExchangeDocumentListStyles();
     const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
-
-    useEffect(() =>
-    {
-        if (resendCooldownRemainingSeconds <= 0)
-        {
-            return;
-        }
-
-        const timer = window.setInterval(() =>
-        {
-            setResendCooldownRemainingSeconds((previous) => Math.max(0, previous - 1));
-        }, 1000);
-
-        return () => window.clearInterval(timer);
-    }, [resendCooldownRemainingSeconds]);
 
     const maskEmail = (email: string | undefined): string =>
     {
@@ -88,13 +70,6 @@ const NoAuthExchangeUserDecision: React.FC<NoAuthExchangeUserDecisionProps> = (
         return `${name[0]}***@${domain}`;
     }
 
-    const formatCooldown = (seconds: number): string =>
-    {
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-    }
-
     const onAccept = async () =>
     {
         try
@@ -107,45 +82,13 @@ const NoAuthExchangeUserDecision: React.FC<NoAuthExchangeUserDecisionProps> = (
             }
 
             setIsAcceptDialogOpen(true);
-            setDecisionStage('requesting-otp');
-            // Auto-request an OTP on first opening; subsequent re-sends are explicit.
-            await requestOtp();
+            setDecisionStage('otp-sent');
             window.setTimeout(() => otpInputRefs.current[0]?.focus(), 0);
         }
         catch (error: unknown)
         {
             const apiError = normalizeApiError(error, 'Unable to refresh the request status. Please try again.');
             setErrorMessage(getNoAuthOtpFriendlyMessage(apiError));
-        }
-    }
-
-    const requestOtp = async () =>
-    {
-        if (isRequestingOtp || resendCooldownRemainingSeconds > 0) return;
-        setIsRequestingOtp(true);
-        setErrorMessage(undefined);
-        setOtpRequestNotice(undefined);
-        try
-        {
-            await requestNoAuthExchangeOtp(exchange.id);
-            setDecisionStage('otp-sent');
-            setOtpRequestNotice("Verification code sent. Check your email.");
-            setResendCooldownRemainingSeconds(defaultResendCooldownSeconds);
-        }
-        catch (error: unknown)
-        {
-            const apiError = normalizeApiError(error, "Could not send a verification code. Please try again.");
-            setDecisionStage('error');
-            setErrorMessage(getNoAuthOtpFriendlyMessage(apiError));
-
-            if (typeof apiError.retryAfterSeconds === 'number' && apiError.retryAfterSeconds > 0)
-            {
-                setResendCooldownRemainingSeconds(Math.ceil(apiError.retryAfterSeconds));
-            }
-        }
-        finally
-        {
-            setIsRequestingOtp(false);
         }
     }
 
@@ -161,9 +104,7 @@ const NoAuthExchangeUserDecision: React.FC<NoAuthExchangeUserDecisionProps> = (
             }
 
             setIsDeclineDialogOpen(true);
-            setDecisionStage('requesting-otp');
-            // Decline also requires OTP, same as accept.
-            await requestOtp();
+            setDecisionStage('otp-sent');
             window.setTimeout(() => otpInputRefs.current[0]?.focus(), 0);
         }
         catch (error: unknown)
@@ -179,7 +120,6 @@ const NoAuthExchangeUserDecision: React.FC<NoAuthExchangeUserDecisionProps> = (
         setOtpRequestNotice(undefined);
         setDecisionOtp(['', '', '', '', '', '']);
         setDecisionStage('idle');
-        setResendCooldownRemainingSeconds(0);
         setIsAcceptDialogOpen(false);
     }
 
@@ -190,7 +130,6 @@ const NoAuthExchangeUserDecision: React.FC<NoAuthExchangeUserDecisionProps> = (
         setDecisionOtp(['', '', '', '', '', '']);
         setDeclineReason('');
         setDecisionStage('idle');
-        setResendCooldownRemainingSeconds(0);
         setIsDeclineDialogOpen(false);
     }
 
@@ -233,10 +172,6 @@ const NoAuthExchangeUserDecision: React.FC<NoAuthExchangeUserDecisionProps> = (
             const apiError = normalizeApiError(error, 'Failed to accept the request. Please try again later.');
             setErrorMessage(getNoAuthOtpFriendlyMessage(apiError));
             setDecisionStage(apiError.reasonCode === 'OTP_EXPIRED' ? 'expired' : 'error');
-            if (typeof apiError.retryAfterSeconds === 'number' && apiError.retryAfterSeconds > 0)
-            {
-                setResendCooldownRemainingSeconds(Math.ceil(apiError.retryAfterSeconds));
-            }
         }
         finally
         {
@@ -292,10 +227,6 @@ const NoAuthExchangeUserDecision: React.FC<NoAuthExchangeUserDecisionProps> = (
             const apiError = normalizeApiError(error, 'Failed to decline the request. Please try again later.');
             setErrorMessage(getNoAuthOtpFriendlyMessage(apiError));
             setDecisionStage(apiError.reasonCode === 'OTP_EXPIRED' ? 'expired' : 'error');
-            if (typeof apiError.retryAfterSeconds === 'number' && apiError.retryAfterSeconds > 0)
-            {
-                setResendCooldownRemainingSeconds(Math.ceil(apiError.retryAfterSeconds));
-            }
         }
         finally
         {
@@ -363,7 +294,6 @@ const NoAuthExchangeUserDecision: React.FC<NoAuthExchangeUserDecisionProps> = (
     const isDecisionOtpComplete = decisionOtp.every((digit) => digit.trim().length === 1);
     const isDeclineReasonValid = declineReason.trim().length >= minDeclineReasonLength;
     const isExchangeActionable = exchange.status === ExchangeStatus.INITIATED;
-    const resendDisabled = isRequestingOtp || resendCooldownRemainingSeconds > 0;
 
     const renderOtpHeader = (actionLabel: string) => (
         <>
@@ -373,27 +303,11 @@ const NoAuthExchangeUserDecision: React.FC<NoAuthExchangeUserDecisionProps> = (
 
             <Text size={200} className={styles.helperText}>
                 {decisionStage === 'expired'
-                    ? 'Your code expired. Request a new code to continue.'
-                    : 'Codes expire after 10 minutes and can only be used once.'}
+                    ? 'Your code has expired. Contact the person who sent this request to receive a new access code.'
+                    : 'Use the verification code from the email you received when this request was sent.'}
             </Text>
 
             {renderErrorMessage()}
-
-            {otpRequestNotice && !errorMessage && (
-                <MessageBar intent={"success"}>
-                    <MessageBarBody>{otpRequestNotice}</MessageBarBody>
-                </MessageBar>
-            )}
-
-            <Link as="button"
-                  onClick={requestOtp}
-                  disabled={resendDisabled}>
-                {isRequestingOtp
-                    ? "Sending..."
-                    : resendCooldownRemainingSeconds > 0
-                        ? `Resend verification code (${formatCooldown(resendCooldownRemainingSeconds)})`
-                        : "Resend verification code"}
-            </Link>
 
             <div className={styles.otpInputGroup}>
                 {decisionOtp.map((otpDigit, index) => (

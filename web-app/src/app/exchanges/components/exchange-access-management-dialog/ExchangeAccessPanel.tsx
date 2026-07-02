@@ -1,5 +1,6 @@
 ﻿import React, {useCallback, useEffect, useState} from 'react';
 import {
+    Badge,
     Button, Card,
     Combobox,
     Field,
@@ -23,6 +24,7 @@ import {useExchangeAccessPanelStyles} from './ExchangeAccessPanelStyles';
 import {useAuth} from '../../../../context/AuthContext';
 import {
     changeExchangeAccessRole,
+    grantExchangeAccess,
     listExchangeAccess,
     revokeExchangeAccess,
 } from '../../../../services/exchangeApi';
@@ -30,7 +32,7 @@ import {ExchangeAccessEntryDto, ShareConstraints} from '../../../../services/typ
 import {
     AssignableRoleDisplayNames,
     CONSTRAINED_ROLES,
-    ExchangeShareRole,
+    ExchangeShareRoleName,
     ExchangeShareRoleDisplayNames,
 } from '../../../../services/types/roles';
 
@@ -41,7 +43,7 @@ interface ExchangeAccessPanelProps
 }
 
 type AccessEntryDraft = {
-    roleName: string;
+    roleName: ExchangeShareRoleName;
     constraints: ShareConstraints;
     dirty: boolean;
 };
@@ -68,9 +70,9 @@ function parseConstraints(json?: string): ShareConstraints
     }
 }
 
-function isConstrainedRole(roleName: string): boolean
+function isConstrainedRole(roleName: ExchangeShareRoleName): boolean
 {
-    return CONSTRAINED_ROLES.has(roleName as ExchangeShareRole);
+    return CONSTRAINED_ROLES.has(roleName);
 }
 
 function tagsFromConstraints(constraints: ShareConstraints): ConstraintTag[]
@@ -115,7 +117,7 @@ function parseTagPickerSelection(selectedOptions: string[] | undefined): Constra
     return selectedOptions.filter((value): value is ConstraintTag => valid.has(value as ConstraintTag));
 }
 
-function serializeConstraintsForRole(roleName: string, constraints: ShareConstraints): string
+function serializeConstraintsForRole(roleName: ExchangeShareRoleName, constraints: ShareConstraints): string
 {
     if (!isConstrainedRole(roleName))
     {
@@ -350,9 +352,10 @@ const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId, on
 
                                 <Tooltip content={entryDisplayLabel(entry)} relationship="description">
                                     <Text className={styles.nameCell}
-                                          weight="semibold">{entryDisplayLabel(entry)}</Text>
+                                          weight="semibold">{entryDisplayLabel(entry)}
+                                    </Text>
                                 </Tooltip>
-
+                                {isOwner && (<Badge appearance={"outline"}>You</Badge>)}
                                 <Text size={200}>Granted: {new Date(entry.grantedAt).toLocaleString()}</Text>
                             </div>
                             {showDetails && (
@@ -361,12 +364,12 @@ const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId, on
                                     <div className={styles.detailsRow1}>
                                         {isImmutable ? (
                                             <Text weight="semibold">
-                                                {ExchangeShareRoleDisplayNames[draft.roleName as ExchangeShareRole] || draft.roleName}
+                                                {ExchangeShareRoleDisplayNames[draft.roleName as ExchangeShareRoleName] || draft.roleName}
                                             </Text>
                                         ) : (
                                             <Combobox
                                                 id={`combobox-access-entry-role-${entry.shareId}`}
-                                                value={ExchangeShareRoleDisplayNames[draft.roleName as ExchangeShareRole] || draft.roleName}
+                                                value={ExchangeShareRoleDisplayNames[draft.roleName as ExchangeShareRoleName] || draft.roleName}
                                                 selectedOptions={[draft.roleName]}
                                                 disabled={busy}
                                                 appearance={"filled-darker"}
@@ -375,7 +378,7 @@ const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId, on
                                                     if (!d.optionValue) return;
                                                     updateDraft(entry.shareId, (prev) => ({
                                                         ...prev,
-                                                        roleName: d.optionValue
+                                                        roleName: d.optionValue as ExchangeShareRoleName,
                                                     }));
                                                 }}
                                             >
@@ -459,28 +462,6 @@ const ExchangeAccessPanel: React.FC<ExchangeAccessPanelProps> = ({exchangeId, on
                                                             ))}
                                                     </TagPickerList>
                                                 </TagPicker>
-                                            </Field>
-                                            <Field label="Max views (blank = unlimited)"
-                                                   className={styles.maxViewsField}>
-                                                <Input
-                                                    id={`input-access-entry-max-views-${entry.shareId}`}
-                                                    type="number"
-                                                    appearance={"filled-darker"}
-                                                    min={1}
-                                                    value={draft.constraints.max_views?.toString() ?? ''}
-                                                    onChange={(_e, data) =>
-                                                    {
-                                                        const parsed = Number.parseInt(data.value, 10);
-                                                        updateDraft(entry.shareId, (prev) => ({
-                                                            ...prev,
-                                                            constraints: {
-                                                                ...prev.constraints,
-                                                                max_views: Number.isFinite(parsed) && parsed > 0 ? parsed : undefined,
-                                                            },
-                                                        }));
-                                                    }}
-                                                    disabled={busy}
-                                                />
                                             </Field>
                                         </div>
                                     )}

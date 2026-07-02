@@ -352,6 +352,22 @@ class SignInResource @Inject constructor(
                     Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
                 }
 
+                is SignUpRequiredException ->
+                {
+                    val responseError = ResponseError(
+                        errorMessage = exception.message,
+                        reasonCode = "SIGN_UP_REQUIRED",
+                    )
+                    authAuditService.emit(
+                        action = "SIGN_IN_INITIATE",
+                        outcome = "DENY",
+                        reasonCode = RevocationReasonCode.SECURITY_POLICY,
+                        requestId = requestId,
+                        reason = "Recipient placeholder account requires sign-up completion",
+                    )
+                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
+                }
+
                 is PasswordChangeRequiredException,
                 is TemporaryPasswordExpiredException ->
                 {

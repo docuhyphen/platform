@@ -11,7 +11,7 @@ import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.repository.PersonRepositoryRepository
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
-import com.docuhyphen.app.api.service.auth.RoleAssignmentService
+import com.docuhyphen.app.api.service.auth.AppRoleAssignmentService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import jakarta.enterprise.context.RequestScoped
@@ -31,7 +31,7 @@ class EntityRegistrationService @Inject constructor(
     private val emailTemplateService: EmailTemplateService,
     private val organizationVerificationProducer: OrganizationVerificationProducer,
     private val organizationMembershipService: OrganizationMembershipService,
-    private val roleAssignmentService: RoleAssignmentService,
+    private val appRoleAssignmentService: AppRoleAssignmentService,
 )
 {
     @PersistenceContext
@@ -167,16 +167,21 @@ class EntityRegistrationService @Inject constructor(
         organizationMembershipService.assignOrgRole(
             appUserId = managedAppUser.id,
             organizationId = organization.id,
-            role = RoleName.ORG_ADMIN,
+            role = OrganizationRoleName.ORG_ADMIN,
             isPrimary = true,
+        )
+        organizationMembershipService.assignOrgRole(
+            appUserId = managedAppUser.id,
+            organizationId = organization.id,
+            role = OrganizationRoleName.ORG_MEMBER,
         )
 
         // If no global App Admin exists yet, promote the org creator as the first one.
-        if (roleAssignmentService.listAppAdmins().isEmpty())
+        if (appRoleAssignmentService.listAppAdmins().isEmpty())
         {
-            roleAssignmentService.grantAppRole(
+            appRoleAssignmentService.grantAppRole(
                 targetAppUserId = managedAppUser.id,
-                roleName = RoleName.APP_ADMIN,
+                roleName = AppRoleName.APP_ADMIN,
                 actorId = null,
             )
             logger.info("Bootstrapped first APP_ADMIN from organization registration for user {}", managedAppUser.id)

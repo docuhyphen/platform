@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.service.organization
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.OrganizationMembership
 import com.docuhyphen.app.api.model.entity.OrganizationMembershipStatus
-import com.docuhyphen.app.api.model.entity.RoleName
+import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.repository.OrganizationMembershipRepository
 import jakarta.enterprise.context.ApplicationScoped
@@ -41,9 +41,8 @@ class OrganizationMembershipService @Inject constructor(
     fun activeMemberCount(organizationId: UUID): Long =
         membershipRepository.countActiveMembersOfOrg(organizationId)
 
-    /** The user's role name within an org (from their ACTIVE membership), or null if not a member. */
-    fun roleOf(appUserId: UUID, organizationId: UUID): String? =
-        membershipRepository.findActiveByUserAndOrg(appUserId, organizationId)?.roleName
+    fun rolesOf(appUserId: UUID, organizationId: UUID): Set<OrganizationRoleName> =
+        membershipRepository.findActiveByUserAndOrg(appUserId, organizationId)?.roles?.toSet().orEmpty()
 
     /**
      * The org the user primarily belongs to (their primary membership, else their first active
@@ -58,9 +57,9 @@ class OrganizationMembershipService @Inject constructor(
      * Map of appUserId → role name for every ACTIVE member of the org, in one query.
      * Used to decorate member-listing DTOs without an N+1 per-user lookup.
      */
-    fun rolesOf(organizationId: UUID): Map<UUID, String> =
+    fun rolesOf(organizationId: UUID): Map<UUID, Set<OrganizationRoleName>> =
         membershipRepository.findActiveMembersOfOrg(organizationId)
-            .associate { it.appUserId to it.roleName }
+            .associate { it.appUserId to it.roles.toSet() }
 
     /** Removes the user's membership of an org (used when an org admin hard-deletes the user). */
     fun removeMember(appUserId: UUID, organizationId: UUID) =
@@ -77,7 +76,9 @@ class OrganizationMembershipService @Inject constructor(
         val roles = rolesOf(organizationId)
         return membersOf(organizationId).filter { user ->
             user.isActive && user.deprovisionedAt == null &&
-                roles[user.id].let { it == RoleName.ORG_ADMIN.name || it == RoleName.ORG_OWNER.name }
+                roles[user.id].orEmpty().let {
+                    OrganizationRoleName.ORG_ADMIN in it || OrganizationRoleName.ORG_OWNER in it
+                }
         }
     }
 
@@ -94,7 +95,7 @@ class OrganizationMembershipService @Inject constructor(
     fun assignOrgRole(
         appUserId: UUID,
         organizationId: UUID,
-        role: RoleName,
+        role: OrganizationRoleName,
         isPrimary: Boolean = false,
         invitedByAppUserId: UUID? = null,
     ): OrganizationMembership
@@ -106,10 +107,24 @@ class OrganizationMembershipService @Inject constructor(
             this.invitedByAppUserId = invitedByAppUserId
             this.isPrimary = isPrimary
         }).apply {
-            this.roleName = role.name
+            this.roles += role
             this.status = OrganizationMembershipStatus.ACTIVE
         }
         return if (existing == null) membershipRepository.save(membership)
         else membershipRepository.update(membership)
+    }
+
+    fun removeOrgRole(
+        appUserId: UUID,
+        organizationId: UUID,
+        role: OrganizationRoleName,
+    ): OrganizationMembership
+    {
+        val membership = membershipRepository.findActiveByUserAndOrg(appUserId, organizationId)
+            ?: throw IllegalArgumentException("Active organization membership not found")
+        require(role in membership.roles) { "Role $role is not assigned to this membership" }
+        require(membership.roles.size > 1) { "An active organization membership must retain at least one role" }
+        membership.roles -= role
+        return membershipRepository.update(membership)
     }
 }

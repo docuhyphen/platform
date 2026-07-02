@@ -6,7 +6,7 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        gap: "16px",
+        gap: "14px",
     },
 
     documentContainer: {
@@ -23,7 +23,12 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
     },
 
     accessWindowHint: {
-        color: tokens.colorNeutralForeground3,
+        color: tokens.colorNeutralForeground2,
+        padding: "10px 12px",
+        background: tokens.colorNeutralBackground2,
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderRadius: tokens.borderRadiusLarge,
+        lineHeight: "1.5",
     },
 
     verificationControls: {
@@ -44,12 +49,24 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: "12px",
+        background: tokens.colorNeutralBackground1,
+        border: `1px solid ${tokens.colorNeutralStroke1}`,
+        borderRadius: tokens.borderRadiusLarge,
+        boxShadow: "none",
+        transitionProperty: "border-color, box-shadow, transform",
+        transitionDuration: "160ms",
+        ':hover': {
+            borderColor: tokens.colorBrandStroke1,
+            boxShadow: tokens.shadow8,
+            transform: "translateY(-1px)",
+        },
         '@media (max-width: 640px)': {
-            padding: "12px",
+            padding: "14px",
+            gap: "10px",
         },
         '@media (max-width: 390px)': {
-            padding: "10px",
+            padding: "12px",
         },
     },
 
@@ -73,7 +90,7 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
     documentCardHeader: {
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: "6px",
         alignItems: "normal",
     },
 
@@ -85,7 +102,9 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
         gap: "8px",
         flexWrap: "wrap",
         '@media (max-width: 640px)': {
+            flexDirection: "column",
             alignItems: "flex-start",
+            gap: "6px",
         },
         '@media (max-width: 390px)': {
             gap: "4px",
@@ -98,12 +117,15 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
     },
 
     uploadedDate: {
-        color: tokens.colorNeutralForeground3,
+        display: "inline-flex",
+        width: "fit-content",
+        color: tokens.colorNeutralForeground2,
+        background: tokens.colorNeutralBackground3,
+        padding: "3px 8px",
+        borderRadius: tokens.borderRadiusCircular,
+        fontSize: "12px",
         lineHeight: "1.3",
         overflowWrap: "anywhere",
-        '@media (max-width: 390px)': {
-            fontSize: "12px",
-        },
     },
 
     documentActions: {
@@ -121,6 +143,7 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
         '@media (max-width: 640px)': {
             flexDirection: "column",
             alignItems: "stretch",
+            gap: "8px",
         },
     },
 
@@ -130,9 +153,11 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
         flexWrap: "wrap",
         '@media (max-width: 640px)': {
             width: "100%",
-            flexDirection: "column",
+            display: "grid",
+            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
         },
-        '@media (max-width: 390px)': {
+        '@media (max-width: 350px)': {
+            gridTemplateColumns: "1fr",
             gap: "6px",
         },
     },
@@ -141,9 +166,11 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
         '@media (max-width: 640px)': {
             width: "100%",
             justifyContent: "center",
-            minHeight: "40px",
+            minHeight: "38px",
+            paddingLeft: "10px",
+            paddingRight: "10px",
         },
-        '@media (max-width: 390px)': {
+        '@media (max-width: 350px)': {
             minHeight: "36px",
             fontSize: "12px",
         },
@@ -152,11 +179,16 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
     downloadAction: {
         '@media (max-width: 640px)': {
             width: "100%",
+            background: tokens.colorNeutralBackground2,
         },
     },
 
     fileNameText: {
         overflowWrap: "anywhere",
+        color: tokens.colorBrandForeground1,
+        padding: "6px 8px",
+        background: tokens.colorBrandBackground2,
+        borderRadius: tokens.borderRadiusMedium,
     },
 
     documentActionsLine2: {

@@ -17,10 +17,8 @@ enum class OrganizationMembershipStatus
 }
 
 /**
- * A user's membership of an organization. Replaces the legacy `app_user.organization_id`
- * single-tenant assumption. A user may hold multiple active memberships, each with its
- * own role and lifecycle. At most one membership per user can be `is_primary=true`
- * (enforced by a partial unique index in V8).
+ * A user's membership of an organization. Organization roles are additive and stored in
+ * `organization_membership_role`; changing one role does not replace unrelated roles.
  */
 @Entity
 @Serializable
@@ -39,9 +37,14 @@ class OrganizationMembership
     @Serializable(with = UUIDSerializer::class)
     lateinit var organizationId: UUID
 
-    /** Role within this organization. Maps to a [RoleName] string. */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+        name = "organization_membership_role",
+        joinColumns = [JoinColumn(name = "organization_membership_id")],
+    )
     @Column(name = "role_name", nullable = false, length = 64)
-    var roleName: String = RoleName.ORG_MEMBER.name
+    @Enumerated(EnumType.STRING)
+    var roles: MutableSet<OrganizationRoleName> = mutableSetOf()
 
     @Column(name = "status", nullable = false, length = 32)
     @Enumerated(EnumType.STRING)

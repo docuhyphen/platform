@@ -1,11 +1,11 @@
 
 import {
     AppUser, AppUserDetailedDto,
-    AppUserRole,
     Organization,
     Person,
     PersonIDType
 } from "../app/models/models.tsx";
+import {OrganizationRoleName} from './types/roles.ts';
 
 // Mock data for development use
 const pairedOrganizations: Organization[] = [
@@ -187,7 +187,8 @@ const orgUsers: AppUser[] = [
         signInAttempts: 0,
         mfaType: "EMAIL",
         isTemporary: false,
-        role: AppUserRole.ORG_MEMBER,
+        appRoles: [],
+        organizationRoles: [OrganizationRoleName.ORG_MEMBER],
         person: createPerson("js", "John", "Smith", "john.smith@acme.com")
     },
     {
@@ -199,7 +200,8 @@ const orgUsers: AppUser[] = [
         signInAttempts: 0,
         mfaType: "EMAIL",
         isTemporary: false,
-        role: AppUserRole.ORG_MEMBER,
+        appRoles: [],
+        organizationRoles: [OrganizationRoleName.ORG_MEMBER],
         person: createPerson("sj", "Sarah", "Jones", "sarah.jones@acme.com")
     },
     // Additional users...
@@ -212,7 +214,8 @@ const orgUsers: AppUser[] = [
         signInAttempts: 0,
         mfaType: "EMAIL",
         isTemporary: false,
-        role: AppUserRole.ORG_ADMIN,
+        appRoles: [],
+        organizationRoles: [OrganizationRoleName.ORG_ADMIN, OrganizationRoleName.ORG_MEMBER],
         person: createPerson("mb", "Michael", "Brown", "michael.brown@techsolutions.com")
     },
     {
@@ -224,7 +227,8 @@ const orgUsers: AppUser[] = [
         signInAttempts: 0,
         mfaType: "EMAIL",
         isTemporary: false,
-        role: AppUserRole.ORG_MEMBER,
+        appRoles: [],
+        organizationRoles: [OrganizationRoleName.ORG_MEMBER],
         person: createPerson("ew", "Emily", "White", "emily.white@globalinnovations.org")
     },
     {
@@ -236,7 +240,8 @@ const orgUsers: AppUser[] = [
         signInAttempts: 0,
         mfaType: "EMAIL",
         isTemporary: false,
-        role: AppUserRole.ORG_MEMBER,
+        appRoles: [],
+        organizationRoles: [OrganizationRoleName.ORG_MEMBER],
         person: createPerson("dm", "David", "Miller", "david.miller@quantumresearch.edu")
     }
 ];

@@ -9,18 +9,6 @@ import java.time.Instant
 import java.util.*
 
 /**
- * Role a principal holds within a [PrincipalGroup]. Distinct from system / org / resource
- * roles in [RoleName] because group membership is its own scope.
- */
-enum class GroupRole
-{
-    OWNER,
-    MANAGER,
-    MEMBER,
-    OBSERVER,
-}
-
-/**
  * A member of a [PrincipalGroup]. The member is itself a principal (USER or PARTICIPANT
  * for now; nested PRINCIPAL_GROUP membership is deferred to a later iteration).
  *
@@ -50,7 +38,7 @@ class PrincipalGroupMember
 
     @Column(name = "group_role", nullable = false, length = 32)
     @Enumerated(EnumType.STRING)
-    var groupRole: GroupRole = GroupRole.MEMBER
+    var groupRole: PrincipalGroupRoleName = PrincipalGroupRoleName.MEMBER
 
     @Column(name = "added_by_app_user_id", nullable = true)
     @Serializable(with = UUIDSerializer::class)

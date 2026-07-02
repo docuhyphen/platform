@@ -9,6 +9,14 @@ import com.docuhyphen.app.api.model.entity.VariableScope
 import com.docuhyphen.app.api.repository.VariableDefinitionRepository
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.service.auth.UserRoleService
+import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.Decision
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -20,6 +28,9 @@ import java.util.*
 class VariableDefinitionService @Inject constructor(
     private val repository: VariableDefinitionRepository,
     private val adminActionGuardService: AdminActionGuardService,
+    private val authorizationService: AuthorizationService,
+    private val authorizationContextFactory: AuthorizationContextFactory,
+    private val userRoleService: UserRoleService,
 )
 {
     companion object
@@ -28,38 +39,32 @@ class VariableDefinitionService @Inject constructor(
         private val KEY_REGEX = Regex("^[A-Z0-9_]{1,64}$")
     }
 
-    fun listVariables(
-        scope: VariableScope,
-        organizationId: UUID?,
-        userId: UUID,
-        isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
-    ): List<VariableDefinitionDto>
+    fun listVariables(scope: VariableScope): List<VariableDefinitionDto>
     {
+        val principal = currentPrincipal()
+        val activeOrgId = currentContext().activeOrgId
         return when (scope)
         {
             VariableScope.ORG ->
             {
-                if (organizationId == null) emptyList()
-                else repository.findByScopeAndOrganizationIdAndIsDeletedFalse(scope, organizationId)
+                if (activeOrgId == null) emptyList()
+                else repository.findByScopeAndOrganizationIdAndIsDeletedFalse(scope, activeOrgId)
                     .map { it.toDto() }
             }
             VariableScope.PERSONAL ->
-                repository.findByScopeAndCreatedByAppUserIdAndIsDeletedFalse(scope, userId)
+                repository.findByScopeAndCreatedByAppUserIdAndIsDeletedFalse(scope, principal.id)
                     .map { it.toDto() }
         }
     }
 
     @Transactional
-    fun createVariable(
-        request: CreateVariableRequest,
-        callerUserId: UUID,
-        callerOrgId: UUID?,
-        isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
-        context: AdminApprovalContext,
-    ): VariableDefinitionDto
+    fun createVariable(request: CreateVariableRequest, context: AdminApprovalContext): VariableDefinitionDto
     {
+        val principal = currentPrincipal()
+        val authContext = currentContext()
+        val activeOrgId = authContext.activeOrgId
+        val isAppAdmin = userRoleService.isAppAdmin(principal.id)
+
         val scope = runCatching { VariableScope.valueOf(request.scope.uppercase()) }
             .getOrElse { throw IllegalArgumentException("Invalid scope '${request.scope}'") }
 
@@ -71,23 +76,24 @@ class VariableDefinitionService @Inject constructor(
         {
             VariableScope.ORG ->
             {
+                val isOrgAdmin = activeOrgId != null && userRoleService.isOrgAdminIn(principal.id, activeOrgId)
                 if (!isOrgAdmin && !isAppAdmin)
                     throw ForbiddenException("Org admin role required to manage org variables")
-                if (callerOrgId == null)
+                if (activeOrgId == null)
                     throw IllegalArgumentException("Organization context required for ORG scope")
-                if (repository.findByOrganizationIdAndKeyAndIsDeletedFalse(callerOrgId, normalizedKey) != null)
+                if (repository.findByOrganizationIdAndKeyAndIsDeletedFalse(activeOrgId, normalizedKey) != null)
                     throw IllegalArgumentException("Variable '$normalizedKey' already exists in this organization")
             }
             VariableScope.PERSONAL ->
             {
-                if (repository.findByCreatedByAppUserIdAndKeyAndIsDeletedFalse(callerUserId, normalizedKey) != null)
+                if (repository.findByCreatedByAppUserIdAndKeyAndIsDeletedFalse(principal.id, normalizedKey) != null)
                     throw IllegalArgumentException("Variable '$normalizedKey' already exists in your personal variables")
             }
         }
 
         adminActionGuardService.enforce(
             action = actionFor(scope, "CREATE"),
-            actorId = callerUserId,
+            actorId = principal.id,
             context = context,
         )
 
@@ -95,28 +101,22 @@ class VariableDefinitionService @Inject constructor(
             this.key = normalizedKey
             this.defaultValue = request.defaultValue
             this.scope = scope
-            this.organizationId = if (scope == VariableScope.ORG) callerOrgId else null
-            this.createdByAppUserId = callerUserId
+            this.organizationId = if (scope == VariableScope.ORG) activeOrgId else null
+            this.createdByAppUserId = principal.id
         }
         return repository.save(variable).toDto()
     }
 
     @Transactional
-    fun updateVariable(
-        id: UUID,
-        request: UpdateVariableRequest,
-        callerUserId: UUID,
-        callerOrgId: UUID?,
-        isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
-        context: AdminApprovalContext,
-    ): VariableDefinitionDto
+    fun updateVariable(id: UUID, request: UpdateVariableRequest, context: AdminApprovalContext): VariableDefinitionDto
     {
+        val principal = currentPrincipal()
+        val authContext = currentContext()
         val variable = repository.findById(id) ?: throw IllegalArgumentException("Variable not found")
-        checkWriteAccess(variable, callerUserId, callerOrgId, isOrgAdmin, isAppAdmin)
+        checkWriteAccess(variable, principal, authContext)
         adminActionGuardService.enforce(
             action = actionFor(variable.scope, "UPDATE"),
-            actorId = callerUserId,
+            actorId = principal.id,
             context = context,
         )
         request.defaultValue?.let { variable.defaultValue = it.takeIf { v -> v.isNotBlank() } }
@@ -125,47 +125,52 @@ class VariableDefinitionService @Inject constructor(
     }
 
     @Transactional
-    fun deleteVariable(
-        id: UUID,
-        callerUserId: UUID,
-        callerOrgId: UUID?,
-        isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
-        context: AdminApprovalContext,
-    )
+    fun deleteVariable(id: UUID, context: AdminApprovalContext)
     {
+        val principal = currentPrincipal()
+        val authContext = currentContext()
         val variable = repository.findById(id) ?: throw IllegalArgumentException("Variable not found")
-        checkWriteAccess(variable, callerUserId, callerOrgId, isOrgAdmin, isAppAdmin)
+        checkWriteAccess(variable, principal, authContext)
         adminActionGuardService.enforce(
             action = actionFor(variable.scope, "DELETE"),
-            actorId = callerUserId,
+            actorId = principal.id,
             context = context,
         )
         variable.isDeleted = true
         variable.isActive = false
         repository.update(variable)
-        logger.info("Variable {} soft-deleted by user {}", id, callerUserId)
+        logger.info("Variable {} soft-deleted by user {}", id, principal.id)
     }
 
-    private fun checkWriteAccess(
-        variable: VariableDefinition,
-        callerUserId: UUID,
-        callerOrgId: UUID?,
-        isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
-    )
+    // ── Access control ────────────────────────────────────────────────────────
+
+    private fun checkWriteAccess(variable: VariableDefinition, principal: PrincipalRef, context: AuthorizationContext)
     {
-        if (isAppAdmin) return
+        if (userRoleService.isAppAdmin(principal.id)) return
         when (variable.scope)
         {
             VariableScope.PERSONAL ->
-                if (variable.createdByAppUserId != callerUserId)
+                if (variable.createdByAppUserId != principal.id)
                     throw ForbiddenException("Access denied to variable ${variable.id}")
             VariableScope.ORG ->
-                if (!isOrgAdmin || callerOrgId == null || variable.organizationId != callerOrgId)
+            {
+                val decision = authorizationService.authorize(
+                    principal, Action.VARIABLE_EDIT, ResourceRef.variable(variable.id), context,
+                )
+                if (decision is Decision.Deny)
                     throw ForbiddenException("Org admin role required to modify variable ${variable.id}")
+            }
         }
     }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private fun currentPrincipal(): PrincipalRef =
+        authorizationContextFactory.currentPrincipal()
+            ?: throw ForbiddenException("Not authenticated")
+
+    private fun currentContext(): AuthorizationContext =
+        authorizationContextFactory.currentContext()
 
     private fun actionFor(scope: VariableScope, operation: String): String =
         when (scope)

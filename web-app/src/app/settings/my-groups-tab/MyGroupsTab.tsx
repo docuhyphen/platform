@@ -49,7 +49,7 @@ import {
 } from '../../../services/meGroupsApi';
 import {searchContacts, UserContactDto} from '../../../services/personalContactsApi';
 import {PrincipalGroupDto} from '../../../services/types/dtos';
-import {GroupRoleDisplayNames} from '../../../services/types/roles';
+import {PrincipalGroupRoleDisplayNames} from '../../../services/types/roles';
 import MultiPersonPicker from '../../components/person-picker/multi-person-picker/MultiPersonPicker.tsx';
 import {PersonPickerItem} from '../../components/person-picker/personPickerTypes.ts';
 
@@ -140,7 +140,7 @@ const MyGroupsTab: React.FC = () =>
                 members: selectedContacts.map(c => ({
                     principalId: c.contactAppUserId!,
                     principalKind: 'USER',
-                    groupRole: 'MEMBER',
+                    groupRole: PrincipalGroupRoleName.MEMBER,
                 })),
             });
             setCreateOpen(false);
@@ -206,7 +206,7 @@ const MyGroupsTab: React.FC = () =>
                 members: selectedContacts.map(c => ({
                     principalId: c.contactAppUserId!,
                     principalKind: 'USER',
-                    groupRole: 'MEMBER',
+                    groupRole: PrincipalGroupRoleName.MEMBER,
                 })),
             });
             await loadGroups();
@@ -524,7 +524,7 @@ const MyGroupsTab: React.FC = () =>
                                                     size="small"
                                                     appearance="outline"
                                                 >
-                                                    {GroupRoleDisplayNames[m.groupRole as keyof typeof GroupRoleDisplayNames] || m.groupRole}
+                                                    {PrincipalGroupRoleDisplayNames[m.groupRole as keyof typeof PrincipalGroupRoleDisplayNames] || m.groupRole}
                                                 </Badge>
                                                 <Button
                                                     id={`remove-member-${i}`}

@@ -388,18 +388,11 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
         val currentUser = authTokenContext.authToken.appUser
             ?: throw UnauthorizedException("User is not authenticated")
 
-        if (!userRoleService.isOrgAdmin(currentUser.id))
+        val orgId = requireUuid(organizationId, "organization ID")
+
+        if (!userRoleService.isOrgAdminIn(currentUser.id, orgId))
         {
             throw UnauthorizedException("User does not have permission to manage organization IdP configuration")
-        }
-
-        val orgId = requireUuid(organizationId, "organization ID")
-        val currentUserOrg = organizationRepository.findByAppUserIdAndPersonId(currentUser.id, currentUser.person?.id!!)
-            ?: throw UnauthorizedException("User is not associated with an organization")
-
-        if (currentUserOrg.id != orgId)
-        {
-            throw UnauthorizedException("User cannot manage another organization's IdP configuration")
         }
 
         return currentUser

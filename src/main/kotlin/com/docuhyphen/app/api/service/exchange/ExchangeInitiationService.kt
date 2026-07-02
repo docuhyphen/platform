@@ -21,6 +21,7 @@ import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.communication.AppNotificationService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
+import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.documentlibrary.DocumentLibraryService
@@ -45,6 +46,7 @@ class ExchangeInitiationService @Inject constructor(
     private val appUserService: AppUserService,
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
+    private val otpService: OtpService,
     private val authTokenContext: AuthTokenContext,
     private val authenticationService: AuthenticationService,
     private val authRateLimitService: AuthRateLimitService,
@@ -105,11 +107,18 @@ class ExchangeInitiationService @Inject constructor(
         {
             EMAIL ->
                 appUserService.getAppUserByEmail(sessionInitiationDto.recipientEmail!!)
+                    ?.applyTemporaryRecipientName(
+                        recipientFirstName = sessionInitiationDto.recipientFirstName,
+                        recipientLastName = sessionInitiationDto.recipientLastName,
+                    )
                     ?: AppUser().apply {
                         isTemporary = true
                         email = sessionInitiationDto.recipientEmail!!
                         isActive = false
-                    }
+                    }.applyTemporaryRecipientName(
+                        recipientFirstName = sessionInitiationDto.recipientFirstName,
+                        recipientLastName = sessionInitiationDto.recipientLastName,
+                    )
 
             APP_USER ->
                 appUserService.getById(UUID.fromString(sessionInitiationDto.recipientAppUserId))!!
@@ -180,6 +189,11 @@ class ExchangeInitiationService @Inject constructor(
             this.createdDate = Timestamp.from(Instant.now())
             this.lastActivity = Timestamp.from(Instant.now())
             this.requireRecipientSignIn = sessionInitiationDto.requestRecipientSignIn == true
+            if (orgId0 != null) {
+                this.ownerOrganizationId = orgId0
+            } else {
+                this.ownerUserId = initiator.id
+            }
         }
 
         val libraryFilesToCopy: MutableList<Pair<Document, UUID>> = mutableListOf()
@@ -388,14 +402,17 @@ class ExchangeInitiationService @Inject constructor(
     {
         principalGroupMemberRepository.findActiveMembers(recipientGroupId)
             .filter { it.principalKind == PrincipalKind.USER }
-            .filter { it.groupRole == GroupRole.MANAGER || it.groupRole == GroupRole.OWNER }
+            .filter {
+                it.groupRole == PrincipalGroupRoleName.MANAGER ||
+                    it.groupRole == PrincipalGroupRoleName.OWNER
+            }
             .forEach { member ->
                 shareService.grant(
                     resourceType = ResourceType.EXCHANGE,
                     resourceId = session.id,
                     principalKind = PrincipalKind.USER,
                     principalId = member.principalId,
-                    roleName = RoleName.REVIEWER,
+                    roleName = ExchangeShareRoleName.REVIEWER,
                     grantedByAppUserId = initiator.id,
                     source = ShareSource.DIRECT,
                 )
@@ -451,7 +468,7 @@ class ExchangeInitiationService @Inject constructor(
             resourceId = session.id,
             principalKind = PrincipalKind.USER,
             principalId = initiator.id,
-            roleName = RoleName.OWNER,
+            roleName = ExchangeShareRoleName.OWNER,
             grantedByAppUserId = initiator.id,
             source = ShareSource.DIRECT,
         )
@@ -474,7 +491,7 @@ class ExchangeInitiationService @Inject constructor(
                 resourceId = session.id,
                 principalKind = principalKind,
                 principalId = principalId,
-                roleName = RoleName.PARTICIPANT,
+                roleName = ExchangeShareRoleName.PARTICIPANT,
                 grantedByAppUserId = initiator.id,
                 source = ShareSource.DIRECT,
             )
@@ -487,18 +504,18 @@ class ExchangeInitiationService @Inject constructor(
      * preserved verbatim in the share's constraints JSON (see [sessionConstraintsJson]).
      *
      * When the caller supplies an explicit `recipientRoleName`, honor it (after
-     * validating it's a known [RoleName]). Lets the UI offer PARTICIPANT / VIEWER /
+     * validating it against [ExchangeShareRoleName]). Lets the UI offer PARTICIPANT / VIEWER /
      * COMMENTER / SIGNER / REVIEWER at initiation, not just EDITOR/VIEWER.
      */
-    private fun recipientRoleFor(dto: ExchangeInitiationDto): RoleName
+    private fun recipientRoleFor(dto: ExchangeInitiationDto): ExchangeShareRoleName
     {
         dto.recipientRoleName?.trim()?.takeIf { it.isNotBlank() }?.let { explicit ->
-            runCatching { RoleName.valueOf(explicit.uppercase()) }.getOrNull()?.let { return it }
-            logger.warn("Ignoring unknown recipientRoleName='{}' on session initiation", explicit)
+            return runCatching { ExchangeShareRoleName.valueOf(explicit.uppercase()) }
+                .getOrElse { throw IllegalArgumentException("Invalid Exchange Share role: $explicit") }
         }
         val canWrite = dto.allowDocumentAddition == true || dto.allowDocumentDeletion == true ||
             dto.allowDocumentUpdate == true || dto.allowDocumentUpload == true
-        return if (canWrite) RoleName.EDITOR else RoleName.VIEWER
+        return if (canWrite) ExchangeShareRoleName.EDITOR else ExchangeShareRoleName.VIEWER
     }
 
     /**
@@ -702,32 +719,82 @@ class ExchangeInitiationService @Inject constructor(
 
         val requireSignInForRecipient = recipientType == EMAIL && exchange.requireRecipientSignIn
 
+        // A temporary recipient on a no-sign-in exchange has no account to sign in with.
+        // Send the no-auth OTP email so they get the /nas link and an access code up front.
+        val isNoAuthTempRecipient = recipientType == EMAIL &&
+            recipientAppUser?.isTemporary == true &&
+            !exchange.requireRecipientSignIn
+
         // Do not notify the recipient while the exchange is awaiting approval — the approval
         // workflow's own NOTIFICATION step (or a post-approval trigger) should deliver that.
         if (!pendingApproval)
         {
-            recipientEmails.forEach { (email, _) ->
-                try
+            if (isNoAuthTempRecipient)
+            {
+                val recipientEmailAddr = recipientAppUser!!.email
+                if (!recipientEmailAddr.isNullOrBlank())
                 {
-                    val body = emailTemplateService.renderExchangeCreatedRecipientEmail(
-                        exchangeId = exchangeIdStr,
-                        name = exchange.name.orEmpty(),
-                        initiatorName = initiatorName,
-                        initiatorOrganization = null,
-                        sessionMessage = exchange.initialShareMessage,
-                        documents = documentTitles,
-                        requireSignIn = requireSignInForRecipient,
-                    )
-                    emailService.sendEmail(
-                        to = email,
-                        subject = "$subjectTitle | Exchange request from $initiatorName",
-                        body = body,
-                        useHtml = true,
-                    )
+                    try
+                    {
+                        val otp = otpService.generateEmailOtp()
+                        val validityDays = exchange.noAuthAccessValidityDays.toLong()
+                        // Set OTP on managed entity — Hibernate dirty-check flushes at commit.
+                        // The code is valid for the full noAuthAccessValidityDays window so recipients
+                        // aren't forced to act within minutes. noAuthAccessValidityDays also controls the
+                        // document-access window after verification, so the two lifetimes are aligned.
+                        exchange.recipientOtpHash = otpService.hashOtp(otp)
+                        exchange.recipientOtpExpiry = Timestamp.from(
+                            Instant.now().plusSeconds(validityDays * 24 * 3600)
+                        )
+                        val expiryLabel = if (validityDays == 1L) "1 day" else "$validityDays days"
+                        val rendered = emailTemplateService.renderExchangeCreatedNoAuthRecipientEmail(
+                            exchangeId = exchangeIdStr,
+                            name = exchange.name.orEmpty(),
+                            initiatorName = initiatorName,
+                            initiatorOrganization = null,
+                            sessionMessage = exchange.initialShareMessage,
+                            documents = documentTitles,
+                            otp = otp,
+                            expiryLabel = expiryLabel,
+                        )
+                        emailService.sendEmail(
+                            to = recipientEmailAddr,
+                            subject = rendered.subject,
+                            body = rendered.body,
+                            useHtml = true,
+                        )
+                    }
+                    catch (e: Exception)
+                    {
+                        logger.error("Failed to send no-auth exchange OTP email to {}", recipientEmailAddr, e)
+                    }
                 }
-                catch (e: Exception)
-                {
-                    logger.error("Failed to send exchange recipient email to {}", email, e)
+            }
+            else
+            {
+                recipientEmails.forEach { (email, _) ->
+                    try
+                    {
+                        val body = emailTemplateService.renderExchangeCreatedRecipientEmail(
+                            exchangeId = exchangeIdStr,
+                            name = exchange.name.orEmpty(),
+                            initiatorName = initiatorName,
+                            initiatorOrganization = null,
+                            sessionMessage = exchange.initialShareMessage,
+                            documents = documentTitles,
+                            requireSignIn = requireSignInForRecipient,
+                        )
+                        emailService.sendEmail(
+                            to = email,
+                            subject = "$subjectTitle | Exchange request from $initiatorName",
+                            body = body,
+                            useHtml = true,
+                        )
+                    }
+                    catch (e: Exception)
+                    {
+                        logger.error("Failed to send exchange recipient email to {}", email, e)
+                    }
                 }
             }
         }
@@ -754,6 +821,29 @@ class ExchangeInitiationService @Inject constructor(
                 logger.error("Failed to send exchange initiator email to {}", initiator.email, e)
             }
         }
+    }
+
+    private fun AppUser.applyTemporaryRecipientName(
+        recipientFirstName: String?,
+        recipientLastName: String?,
+    ): AppUser
+    {
+        if (!isTemporary) return this
+
+        val firstName = recipientFirstName?.trim()?.takeIf { it.isNotBlank() }
+        val lastName = recipientLastName?.trim()?.takeIf { it.isNotBlank() }
+        if (firstName == null && lastName == null) return this
+
+        val currentPerson = person
+        val currentFirstName = currentPerson?.firstName?.trim()?.takeIf { it.isNotBlank() }
+        val currentLastName = currentPerson?.lastName?.trim()?.takeIf { it.isNotBlank() }
+        if (currentFirstName != null || currentLastName != null) return this
+
+        person = (currentPerson ?: Person()).apply {
+            this.firstName = firstName
+            this.lastName = lastName
+        }
+        return this
     }
 
     /**

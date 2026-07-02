@@ -20,11 +20,11 @@ import com.docuhyphen.app.api.resource.model.UpdateSessionShareRoleRequest
 import com.docuhyphen.app.api.resource.model.UpdateExchangeRequest
 import com.docuhyphen.app.api.service.exchange.*
 import com.docuhyphen.app.api.service.AppUserService
-import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.workflow.WorkflowDefinitionService
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
 import io.quarkus.security.ForbiddenException
+import java.util.UUID
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
@@ -49,7 +49,6 @@ class ExchangeResource @Inject constructor(
     private val appUserService: AppUserService,
     private val principalGroupRepository: PrincipalGroupRepository,
     private val workflowDefinitionService: WorkflowDefinitionService,
-    private val organizationMembershipService: OrganizationMembershipService,
     )
 {
     companion object
@@ -179,20 +178,6 @@ class ExchangeResource @Inject constructor(
             val exchange = exchangeRetrievalService.getExchange(exchangeId)
             val exchangeDto = DetailedEntityToDtoTransformer.toDto(exchange)
             val enriched = enrichSessionWithRecipient(enrichSessionWithPermissions(enrichSessionWithFileSizes(exchangeDto)))
-
-            // TEMP DEBUG, remove once permissions issue resolved
-            val rawConstraints = shareService.recipientConstraintsJson(java.util.UUID.fromString(exchangeId))
-            logger.info(
-                "DEBUG getExchange exchangeId={} rawConstraints={} dto.allowDocumentUpload={} dto.allowDocumentUpdate={} dto.allowDocumentDeletion={} dto.allowDocumentDownload={} dto.allowDocumentAddition={}",
-                exchangeId,
-                rawConstraints,
-                enriched?.allowDocumentUpload,
-                enriched?.allowDocumentUpdate,
-                enriched?.allowDocumentDeletion,
-                enriched?.allowDocumentDownload,
-                enriched?.allowDocumentAddition,
-            )
-
             Response.ok(enriched).build()
         }
         catch (exception: Exception)
@@ -243,16 +228,22 @@ class ExchangeResource @Inject constructor(
     {
         return try
         {
-            val view = shareQueryService.getSessionAccessView(java.util.UUID.fromString(exchangeId))
+            val view = sessionAccessManagementService.getSessionAccessView(java.util.UUID.fromString(exchangeId))
             Response.ok(view.toTypedArray()).build()
         }
         catch (exception: Exception)
         {
             when (exception)
             {
+                is ExchangeNotFoundException ->
+                {
+                    val responseError = ResponseError("Exchange not found")
+                    Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
+                }
+
                 is IllegalArgumentException ->
                 {
-                    val responseError = ResponseError("Invalid session id")
+                    val responseError = ResponseError("Invalid exchange id")
                     Response.status(Response.Status.BAD_REQUEST).entity(responseError).build()
                 }
 
@@ -644,12 +635,12 @@ class ExchangeResource @Inject constructor(
     {
         return try
         {
-            val id = java.util.UUID.fromString(exchangeId)
+            val id = UUID.fromString(exchangeId)
             // Gate on exchange membership; throws ExchangeNotFoundException for non-members.
             exchangeRetrievalService.getExchange(exchangeId)
             val callerId = authTokenContext.authToken.appUser?.id
-            val callerOrgId = callerId?.let { organizationMembershipService.primaryOrganizationId(it) }
-            // Users with no org membership have no workflow context — return empty rather than
+            val callerOrgId = authTokenContext.activeOrganizationId
+            // Users with no active org have no workflow context — return empty rather than
             // falling back to the no-filter query which would leak other orgs' instances.
             val instances = if (callerOrgId != null && callerId != null)
                 workflowDefinitionService.listInstancesForSubject("EXCHANGE", id, callerOrgId, callerId)
@@ -686,10 +677,9 @@ class ExchangeResource @Inject constructor(
     {
         return try
         {
-            val id = java.util.UUID.fromString(exchangeId)
+            val id = UUID.fromString(exchangeId)
             exchangeRetrievalService.getExchange(exchangeId)
-            val callerOrgId = authTokenContext.authToken.appUser?.id
-                ?.let { organizationMembershipService.primaryOrganizationId(it) }
+            val callerOrgId = authTokenContext.activeOrganizationId
                 ?: return Response.status(Response.Status.FORBIDDEN)
                     .entity(ResponseError("Organisation context required")).build()
             val status = workflowDefinitionService.getExchangeClearanceStatus(id, callerOrgId)
@@ -752,14 +742,14 @@ class ExchangeResource @Inject constructor(
      * Populate the session DTO's document permission flags from the primary recipient share's
      * constraints JSON. The permissions live on the Share row, not on the Exchange entity.
      *
-     * Also parses the viewer-obligation keys (`watermark`, `max_views`, `require_mfa`)
-     * so the viewer can apply a watermark overlay and hide the download button when denied.
+     * Also parses the viewer-obligation keys (`watermark`, `require_mfa`)
+     * so the viewer can apply a watermark overlay when required.
      */
     private fun enrichSessionWithPermissions(sessionDto: ExchangeDetailedDto?): ExchangeDetailedDto?
     {
         if (sessionDto == null) return null
         val constraintsJson = shareService.recipientConstraintsJson(sessionDto.id) ?: return sessionDto
-        val c = ShareConstraints.parse(constraintsJson)
+        val c = ShareConstraints.parse(constraintsJson) ?: return sessionDto
         // The download key is `can_download` in the newer constraints but
         // `allow_document_download` in the legacy initiation flags, accept either.
         val downloadAllowed = c.canDownload != false &&
@@ -772,7 +762,6 @@ class ExchangeResource @Inject constructor(
             allowDocumentUpdate = c.allowDocumentUpdate == true,
             allowDocumentUpload = c.allowDocumentUpload == true,
             watermark = c.watermark,
-            maxViews = c.maxViews?.takeIf { it > 0 },
             requireMfa = c.requireMfa,
             allowedDownloadFormats = c.allowedDownloadFormats,
         )

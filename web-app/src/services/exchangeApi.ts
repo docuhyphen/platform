@@ -1,5 +1,6 @@
 ﻿import apiClient, {addBearerToHeaderToken} from './apiClient';
 import {
+    DocumentDetailedDto,
     DownloadDocumentsZipRequest,
     ExchangeClearanceStatusDto,
     NoAuthExchangeBasicDto,
@@ -154,7 +155,7 @@ export const uploadNoAuthExchangeDocument = (
     exchangeId: string,
     documentId?: string,
     formData?: FormData,
-    onUploadProgress?: (progressEvent: any) => void) =>
+    onUploadProgress?: (progressEvent: any) => void): Promise<DocumentDetailedDto> =>
 {
     return executeRequest(() =>
         apiClient.post(`no-auth/exchanges/${exchangeId}/documents/${documentId}/file`, formData, {

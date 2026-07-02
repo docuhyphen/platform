@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.service.auth
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.IdentityProviderLink
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
-import com.docuhyphen.app.api.model.entity.RoleName
+import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.repository.IdentityProviderLinkRepository
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.idp.OAuthUserInfo
@@ -119,7 +119,7 @@ class OAuthUserLinkingService @Inject constructor(
             organizationMembershipService.assignOrgRole(
                 appUserId = savedUser.id,
                 organizationId = organization.id,
-                role = RoleName.ORG_MEMBER,
+                role = OrganizationRoleName.ORG_MEMBER,
                 isPrimary = true,
             )
         }

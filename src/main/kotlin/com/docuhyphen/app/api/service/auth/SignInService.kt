@@ -6,6 +6,7 @@ import com.docuhyphen.app.api.exception.PasswordChangeRequiredException
 import com.docuhyphen.app.api.exception.InvalidSignInCredentialsException
 import com.docuhyphen.app.api.exception.MaxAttemptsOTPExceededException
 import com.docuhyphen.app.api.exception.OTPExpiredException
+import com.docuhyphen.app.api.exception.SignUpRequiredException
 import com.docuhyphen.app.api.exception.TemporaryPasswordExpiredException
 import com.docuhyphen.app.api.exception.TooManyRequestsException
 import com.docuhyphen.app.api.extension.maskEmailForLogs
@@ -78,6 +79,10 @@ class SignInService @Inject constructor(
         if (!appUser.isActive || appUser.deprovisionedAt != null)
         {
             logger.warn("Sign in blocked: inactive/deprovisioned account for {}", sanitizedEmail.maskEmailForLogs())
+            if (appUser.isTemporary && appUser.deprovisionedAt == null)
+            {
+                throw SignUpRequiredException()
+            }
             throw InactiveAccountException()
         }
 

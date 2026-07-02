@@ -1,7 +1,6 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.repository.OrganizationRepository
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -10,7 +9,6 @@ import java.util.UUID
 @RequestScoped
 class OrganizationIdpSecretRotationRunbookService @Inject constructor(
     private val authTokenContext: AuthTokenContext,
-    private val organizationRepository: OrganizationRepository,
     private val adminActionGuardService: AdminActionGuardService,
     private val rotationSchedulerService: OrganizationIdpSecretRotationSchedulerService,
     private val userRoleService: UserRoleService,
@@ -72,20 +70,12 @@ class OrganizationIdpSecretRotationRunbookService @Inject constructor(
         val actor = authTokenContext.authToken.appUser
             ?: throw UnauthorizedException("User is not authenticated")
 
-        if (!userRoleService.isOrgAdmin(actor.id))
-        {
-            throw UnauthorizedException("User does not have permission to run emergency secret rotation")
-        }
-
         val orgId = runCatching { UUID.fromString(organizationId) }
             .getOrElse { throw IllegalArgumentException("Invalid organization ID format") }
 
-        val actorOrg = organizationRepository.findByAppUserIdAndPersonId(actor.id, actor.person?.id!!)
-            ?: throw UnauthorizedException("User is not associated with an organization")
-
-        if (actorOrg.id != orgId)
+        if (!userRoleService.isOrgAdminIn(actor.id, orgId))
         {
-            throw UnauthorizedException("User cannot run rotation for another organization")
+            throw UnauthorizedException("User does not have permission to run emergency secret rotation")
         }
 
         return actor

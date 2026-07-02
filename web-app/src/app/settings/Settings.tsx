@@ -44,7 +44,7 @@ import CommunicationsTab from "./communications-tab/CommunicationsTab.tsx";
 import DocumentLibraryTab from "./document-library-tab/DocumentLibraryTab.tsx";
 import BillingTab from "./billing-tab/BillingTab.tsx";
 import {useIsMobile} from "../../utils/useMediaQuery.ts";
-import {AppUserRole} from "../models/models.tsx";
+import {Capability} from '../../app/models/models.tsx';
 
 const Settings = () =>
 {
@@ -82,7 +82,7 @@ const Settings = () =>
         [tabIds.documents]: "Document Library",
     };
 
-    const {appUser, appUserPersonOrganization} = useAuth();
+    const {appUserPersonOrganization, hasCapability} = useAuth();
     const styles = useSettingsStyles();
     const isMobile = useIsMobile();
     const [selectedValue, setSelectedValue] = useState<TabValue>(tabIds.profile);
@@ -96,11 +96,13 @@ const Settings = () =>
 
     const currentTabLabel = tabLabels[selectedValue as string] ?? "Settings";
 
-    const roleValue = `${appUser?.role ?? ''}`;
     const hasOrg = !!appUserPersonOrganization?.isActive;
     const canManageOrganization =
         appUserPersonOrganization?.isActive &&
-        (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN');
+        (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
+    // Show the Administration tab when the user has no org (to register) or a pending org (to
+    // view status), in addition to the normal case of an active org with management capabilities.
+    const canSeeOrganizationAdminTab = !appUserPersonOrganization?.isActive || canManageOrganization;
 
     const tabListContent = (
         <TabList
@@ -148,15 +150,17 @@ const Settings = () =>
             <Tab id="CommunicationsTab" icon={<SettingsCommunicationsTabIcon/>} value={tabIds.communications}>
                 Communications
             </Tab>
-            {canManageOrganization && (
+            {canSeeOrganizationAdminTab && (
                 <>
                     <Divider appearance={"brand"} alignContent={"start"} className={styles.tabSettingDivider}>Organization</Divider>
                     <Tab id="OrganizationTab" icon={<SettingsOrganizationTabIcon/>} value={tabIds.organization}>
                         Administration
                     </Tab>
-                    <Tab id="OrganizationBillingTab" icon={<SettingsOrganizationBillingTabIcon/>} value={tabIds.organizationBilling}>
-                        Billing
-                    </Tab>
+                    {canManageOrganization && (
+                        <Tab id="OrganizationBillingTab" icon={<SettingsOrganizationBillingTabIcon/>} value={tabIds.organizationBilling}>
+                            Billing
+                        </Tab>
+                    )}
                 </>
             )}
         </TabList>

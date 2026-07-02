@@ -17,7 +17,10 @@ import React, {useEffect, useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import {addOrganizationUser} from "../../../../services/organizationApi.ts";
 import {useAddAppUserDialogStyles} from "./AddAppUserDialogStyles.tsx";
-import {AppUserRoleDisplayNames} from "../../../models/models.tsx";
+import {
+    OrganizationRoleDisplayNames,
+    OrganizationRoleName,
+} from '../../../../services/types/roles.ts';
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {isValidEmail} from "../../../../utils/helpers.ts";
 
@@ -70,7 +73,7 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
     const [email, setEmail] = useState("");
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
-    const [role, setRole] = useState("ORG_MEMBER");
+    const [roles, setRoles] = useState<OrganizationRoleName[]>([OrganizationRoleName.ORG_MEMBER]);
     const [savingData, setSavingData] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -79,7 +82,7 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
         setEmail("");
         setFirstName("");
         setLastName("");
-        setRole("ORG_MEMBER");
+        setRoles([OrganizationRoleName.ORG_MEMBER]);
         setError(null);
     };
 
@@ -123,7 +126,7 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
                 organizationId,
                 {
                     email: email.trim().toLowerCase(),
-                    role,
+                    roles,
                     person: {
                         firstName: firstName.trim(),
                         lastName: lastName.trim()
@@ -152,7 +155,7 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
         onDismiss();
     };
 
-    const isFormValid = email.trim() && firstName.trim() && lastName.trim() && role;
+    const isFormValid = email.trim() && firstName.trim() && lastName.trim() && roles.length > 0;
 
     return (
         <Dialog modalType="alert" open={isOpen}>
@@ -195,15 +198,23 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
                             />
                         </Field>
 
-                        <Field label="Role" required>
+                        <Field label="Roles" required>
                             <Dropdown
                                 id={"add-user-role-dropdown"}
-                                selectedOptions={[role]}
-                                placeholder={AppUserRoleDisplayNames[role as keyof typeof AppUserRoleDisplayNames]}
-                                onOptionSelect={(_, data) => data.optionValue && setRole(data.optionValue)}
+                                multiselect
+                                selectedOptions={roles}
+                                value={roles.map((role) => OrganizationRoleDisplayNames[role]).join(', ')}
+                                onOptionSelect={(_, data) =>
+                                    setRoles(data.selectedOptions as OrganizationRoleName[])}
                             >
-                                <Option value="ORG_ADMIN">Organization Admin</Option>
-                                <Option value="ORG_MEMBER">Organization Member</Option>
+                                {Object.entries(OrganizationRoleDisplayNames).map(([role, label]) => (
+                                    <Option
+                                        key={role}
+                                        value={role}
+                                    >
+                                        {label}
+                                    </Option>
+                                ))}
                             </Dropdown>
                         </Field>
                     </DialogContent>

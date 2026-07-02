@@ -5,8 +5,6 @@ import com.docuhyphen.app.api.model.dto.CreateSequenceRequest
 import com.docuhyphen.app.api.model.dto.UpdateSequenceRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
-import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.variable.SequenceDefinitionService
 import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
@@ -23,8 +21,6 @@ import java.util.*
 class SequenceDefinitionResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val sequenceService: SequenceDefinitionService,
-    private val userRoleService: UserRoleService,
-    private val organizationMembershipService: OrganizationMembershipService,
 )
 {
     companion object
@@ -35,15 +31,12 @@ class SequenceDefinitionResource @Inject constructor(
     @GET
     fun listSequences(@QueryParam("isActive") isActive: Boolean?): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-            ?: return Response.ok(emptyArray<Any>()).build()
 
         return try
         {
-            val items = sequenceService.listSequences(callerOrgId, isActive)
+            val items = sequenceService.listSequences(isActive)
             Response.ok(items.toTypedArray()).build()
         }
         catch (e: Exception)
@@ -59,28 +52,15 @@ class SequenceDefinitionResource @Inject constructor(
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         if (request.name.isBlank())
             return Response.status(BAD_REQUEST).entity(ResponseError("name is required")).build()
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-            ?: return Response.status(BAD_REQUEST).entity(ResponseError("Organization context required")).build()
-
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = userRoleService.isOrgAdminIn(actor.id, callerOrgId)
-
         return try
         {
-            val dto = sequenceService.createSequence(
-                callerOrgId,
-                request,
-                actor.id,
-                isOrgAdmin,
-                isAppAdmin,
-                AdminApprovalContext(requestId = requestId),
-            )
+            val dto = sequenceService.createSequence(request, AdminApprovalContext(requestId = requestId))
             Response.status(CREATED).entity(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -103,20 +83,16 @@ class SequenceDefinitionResource @Inject constructor(
     @Path("/{id}")
     fun getSequence(@PathParam("id") id: String): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val seqId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid sequence id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId?.let { userRoleService.isOrgAdminIn(actor.id, it) } ?: false
-
         return try
         {
-            val dto = sequenceService.getSequence(seqId, callerOrgId, isOrgAdmin, isAppAdmin)
+            val dto = sequenceService.getSequence(seqId)
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -142,28 +118,16 @@ class SequenceDefinitionResource @Inject constructor(
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val seqId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid sequence id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId?.let { userRoleService.isOrgAdminIn(actor.id, it) } ?: false
-
         return try
         {
-            val dto = sequenceService.updateSequence(
-                seqId,
-                request,
-                callerOrgId,
-                isOrgAdmin,
-                isAppAdmin,
-                actor.id,
-                AdminApprovalContext(requestId = requestId),
-            )
+            val dto = sequenceService.updateSequence(seqId, request, AdminApprovalContext(requestId = requestId))
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -189,27 +153,16 @@ class SequenceDefinitionResource @Inject constructor(
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val seqId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid sequence id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId?.let { userRoleService.isOrgAdminIn(actor.id, it) } ?: false
-
         return try
         {
-            sequenceService.deleteSequence(
-                seqId,
-                callerOrgId,
-                isOrgAdmin,
-                isAppAdmin,
-                actor.id,
-                AdminApprovalContext(requestId = requestId),
-            )
+            sequenceService.deleteSequence(seqId, AdminApprovalContext(requestId = requestId))
             Response.noContent().build()
         }
         catch (e: IllegalArgumentException)
@@ -235,27 +188,16 @@ class SequenceDefinitionResource @Inject constructor(
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val seqId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid sequence id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId?.let { userRoleService.isOrgAdminIn(actor.id, it) } ?: false
-
         return try
         {
-            val dto = sequenceService.resetCounter(
-                seqId,
-                callerOrgId,
-                isOrgAdmin,
-                isAppAdmin,
-                actor.id,
-                AdminApprovalContext(requestId = requestId),
-            )
+            val dto = sequenceService.resetCounter(seqId, AdminApprovalContext(requestId = requestId))
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)

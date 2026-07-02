@@ -3,8 +3,6 @@ package com.docuhyphen.app.api.resource
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
-import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.workflow.CloneWorkflowRequest
 import com.docuhyphen.app.api.service.workflow.CreateWorkflowDefinitionRequest
 import com.docuhyphen.app.api.service.workflow.PatchWorkflowPublishedRequest
@@ -60,8 +58,6 @@ import java.util.UUID
 class WorkflowDefinitionResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val workflowDefinitionService: WorkflowDefinitionService,
-    private val userRoleService: UserRoleService,
-    private val organizationMembershipService: OrganizationMembershipService,
 )
 {
     companion object
@@ -80,23 +76,12 @@ class WorkflowDefinitionResource @Inject constructor(
         @QueryParam("isTemplate") isTemplate: Boolean?,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId != null && userRoleService.isOrgAdminIn(actor.id, callerOrgId)
         return try
         {
-            val items = workflowDefinitionService.listDefinitions(
-                callerUserId = actor.id,
-                callerOrgId = callerOrgId,
-                scope = scope,
-                tag = tag,
-                triggerEvent = triggerEvent,
-                isTemplate = isTemplate,
-                showUnpublished = isAppAdmin || isOrgAdmin,
-            )
+            val items = workflowDefinitionService.listDefinitions(scope, tag, triggerEvent, isTemplate)
             Response.ok(items.toTypedArray()).build()
         }
         catch (e: Exception)
@@ -111,7 +96,7 @@ class WorkflowDefinitionResource @Inject constructor(
     @Path("/definitions")
     fun createDefinition(request: CreateWorkflowDefinitionRequest): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         if (request.name.isBlank())
@@ -123,15 +108,9 @@ class WorkflowDefinitionResource @Inject constructor(
             return Response.status(BAD_REQUEST).entity(ResponseError("triggerEvent is required")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId != null && userRoleService.isOrgAdminIn(actor.id, callerOrgId)
-
         return try
         {
-            val dto = workflowDefinitionService.createDefinition(
-                request, callerOrgId, actor.id, isOrgAdmin, isAppAdmin,
-            )
+            val dto = workflowDefinitionService.createDefinition(request)
             Response.status(CREATED).entity(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -154,22 +133,15 @@ class WorkflowDefinitionResource @Inject constructor(
     @Path("/definitions/{id}")
     fun getDefinition(@PathParam("id") id: String): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val definitionId = parseUuid(id)
             ?: return Response.status(BAD_REQUEST).entity(ResponseError("Invalid definition id")).build()
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId != null && userRoleService.isOrgAdminIn(actor.id, callerOrgId)
-
         return try
         {
-            val dto = workflowDefinitionService.getDefinition(
-                definitionId, actor.id, callerOrgId, isAppAdmin,
-                showUnpublished = isAppAdmin || isOrgAdmin,
-            )
+            val dto = workflowDefinitionService.getDefinition(definitionId)
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -195,18 +167,15 @@ class WorkflowDefinitionResource @Inject constructor(
         request: UpdateWorkflowDefinitionRequest,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val definitionId = parseUuid(id)
             ?: return Response.status(BAD_REQUEST).entity(ResponseError("Invalid definition id")).build()
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            val dto = workflowDefinitionService.updateDefinition(definitionId, request, actor.id, callerOrgId, isAppAdmin)
+            val dto = workflowDefinitionService.updateDefinition(definitionId, request)
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -236,18 +205,15 @@ class WorkflowDefinitionResource @Inject constructor(
         request: PatchWorkflowStatusRequest,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val definitionId = parseUuid(id)
             ?: return Response.status(BAD_REQUEST).entity(ResponseError("Invalid definition id")).build()
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            val dto = workflowDefinitionService.patchStatus(definitionId, request.isActive, actor.id, callerOrgId, isAppAdmin)
+            val dto = workflowDefinitionService.patchStatus(definitionId, request.isActive)
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -273,18 +239,15 @@ class WorkflowDefinitionResource @Inject constructor(
         request: PatchWorkflowPublishedRequest,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val definitionId = parseUuid(id)
             ?: return Response.status(BAD_REQUEST).entity(ResponseError("Invalid definition id")).build()
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            val dto = workflowDefinitionService.patchPublished(definitionId, request.isPublished, actor.id, callerOrgId, isAppAdmin)
+            val dto = workflowDefinitionService.patchPublished(definitionId, request.isPublished)
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -310,24 +273,15 @@ class WorkflowDefinitionResource @Inject constructor(
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val definitionId = parseUuid(id)
             ?: return Response.status(BAD_REQUEST).entity(ResponseError("Invalid definition id")).build()
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            workflowDefinitionService.deleteDefinition(
-                definitionId,
-                actor.id,
-                callerOrgId,
-                isAppAdmin,
-                AdminApprovalContext(requestId = requestId),
-            )
+            workflowDefinitionService.deleteDefinition(definitionId, AdminApprovalContext(requestId = requestId))
             Response.noContent().build()
         }
         catch (e: Exception)
@@ -352,17 +306,15 @@ class WorkflowDefinitionResource @Inject constructor(
         request: CloneWorkflowRequest,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val definitionId = parseUuid(id)
             ?: return Response.status(BAD_REQUEST).entity(ResponseError("Invalid definition id")).build()
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-
         return try
         {
-            val dto = workflowDefinitionService.cloneDefinition(definitionId, callerOrgId, actor.id, request.newName)
+            val dto = workflowDefinitionService.cloneDefinition(definitionId, request.newName)
             Response.status(CREATED).entity(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -440,17 +392,12 @@ class WorkflowDefinitionResource @Inject constructor(
         @QueryParam("pageSize") @DefaultValue("20") pageSize: Int,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-            ?: return Response.status(FORBIDDEN)
-                .entity(ResponseError("Organization membership required")).build()
 
         return try
         {
             val items = workflowDefinitionService.listInstances(
-                callerOrgId,
                 status,
                 subjectResourceType,
                 page.coerceAtLeast(0),
@@ -461,6 +408,10 @@ class WorkflowDefinitionResource @Inject constructor(
         catch (e: IllegalArgumentException)
         {
             Response.status(BAD_REQUEST).entity(ResponseError(e.message)).build()
+        }
+        catch (e: ForbiddenException)
+        {
+            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
         }
         catch (e: Exception)
         {
@@ -474,18 +425,15 @@ class WorkflowDefinitionResource @Inject constructor(
     @Path("/instances/{id}")
     fun getInstanceDetail(@PathParam("id") id: String): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val instanceId = parseUuid(id)
             ?: return Response.status(BAD_REQUEST).entity(ResponseError("Invalid instance id")).build()
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            val dto = workflowDefinitionService.getInstanceDetail(instanceId, callerOrgId, isAppAdmin)
+            val dto = workflowDefinitionService.getInstanceDetail(instanceId)
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -508,4 +456,3 @@ class WorkflowDefinitionResource @Inject constructor(
 
     private fun parseUuid(raw: String): UUID? = runCatching { UUID.fromString(raw) }.getOrNull()
 }
-

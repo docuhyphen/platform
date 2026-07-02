@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.repository
 import com.docuhyphen.app.api.model.entity.AuthAuditEvent
 import jakarta.enterprise.context.RequestScoped
 import jakarta.persistence.TypedQuery
+import java.util.UUID
 
 @RequestScoped
 class AuthAuditEventRepository : BaseRepository<AuthAuditEvent>(AuthAuditEvent::class.java)
@@ -18,11 +19,17 @@ class AuthAuditEventRepository : BaseRepository<AuthAuditEvent>(AuthAuditEvent::
             .firstOrNull()
     }
 
-    fun findRecent(limit: Int, action: String? = null, outcome: String? = null): List<AuthAuditEvent>
+    fun findRecent(
+        limit: Int,
+        action: String? = null,
+        outcome: String? = null,
+        organizationId: UUID? = null,
+    ): List<AuthAuditEvent>
     {
         val filters = mutableListOf<String>()
         if (!action.isNullOrBlank()) filters.add("a.action = :action")
         if (!outcome.isNullOrBlank()) filters.add("a.outcome = :outcome")
+        if (organizationId != null) filters.add("a.organizationId = :organizationId")
 
         val whereClause = if (filters.isEmpty()) "" else " WHERE ${filters.joinToString(" AND ")}"
         val queryString = "SELECT a FROM AuthAuditEvent a$whereClause ORDER BY a.createdDate DESC"
@@ -31,6 +38,7 @@ class AuthAuditEventRepository : BaseRepository<AuthAuditEvent>(AuthAuditEvent::
 
         if (!action.isNullOrBlank()) query.setParameter("action", action)
         if (!outcome.isNullOrBlank()) query.setParameter("outcome", outcome)
+        if (organizationId != null) query.setParameter("organizationId", organizationId)
 
         return query.setMaxResults(limit.coerceIn(1, 100)).resultList
     }

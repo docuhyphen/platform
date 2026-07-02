@@ -33,7 +33,7 @@ class SecurityIncidentResource @Inject constructor(
         val actor = authTokenContext.authToken.appUser
             ?: return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
-        if (!userRoleService.isOrgAdmin(actor.id))
+        if (!userRoleService.isAppAdmin(actor.id))
         {
             return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges")).build()
         }

@@ -55,7 +55,7 @@ class OrganizationAppUserResource @Inject constructor(
 
                 organizationAppUserService.addAppUser(
                     organizationId,
-                    role,
+                    roles,
                     email,
                     person?.firstName,
                     person?.lastName,
@@ -118,7 +118,7 @@ class OrganizationAppUserResource @Inject constructor(
             // organizationId is a valid org UUID here (getAppUsers validates/resolves it first).
             val roles = organizationMembershipService.rolesOf(UUID.fromString(organizationId))
             val appUsers = members
-                .map { DetailedEntityToDtoTransformer.toDto(it, roles[it.id]) }
+                .map { DetailedEntityToDtoTransformer.toDto(it, roles[it.id].orEmpty()) }
                 .toTypedArray()
 
             Response
@@ -185,7 +185,8 @@ class OrganizationAppUserResource @Inject constructor(
                 organizationAppUserService.updateAppUser(
                     organizationId,
                     appUserId,
-                    role,
+                    rolesToAdd,
+                    rolesToRemove,
                     isActive,
                     email,
                     this.person?.firstName,

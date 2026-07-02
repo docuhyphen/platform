@@ -19,6 +19,12 @@ class AuthToken {
     @JoinColumn(name = "app_user_id")
     var appUser: AppUser? = null
 
+    @Transient
+    var applicationId: UUID? = null
+
+    @Transient
+    var application: Application? = null
+
     @Column(name = "created_date")
     var createdDate: Timestamp = Timestamp.from(Instant.now())
 

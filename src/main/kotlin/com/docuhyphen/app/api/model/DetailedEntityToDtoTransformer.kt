@@ -99,15 +99,22 @@ class DetailedEntityToDtoTransformer
             }
         }
 
-        fun toDto(appUser: AppUser?): AppUserDetailedDto? = toDto(appUser, null)
+        fun toDto(appUser: AppUser?): AppUserDetailedDto? = toDto(appUser, emptySet(), emptySet())
 
         /**
-         * [role] is the user's effective role within the organization in whose context this
+         * [organizationRoles] contains every role within the organization in whose context this
          * DTO is being produced (per-org now, via organization_membership), callers that have
          * an org context (e.g. the org-members listing) resolve and pass it; context-free
          * callers pass null.
          */
-        fun toDto(appUser: AppUser?, role: String?): AppUserDetailedDto?
+        fun toDto(appUser: AppUser?, organizationRoles: Set<OrganizationRoleName>): AppUserDetailedDto? =
+            toDto(appUser, emptySet(), organizationRoles)
+
+        fun toDto(
+            appUser: AppUser?,
+            appRoles: Set<AppRoleName>,
+            organizationRoles: Set<OrganizationRoleName>,
+        ): AppUserDetailedDto?
         {
             return appUser?.let {
 
@@ -118,7 +125,8 @@ class DetailedEntityToDtoTransformer
                         createdDate,
                         isActive,
                         email,
-                        role,
+                        appRoles.map { it.name }.sorted(),
+                        organizationRoles.map { it.name }.sorted(),
                         toDto(person),
                         toDto(settings)
                     )

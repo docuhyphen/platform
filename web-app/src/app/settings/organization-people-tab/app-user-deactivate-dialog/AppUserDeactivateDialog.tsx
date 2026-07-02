@@ -16,7 +16,6 @@ import {
     AppUserDetailedDto,
     ResponseError
 } from "../../../models/models.tsx";
-import apiClient from '../../../../services/apiClient';
 import {
     checkAppUserIsDeletable,
     deleteOrganizationAppUser,
@@ -140,7 +139,8 @@ const AppUserDeactivateDialog: React.FC<AppUserDeactivateDialogProps> = (
                 organizationId,
                 appUser.id.toString(),
                 {
-                    role: appUser.role,
+                    rolesToAdd: [],
+                    rolesToRemove: [],
                     isActive: false,
                     person: {
                         firstName: appUser.person.firstName!,

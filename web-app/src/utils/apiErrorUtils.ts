@@ -58,7 +58,7 @@ const formatDuration = (seconds: number): string =>
  *  - Exchange status transition errors (`INVALID_STATUS_TRANSITION`)
  *  - Sign-in / sign-up / account recovery flows when the backend chooses to
  *    emit reason codes (`PASSWORD_CHANGE_REQUIRED`, `TEMP_PASSWORD_EXPIRED`,
- *    `STEP_UP_REQUIRED`, `MFA_EXCHANGE_EXPIRED`).
+ *    `SIGN_UP_REQUIRED`, `STEP_UP_REQUIRED`, `MFA_EXCHANGE_EXPIRED`).
  *
  * Unknown reason codes fall back to the original API message.
  */
@@ -84,6 +84,8 @@ export const getOtpFriendlyMessage = (error: NormalizedApiError): string =>
             return 'You must change your temporary password before signing in.';
         case 'TEMP_PASSWORD_EXPIRED':
             return 'Your temporary password has expired. Start account recovery to set a new one.';
+        case 'SIGN_UP_REQUIRED':
+            return 'This email has not finished account setup yet. Sign up first to create your password and access the Exchange.';
         case 'STEP_UP_REQUIRED':
             return 'Please confirm your identity to continue with this action.';
         case 'MFA_EXCHANGE_EXPIRED':

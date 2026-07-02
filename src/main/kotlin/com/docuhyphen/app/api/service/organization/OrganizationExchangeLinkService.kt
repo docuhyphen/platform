@@ -45,14 +45,13 @@ class OrganizationExchangeLinkService @Inject constructor(
         val appUser = authContext.authToken.appUser
             ?: throw UnauthorizedException("User must be authenticated")
 
-        if (!userRoleService.isOrgAdmin(appUser.id))
+        val currentOrganization = organizationRepository.findByAppUserIdAndPersonId(appUser.id, appUser.person?.id!!)
+            ?: throw OrganizationNotFoundException("Current user's organization not found")
+
+        if (!userRoleService.isOrgAdminIn(appUser.id, currentOrganization.id))
         {
             throw UnauthorizedException("Only organization administrators can view organizations for linking")
         }
-
-        // Get current user's organization
-        val currentOrganization = organizationRepository.findByAppUserIdAndPersonId(appUser.id, appUser.person?.id!!)
-            ?: throw OrganizationNotFoundException("Current user's organization not found")
 
         // Get all existing links for the current organization
         val existingLinks = getLinksByOrganization(currentOrganization.id.toString())
@@ -96,7 +95,7 @@ class OrganizationExchangeLinkService @Inject constructor(
 
         val appUser = authContext.authToken.appUser
 
-        if (appUser == null || !userRoleService.isOrgAdmin(appUser.id))
+        if (appUser == null || !userRoleService.isOrgAdminIn(appUser.id, requestingOrganization.id))
         {
             throw IllegalArgumentException("Only organization administrators can create exchange links")
         }
@@ -181,10 +180,12 @@ class OrganizationExchangeLinkService @Inject constructor(
         }
 
         val appUser = authContext.authToken.appUser
+        val requestedOrgId = link.requestedOrganization?.id
+            ?: throw IllegalArgumentException("Link has no requested organization")
 
-        if (appUser == null || !userRoleService.isOrgAdmin(appUser.id))
+        if (appUser == null || !userRoleService.isOrgAdminIn(appUser.id, requestedOrgId))
         {
-            throw IllegalArgumentException("Only organization administrators can accept or delcine exchange links")
+            throw IllegalArgumentException("Only administrators of the requested organization can accept or decline exchange links")
         }
 
         adminActionGuardService.enforce(
@@ -192,9 +193,6 @@ class OrganizationExchangeLinkService @Inject constructor(
             actorId = appUser.id,
             context = adminApprovalContext,
         )
-
-//        link.requestedOrganization?.appUsers?.firstOrNull { it -> it.id == appUser.id }
-//            ?: throw IllegalArgumentException("App user is not part of the requested organization")
 
         link.status = linkStatus
 
@@ -277,7 +275,7 @@ class OrganizationExchangeLinkService @Inject constructor(
 
         val appUser = authContext.authToken.appUser
 
-        if (appUser == null || !userRoleService.isOrgAdmin(appUser.id))
+        if (appUser == null || !userRoleService.isOrgAdminIn(appUser.id, organization.id))
         {
             throw IllegalArgumentException("Only organization administrators can view exchange links")
         }
@@ -302,10 +300,17 @@ class OrganizationExchangeLinkService @Inject constructor(
         val beforeSnapshot = linkSnapshot(link)
 
         val appUser = authContext.authToken.appUser
+            ?: throw IllegalArgumentException("Only an administrator of either linked organization can remove the link")
 
-        if (appUser == null || !userRoleService.isOrgAdmin(appUser.id))
+        val requestingOrgId = link.requestingOrganization?.id
+        val requestedOrgId = link.requestedOrganization?.id
+        val isAdminOfEitherSide =
+            (requestingOrgId != null && userRoleService.isOrgAdminIn(appUser.id, requestingOrgId)) ||
+            (requestedOrgId != null && userRoleService.isOrgAdminIn(appUser.id, requestedOrgId))
+
+        if (!isAdminOfEitherSide)
         {
-            throw IllegalArgumentException("Only organization administrators can view exchange links")
+            throw IllegalArgumentException("Only an administrator of either linked organization can remove the link")
         }
 
         adminActionGuardService.enforce(
@@ -313,8 +318,6 @@ class OrganizationExchangeLinkService @Inject constructor(
             actorId = appUser.id,
             context = adminApprovalContext,
         )
-
-        //ToDO: validate of appUser is part of the requesting or requested organization
 
         // Notify the *other* organization's admins about the un-pair / cancelled request.
         val otherOrg = if (link.requestingOrganization?.id
@@ -373,15 +376,12 @@ class OrganizationExchangeLinkService @Inject constructor(
     fun getLinksByCurrentAppUser(): List<OrganizationExchangeLink>?
     {
         val appUser = authContext.authToken.appUser
-
-        if (appUser == null || !userRoleService.isOrgAdmin(appUser.id))
-        {
-            throw UnauthorizedException("Only organization group admins can see/manage organizations pairs")
-        }
+            ?: throw UnauthorizedException("Only organization group admins can see/manage organizations pairs")
 
         val appUserOrg = organizationRepository.findByAppUserIdAndPersonId(appUser.id, appUser.person?.id!!)
+            ?: throw OrganizationNotFoundException("Current user's organization not found")
 
-        return getLinksByOrganization(appUserOrg?.id.toString())
+        return getLinksByOrganization(appUserOrg.id.toString())
     }
 
     private fun broadcastOrgPairUpdate(org: Organization?, message: String)

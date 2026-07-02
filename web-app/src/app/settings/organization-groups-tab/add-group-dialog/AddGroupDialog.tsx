@@ -26,7 +26,7 @@ import {addOrganizationGroup, fetchMyOrganizationUsers} from "../../../../servic
 import {AppUserDetailedDto} from "../../../models/models.tsx";
 import {useAddGroupDialogStyles} from "./AddGroupDialogStyles.tsx";
 import {DeleteRegular} from "@fluentui/react-icons";
-import {GroupRole, GroupRoleDisplayNames} from "../../../../services/types/roles";
+import {PrincipalGroupRoleDisplayNames, PrincipalGroupRoleName} from "../../../../services/types/roles";
 import MultiPersonPicker from "../../../components/person-picker/multi-person-picker/MultiPersonPicker.tsx";
 import {PersonPickerItem} from "../../../components/person-picker/personPickerTypes.ts";
 
@@ -59,7 +59,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
     const [name, setName] = useState("");
     const [users, setUsers] = useState<AppUserDetailedDto[]>([]);
     const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
-    const [memberRoles, setMemberRoles] = useState<Map<string, GroupRole>>(new Map());
+    const [memberRoles, setMemberRoles] = useState<Map<string, PrincipalGroupRoleName>>(new Map());
     const [savingData, setSavingData] = useState(false);
     const [loadingUsers, setLoadingUsers] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -116,7 +116,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
             return;
         }
 
-        const hasOwner = Array.from(selectedMembers).some(uid => memberRoles.get(uid) === GroupRole.OWNER);
+        const hasOwner = Array.from(selectedMembers).some(uid => memberRoles.get(uid) === PrincipalGroupRoleName.OWNER);
         if (!hasOwner)
         {
             setError("The group must have at least one member with the Owner role.");
@@ -128,7 +128,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
         {
             const members = Array.from(selectedMembers).map(uid => ({
                 appUserId: uid,
-                groupRole: memberRoles.get(uid) || GroupRole.MEMBER,
+                groupRole: memberRoles.get(uid) || PrincipalGroupRoleName.MEMBER,
             }));
             await addOrganizationGroup(organizationId, {name: name.trim(), members}, token || undefined);
             resetForm();
@@ -157,7 +157,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
         {
             const next = new Map(prev);
             if (!next.has(uid))
-                next.set(uid, uid === appUser?.id ? GroupRole.OWNER : GroupRole.MEMBER);
+                next.set(uid, uid === appUser?.id ? PrincipalGroupRoleName.OWNER : PrincipalGroupRoleName.MEMBER);
             return next;
         });
     };
@@ -290,19 +290,19 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
                                                                     id={`add-group-member-role-${uid}`}
                                                                     size="small"
                                                                     className={styles.roleDropdown}
-                                                                    value={GroupRoleDisplayNames[memberRoles.get(uid) || GroupRole.MEMBER]}
-                                                                    selectedOptions={[memberRoles.get(uid) || GroupRole.MEMBER]}
+                                                                    value={PrincipalGroupRoleDisplayNames[memberRoles.get(uid) || PrincipalGroupRoleName.MEMBER]}
+                                                                    selectedOptions={[memberRoles.get(uid) || PrincipalGroupRoleName.MEMBER]}
                                                                     onOptionSelect={(_e, d) =>
                                                                     {
                                                                         setMemberRoles(prev =>
                                                                         {
                                                                             const next = new Map(prev);
-                                                                            next.set(uid, (d.optionValue || GroupRole.MEMBER) as GroupRole);
+                                                                            next.set(uid, (d.optionValue || PrincipalGroupRoleName.MEMBER) as PrincipalGroupRoleName);
                                                                             return next;
                                                                         });
                                                                     }}
                                                                 >
-                                                                    {Object.entries(GroupRoleDisplayNames).map(([k, v]) => (
+                                                                    {Object.entries(PrincipalGroupRoleDisplayNames).map(([k, v]) => (
                                                                         <Option key={k} value={k}>{v}</Option>
                                                                     ))}
                                                                 </Dropdown>

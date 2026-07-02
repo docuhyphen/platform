@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.model.dto
 
+import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
@@ -20,6 +21,10 @@ data class BlueprintDocumentConfig(
 
 @Serializable
 data class BlueprintRecipientConfiguration(
+    // Descriptive business label for the recipient (e.g. "New Employee", "Counterparty"), not an
+    // authorization role. It is never consumed for access control; keep it free text so blueprints
+    // can carry human-readable recipient labels. The authorization role is chosen at Exchange
+    // initiation and validated against [ExchangeShareRoleName] there.
     val recipientRoleName: String? = null,
     val recipientConstraintsJson: String? = null,
     val defaultRecipientOrgGroupId: String? = null,
@@ -29,7 +34,7 @@ data class BlueprintRecipientConfiguration(
 data class BlueprintParticipantConfig(
     val principalId: String,
     val principalKind: String,
-    val roleName: String,
+    val roleName: ExchangeShareRoleName,
 )
 
 /**

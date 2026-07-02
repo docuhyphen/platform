@@ -1,14 +1,11 @@
 package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.dto.AvailableVariablesDto
 import com.docuhyphen.app.api.model.dto.CreateVariableRequest
 import com.docuhyphen.app.api.model.dto.UpdateVariableRequest
 import com.docuhyphen.app.api.model.entity.VariableScope
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
-import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.variable.AvailableVariablesService
 import com.docuhyphen.app.api.service.variable.VariableDefinitionService
 import io.quarkus.security.ForbiddenException
@@ -27,8 +24,6 @@ class VariableDefinitionResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val variableService: VariableDefinitionService,
     private val availableVariablesService: AvailableVariablesService,
-    private val userRoleService: UserRoleService,
-    private val organizationMembershipService: OrganizationMembershipService,
 )
 {
     companion object
@@ -43,11 +38,9 @@ class VariableDefinitionResource @Inject constructor(
         val actor = authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-
         return try
         {
-            val dto = availableVariablesService.getAvailableVariables(actor.id, callerOrgId)
+            val dto = availableVariablesService.getAvailableVariables(actor.id, authTokenContext.activeOrganizationId)
             Response.ok(dto).build()
         }
         catch (e: Exception)
@@ -60,7 +53,7 @@ class VariableDefinitionResource @Inject constructor(
     @GET
     fun listVariables(@QueryParam("scope") scopeParam: String?): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val scope = scopeParam?.let {
@@ -69,13 +62,9 @@ class VariableDefinitionResource @Inject constructor(
             }
         } ?: VariableScope.PERSONAL
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId?.let { userRoleService.isOrgAdminIn(actor.id, it) } ?: false
-
         return try
         {
-            val items = variableService.listVariables(scope, callerOrgId, actor.id, isOrgAdmin, isAppAdmin)
+            val items = variableService.listVariables(scope)
             Response.ok(items.toTypedArray()).build()
         }
         catch (e: Exception)
@@ -91,26 +80,15 @@ class VariableDefinitionResource @Inject constructor(
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         if (request.key.isBlank())
             return Response.status(BAD_REQUEST).entity(ResponseError("key is required")).build()
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId?.let { userRoleService.isOrgAdminIn(actor.id, it) } ?: false
-
         return try
         {
-            val dto = variableService.createVariable(
-                request,
-                actor.id,
-                callerOrgId,
-                isOrgAdmin,
-                isAppAdmin,
-                AdminApprovalContext(requestId = requestId),
-            )
+            val dto = variableService.createVariable(request, AdminApprovalContext(requestId = requestId))
             Response.status(CREATED).entity(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -137,28 +115,16 @@ class VariableDefinitionResource @Inject constructor(
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val varId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid variable id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId?.let { userRoleService.isOrgAdminIn(actor.id, it) } ?: false
-
         return try
         {
-            val dto = variableService.updateVariable(
-                varId,
-                request,
-                actor.id,
-                callerOrgId,
-                isOrgAdmin,
-                isAppAdmin,
-                AdminApprovalContext(requestId = requestId),
-            )
+            val dto = variableService.updateVariable(varId, request, AdminApprovalContext(requestId = requestId))
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -184,27 +150,16 @@ class VariableDefinitionResource @Inject constructor(
         @HeaderParam("X-Request-Id") requestId: String?,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val varId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid variable id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId?.let { userRoleService.isOrgAdminIn(actor.id, it) } ?: false
-
         return try
         {
-            variableService.deleteVariable(
-                varId,
-                actor.id,
-                callerOrgId,
-                isOrgAdmin,
-                isAppAdmin,
-                AdminApprovalContext(requestId = requestId),
-            )
+            variableService.deleteVariable(varId, AdminApprovalContext(requestId = requestId))
             Response.noContent().build()
         }
         catch (e: IllegalArgumentException)

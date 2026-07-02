@@ -66,10 +66,6 @@ export const useExchangeAccessPanelStyles = makeStyles({
         justifyContent: "space-between",
         alignItems: "center"
     },
-    maxViewsField: {
-        maxWidth: "1.5rem",
-        minWidth: 0
-    },
     accessSave: {
         display: "flex",
         flexDirection: "row",
@@ -81,6 +77,8 @@ export const useExchangeAccessPanelStyles = makeStyles({
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
+        display: "flex",
+        gap: "2xp"
     },
     // roleField: {
     //     width: '120px',

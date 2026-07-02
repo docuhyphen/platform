@@ -16,7 +16,11 @@ import {
 } from "@fluentui/react-components";
 import React, {useEffect, useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
-import {AppUserDetailedDto, AppUserRole, AppUserRoleDisplayNames} from "../../../models/models.tsx";
+import {AppUserDetailedDto} from "../../../models/models.tsx";
+import {
+    OrganizationRoleDisplayNames,
+    OrganizationRoleName,
+} from '../../../../services/types/roles.ts';
 import {updateOrganizationUser} from "../../../../services/organizationApi.ts";
 import {useEditUserDialogStyles} from "./EditUserDialogStyles.tsx";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
@@ -45,7 +49,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
     const {token} = useAuth();
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
-    const [role, setRole] = useState("");
+    const [roles, setRoles] = useState<OrganizationRoleName[]>([]);
     const [isActive, setIsActive] = useState(true);
     const [savingData, setSavingData] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -56,7 +60,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
         {
             setFirstName(user.person?.firstName || "");
             setLastName(user.person?.lastName || "");
-            setRole(user.role.toString());
+            setRoles(user.organizationRoles as OrganizationRoleName[]);
             setIsActive(user.isActive);
         }
     }, [user]);
@@ -88,7 +92,8 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
                 organizationId,
                 user.id.toString(),
                 {
-                    role,
+                    rolesToAdd: roles.filter((role) => !user.organizationRoles.includes(role)),
+                    rolesToRemove: user.organizationRoles.filter((role) => !roles.includes(role as OrganizationRoleName)) as OrganizationRoleName[],
                     isActive,
                     person: {
                         firstName: firstName.trim(),
@@ -120,15 +125,10 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
     const hasChanges =
         firstName !== user?.person?.firstName ||
         lastName !== user?.person?.lastName ||
-        role !== user?.role.toString() ||
+        roles.slice().sort().join(',') !== user?.organizationRoles.slice().sort().join(',') ||
         isActive !== user?.isActive;
 
-    const isFormValid = firstName && lastName && role;
-
-    const onSelectRole = (_, data) => {
-
-        data.optionValue && setRole(data.optionValue)
-    };
+    const isFormValid = firstName && lastName && roles.length > 0;
 
     return (
         <Dialog modalType="alert" open={isOpen}>
@@ -160,22 +160,31 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
                             />
                         </Field>
 
-                        <Field label="Role" required>
+                        <Field label="Roles" required>
                             <Dropdown
                                 id={"edit-user-role-dropdown"}
-                                selectedOptions={[role]}
-                                placeholder={AppUserRoleDisplayNames[role as keyof typeof AppUserRoleDisplayNames]}
-                                onOptionSelect={onSelectRole}
+                                multiselect
+                                selectedOptions={roles}
+                                value={roles.map((role) => OrganizationRoleDisplayNames[role]).join(', ')}
+                                onOptionSelect={(_, data) =>
+                                    setRoles(data.selectedOptions as OrganizationRoleName[])}
                             >
-                                <Option value="ORG_ADMIN">Organization Admin</Option>
-                                <Option value="ORG_MEMBER">Organization Member</Option>
+                                {Object.entries(OrganizationRoleDisplayNames).map(([role, label]) => (
+                                    <Option
+                                        key={role}
+                                        value={role}
+                                    >
+                                        {label}
+                                    </Option>
+                                ))}
                             </Dropdown>
                         </Field>
 
                         <Field>
                             <Switch
                                 id={"edit-user-active-switch"}
-                                disabled={user?.role == AppUserRole.ORG_ADMIN}
+                                disabled={user?.organizationRoles.includes(OrganizationRoleName.ORG_ADMIN) ||
+                                    user?.organizationRoles.includes(OrganizationRoleName.ORG_OWNER)}
                                 checked={isActive}
                                 onChange={(_, data) => setIsActive(data.checked)}
                                 label={isActive ? "Deactivate" : "Activate"}

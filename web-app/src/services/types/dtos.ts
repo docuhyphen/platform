@@ -2,6 +2,7 @@
  * Shared TypeScript interfaces mirroring backend DTOs.
  */
 import {AppUserDetailedDto} from '../../app/models/models';
+import {ExchangeShareRoleName, PrincipalGroupRoleName} from './roles';
 
 // ── Exchange Access ──
 
@@ -11,7 +12,7 @@ export interface ExchangeAccessEntryDto
     principalKind: string;   // 'USER' | 'GROUP'
     principalId: string;
     displayName?: string;
-    roleName: string;
+    roleName: ExchangeShareRoleName;
     source: string;           // 'DIRECT' | 'WORKFLOW' etc.
     status: string;           // 'ACTIVE' | 'REVOKED' etc.
     grantedByAppUserId?: string;
@@ -24,14 +25,14 @@ export interface GrantExchangeShareRequest
 {
     principalKind: string;
     principalId: string;
-    roleName: string;
+    roleName: ExchangeShareRoleName;
     constraintsJson?: string;
     expiresAtEpochMillis?: number;
 }
 
 export interface UpdateExchangeShareRoleRequest
 {
-    roleName: string;
+    roleName: ExchangeShareRoleName;
     constraintsJson?: string;
 }
 
@@ -42,7 +43,6 @@ export interface ShareConstraints
     can_download?: boolean;
     can_reshare?: boolean;
     watermark?: boolean;
-    max_views?: number;
     require_mfa?: boolean;
     allowed_download_formats?: string[];   // undefined = no restriction
 }
@@ -101,7 +101,7 @@ export interface PrincipalGroupDto
 export interface PrincipalGroupMemberDto
 {
     user?: AppUserDetailedDto;
-    groupRole: string;
+    groupRole: PrincipalGroupRoleName;
 }
 
 export interface CreatePersonalGroupRequest
@@ -125,7 +125,7 @@ export interface GroupMemberEntry
 {
     principalId: string;
     principalKind?: string;     // default 'USER'
-    groupRole?: string;         // default 'MEMBER'
+    groupRole?: PrincipalGroupRoleName;
 }
 
 // ── App Admin ──

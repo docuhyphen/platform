@@ -75,7 +75,7 @@ class ExchangeDocumentService @Inject constructor(
     {
         val exchange = getExchange(exchangeId)
         validateSessionMutability(exchange)
-        validateUserPermissions(exchange, authTokenContext.authToken.appUser!!, DocumentAction.ADD)
+        validateUserPermissions(exchange, DocumentAction.ADD)
         validateTitle(title)
         validateDocumentTypeRestriction(documentType, restrictedType)
 
@@ -84,7 +84,9 @@ class ExchangeDocumentService @Inject constructor(
         sessionRepo.update(exchange)
 
         val savedDocument = exchange.documents.last()
-        auditService.logAction(savedDocument, DocumentAuditLogAction.CREATED, authTokenContext.authToken.appUser!!)
+        authTokenContext.authToken.appUser
+            ?.let { auditService.logAction(savedDocument, DocumentAuditLogAction.CREATED, it) }
+            ?: auditService.logAction(savedDocument, DocumentAuditLogAction.CREATED, actorEmail())
 
         broadcastDocumentEvent(exchange.id, RealtimeMessageType.EXCHANGE_DOCUMENT_ADDED, savedDocument.id)
 
@@ -97,7 +99,7 @@ class ExchangeDocumentService @Inject constructor(
         val exchange = getExchange(exchangeId)
         validateSessionMutability(exchange)
         val document = getDocument(exchange, documentId)
-        validateUserPermissions(exchange, authTokenContext.authToken.appUser!!, DocumentAction.DELETE)
+        validateUserPermissions(exchange, DocumentAction.DELETE)
 
         if (document.isDeleted)
         {
@@ -108,7 +110,9 @@ class ExchangeDocumentService @Inject constructor(
         document.updateDate = Timestamp.from(Instant.now())
         sessionRepo.update(exchange)
 
-        auditService.logAction(document, DocumentAuditLogAction.DELETE, authTokenContext.authToken.appUser!!)
+        authTokenContext.authToken.appUser
+            ?.let { auditService.logAction(document, DocumentAuditLogAction.DELETE, it) }
+            ?: auditService.logAction(document, DocumentAuditLogAction.DELETE, actorEmail())
 
         broadcastDocumentEvent(exchange.id, RealtimeMessageType.EXCHANGE_DOCUMENT_REMOVED, document.id)
     }
@@ -125,7 +129,7 @@ class ExchangeDocumentService @Inject constructor(
         val exchange = getExchange(exchangeId)
         validateSessionMutability(exchange)
         val document = getDocument(exchange, documentId)
-        validateUserPermissions(exchange, authTokenContext.authToken.appUser!!, DocumentAction.UPDATE)
+        validateUserPermissions(exchange, DocumentAction.UPDATE)
         validateTitle(title)
         validateDocumentTypeRestriction(type, restrictedType)
 
@@ -140,7 +144,9 @@ class ExchangeDocumentService @Inject constructor(
         document.restrictedType = restrictedType
         sessionRepo.update(exchange)
 
-        auditService.logAction(document, DocumentAuditLogAction.UPDATE, authTokenContext.authToken.appUser!!)
+        authTokenContext.authToken.appUser
+            ?.let { auditService.logAction(document, DocumentAuditLogAction.UPDATE, it) }
+            ?: auditService.logAction(document, DocumentAuditLogAction.UPDATE, actorEmail())
 
         broadcastDocumentEvent(exchange.id, RealtimeMessageType.EXCHANGE_DOCUMENT_UPDATED, document.id)
 
@@ -162,7 +168,9 @@ class ExchangeDocumentService @Inject constructor(
         }
 
         sessionRepo.update(exchange)
-        auditService.logAction(document, DocumentAuditLogAction.UPDATE, authTokenContext.authToken.appUser!!)
+        authTokenContext.authToken.appUser
+            ?.let { auditService.logAction(document, DocumentAuditLogAction.UPDATE, it) }
+            ?: auditService.logAction(document, DocumentAuditLogAction.UPDATE, actorEmail())
         return document
     }
 
@@ -189,8 +197,8 @@ class ExchangeDocumentService @Inject constructor(
 
         validateFileAndExtension(file, extension, document.restrictedType)
 
-        val appUser = authTokenContext.authToken.appUser!!
-        validateUserPermissions(exchange, appUser, DocumentAction.UPLOAD)
+        validateUserPermissions(exchange, DocumentAction.UPLOAD)
+        val appUser = authTokenContext.authToken.appUser
 
         document.hash = "hash"
         document.type = DocumentType.fromFileExtension(extension!!)
@@ -201,9 +209,11 @@ class ExchangeDocumentService @Inject constructor(
         fileStorageService.uploadDocument(file!!, "${document.id}$extension")
         updateDocument(exchangeId, document)
 
-        auditService.logAction(document, DocumentAuditLogAction.UPLOAD, appUser)
+        appUser
+            ?.let { auditService.logAction(document, DocumentAuditLogAction.UPLOAD, it) }
+            ?: auditService.logAction(document, DocumentAuditLogAction.UPLOAD, actorEmail())
 
-        sendUploadNotification(exchange, appUser, document)
+        if (appUser != null) sendUploadNotification(exchange, appUser, document)
 
         return document
     }
@@ -352,7 +362,7 @@ class ExchangeDocumentService @Inject constructor(
         val documents = documentIds.map { getDocument(exchange, it) }
 
         val constraintsJson = shareService.recipientConstraintsJson(exchange.id)
-        val allowedFormats = ShareConstraints.parse(constraintsJson).allowedDownloadFormats
+        val allowedFormats = ShareConstraints.parse(constraintsJson)?.allowedDownloadFormats
 
         if (allowedFormats == null)
         {
@@ -532,7 +542,7 @@ class ExchangeDocumentService @Inject constructor(
     private fun resolveRecipientEmail(exchangeId: UUID): String? =
         shareService.primaryRecipientUserId(exchangeId)?.let { appUserService.getById(it)?.email }
 
-    private fun validateUserPermissions(exchange: Exchange, appUser: AppUser, action: DocumentAction)
+    private fun validateUserPermissions(exchange: Exchange, action: DocumentAction)
     {
         val required = when (action)
         {
@@ -541,10 +551,13 @@ class ExchangeDocumentService @Inject constructor(
             DocumentAction.DELETE -> Action.DOCUMENT_DELETE
         }
 
+        val principal = authorizationContextFactory.currentPrincipal()
+            ?: throw IllegalArgumentException("Permission to perform document action not granted")
+
         val decision = authorizationService.authorize(
-            principal = PrincipalRef.user(appUser.id),
+            principal = principal,
             action = required,
-            resource = ResourceRef.session(exchange.id),
+            resource = ResourceRef.exchange(exchange.id),
             context = authorizationContextFactory.currentContext(),
         )
 
@@ -552,6 +565,14 @@ class ExchangeDocumentService @Inject constructor(
         {
             throw IllegalArgumentException("Permission to perform document action not granted")
         }
+    }
+
+    private fun actorEmail(): String
+    {
+        val token = authTokenContext.authToken
+        val appUser = token.appUser
+        if (appUser != null) return appUser.email
+        return "application:${token.application?.id ?: "unknown"}"
     }
 
     /**
@@ -568,7 +589,7 @@ class ExchangeDocumentService @Inject constructor(
         val decision = authorizationService.authorize(
             principal = PrincipalRef.user(appUser.id),
             action = Action.DOCUMENT_DOWNLOAD,
-            resource = ResourceRef.session(exchange.id),
+            resource = ResourceRef.exchange(exchange.id),
             context = authorizationContextFactory.currentContext(),
         )
 
@@ -584,7 +605,7 @@ class ExchangeDocumentService @Inject constructor(
      */
     private fun validateDownloadFormat(document: Document, constraintsJson: String?)
     {
-        val allowed = ShareConstraints.parse(constraintsJson).allowedDownloadFormats
+        val allowed = ShareConstraints.parse(constraintsJson)?.allowedDownloadFormats
             ?: return                          // null = no restriction, always pass
         val docType = document.type?.name ?: return
         if (docType !in allowed)

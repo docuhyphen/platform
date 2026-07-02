@@ -22,7 +22,8 @@ import {
     PublishIcon,
     UnpublishIcon,
 } from '../../components/IconBundles';
-import {AppUserRole, CommunicationSummaryDto, CommunicationScope, ViewMode} from '../../models/models';
+import {CommunicationSummaryDto, CommunicationScope, ViewMode} from '../../models/models';
+import {Capability} from '../../models/models';
 import {
     cloneCommunication,
     deleteCommunication,
@@ -54,14 +55,13 @@ const emptyMessage: Record<ActiveTab, string> = {
 const CommunicationsTab = () =>
 {
     const styles = useCommunicationsTabStyles();
-    const {appUser, setAppUser, token, appUserPersonOrganization} = useAuth();
+    const {appUser, setAppUser, token, appUserPersonOrganization, hasCapability} = useAuth();
 
-    const roleValue = `${appUser?.role ?? ''}`;
     const hasOrg = !!appUserPersonOrganization?.isActive;
     const canManageOrganization =
         appUserPersonOrganization?.isActive &&
-        (roleValue === AppUserRole.ORG_ADMIN || roleValue === 'APP_ADMIN');
-    const isAppAdmin = roleValue === 'APP_ADMIN';
+        (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
+    const isAppAdmin = hasCapability(Capability.APP_ADMIN);
 
     const [viewMode, setViewMode] = useState<ViewMode>(appUser?.settings?.communicationsView ?? 'cards');
 

@@ -8,9 +8,7 @@ import com.docuhyphen.app.api.model.dto.PatchCommunicationStatusRequest
 import com.docuhyphen.app.api.model.dto.PreviewCommunicationRequest
 import com.docuhyphen.app.api.model.dto.UpdateCommunicationRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.communication.CommunicationService
-import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes
@@ -53,8 +51,6 @@ import java.util.UUID
 class CommunicationResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val communicationService: CommunicationService,
-    private val userRoleService: UserRoleService,
-    private val organizationMembershipService: OrganizationMembershipService,
 )
 {
     companion object
@@ -69,16 +65,12 @@ class CommunicationResource @Inject constructor(
         @QueryParam("isTemplate") isTemplate: Boolean?,
     ): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId != null && userRoleService.isOrgAdminIn(actor.id, callerOrgId)
 
         return try
         {
-            val items = communicationService.listTemplates(actor.id, callerOrgId, isOrgAdmin, isAppAdmin, scope, tag, isTemplate)
+            val items = communicationService.listTemplates(scope, tag, isTemplate)
             Response.ok(items.toTypedArray()).build()
         }
         catch (e: Exception)
@@ -91,7 +83,7 @@ class CommunicationResource @Inject constructor(
     @POST
     fun createTemplate(request: CreateCommunicationRequest): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         if (request.name.isBlank())
@@ -99,13 +91,9 @@ class CommunicationResource @Inject constructor(
             return Response.status(BAD_REQUEST).entity(ResponseError("name is required")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId != null && userRoleService.isOrgAdminIn(actor.id, callerOrgId)
-
         return try
         {
-            val dto = communicationService.createTemplate(request, actor.id, callerOrgId, isOrgAdmin, isAppAdmin)
+            val dto = communicationService.createTemplate(request)
             Response.status(CREATED).entity(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -127,19 +115,16 @@ class CommunicationResource @Inject constructor(
     @Path("/{id}")
     fun getTemplate(@PathParam("id") id: String): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val communicationId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid communication id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            val dto = communicationService.getTemplate(communicationId, actor.id, callerOrgId, isAppAdmin)
+            val dto = communicationService.getTemplate(communicationId)
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -161,19 +146,16 @@ class CommunicationResource @Inject constructor(
     @Path("/{id}")
     fun updateTemplate(@PathParam("id") id: String, request: UpdateCommunicationRequest): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val communicationId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid communication id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            val dto = communicationService.updateTemplate(communicationId, request, actor.id, callerOrgId, isAppAdmin)
+            val dto = communicationService.updateTemplate(communicationId, request)
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -195,19 +177,16 @@ class CommunicationResource @Inject constructor(
     @Path("/{id}/status")
     fun patchTemplateStatus(@PathParam("id") id: String, request: PatchCommunicationStatusRequest): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val communicationId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid communication id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            val dto = communicationService.patchStatus(communicationId, request, actor.id, callerOrgId, isAppAdmin)
+            val dto = communicationService.patchStatus(communicationId, request)
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -229,25 +208,16 @@ class CommunicationResource @Inject constructor(
     @Path("/{id}/published")
     fun patchTemplatePublished(@PathParam("id") id: String, request: PatchCommunicationPublishedRequest): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val communicationId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid communication id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-        val isOrgAdmin = callerOrgId != null && userRoleService.isOrgAdminIn(actor.id, callerOrgId)
-
-        if (!isOrgAdmin && !isAppAdmin)
-        {
-            return Response.status(FORBIDDEN).entity(ResponseError("Org admin or app admin role required")).build()
-        }
-
         return try
         {
-            val dto = communicationService.patchPublished(communicationId, request, actor.id, callerOrgId, isAppAdmin)
+            val dto = communicationService.patchPublished(communicationId, request)
             Response.ok(dto).build()
         }
         catch (e: IllegalArgumentException)
@@ -269,19 +239,16 @@ class CommunicationResource @Inject constructor(
     @Path("/{id}")
     fun deleteTemplate(@PathParam("id") id: String): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val communicationId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid communication id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            communicationService.deleteTemplate(communicationId, actor.id, callerOrgId, isAppAdmin)
+            communicationService.deleteTemplate(communicationId)
             Response.noContent().build()
         }
         catch (e: IllegalArgumentException)
@@ -303,19 +270,16 @@ class CommunicationResource @Inject constructor(
     @Path("/{id}/preview")
     fun previewTemplate(@PathParam("id") id: String, request: PreviewCommunicationRequest): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val communicationId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid communication id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            val rendered = communicationService.preview(communicationId, request.sampleVariables, actor.id, callerOrgId, isAppAdmin)
+            val rendered = communicationService.preview(communicationId, request.sampleVariables)
             Response.ok(rendered).build()
         }
         catch (e: IllegalArgumentException)
@@ -337,19 +301,16 @@ class CommunicationResource @Inject constructor(
     @Path("/{id}/clone")
     fun cloneTemplate(@PathParam("id") id: String, request: CloneCommunicationRequest): Response
     {
-        val actor = authTokenContext.authToken.appUser
+        authTokenContext.authToken.appUser
             ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val communicationId = runCatching { UUID.fromString(id) }.getOrElse {
             return Response.status(BAD_REQUEST).entity(ResponseError("Invalid communication id")).build()
         }
 
-        val callerOrgId = organizationMembershipService.primaryOrganizationId(actor.id)
-        val isAppAdmin = userRoleService.isAppAdmin(actor.id)
-
         return try
         {
-            val dto = communicationService.cloneTemplate(communicationId, request, actor.id, callerOrgId, isAppAdmin)
+            val dto = communicationService.cloneTemplate(communicationId, request)
             Response.status(CREATED).entity(dto).build()
         }
         catch (e: IllegalArgumentException)

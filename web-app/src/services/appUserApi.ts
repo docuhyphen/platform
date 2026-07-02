@@ -1,5 +1,5 @@
 import apiClient, {addBearerToHeaderToken} from './apiClient';
-import {AppUserSettingsDto, OrganizationRegistrationRequest, PersonRegistrationRequest} from "../app/models/models.tsx";
+import {AppUserSettingsDto, CurrentSessionDto, OrganizationRegistrationRequest, PersonRegistrationRequest} from "../app/models/models.tsx";
 
 export const fetchAppUser = async (token: string | null) =>
 {
@@ -16,6 +16,12 @@ export const fetchAppUser = async (token: string | null) =>
     {
         throw error.response?.data || error.message;
     }
+};
+
+export const fetchCurrentSession = async (): Promise<CurrentSessionDto> =>
+{
+    const response = await apiClient.get('/app-user/session');
+    return response.data;
 };
 
 export const fetchAppUserPersonOrganization = async (appUserId?: string, personId?: string, token?: string) =>

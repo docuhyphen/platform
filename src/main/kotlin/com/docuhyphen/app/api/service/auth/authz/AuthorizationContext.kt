@@ -14,11 +14,14 @@ import java.util.UUID
  * - [mfaSatisfied]        : has the current session passed step-up MFA recently?
  *                           Used to honour `Share.constraints.require_mfa`.
  * - [clientIp]            : raw client IP, evaluated against `Share.constraints.ip_allowlist`.
+ * - [applicationId]       : when present, the request is being made by a registered APPLICATION
+ *                           principal; mutually exclusive with [actingUser].
  * - [shareLinkTokenHash]  : when present, the request is being made via a [ShareLink] token;
  *                           authorisation treats the caller as a `PUBLIC_LINK` principal.
  */
 data class AuthorizationContext(
     val actingUser: AppUser? = null,
+    val applicationId: UUID? = null,
     val activeMembershipId: UUID? = null,
     val activeOrgId: UUID? = null,
     val mfaSatisfied: Boolean = false,
