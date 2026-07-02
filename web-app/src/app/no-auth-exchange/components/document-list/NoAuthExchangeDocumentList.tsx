@@ -237,7 +237,7 @@ const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({
                     header={
                         <div className={styles.documentName}>
                             <Text
-                                size={500}
+                                size={300}
                                 weight={"semibold"}
                                 className={styles.documentTitle}
                             >
@@ -257,6 +257,7 @@ const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({
                             <Button
                                 id={`no-auth-exchange-doc-choose-file-btn-${doc.id}`}
                                 appearance="secondary"
+                                size={"small"}
                                 icon={<DocumentAddIcon/>}
                                 shape="circular"
                                 disabled={uploading[doc.id] || isUploadBlockedBySignInRequirement}
@@ -273,6 +274,7 @@ const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({
                             <Button
                                 id={`no-auth-exchange-doc-upload-btn-${doc.id}`}
                                 appearance="primary"
+                                size={"small"}
                                 icon={<UploadIcon/>}
                                 shape="circular"
                                 onClick={() => handleDocumentUpload(doc.id)}
@@ -288,6 +290,7 @@ const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({
                                 appearance="secondary"
                                 disabled={downloadingDocument}
                                 shape="circular"
+                                size={"small"}
                                 icon={<DownloadIcon/>}
                                 onClick={() => handleDownload(doc)}
                                 className={mergeClasses(styles.actionButton, styles.downloadAction)}

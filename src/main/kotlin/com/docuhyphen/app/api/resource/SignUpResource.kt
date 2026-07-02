@@ -61,6 +61,7 @@ class SignUpResource @Inject constructor(
                 }
 
                 is EmailRequiredException,
+                is DisposableEmailAddressException,
                 is InvalidEmailException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message))
                     .build()
 

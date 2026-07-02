@@ -131,18 +131,11 @@ The help docs live in:
    for the new behaviour. Check: UI navigation paths, field names, permission rules,
    step counts, listed values (token lists, status names, endpoint paths).
 3. Update any article that is inaccurate or out of date.
-4. If the feature introduces a concept with no existing article, create one:
-   - Add an article file under `sections/articles/` (e.g. `myFeatureArticle.tsx`).
-   - Register it in the relevant section file (e.g. `mySection.tsx`).
-   - If the section is entirely new, create a section file and register it in
-     `helpDocsRegistry.tsx`.
-   - Add quick links to `startHereSection.tsx` if the feature is prominent enough
-     to warrant it.
-5. Size limits (enforce strictly):
+4. Size limits (enforce strictly):
    - Article files: under 150 lines of JSX.
    - Section files: under 300 lines.
    - `helpDocsRegistry.tsx`: under 60 lines.
-6. Run `npx tsc --noEmit` inside `web-app/` after any edits to confirm zero type errors.
+5. Run `npx tsc --noEmit` inside `web-app/` after any edits to confirm zero type errors.
 
 ### What counts as a feature change requiring a docs update
 

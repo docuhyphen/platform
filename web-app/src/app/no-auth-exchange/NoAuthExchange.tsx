@@ -4,9 +4,10 @@ import {NoAuthExchangeBasicDto, ExchangeStatus, DocumentDetailedDto} from "../mo
 import NoAuthExchangeHeader from "./components/header/NoAuthExchangeHeader.tsx";
 import {useNoAuthExchangeStyles} from "./NoAuthExchangeStyles.tsx";
 import NoAuthExchangeUserDecision from "./components/exchange-use-decision/NoAuthExchangeUserDecision.tsx";
-import {Spinner} from "@fluentui/react-components";
+import {FluentProvider, Spinner} from "@fluentui/react-components";
 import {fetchNoAuthExchange} from "../../services/exchangeApi.ts";
 import NoAuthExchangeWorkspace from "./components/exchange-workspace/NoAuthExchangeWorkspace.tsx";
+import {lightTheme} from "../../context/theme.ts";
 
 const NoAuthExchange: React.FC = () =>
 {
@@ -112,43 +113,49 @@ const NoAuthExchange: React.FC = () =>
     }
 
     return (
-        <section
-            id={"no-auth-exchange-page"}
-            className={styles.container}
+        <FluentProvider
+            id={"no-auth-exchange-light-theme-provider"}
+            theme={lightTheme}
+            className={styles.themeProvider}
         >
-            <NoAuthExchangeHeader/>
+            <section
+                id={"no-auth-exchange-page"}
+                className={styles.container}
+            >
+                <NoAuthExchangeHeader/>
 
-            {isLoadingExchange && (
-                <div
-                    id={"no-auth-exchange-loading"}
-                    className={styles.exchangeLoadingContainer}
-                >
-                    <Spinner
-                        size={"medium"}
-                        label={"Preparing your secure document request"}
-                    />
-                </div>
-            )}
+                {isLoadingExchange && (
+                    <div
+                        id={"no-auth-exchange-loading"}
+                        className={styles.exchangeLoadingContainer}
+                    >
+                        <Spinner
+                            size={"medium"}
+                            label={"Preparing your secure document request"}
+                        />
+                    </div>
+                )}
 
-            {!isLoadingExchange && exchange && (
-                <>
-                    {exchangeAccepted ? (
-                        <NoAuthExchangeWorkspace exchange={exchange} onDocumentUploaded={onDocumentUploaded}/>
-                    ) : (
-                        <section
-                            id={"no-auth-exchange-decision"}
-                            className={styles.exchangeDecisionContainer}
-                        >
-                            <NoAuthExchangeUserDecision
-                                exchange={exchange}
-                                onAccepted={onExchangeAccepted}
-                                onDeclined={() => navigate("/sign-in/")}
-                            />
-                        </section>
-                    )}
-                </>
-            )}
-        </section>
+                {!isLoadingExchange && exchange && (
+                    <>
+                        {exchangeAccepted ? (
+                            <NoAuthExchangeWorkspace exchange={exchange} onDocumentUploaded={onDocumentUploaded}/>
+                        ) : (
+                            <section
+                                id={"no-auth-exchange-decision"}
+                                className={styles.exchangeDecisionContainer}
+                            >
+                                <NoAuthExchangeUserDecision
+                                    exchange={exchange}
+                                    onAccepted={onExchangeAccepted}
+                                    onDeclined={() => navigate("/sign-in/")}
+                                />
+                            </section>
+                        )}
+                    </>
+                )}
+            </section>
+        </FluentProvider>
     );
 };
 

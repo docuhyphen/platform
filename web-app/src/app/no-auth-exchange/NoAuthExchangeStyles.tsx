@@ -1,6 +1,11 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useNoAuthExchangeStyles = makeStyles({
+    themeProvider: {
+        width: "100%",
+        height: "100%",
+    },
+
     container: {
         display: "flex",
         flexDirection: "column",

@@ -38,6 +38,7 @@ class SignUpService @Inject constructor(
     private val signUpEmailConfirmationTokenService: SignUpEmailConfirmationTokenService,
     private val userContactService: UserContactService,
     private val exchangeRepository: ExchangeRepository,
+    private val disposableEmailDomainService: DisposableEmailDomainService,
 )
 {
     companion object
@@ -59,6 +60,12 @@ class SignUpService @Inject constructor(
         {
             logger.warn("Sign up failed: Email validation failed for {}", sanitized.maskEmailForLogs())
             throw InvalidEmailException()
+        }
+
+        if (disposableEmailDomainService.isDisposable(sanitized))
+        {
+            logger.warn("Sign up failed: Disposable email domain rejected for {}", sanitized.maskEmailForLogs())
+            throw DisposableEmailAddressException()
         }
 
         try
