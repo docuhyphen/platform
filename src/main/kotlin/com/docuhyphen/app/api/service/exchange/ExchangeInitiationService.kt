@@ -63,6 +63,7 @@ class ExchangeInitiationService @Inject constructor(
     private val templateVariableInterpolator: TemplateVariableInterpolator,
     private val documentLibraryService: DocumentLibraryService,
     private val fileStorageService: FileStorageService,
+    private val schemaAssignmentService: com.docuhyphen.app.api.service.fields.SchemaAssignmentService,
 )
 {
     @PersistenceContext
@@ -237,6 +238,16 @@ class ExchangeInitiationService @Inject constructor(
             }
         }
 
+        // Grant the initiator's OWNER share before any authorization-gated operation runs in this
+        // transaction (e.g. applyCreationTimeFields below requires EXCHANGE_WRITE, which is only
+        // granted via an active Share on the exchange).
+        grantInitiatorOwnerShare(savedExchange, initiator)
+
+        // Apply an optional business schema + typed field values chosen at creation time, inside
+        // this same transaction and BEFORE any workflow fires, so workflow applicability (and
+        // assignee logic) can observe the values. Validation failures roll back the whole Exchange.
+        applyCreationTimeFields(savedExchange.id, sessionInitiationDto)
+
         // Resolve the initiator's org context once; used for both workflow triggers
         // and the group-specific manager access grant below.
         val orgId: UUID? = when (sessionInitiationDto.recipientType)
@@ -347,10 +358,10 @@ class ExchangeInitiationService @Inject constructor(
             logger.info("Exchange {} created with auto-accept (requireRecipientAcceptance=false)", savedExchange.id)
         }
 
-        // Recipients/participants/permissions live in the unified Share model. The initiator
-        // gets an OWNER share, the recipient a role derived from the requested document
-        // permissions, and each participant a PARTICIPANT share (groups fan out to members).
-        grantInitiatorOwnerShare(savedExchange, initiator)
+        // Recipients/participants/permissions live in the unified Share model. The initiator's
+        // OWNER share was already granted above (before applyCreationTimeFields); the recipient
+        // gets a role derived from the requested document permissions, and each participant a
+        // PARTICIPANT share (groups fan out to members).
         grantRecipientShare(
             session = savedExchange,
             recipientType = sessionInitiationDto.recipientType!!,
@@ -496,6 +507,42 @@ class ExchangeInitiationService @Inject constructor(
                 source = ShareSource.DIRECT,
             )
         }
+    }
+
+    /**
+     * Applies a caller-selected business schema and typed field values to a freshly created
+     * Exchange, delegating to [SchemaAssignmentService] (service-to-service, never cross-repository).
+     * Called inside [initiateExchange]'s transaction and before any workflow trigger fires, so a
+     * field-conditioned workflow can observe the values. Any validation failure propagates and rolls
+     * back the whole Exchange creation. The assignment source defaults to `MANUAL` and is set to
+     * `BLUEPRINT` when the Exchange is started from a blueprint that pre-seeds the schema.
+     */
+    internal fun applyCreationTimeFields(exchangeId: UUID, dto: ExchangeInitiationDto)
+    {
+        val rawSchemaId = dto.schemaDefinitionId?.trim()?.takeIf { it.isNotBlank() }
+        val fieldValues = dto.fieldValues ?: emptyList()
+
+        if (rawSchemaId == null)
+        {
+            if (fieldValues.isNotEmpty())
+                throw IllegalArgumentException("Field values were supplied without a schema; select a schema first")
+            return
+        }
+
+        val schemaDefinitionId = try
+        {
+            UUID.fromString(rawSchemaId)
+        }
+        catch (e: IllegalArgumentException)
+        {
+            throw IllegalArgumentException("Invalid schema id: $rawSchemaId")
+        }
+
+        val assignmentSource = dto.schemaAssignmentSource
+            ?: com.docuhyphen.app.api.model.entity.SchemaAssignmentSource.MANUAL
+        schemaAssignmentService.assignSchema(ResourceType.EXCHANGE.name, exchangeId, schemaDefinitionId, assignmentSource)
+        if (fieldValues.isNotEmpty())
+            schemaAssignmentService.setValues(ResourceType.EXCHANGE.name, exchangeId, fieldValues)
     }
 
     /**

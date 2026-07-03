@@ -31,6 +31,8 @@ import ExchangeInitiationDialogTrigger
     from "./components/exchange-initiation-dialog-trigger/ExchangeInitiationDialogTrigger.tsx";
 import ExchangeInitiationDialogTitleSection
     from "./components/exchange-initiation-dialog-title-section/ExchangeInitiationDialogTitleSection.tsx";
+import ExchangeInitiationFieldsTab
+    from "./components/exchange-initiation-fields-tab/ExchangeInitiationFieldsTab.tsx";
 import {ArrowLeftRegular, DismissRegular} from "@fluentui/react-icons";
 import ExchangeInitiationRecipientsTab, {
     ExchangeInitiationRecipientMode
@@ -44,9 +46,17 @@ import {
     BlueprintDocumentConfig,
     DocumentLibraryEntrySummaryDto,
     ExchangeInitiationRequest, ExchangeParticipantRole, ExchangeParticipantType,
-    ExchangeRequestDocumentRequest
+    ExchangeRequestDocumentRequest,
+    SchemaAssignmentSource,
+    SchemaDefinitionDto
 } from "../models/models.tsx";
 import {getAvailableVariables} from "../../services/variableService.ts";
+import {getResolvedSchema, listSchemas} from "../../services/fieldsService.ts";
+import {
+    buildBlueprintFieldDefaults,
+    buildCreationFieldValues,
+    filterEligibleExchangeSchemas
+} from "./components/exchange-initiation-fields-tab/creationFieldsUtils.ts";
 import BlueprintPicker from "./components/blueprint-picker/BlueprintPicker.tsx";
 import SaveBlueprintPanel from "./components/save-blueprint-dialog/SaveBlueprintDialog.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
@@ -93,12 +103,17 @@ const ExchangeInitiation: React.FC = () =>
         recipientRole, setRecipientRole,
         recipientConstraints, setRecipientConstraints,
         allowedDownloadFormats, setAllowedDownloadFormats,
+        schemaDefinitionId, setSchemaDefinitionId,
+        fieldValueMap, setFieldValueMap,
+        fieldBindings, setFieldBindings,
     } = useExchangeInitiatingState();
 
     const toasterId = useId("exchange-initiation-toaster");
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [selectedBlueprintName, setSelectedBlueprintName] = React.useState<string | null>(null);
     const [blueprintLocked, setBlueprintLocked] = React.useState(false);
+    const [eligibleSchemas, setEligibleSchemas] = React.useState<SchemaDefinitionDto[]>([]);
+    const [schemaFromBlueprint, setSchemaFromBlueprint] = React.useState(false);
     const [createdExchangeSummary, setCreatedExchangeSummary] = React.useState<CreatedExchangeSummary | null>(null);
     const [copyLinkStatus, setCopyLinkStatus] = React.useState<'idle' | 'copied' | 'failed'>('idle');
     const [saveBlueprintDialogOpen, setSaveBlueprintDialogOpen] = React.useState(false);
@@ -151,6 +166,47 @@ const ExchangeInitiation: React.FC = () =>
         applyModeDefaults(isRequesting);
     };
 
+    /**
+     * Seeds the wizard's schema + field values from a selected blueprint. Defaults are keyed by the
+     * stable fieldDefinitionId; they are mapped to the current published version's fieldContractId via
+     * the resolved schema, so any field dropped from the schema is silently skipped (never blocks the
+     * start). Marks the assignment source BLUEPRINT so the backend records provenance.
+     */
+    const applyBlueprintSchema = (blueprint: BlueprintDefinitionSummaryDto) =>
+    {
+        if (!blueprint.schemaDefinitionId)
+        {
+            setSchemaFromBlueprint(false);
+            setSchemaDefinitionId(undefined);
+            setFieldValueMap({});
+            setFieldBindings([]);
+            return;
+        }
+        const schemaId = blueprint.schemaDefinitionId;
+        setSchemaFromBlueprint(true);
+        setSchemaDefinitionId(schemaId);
+        getResolvedSchema(schemaId)
+            .then(view =>
+            {
+                setFieldBindings(view.fields);
+                const contractByFieldDefinition = new Map(
+                    view.fields.map(f => [f.fieldDefinitionId, f.fieldContractId]),
+                );
+                const seeded: Record<string, unknown> = {};
+                (blueprint.fieldDefaults ?? []).forEach(d =>
+                {
+                    const contractId = contractByFieldDefinition.get(d.fieldDefinitionId);
+                    if (contractId && d.value !== undefined && d.value !== null) seeded[contractId] = d.value;
+                });
+                setFieldValueMap(seeded);
+            })
+            .catch(() =>
+            {
+                setFieldBindings([]);
+                setFieldValueMap({});
+            });
+    };
+
     const handleBlueprintSelect = (blueprint: BlueprintDefinitionSummaryDto) =>
     {
         try
@@ -182,6 +238,7 @@ const ExchangeInitiation: React.FC = () =>
                 setInternalParticipants(blueprint.participants);
             }
             setBlueprintLocked(blueprint.scope !== 'PERSONAL' && !(config.allowEditOnExchangeStart === true));
+            applyBlueprintSchema(blueprint);
         }
         catch (e)
         {
@@ -513,6 +570,11 @@ const ExchangeInitiation: React.FC = () =>
                         return {id: p.id, participantType: ExchangeParticipantType.APP_USER}
                     }),
                 variableOverrides: Object.keys(variableOverrides).length > 0 ? variableOverrides : undefined,
+                schemaDefinitionId: schemaDefinitionId || undefined,
+                fieldValues: buildCreationFieldValues(schemaDefinitionId, fieldBindings, fieldValueMap),
+                schemaAssignmentSource: schemaFromBlueprint && schemaDefinitionId
+                    ? SchemaAssignmentSource.BLUEPRINT
+                    : undefined,
             } as ExchangeInitiationRequest;
 
             const createdExchange = await initiateExchange(exchange);
@@ -607,6 +669,10 @@ const ExchangeInitiation: React.FC = () =>
         setCopyLinkStatus('idle');
         setRecipientRole(undefined);
         setRecipientConstraints({});
+        setSchemaDefinitionId(undefined);
+        setFieldValueMap({});
+        setFieldBindings([]);
+        setSchemaFromBlueprint(false);
     };
 
     const onCancelInitiation = () =>
@@ -620,6 +686,9 @@ const ExchangeInitiation: React.FC = () =>
         if (data.open)
         {
             getAvailableVariables().then(setAvailableVariables).catch(() => null);
+            listSchemas()
+                .then(all => setEligibleSchemas(filterEligibleExchangeSchemas(all)))
+                .catch(() => setEligibleSchemas([]));
         }
         else
         {
@@ -796,6 +865,31 @@ const ExchangeInitiation: React.FC = () =>
         )
     }
 
+    const handleSchemaChange = (id: string | undefined) =>
+    {
+        setSchemaFromBlueprint(false);
+        setSchemaDefinitionId(id || undefined);
+        setFieldValueMap({});
+        setFieldBindings([]);
+    };
+
+    const renderFieldsTab = () =>
+    {
+        return (
+            <ExchangeInitiationFieldsTab
+                schemas={eligibleSchemas}
+                schemaDefinitionId={schemaDefinitionId}
+                onSchemaChange={handleSchemaChange}
+                bindings={fieldBindings}
+                onBindingsLoaded={setFieldBindings}
+                valueMap={fieldValueMap}
+                onValueChange={(fieldContractId, value) =>
+                    setFieldValueMap(prev => ({...prev, [fieldContractId]: value}))}
+                locked={blueprintLocked}
+            />
+        )
+    }
+
     const renderVariableOverridesPanel = () =>
     {
         if (pendingVariableTokens.length === 0) return null;
@@ -827,6 +921,7 @@ const ExchangeInitiation: React.FC = () =>
                 {pendingVariableTokens.length > 0 && renderVariableOverridesPanel()}
                 {selectedTab === "recipients-tab" && renderRecipientsTab()}
                 {selectedTab === "details-tab" && renderDetailsTab()}
+                {selectedTab === "fields-tab" && renderFieldsTab()}
                 {selectedTab === "documents-tab" && renderDocumentsTab()}
                 {selectedTab === "options-tab" && renderOptionsTab()}
             </div>
@@ -948,6 +1043,7 @@ const ExchangeInitiation: React.FC = () =>
                                     choosingBlueprint={choosingBlueprint}
                                     selectedBlueprintName={selectedBlueprintName}
                                     selectedTab={selectedTab}
+                                    showFieldsTab={eligibleSchemas.length > 0}
                                     onTabSelect={(_, data) =>
                                     {
                                         setMessageGroupMessages([]);
@@ -968,6 +1064,8 @@ const ExchangeInitiation: React.FC = () =>
                                 configJson={buildBlueprintConfigJson()}
                                 exchangeDocuments={buildBlueprintDocuments()}
                                 participants={internalParticipants ?? []}
+                                schemaDefinitionId={schemaDefinitionId || undefined}
+                                fieldDefaults={buildBlueprintFieldDefaults(schemaDefinitionId, fieldBindings, fieldValueMap)}
                             />
                         ) : renderDialogContent()}
                     </DialogContent>

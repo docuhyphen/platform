@@ -358,13 +358,18 @@ class EndpointVerificationFilter @Inject constructor(
             val membership = organizationMembershipRepository.findActiveByUserAndOrg(userId, requestedOrgId)
             if (membership == null)
             {
-                logger.warn("User={} requested active org={} but has no active membership", userId, requestedOrgId)
-                abortWithForbidden(requestContext, "No active membership in the selected organization")
-                return
+                logger.warn(
+                    "User={} requested active org={} but has no active membership; ignoring stale " +
+                        "header and proceeding in personal-product mode",
+                    userId,
+                    requestedOrgId,
+                )
             }
-
-            authenticationContext.activeOrganizationId = requestedOrgId
-            authenticationContext.activeMembershipId = membership.id
+            else
+            {
+                authenticationContext.activeOrganizationId = requestedOrgId
+                authenticationContext.activeMembershipId = membership.id
+            }
         }
 
         val virtualToken = AuthToken().apply {

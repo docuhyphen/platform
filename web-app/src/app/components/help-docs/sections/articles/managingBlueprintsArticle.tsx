@@ -23,7 +23,8 @@ export const managingBlueprintsArticle = (
         </ol>
         <p>
             This captures the current state of the form - documents, permissions,
-            participants, and settings - into a new personal blueprint.
+            participants, settings, and any selected business schema with its field
+            values - into a new personal blueprint.
         </p>
         <p>
             Creating, editing, duplicating, activating, or deleting a personal
@@ -31,7 +32,7 @@ export const managingBlueprintsArticle = (
         </p>
 
         <h3>The blueprint editor</h3>
-        <p>The editor has three tabs:</p>
+        <p>The editor has four tabs:</p>
 
         <h3>Details tab</h3>
         <ul>
@@ -55,6 +56,19 @@ export const managingBlueprintsArticle = (
                 documents must be uploaded before the exchange can be completed.
             </li>
             <li>Click the red delete icon to remove a document slot.</li>
+        </ul>
+
+        <h3>Business Fields tab</h3>
+        <ul>
+            <li>
+                Pick a published business schema to classify exchanges started from this
+                blueprint (for example, a Client Onboarding schema with a Category field).
+            </li>
+            <li>
+                Set default values for the schema's fields. These pre-fill the Business
+                Fields step when someone starts an exchange from the blueprint.
+            </li>
+            <li>Leave the schema empty to keep the blueprint free of business fields.</li>
         </ul>
 
         <h3>Permissions tab</h3>

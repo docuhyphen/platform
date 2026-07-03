@@ -84,6 +84,8 @@
     GridRegular,
     TableFilled,
     TableRegular,
+    TextboxFilled,
+    TextboxRegular,
     FullScreenMaximizeFilled,
     FullScreenMaximizeRegular,
     FullScreenMinimizeFilled,
@@ -173,6 +175,8 @@ export const NotificationsIcon = bundleIcon(AlertFilled, AlertRegular);
 export const SignOutButtonIcon = bundleIcon(ArrowExitFilled, ArrowExitRegular);
 export const SettingsSequencesTabIcon = bundleIcon(BookNumberFilled, BookNumberRegular);
 export const SettingsVariablesTabIcon = bundleIcon(NotepadEditFilled, NotepadEditRegular);
+export const SettingsFieldsTabIcon = bundleIcon(TextboxFilled, TextboxRegular);
+export const ExchangeFieldsTabIcon = bundleIcon(TextboxFilled, TextboxRegular);
 export const SettingsCommunicationsTabIcon = bundleIcon(ChatMailFilled, ChatMailRegular);
 export const MailEditIcon = bundleIcon(MailEditFilled, MailEditRegular)
 export const PersonEditIcon = bundleIcon(PersonEditFilled, PersonEditRegular)

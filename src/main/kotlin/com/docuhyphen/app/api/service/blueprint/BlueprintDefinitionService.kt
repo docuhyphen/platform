@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.service.blueprint
 import com.docuhyphen.app.api.model.dto.BlueprintConfigJson
 import com.docuhyphen.app.api.model.dto.BlueprintDefinitionDto
 import com.docuhyphen.app.api.model.dto.BlueprintDocumentConfig
+import com.docuhyphen.app.api.model.dto.BlueprintFieldDefaultConfig
 import com.docuhyphen.app.api.model.dto.BlueprintParticipantConfig
 import com.docuhyphen.app.api.model.dto.CloneBlueprintRequest
 import com.docuhyphen.app.api.model.dto.CreateBlueprintRequest
@@ -11,11 +12,13 @@ import com.docuhyphen.app.api.model.dto.PatchBlueprintStatusRequest
 import com.docuhyphen.app.api.model.dto.UpdateBlueprintRequest
 import com.docuhyphen.app.api.model.entity.BlueprintDefinition
 import com.docuhyphen.app.api.model.entity.BlueprintDocumentDefault
+import com.docuhyphen.app.api.model.entity.BlueprintFieldDefault
 import com.docuhyphen.app.api.model.entity.BlueprintParticipantDefault
 import com.docuhyphen.app.api.model.entity.BlueprintScope
 import com.docuhyphen.app.api.model.entity.DocumentLibraryEntry
 import com.docuhyphen.app.api.repository.BlueprintDefinitionRepository
 import com.docuhyphen.app.api.repository.BlueprintDocumentDefaultRepository
+import com.docuhyphen.app.api.repository.BlueprintFieldDefaultRepository
 import com.docuhyphen.app.api.repository.BlueprintParticipantDefaultRepository
 import com.docuhyphen.app.api.repository.DocumentLibraryRepository
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
@@ -28,6 +31,7 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.fields.SchemaDefinitionService
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -35,6 +39,8 @@ import jakarta.transaction.Transactional
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
@@ -45,7 +51,9 @@ class BlueprintDefinitionService @Inject constructor(
     private val repository: BlueprintDefinitionRepository,
     private val documentDefaultRepository: BlueprintDocumentDefaultRepository,
     private val participantDefaultRepository: BlueprintParticipantDefaultRepository,
+    private val fieldDefaultRepository: BlueprintFieldDefaultRepository,
     private val documentLibraryRepository: DocumentLibraryRepository,
+    private val schemaDefinitionService: SchemaDefinitionService,
     private val adminActionGuardService: AdminActionGuardService,
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
@@ -106,6 +114,7 @@ class BlueprintDefinitionService @Inject constructor(
             summary = request.summary?.trim()
             description = request.description?.trim()
             configJson = encodeConfig(parseConfig(request.configJson))
+            schemaDefinitionId = request.schemaDefinitionId
             generalTags = encodeTags(request.generalTags)
             isActive = request.isActive
             scope = resolvedScope
@@ -116,6 +125,7 @@ class BlueprintDefinitionService @Inject constructor(
         repository.save(bp)
         persistDocuments(bp.id, request.exchangeDocuments)
         persistParticipants(bp.id, request.participants)
+        persistFieldDefaults(bp.id, request.schemaDefinitionId, request.fieldDefaults)
         return bp.toDto()
     }
 
@@ -139,6 +149,10 @@ class BlueprintDefinitionService @Inject constructor(
         request.configJson?.let { bp.configJson = encodeConfig(parseConfig(it)) }
         request.exchangeDocuments?.let { persistDocuments(bp.id, it) }
         request.participants?.let { persistParticipants(bp.id, it) }
+        request.fieldDefaults?.let {
+            bp.schemaDefinitionId = request.schemaDefinitionId
+            persistFieldDefaults(bp.id, request.schemaDefinitionId, it)
+        }
         request.generalTags?.let { bp.generalTags = encodeTags(it) }
         bp.updatedAt = Timestamp.from(Instant.now())
 
@@ -229,6 +243,7 @@ class BlueprintDefinitionService @Inject constructor(
             summary = source.summary
             description = source.description
             configJson = source.configJson
+            schemaDefinitionId = source.schemaDefinitionId
             generalTags = source.generalTags
             isActive = false
             scope = targetScope
@@ -448,6 +463,17 @@ class BlueprintDefinitionService @Inject constructor(
                 }
             )
         }
+        fieldDefaultRepository.findAllByBlueprintDefinitionId(sourceId).forEach { src ->
+            fieldDefaultRepository.save(
+                BlueprintFieldDefault().apply {
+                    this.blueprintDefinitionId = targetId
+                    this.fieldDefinitionId = src.fieldDefinitionId
+                    this.valueType = src.valueType
+                    this.valueJson = src.valueJson
+                    this.displayOrder = src.displayOrder
+                }
+            )
+        }
     }
 
     private fun loadDocuments(blueprintId: UUID): List<BlueprintDocumentConfig> =
@@ -467,6 +493,52 @@ class BlueprintDefinitionService @Inject constructor(
                 principalId = it.principalId,
                 principalKind = it.principalKind,
                 roleName = it.roleName,
+            )
+        }
+
+    /**
+     * Validates (against the schema's published version) and replaces a blueprint's default field
+     * values. Empty defaults clear the rows. Non-empty defaults require a schema; each value is
+     * canonicalized through its type contract so an invalid default is rejected at authoring time.
+     */
+    private fun persistFieldDefaults(
+        blueprintId: UUID,
+        schemaDefinitionId: UUID?,
+        defaults: List<BlueprintFieldDefaultConfig>,
+    )
+    {
+        fieldDefaultRepository.deleteAllByBlueprintDefinitionId(blueprintId)
+        val nonEmpty = defaults.filter { it.value != null && it.value !is JsonNull }
+        if (nonEmpty.isEmpty()) return
+        if (schemaDefinitionId == null)
+            throw IllegalArgumentException("Field defaults were supplied without a schema; select a schema first")
+
+        val validated = schemaDefinitionService.validateDefaultsForSchema(
+            schemaDefinitionId,
+            nonEmpty.map { it.fieldDefinitionId to it.value!! },
+        ).associateBy { it.fieldDefinitionId }
+
+        nonEmpty.forEachIndexed { idx, default ->
+            val resolved = validated[default.fieldDefinitionId] ?: return@forEachIndexed
+            fieldDefaultRepository.save(
+                BlueprintFieldDefault().apply {
+                    this.blueprintDefinitionId = blueprintId
+                    this.fieldDefinitionId = default.fieldDefinitionId
+                    this.valueType = resolved.valueType
+                    this.valueJson = json.encodeToString(JsonElement.serializer(), default.value!!)
+                    this.displayOrder = idx
+                }
+            )
+        }
+    }
+
+    private fun loadFieldDefaults(blueprintId: UUID): List<BlueprintFieldDefaultConfig> =
+        fieldDefaultRepository.findAllByBlueprintDefinitionId(blueprintId).map {
+            BlueprintFieldDefaultConfig(
+                fieldDefinitionId = it.fieldDefinitionId,
+                valueType = it.valueType,
+                value = it.valueJson?.let { raw -> json.parseToJsonElement(raw) },
+                displayOrder = it.displayOrder,
             )
         }
 
@@ -492,8 +564,10 @@ class BlueprintDefinitionService @Inject constructor(
         generalTags = decodeTags(generalTags),
         sourceTemplateId = sourceTemplateId,
         configJson = configJson,
+        schemaDefinitionId = schemaDefinitionId,
         exchangeDocuments = loadDocuments(id),
         participants = loadParticipants(id),
+        fieldDefaults = loadFieldDefaults(id),
         createdAt = createdAt,
         updatedAt = updatedAt,
     )

@@ -2,6 +2,9 @@ package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.dto.CurrentSessionDto
+import com.docuhyphen.app.api.model.dto.SessionOrganizationOptionDto
+import com.docuhyphen.app.api.repository.OrganizationMembershipRepository
+import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.service.auth.authz.Capability
 import com.docuhyphen.app.api.service.auth.authz.RoleCapabilities
 import io.quarkus.security.UnauthorizedException
@@ -20,6 +23,8 @@ import jakarta.inject.Inject
 class SessionService @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val userRoleService: UserRoleService,
+    private val organizationMembershipRepository: OrganizationMembershipRepository,
+    private val organizationRepository: OrganizationRepository,
 )
 {
     fun currentSession(): CurrentSessionDto
@@ -42,6 +47,16 @@ class SessionService @Inject constructor(
         appRoles.forEach { capabilities += RoleCapabilities.forAppRole(it) }
         orgRoles.forEach { capabilities += RoleCapabilities.forOrganizationRole(it) }
 
+        val availableOrganizations = organizationMembershipRepository.findActiveByUser(user.id).map { m ->
+            val org = organizationRepository.findById(m.organizationId)
+            SessionOrganizationOptionDto(
+                organizationId = m.organizationId,
+                name = org?.name ?: "Unknown organization",
+                isPrimary = m.isPrimary,
+                roles = m.roles.map { it.name },
+            )
+        }
+
         return CurrentSessionDto(
             userId = user.id,
             email = user.email,
@@ -49,6 +64,7 @@ class SessionService @Inject constructor(
             activeOrganizationId = activeOrgId,
             organizationRoles = orgRoles.map { it.name },
             capabilities = capabilities.map { it.name }.sorted(),
+            availableOrganizations = availableOrganizations,
         )
     }
 }

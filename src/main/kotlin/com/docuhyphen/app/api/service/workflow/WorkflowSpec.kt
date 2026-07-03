@@ -3,12 +3,14 @@
 package com.docuhyphen.app.api.service.workflow
 
 import com.docuhyphen.app.api.model.entity.AppRoleName
+import com.docuhyphen.app.api.model.entity.FieldValueType
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
 import com.docuhyphen.app.api.model.entity.WorkflowStepType
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonClassDiscriminator
+import kotlinx.serialization.json.JsonElement
 
 /**
  * Workflow DSL, the in-memory representation of `workflow_definition.steps_json`.
@@ -36,6 +38,35 @@ data class WorkflowSpec(
      * Example: `"session.rejected"` on an `exchange.acceptance_pending` workflow.
      */
     val onReject: String? = null,
+    /**
+     * Optional applicability gate. When present with conditions, the workflow starts only if the
+     * subject Exchange's typed field values satisfy every condition (AND). Absent or empty means
+     * always applicable. Version-frozen with the definition inside `steps_json`.
+     */
+    val applicability: ApplicabilitySpec? = null,
+)
+
+/**
+ * Schema-aware applicability for a workflow definition. All [fieldConditions] must match (AND) for
+ * the workflow to start. Null or empty conditions mean the workflow is always applicable.
+ */
+@Serializable
+data class ApplicabilitySpec(
+    val fieldConditions: List<FieldConditionSpec> = emptyList(),
+)
+
+/**
+ * A single typed field condition. References the immutable [fieldDefinitionId] (stable across schema
+ * versions), never a display label or option label. [value] is a canonical literal, null for
+ * `IS_EMPTY` / `IS_NOT_EMPTY`. [fieldKey] is advisory (for editor display only).
+ */
+@Serializable
+data class FieldConditionSpec(
+    val fieldDefinitionId: String,
+    val fieldKey: String? = null,
+    val valueType: FieldValueType,
+    val operator: com.docuhyphen.app.api.service.fields.FieldOperator,
+    val value: JsonElement? = null,
 )
 
 @Serializable
@@ -190,6 +221,7 @@ object WorkflowSpecJson
 {
     val instance: Json = Json {
         ignoreUnknownKeys = true
+        coerceInputValues = true
         encodeDefaults = true
         classDiscriminator = "kind"
     }

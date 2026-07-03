@@ -32,6 +32,7 @@ import {useHelpSidebar} from "../../../../context/HelpSidebarContext.tsx";
 import StepCard from "../step-card/StepCard.tsx";
 import {formatTriggerName} from "../workflowUtils.ts";
 import SaveWorkflowDialog from "../save-workflow-dialog/SaveWorkflowDialog.tsx";
+import ApplicabilityEditor from "./applicability-editor/ApplicabilityEditor.tsx";
 
 interface Props
 {
@@ -64,6 +65,7 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
     const [tagInput, setTagInput] = useState("");
     const [showDiscardDialog, setShowDiscardDialog] = useState(false);
     const [showSaveDialog, setShowSaveDialog] = useState(false);
+    const [defScope, setDefScope] = useState<'PERSONAL' | 'ORG' | 'APP' | undefined>(scope);
     const initialStateRef = useRef<string | null>(null);
 
     const isDirty = () =>
@@ -105,8 +107,10 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
                     triggerEvent: def.triggerEvent,
                     isActive: def.isActive,
                     steps: parsed.steps ?? [],
+                    applicability: parsed.applicability,
                 };
                 setState(loaded);
+                setDefScope(def.scope);
                 initialStateRef.current = JSON.stringify(loaded);
             }
             catch (e: unknown)
@@ -163,7 +167,10 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
 
     const performSave = async () =>
     {
-        const stepsJson = JSON.stringify({steps: state.steps});
+        const applicability = state.applicability && state.applicability.fieldConditions.length > 0
+            ? state.applicability
+            : undefined;
+        const stepsJson = JSON.stringify({steps: state.steps, applicability});
         if (definitionId)
         {
             await updateWorkflowDefinition(definitionId, {
@@ -348,6 +355,18 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
                     </Text>
                 )}
             </div>
+
+            {defScope === "ORG" && (
+                <>
+                    <Divider/>
+                    <div className={styles.stepList}>
+                        <ApplicabilityEditor
+                            applicability={state.applicability}
+                            onChange={a => patch({applicability: a})}
+                        />
+                    </div>
+                </>
+            )}
 
             <div className={styles.saveBar}>
                 {/*{hasHardcodedUUIDs && (*/}

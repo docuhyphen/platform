@@ -28,6 +28,21 @@ data class CurrentSessionDto(
     val activeOrganizationId: UUID?,
     val organizationRoles: List<String>,
     val capabilities: List<String>,
+    val availableOrganizations: List<SessionOrganizationOptionDto>,
+)
+
+/**
+ * One organization the caller can act within, surfaced on the session so the frontend can
+ * auto-select (single membership) or present a picker (multiple memberships). [isPrimary] is
+ * informational only and does not gate auto-selection.
+ */
+@Serializable
+data class SessionOrganizationOptionDto(
+    @Serializable(with = UUIDSerializer::class)
+    val organizationId: UUID,
+    val name: String,
+    val isPrimary: Boolean,
+    val roles: List<String>,
 )
 
 /**

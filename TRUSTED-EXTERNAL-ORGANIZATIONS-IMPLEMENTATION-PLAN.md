@@ -2,20 +2,20 @@
 
 ## Mandatory Starting Instruction
 
-Before implementing any phase in this plan, read `AGENTS.md`,
-`PRE-FIELDS-AUTHORIZATION-HARDENING-PLAN.md`, and this plan in full. Treat `AGENTS.md` as the
-controlling project instruction set.
+Before implementing any phase in this plan, read `AGENTS.md` and this plan in full. Treat `AGENTS.md`
+as the controlling project instruction set. The authorization hardening this plan formerly depended
+on is complete.
 
 ## Executive Decision
 
 Keep the organization pairing concept, but reposition it as an optional B2B trust and identity
 assurance layer called **Trusted Organizations** or **External Collaboration**.
 
-Do not implement the complete feature before the relevant work in
-`PRE-FIELDS-AUTHORIZATION-HARDENING-PLAN.md`. The feature crosses organization boundaries, exposes
-identity data, creates Exchange Shares, and depends on permissions that the hardening plan is
-explicitly replacing. Building it first would either preserve authorization paths that must later be
-deleted or create a second authorization model.
+The authorization hardening that this feature depends on is now complete. That work established the
+trusted principals, owner context, and centralized authorization the feature relies on; it replaced
+the older permission paths rather than preserving a second authorization model. The feature crosses
+organization boundaries, exposes identity data, and creates Exchange Shares, so it must build on
+those hardened foundations.
 
 The permitted work before the hardening gates is limited to:
 

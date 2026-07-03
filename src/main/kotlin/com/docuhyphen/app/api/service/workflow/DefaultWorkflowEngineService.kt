@@ -66,6 +66,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     @Inject private lateinit var organizationRepository: com.docuhyphen.app.api.repository.OrganizationRepository
     @Inject private lateinit var markdownRenderer: MarkdownRenderer
     @Inject private lateinit var emailTemplateRenderer: EmailTemplateRenderer
+    @Inject private lateinit var applicabilityEvaluator: WorkflowApplicabilityEvaluator
 
     @ConfigProperty(name = "app.url", defaultValue = "https://app.docuhyphen.com")
     private lateinit var appUrl: String
@@ -117,6 +118,20 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         if (spec.steps.isEmpty())
         {
             logger.warn("Workflow definition {} has no steps; skipping", definition.id)
+            return null
+        }
+
+        if (!applicabilityEvaluator.isApplicable(
+                request.subjectResourceType,
+                request.subjectResourceId,
+                request.organizationId,
+                spec.applicability,
+            ))
+        {
+            logger.debug(
+                "Workflow definition {} skipped: applicability conditions not met for subject {}",
+                definition.id, request.subjectResourceId,
+            )
             return null
         }
 
@@ -845,7 +860,9 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         {
             instance.status = WorkflowInstanceStatus.COMPLETED
             instance.completedAt = Timestamp.from(Instant.now())
-            spec.onComplete?.let { publishOutcomeEvent(instance, it) }
+            val event = spec.onComplete?.takeIf { it.isNotBlank() }
+                ?: defaultTerminalEvent(definition.triggerEvent, success = true)
+            event?.let { publishOutcomeEvent(instance, it) }
             return
         }
         instance.currentStepIndex = nextIndex
@@ -864,22 +881,42 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     }
 
     /**
-     * Emits the definition-level terminal event ([WorkflowSpec.onComplete] or [WorkflowSpec.onReject])
-     * when the instance reaches a terminal state. This fires unconditionally so the correct
-     * outcome event is always published regardless of how individual steps are configured —
-     * the handlers are idempotent so a step-level emit on the same event name is harmless.
+     * Emits the definition-level terminal event when the instance reaches a terminal state.
+     * Uses the explicit [WorkflowSpec.onComplete] / [WorkflowSpec.onReject] when set, otherwise
+     * falls back to [defaultTerminalEvent] derived from the definition's trigger — so a lifecycle
+     * workflow activates/rejects its exchange without the author having to wire up emit events.
+     * This fires unconditionally so the correct outcome event is always published regardless of
+     * how individual steps are configured — the handlers are idempotent so a step-level emit on
+     * the same event name is harmless.
      *
      * Also triggers the counterparty-clearance unblock sweep so any AWAITING_COUNTERPARTY steps
      * on the same exchange subject are re-evaluated.
      */
     private fun emitDefinitionTerminalEvent(instance: WorkflowInstance, success: Boolean)
     {
-        val event = runCatching {
-            definitionRepository.findById(instance.definitionId)
-                ?.let { WorkflowSpecJson.decode(it.stepsJson) }
+        val definition = definitionRepository.findById(instance.definitionId)
+        if (definition != null)
+        {
+            // An explicit onComplete/onReject wins; otherwise fall back to the trigger's
+            // canonical terminal event so lifecycle workflows activate/reject the exchange
+            // without the author having to wire up emit events. triggerEvent is read from the
+            // definition column (not the JSON), so the default still applies even if stepsJson
+            // fails to decode.
+            val explicit = runCatching { WorkflowSpecJson.decode(definition.stepsJson) }
+                .onFailure { e ->
+                    logger.error(
+                        "Failed to decode definition {} while emitting terminal event (success={}); " +
+                            "falling back to trigger-derived default: {}",
+                        instance.definitionId, success, e.message, e,
+                    )
+                }
+                .getOrNull()
                 ?.let { if (success) it.onComplete else it.onReject }
-        }.getOrNull() ?: return
-        event?.let { publishOutcomeEvent(instance, it) }
+                ?.takeIf { it.isNotBlank() }
+
+            val event = explicit ?: defaultTerminalEvent(definition.triggerEvent, success)
+            event?.let { publishOutcomeEvent(instance, it) }
+        }
 
         // Re-evaluate any AWAITING_COUNTERPARTY steps for the same exchange subject.
         val rt = instance.subjectResourceType
@@ -890,6 +927,23 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                 .onFailure { e -> logger.warn("Counterparty unblock sweep failed for subject {}/{}: {}", rt, rid, e.message) }
         }
     }
+
+    /**
+     * Canonical terminal event for a lifecycle [triggerEvent], applied when a workflow definition
+     * (or its steps) does not set an explicit onComplete/onReject. This is what lets an
+     * exchange-lifecycle workflow "just work" without the author configuring emit events:
+     * completing an acceptance workflow activates the exchange, rejecting it rejects the exchange,
+     * and so on. Returns null for triggers with no meaningful default (the workflow simply
+     * completes without a side-effect event).
+     */
+    private fun defaultTerminalEvent(triggerEvent: String?, success: Boolean): String? =
+        when (triggerEvent)
+        {
+            "exchange.acceptance_pending" -> if (success) "exchange.activated" else "session.rejected"
+            "exchange.draft_submitted" -> if (success) "exchange.draft_approved" else "session.rejected"
+            "exchange.ending" -> if (success) "exchange.ended_confirmed" else null
+            else -> null
+        }
 
     private fun decodeSubjectData(jsonStr: String?): Map<String, String>
     {

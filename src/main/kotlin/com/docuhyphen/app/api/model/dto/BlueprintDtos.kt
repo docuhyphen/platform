@@ -1,9 +1,11 @@
 package com.docuhyphen.app.api.model.dto
 
 import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
+import com.docuhyphen.app.api.model.entity.FieldValueType
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 import java.sql.Timestamp
 import java.util.UUID
 
@@ -35,6 +37,20 @@ data class BlueprintParticipantConfig(
     val principalId: String,
     val principalKind: String,
     val roleName: ExchangeShareRoleName,
+)
+
+/**
+ * One default field value carried by a blueprint. Keyed by the stable [fieldDefinitionId] so it
+ * survives schema re-publishing; [value] is the canonical JSON form, [valueType] the authoring-time
+ * type. Applied through the creation-time schema/values seam when an Exchange is started.
+ */
+@Serializable
+data class BlueprintFieldDefaultConfig(
+    @Serializable(with = UUIDSerializer::class)
+    val fieldDefinitionId: UUID,
+    val valueType: FieldValueType,
+    val value: JsonElement? = null,
+    val displayOrder: Int = 0,
 )
 
 /**
@@ -78,8 +94,11 @@ data class BlueprintDefinitionDto(
     @Serializable(with = UUIDSerializer::class)
     val sourceTemplateId: UUID?,
     val configJson: String,
+    @Serializable(with = UUIDSerializer::class)
+    val schemaDefinitionId: UUID?,
     val exchangeDocuments: List<BlueprintDocumentConfig>,
     val participants: List<BlueprintParticipantConfig>,
+    val fieldDefaults: List<BlueprintFieldDefaultConfig>,
     @Serializable(with = TimestampSerializer::class)
     val createdAt: Timestamp,
     @Serializable(with = TimestampSerializer::class)
@@ -94,8 +113,11 @@ data class CreateBlueprintRequest(
     val summary: String? = null,
     val description: String? = null,
     val configJson: String,
+    @Serializable(with = UUIDSerializer::class)
+    val schemaDefinitionId: UUID? = null,
     val exchangeDocuments: List<BlueprintDocumentConfig> = emptyList(),
     val participants: List<BlueprintParticipantConfig> = emptyList(),
+    val fieldDefaults: List<BlueprintFieldDefaultConfig> = emptyList(),
     val generalTags: List<String> = emptyList(),
     val isActive: Boolean = true,
     val scope: String? = null,
@@ -111,6 +133,11 @@ data class UpdateBlueprintRequest(
     // null = leave child collection unchanged; a list (incl. empty) replaces it.
     val exchangeDocuments: List<BlueprintDocumentConfig>? = null,
     val participants: List<BlueprintParticipantConfig>? = null,
+    // When fieldDefaults is non-null the schema linkage is also (re)applied from schemaDefinitionId
+    // (which may be null to clear the schema); when fieldDefaults is null both are left unchanged.
+    @Serializable(with = UUIDSerializer::class)
+    val schemaDefinitionId: UUID? = null,
+    val fieldDefaults: List<BlueprintFieldDefaultConfig>? = null,
     val generalTags: List<String>? = null,
 )
 

@@ -88,6 +88,9 @@ object RoleCapabilities
         Capability.ORG_MEMBER_MANAGE,
         Capability.ORG_POLICY_MANAGE,
         Capability.ORG_AUDIT_READ,
+        Capability.FIELD_SCHEMA_READ,
+        Capability.FIELD_SCHEMA_WRITE,
+        Capability.FIELD_SCHEMA_PUBLISH,
     )
 
     private val ORGANIZATION: Map<OrganizationRoleName, Set<Capability>> = mapOf(
@@ -120,6 +123,7 @@ object RoleCapabilities
             Capability.VARIABLE_DISCOVER,
             Capability.COMMUNICATION_DISCOVER,
             Capability.COMMUNICATION_READ,
+            Capability.FIELD_SCHEMA_READ,
         ),
         OrganizationRoleName.ORG_MEMBER to setOf(
             Capability.GROUP_READ,
@@ -143,6 +147,7 @@ object RoleCapabilities
             Capability.COMMUNICATION_DISCOVER,
             Capability.COMMUNICATION_READ,
             Capability.COMMUNICATION_USE,
+            Capability.FIELD_SCHEMA_READ,
         ),
         OrganizationRoleName.ORG_GUEST to emptySet(),
     )

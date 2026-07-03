@@ -42,6 +42,10 @@ class BlueprintDefinition
     @Column(name = "config_json", nullable = false, columnDefinition = "text")
     lateinit var configJson: String
 
+    @Column(name = "schema_definition_id", nullable = true)
+    @Serializable(with = UUIDSerializer::class)
+    var schemaDefinitionId: UUID? = null
+
     @Column(name = "summary", nullable = true, length = 512)
     var summary: String? = null
 

@@ -37,10 +37,16 @@ export const usingBlueprintsArticle = (
             <li>Permission toggles - document addition, deletion, download, update, and upload.</li>
             <li>Recipient sign-in requirement.</li>
             <li>Internal participants with their assigned roles.</li>
+            <li>
+                The business schema and its default field values, when the blueprint defines one.
+                The Business Fields step is pre-selected and seeded so you only adjust what changed.
+            </li>
         </ul>
         <p>
             You can edit any pre-filled value before sending. The blueprint is a
-            starting point, not a locked template.
+            starting point, not a locked template. When an organization blueprint is
+            locked (its author did not allow edits on start), the pre-filled field
+            values are shown read-only.
         </p>
 
         <h3>After selecting a blueprint</h3>
@@ -63,7 +69,9 @@ export const usingBlueprintsArticle = (
             If you have filled out the exchange form and want to save the
             configuration for future reuse, click <b>Save as Blueprint</b> in the
             dialog title bar. You will be prompted to give the blueprint a name and
-            optional summary and tags before saving.
+            optional summary and tags before saving. If you selected a business
+            schema and entered field values, they are captured as the blueprint's
+            schema and default values too.
         </p>
     </>
 );

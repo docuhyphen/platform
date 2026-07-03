@@ -34,7 +34,10 @@ collaboration on documents, and ending/completion.
 Organizations can configure workflows that gate each lifecycle stage - approvals, notifications,
 conditions, and actions. A visual workflow designer in Settings lets org admins build and manage
 these workflows. Platform-bundled workflow templates (categorized by tags) can be cloned
-into an org.
+into an org. 
+
+An "Exchange" is a first class word and should be used as a noun. For example, in a sentence like
+"Open an exchange and select the Fields tab", "exchange" should be "Exchange".
 
 ---
 ## BACKEND RULES

@@ -1,5 +1,5 @@
 ﻿import {useState} from 'react';
-import {ExchangeRequestDocumentRequest} from '../../models/models.tsx';
+import {ExchangeRequestDocumentRequest, SchemaFieldBindingDto} from '../../models/models.tsx';
 import {
     ExchangeInitiationRecipientMode
 } from "../components/exchange-initiation-recipients-tab/ExchangeInitiationRecipientsTab.tsx";
@@ -41,6 +41,9 @@ const useExchangeInitiatingState = () =>
     const [recipientRole, setRecipientRole] = useState<ExchangeShareRoleName | undefined>(undefined);
     const [recipientConstraints, setRecipientConstraints] = useState<ShareConstraints>({});
     const [allowedDownloadFormats, setAllowedDownloadFormats] = useState<string[] | undefined>(undefined);
+    const [schemaDefinitionId, setSchemaDefinitionId] = useState<string | undefined>(undefined);
+    const [fieldValueMap, setFieldValueMap] = useState<Record<string, unknown>>({});
+    const [fieldBindings, setFieldBindings] = useState<SchemaFieldBindingDto[]>([]);
 
     return {
         choosingBlueprint, setChoosingBlueprint,
@@ -69,6 +72,9 @@ const useExchangeInitiatingState = () =>
         recipientRole, setRecipientRole,
         recipientConstraints, setRecipientConstraints,
         allowedDownloadFormats, setAllowedDownloadFormats,
+        schemaDefinitionId, setSchemaDefinitionId,
+        fieldValueMap, setFieldValueMap,
+        fieldBindings, setFieldBindings,
     };
 };
 

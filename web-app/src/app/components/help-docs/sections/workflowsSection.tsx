@@ -2,6 +2,7 @@ import {HelpDocSectionInput} from "../helpDocsRegistry";
 import {workflowOverviewArticle} from "./articles/workflowOverviewArticle";
 import {triggerEventsArticle} from "./articles/triggerEventsArticle";
 import {buildingAWorkflowArticle} from "./articles/buildingAWorkflowArticle";
+import {workflowApplicabilityArticle} from "./articles/workflowApplicabilityArticle";
 import {stepTypesArticle} from "./articles/stepTypesArticle";
 import {assigneesAndPortabilityArticle} from "./articles/assigneesAndPortabilityArticle";
 import {slaEscalationsArticle} from "./articles/slaEscalationsArticle";
@@ -17,6 +18,7 @@ export const workflowsSection: HelpDocSectionInput = {
         {id: "workflow-overview",           title: "Workflow overview",                  content: workflowOverviewArticle},
         {id: "trigger-events",              title: "Trigger events",                     content: triggerEventsArticle},
         {id: "building-a-workflow",         title: "Building a workflow",                content: buildingAWorkflowArticle},
+        {id: "workflow-applicability",      title: "Field-based applicability",          content: workflowApplicabilityArticle},
         {id: "step-types",                  title: "Step types explained",               content: stepTypesArticle},
         {id: "assignees-and-portability",   title: "Assignees and portability",          content: assigneesAndPortabilityArticle},
         {id: "sla-escalations-reminders",   title: "SLA, escalations, and reminders",    content: slaEscalationsArticle},

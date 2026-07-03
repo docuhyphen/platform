@@ -47,6 +47,7 @@ import {useIsMobile} from "../../utils/useMediaQuery.ts";
 import ExchangeDetailsTab from "./components/exchange-details-tab/ExchangeDetailsTab.tsx";
 import ExchangeAuditTab from "./components/exchange-audit-tab/ExchangeAuditTab.tsx";
 import ExchangeWorkflowTab from "./components/exchange-workflow-tab/ExchangeWorkflowTab.tsx";
+import ExchangeFieldsTab from "./components/exchange-fields-tab/ExchangeFieldsTab.tsx";
 import ExchangeTabsHeader from "./components/exchange-tabs-header/ExchangeTabsHeader.tsx";
 
 const ACTIVE_TAB_STORAGE_KEY = 'exchanges.mainTab.active';
@@ -968,6 +969,14 @@ const Exchanges: React.FC = () =>
                             <div className={styles.documentsSectionContainer}>
                                 <div className={styles.documentsSection}>
                                     <ExchangeWorkflowTab exchange={exchangeDetails}/>
+                                </div>
+                            </div>
+                        )}
+
+                        {detailsActiveTab === 'fields' && (
+                            <div className={styles.documentsSectionContainer}>
+                                <div className={styles.documentsSection}>
+                                    <ExchangeFieldsTab exchange={exchangeDetails}/>
                                 </div>
                             </div>
                         )}

@@ -6,7 +6,8 @@ import {
     DetailsIcon,
     DocumentsIcon,
     OptionsIcon,
-    RecipientsIcon
+    RecipientsIcon,
+    SettingsFieldsTabIcon
 } from "../../../components/IconBundles.tsx";
 import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
 
@@ -17,6 +18,7 @@ interface DialogTitleSectionProps
     requestingDocuments: boolean;
     selectedBlueprintName?: string | null;
     selectedTab: TabValue;
+    showFieldsTab?: boolean;
     onTabSelect: (event: any, data: any) => void;
     onSaveAsBlueprint?: () => void;
 }
@@ -32,6 +34,7 @@ interface DialogTitleSectionProps
 const TAB_LABELS: Record<string, string> = {
     "recipients-tab": "Recipients & Participants",
     "details-tab": "Details",
+    "fields-tab": "Business Fields",
     "documents-tab": "Documents",
     "options-tab": "Options",
 };
@@ -43,6 +46,7 @@ const ExchangeInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = 
         requestingDocuments,
         selectedBlueprintName,
         selectedTab,
+        showFieldsTab,
         onTabSelect,
         onSaveAsBlueprint,
     }) =>
@@ -103,6 +107,7 @@ const ExchangeInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = 
                     <TabList selectedValue={selectedTab} onTabSelect={onTabSelect}>
                         {renderTab("recipients", "recipients-tab", <RecipientsIcon/>)}
                         {renderTab("details", "details-tab", <DetailsIcon/>)}
+                        {showFieldsTab && renderTab("fields", "fields-tab", <SettingsFieldsTabIcon/>)}
                         {renderTab("documents", "documents-tab", <DocumentsIcon/>)}
                         {renderTab("options", "options-tab", <OptionsIcon/>)}
                     </TabList>

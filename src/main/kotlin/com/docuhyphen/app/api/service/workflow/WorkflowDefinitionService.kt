@@ -71,6 +71,7 @@ class WorkflowDefinitionService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val userRoleService: UserRoleService,
+    private val applicabilityEvaluator: WorkflowApplicabilityEvaluator,
 )
 {
     private val logger = LoggerFactory.getLogger(WorkflowDefinitionService::class.java)
@@ -245,6 +246,7 @@ class WorkflowDefinitionService @Inject constructor(
         }
 
         val scrubbedStepsJson = scrubPrincipalUuids(source.stepsJson)
+        validateStepsJson(scrubbedStepsJson)
         val baseName = newName?.trim()?.ifBlank { null } ?: "${source.name} (copy)"
         val clone = WorkflowDefinition().apply {
             name = uniqueCloneName(baseName, principal.id)
@@ -766,8 +768,9 @@ class WorkflowDefinitionService @Inject constructor(
 
     private fun validateStepsJson(stepsJson: String)
     {
-        runCatching { WorkflowSpecJson.decode(stepsJson) }
+        val spec = runCatching { WorkflowSpecJson.decode(stepsJson) }
             .getOrElse { throw IllegalArgumentException("Invalid stepsJson: ${it.message}") }
+        applicabilityEvaluator.validate(spec.applicability)
     }
 }
 

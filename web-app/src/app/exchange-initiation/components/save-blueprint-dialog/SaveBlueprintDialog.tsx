@@ -11,6 +11,7 @@ import {
 } from '@fluentui/react-components';
 import {
     BlueprintDocumentConfig,
+    BlueprintFieldDefaultConfig,
     BlueprintParticipantConfig,
     BlueprintScope,
     CreateBlueprintRequest,
@@ -30,6 +31,8 @@ interface SaveBlueprintPanelProps
     configJson: string;
     exchangeDocuments: BlueprintDocumentConfig[];
     participants: BlueprintParticipantConfig[];
+    schemaDefinitionId?: string;
+    fieldDefaults?: BlueprintFieldDefaultConfig[];
 }
 
 type SaveTarget = 'PERSONAL' | 'ORG';
@@ -42,6 +45,8 @@ const SaveBlueprintPanel: React.FC<SaveBlueprintPanelProps> = (
         configJson,
         exchangeDocuments,
         participants,
+        schemaDefinitionId,
+        fieldDefaults,
     }) =>
 {
     const {appUserPersonOrganization, hasCapability} = useAuth();
@@ -89,6 +94,8 @@ const SaveBlueprintPanel: React.FC<SaveBlueprintPanelProps> = (
                 configJson,
                 exchangeDocuments,
                 participants,
+                schemaDefinitionId,
+                fieldDefaults: fieldDefaults && fieldDefaults.length > 0 ? fieldDefaults : undefined,
                 generalTags: tags,
                 scope,
                 isActive: true,

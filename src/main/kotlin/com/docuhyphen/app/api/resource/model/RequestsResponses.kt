@@ -2,6 +2,7 @@
 
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.serializer.UUIDSerializer
+import com.docuhyphen.app.api.service.fields.FieldValueEntry
 import kotlinx.serialization.Serializable
 import java.util.UUID
 
@@ -304,6 +305,9 @@ data class ExchangeInitiationDto(
     var recipientConstraintsJson: String? = null,
     var allowedDownloadFormats: List<String>? = null,
     var variableOverrides: Map<String, String>? = null,
+    var schemaDefinitionId: String? = null,
+    var fieldValues: List<FieldValueEntry>? = null,
+    var schemaAssignmentSource: SchemaAssignmentSource? = null,
     //ToDo: add accepted by, rejected by, ended by
 )
 

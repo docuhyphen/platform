@@ -116,14 +116,14 @@ export const buildingAWorkflowArticle = (
             warning appears in the save bar. Hardcoded UUIDs work in your org but
             cannot be reused if the workflow is cloned by another org. Replace
             them with{" "}
-            <a href="#"
-               data-help-article="assignees-and-portability">
-                role-based or group-role-based assignees
-            </a>{" "}
+            <a href="#" data-help-article="assignees-and-portability">role-based or group-role-based assignees</a>{" "}
             to make the workflow fully portable.
         </p>
-
-        <h3>Step 5: save</h3>
+        <h3>Step 5: set applicability (optional)</h3>
+        <p>
+            For organization workflows, the <b>Applicability</b> section below the steps restricts the workflow to Exchanges whose business field values match one or more conditions (leave empty to always run); see <a href="#" data-help-article="workflow-applicability">field-based applicability</a>.
+        </p>
+        <h3>Step 6: save</h3>
         <p>
             Click <b>Save workflow</b>. The workflow is created (POST) or updated
             (PUT) immediately. If the Active toggle is on, the engine will use it

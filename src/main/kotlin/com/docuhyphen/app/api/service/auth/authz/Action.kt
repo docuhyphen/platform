@@ -106,6 +106,11 @@ enum class Action(val required: Capability)
     ORG_MANAGE_BILLING(Capability.ORG_BILLING_MANAGE),
     ORG_READ_AUDIT(Capability.ORG_AUDIT_READ),
 
+    // Fields & Schema configuration
+    FIELD_CONFIG_VIEW(Capability.FIELD_SCHEMA_READ),
+    FIELD_CONFIG_EDIT(Capability.FIELD_SCHEMA_WRITE),
+    FIELD_CONFIG_PUBLISH(Capability.FIELD_SCHEMA_PUBLISH),
+
     // Platform
     APP_ADMINISTRATE(Capability.APP_ADMIN),
     APP_READ_AUDIT(Capability.APP_AUDIT_READ),

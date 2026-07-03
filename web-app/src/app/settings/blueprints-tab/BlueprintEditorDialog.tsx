@@ -31,6 +31,7 @@ import {
     BlueprintConfig,
     BlueprintDefinitionSummaryDto,
     BlueprintDocumentConfig,
+    BlueprintFieldDefaultConfig,
     BlueprintScope,
     CreateBlueprintRequest,
     DocumentLibraryEntrySummaryDto,
@@ -51,6 +52,7 @@ import {useBlueprintEditorStyles} from './BlueprintsTabStyles.tsx';
 import VariableTokenInput from '../../../components/variable-token-input/VariableTokenInput.tsx';
 import {getAvailableVariables} from '../../../services/variableService.ts';
 import DocumentLibraryPicker from '../../../app/exchange-initiation/components/document-library-picker/DocumentLibraryPicker.tsx';
+import BlueprintBusinessFieldsTab from './blueprint-business-fields-tab/BlueprintBusinessFieldsTab.tsx';
 
 interface BlueprintEditorDialogProps
 {
@@ -61,7 +63,7 @@ interface BlueprintEditorDialogProps
     scope: BlueprintScope;
 }
 
-type EditorTab = 'details' | 'documents' | 'permissions';
+type EditorTab = 'details' | 'documents' | 'permissions' | 'fields';
 
 const emptyConfig = (): BlueprintConfig => ({
     requestRecipientSignIn: true,
@@ -89,6 +91,8 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
     const [tags, setTags] = useState<string[]>([]);
     const [config, setConfig] = useState<BlueprintConfig>(emptyConfig());
     const [documents, setDocuments] = useState<BlueprintDocumentConfig[]>([]);
+    const [schemaDefinitionId, setSchemaDefinitionId] = useState<string | undefined>(undefined);
+    const [fieldDefaults, setFieldDefaults] = useState<BlueprintFieldDefaultConfig[]>([]);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [availableVariables, setAvailableVariables] = useState<AvailableVariablesDto | null>(null);
@@ -109,6 +113,8 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
             try { setConfig(JSON.parse(blueprint.configJson)); }
             catch { setConfig(emptyConfig()); }
             setDocuments(blueprint.exchangeDocuments ?? []);
+            setSchemaDefinitionId(blueprint.schemaDefinitionId);
+            setFieldDefaults(blueprint.fieldDefaults ?? []);
         }
         else
         {
@@ -118,6 +124,8 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
             setTags([]);
             setConfig(emptyConfig());
             setDocuments([]);
+            setSchemaDefinitionId(undefined);
+            setFieldDefaults([]);
         }
         setActiveTab('details');
         setPickerOpen(false);
@@ -164,6 +172,8 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                     configJson,
                     exchangeDocuments: documents,
                     generalTags: tags,
+                    schemaDefinitionId,
+                    fieldDefaults,
                 };
                 await updateBlueprint(blueprint.id, req);
             }
@@ -178,6 +188,8 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                     generalTags: tags,
                     scope,
                     isActive: true,
+                    schemaDefinitionId,
+                    fieldDefaults: fieldDefaults.length > 0 ? fieldDefaults : undefined,
                 };
                 await createBlueprint(req);
             }
@@ -217,6 +229,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                         >
                             <Tab value="details">Details</Tab>
                             <Tab value="documents">Documents</Tab>
+                            <Tab value="fields">Business Fields</Tab>
                             <Tab value="permissions">Permissions</Tab>
                         </TabList>
 
@@ -494,6 +507,14 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                     setPickerOpen(false);
                                 }}
                                 onBack={() => setPickerOpen(false)}
+                            />
+                        )}
+
+                        {activeTab === 'fields' && (
+                            <BlueprintBusinessFieldsTab
+                                initialSchemaDefinitionId={schemaDefinitionId}
+                                initialFieldDefaults={fieldDefaults}
+                                onChange={(id, defaults) => { setSchemaDefinitionId(id); setFieldDefaults(defaults); }}
                             />
                         )}
 

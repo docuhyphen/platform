@@ -8,10 +8,9 @@ This document defines the organization Integrations settings experience, registe
 applications, outbound workflow webhooks, durable delivery, and authenticated application callbacks
 that can perform authorized Exchange actions.
 
-This design must be implemented after the relevant authorization foundations in
-`PRE-FIELDS-AUTHORIZATION-HARDENING-PLAN.md`. In particular, implementation depends on the
-`APPLICATION` principal, scope-safe capabilities, stable Exchange ownership, centralized resource
-authorization, and a human `OWNER` for application-initiated Exchanges.
+This design depends on authorization foundations that are now complete: the `APPLICATION` principal,
+scope-safe capabilities, stable Exchange ownership, centralized resource authorization, and a human
+`OWNER` for application-initiated Exchanges.
 
 ## Product Goal
 

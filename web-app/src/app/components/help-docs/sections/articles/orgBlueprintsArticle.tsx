@@ -21,7 +21,7 @@ export const orgBlueprintsArticle = (
             <li>Open Settings and go to the <b>Blueprints</b> tab.</li>
             <li>Click the <b>Organization</b> inner tab.</li>
             <li>Click <b>Create</b> in the top-right corner.</li>
-            <li>Fill in the blueprint editor - the same Details, Documents, and Permissions tabs as personal blueprints.</li>
+            <li>Fill in the blueprint editor - the same Details, Documents, Business Fields, and Permissions tabs as personal blueprints.</li>
             <li>Click <b>Create Blueprint</b>.</li>
         </ol>
         <p>

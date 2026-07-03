@@ -24,6 +24,7 @@ import {
     SettingsSequencesTabIcon,
     SettingsVariablesTabIcon,
     SettingsWorkflowsTabIcon, SettingsOrganizationBillingTabIcon,
+    SettingsFieldsTabIcon,
 } from "../components/IconBundles.tsx";
 import BlueprintsTab from "./blueprints-tab/BlueprintsTab.tsx";
 import WorkflowsTab from "./workflows-tab/WorkflowsTab.tsx";
@@ -40,6 +41,7 @@ import AppAdminsTab from "./app-admins-tab/AppAdminsTab.tsx";
 import OrganizationTab from "./organization-tab/OrganizationTab.tsx";
 import OrganizationSequencesTab from "./organization-sequences-tab/OrganizationSequencesTab.tsx";
 import VariablesTab from "./variables-tab/VariablesTab.tsx";
+import FieldsTab from "./fields-tab/FieldsTab.tsx";
 import CommunicationsTab from "./communications-tab/CommunicationsTab.tsx";
 import DocumentLibraryTab from "./document-library-tab/DocumentLibraryTab.tsx";
 import BillingTab from "./billing-tab/BillingTab.tsx";
@@ -64,6 +66,7 @@ const Settings = () =>
         workflows: "WorkflowsTab",
         sequences: "SequencesTab",
         variables: "VariablesTab",
+        fields: "FieldsTab",
         communications: "CommunicationsTab",
         documents: "DocumentsTab",
     }
@@ -78,6 +81,7 @@ const Settings = () =>
         [tabIds.blueprints]: "Blueprints",
         [tabIds.sequences]: "Sequences",
         [tabIds.variables]: "Variables",
+        [tabIds.fields]: "Fields",
         [tabIds.communications]: "Communications",
         [tabIds.documents]: "Document Library",
     };
@@ -135,6 +139,11 @@ const Settings = () =>
             <Tab id="BlueprintsTab" icon={<SettingsExchangeBlueprintsTabIcon/>} value={tabIds.blueprints}>
                 Blueprints
             </Tab>
+            {canManageOrganization && (
+                <Tab id="FieldsTab" icon={<SettingsFieldsTabIcon/>} value={tabIds.fields}>
+                    Fields
+                </Tab>
+            )}
             <Divider appearance={"brand"} alignContent={"start"} className={styles.tabSettingDivider}>Automation</Divider>
             <Tab id="WorkflowsTab" icon={<SettingsWorkflowsTabIcon/>} value={tabIds.workflows}>
                 Workflows
@@ -217,6 +226,7 @@ const Settings = () =>
                     {selectedValue === tabIds.workflows && <WorkflowsTab/>}
                     {selectedValue === tabIds.sequences && <OrganizationSequencesTab/>}
                     {selectedValue === tabIds.variables && <VariablesTab/>}
+                    {selectedValue === tabIds.fields && <FieldsTab/>}
                     {selectedValue === tabIds.communications && <CommunicationsTab/>}
                     {selectedValue === tabIds.documents && <DocumentLibraryTab/>}
                 </div>

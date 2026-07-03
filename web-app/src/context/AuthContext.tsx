@@ -1,14 +1,46 @@
 ﻿import React, {createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {fetchAppUser, fetchAppUserPersonOrganization, fetchCurrentSession} from '../services/appUserApi.ts';
-import {AppUserDetailedDto, Capability, CurrentSessionDto, OrganizationDetailedDto} from "../app/models/models.tsx";
+import {AppUserDetailedDto, Capability, CurrentSessionDto, OrganizationDetailedDto, SessionOrganizationOptionDto} from "../app/models/models.tsx";
 import {getTokenSecondsToExpiry, isTokenExpired} from "../utils/helpers.ts";
 import {useLocation, useNavigate} from "react-router-dom";
 import {setApiClientAuthToken, setApiClientActiveOrganizationId} from "../services/apiClient.ts";
 import {refreshTokens as refreshTokensApi} from "../services/authApi.ts";
+import OrganizationPickerDialog from "../app/components/organization-picker/OrganizationPickerDialog.tsx";
 
 const AUTH_EVENT_STORAGE_KEY = 'docuhyphen:auth:event';
 const AUTH_USER_STORAGE_KEY = 'docuhyphen:auth:user-id';
 const AUTH_ACTIVE_ORG_STORAGE_KEY = 'docuhyphen:auth:active-org-id';
+
+/**
+ * Decides how the active organization should be resolved for a freshly fetched session.
+ * Pure and side-effect free so it can be unit-tested independently of React state.
+ *
+ * - `none`: nothing to do (personal mode, or the server already honored a valid active org).
+ * - `auto`: exactly one membership and no active org yet, select it silently.
+ * - `picker`: multiple memberships and no active org yet, the caller must choose.
+ */
+export type OrgSelectionResolution =
+    | { kind: "none" }
+    | { kind: "auto"; organizationId: string }
+    | { kind: "picker"; organizations: SessionOrganizationOptionDto[] };
+
+export function resolveOrgSelection(session: CurrentSessionDto): OrgSelectionResolution
+{
+    const orgs = session.availableOrganizations ?? [];
+    if (orgs.length === 0)
+    {
+        return {kind: "none"};
+    }
+    if (session.activeOrganizationId)
+    {
+        return {kind: "none"};
+    }
+    if (orgs.length === 1)
+    {
+        return {kind: "auto", organizationId: orgs[0].organizationId};
+    }
+    return {kind: "picker", organizations: orgs};
+}
 
 interface AuthContextType
 {
@@ -66,6 +98,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
     const [appUser, setAppUser] = useState<AppUserDetailedDto | null>(null);
     const [appUserPersonOrganization, setAppUserPersonOrganization] = useState<OrganizationDetailedDto | null>(null);
     const [currentSession, setCurrentSession] = useState<CurrentSessionDto | null>(null);
+    const [orgPickerOptions, setOrgPickerOptions] = useState<SessionOrganizationOptionDto[] | null>(null);
+    const switchOrganizationRef = useRef<((orgId: string | null) => Promise<void>) | null>(null);
+
+    // Apply the org-selection decision for a freshly fetched session: auto-select a lone org,
+    // prompt for a choice when several exist, or do nothing. Idempotent by construction, once an
+    // active org is set the resolution short-circuits to `none`, which prevents loops.
+    const applyOrgResolution = useCallback((session: CurrentSessionDto) =>
+    {
+        const resolution = resolveOrgSelection(session);
+        if (resolution.kind === "auto")
+        {
+            setOrgPickerOptions(null);
+            void switchOrganizationRef.current?.(resolution.organizationId);
+        }
+        else if (resolution.kind === "picker")
+        {
+            setOrgPickerOptions(resolution.organizations);
+        }
+        else
+        {
+            setOrgPickerOptions(null);
+        }
+    }, []);
 
     // Restore and apply the persisted active org selection on mount so every API request
     // carries the correct header before the first fetch completes.
@@ -424,6 +479,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
                 {
                     const session = await fetchCurrentSession();
                     setCurrentSession(session);
+                    applyOrgResolution(session);
                 }
                 catch (error: any)
                 {
@@ -462,12 +518,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         {
             const session = await fetchCurrentSession();
             setCurrentSession(session);
+            applyOrgResolution(session);
         }
         catch (error: any)
         {
             console.error("Failed to refresh session after org switch:", error);
         }
-    }, []);
+    }, [applyOrgResolution]);
+
+    useEffect(() =>
+    {
+        switchOrganizationRef.current = switchOrganization;
+    }, [switchOrganization]);
+
+    const onOrgPickerSelect = useCallback((organizationId: string) =>
+    {
+        setOrgPickerOptions(null);
+        void switchOrganization(organizationId);
+    }, [switchOrganization]);
 
     const redirectToLogin = () =>
     {
@@ -507,6 +575,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
                 isBootstrapping,
             }}>
             {children}
+            <OrganizationPickerDialog isOpen={orgPickerOptions !== null}
+                                      organizations={orgPickerOptions ?? []}
+                                      onSelect={onOrgPickerSelect}/>
         </AuthContext.Provider>
     );
 };

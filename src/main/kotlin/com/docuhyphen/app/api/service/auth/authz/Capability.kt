@@ -9,7 +9,7 @@ package com.docuhyphen.app.api.service.auth.authz
  *
  * Adding a new capability here grants it to no role automatically. A role must explicitly
  * list it in [RoleCapabilities] to receive it. This is the default-deny extension point
- * required by the Fields Foundation Readiness Gate for future Schema and Field capabilities.
+ * used by the Schema and Field capabilities.
  */
 enum class Capability
 {
@@ -100,6 +100,11 @@ enum class Capability
     ORG_POLICY_MANAGE,
     ORG_BILLING_MANAGE,
     ORG_AUDIT_READ,
+
+    // Fields & Schema configuration
+    FIELD_SCHEMA_READ,
+    FIELD_SCHEMA_WRITE,
+    FIELD_SCHEMA_PUBLISH,
 
     // Platform
     APP_ADMIN,

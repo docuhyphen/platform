@@ -6,7 +6,7 @@ export const useOrganizationTabStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         width: "100%",
-        maxWidth: "40rem",
+        maxWidth: "30rem",
         minHeight: `calc(100vh - ${SETTINGS_HEADER_HEIGHT} - 8rem)`,
         gap: "16px",
         alignItems: "center",

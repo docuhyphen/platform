@@ -24,6 +24,7 @@ import AddAppUserDialog from "./add-app-user-dialog/AddAppUserDialog.tsx";
 import EditUserDialog from "./app-user-edit-dialog/EditUserDialog.tsx";
 import {MoreHorizontalRegular, PersonEditRegular} from "@fluentui/react-icons";
 import AppUserDeactivateDialog from "./app-user-deactivate-dialog/AppUserDeactivateDialog.tsx";
+import TagList from "../../components/TagList.tsx";
 
 const OrganizationPeopleTab = () =>
 {
@@ -193,9 +194,11 @@ const OrganizationPeopleTab = () =>
                                     <div className={styles.truncateCell}>{user.email}</div>
                                 </TableCell>
                                 <TableCell>
-                                    {user.organizationRoles
-                                        .map((role) => OrganizationRoleDisplayNames[role as OrganizationRoleName] || role)
-                                        .join(', ')}
+                                    <TagList
+                                        tags={user.organizationRoles
+                                            .map((role) => OrganizationRoleDisplayNames[role as OrganizationRoleName] || role)}
+                                        max={1}
+                                    />
                                 </TableCell>
                                 <TableCell className={styles.statusCell}>
                                     <Badge

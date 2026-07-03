@@ -6,6 +6,7 @@ import {adminOperationsSection} from "./sections/adminOperationsSection";
 import {workflowsSection}       from "./sections/workflowsSection";
 import {blueprintsSection}      from "./sections/blueprintsSection";
 import {variablesSection}       from "./sections/variablesSection";
+import {fieldsSection}          from "./sections/fieldsSection";
 import {communicationsSection}  from "./sections/communicationsSection";
 import {documentLibrarySection}  from "./sections/documentLibrarySection";
 
@@ -34,6 +35,7 @@ const helpDocSections: HelpDocSectionInput[] = [
     workflowsSection,
     blueprintsSection,
     variablesSection,
+    fieldsSection,
     communicationsSection,
     documentLibrarySection,
 ];

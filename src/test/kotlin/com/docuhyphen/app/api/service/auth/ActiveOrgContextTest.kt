@@ -4,8 +4,12 @@ import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.AppRoleName
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AuthToken
+import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationMembership
+import com.docuhyphen.app.api.model.entity.OrganizationMembershipStatus
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
+import com.docuhyphen.app.api.repository.OrganizationMembershipRepository
+import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.service.auth.authz.Capability
 import io.quarkus.security.UnauthorizedException
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -80,6 +84,38 @@ class ActiveOrgContextTest
         return svc
     }
 
+    private fun makeMembership(
+        organizationId: UUID,
+        isPrimary: Boolean = false,
+        roles: Set<OrganizationRoleName> = emptySet(),
+    ): OrganizationMembership = OrganizationMembership().apply {
+        this.appUserId = userId
+        this.organizationId = organizationId
+        this.isPrimary = isPrimary
+        this.roles = roles.toMutableSet()
+        this.status = OrganizationMembershipStatus.ACTIVE
+    }
+
+    private fun makeSessionService(
+        ctx: AuthTokenContext,
+        userRoleService: UserRoleService,
+        memberships: List<OrganizationMembership> = emptyList(),
+        orgNames: Map<UUID, String> = emptyMap(),
+    ): SessionService
+    {
+        val membershipRepo = mock<OrganizationMembershipRepository>()
+        whenever(membershipRepo.findActiveByUser(userId)).thenReturn(memberships)
+        val orgRepo = mock<OrganizationRepository>()
+        memberships.forEach { m ->
+            val org = Organization().apply {
+                id = m.organizationId
+                name = orgNames[m.organizationId] ?: "Org ${m.organizationId}"
+            }
+            whenever(orgRepo.findById(m.organizationId)).thenReturn(org)
+        }
+        return SessionService(ctx, userRoleService, membershipRepo, orgRepo)
+    }
+
     // -----------------------------------------------------------------------
     // Personal mode (no active org header)
     // -----------------------------------------------------------------------
@@ -88,7 +124,7 @@ class ActiveOrgContextTest
     fun `no active org header produces null activeOrganizationId in session`()
     {
         val ctx = makeContext(activeOrgId = null)
-        val svc = SessionService(ctx, makeUserRoleService(appRoles = setOf(AppRoleName.APP_USER)))
+        val svc = makeSessionService(ctx, makeUserRoleService(appRoles = setOf(AppRoleName.APP_USER)))
 
         val session = svc.currentSession()
 
@@ -100,7 +136,7 @@ class ActiveOrgContextTest
     fun `APP_USER in personal mode has EXCHANGE_INITIATE and no org capabilities`()
     {
         val ctx = makeContext(activeOrgId = null)
-        val svc = SessionService(ctx, makeUserRoleService(appRoles = setOf(AppRoleName.APP_USER)))
+        val svc = makeSessionService(ctx, makeUserRoleService(appRoles = setOf(AppRoleName.APP_USER)))
 
         val caps = svc.currentSession().capabilities
 
@@ -113,7 +149,7 @@ class ActiveOrgContextTest
     fun `unauthenticated request throws UnauthorizedException`()
     {
         val ctx = AuthTokenContext()
-        val svc = SessionService(ctx, mock())
+        val svc = makeSessionService(ctx, mock())
 
         assertThrows<Exception> { svc.currentSession() }
     }
@@ -126,7 +162,7 @@ class ActiveOrgContextTest
     fun `valid active org produces correct organization roles and capabilities`()
     {
         val ctx = makeContext(activeOrgId = orgId, activeMembershipId = membershipId)
-        val svc = SessionService(
+        val svc = makeSessionService(
             ctx,
             makeUserRoleService(
                 appRoles = setOf(AppRoleName.APP_USER),
@@ -146,7 +182,7 @@ class ActiveOrgContextTest
     fun `org admin capabilities present when active org membership is ORG_ADMIN`()
     {
         val ctx = makeContext(activeOrgId = orgId, activeMembershipId = membershipId)
-        val svc = SessionService(
+        val svc = makeSessionService(
             ctx,
             makeUserRoleService(
                 appRoles = setOf(AppRoleName.APP_USER),
@@ -166,7 +202,7 @@ class ActiveOrgContextTest
     fun `ORG_OWNER has billing capability that ORG_ADMIN does not`()
     {
         val ctx = makeContext(activeOrgId = orgId, activeMembershipId = membershipId)
-        val svc = SessionService(
+        val svc = makeSessionService(
             ctx,
             makeUserRoleService(
                 orgRoles = setOf(OrganizationRoleName.ORG_OWNER),
@@ -187,7 +223,7 @@ class ActiveOrgContextTest
     fun `ORG_BILLING_ADMIN and ORG_MEMBER compose independently`()
     {
         val ctx = makeContext(activeOrgId = orgId, activeMembershipId = membershipId)
-        val svc = SessionService(
+        val svc = makeSessionService(
             ctx,
             makeUserRoleService(
                 appRoles = setOf(AppRoleName.APP_USER),
@@ -206,7 +242,7 @@ class ActiveOrgContextTest
     fun `ORG_BILLING_ADMIN alone does not grant ORG_MEMBER capabilities`()
     {
         val ctx = makeContext(activeOrgId = orgId, activeMembershipId = membershipId)
-        val svc = SessionService(
+        val svc = makeSessionService(
             ctx,
             makeUserRoleService(
                 orgRoles = setOf(OrganizationRoleName.ORG_BILLING_ADMIN),
@@ -228,7 +264,7 @@ class ActiveOrgContextTest
     fun `APP_ADMIN session has platform capabilities but not org-admin capabilities`()
     {
         val ctx = makeContext(activeOrgId = null)
-        val svc = SessionService(
+        val svc = makeSessionService(
             ctx,
             makeUserRoleService(appRoles = setOf(AppRoleName.APP_ADMIN)),
         )
@@ -246,7 +282,7 @@ class ActiveOrgContextTest
     fun `APP_AUDITOR has audit read caps and not customer-content write caps`()
     {
         val ctx = makeContext(activeOrgId = null)
-        val svc = SessionService(
+        val svc = makeSessionService(
             ctx,
             makeUserRoleService(appRoles = setOf(AppRoleName.APP_AUDITOR)),
         )
@@ -266,7 +302,7 @@ class ActiveOrgContextTest
     fun `session DTO carries user identity fields`()
     {
         val ctx = makeContext()
-        val svc = SessionService(ctx, makeUserRoleService())
+        val svc = makeSessionService(ctx, makeUserRoleService())
 
         val session = svc.currentSession()
 
@@ -278,7 +314,7 @@ class ActiveOrgContextTest
     fun `capabilities list is sorted for stable serialization`()
     {
         val ctx = makeContext(activeOrgId = orgId, activeMembershipId = membershipId)
-        val svc = SessionService(
+        val svc = makeSessionService(
             ctx,
             makeUserRoleService(
                 appRoles = setOf(AppRoleName.APP_USER),
@@ -295,7 +331,7 @@ class ActiveOrgContextTest
     fun `no active org drops org capabilities even if orgRolesIn would return roles`()
     {
         val ctx = makeContext(activeOrgId = null)
-        val svc = SessionService(
+        val svc = makeSessionService(
             ctx,
             makeUserRoleService(
                 appRoles = setOf(AppRoleName.APP_USER),
@@ -321,7 +357,7 @@ class ActiveOrgContextTest
             .thenReturn(setOf(OrganizationRoleName.ORG_ADMIN))
             .thenReturn(emptySet())
 
-        val svc = SessionService(ctx, userRoleSvc)
+        val svc = makeSessionService(ctx, userRoleSvc)
 
         val firstCall = svc.currentSession().capabilities
         val secondCall = svc.currentSession().capabilities
@@ -350,5 +386,87 @@ class ActiveOrgContextTest
 
         assertEquals(orgId, ctx.activeOrganizationId)
         assertEquals(membershipId, ctx.activeMembershipId)
+    }
+
+    // -----------------------------------------------------------------------
+    // Available organizations (auto-select / picker source data)
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `zero active memberships yields empty availableOrganizations`()
+    {
+        val ctx = makeContext(activeOrgId = null)
+        val svc = makeSessionService(
+            ctx,
+            makeUserRoleService(appRoles = setOf(AppRoleName.APP_USER)),
+            memberships = emptyList(),
+        )
+
+        assertTrue(svc.currentSession().availableOrganizations.isEmpty())
+    }
+
+    @Test
+    fun `single active membership is surfaced with name roles and primary flag`()
+    {
+        val ctx = makeContext(activeOrgId = null)
+        val membership = makeMembership(
+            organizationId = orgId,
+            isPrimary = false,
+            roles = setOf(OrganizationRoleName.ORG_MEMBER),
+        )
+        val svc = makeSessionService(
+            ctx,
+            makeUserRoleService(appRoles = setOf(AppRoleName.APP_USER)),
+            memberships = listOf(membership),
+            orgNames = mapOf(orgId to "Acme Inc"),
+        )
+
+        val orgs = svc.currentSession().availableOrganizations
+
+        assertEquals(1, orgs.size)
+        assertEquals(orgId, orgs[0].organizationId)
+        assertEquals("Acme Inc", orgs[0].name)
+        assertFalse(orgs[0].isPrimary)
+        assertTrue(OrganizationRoleName.ORG_MEMBER.name in orgs[0].roles)
+    }
+
+    @Test
+    fun `multiple active memberships are all surfaced`()
+    {
+        val secondOrgId = UUID.randomUUID()
+        val ctx = makeContext(activeOrgId = null)
+        val svc = makeSessionService(
+            ctx,
+            makeUserRoleService(appRoles = setOf(AppRoleName.APP_USER)),
+            memberships = listOf(
+                makeMembership(organizationId = orgId, isPrimary = true),
+                makeMembership(organizationId = secondOrgId, isPrimary = false),
+            ),
+            orgNames = mapOf(orgId to "Acme Inc", secondOrgId to "Globex"),
+        )
+
+        val orgs = svc.currentSession().availableOrganizations
+
+        assertEquals(2, orgs.size)
+        assertEquals(setOf(orgId, secondOrgId), orgs.map { it.organizationId }.toSet())
+    }
+
+    @Test
+    fun `unresolvable organization falls back to placeholder name`()
+    {
+        val ctx = makeContext(activeOrgId = null)
+        val membershipRepo = mock<OrganizationMembershipRepository>()
+        whenever(membershipRepo.findActiveByUser(userId))
+            .thenReturn(listOf(makeMembership(organizationId = orgId)))
+        val orgRepo = mock<OrganizationRepository>()
+        whenever(orgRepo.findById(orgId)).thenReturn(null)
+        val svc = SessionService(
+            ctx,
+            makeUserRoleService(appRoles = setOf(AppRoleName.APP_USER)),
+            membershipRepo,
+            orgRepo,
+        )
+
+        assertEquals("Unknown organization", svc.currentSession().availableOrganizations[0].name)
     }
 }

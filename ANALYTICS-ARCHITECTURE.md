@@ -13,17 +13,17 @@ implemented and their final contracts have been verified.
 
 ## Dependency Order
 
-This architecture is the fourth design in the following dependency chain:
+This architecture is the third design in the following dependency chain (authorization hardening,
+the original first step, is complete):
 
-1. `PRE-FIELDS-AUTHORIZATION-HARDENING-PLAN.md`
-2. `WEBHOOK-INTEGRATIONS-FEATURE.md`
-3. `FIELDS-FEATURE.md`
-4. This Analytics and Operational Intelligence architecture
+1. `WEBHOOK-INTEGRATIONS-FEATURE.md`
+2. `FIELDS-FEATURE.md`
+3. This Analytics and Operational Intelligence architecture
 
 The order is important.
 
-- Authorization hardening establishes trusted principals, owner context, Scope References, Resource
-  References, centralized authorization, and restricted-data projection.
+- Authorization hardening (complete) established trusted principals, owner context, Scope
+  References, Resource References, centralized authorization, and restricted-data projection.
 - Webhook integrations establish durable external-delivery facts, application principals,
   correlation, retries, callback outcomes, and operational delivery history.
 - Fields establish stable business semantics through versioned schemas, typed Field Contracts,

@@ -214,12 +214,16 @@ const OrganizationTab = () =>
                     <MessageBarBody>
                         <Text weight="semibold">Organization Pending Verification</Text>
                         <br/>
+                    </MessageBarBody>
+                </MessageBar>
+                <div className={styles.onboardingRow}>
+                    <Text>
                         Your organization <Text weight="semibold">{organization.name}</Text> has been registered
                         and is currently under review. We are verifying your details and you will receive a
                         confirmation email once the process is complete. You can check back here at any time for
                         status updates.
-                    </MessageBarBody>
-                </MessageBar>
+                    </Text>
+                </div>
                 <div className={styles.onboardingRow}>
                     <Text size={300}>
                         Registration Number: {organization.registrationNumber}

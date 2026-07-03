@@ -43,10 +43,6 @@
                     <td style="padding:0 0 8px 0; color:#333333;">${organizationPhone}</td>
                 </tr>
                 </#if>
-                <tr>
-                    <td style="padding:0; color:#555555; width:160px; vertical-align:top;"><strong>Your Role:</strong></td>
-                    <td style="padding:0; color:#333333;">Organization Admin</td>
-                </tr>
             </table>
         </td>
     </tr>

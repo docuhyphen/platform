@@ -206,6 +206,9 @@ export interface ExchangeInitiationRequest
     recipientConstraintsJson?: string;
     allowedDownloadFormats?: string[];
     variableOverrides?: Record<string, string>;
+    schemaDefinitionId?: string;
+    fieldValues?: { fieldContractId: string; value: unknown }[];
+    schemaAssignmentSource?: SchemaAssignmentSource;
 }
 
 export enum ExchangeStatus
@@ -566,6 +569,19 @@ export enum Capability
 }
 
 /**
+ * One organization the caller can act within, surfaced on the session so the app can
+ * auto-select (single membership) or present a picker (multiple memberships). isPrimary is
+ * informational only and does not gate auto-selection.
+ */
+export interface SessionOrganizationOptionDto
+{
+    organizationId: string
+    name: string
+    isPrimary: boolean
+    roles: string[]
+}
+
+/**
  * Current-session contract returned by GET /app-user/session.
  * The frontend derives menu visibility, action controls, and settings tab gates from
  * capabilities rather than from raw role strings.
@@ -578,6 +594,7 @@ export interface CurrentSessionDto
     activeOrganizationId: string | null
     organizationRoles: string[]
     capabilities: Capability[]
+    availableOrganizations: SessionOrganizationOptionDto[]
 }
 
 // ── OAuth / Multi-IDP Types ──
@@ -1061,6 +1078,27 @@ export interface AddonSpecDraft
     repeatEveryMinutes?: number;
 }
 
+// ── Workflow applicability (field-condition gate) ─────────────────────────────
+
+/**
+ * One typed field condition in a workflow's applicability gate. References the immutable
+ * fieldDefinitionId; value is a canonical literal (string / number / boolean / string[]),
+ * omitted for IS_EMPTY / IS_NOT_EMPTY.
+ */
+export interface WorkflowFieldConditionDraft
+{
+    fieldDefinitionId: string;
+    fieldKey?: string;
+    valueType: FieldValueType;
+    operator: FieldOperator;
+    value?: unknown;
+}
+
+export interface WorkflowApplicabilityDraft
+{
+    fieldConditions: WorkflowFieldConditionDraft[];
+}
+
 export interface WorkflowStepSpecDraft
 {
     name?: string;
@@ -1088,6 +1126,7 @@ export interface WorkflowDesignerState
     triggerEvent: string;
     isActive: boolean;
     steps: WorkflowStepSpecDraft[];
+    applicability?: WorkflowApplicabilityDraft;
 }
 
 // ── Blueprint types ───────────────────────────────────────────────────────────
@@ -1115,6 +1154,18 @@ export interface BlueprintParticipantConfig
     principalId: string;
     principalKind: 'APP_USER' | 'PRINCIPAL_GROUP';
     roleName: string;
+}
+
+/**
+ * One default field value carried by a blueprint. Keyed by the stable fieldDefinitionId so it
+ * survives schema re-publishing; value is the canonical form applied through the creation-time seam.
+ */
+export interface BlueprintFieldDefaultConfig
+{
+    fieldDefinitionId: string;
+    valueType: FieldValueType;
+    value?: unknown;
+    displayOrder?: number;
 }
 
 // Scalar form-prefill settings only. Document and participant defaults are typed arrays
@@ -1149,8 +1200,10 @@ export interface BlueprintDefinitionSummaryDto
     generalTags: string[];
     sourceTemplateId?: string;
     configJson: string;
+    schemaDefinitionId?: string;
     exchangeDocuments: BlueprintDocumentConfig[];
     participants: BlueprintParticipantConfig[];
+    fieldDefaults?: BlueprintFieldDefaultConfig[];
     createdAt: string;
     updatedAt: string;
 }
@@ -1168,6 +1221,8 @@ export interface CreateBlueprintRequest
     configJson: string;
     exchangeDocuments?: BlueprintDocumentConfig[];
     participants?: BlueprintParticipantConfig[];
+    schemaDefinitionId?: string;
+    fieldDefaults?: BlueprintFieldDefaultConfig[];
     generalTags?: string[];
     isActive?: boolean;
     scope?: BlueprintScope;
@@ -1183,6 +1238,9 @@ export interface UpdateBlueprintRequest
     // null/undefined = leave child collection unchanged; a list (incl. empty) replaces it.
     exchangeDocuments?: BlueprintDocumentConfig[];
     participants?: BlueprintParticipantConfig[];
+    // When fieldDefaults is provided the schema linkage is also (re)applied from schemaDefinitionId.
+    schemaDefinitionId?: string;
+    fieldDefaults?: BlueprintFieldDefaultConfig[];
     generalTags?: string[];
 }
 
@@ -1376,4 +1434,239 @@ export interface UpdateDocumentLibraryEntryRequest
     restrictType?: boolean;
     restrictedType?: string;
     required?: boolean;
+}
+
+// ── Configurable Fields and Business Schema engine ────────────────────────────
+
+export enum FieldScopeKind
+{
+    PLATFORM = 'PLATFORM',
+    ORGANIZATION = 'ORGANIZATION',
+}
+
+export enum FieldLifecycleStatus
+{
+    DRAFT = 'DRAFT',
+    PUBLISHED = 'PUBLISHED',
+    RETIRED = 'RETIRED',
+}
+
+export enum FieldValueType
+{
+    SHORT_TEXT = 'SHORT_TEXT',
+    LONG_TEXT = 'LONG_TEXT',
+    BOOLEAN = 'BOOLEAN',
+    INTEGER = 'INTEGER',
+    DECIMAL = 'DECIMAL',
+    DATE = 'DATE',
+    DATE_TIME = 'DATE_TIME',
+    SINGLE_SELECT = 'SINGLE_SELECT',
+    MULTI_SELECT = 'MULTI_SELECT',
+}
+
+/** Type-aware operators for workflow field-applicability conditions. Mirrors the Kotlin FieldOperator. */
+export enum FieldOperator
+{
+    EQUALS = 'EQUALS',
+    NOT_EQUALS = 'NOT_EQUALS',
+    LESS_THAN = 'LESS_THAN',
+    LESS_THAN_OR_EQUAL = 'LESS_THAN_OR_EQUAL',
+    GREATER_THAN = 'GREATER_THAN',
+    GREATER_THAN_OR_EQUAL = 'GREATER_THAN_OR_EQUAL',
+    CONTAINS = 'CONTAINS',
+    STARTS_WITH = 'STARTS_WITH',
+    IN = 'IN',
+    NOT_IN = 'NOT_IN',
+    IS_EMPTY = 'IS_EMPTY',
+    IS_NOT_EMPTY = 'IS_NOT_EMPTY',
+}
+
+export enum FieldDataClassification
+{    PUBLIC = 'PUBLIC',
+    INTERNAL = 'INTERNAL',
+    CONFIDENTIAL = 'CONFIDENTIAL',
+    RESTRICTED = 'RESTRICTED',
+}
+
+export enum SchemaCompatibility
+{
+    ADDITIVE = 'ADDITIVE',
+    COMPATIBLE = 'COMPATIBLE',
+    BREAKING = 'BREAKING',
+}
+
+export enum SchemaAssignmentSource
+{
+    MANUAL = 'MANUAL',
+    BLUEPRINT = 'BLUEPRINT',
+    API = 'API',
+    MIGRATION = 'MIGRATION',
+}
+
+export enum FieldOperator
+{
+    EQUALS = 'EQUALS',
+    NOT_EQUALS = 'NOT_EQUALS',
+    LESS_THAN = 'LESS_THAN',
+    LESS_THAN_OR_EQUAL = 'LESS_THAN_OR_EQUAL',
+    GREATER_THAN = 'GREATER_THAN',
+    GREATER_THAN_OR_EQUAL = 'GREATER_THAN_OR_EQUAL',
+    CONTAINS = 'CONTAINS',
+    STARTS_WITH = 'STARTS_WITH',
+    IN = 'IN',
+    NOT_IN = 'NOT_IN',
+    IS_EMPTY = 'IS_EMPTY',
+    IS_NOT_EMPTY = 'IS_NOT_EMPTY',
+}
+
+export interface FieldConstraints
+{
+    minLength?: number;
+    maxLength?: number;
+    pattern?: string;
+    minValue?: string;
+    maxValue?: string;
+    scale?: number;
+    minSelections?: number;
+    maxSelections?: number;
+    minDate?: string;
+    maxDate?: string;
+}
+
+export interface FieldOption
+{
+    code: string;
+    label: string;
+    order?: number;
+    active?: boolean;
+    externalMappings?: Record<string, string>;
+}
+
+export interface FieldContractDto
+{
+    id: string;
+    fieldDefinitionId: string;
+    contractVersion: number;
+    valueType: FieldValueType;
+    typeContractVersion: number;
+    label: string;
+    description?: string;
+    helpText?: string;
+    constraints: FieldConstraints;
+    options: FieldOption[];
+    dataClassification: FieldDataClassification;
+    isSearchable: boolean;
+    isFilterable: boolean;
+    isSortable: boolean;
+    isReportable: boolean;
+    createdAt: string;
+}
+
+export interface FieldDefinitionDto
+{
+    id: string;
+    scopeKind: FieldScopeKind;
+    scopeOrgId?: string;
+    namespace: string;
+    fieldKey: string;
+    status: FieldLifecycleStatus;
+    contractCount: number;
+    latestContract?: FieldContractDto;
+    createdAt: string;
+}
+
+export interface SchemaFieldBindingDto
+{
+    id: string;
+    fieldContractId: string;
+    fieldDefinitionId: string;
+    namespace: string;
+    fieldKey: string;
+    label: string;
+    valueType: FieldValueType;
+    displayOrder: number;
+    section?: string;
+    isRequired: boolean;
+    isReadOnly: boolean;
+    defaultValueJson?: string;
+    visibility: FieldDataClassification;
+    description?: string;
+    helpText?: string;
+    constraints: FieldConstraints;
+    options: FieldOption[];
+}
+
+export interface SchemaVersionDto
+{
+    id: string;
+    schemaDefinitionId: string;
+    versionNumber: number;
+    status: FieldLifecycleStatus;
+    compatibility?: SchemaCompatibility;
+    bindings: SchemaFieldBindingDto[];
+    publishedAt?: string;
+    createdAt: string;
+}
+
+export interface SchemaDefinitionDto
+{
+    id: string;
+    scopeKind: FieldScopeKind;
+    scopeOrgId?: string;
+    namespace: string;
+    schemaKey: string;
+    displayName: string;
+    description?: string;
+    targetResourceType: string;
+    status: FieldLifecycleStatus;
+    draftVersion?: SchemaVersionDto;
+    latestPublishedVersion?: SchemaVersionDto;
+    createdAt: string;
+}
+
+export interface ResolvedSchemaViewDto
+{
+    schemaDefinitionId: string;
+    schemaKey: string;
+    namespace: string;
+    displayName: string;
+    schemaVersionId: string;
+    versionNumber: number;
+    targetResourceType: string;
+    scopeKind: FieldScopeKind;
+    fields: SchemaFieldBindingDto[];
+}
+
+export interface FieldTypeInfoDto
+{
+    type: FieldValueType;
+    supportsOptions: boolean;
+    supportedOperators: FieldOperator[];
+}
+
+export interface FieldValueDto
+{
+    fieldContractId: string;
+    schemaFieldBindingId?: string;
+    namespace: string;
+    fieldKey: string;
+    label: string;
+    valueType: FieldValueType;
+    isEmpty: boolean;
+    value: unknown;
+}
+
+export interface SchemaAssignmentDto
+{
+    id: string;
+    resourceType: string;
+    resourceId: string;
+    schemaVersionId: string;
+    schemaDefinitionId: string;
+    schemaKey: string;
+    displayName: string;
+    versionNumber: number;
+    assignmentSource: SchemaAssignmentSource;
+    assignedAt: string;
+    fields: FieldValueDto[];
 }
