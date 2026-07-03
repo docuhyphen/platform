@@ -15,7 +15,7 @@ import {
     TableRow,
     Text,
 } from '@fluentui/react-components';
-import {AddRegular} from '@fluentui/react-icons';
+import {AddRegular, CheckmarkRegular, CopyRegular} from '@fluentui/react-icons';
 import {SystemVariableDto, ViewMode} from '../../models/models';
 import {Capability} from '../../models/models';
 import {getAvailableVariables} from '../../../services/variableService';
@@ -23,6 +23,7 @@ import OrganizationVariablesTab, {OrganizationVariablesTabHandle} from '../organ
 import PersonalVariablesTab, {PersonalVariablesTabHandle} from '../personal-variables-tab/PersonalVariablesTab';
 import {useAuth} from '../../../context/AuthContext';
 import {useVariablesTabStyles} from './VariablesTabStyles';
+import {copyText} from '../../utils/copyText';
 
 type ActiveTab = 'PERSONAL' | 'ORG' | 'PLATFORM';
 
@@ -40,6 +41,17 @@ const PlatformVariablesView = () =>
     const [systemVars, setSystemVars] = useState<SystemVariableDto[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [copiedToken, setCopiedToken] = useState<string | null>(null);
+
+    const handleCopy = async (token: string) =>
+    {
+        const copied = await copyText(`{{${token}}}`);
+        if (copied)
+        {
+            setCopiedToken(token);
+            window.setTimeout(() => setCopiedToken(current => current === token ? null : current), 1500);
+        }
+    };
 
     useEffect(() =>
     {
@@ -83,7 +95,19 @@ const PlatformVariablesView = () =>
                         {systemVars.map(sv => (
                             <TableRow key={sv.token}>
                                 <TableCell>
-                                    <code className={styles.codeCell}>{`{{${sv.token}}}`}</code>
+                                    <div className={styles.tokenCell}>
+                                        <Button
+                                            id={`button-system-var-copy-${sv.token}`}
+                                            size="small"
+                                            appearance="subtle"
+                                            shape={"circular"}
+                                            icon={copiedToken === sv.token ? <CheckmarkRegular className={styles.copySuccess}/> : <CopyRegular/>}
+                                            aria-label={`Copy system variable ${sv.token}`}
+                                            title={copiedToken === sv.token ? 'Copied' : `Copy {{${sv.token}}}`}
+                                            onClick={() => handleCopy(sv.token)}
+                                        />
+                                        <code className={styles.codeCell}>{sv.token}</code>
+                                    </div>
                                 </TableCell>
                                 <TableCell><Text size={200}>{sv.description}</Text></TableCell>
                                 <TableCell>

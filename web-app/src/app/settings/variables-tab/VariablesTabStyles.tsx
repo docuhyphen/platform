@@ -29,9 +29,17 @@ export const useVariablesTabStyles = makeStyles({
     errorText: {
         color: tokens.colorPaletteRedForeground1,
     },
+    copySuccess: {
+        color: tokens.colorPaletteGreenForeground1,
+    },
     codeCell: {
         fontFamily: 'monospace',
         fontSize: '12px',
+    },
+    tokenCell: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
     },
     toolbar: {
         display: 'flex',

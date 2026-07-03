@@ -32,9 +32,23 @@ export const usePersonalVariablesTabStyles = makeStyles({
         flex: '1',
         minWidth: '0',
     },
+    actionGroup: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        flexShrink: 0,
+    },
+    copySuccess: {
+        color: tokens.colorPaletteGreenForeground1,
+    },
     codeKey: {
         fontFamily: 'monospace',
         fontWeight: '600',
+    },
+    tokenCell: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
     },
     defaultValueText: {
         color: tokens.colorNeutralForeground2,

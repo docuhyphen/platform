@@ -17,11 +17,12 @@ import {
     Spinner,
     Text,
 } from '@fluentui/react-components';
-import {DeleteRegular, EditRegular, MoreVerticalRegular} from '@fluentui/react-icons';
+import {CheckmarkRegular, CopyRegular, DeleteRegular, EditRegular, MoreVerticalRegular} from '@fluentui/react-icons';
 import {CreateVariableRequest, UpdateVariableRequest, VariableDefinitionDto, ViewMode} from '../../models/models';
 import {Capability} from '../../models/models';
 import {createVariable, deleteVariable, listVariables, updateVariable} from '../../../services/variableService';
 import {useOrganizationVariablesTabStyles} from './OrganizationVariablesTabStyles';
+import {copyText} from '../../utils/copyText';
 
 interface DrawerState
 {
@@ -55,6 +56,7 @@ const OrganizationVariablesTab = forwardRef<OrganizationVariablesTabHandle, Orga
     const [formValue, setFormValue] = useState('');
     const [formError, setFormError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
+    const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
     const load = () =>
     {
@@ -125,6 +127,16 @@ const OrganizationVariablesTab = forwardRef<OrganizationVariablesTabHandle, Orga
         load();
     };
 
+    const handleCopy = async (key: string) =>
+    {
+        const copied = await copyText(`{{${key}}}`);
+        if (copied)
+        {
+            setCopiedKey(key);
+            window.setTimeout(() => setCopiedKey(current => current === key ? null : current), 1500);
+        }
+    };
+
     return (
         <>
             <div className={styles.container}>
@@ -148,7 +160,17 @@ const OrganizationVariablesTab = forwardRef<OrganizationVariablesTabHandle, Orga
                         className={styles.variableRow}
                     >
                         <div className={styles.variableRowInner}>
-                            <code className={styles.codeKey}>{`{{${v.key}}}`}</code>
+                            <Button
+                                id={`button-org-var-copy-${v.id}`}
+                                size="small"
+                                appearance="subtle"
+                                shape={"circular"}
+                                icon={copiedKey === v.key ? <CheckmarkRegular className={styles.copySuccess}/> : <CopyRegular/>}
+                                aria-label={`Copy variable ${v.key}`}
+                                title={copiedKey === v.key ? 'Copied' : `Copy {{${v.key}}}`}
+                                onClick={() => handleCopy(v.key)}
+                            />
+                            <code className={styles.codeKey}>{v.key}</code>
                             <Text
                                 size={200}
                                 className={styles.defaultValueText}
@@ -165,35 +187,37 @@ const OrganizationVariablesTab = forwardRef<OrganizationVariablesTabHandle, Orga
                                 </Badge>
                             )}
                         </div>
-                        {canManage && (
-                            <Menu>
-                                <MenuTrigger disableButtonEnhancement>
-                                    <Button
-                                        id={`button-org-var-menu-${v.id}`}
-                                        size="small"
-                                        appearance="subtle"
-                                        shape={"circular"}
-                                        icon={<MoreVerticalRegular/>}
-                                    />
-                                </MenuTrigger>
-                                <MenuPopover>
-                                    <MenuList>
-                                        <MenuItem
-                                            icon={<EditRegular/>}
-                                            onClick={() => openEdit(v)}
-                                        >
-                                            Edit
-                                        </MenuItem>
-                                        <MenuItem
-                                            icon={<DeleteRegular/>}
-                                            onClick={() => handleDelete(v)}
-                                        >
-                                            Delete
-                                        </MenuItem>
-                                    </MenuList>
-                                </MenuPopover>
-                            </Menu>
-                        )}
+                        <div className={styles.actionGroup}>
+                            {canManage && (
+                                <Menu>
+                                    <MenuTrigger disableButtonEnhancement>
+                                        <Button
+                                            id={`button-org-var-menu-${v.id}`}
+                                            size="small"
+                                            appearance="subtle"
+                                            shape={"circular"}
+                                            icon={<MoreVerticalRegular/>}
+                                        />
+                                    </MenuTrigger>
+                                    <MenuPopover>
+                                        <MenuList>
+                                            <MenuItem
+                                                icon={<EditRegular/>}
+                                                onClick={() => openEdit(v)}
+                                            >
+                                                Edit
+                                            </MenuItem>
+                                            <MenuItem
+                                                icon={<DeleteRegular/>}
+                                                onClick={() => handleDelete(v)}
+                                            >
+                                                Delete
+                                            </MenuItem>
+                                        </MenuList>
+                                    </MenuPopover>
+                                </Menu>
+                            )}
+                        </div>
                     </div>
                 ))}
                 {!loading && !error && variables.length > 0 && viewMode === 'table' && (
@@ -209,7 +233,21 @@ const OrganizationVariablesTab = forwardRef<OrganizationVariablesTabHandle, Orga
                         <tbody>
                             {variables.map(v => (
                                 <tr key={v.id} className={styles.tr}>
-                                    <td className={styles.td}><code className={styles.codeKey}>{`{{${v.key}}}`}</code></td>
+                                    <td className={styles.td}>
+                                        <div className={styles.tokenCell}>
+                                            <Button
+                                                id={`button-org-var-copy-table-${v.id}`}
+                                                size="small"
+                                                appearance="subtle"
+                                                shape={"circular"}
+                                                icon={copiedKey === v.key ? <CheckmarkRegular className={styles.copySuccess}/> : <CopyRegular/>}
+                                                aria-label={`Copy variable ${v.key}`}
+                                                title={copiedKey === v.key ? 'Copied' : `Copy {{${v.key}}}`}
+                                                onClick={() => handleCopy(v.key)}
+                                            />
+                                            <code className={styles.codeKey}>{v.key}</code>
+                                        </div>
+                                    </td>
                                     <td className={styles.td}><Text size={200}>{v.defaultValue || <em>no default</em>}</Text></td>
                                     <td className={styles.td}><Text size={200}>{v.isActive ? 'Active' : 'Inactive'}</Text></td>
                                     {canManage && (
