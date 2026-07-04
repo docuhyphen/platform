@@ -4,6 +4,8 @@ import com.docuhyphen.app.api.exception.NoAuthOtpException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.exception.WorkflowConflictException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer
+import com.docuhyphen.app.api.model.dto.NoAuthExchangeBasicDto
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
@@ -28,6 +30,7 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision as AuthDecision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
@@ -445,7 +448,7 @@ class ExchangeUpdateService @Inject constructor(
         sessionStatus: ExchangeStatus?,
         otp: String?,
         rejectReason: String?
-    ): Exchange
+    ): NoAuthExchangeBasicDto
     {
         val sessionUUID = UUID.fromString(exchangeId)
 
@@ -603,11 +606,11 @@ class ExchangeUpdateService @Inject constructor(
 
         logger.info("Exchange ${session.name} updated")
 
-        return refreshedSession
+        return toEnrichedNoAuthDto(refreshedSession, sessionUUID)
     }
 
     @Transactional
-    fun verifyNoAuthAccessCode(exchangeId: String, otp: String?): Exchange
+    fun verifyNoAuthAccessCode(exchangeId: String, otp: String?): NoAuthExchangeBasicDto
     {
         val sessionUUID = UUID.fromString(exchangeId)
         val session = exchangeRepository.findById(sessionUUID)
@@ -631,8 +634,9 @@ class ExchangeUpdateService @Inject constructor(
         exchangeRepository.updateNoAuthAccessVerifiedAt(sessionUUID, Timestamp.from(Instant.now()))
         exchangeRepository.updateLastActivity(sessionUUID, Timestamp.from(Instant.now()))
 
-        return exchangeRepository.findById(sessionUUID)
+        val refreshed = exchangeRepository.findById(sessionUUID)
             ?: throw ExchangeNotFoundException("Exchange not found")
+        return toEnrichedNoAuthDto(refreshed, sessionUUID)
     }
 
     @Transactional
@@ -878,6 +882,19 @@ class ExchangeUpdateService @Inject constructor(
             ?: resolvePrimaryRecipientGroupLabel(exchangeId, includeInactive)
             ?: resolveRecipientEmail(exchangeId, includeInactive)
             ?: "Recipient"
+
+    private fun toEnrichedNoAuthDto(exchange: Exchange, exchangeId: UUID): NoAuthExchangeBasicDto
+    {
+        val dto = BasicEntityToDtoTransformer.toNoAuthDto(exchange)
+            ?: throw ExchangeNotFoundException("Exchange not found")
+        val constraintsJson = shareService.recipientConstraintsJson(exchangeId)
+        val constraints = ShareConstraints.parse(constraintsJson)
+        val downloadAllowed = constraints?.canDownload != false &&
+            (constraintsJson?.contains("\"allow_document_download\":true") == true ||
+                constraints?.canDownload == true)
+        dto.allowDocumentDownload = downloadAllowed
+        return dto
+    }
 
     private enum class EmailAudience
     {

@@ -21,6 +21,7 @@ import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.storage.FileStorageService
+import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -344,6 +345,17 @@ class ExchangeDocumentService @Inject constructor(
         }
 
         ensureNoAuthAccessWindowActive(exchange)
+
+        val constraintsJson = shareService.recipientConstraintsJson(exchange.id)
+        val constraints = ShareConstraints.parse(constraintsJson)
+        val downloadAllowed = constraints?.canDownload != false &&
+            (constraintsJson?.contains("\"allow_document_download\":true") == true ||
+                constraints?.canDownload == true)
+        if (!downloadAllowed)
+        {
+            logger.warn("No-auth download blocked for exchange {} because download is disabled", exchange.id)
+            throw ForbiddenException("Permission to download document not granted")
+        }
 
         if (document.isDeleted)
         {

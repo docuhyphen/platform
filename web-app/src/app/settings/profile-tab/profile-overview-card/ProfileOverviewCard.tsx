@@ -75,44 +75,38 @@ const ProfileOverviewCard = (
                             {appUser?.email || "No email added"}
                         </Text>
                     </div>
+                    <div id={"profile-overview-phone-row"}>
+                    {hasPhoneNumber ?<>
+                            <Button
+                                id={"button-edit-phone"}
+                                appearance={"subtle"}
+                                shape={"circular"}
+                                size={"small"}
+                                icon={<PhoneEditIcon/>}
+                                onClick={onEditPhone}
+                            />
+                            <Text id={"profile-overview-phone-value"} size={300}>{phoneNumber}</Text>
+                    </> :
+                        <Button
+                            id={"button-add-phone-number"}
+                            appearance={"secondary"}
+                            shape={"circular"}
+                            size={"small"}
+                            icon={<PhoneAddIcon/>}
+                            onClick={onEditPhone}>
+                            Add phone number
+                        </Button>
+                    }
+                    </div>
                     <div id={"profile-overview-badges"} className={styles.badgeRow}>
                         <Badge id={"profile-overview-status-badge"} appearance={"filled"} color={appUser?.isActive ? "success" : "warning"}>
                             {appUser?.isActive ? "Account active" : "Account pending"}
                         </Badge>
+                        <Badge id={"profile-overview-meta-member"} appearance={"filled"}>
+                            Member since {memberSince}
+                        </Badge>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <div id={"profile-overview-meta"} className={styles.metaGrid}>
-            <div id={"profile-overview-meta-member"} className={styles.metaItem}>
-                <Text id={"profile-overview-member-label"} size={200} className={styles.eyebrow}>Member since</Text>
-                <Text id={"profile-overview-member-value"} size={300}>{memberSince}</Text>
-            </div>
-            <div id={"profile-overview-meta-phone"} className={styles.metaItem}>
-                <Text id={"profile-overview-phone-label"} size={200} className={styles.eyebrow}>Phone</Text>
-
-                {hasPhoneNumber ?
-                    <div id={"profile-overview-phone-row"} className={styles.inlineDetailRow}>
-                        <Button
-                            id={"button-edit-phone"}
-                            appearance={"subtle"}
-                            shape={"circular"}
-                            size={"small"}
-                            icon={<PhoneEditIcon/>}
-                            onClick={onEditPhone}
-                        />
-                        <Text id={"profile-overview-phone-value"} size={300}>{phoneNumber}</Text>
-                    </div> :
-                    <Button
-                        id={"button-add-phone-number"}
-                        appearance={"secondary"}
-                        shape={"circular"}
-                        icon={<PhoneAddIcon/>}
-                        onClick={onEditPhone}>
-                        Add phone number
-                    </Button>
-                }
             </div>
         </div>
     </section>;

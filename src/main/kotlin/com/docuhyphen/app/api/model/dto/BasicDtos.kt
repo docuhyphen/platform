@@ -41,6 +41,7 @@ data class NoAuthExchangeBasicDto(
     var initiatorLastName: String? = null,
     var noAuthAccessValidityDays: Int = 7,
     val documents: List<DocumentBasicDto?>,
+    var allowDocumentDownload: Boolean = false,
 )
 
 @Serializable

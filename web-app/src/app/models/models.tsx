@@ -328,6 +328,7 @@ export interface NoAuthExchangeBasicDto
     initiatorLastName?: string;
     noAuthAccessValidityDays?: number;
     documents?: DocumentBasicDto[];
+    allowDocumentDownload?: boolean;
 }
 
 export interface ContactDetailsBasicDto

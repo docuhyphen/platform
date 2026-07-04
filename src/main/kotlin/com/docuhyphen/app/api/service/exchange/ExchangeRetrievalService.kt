@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer
 import com.docuhyphen.app.api.model.dto.ExchangeBasicDto
+import com.docuhyphen.app.api.model.dto.NoAuthExchangeBasicDto
 import com.docuhyphen.app.api.model.entity.Document
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
@@ -15,6 +16,7 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
@@ -38,6 +40,7 @@ class ExchangeRetrievalService @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
+    private val shareService: ShareService,
 )
 {
     @PersistenceContext
@@ -102,7 +105,7 @@ class ExchangeRetrievalService @Inject constructor(
         return exchangeRepository.userHasExchanges(appUserId)
     }
 
-    fun getNoAuthExchange(exchangeId: String): Exchange
+    fun getNoAuthExchange(exchangeId: String): NoAuthExchangeBasicDto
     {
         val session = exchangeRepository.findByIdWithDocumentsOrderedByTitle(UUID.fromString(exchangeId))
             ?: throw ExchangeNotFoundException("Exchange not found")
@@ -121,7 +124,17 @@ class ExchangeRetrievalService @Inject constructor(
             throw ExchangeNotFoundException("Exchange not found")
         }
 
-        return session
+        val dto = BasicEntityToDtoTransformer.toNoAuthDto(session)
+            ?: throw ExchangeNotFoundException("Exchange not found")
+
+        val constraintsJson = shareService.recipientConstraintsJson(session.id)
+        val constraints = ShareConstraints.parse(constraintsJson)
+        val downloadAllowed = constraints?.canDownload != false &&
+            (constraintsJson?.contains("\"allow_document_download\":true") == true ||
+                constraints?.canDownload == true)
+        dto.allowDocumentDownload = downloadAllowed
+
+        return dto
     }
 
     fun searchExchanges(

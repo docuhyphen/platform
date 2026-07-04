@@ -284,7 +284,7 @@ const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({
                                 {uploading[doc.id] ? <Spinner size="tiny"/> : "Upload file"}
                             </Button>
                         </div>
-                        {doc.uploadDate && (
+                        {doc.uploadDate && exchange.allowDocumentDownload && (
                             <Button
                                 id={`no-auth-exchange-doc-download-btn-${doc.id}`}
                                 appearance="secondary"

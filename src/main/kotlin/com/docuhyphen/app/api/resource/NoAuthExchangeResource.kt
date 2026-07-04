@@ -3,7 +3,6 @@
 import com.docuhyphen.app.api.exception.NoAuthOtpException
 import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
-import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.model.dto.DocumentDetailedDto
 import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
@@ -81,7 +80,7 @@ class NoAuthExchangeResource @Inject constructor(
 
             val exchange = exchangeRetrievalService.getNoAuthExchange(exchangeId)
 
-            Response.ok(BasicEntityToDtoTransformer.toNoAuthDto(exchange)).build()
+            Response.ok(exchange).build()
         }
         catch (exception: Exception)
         {
@@ -214,7 +213,7 @@ class NoAuthExchangeResource @Inject constructor(
         return try
         {
             val updatedSession = exchangeUpdateService.verifyNoAuthAccessCode(exchangeId, request.otp)
-            Response.ok(BasicEntityToDtoTransformer.toNoAuthDto(updatedSession)).build()
+            Response.ok(updatedSession).build()
         }
         catch (exception: Exception)
         {
@@ -295,7 +294,7 @@ class NoAuthExchangeResource @Inject constructor(
                 )
             }
 
-            Response.ok(BasicEntityToDtoTransformer.toNoAuthDto(updatedSession)).build()
+            Response.ok(updatedSession).build()
         }
         catch (exception: Exception)
         {
@@ -458,6 +457,14 @@ class NoAuthExchangeResource @Inject constructor(
 
                     val responseError = ResponseError(exception.message)
                     Response.status(NOT_FOUND).entity(responseError).build()
+                }
+
+                is ForbiddenException ->
+                {
+                    logger.warn("No-auth download denied for document: {}", exception.message)
+                    Response.status(Response.Status.FORBIDDEN)
+                        .entity(ResponseError(exception.message))
+                        .build()
                 }
 
                 is IllegalArgumentException ->
