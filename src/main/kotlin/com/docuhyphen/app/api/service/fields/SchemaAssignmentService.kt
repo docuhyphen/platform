@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.service.fields
 import com.docuhyphen.app.api.model.dto.FieldValueDto
 import com.docuhyphen.app.api.model.dto.SchemaAssignmentDto
 import com.docuhyphen.app.api.model.entity.FieldContract
+import com.docuhyphen.app.api.model.entity.FieldDataClassification
 import com.docuhyphen.app.api.model.entity.FieldDefinition
 import com.docuhyphen.app.api.model.entity.FieldLifecycleStatus
 import com.docuhyphen.app.api.model.entity.FieldScopeKind
@@ -66,7 +67,8 @@ class SchemaAssignmentService @Inject constructor(
         adapter.authorizeViewFields(resourceId, principal, context)
 
         val assignment = assignmentRepository.findByResource(resourceType, resourceId) ?: return null
-        return assignment.toDto()
+        val externalCaller = adapter.isExternalCaller(resourceId, principal, context)
+        return assignment.toDto(externalCaller)
     }
 
     // ── Writes ────────────────────────────────────────────────────────────────
@@ -227,7 +229,7 @@ class SchemaAssignmentService @Inject constructor(
 
     // ── Mapping ──────────────────────────────────────────────────────────────
 
-    private fun SchemaAssignment.toDto(): SchemaAssignmentDto
+    private fun SchemaAssignment.toDto(externalCaller: Boolean = false): SchemaAssignmentDto
     {
         val version = schemaVersionRepository.findById(schemaVersionId)
             ?: throw IllegalStateException("Assigned schema version missing")
@@ -244,14 +246,23 @@ class SchemaAssignmentService @Inject constructor(
             versionNumber = version.versionNumber,
             assignmentSource = assignmentSource,
             assignedAt = assignedAt,
-            fields = resolveValues(this, version),
+            fields = resolveValues(this, version, externalCaller),
         )
     }
 
-    /** One [FieldValueDto] per binding in the assigned version, empty where no value is stored. */
-    private fun resolveValues(assignment: SchemaAssignment, version: SchemaVersion): List<FieldValueDto>
+    /**
+     * One [FieldValueDto] per visible binding in the assigned version, empty where no value is stored.
+     * When [externalCaller] is true, only bindings with [FieldDataClassification.PUBLIC] visibility
+     * are included. Internal users receive all bindings regardless of classification.
+     */
+    private fun resolveValues(
+        assignment: SchemaAssignment,
+        version: SchemaVersion,
+        externalCaller: Boolean,
+    ): List<FieldValueDto>
     {
         val bindings = bindingRepository.findByVersion(version.id)
+            .let { all -> if (externalCaller) all.filter { it.visibility == FieldDataClassification.PUBLIC } else all }
         if (bindings.isEmpty()) return emptyList()
         val contracts = fieldContractRepository.findByIds(bindings.map { it.fieldContractId })
             .associateBy { it.id }

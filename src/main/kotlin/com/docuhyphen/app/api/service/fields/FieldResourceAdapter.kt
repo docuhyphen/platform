@@ -33,4 +33,12 @@ interface FieldResourceAdapter
      * service decides this rule (for Exchanges: only while INITIATED / Draft in the first release).
      */
     fun valuesEditable(resourceId: UUID): Boolean
+
+    /**
+     * Whether the current principal is an external caller (e.g. a recipient accessing via a
+     * magic link or participant share). External callers may only see fields classified as PUBLIC;
+     * internal users and org members see all fields permitted by their share role.
+     * See FIELDS-FEATURE.md "Classification, Visibility, and Authorization".
+     */
+    fun isExternalCaller(resourceId: UUID, principal: PrincipalRef, context: AuthorizationContext): Boolean
 }
