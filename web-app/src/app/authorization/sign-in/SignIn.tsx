@@ -145,6 +145,12 @@ const SignIn: React.FC = () =>
                 navigate(`/account-recovery?email=${prefillEmail}&reason=${signInError.reasonCode}`);
                 return;
             }
+            if (signInError?.reasonCode === 'SIGN_UP_REQUIRED')
+            {
+                const prefillEmail = encodeURIComponent(email || '');
+                navigate(`/sign-up?email=${prefillEmail}`);
+                return;
+            }
             setResponseErrorMessage(getOtpFriendlyMessage(normalizeApiError(signInError, "An unknown error occurred signing in.")));
         }
         finally

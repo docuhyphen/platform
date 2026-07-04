@@ -1,6 +1,6 @@
 import React, {ChangeEvent, useState} from 'react';
 import {completeSignUp, initiateSignUp, regenerateSignUpOtp} from "../../../services/authApi.ts";
-import {useNavigate} from "react-router-dom";
+import {useNavigate, useSearchParams} from "react-router-dom";
 import {
     Button,
     Caption1,
@@ -37,12 +37,15 @@ interface SignUpFormData
 const SignUp: React.FC = () =>
 {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const signUpStyles = useSignUpStyles();
     const authorizationStyles = useAuthorizationStyles();
     const globalStyles = useGlobalStyles();
 
+    const prefillEmail = searchParams.get('email') || '';
+
     const [formData, setFormData] = useState<SignUpFormData>({
-        email: '',
+        email: prefillEmail,
         otp: '',
         password: '',
         confirmationPassword: ''

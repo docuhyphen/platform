@@ -76,13 +76,18 @@ class SignInService @Inject constructor(
 
         val appUser = appUserService.findByEmail(sanitizedEmail) ?: throw InvalidSignInCredentialsException()
 
+        // Temporary placeholder accounts (created when an Exchange recipient has no existing account)
+        // must complete sign-up before signing in. This check runs before the isActive guard so that
+        // any temporary user — regardless of their isActive state — receives the correct prompt.
+        if (appUser.isTemporary && appUser.deprovisionedAt == null)
+        {
+            logger.warn("Sign in blocked: temporary account requires sign-up for {}", sanitizedEmail.maskEmailForLogs())
+            throw SignUpRequiredException()
+        }
+
         if (!appUser.isActive || appUser.deprovisionedAt != null)
         {
             logger.warn("Sign in blocked: inactive/deprovisioned account for {}", sanitizedEmail.maskEmailForLogs())
-            if (appUser.isTemporary && appUser.deprovisionedAt == null)
-            {
-                throw SignUpRequiredException()
-            }
             throw InactiveAccountException()
         }
 
