@@ -378,13 +378,40 @@ const ExchangeList: React.FC<ExchangeListProps> = (
         {
             if (exchange)
             {
-                setExchanges(prevExchanges => [exchange, ...prevExchanges]);
+                const targetTab = statusToTab(exchange.status) ?? 'inbox';
+                const isCurrentTab = targetTab === activeTabRef.current;
+
+                if (isCurrentTab)
+                {
+                    // Exchange belongs to current tab - insert directly into the list
+                    setExchanges(prevExchanges => [exchange, ...prevExchanges]);
+                    if (targetTab === 'inbox')
+                    {
+                        if (inboxRoleRef.current === 'incoming') setIncomingCount(prev => prev + 1);
+                        else setOutgoingCount(prev => prev + 1);
+                    }
+                }
+                else
+                {
+                    // Switch to the correct tab. Set state directly (not via controlledActiveTab)
+                    // so the inbox role is not reset to 'incoming' by that effect.
+                    setActiveTab(targetTab);
+                    setCurrentPage(0);
+                    setSearchQuery('');
+                    setSelectedInitiator(null);
+                    setSortBy('createdDate');
+                    setSortDirection('DESC');
+                    if (targetTab === 'inbox')
+                    {
+                        // A newly created exchange is always initiated by the current user -> outgoing
+                        setInboxRole('outgoing');
+                        onInboxRoleChange?.('outgoing');
+                    }
+                    onTabChange?.(targetTab);
+                }
+
                 setSelectedItems([exchange.id]);
                 onSelectionChange(exchange.id);
-                if (activeTabRef.current === 'inbox' && inboxRoleRef.current === 'incoming')
-                {
-                    setIncomingCount(prev => prev + 1);
-                }
             }
         });
 

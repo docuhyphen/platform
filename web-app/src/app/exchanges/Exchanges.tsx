@@ -15,9 +15,11 @@ import {
 import useToken from "../../context/useToken.tsx";
 import ExchangePreLoader from "./components/exchange-pre-loader/ExchangePreLoader.tsx";
 import {DocumentDetailedDto,
+    DocumentType,
     ExchangeBasicDto,
     ExchangeDetailedDto,
-    ExchangeStatus
+    ExchangeStatus,
+    ImageType
 } from "../models/models.tsx";
 import {useExchangesStyles} from "./ExchangesStyles.tsx";
 import ExchangeDocumentSidebar from "./components/exchange-document-sidebar/ExchangeDocumentSidebar.tsx";
@@ -49,9 +51,6 @@ import ExchangeAuditTab from "./components/exchange-audit-tab/ExchangeAuditTab.t
 import ExchangeWorkflowTab from "./components/exchange-workflow-tab/ExchangeWorkflowTab.tsx";
 import ExchangeFieldsTab from "./components/exchange-fields-tab/ExchangeFieldsTab.tsx";
 import ExchangeTabsHeader from "./components/exchange-tabs-header/ExchangeTabsHeader.tsx";
-
-const ACTIVE_TAB_STORAGE_KEY = 'exchanges.mainTab.active';
-const LAST_ROUTE_QUERY_STORAGE_KEY = 'exchanges.lastRoute.query';
 
 const parseExchangeListTab = (value: string | null | undefined): ExchangeListTab | null =>
 {
@@ -98,7 +97,6 @@ const Exchanges: React.FC = () =>
     const [selectedUpdateExchangeDocument, setSelectedUpdateExchangeDocument] = React.useState<DocumentDetailedDto>(undefined);
     const [exchangeDetails, setExchangeDetails] = useState<ExchangeDetailedDto | null>(null);
     const [fetchingDetails, setFetchingDetails] = useState<boolean>(true);
-    const [isExchangeEnded, setIsExchangeEnded] = React.useState(false);
     const [filteredDocuments, setFilteredDocuments] = useState<DocumentDetailedDto[]>([]);
     const [appUserHasExchanges, setAppUserHasExchanges] = useState<boolean>(false);
     const [detailsActiveTab, setDetailsActiveTab] = useState<TabValue>('documents');
@@ -107,14 +105,10 @@ const Exchanges: React.FC = () =>
         [exchangeDetails, appUser?.id],
     );
 
-    const sharingInitiationTriggerRef = useRef<HTMLButtonElement>(null);
     const deepLinkedExchangeIdRef = useRef<string | null>(null);
     const deepLinkedDocumentIdRef = useRef<string | null>(null);
     const deepLinkedDocumentExchangeIdRef = useRef<string | null>(null);
     const lastUnavailableExchangeIdRef = useRef<string | null>(null);
-    // True when the user has no saved tab preference and no URL tab param - i.e. a
-    // first visit.  We use it to intelligently pick the initial tab once counts load.
-    const isFirstVisitRef = useRef<boolean>(false);
 
     const notifyExchangeUnavailable = (exchangeId?: string | null) =>
     {
@@ -200,37 +194,15 @@ const Exchanges: React.FC = () =>
         }
     }
 
-    // Restore tab/exchange/document from URL, or from the last saved exchanges query.
+    // Restore tab/exchange/document from URL params only.
     useEffect(() =>
     {
         if (typeof window === 'undefined') return;
 
-        let params = new URLSearchParams(window.location.search);
-        if ([...params.keys()].length === 0)
-        {
-            const storedQuery = window.localStorage.getItem(LAST_ROUTE_QUERY_STORAGE_KEY);
-            if (storedQuery)
-            {
-                const storedParams = new URLSearchParams(storedQuery.startsWith('?') ? storedQuery.slice(1) : storedQuery);
-                if ([...storedParams.keys()].length > 0)
-                {
-                    params = storedParams;
-                    window.history.replaceState(null, '', `${window.location.pathname}?${storedParams.toString()}`);
-                }
-            }
-        }
-
+        const params = new URLSearchParams(window.location.search);
         const urlTab = parseExchangeListTab(params.get('tab'));
-        const savedTab = parseExchangeListTab(window.localStorage.getItem(ACTIVE_TAB_STORAGE_KEY));
 
-        // Mark as first visit when neither a URL tab param nor a stored preference
-        // exists so we can apply a smarter default once exchange counts are known.
-        if (!urlTab && !savedTab)
-        {
-            isFirstVisitRef.current = true;
-        }
-
-        setActiveListTab(urlTab ?? savedTab ?? 'active');
+        setActiveListTab(urlTab ?? 'active');
 
         const deepLinkedId = params.get('s');
         const deepLinkedDocumentId = params.get('d');
@@ -245,26 +217,6 @@ const Exchanges: React.FC = () =>
             deepLinkedDocumentIdRef.current = deepLinkedDocumentId;
         }
     }, []);
-
-    useEffect(() =>
-    {
-        if (typeof window === 'undefined') return;
-        window.localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeListTab);
-    }, [activeListTab]);
-
-    // On a first visit (no saved tab preference), switch to the inbox tab once
-    // counts are available if there are incoming requests but nothing active yet.
-    useEffect(() =>
-    {
-        if (!isFirstVisitRef.current) return;
-        const total = tabCounts.inbox + tabCounts.active + tabCounts.archive;
-        if (total === 0) return; // counts not loaded yet
-        isFirstVisitRef.current = false;
-        if (tabCounts.inbox > 0)
-        {
-            setActiveListTab('inbox');
-        }
-    }, [tabCounts]);
 
     useEffect(() =>
     {
@@ -299,8 +251,6 @@ const Exchanges: React.FC = () =>
             const nextUrl = `${window.location.pathname}${nextSearch}`;
             window.history.replaceState(null, '', nextUrl);
         }
-
-        window.localStorage.setItem(LAST_ROUTE_QUERY_STORAGE_KEY, nextSearch);
     }, [activeListTab, selectedExchangeId, selectedExchangeDocument?.id]);
 
     useEffect(() =>
@@ -413,22 +363,13 @@ const Exchanges: React.FC = () =>
         setDetailsActiveTab('documents');
     }, [selectedExchangeId]);
 
+    // Ensure the correct list tab is active whenever an exchange is selected.
+    // This covers deep-linked exchanges, exchanges whose status changes via real-time
+    // events, and any other situation where the tab may not match the exchange's status.
     useEffect(() =>
     {
-        if (exchangeDetails)
-        {
-            setIsExchangeEnded(
-                exchangeDetails.status == ExchangeStatus.ENDED ||
-                exchangeDetails.status == ExchangeStatus.RESCINDED
-            );
-        }
-    }, [exchangeDetails]);
-
-    useEffect(() =>
-    {
-        const deepLinkedId = deepLinkedExchangeIdRef.current;
-        if (!deepLinkedId || !selectedExchangeId || !exchangeDetails) return;
-        if (selectedExchangeId !== deepLinkedId || exchangeDetails.id !== deepLinkedId) return;
+        if (!selectedExchangeId || !exchangeDetails) return;
+        if (exchangeDetails.id !== selectedExchangeId) return;
 
         let targetTab: ExchangeListTab = 'inbox';
         if (exchangeDetails.status === ExchangeStatus.ACCEPTED_STARTED)
@@ -449,20 +390,15 @@ const Exchanges: React.FC = () =>
             setActiveListTab(targetTab);
         }
 
-        // A newly-created (INITIATED) exchange deep-linked by its own initiator is
-        // an outgoing request. Switch to the outgoing inbox sub-tab so the exchange
-        // is visible without the user having to manually toggle the role selector.
-        if (
-            targetTab === 'inbox' &&
-            exchangeDetails.status === ExchangeStatus.INITIATED &&
-            appUser?.id != null &&
-            exchangeDetails.initiator?.id === appUser.id
-        )
+        // Update the parent's inbox role display state. An INITIATED exchange owned
+        // by the current user is an outgoing draft; others are incoming.
+        if (targetTab === 'inbox')
         {
-            setInboxRole('outgoing');
+            const isInitiator = appUser?.id != null && exchangeDetails.initiator?.id === appUser.id;
+            setInboxRole(isInitiator ? 'outgoing' : 'incoming');
         }
 
-        // Apply only once for the deep-link landing flow.
+        // Clear the deep-link ref now that we have applied the correct tab.
         deepLinkedExchangeIdRef.current = null;
     }, [exchangeDetails, selectedExchangeId, activeListTab]);
 
@@ -666,11 +602,6 @@ const Exchanges: React.FC = () =>
         setExchangeDetails(exchange);
     };
 
-    const handleStartSharingClick = () =>
-    {
-        sharingInitiationTriggerRef.current?.click();
-    };
-
     const getExchangeCountLabel = (count: number, type: 'active' | 'archived') =>
     {
         return `${count} ${type} ${count === 1 ? 'exchange' : 'exchanges'}`;
@@ -760,7 +691,7 @@ const Exchanges: React.FC = () =>
             allowDocumentUpload: !!exchange.allowDocumentUpload,
             exchangeDocuments: (exchange.documents || []).map(doc => ({
                 title: doc.title || '',
-                restrictedType: doc.restrictedType,
+                restrictedType: doc.restrictedType as (DocumentType | ImageType) | undefined,
                 restrictType: !!doc.restrictType,
             })),
             recipientUser: exchange.recipient,

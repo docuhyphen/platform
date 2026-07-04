@@ -470,7 +470,7 @@ class ExchangeUpdateService @Inject constructor(
         // Idempotent status updates avoid breaking refresh/retry UX for no-auth recipients.
         if (requestedStatus == session.status)
         {
-            return session
+            return toEnrichedNoAuthDto(session, sessionUUID)
         }
 
         if (session.status != ExchangeStatus.ACCEPTED_STARTED && session.status != ExchangeStatus.INITIATED)
@@ -559,7 +559,7 @@ class ExchangeUpdateService @Inject constructor(
                         "No-auth exchange {}: routed {} through acceptance workflow",
                         sessionUUID, requestedStatus,
                     )
-                    return refreshedSession
+                    return toEnrichedNoAuthDto(refreshedSession, sessionUUID)
                 }
             }
         }
