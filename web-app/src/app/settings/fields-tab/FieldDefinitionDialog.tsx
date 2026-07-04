@@ -8,17 +8,22 @@ import {
     DialogSurface,
     DialogTitle,
     Spinner,
+    Tooltip,
 } from '@fluentui/react-components';
+import {QuestionCircleRegular} from '@fluentui/react-icons';
 import {FieldDataClassification, FieldValueType} from '../../models/models';
 import {createFieldDefinition, FieldContractRequest} from '../../../services/fieldsService';
 import {typeSupportsOptions} from './fieldLabels';
 import FieldDefinitionFormBody, {FieldForm} from './FieldDefinitionFormBody';
+import {useFieldsTabStyles} from './FieldsTabStyles';
+import {useHelpSidebar} from '../../../context/HelpSidebarContext';
 
 interface Props
 {
     open: boolean;
     onClose: () => void;
     onSaved: () => void;
+    existingNamespaces?: string[];
 }
 
 const emptyForm = (): FieldForm => ({
@@ -31,8 +36,10 @@ const emptyForm = (): FieldForm => ({
     options: [],
 });
 
-const FieldDefinitionDialog = ({open, onClose, onSaved}: Props) =>
+const FieldDefinitionDialog = ({open, onClose, onSaved, existingNamespaces = []}: Props) =>
 {
+    const styles = useFieldsTabStyles();
+    const {openHelpArticle} = useHelpSidebar();
     const [form, setForm] = useState<FieldForm>(emptyForm());
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -97,9 +104,21 @@ const FieldDefinitionDialog = ({open, onClose, onSaved}: Props) =>
                     <DialogContent>
                         <FieldDefinitionFormBody form={form}
                                                  update={update}
-                                                 error={error}/>
+                                                 error={error}
+                                                 existingNamespaces={existingNamespaces}/>
                     </DialogContent>
                     <DialogActions>
+                        <div className={styles.dialogActionsStart}>
+                            <Tooltip content="View fields help article"
+                                     relationship="description">
+                                <Button id="field-def-help"
+                                        appearance="subtle"
+                                        shape="circular"
+                                        size="small"
+                                        icon={<QuestionCircleRegular/>}
+                                        onClick={() => openHelpArticle('fields-overview')}/>
+                            </Tooltip>
+                        </div>
                         <Button id="field-def-cancel"
                                 appearance="secondary"
                                 shape="circular"

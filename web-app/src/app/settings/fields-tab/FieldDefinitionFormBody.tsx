@@ -1,4 +1,4 @@
-import {Dropdown, Field, Input, Option, Textarea} from '@fluentui/react-components';
+import {Combobox, Dropdown, Field, Input, Option, Textarea} from '@fluentui/react-components';
 import {FieldDataClassification, FieldOption, FieldValueType} from '../../models/models';
 import {useFieldsTabStyles} from './FieldsTabStyles';
 import {CLASSIFICATION_LABELS, typeSupportsOptions, VALUE_TYPE_LABELS} from './fieldLabels';
@@ -20,9 +20,10 @@ interface Props
     form: FieldForm;
     update: (patch: Partial<FieldForm>) => void;
     error: string | null;
+    existingNamespaces?: string[];
 }
 
-const FieldDefinitionFormBody = ({form, update, error}: Props) =>
+const FieldDefinitionFormBody = ({form, update, error, existingNamespaces = []}: Props) =>
 {
     const styles = useFieldsTabStyles();
 
@@ -33,10 +34,19 @@ const FieldDefinitionFormBody = ({form, update, error}: Props) =>
                 <Field label="Namespace"
                        required
                        className={styles.grow}>
-                    <Input id="field-def-namespace"
-                           value={form.namespace}
-                           placeholder="e.g. common"
-                           onChange={(_, d) => update({namespace: d.value})}/>
+                    <Combobox id="field-def-namespace"
+                              freeform
+                              value={form.namespace}
+                              placeholder="e.g. common"
+                              onInput={(e) => update({namespace: (e.target as HTMLInputElement).value})}
+                              onOptionSelect={(_, d) => update({namespace: d.optionValue ?? ''})}>
+                        {existingNamespaces.map(ns => (
+                            <Option key={ns}
+                                    value={ns}>
+                                {ns}
+                            </Option>
+                        ))}
+                    </Combobox>
                 </Field>
                 <Field label="Field key"
                        required

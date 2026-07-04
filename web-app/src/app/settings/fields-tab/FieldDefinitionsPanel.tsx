@@ -1,4 +1,3 @@
-import {useEffect, useState} from 'react';
 import {
     Badge,
     Button,
@@ -11,79 +10,77 @@ import {
     Text,
 } from '@fluentui/react-components';
 import {DeleteRegular, MoreVerticalRegular} from '@fluentui/react-icons';
-import {AddIcon} from '../../components/IconBundles';
-import {FieldDefinitionDto, FieldLifecycleStatus} from '../../models/models';
-import {listFieldDefinitions, retireFieldDefinition} from '../../../services/fieldsService';
+import {FieldDefinitionDto, ViewMode} from '../../models/models';
 import {useFieldsTabStyles} from './FieldsTabStyles';
 import {VALUE_TYPE_LABELS} from './fieldLabels';
-import FieldDefinitionDialog from './FieldDefinitionDialog';
 
 interface Props
 {
+    definitions: FieldDefinitionDto[];
+    viewMode: ViewMode;
     canManage: boolean;
+    loading: boolean;
+    error: string | null;
+    onRetire: (definition: FieldDefinitionDto) => void;
 }
 
-const FieldDefinitionsPanel = ({canManage}: Props) =>
+const FieldDefinitionsPanel = ({definitions, viewMode, canManage, loading, error, onRetire}: Props) =>
 {
     const styles = useFieldsTabStyles();
-    const [definitions, setDefinitions] = useState<FieldDefinitionDto[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [dialogOpen, setDialogOpen] = useState(false);
 
-    const load = () =>
-    {
-        setLoading(true);
-        setError(null);
-        listFieldDefinitions()
-            .then(setDefinitions)
-            .catch(() => setError('Failed to load fields'))
-            .finally(() => setLoading(false));
-    };
+    if (loading) return <Spinner size="small"
+                                 label="Loading..."/>;
+    if (error) return <Text className={styles.errorText}>{error}</Text>;
+    if (definitions.length === 0) return <Text className={styles.emptyText}>No fields yet.</Text>;
 
-    useEffect(() => { load(); }, []);
-
-    const handleRetire = async (definition: FieldDefinitionDto) =>
-    {
-        await retireFieldDefinition(definition.id).catch(() => null);
-        load();
-    };
-
-    const activeDefinitions = definitions.filter(d => d.status !== FieldLifecycleStatus.RETIRED);
-
-    return (
-        <div className={styles.container}>
-            <div className={styles.headerRow}>
-                <Text size={300}
-                      className={styles.descriptionText}>
-                    Reusable business attributes. Compose them into schemas to attach to exchanges.
-                </Text>
-                {canManage && (
-                    <Button id="field-def-create-btn"
-                            appearance="secondary"
+    const renderActions = (definition: FieldDefinitionDto) =>
+        canManage ? (
+            <Menu>
+                <MenuTrigger disableButtonEnhancement>
+                    <Button id={`field-def-menu-${definition.id}`}
+                            appearance="subtle"
                             shape="circular"
-                            icon={<AddIcon/>}
-                            onClick={() => setDialogOpen(true)}>
-                        New field
-                    </Button>
-                )}
-            </div>
+                            size="small"
+                            icon={<MoreVerticalRegular/>}/>
+                </MenuTrigger>
+                <MenuPopover>
+                    <MenuList>
+                        <MenuItem icon={<DeleteRegular/>}
+                                  onClick={() => onRetire(definition)}>
+                            Retire
+                        </MenuItem>
+                    </MenuList>
+                </MenuPopover>
+            </Menu>
+        ) : null;
 
-            {loading && <Spinner size="small" label="Loading..."/>}
-            {!loading && error && <Text className={styles.errorText}>{error}</Text>}
-            {!loading && !error && activeDefinitions.length === 0 && (
-                <Text className={styles.emptyText}>No fields yet.</Text>
-            )}
-
-            <div className={styles.list}>
-                {activeDefinitions.map(definition => (
-                    <div key={definition.id}
-                         className={styles.card}>
-                        <div className={styles.cardMain}>
-                            <div className={styles.cardTitleRow}>
-                                <code className={styles.codeKey}>
+    if (viewMode === 'table')
+    {
+        return (
+            <table className={styles.table}>
+                <thead>
+                    <tr>
+                        <th className={styles.th}>Name</th>
+                        <th className={styles.th}>Key</th>
+                        <th className={styles.th}>Type</th>
+                        {canManage && <th className={styles.th}/>}
+                    </tr>
+                </thead>
+                <tbody>
+                    {definitions.map(definition => (
+                        <tr key={definition.id}
+                            className={styles.tr}>
+                            <td className={styles.td}>
+                                <Text weight="semibold">
+                                    {definition.latestContract?.label ?? definition.fieldKey}
+                                </Text>
+                            </td>
+                            <td className={styles.td}>
+                                <code className={styles.cardFieldKey}>
                                     {definition.namespace}:{definition.fieldKey}
                                 </code>
+                            </td>
+                            <td className={styles.td}>
                                 {definition.latestContract && (
                                     <Badge appearance="tint"
                                            color="informative"
@@ -91,40 +88,43 @@ const FieldDefinitionsPanel = ({canManage}: Props) =>
                                         {VALUE_TYPE_LABELS[definition.latestContract.valueType]}
                                     </Badge>
                                 )}
-                            </div>
-                            <Text size={200}
-                                  className={styles.subText}>
-                                {definition.latestContract?.label ?? '-'}
+                            </td>
+                            {canManage && (
+                                <td className={styles.td}>
+                                    {renderActions(definition)}
+                                </td>
+                            )}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        );
+    }
+
+    return (
+        <div className={styles.cardGrid}>
+            {definitions.map(definition => (
+                <div key={definition.id}
+                     className={styles.card}>
+                    <div className={styles.cardMain}>
+                        <Text className={styles.cardFieldName}
+                              title={definition.latestContract?.label ?? definition.fieldKey}>
+                            {definition.latestContract?.label ?? definition.fieldKey}
+                        </Text>
+                        <code className={styles.cardFieldKey}>
+                            {definition.namespace}:{definition.fieldKey}
+                        </code>
+                        {definition.latestContract && (
+                            <Text className={styles.cardFieldType}>
+                                {VALUE_TYPE_LABELS[definition.latestContract.valueType]}
                             </Text>
-                        </div>
-                        {canManage && (
-                            <div className={styles.actionGroup}>
-                                <Menu>
-                                    <MenuTrigger disableButtonEnhancement>
-                                        <Button id={`field-def-menu-${definition.id}`}
-                                                appearance="subtle"
-                                                shape="circular"
-                                                size="small"
-                                                icon={<MoreVerticalRegular/>}/>
-                                    </MenuTrigger>
-                                    <MenuPopover>
-                                        <MenuList>
-                                            <MenuItem icon={<DeleteRegular/>}
-                                                      onClick={() => handleRetire(definition)}>
-                                                Retire
-                                            </MenuItem>
-                                        </MenuList>
-                                    </MenuPopover>
-                                </Menu>
-                            </div>
                         )}
                     </div>
-                ))}
-            </div>
-
-            <FieldDefinitionDialog open={dialogOpen}
-                                   onClose={() => setDialogOpen(false)}
-                                   onSaved={() => { setDialogOpen(false); load(); }}/>
+                    <div className={styles.cardCol2}>
+                        {renderActions(definition)}
+                    </div>
+                </div>
+            ))}
         </div>
     );
 };

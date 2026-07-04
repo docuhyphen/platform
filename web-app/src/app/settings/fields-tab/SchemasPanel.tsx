@@ -1,12 +1,10 @@
-import {useEffect, useState} from 'react';
-import {Button, Spinner, Text} from '@fluentui/react-components';
-import {AddIcon} from '../../components/IconBundles';
-import {FieldDefinitionDto, FieldLifecycleStatus, SchemaDefinitionDto} from '../../models/models';
+import {forwardRef, useEffect, useImperativeHandle, useState} from 'react';
+import {Spinner, Text} from '@fluentui/react-components';
+import {FieldDefinitionDto, SchemaDefinitionDto, ViewMode} from '../../models/models';
 import {
     createSchemaDraftVersion,
     getSchema,
     listFieldDefinitions,
-    listSchemas,
     publishSchemaDraft,
     retireSchema,
 } from '../../../services/fieldsService';
@@ -14,107 +12,120 @@ import {useFieldsTabStyles} from './FieldsTabStyles';
 import SchemaEditorDialog from './SchemaEditorDialog';
 import SchemaCard from './SchemaCard';
 
-interface Props
+export interface SchemasPanelHandle
 {
-    canManage: boolean;
+    openCreate: () => void;
 }
 
-const SchemasPanel = ({canManage}: Props) =>
+interface Props
 {
-    const styles = useFieldsTabStyles();
-    const [schemas, setSchemas] = useState<SchemaDefinitionDto[]>([]);
-    const [definitions, setDefinitions] = useState<FieldDefinitionDto[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [editorOpen, setEditorOpen] = useState(false);
-    const [editing, setEditing] = useState<SchemaDefinitionDto | undefined>(undefined);
+    schemas: SchemaDefinitionDto[];
+    loading: boolean;
+    error: string | null;
+    viewMode: ViewMode;
+    canManage: boolean;
+    onRefresh: () => void;
+}
 
-    const load = () =>
+const SchemasPanel = forwardRef<SchemasPanelHandle, Props>(
+    ({schemas, loading, error, viewMode, canManage, onRefresh}, ref) =>
     {
-        setLoading(true);
-        setError(null);
-        Promise.all([listSchemas(), listFieldDefinitions()])
-            .then(([schemaList, definitionList]) => { setSchemas(schemaList); setDefinitions(definitionList); })
-            .catch(() => setError('Failed to load schemas'))
-            .finally(() => setLoading(false));
-    };
+        const styles = useFieldsTabStyles();
+        const [definitions, setDefinitions] = useState<FieldDefinitionDto[]>([]);
+        const [editorOpen, setEditorOpen] = useState(false);
+        const [editing, setEditing] = useState<SchemaDefinitionDto | undefined>(undefined);
 
-    useEffect(() => { load(); }, []);
+        useEffect(() =>
+        {
+            listFieldDefinitions().then(setDefinitions).catch(() => null);
+        }, []);
 
-    const openCreate = () => { setEditing(undefined); setEditorOpen(true); };
+        const openCreate = () => { setEditing(undefined); setEditorOpen(true); };
 
-    const openEdit = async (schema: SchemaDefinitionDto) =>
-    {
-        const fresh = schema.draftVersion ? schema : await getSchema(schema.id).catch(() => schema);
-        setEditing(fresh);
-        setEditorOpen(true);
-    };
+        useImperativeHandle(ref, () => ({openCreate}));
 
-    const handlePublish = async (schema: SchemaDefinitionDto) =>
-    {
-        await publishSchemaDraft(schema.id).catch(() => null);
-        load();
-    };
+        const openEdit = async (schema: SchemaDefinitionDto) =>
+        {
+            const fresh = schema.draftVersion ? schema : await getSchema(schema.id).catch(() => schema);
+            setEditing(fresh);
+            setEditorOpen(true);
+        };
 
-    const handleNewVersion = async (schema: SchemaDefinitionDto) =>
-    {
-        await createSchemaDraftVersion(schema.id).catch(() => null);
-        const fresh = await getSchema(schema.id).catch(() => undefined);
-        if (fresh) { setEditing(fresh); setEditorOpen(true); }
-        load();
-    };
+        const handlePublish = async (schema: SchemaDefinitionDto) =>
+        {
+            await publishSchemaDraft(schema.id).catch(() => null);
+            onRefresh();
+        };
 
-    const handleRetire = async (schema: SchemaDefinitionDto) =>
-    {
-        await retireSchema(schema.id).catch(() => null);
-        load();
-    };
+        const handleNewVersion = async (schema: SchemaDefinitionDto) =>
+        {
+            await createSchemaDraftVersion(schema.id).catch(() => null);
+            const fresh = await getSchema(schema.id).catch(() => undefined);
+            if (fresh) { setEditing(fresh); setEditorOpen(true); }
+            onRefresh();
+        };
 
-    const activeSchemas = schemas.filter(s => s.status !== FieldLifecycleStatus.RETIRED);
+        const handleRetire = async (schema: SchemaDefinitionDto) =>
+        {
+            await retireSchema(schema.id).catch(() => null);
+            onRefresh();
+        };
 
-    return (
-        <div className={styles.container}>
-            <div className={styles.headerRow}>
-                <Text size={300}
-                      className={styles.descriptionText}>
-                    Business schemas group fields into a case type that exchange creators can select.
-                </Text>
-                {canManage && (
-                    <Button id="schema-create-btn"
-                            appearance="secondary"
-                            shape="circular"
-                            icon={<AddIcon/>}
-                            onClick={openCreate}>
-                        New schema
-                    </Button>
+        if (loading) return <Spinner size="small"
+                                     label="Loading..."/>;
+        if (error) return <Text className={styles.errorText}>{error}</Text>;
+        if (schemas.length === 0) return <Text className={styles.emptyText}>No schemas yet.</Text>;
+
+        return (
+            <div id="schemas-panel">
+                {viewMode === 'table' ? (
+                    <table className={styles.table}>
+                        <thead>
+                            <tr>
+                                <th className={styles.th}>Name</th>
+                                <th className={styles.th}>Key</th>
+                                <th className={styles.th}>Status</th>
+                                {canManage && <th className={styles.th}/>}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {schemas.map(schema => (
+                                <SchemaCard key={schema.id}
+                                            schema={schema}
+                                            canManage={canManage}
+                                            viewMode="table"
+                                            onEdit={openEdit}
+                                            onPublish={handlePublish}
+                                            onNewVersion={handleNewVersion}
+                                            onRetire={handleRetire}/>
+                            ))}
+                        </tbody>
+                    </table>
+                ) : (
+                    <div className={styles.cardGrid}>
+                        {schemas.map(schema => (
+                            <SchemaCard key={schema.id}
+                                        schema={schema}
+                                        canManage={canManage}
+                                        viewMode="cards"
+                                        onEdit={openEdit}
+                                        onPublish={handlePublish}
+                                        onNewVersion={handleNewVersion}
+                                        onRetire={handleRetire}/>
+                        ))}
+                    </div>
                 )}
+
+                <SchemaEditorDialog open={editorOpen}
+                                    definitions={definitions}
+                                    schema={editing}
+                                    onClose={() => setEditorOpen(false)}
+                                    onSaved={() => { setEditorOpen(false); onRefresh(); }}/>
             </div>
+        );
+    },
+);
 
-            {loading && <Spinner size="small" label="Loading..."/>}
-            {!loading && error && <Text className={styles.errorText}>{error}</Text>}
-            {!loading && !error && activeSchemas.length === 0 && (
-                <Text className={styles.emptyText}>No schemas yet.</Text>
-            )}
-
-            <div className={styles.list}>
-                {activeSchemas.map(schema => (
-                    <SchemaCard key={schema.id}
-                                schema={schema}
-                                canManage={canManage}
-                                onEdit={openEdit}
-                                onPublish={handlePublish}
-                                onNewVersion={handleNewVersion}
-                                onRetire={handleRetire}/>
-                ))}
-            </div>
-
-            <SchemaEditorDialog open={editorOpen}
-                                definitions={definitions}
-                                schema={editing}
-                                onClose={() => setEditorOpen(false)}
-                                onSaved={() => { setEditorOpen(false); load(); }}/>
-        </div>
-    );
-};
+SchemasPanel.displayName = 'SchemasPanel';
 
 export default SchemasPanel;
