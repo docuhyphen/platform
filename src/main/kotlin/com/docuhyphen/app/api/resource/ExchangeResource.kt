@@ -19,6 +19,7 @@ import com.docuhyphen.app.api.resource.model.ExchangeInitiationDto
 import com.docuhyphen.app.api.resource.model.UpdateSessionShareRoleRequest
 import com.docuhyphen.app.api.resource.model.UpdateExchangeRequest
 import com.docuhyphen.app.api.service.exchange.*
+import com.docuhyphen.app.api.service.fields.FieldValidationException
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.workflow.WorkflowDefinitionService
 import com.docuhyphen.app.api.service.storage.FileStorageService
@@ -69,6 +70,7 @@ class ExchangeResource @Inject constructor(
         {
             when (exception)
             {
+                is FieldValidationException,
                 is IllegalArgumentException,
                 is InvalidEmailException,
                 is AppUserNotFoundException ->

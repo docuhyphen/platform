@@ -36,6 +36,22 @@ const FieldValueEditor = ({binding, value, onChange}: Props) =>
                             onChange={(_, d) => onChange(d.checked)}/>
                 );
             case FieldValueType.INTEGER:
+                return (
+                    <Input id={id}
+                           type="number"
+                           step={1}
+                           disabled={disabled}
+                           value={value === null || value === undefined ? '' : String(value)}
+                           onKeyDown={e =>
+                           {
+                               if (e.key === '.' || e.key === ',') e.preventDefault();
+                           }}
+                           onChange={(_, d) =>
+                           {
+                               const stripped = d.value.replace(/[.,]/g, '');
+                               onChange(stripped);
+                           }}/>
+                );
             case FieldValueType.DECIMAL:
                 return (
                     <Input id={id}

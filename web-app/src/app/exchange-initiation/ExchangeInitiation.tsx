@@ -597,7 +597,7 @@ const ExchangeInitiation: React.FC = () =>
         }
         catch (error)
         {
-            let errorMessage = error.response?.data || error.message;
+            let errorMessage = error.response?.data?.errorMessage || error.message;
 
             if (!errorMessage)
             {
