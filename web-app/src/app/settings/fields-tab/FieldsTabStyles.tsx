@@ -248,9 +248,8 @@ export const useFieldsTabStyles = makeStyles({
         padding: '8px 12px',
         verticalAlign: 'middle',
     },
-    dialogActionsStart: {
-        flex: '1',
+    dialogTitle: {
         display: 'flex',
-        alignItems: 'center',
+        justifyContent: "space-between"
     },
 });

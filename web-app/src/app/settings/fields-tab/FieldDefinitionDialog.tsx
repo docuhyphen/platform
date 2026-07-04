@@ -100,15 +100,9 @@ const FieldDefinitionDialog = ({open, onClose, onSaved, existingNamespaces = []}
                 onOpenChange={(_, d) => { if (!d.open) onClose(); }}>
             <DialogSurface>
                 <DialogBody>
-                    <DialogTitle>New field</DialogTitle>
-                    <DialogContent>
-                        <FieldDefinitionFormBody form={form}
-                                                 update={update}
-                                                 error={error}
-                                                 existingNamespaces={existingNamespaces}/>
-                    </DialogContent>
-                    <DialogActions>
-                        <div className={styles.dialogActionsStart}>
+                    <DialogTitle  className={styles.dialogTitle}>
+                        <span> New field </span>
+                        <div>
                             <Tooltip content="View fields help article"
                                      relationship="description">
                                 <Button id="field-def-help"
@@ -119,6 +113,14 @@ const FieldDefinitionDialog = ({open, onClose, onSaved, existingNamespaces = []}
                                         onClick={() => openHelpArticle('fields-overview')}/>
                             </Tooltip>
                         </div>
+                    </DialogTitle>
+                    <DialogContent>
+                        <FieldDefinitionFormBody form={form}
+                                                 update={update}
+                                                 error={error}
+                                                 existingNamespaces={existingNamespaces}/>
+                    </DialogContent>
+                    <DialogActions>
                         <Button id="field-def-cancel"
                                 appearance="secondary"
                                 shape="circular"
