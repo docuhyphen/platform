@@ -81,8 +81,8 @@ data class ExchangeDetailedDto(
     val name: String?,
     val initialShareMessage: String? = null,
     val description: String? = null,
-    val initiator: AppUserDetailedDto? = null,
-    val recipient: AppUserDetailedDto? = null,
+    val initiator: AppUserPublicDto? = null,
+    val recipient: AppUserPublicDto? = null,
     val recipientGroupName: String? = null,
     val status: String?,
     var requestRecipientSignIn: Boolean = false,
@@ -146,7 +146,7 @@ data class DocumentAuditDetailedDto(
     @Serializable(with = TimestampSerializer::class)
     val timestamp: Timestamp?,
     val action: String?,
-    val performedBy: AppUserDetailedDto?,
+    val performedBy: AppUserPublicDto?,
     val performedByEmail: String?
 )
 

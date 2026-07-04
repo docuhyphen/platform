@@ -9,7 +9,7 @@ import {
     RadioGroup,
     Spinner
 } from "@fluentui/react-components";
-import {AppUserDetailedDto} from "../../../../models/models.tsx";
+import {AppUserPublicDto} from "../../../../models/models.tsx";
 import {
     fetchMyOrganizationGroups,
     fetchMyOrganizationUsers,
@@ -25,12 +25,12 @@ import {
 
 interface MyOrganizationRecipientsProps
 {
-    setRecipientOrgUser: (user: AppUserDetailedDto | undefined) => void;
+    setRecipientOrgUser: (user: AppUserPublicDto | undefined) => void;
     setRecipientOrgGroup: (group: OrganizationGroupBasicDto | undefined) => void;
-    recipientOrgUser?: AppUserDetailedDto;
+    recipientOrgUser?: AppUserPublicDto;
     recipientOrgGroup?: OrganizationGroupBasicDto;
-    internalParticipants?: AppUserDetailedDto[];
-    setInternalParticipants?: (users: AppUserDetailedDto[]) => void;
+    internalParticipants?: AppUserPublicDto[];
+    setInternalParticipants?: (users: AppUserPublicDto[]) => void;
 }
 
 enum ShareWithMode
@@ -39,8 +39,8 @@ enum ShareWithMode
     GROUP = "withOrgGroup"
 }
 
-const toPersonPickerItem = (user: AppUserDetailedDto): PersonPickerItem => ({
-    id: user.id ?? "",
+const toPersonPickerItem = (user: AppUserPublicDto): PersonPickerItem => ({
+    id: user.id,
     email: user.email,
     firstName: user.person?.firstName,
     lastName: user.person?.lastName,
@@ -60,11 +60,11 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
     const {appUser} = useAuth()
     const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
     const [isLoadingGroups, setIsLoadingGroups] = useState<boolean>(false);
-    const [myOrgUsers, setMyOrgUsers] = useState<AppUserDetailedDto[]>([]);
+    const [myOrgUsers, setMyOrgUsers] = useState<AppUserPublicDto[]>([]);
     const [myOrgGroups, setMyOrgGroups] = useState<any[]>([]);
-    const [selectedOrgUser, setSelectedOrgUser] = useState<AppUserDetailedDto | null>(null);
+    const [selectedOrgUser, setSelectedOrgUser] = useState<AppUserPublicDto | null>(null);
     const [selectedOrgGroup, setSelectedOrgGroup] = useState<OrganizationGroupBasicDto | null>(null);
-    const [selectedInternalRecipients, setSelectedInternalParticipants] = useState<AppUserDetailedDto[]>([]);
+    const [selectedInternalRecipients, setSelectedInternalParticipants] = useState<AppUserPublicDto[]>([]);
     const [shareWith, setShareWith] = useState<ShareWithMode>(ShareWithMode.INDIVIDUAL);
     const [userSearchQuery, setUserSearchQuery] = useState<string>("");
     const [groupSearchQuery, setGroupSearchQuery] = useState<string>("");
@@ -131,7 +131,7 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
         loadMyOrganizationGroups();
     }, []);
 
-    const formatUserDisplay = (user: AppUserDetailedDto | null | undefined) =>
+    const formatUserDisplay = (user: AppUserPublicDto | null | undefined) =>
     {
         if (!user) return "";
         const firstName = user.person?.firstName || '';
@@ -236,8 +236,8 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
 
         if (selectedUser && selectedUser.id !== appUser?.id)
         {
-            const firstName = selectedUser.person.firstName;
-            const lastName = selectedUser.person.lastName;
+            const firstName = selectedUser.person?.firstName ?? '';
+            const lastName = selectedUser.person?.lastName ?? '';
             const email = selectedUser.email;
 
             const query = `${firstName} ${lastName} (${email})`;

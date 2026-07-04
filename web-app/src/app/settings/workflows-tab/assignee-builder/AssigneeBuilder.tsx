@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useState} from "react";
 import {Button, Select, Text} from "@fluentui/react-components";
 import {
-    AppUserDetailedDto,
+    AppUserPublicDto,
     AssigneeKind,
     AssigneeSpecDraft,
     WorkflowSubjectFieldDto,
@@ -70,8 +70,8 @@ interface Props
     subjectFields?: WorkflowSubjectFieldDto[];
 }
 
-const toPersonPickerItem = (user: AppUserDetailedDto): PersonPickerItem => ({
-    id: user.id ?? "",
+const toPersonPickerItem = (user: AppUserPublicDto): PersonPickerItem => ({
+    id: user.id,
     email: user.email,
     firstName: user.person?.firstName,
     lastName: user.person?.lastName,
@@ -84,7 +84,7 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
     const {appUserPersonOrganization} = useAuth();
     const orgId = appUserPersonOrganization?.id;
 
-    const [users, setUsers] = useState<AppUserDetailedDto[]>([]);
+    const [users, setUsers] = useState<AppUserPublicDto[]>([]);
     const [groups, setGroups] = useState<OrganizationGroupBasicDto[]>([]);
     const [personQueries, setPersonQueries] = useState<Record<number, string>>({});
 
@@ -92,7 +92,7 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
     {
         if (!orgId) return;
         const [u, g] = await Promise.all([
-            fetchOrganizationUsers(orgId).catch(() => [] as AppUserDetailedDto[]),
+            fetchOrganizationUsers(orgId).catch(() => [] as AppUserPublicDto[]),
             fetchOrganizationGroups(orgId).catch(() => [] as OrganizationGroupBasicDto[]),
         ]);
         setUsers(u);

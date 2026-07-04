@@ -13,7 +13,7 @@ import {
     Spinner, Text
 } from "@fluentui/react-components";
 import {
-    AppUserDetailedDto,
+    AppUserPublicDto,
     ResponseError
 } from "../../../models/models.tsx";
 import {
@@ -28,7 +28,7 @@ interface AppUserDeactivateDialogProps
 {
     isOpen: boolean;
     onDismiss: () => void;
-    appUser: AppUserDetailedDto
+    appUser: AppUserPublicDto
     organizationId: string
     onDeactivated: (appUserId: string) => void;
     onDeleted: (appUserId: string) => void;

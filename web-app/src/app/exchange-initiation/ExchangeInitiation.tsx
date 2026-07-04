@@ -662,6 +662,7 @@ const ExchangeInitiation: React.FC = () =>
         setAllowDocumentDownload(false);
         setAllowDocumentUpdate(false);
         setAllowDocumentUpload(false);
+        setAllowedDownloadFormats(undefined);
         setRequestingDocuments(true);
         setDocuments([]);
         setSelectedTab('recipients-tab');
@@ -673,6 +674,8 @@ const ExchangeInitiation: React.FC = () =>
         setFieldValueMap({});
         setFieldBindings([]);
         setSchemaFromBlueprint(false);
+        setVariableOverrides({});
+        setPendingVariableTokens([]);
     };
 
     const onCancelInitiation = () =>
@@ -685,6 +688,14 @@ const ExchangeInitiation: React.FC = () =>
     {
         if (data.open)
         {
+            // Reset only the result/success state so stale details are never shown when
+            // reopening. The trigger callbacks (onRequestingDocumentsChange, onChooseBlueprint)
+            // run in the same batched event and set their own state independently, so we must
+            // not touch choosingBlueprint or requestingDocuments here.
+            setExchangeInitiatedSuccessfully(false);
+            setCreatedExchangeSummary(null);
+            setCopyLinkStatus('idle');
+            setMessageGroupMessages([]);
             getAvailableVariables().then(setAvailableVariables).catch(() => null);
             listSchemas()
                 .then(all => setEligibleSchemas(filterEligibleExchangeSchemas(all)))
@@ -693,8 +704,6 @@ const ExchangeInitiation: React.FC = () =>
         else
         {
             resetInitiationForm();
-            setVariableOverrides({});
-            setPendingVariableTokens([]);
         }
         setIsDialogOpen(data.open);
     };

@@ -140,3 +140,25 @@ data class LinkedOrgAppUserPersonDto(
     val firstName: String,
     val lastName: String,
 )
+
+/**
+ * Safe public view of another user. Never includes private settings, notification preferences,
+ * identification numbers, or contact details. Used anywhere one user can see another user's data.
+ */
+@Serializable
+data class PersonPublicDto(
+    val firstName: String? = null,
+    val lastName: String? = null,
+)
+
+@Serializable
+data class AppUserPublicDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID,
+    val email: String,
+    val person: PersonPublicDto? = null,
+    val avatarUrl: String? = null,
+    val isActive: Boolean = true,
+    val appRoles: List<String> = emptyList(),
+    val organizationRoles: List<String> = emptyList(),
+)

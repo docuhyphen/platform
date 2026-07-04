@@ -1,6 +1,6 @@
 ﻿import {Subject} from 'rxjs';
 import {
-    AppUserDetailedDto,
+    AppUserPublicDto,
     ExchangeBasicDto,
     ExchangeDetailedDto,
     ExchangeRequestDocumentRequest
@@ -24,7 +24,7 @@ export interface RecreateRejectedExchangeDraft
     allowDocumentUpload: boolean;
     allowedDownloadFormats?: string[];
     exchangeDocuments: ExchangeRequestDocumentRequest[];
-    recipientUser?: AppUserDetailedDto;
+    recipientUser?: AppUserPublicDto;
     recipientEmail?: string;
     recipientFirstName?: string;
     recipientLastName?: string;

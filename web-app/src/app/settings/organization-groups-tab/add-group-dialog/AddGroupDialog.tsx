@@ -23,15 +23,15 @@ import {
 import React, {useEffect, useRef, useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import {addOrganizationGroup, fetchMyOrganizationUsers} from "../../../../services/organizationApi.ts";
-import {AppUserDetailedDto} from "../../../models/models.tsx";
+import {AppUserPublicDto} from "../../../models/models.tsx";
 import {useAddGroupDialogStyles} from "./AddGroupDialogStyles.tsx";
 import {DeleteRegular} from "@fluentui/react-icons";
 import {PrincipalGroupRoleDisplayNames, PrincipalGroupRoleName} from "../../../../services/types/roles";
 import MultiPersonPicker from "../../../components/person-picker/multi-person-picker/MultiPersonPicker.tsx";
 import {PersonPickerItem} from "../../../components/person-picker/personPickerTypes.ts";
 
-const toPersonPickerItem = (user: AppUserDetailedDto): PersonPickerItem => ({
-    id: user.id ?? "",
+const toPersonPickerItem = (user: AppUserPublicDto): PersonPickerItem => ({
+    id: user.id,
     email: user.email,
     firstName: user.person?.firstName,
     lastName: user.person?.lastName,
@@ -57,7 +57,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
     const styles = useAddGroupDialogStyles();
     const {token, appUser} = useAuth();
     const [name, setName] = useState("");
-    const [users, setUsers] = useState<AppUserDetailedDto[]>([]);
+    const [users, setUsers] = useState<AppUserPublicDto[]>([]);
     const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
     const [memberRoles, setMemberRoles] = useState<Map<string, PrincipalGroupRoleName>>(new Map());
     const [savingData, setSavingData] = useState(false);
@@ -181,7 +181,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
 
     const pickerOptions = users.filter(u =>
     {
-        const uid = String(u.id ?? "");
+        const uid = u.id;
         if (selectedMembers.has(uid)) return false;
         if (!addMemberFilteredQuery) return true;
         const q = addMemberFilteredQuery.toLowerCase();
@@ -189,7 +189,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
         return fullName.includes(q) || u.email.toLowerCase().includes(q);
     });
 
-    const memberUsers = users.filter(u => selectedMembers.has(String(u.id ?? "")));
+    const memberUsers = users.filter(u => selectedMembers.has(u.id));
 
     const onMemberSelectionChange = (selectedIds: string[]) =>
     {
@@ -271,7 +271,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
                                             <TableBody>
                                                 {memberUsers.map(user =>
                                                 {
-                                                    const uid = String(user.id ?? "");
+                                                    const uid = user.id;
                                                     return (
                                                         <TableRow key={uid}>
                                                             <TableCell

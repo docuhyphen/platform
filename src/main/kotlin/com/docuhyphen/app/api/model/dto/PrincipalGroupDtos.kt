@@ -10,7 +10,7 @@ import java.util.UUID
 /** A member of a [com.docuhyphen.app.api.model.entity.PrincipalGroup], role-based (new model). */
 @Serializable
 data class PrincipalGroupMemberDto(
-    val user: AppUserDetailedDto?,
+    val user: AppUserPublicDto?,
     val groupRole: PrincipalGroupRoleName,
 )
 

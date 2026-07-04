@@ -7,7 +7,7 @@ import {
     Spinner,
     Text
 } from "@fluentui/react-components";
-import {AppUserDetailedDto} from "../../../../models/models.tsx";
+import {AppUserPublicDto} from "../../../../models/models.tsx";
 import {fetchRecentContacts, searchContacts, UserContactDto} from "../../../../../services/personalContactsApi";
 import {ExchangeNewMainRecipient} from "../new-recipient/NewRecipient";
 import NewRecipient from "../new-recipient/NewRecipient";
@@ -22,12 +22,12 @@ import {PersonPickerItem} from "../../../../components/person-picker/personPicke
 interface PeopleRecipientsProps
 {
     isRequestingDocuments: boolean | null | undefined;
-    recipientOrgUser: AppUserDetailedDto | undefined;
-    setRecipientOrgUser: (user: AppUserDetailedDto | undefined) => void;
+    recipientOrgUser: AppUserPublicDto | undefined;
+    setRecipientOrgUser: (user: AppUserPublicDto | undefined) => void;
     newRecipient: ExchangeNewMainRecipient | undefined;
     setNewRecipient: (recipient: ExchangeNewMainRecipient) => void;
-    internalParticipants: AppUserDetailedDto[] | undefined;
-    setInternalParticipants?: (users: AppUserDetailedDto[]) => void;
+    internalParticipants: AppUserPublicDto[] | undefined;
+    setInternalParticipants?: (users: AppUserPublicDto[]) => void;
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -84,10 +84,10 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
     const [isSearching, setIsSearching] = useState<boolean>(false);
     const [isLoadingRecents, setIsLoadingRecents] = useState<boolean>(false);
     const [showEmailFallback, setShowEmailFallback] = useState<boolean>(false);
-    const [orgUsers, setOrgUsers] = useState<AppUserDetailedDto[]>([]);
+    const [orgUsers, setOrgUsers] = useState<AppUserPublicDto[]>([]);
     const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
     const [usersLoaded, setUsersLoaded] = useState<boolean>(false);
-    const [selectedInternalRecipients, setSelectedInternalParticipants] = useState<AppUserDetailedDto[]>([]);
+    const [selectedInternalRecipients, setSelectedInternalParticipants] = useState<AppUserPublicDto[]>([]);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const selfEmail = normalizeEmail(appUser?.email);
@@ -258,14 +258,18 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
         if (contact.contactAppUserId)
         {
             // Existing real user, set recipientOrgUser (recipientType=APP_USER on submit).
-            const fauxAppUser = {
+            const fauxAppUser: AppUserPublicDto = {
                 id: contact.contactAppUserId,
                 email: contact.email,
                 person: {
                     firstName: contact.firstName ?? '',
                     lastName: contact.lastName ?? '',
                 },
-            } as unknown as AppUserDetailedDto;
+                avatarUrl: contact.avatarUrl,
+                isActive: true,
+                appRoles: [],
+                organizationRoles: [],
+            };
             setRecipientOrgUser(fauxAppUser);
             setNewRecipient({email: '', firstName: '', lastName: ''});
             setQuery(formatDisplayName(contact));

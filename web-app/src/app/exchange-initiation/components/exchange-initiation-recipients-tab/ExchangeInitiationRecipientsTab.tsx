@@ -1,7 +1,7 @@
 ﻿import React, {useEffect, useRef} from 'react';
 import {Badge, Dropdown, Field, InfoLabel, Option, Radio, RadioGroup, Text} from "@fluentui/react-components";
 import {useExchangeInitiationRecipientsTabStyles} from "./ExchangeInitiationRecipientsTabStyles.tsx";
-import {AppUserDetailedDto, OrganizationBasicDto} from "../../../models/models.tsx";
+import {AppUserPublicDto, OrganizationBasicDto} from "../../../models/models.tsx";
 import {OrganizationGroupBasicDto} from "../../../../services/organizationApi";
 import MyOrganizationRecipients from "./my-organization-recipients/MyOrganizationRecipients";
 import ExternalOrganizationRecipients from "./external-organization-recipients/ExternalOrganizationRecipients";
@@ -34,12 +34,12 @@ interface ExchangeRecipientsTabProps
     setRecipientMode: (mode: ExchangeInitiationRecipientMode) => void;
     recipientOrg: OrganizationBasicDto | undefined;
     setRecipientOrg: (org: OrganizationBasicDto | undefined) => void;
-    recipientOrgUser: AppUserDetailedDto | undefined;
-    setRecipientOrgUser: (user: AppUserDetailedDto | undefined) => void;
+    recipientOrgUser: AppUserPublicDto | undefined;
+    setRecipientOrgUser: (user: AppUserPublicDto | undefined) => void;
     recipientOrgGroup: OrganizationGroupBasicDto | undefined;
     setRecipientOrgGroup: (group: OrganizationGroupBasicDto | undefined) => void;
-    internalParticipants: AppUserDetailedDto[];
-    setInternalParticipants: (appUser: AppUserDetailedDto[] | undefined) => void;
+    internalParticipants: AppUserPublicDto[];
+    setInternalParticipants: (appUser: AppUserPublicDto[] | undefined) => void;
     newRecipient: ExchangeNewMainRecipient | undefined;
     setNewRecipient: (recipient: ExchangeNewMainRecipient | undefined) => void;
     isRequestingDocuments: boolean | null | undefined;
@@ -57,9 +57,9 @@ const ExchangeInitiationRecipientsTab: React.FC<ExchangeRecipientsTabProps> = (p
 
     type RecipientModeSnapshot = {
         recipientOrg?: OrganizationBasicDto;
-        recipientOrgUser?: AppUserDetailedDto;
+        recipientOrgUser?: AppUserPublicDto;
         recipientOrgGroup?: OrganizationGroupBasicDto;
-        internalParticipants?: AppUserDetailedDto[];
+        internalParticipants?: AppUserPublicDto[];
         newRecipient?: ExchangeNewMainRecipient;
     };
 

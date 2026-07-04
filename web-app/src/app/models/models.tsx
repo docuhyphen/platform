@@ -404,8 +404,8 @@ export interface ExchangeDetailedDto
     name?: string;
     initialShareMessage?: string;
     description?: string;
-    initiator?: AppUserDetailedDto;
-    recipient?: AppUserDetailedDto;
+    initiator?: AppUserPublicDto;
+    recipient?: AppUserPublicDto;
     recipientGroupName?: string;
     status?: ExchangeStatus;
     documents?: DocumentDetailedDto[];
@@ -466,6 +466,27 @@ export interface AppUserDetailedDto
     settings: AppUserSettingsDto
     identityProviders?: IdentityProviderLinkDto[]
     avatarUrl?: string | null
+}
+
+/**
+ * Safe public view of another user returned by the API. Never includes private settings,
+ * notification preferences, identification numbers, or contact details.
+ */
+export interface PersonPublicDto
+{
+    firstName?: string;
+    lastName?: string;
+}
+
+export interface AppUserPublicDto
+{
+    id: string;
+    email: string;
+    person?: PersonPublicDto;
+    avatarUrl?: string | null;
+    isActive: boolean;
+    appRoles: string[];
+    organizationRoles: string[];
 }
 
 export enum Capability
@@ -706,7 +727,7 @@ export interface DocumentAuditDetailedDto
     id?: string;
     timestamp?: string;
     action?: string;
-    performedBy?: AppUserDetailedDto;
+    performedBy?: AppUserPublicDto;
     performedByEmail?: string;
 }
 

@@ -1,7 +1,7 @@
 ﻿import React, {useEffect, useState} from 'react';
 import {Field, InfoLabel, Input} from "@fluentui/react-components";
 import {useExchangeInitiationRecipientsTabStyles} from "../ExchangeInitiationRecipientsTabStyles.tsx";
-import {AppUserDetailedDto} from "../../../../models/models.tsx";
+import {AppUserPublicDto} from "../../../../models/models.tsx";
 import MyOrgRecipients from "../MyOrgRecipients.tsx";
 import {fetchMyOrganizationUsers} from "../../../../../services/organizationApi";
 import {useAuth} from "../../../../../context/AuthContext.tsx";
@@ -18,8 +18,8 @@ interface NewRecipientProps
     isRequestingDocuments: boolean | null | undefined;
     setNewRecipient: (recipient: ExchangeNewMainRecipient) => void;
     newRecipient?: ExchangeNewMainRecipient;
-    internalParticipants?: AppUserDetailedDto[];
-    setInternalParticipants?: (users: AppUserDetailedDto[]) => void;
+    internalParticipants?: AppUserPublicDto[];
+    setInternalParticipants?: (users: AppUserPublicDto[]) => void;
 }
 
 const NewRecipient: React.FC<NewRecipientProps> = (
@@ -39,8 +39,8 @@ const NewRecipient: React.FC<NewRecipientProps> = (
     });
 
     const {appUser, appUserPersonOrganization} = useAuth()
-    const [selectedInternalRecipients, setSelectedInternalParticipants] = useState<AppUserDetailedDto[]>([]);
-    const [orgUsers, setOrgUsers] = useState<AppUserDetailedDto[]>([]);
+    const [selectedInternalRecipients, setSelectedInternalParticipants] = useState<AppUserPublicDto[]>([]);
+    const [orgUsers, setOrgUsers] = useState<AppUserPublicDto[]>([]);
     const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
     const [usersLoaded, setUsersLoaded] = useState<boolean>(false);
 

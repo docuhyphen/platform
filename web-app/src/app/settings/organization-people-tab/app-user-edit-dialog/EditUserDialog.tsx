@@ -16,7 +16,7 @@ import {
 } from "@fluentui/react-components";
 import React, {useEffect, useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
-import {AppUserDetailedDto} from "../../../models/models.tsx";
+import {AppUserPublicDto} from "../../../models/models.tsx";
 import {
     OrganizationRoleDisplayNames,
     OrganizationRoleName,
@@ -30,7 +30,7 @@ interface EditUserDialogProps
     isOpen: boolean;
     onDismiss: () => void;
     organizationId: string;
-    user: AppUserDetailedDto | null;
+    user: AppUserPublicDto | null;
     onComplete: () => void;
 }
 

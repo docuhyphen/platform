@@ -733,7 +733,7 @@ class ExchangeResource @Inject constructor(
         if (recipientUserId != null)
         {
             val recipient = appUserService.getById(recipientUserId) ?: return sessionDto
-            return sessionDto.copy(recipient = com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer.toDto(recipient))
+            return sessionDto.copy(recipient = com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer.toPublicDto(recipient))
         }
         val recipientGroupId = shareService.primaryRecipientGroupIdForDisplay(sessionDto.id) ?: return sessionDto
         val groupName = principalGroupRepository.findById(recipientGroupId)?.name ?: return sessionDto

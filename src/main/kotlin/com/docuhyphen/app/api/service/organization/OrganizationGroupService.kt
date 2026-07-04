@@ -443,7 +443,7 @@ class OrganizationGroupService @Inject constructor(
     {
         val members = principalGroupMemberRepository.findActiveMembers(group.id).map { member ->
             val user = if (member.principalKind == PrincipalKind.USER)
-                appUserService.getById(member.principalId)?.let { DetailedEntityToDtoTransformer.toDto(it) }
+                appUserService.getById(member.principalId)?.let { DetailedEntityToDtoTransformer.toPublicDto(it) }
             else null
             PrincipalGroupMemberDto(user = user, groupRole = member.groupRole)
         }

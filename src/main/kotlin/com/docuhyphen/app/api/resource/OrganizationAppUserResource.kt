@@ -65,7 +65,7 @@ class OrganizationAppUserResource @Inject constructor(
 
             return Response
                 .status(CREATED)
-                .entity(DetailedEntityToDtoTransformer.toDto(appUser))
+                .entity(DetailedEntityToDtoTransformer.toPublicDto(appUser))
                 .build()
         }
         catch (exception: Exception)
@@ -118,7 +118,7 @@ class OrganizationAppUserResource @Inject constructor(
             // organizationId is a valid org UUID here (getAppUsers validates/resolves it first).
             val roles = organizationMembershipService.rolesOf(UUID.fromString(organizationId))
             val appUsers = members
-                .map { DetailedEntityToDtoTransformer.toDto(it, roles[it.id].orEmpty()) }
+                .map { DetailedEntityToDtoTransformer.toPublicDto(it, roles[it.id].orEmpty()) }
                 .toTypedArray()
 
             Response

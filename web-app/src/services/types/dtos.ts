@@ -1,7 +1,7 @@
 ﻿/**
  * Shared TypeScript interfaces mirroring backend DTOs.
  */
-import {AppUserDetailedDto} from '../../app/models/models';
+import {AppUserPublicDto} from '../../app/models/models';
 import {ExchangeShareRoleName, PrincipalGroupRoleName} from './roles';
 
 // ── Exchange Access ──
@@ -100,7 +100,7 @@ export interface PrincipalGroupDto
 
 export interface PrincipalGroupMemberDto
 {
-    user?: AppUserDetailedDto;
+    user?: AppUserPublicDto;
     groupRole: PrincipalGroupRoleName;
 }
 

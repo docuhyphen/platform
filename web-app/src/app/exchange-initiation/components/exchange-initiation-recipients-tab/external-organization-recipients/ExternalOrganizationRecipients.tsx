@@ -8,7 +8,7 @@ import {
     OptionOnSelectData,
     Spinner
 } from "@fluentui/react-components";
-import {AppUserDetailedDto, OrganizationBasicDto} from "../../../../models/models.tsx";
+import {AppUserPublicDto, OrganizationBasicDto} from "../../../../models/models.tsx";
 import {
     fetchOrganizationUsers,
     fetchPairedOrganizationGroups,
@@ -22,13 +22,13 @@ import {useAuth} from "../../../../../context/AuthContext.tsx";
 interface ExternalOrganizationRecipientsProps
 {
     recipientOrg: OrganizationBasicDto | undefined;
-    recipientOrgUser: AppUserDetailedDto | undefined;
+    recipientOrgUser: AppUserPublicDto | undefined;
     recipientOrgGroup: OrganizationGroupBasicDto | undefined;
-    internalParticipants: AppUserDetailedDto[] | undefined;
+    internalParticipants: AppUserPublicDto[] | undefined;
     setRecipientOrg: (org: OrganizationBasicDto | undefined) => void;
-    setRecipientOrgUser: (user: AppUserDetailedDto | undefined) => void;
+    setRecipientOrgUser: (user: AppUserPublicDto | undefined) => void;
     setRecipientOrgGroup: (group: OrganizationGroupBasicDto | undefined) => void;
-    setInternalParticipants?: (users: AppUserDetailedDto[]) => void;
+    setInternalParticipants?: (users: AppUserPublicDto[]) => void;
 }
 
 enum ShareWithMode
@@ -55,8 +55,8 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
     const [isLoadingGroups, setIsLoadingGroups] = useState<boolean>(false);
     const [selectedOrg, setSelectedOrg] = useState<OrganizationBasicDto | null>(null);
     const [selectedOrgGroup, setSelectedOrgGroup] = useState<OrganizationGroupBasicDto | null>(null);
-    const [selectedOrgUser, setSelectedOrgUser] = useState<AppUserDetailedDto | null>(null);
-    const [selectedInternalRecipients, setSelectedInternalParticipants] = useState<AppUserDetailedDto[]>([]);
+    const [selectedOrgUser, setSelectedOrgUser] = useState<AppUserPublicDto | null>(null);
+    const [selectedInternalRecipients, setSelectedInternalParticipants] = useState<AppUserPublicDto[]>([]);
     // Trusted-org v1: when picking recipients in a paired org, only the org's
     // explicitly published groups are visible, never individual users. The mode
     // is therefore locked to GROUP and the Individual radio is hidden.
@@ -65,9 +65,9 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
     const [orgIndividualSearchQuery, setOrgIndividualSearchQuery] = useState<string>("");
     const [orgGroupSearchQuery, setOrgGroupSearchQuery] = useState<string>("");
     const [pairedOrgs, setPairedOrgs] = useState<OrganizationBasicDto[]>([]);
-    const [orgUsers, setOrgUsers] = useState<AppUserDetailedDto[]>([]);
+    const [orgUsers, setOrgUsers] = useState<AppUserPublicDto[]>([]);
     const [orgGroups, setOrgGroups] = useState<OrganizationGroupBasicDto[]>([]);
-    const [myOrgUsers, setMyOrgUsers] = useState<AppUserDetailedDto[]>([]);
+    const [myOrgUsers, setMyOrgUsers] = useState<AppUserPublicDto[]>([]);
 
     const filteredPairedOrgs = pairedOrgs
         .filter(org => !orgSearchQuery || org.name.toLowerCase().includes(orgSearchQuery.toLowerCase()))
@@ -83,13 +83,13 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
         .filter(orgUser => orgUser.id !== appUser?.id)
         .filter(orgUser => !orgIndividualSearchQuery ||
             (orgUser.email.toLowerCase().includes(orgIndividualSearchQuery.toLowerCase()) ||
-                orgUser.person.firstName?.toLowerCase().includes(orgIndividualSearchQuery.toLowerCase()) ||
-                orgUser.person.lastName?.toLowerCase().includes(orgIndividualSearchQuery.toLowerCase())))
+                (orgUser.person?.firstName ?? '').toLowerCase().includes(orgIndividualSearchQuery.toLowerCase()) ||
+                (orgUser.person?.lastName ?? '').toLowerCase().includes(orgIndividualSearchQuery.toLowerCase())))
         .map(orgUser => (
             <Option key={orgUser.id}
                     text={orgUser.email}
                     value={orgUser.id}>
-                {`${orgUser.person.firstName} ${orgUser.person.lastName} (${orgUser.email})`}
+                {`${orgUser.person?.firstName ?? ''} ${orgUser.person?.lastName ?? ''} (${orgUser.email})`}
             </Option>
         ));
 
@@ -144,9 +144,9 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
         {
             if (recipientOrgUser.id !== appUser?.id)
             {
-                setSelectedOrgUser(recipientOrgUser as unknown as AppUserDetailedDto);
+                setSelectedOrgUser(recipientOrgUser);
                 setShareWith(ShareWithMode.INDIVIDUAL);
-                setOrgIndividualSearchQuery(`${recipientOrgUser.person?.firstName || ''} ${recipientOrgUser.person?.lastName || ''} (${recipientOrgUser.email})`);
+                setOrgIndividualSearchQuery(`${recipientOrgUser.person?.firstName ?? ''} ${recipientOrgUser.person?.lastName ?? ''} (${recipientOrgUser.email})`);
             }
         }
 
@@ -334,8 +334,8 @@ const ExternalOrganizationRecipients: React.FC<ExternalOrganizationRecipientsPro
 
         if (selectedOrgUser && selectedOrgUser.id !== appUser?.id)
         {
-            const firstName = selectedOrgUser.person.firstName;
-            const lastName = selectedOrgUser.person.lastName;
+            const firstName = selectedOrgUser.person?.firstName ?? '';
+            const lastName = selectedOrgUser.person?.lastName ?? '';
             const email = selectedOrgUser.email;
 
             const query = `${firstName} ${lastName} (${email})`;

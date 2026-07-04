@@ -1,6 +1,6 @@
 ﻿import apiClient, {addBearerToHeaderToken} from './apiClient';
 import {
-    AppUserDetailedDto,
+    AppUserPublicDto,
     Organization,
     OrganizationDetailedDto,
     OrganizationSettingsDto,
@@ -200,7 +200,7 @@ export const deleteOrganizationGroupIcon = async (
     }
 };
 
-export const fetchOrganizationUsers = async (organizationId: string, token?: string): Promise<AppUserDetailedDto[]> =>
+export const fetchOrganizationUsers = async (organizationId: string, token?: string): Promise<AppUserPublicDto[]> =>
 {
     try
     {
@@ -354,7 +354,7 @@ export const fetchPairedOrganizationGroups  = async (orgId?: string, token?: str
     }
 };
 
-export const fetchMyOrganizationUsers = async (token?: string): Promise<AppUserDetailedDto[]> =>
+export const fetchMyOrganizationUsers = async (token?: string): Promise<AppUserPublicDto[]> =>
 {
     try
     {

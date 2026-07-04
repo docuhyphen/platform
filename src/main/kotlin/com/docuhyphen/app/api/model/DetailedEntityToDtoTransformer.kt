@@ -89,7 +89,7 @@ class DetailedEntityToDtoTransformer
                         name = name,
                         initialShareMessage = initialShareMessage,
                         description = description,
-                        initiator = toDto(initiator),
+                        initiator = toPublicDto(initiator),
                         status = status.toString(),
                         requestRecipientSignIn = requireRecipientSignIn,
                         noAuthAccessValidityDays = noAuthAccessValidityDays,
@@ -131,6 +131,36 @@ class DetailedEntityToDtoTransformer
                         toDto(settings)
                     )
                 }
+            }
+        }
+
+        /**
+         * Builds a safe public view of another user. Excludes private settings, notification
+         * preferences, identification numbers, and contact details.
+         */
+        fun toPublicDto(appUser: AppUser?): AppUserPublicDto? = toPublicDto(appUser, emptySet(), emptySet())
+
+        fun toPublicDto(
+            appUser: AppUser?,
+            organizationRoles: Set<OrganizationRoleName>,
+        ): AppUserPublicDto? = toPublicDto(appUser, emptySet(), organizationRoles)
+
+        fun toPublicDto(
+            appUser: AppUser?,
+            appRoles: Set<AppRoleName>,
+            organizationRoles: Set<OrganizationRoleName>,
+        ): AppUserPublicDto?
+        {
+            return appUser?.let {
+                AppUserPublicDto(
+                    id = it.id,
+                    email = it.email,
+                    person = it.person?.let { p -> PersonPublicDto(firstName = p.firstName, lastName = p.lastName) },
+                    avatarUrl = null,
+                    isActive = it.isActive,
+                    appRoles = appRoles.map { r -> r.name }.sorted(),
+                    organizationRoles = organizationRoles.map { r -> r.name }.sorted(),
+                )
             }
         }
 
@@ -177,7 +207,7 @@ class DetailedEntityToDtoTransformer
                         id,
                         timestamp,
                         action.toString(),
-                        toDto(performedBy),
+                        toPublicDto(performedBy),
                         performedByEmail
                     )
                 }

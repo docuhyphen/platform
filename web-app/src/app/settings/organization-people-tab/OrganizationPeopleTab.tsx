@@ -17,7 +17,7 @@ import {PersonAddIcon} from "../../components/IconBundles.tsx";
 import {useOrganizationPeopleTabStyles} from "./OrganizationPeopleTabStyles.tsx";
 import {fetchMyOrganizationUsers} from "../../../services/organizationApi.ts";
 import {useAuth} from "../../../context/AuthContext.tsx";
-import {AppUserDetailedDto, OrgMemberCapacityResponse} from "../../models/models.tsx";
+import {AppUserPublicDto, OrgMemberCapacityResponse} from "../../models/models.tsx";
 import {OrganizationRoleDisplayNames, OrganizationRoleName} from '../../../services/types/roles.ts';
 import {getOrgMemberCapacity} from "../../../services/authApi.ts";
 import AddAppUserDialog from "./add-app-user-dialog/AddAppUserDialog.tsx";
@@ -30,13 +30,13 @@ const OrganizationPeopleTab = () =>
 {
     const styles = useOrganizationPeopleTabStyles();
     const {token, appUserPersonOrganization, appUser} = useAuth();
-    const [users, setUsers] = useState<AppUserDetailedDto[]>([]);
+    const [users, setUsers] = useState<AppUserPublicDto[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isDeleteAppUserDialogOpen, setIsDeleteAppUserDialogOpen] = useState(false);
-    const [selectedUser, setSelectedUser] = useState<AppUserDetailedDto | null>(null);
+    const [selectedUser, setSelectedUser] = useState<AppUserPublicDto | null>(null);
     const [capacity, setCapacity] = useState<OrgMemberCapacityResponse | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
 
@@ -85,7 +85,7 @@ const OrganizationPeopleTab = () =>
         setIsAddDialogOpen(true);
     };
 
-    const onEditOrgAppUser = (user: AppUserDetailedDto) =>
+    const onEditOrgAppUser = (user: AppUserPublicDto) =>
     {
         setSelectedUser(user);
         setIsEditDialogOpen(true);

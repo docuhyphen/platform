@@ -1,5 +1,5 @@
 import React, {useState} from "react";
-import {AppUserDetailedDto} from "../../../models/models.tsx";
+import {AppUserPublicDto} from "../../../models/models.tsx";
 import {Divider, Field, Spinner} from "@fluentui/react-components";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import MultiPersonPicker from "../../../components/person-picker/multi-person-picker/MultiPersonPicker.tsx";
@@ -8,8 +8,8 @@ import {
     PersonPickerItem,
 } from "../../../components/person-picker/personPickerTypes.ts";
 
-const toPersonPickerItem = (user: AppUserDetailedDto): PersonPickerItem => ({
-    id: user.id ?? "",
+const toPersonPickerItem = (user: AppUserPublicDto): PersonPickerItem => ({
+    id: user.id,
     email: user.email,
     firstName: user.person?.firstName,
     lastName: user.person?.lastName,
@@ -17,11 +17,11 @@ const toPersonPickerItem = (user: AppUserDetailedDto): PersonPickerItem => ({
 });
 
 const MyOrgRecipients: React.FC<{
-    orgUsers: AppUserDetailedDto[];
+    orgUsers: AppUserPublicDto[];
     isLoadingUsers: boolean;
-    selectedInternalRecipients: AppUserDetailedDto[];
-    setSelectedInternalParticipants: (participants: AppUserDetailedDto[]) => void;
-    setInternalParticipants?: (users: AppUserDetailedDto[]) => void;
+    selectedInternalRecipients: AppUserPublicDto[];
+    setSelectedInternalParticipants: (participants: AppUserPublicDto[]) => void;
+    setInternalParticipants?: (users: AppUserPublicDto[]) => void;
 }> = ({
           orgUsers,
           isLoadingUsers,
@@ -45,7 +45,7 @@ const MyOrgRecipients: React.FC<{
         const newSelectedRecipients = selectedIds.map(
             optionValue => allUsers.find(user => user.id === optionValue)
         ).filter(Boolean)
-            .filter(user => user.id !== appUser?.id) as AppUserDetailedDto[];
+            .filter(user => user.id !== appUser?.id) as AppUserPublicDto[];
 
         setSelectedInternalParticipants(newSelectedRecipients);
         setInternalRecipientsInputValue("");

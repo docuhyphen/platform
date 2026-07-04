@@ -24,14 +24,14 @@
 import React, {useEffect, useRef, useState} from "react";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import {fetchMyOrganizationUsers, updateOrganizationGroup} from "../../../../services/organizationApi.ts";
-import {AppUserDetailedDto, OrganizationDetailedDto, OrganizationGroupDetailedDto} from "../../../models/models.tsx";
+import {AppUserPublicDto, OrganizationDetailedDto, OrganizationGroupDetailedDto} from "../../../models/models.tsx";
 import {useEditGroupDialogStyles} from "./EditGroupDialogStyles.tsx";
 import {DeleteRegular, DismissRegular} from "@fluentui/react-icons";
 import {PrincipalGroupRoleDisplayNames, PrincipalGroupRoleName} from "../../../../services/types/roles";
 import MultiPersonPicker from "../../../components/person-picker/multi-person-picker/MultiPersonPicker.tsx";
 import {PersonPickerItem} from "../../../components/person-picker/personPickerTypes.ts";
 
-const toPersonPickerItem = (user: AppUserDetailedDto): PersonPickerItem => ({
+const toPersonPickerItem = (user: AppUserPublicDto): PersonPickerItem => ({
     id: user.id ?? "",
     email: user.email,
     firstName: user.person?.firstName,
@@ -61,7 +61,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
     const {token} = useAuth();
     const [name, setName] = useState("");
     const [isActive, setIsActive] = useState(true);
-    const [users, setUsers] = useState<AppUserDetailedDto[]>([]);
+    const [users, setUsers] = useState<AppUserPublicDto[]>([]);
     const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
     const [memberRoles, setMemberRoles] = useState<Map<string, PrincipalGroupRoleName>>(new Map());
     const [savingData, setSavingData] = useState(false);
@@ -106,7 +106,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
         }
     }, [isOpen]);
 
-    const loadUsers = async (): Promise<AppUserDetailedDto[]> =>
+    const loadUsers = async (): Promise<AppUserPublicDto[]> =>
     {
         setLoadingUsers(true);
         try
