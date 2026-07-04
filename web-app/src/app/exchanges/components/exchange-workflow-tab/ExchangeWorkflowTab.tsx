@@ -1,53 +1,21 @@
-import { useEffect, useState } from "react";
-import { MessageBar, MessageBarBody, Spinner, Text } from "@fluentui/react-components";
-import { ExchangeClearanceStatusDto, ExchangeDetailedDto, WorkflowInstanceDetailDto } from "../../../models/models.tsx";
-import { PendingWorkflowStep } from "../../../../services/types/dtos.ts";
-import { fetchExchangeWorkflowClearanceStatus, fetchExchangeWorkflowInstances } from "../../../../services/exchangeApi.ts";
-import { getWorkflowInstanceDetail } from "../../../../services/workflowService.ts";
-import { getMyPendingDecisions } from "../../../../services/workflowApi.ts";
-import { useExchangeWorkflowTabStyles } from "./ExchangeWorkflowTabStyles.tsx";
+import {useEffect, useState} from "react";
+import {MessageBar, MessageBarBody, Spinner, Text} from "@fluentui/react-components";
+import {ExchangeClearanceStatusDto, ExchangeDetailedDto, WorkflowInstanceDetailDto} from "../../../models/models.tsx";
+import {PendingWorkflowStep} from "../../../../services/types/dtos.ts";
+import {fetchExchangeWorkflowClearanceStatus, fetchExchangeWorkflowInstances} from "../../../../services/exchangeApi.ts";
+import {getWorkflowInstanceDetail} from "../../../../services/workflowService.ts";
+import {getMyPendingDecisions} from "../../../../services/workflowApi.ts";
+import {useExchangeWorkflowTabStyles} from "./ExchangeWorkflowTabStyles.tsx";
 import ClearanceStatusCard from "./ClearanceStatusCard.tsx";
-import WorkflowSummaryCard from "./WorkflowSummaryCard.tsx";
-import RejectionBanner from "./RejectionBanner.tsx";
-import ActionRequiredCard from "./ActionRequiredCard.tsx";
-import WorkflowTimeline from "./WorkflowTimeline.tsx";
-
-interface SectionProps
-{
-    instance: WorkflowInstanceDetailDto;
-    pendingSteps: PendingWorkflowStep[];
-    onDecisionMade: () => void;
-    showHeading: boolean;
-}
-
-const WorkflowInstanceSection = ({ instance, pendingSteps, onDecisionMade, showHeading }: SectionProps) =>
-{
-    const styles = useExchangeWorkflowTabStyles();
-    const pendingStep = pendingSteps.find(p => p.workflowInstanceId === instance.id);
-
-    return (
-        <div id={`workflow-instance-section-${instance.id}`}
-             className={styles.instanceSection}>
-            <RejectionBanner instance={instance} />
-            <WorkflowSummaryCard instance={instance} />
-            {pendingStep && (
-                <ActionRequiredCard
-                    instance={instance}
-                    pendingStep={pendingStep}
-                    onDecisionMade={onDecisionMade}
-                />
-            )}
-            <WorkflowTimeline instance={instance} />
-        </div>
-    );
-};
+import WorkflowInstanceSection from "./WorkflowInstanceSection.tsx";
+import WorkflowViewToggle, {WorkflowViewMode} from "./workflow-view-toggle/WorkflowViewToggle.tsx";
 
 interface Props
 {
     exchange: ExchangeDetailedDto;
 }
 
-const ExchangeWorkflowTab = ({ exchange }: Props) =>
+const ExchangeWorkflowTab = ({exchange}: Props) =>
 {
     const styles = useExchangeWorkflowTabStyles();
     const [loading, setLoading] = useState(true);
@@ -55,6 +23,8 @@ const ExchangeWorkflowTab = ({ exchange }: Props) =>
     const [instances, setInstances] = useState<WorkflowInstanceDetailDto[]>([]);
     const [pendingSteps, setPendingSteps] = useState<PendingWorkflowStep[]>([]);
     const [clearanceStatus, setClearanceStatus] = useState<ExchangeClearanceStatusDto | null>(null);
+    // Tab-level view preference (Decision 8, Decision 15): local state only, default Timeline.
+    const [viewMode, setViewMode] = useState<WorkflowViewMode>("TIMELINE");
 
     const fetchData = async () =>
     {
@@ -75,9 +45,10 @@ const ExchangeWorkflowTab = ({ exchange }: Props) =>
                 .then(cs => setClearanceStatus(cs))
                 .catch(() => setClearanceStatus(null));
         }
-        catch (e: any)
+        catch (e: unknown)
         {
-            setError(e?.errorMessage || e?.message || "Failed to load workflow information.");
+            const err = e as {errorMessage?: string; message?: string} | null;
+            setError(err?.errorMessage || err?.message || "Failed to load workflow information.");
         }
         finally
         {
@@ -125,16 +96,28 @@ const ExchangeWorkflowTab = ({ exchange }: Props) =>
     return (
         <div id="exchange-workflow-tab"
              className={styles.root}>
-            {clearanceStatus && <ClearanceStatusCard clearance={clearanceStatus} />}
-            {instances.map(instance => (
-                <WorkflowInstanceSection
-                    key={instance.id}
-                    instance={instance}
-                    pendingSteps={pendingSteps}
-                    onDecisionMade={fetchData}
-                    showHeading={instances.length > 1}
-                />
-            ))}
+            <div id="exchange-workflow-tab-header"
+                 className={styles.header}>
+                <Text className={styles.headerTitle}
+                      weight="semibold">
+                    Workflow
+                </Text>
+                <WorkflowViewToggle mode={viewMode}
+                                    onChange={setViewMode} />
+            </div>
+
+            <div id="exchange-workflow-tab-content"
+                 className={styles.content}>
+                {clearanceStatus && <ClearanceStatusCard clearance={clearanceStatus} />}
+                {instances.map(instance => (
+                    <WorkflowInstanceSection key={instance.id}
+                                             instance={instance}
+                                             pendingSteps={pendingSteps}
+                                             onDecisionMade={fetchData}
+                                             viewMode={viewMode}
+                                             onViewTimeline={() => setViewMode("TIMELINE")} />
+                ))}
+            </div>
         </div>
     );
 };

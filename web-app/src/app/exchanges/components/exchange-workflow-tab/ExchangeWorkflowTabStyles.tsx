@@ -4,6 +4,28 @@ export const useExchangeWorkflowTabStyles = makeStyles({
     root: {
         display: "flex",
         flexDirection: "column",
+        height: "100%",
+        minHeight: 0,
+    },
+    header: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: tokens.spacingHorizontalM,
+        paddingBottom: tokens.spacingVerticalS,
+        borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+        backgroundColor: tokens.colorNeutralBackground1,
+        flexShrink: 0,
+    },
+    headerTitle: {
+        fontSize: tokens.fontSizeBase400,
+    },
+    content: {
+        flexGrow: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        display: "flex",
+        flexDirection: "column",
         gap: tokens.spacingVerticalL,
         paddingTop: tokens.spacingVerticalM,
     },
@@ -12,6 +34,38 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         flexDirection: "column",
         gap: tokens.spacingVerticalM,
         padding: "1rem"
+    },
+    // Side-by-side "Both" view: detail/actions on the left, diagram preview
+    // on the right at 60% width. Stacks to a single column on narrow
+    // viewports so the diagram never gets squeezed unreadably thin.
+    instanceSectionSplit: {
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: tokens.spacingHorizontalL,
+        padding: "1rem",
+        "@media (max-width: 900px)": {
+            flexDirection: "column",
+        },
+    },
+    splitDetailColumn: {
+        flex: "0 0 40%",
+        minWidth: 0,
+        display: "flex",
+        flexDirection: "column",
+        gap: tokens.spacingVerticalM,
+        "@media (max-width: 900px)": {
+            flex: "1 1 auto",
+            width: "100%",
+        },
+    },
+    splitDiagramColumn: {
+        flex: "0 0 60%",
+        minWidth: 0,
+        "@media (max-width: 900px)": {
+            flex: "1 1 auto",
+            width: "100%",
+        },
     },
     sectionHeading: {
         paddingBottom: tokens.spacingVerticalXS,

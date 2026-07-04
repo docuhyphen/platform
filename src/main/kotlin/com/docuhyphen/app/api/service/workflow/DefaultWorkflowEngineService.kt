@@ -6,6 +6,8 @@ import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
 import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
 import com.docuhyphen.app.api.model.entity.WorkflowStepStatus
 import com.docuhyphen.app.api.model.entity.WorkflowStepType
+import com.docuhyphen.app.api.model.entity.WorkflowStepTransition
+import com.docuhyphen.app.api.model.entity.WorkflowTransitionOutcome
 import com.docuhyphen.app.api.repository.WorkflowDefinitionRepository
 import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
 import com.docuhyphen.app.api.repository.WorkflowStepInstanceRepository
@@ -52,6 +54,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     @Inject private lateinit var definitionRepository: WorkflowDefinitionRepository
     @Inject private lateinit var instanceRepository: WorkflowInstanceRepository
     @Inject private lateinit var stepRepository: WorkflowStepInstanceRepository
+    @Inject private lateinit var transitionRepository: com.docuhyphen.app.api.repository.WorkflowStepTransitionRepository
     @Inject private lateinit var assigneeRepository: com.docuhyphen.app.api.repository.WorkflowStepAssigneeRepository
     @Inject private lateinit var decisionRepository: com.docuhyphen.app.api.repository.WorkflowStepDecisionRepository
     @Inject private lateinit var assigneeResolver: WorkflowAssigneeResolver
@@ -145,6 +148,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             status = WorkflowInstanceStatus.RUNNING
             currentStepIndex = 0
             subjectDataJson = encodeStringMap(request.subjectData)
+            definitionSnapshotJson = definition.stepsJson
             initiatedByAppUserId = request.initiatedByAppUserId
         }
         instanceRepository.save(instance)
@@ -155,6 +159,10 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         val stepInstance = createStepInstance(instance, 0, firstSpec)
         stepRepository.save(stepInstance)
         replaceAssignees(stepInstance.id, resolved)
+
+        // Record the START edge (entry into step 0) before the step can auto-advance,
+        // so traversed edges are explicit rather than inferred from step order.
+        recordStartTransition(instance, stepInstance.stepIndex)
 
         // Activate the step: APPROVAL steps wait for human decisions; all other types
         // execute immediately and may advance through subsequent steps in the same call.
@@ -239,6 +247,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             step.completedAt = now
             instance.status = WorkflowInstanceStatus.REJECTED
             instance.completedAt = now
+            recordTransition(instance, step, toStepIndex = null, WorkflowTransitionOutcome.REJECT)
             spec.onReject?.emit?.let { emitted += it }
             emitDefinitionTerminalEvent(instance, success = false)
         }
@@ -247,7 +256,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             step.status = WorkflowStepStatus.APPROVED
             step.completedAt = now
             spec.onApprove?.emit?.let { emitted += it }
-            advanceOrComplete(instance, spec.onApprove?.nextStep ?: "END", now, step.id)
+            advanceOrComplete(instance, spec.onApprove?.nextStep ?: "END", now, step, WorkflowTransitionOutcome.APPROVE)
         }
         // else: quorum not yet met, leave step PENDING.
 
@@ -306,6 +315,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                     step.completedAt = now
                     instance.status = WorkflowInstanceStatus.REJECTED
                     instance.completedAt = now
+                    recordTransition(instance, step, toStepIndex = null, WorkflowTransitionOutcome.REJECT)
                     spec.onReject?.emit?.let { publishOutcomeEvent(instance, it) }
                     emitDefinitionTerminalEvent(instance, success = false)
                 }
@@ -314,7 +324,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                     step.status = WorkflowStepStatus.APPROVED
                     step.completedAt = now
                     spec.onApprove?.emit?.let { publishOutcomeEvent(instance, it) }
-                    advanceOrComplete(instance, spec.onApprove?.nextStep ?: "END", now, step.id)
+                    advanceOrComplete(instance, spec.onApprove?.nextStep ?: "END", now, step, WorkflowTransitionOutcome.APPROVE)
                 }
                 EscalationAction.ESCALATE, null ->
                 {
@@ -534,7 +544,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
 
         val emitted = mutableListOf<String>()
         spec.onApprove?.emit?.let { emitted += it }
-        advanceOrComplete(instance, spec.onApprove?.nextStep ?: "END", now, step.id)
+        advanceOrComplete(instance, spec.onApprove?.nextStep ?: "END", now, step, WorkflowTransitionOutcome.APPROVE)
         return emitted
     }
 
@@ -562,7 +572,13 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         val outcome = if (result) spec.onTrue else spec.onFalse
         val emitted = mutableListOf<String>()
         outcome?.emit?.let { emitted += it }
-        advanceOrComplete(instance, outcome?.nextStep ?: "END", now, step.id)
+        advanceOrComplete(
+            instance,
+            outcome?.nextStep ?: "END",
+            now,
+            step,
+            if (result) WorkflowTransitionOutcome.TRUE else WorkflowTransitionOutcome.FALSE,
+        )
         return emitted
     }
 
@@ -587,7 +603,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             step.completedAt = now
             val emitted = mutableListOf<String>()
             spec.onApprove?.emit?.let { emitted += it }
-            advanceOrComplete(instance, spec.onApprove?.nextStep ?: "END", now, step.id)
+            advanceOrComplete(instance, spec.onApprove?.nextStep ?: "END", now, step, WorkflowTransitionOutcome.APPROVE)
             return emitted
         }
 
@@ -599,6 +615,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             step.completedAt = now
             instance.status = WorkflowInstanceStatus.REJECTED
             instance.completedAt = now
+            recordTransition(instance, step, toStepIndex = null, WorkflowTransitionOutcome.REJECT)
             val emitted = mutableListOf<String>()
             spec.onReject?.emit?.let { emitted += it }
             emitDefinitionTerminalEvent(instance, success = false)
@@ -616,7 +633,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             step.status = WorkflowStepStatus.COMPLETED
             step.completedAt = now
             spec.onApprove?.emit?.let { emitted += it }
-            advanceOrComplete(instance, spec.onApprove?.nextStep ?: "END", now, step.id)
+            advanceOrComplete(instance, spec.onApprove?.nextStep ?: "END", now, step, WorkflowTransitionOutcome.APPROVE)
         }
         else
         {
@@ -625,6 +642,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             step.completedAt = now
             instance.status = WorkflowInstanceStatus.REJECTED
             instance.completedAt = now
+            recordTransition(instance, step, toStepIndex = null, WorkflowTransitionOutcome.REJECT)
             spec.onReject?.emit?.let { emitted += it }
             emitDefinitionTerminalEvent(instance, success = false)
         }
@@ -668,7 +686,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         step.completedAt = now
         val emitted = mutableListOf<String>()
         spec.onApprove?.emit?.let { emitted += it }
-        advanceOrComplete(instance, spec.onApprove?.nextStep ?: "END", now, step.id)
+        advanceOrComplete(instance, spec.onApprove?.nextStep ?: "END", now, step, WorkflowTransitionOutcome.DEFAULT)
         return emitted
     }
 
@@ -707,7 +725,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
 
                 val emitted = mutableListOf<String>()
                 spec.onApprove?.emit?.let { emitted += it }
-                advanceOrComplete(parentInstance, spec.onApprove?.nextStep ?: "END", now, step.id)
+                advanceOrComplete(parentInstance, spec.onApprove?.nextStep ?: "END", now, step, WorkflowTransitionOutcome.DEFAULT)
                 instanceRepository.update(parentInstance)
                 emitted.forEach { publishOutcomeEvent(parentInstance, it) }
                 logger.info("Unblocked AWAITING_COUNTERPARTY step {} for instance {}", step.id, parentInstance.id)
@@ -825,11 +843,13 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         instance: WorkflowInstance,
         nextRef: String,
         now: Timestamp,
-        currentStepId: UUID,
+        fromStep: WorkflowStepInstance,
+        outcome: WorkflowTransitionOutcome,
     )
     {
         if (nextRef.equals("END", ignoreCase = true))
         {
+            recordTransition(instance, fromStep, toStepIndex = null, outcome)
             instance.status = WorkflowInstanceStatus.COMPLETED
             instance.completedAt = now
             emitDefinitionTerminalEvent(instance, success = true)
@@ -839,25 +859,32 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             val nextIndex = nextRef.toIntOrNull()
             if (nextIndex == null)
             {
-                logger.warn("Step {} has invalid nextStep='{}'; completing instance", currentStepId, nextRef)
+                logger.warn("Step {} has invalid nextStep='{}'; completing instance", fromStep.id, nextRef)
+                recordTransition(instance, fromStep, toStepIndex = null, outcome)
                 instance.status = WorkflowInstanceStatus.COMPLETED
                 instance.completedAt = now
                 emitDefinitionTerminalEvent(instance, success = true)
             }
             else
             {
-                advanceToStep(instance, nextIndex)
+                advanceToStep(instance, nextIndex, fromStep, outcome)
             }
         }
     }
 
-    private fun advanceToStep(instance: WorkflowInstance, nextIndex: Int)
+    private fun advanceToStep(
+        instance: WorkflowInstance,
+        nextIndex: Int,
+        fromStep: WorkflowStepInstance,
+        outcome: WorkflowTransitionOutcome,
+    )
     {
         val definition = definitionRepository.findById(instance.definitionId)
             ?: throw IllegalStateException("Definition ${instance.definitionId} missing")
         val spec = WorkflowSpecJson.decode(definition.stepsJson)
         if (nextIndex !in spec.steps.indices)
         {
+            recordTransition(instance, fromStep, toStepIndex = null, outcome)
             instance.status = WorkflowInstanceStatus.COMPLETED
             instance.completedAt = Timestamp.from(Instant.now())
             val event = spec.onComplete?.takeIf { it.isNotBlank() }
@@ -865,6 +892,9 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             event?.let { publishOutcomeEvent(instance, it) }
             return
         }
+        // Record the traversed edge before materialising (and possibly auto-advancing) the
+        // next step, so recordedAt ordering follows execution order.
+        recordTransition(instance, fromStep, toStepIndex = nextIndex, outcome)
         instance.currentStepIndex = nextIndex
         val nextSpec = spec.steps[nextIndex]
         val resolved = assigneeResolver.resolveAll(nextSpec.assignees, instance.subjectDataJson)
@@ -878,6 +908,55 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             stepRepository.update(newStep)
             autoEvents.forEach { publishOutcomeEvent(instance, it) }
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Traversal recording (frozen instance graph, Phase 4)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Records the START edge (entry into [firstStepIndex]). Idempotent: the partial unique
+     * index and this guard ensure a single START edge per instance even if trigger is retried.
+     */
+    private fun recordStartTransition(instance: WorkflowInstance, firstStepIndex: Int)
+    {
+        if (transitionRepository.existsStartByInstanceId(instance.id)) return
+        transitionRepository.save(
+            WorkflowStepTransition().apply {
+                instanceId = instance.id
+                fromStepInstanceId = null
+                fromStepIndex = null
+                toStepIndex = firstStepIndex
+                outcome = WorkflowTransitionOutcome.DEFAULT
+                recordedAt = Timestamp.from(Instant.now())
+            }
+        )
+    }
+
+    /**
+     * Records the single traversed edge leaving [fromStep]. [toStepIndex] is null for a
+     * terminal edge (instance ends). Idempotent per source step instance so repeated
+     * scheduler processing never duplicates an edge.
+     */
+    private fun recordTransition(
+        instance: WorkflowInstance,
+        fromStep: WorkflowStepInstance,
+        toStepIndex: Int?,
+        outcome: WorkflowTransitionOutcome,
+    )
+    {
+        if (transitionRepository.existsByFromStepInstanceId(fromStep.id)) return
+        val target = toStepIndex
+        transitionRepository.save(
+            WorkflowStepTransition().apply {
+                instanceId = instance.id
+                fromStepInstanceId = fromStep.id
+                fromStepIndex = fromStep.stepIndex
+                this.toStepIndex = target
+                this.outcome = outcome
+                recordedAt = Timestamp.from(Instant.now())
+            }
+        )
     }
 
     /**

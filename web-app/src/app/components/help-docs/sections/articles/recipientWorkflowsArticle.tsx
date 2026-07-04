@@ -20,7 +20,13 @@ export const recipientWorkflowsArticle = (
             Each party's workflow instances are private to their own organization.
             A recipient user opening the Workflow tab on an Exchange only sees
             instances that belong to their organization. They cannot see the
-            initiator's internal steps, assignees, or decisions.
+            initiator's internal steps, assignees, or decisions. The tab offers both
+            a Timeline and a read-only{" "}
+            <a href="#"
+               data-help-article="workflow-diagram-preview">
+                Diagram
+            </a>{" "}
+            view of those instances.
         </p>
 
         <h3>Recipient trigger events</h3>

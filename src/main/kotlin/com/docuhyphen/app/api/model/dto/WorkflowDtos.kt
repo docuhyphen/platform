@@ -117,10 +117,32 @@ data class WorkflowInstanceDetailResponseDto(
     val status: String,
     val currentStepIndex: Int,
     val steps: List<WorkflowStepInstanceResponseDto>,
+    /** Definition version frozen at instance start; never changes on later definition edits. */
+    val definitionVersion: Int,
+    /**
+     * Raw definition steps_json frozen at instance start. Reproduces the exact builder topology
+     * and labels (including step names) so the Exchange diagram matches the definition preview.
+     */
+    val definitionSnapshotJson: String,
+    /** Explicitly traversed edges, oldest first. The only source of edge traversal for the diagram. */
+    val transitions: List<WorkflowStepTransitionResponseDto>,
     @Serializable(with = TimestampSerializer::class)
     val createdAt: Timestamp,
     @Serializable(with = TimestampSerializer::class)
     val completedAt: Timestamp?,
+)
+
+/**
+ * One traversed edge in an instance's execution graph. `fromStepIndex` is null for the START
+ * edge (entry into the first step); `toStepIndex` is null for a terminal edge (the instance ends).
+ * `outcome` is one of DEFAULT, APPROVE, REJECT, TRUE, FALSE and identifies which configured branch
+ * was taken, matching the definition-graph edge outcomes.
+ */
+@Serializable
+data class WorkflowStepTransitionResponseDto(
+    val fromStepIndex: Int?,
+    val toStepIndex: Int?,
+    val outcome: String,
 )
 
 @Serializable

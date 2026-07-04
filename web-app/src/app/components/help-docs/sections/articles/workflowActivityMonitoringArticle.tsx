@@ -103,6 +103,25 @@ export const workflowActivityMonitoringArticle = (
             </li>
         </ul>
 
+        <h3>Monitoring workflows on an Exchange</h3>
+        <p>
+            Participants also monitor an Exchange's own workflows from the{" "}
+            <b>Workflow</b> tab on that Exchange. A circular menu control at the top
+            right chooses <b>Timeline</b>, <b>Diagram</b>, or <b>Both</b> for the
+            whole tab; Timeline is the default and the control changes every
+            workflow shown in the tab at once. <b>Both</b> splits the tab into a
+            detail column (summary, action required, and Timeline) on the left and
+            a live diagram preview on the right. The Diagram overlays runtime state
+            and the traversed route onto the frozen workflow structure. If a
+            diagram cannot render, that section offers a <b>View timeline</b>
+            button and falls back to the Timeline. See{" "}
+            <a href="#"
+               data-help-article="workflow-diagram-preview">
+                Workflow diagrams and preview
+            </a>
+            .
+        </p>
+
         <h3>Using the activity view for compliance</h3>
         <p>
             The step timeline serves as a built-in audit trail. Each decision

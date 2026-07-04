@@ -36,8 +36,16 @@ export const buildingAWorkflowArticle = (
             </li>
         </ol>
         <p>
-            Once in the designer, the info button (i) in the top-right corner of
-            the title bar opens this help article at any time.
+            The info button (i) in the top-right of the title bar opens this help
+            article at any time.
+        </p>
+
+        <h3>Form and Preview</h3>
+        <p>
+            The designer has <b>Form</b> and <b>Preview</b> tabs; Form is the editor
+            and opens by default. Switch to <b>Preview</b> for a live read-only
+            diagram of the workflow you are editing (see{" "}
+            <a href="#" data-help-article="workflow-diagram-preview">Workflow diagrams and preview</a>).
         </p>
 
         <h3>Step 2: fill in the header fields</h3>
@@ -111,13 +119,10 @@ export const buildingAWorkflowArticle = (
 
         <h3>Step 4: review portability warnings</h3>
         <p>
-            Before saving, the designer checks whether any step contains a
-            hardcoded principal UUID in an assignee entry. If it does, a portability
-            warning appears in the save bar. Hardcoded UUIDs work in your org but
-            cannot be reused if the workflow is cloned by another org. Replace
-            them with{" "}
-            <a href="#" data-help-article="assignees-and-portability">role-based or group-role-based assignees</a>{" "}
-            to make the workflow fully portable.
+            Before saving, the designer flags any step that uses a hardcoded
+            principal UUID in an assignee entry. Such UUIDs work in your org but
+            cannot be reused if the workflow is cloned, so replace them with{" "}
+            <a href="#" data-help-article="assignees-and-portability">role-based or group-role-based assignees</a>.
         </p>
         <h3>Step 5: set applicability (optional)</h3>
         <p>

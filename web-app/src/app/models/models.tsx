@@ -1002,6 +1002,26 @@ export interface WorkflowInstanceSummaryDto
 export interface WorkflowInstanceDetailDto extends WorkflowInstanceSummaryDto
 {
     steps: WorkflowStepInstanceDto[];
+    /** Definition version frozen at instance start; never changes on later definition edits. */
+    definitionVersion: number;
+    /**
+     * Raw definition steps_json frozen at instance start. Reproduces the exact builder topology
+     * and labels (including step names) so the Exchange diagram matches the definition preview.
+     */
+    definitionSnapshotJson: string;
+    /** Explicitly traversed edges, oldest first. The only source of edge traversal for the diagram. */
+    transitions: WorkflowStepTransitionDto[];
+}
+
+/**
+ * One traversed edge in an instance's execution graph. `fromStepIndex` is null for the START edge
+ * (entry into the first step); `toStepIndex` is null for a terminal edge (the instance ends).
+ */
+export interface WorkflowStepTransitionDto
+{
+    fromStepIndex: number | null;
+    toStepIndex: number | null;
+    outcome: 'DEFAULT' | 'APPROVE' | 'REJECT' | 'TRUE' | 'FALSE';
 }
 
 export interface WorkflowStepInstanceDto

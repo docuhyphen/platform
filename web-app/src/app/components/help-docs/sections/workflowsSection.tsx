@@ -10,6 +10,7 @@ import {platformTemplatesArticle} from "./articles/platformTemplatesArticle";
 import {workflowActivityMonitoringArticle} from "./articles/workflowActivityMonitoringArticle";
 import {workflowOrgSettingsArticle} from "./articles/workflowOrgSettingsArticle";
 import {recipientWorkflowsArticle} from "./articles/recipientWorkflowsArticle";
+import {workflowDiagramPreviewArticle} from "./articles/workflowDiagramPreviewArticle";
 
 export const workflowsSection: HelpDocSectionInput = {
     id: "workflows",
@@ -20,6 +21,7 @@ export const workflowsSection: HelpDocSectionInput = {
         {id: "building-a-workflow",         title: "Building a workflow",                content: buildingAWorkflowArticle},
         {id: "workflow-applicability",      title: "Field-based applicability",          content: workflowApplicabilityArticle},
         {id: "step-types",                  title: "Step types explained",               content: stepTypesArticle},
+        {id: "workflow-diagram-preview",    title: "Workflow diagrams and preview",      content: workflowDiagramPreviewArticle},
         {id: "assignees-and-portability",   title: "Assignees and portability",          content: assigneesAndPortabilityArticle},
         {id: "sla-escalations-reminders",   title: "SLA, escalations, and reminders",    content: slaEscalationsArticle},
         {id: "platform-templates",          title: "Platform templates",                 content: platformTemplatesArticle},

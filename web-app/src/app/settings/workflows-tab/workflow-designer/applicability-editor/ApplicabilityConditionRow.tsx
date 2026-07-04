@@ -1,4 +1,4 @@
-import {Button, Input, Select, Switch, Text} from "@fluentui/react-components";
+import {Button, Dropdown, Input, Option, Select, Switch, Text} from "@fluentui/react-components";
 import {
     FieldOperator,
     FieldValueType,
@@ -52,17 +52,28 @@ const ApplicabilityConditionRow = ({index, condition, binding, onChange, onRemov
         const multi = operatorIsMultiValue(condition.operator);
 
         if (isSelect && multi)
+        {
+            const selected = asStringArray(condition.value);
+            const selectedLabels = selected
+                .map(code => options.find(o => o.code === code)?.label ?? code)
+                .join(", ");
             return (
-                <Select
+                <Dropdown
                     id={`applicability-condition-${index}-values`}
-                    multiple
-                    value={asStringArray(condition.value)}
-                    onChange={(_, d) =>
-                        setValue(Array.from(d.target.selectedOptions).map(o => o.value))}
+                    multiselect
+                    selectedOptions={selected}
+                    value={selectedLabels}
+                    placeholder="Select options"
+                    onOptionSelect={(_, d) => setValue(d.selectedOptions)}
                 >
-                    {options.map(o => <option key={o.code} value={o.code}>{o.label}</option>)}
-                </Select>
+                    {options.map(o => (
+                        <Option key={o.code} value={o.code} text={o.label}>
+                            {o.label}
+                        </Option>
+                    ))}
+                </Dropdown>
             );
+        }
 
         if (isSelect)
             return (

@@ -63,6 +63,15 @@ class WorkflowInstance
     @Column(name = "subject_data_json", nullable = true, columnDefinition = "text")
     var subjectDataJson: String? = null
 
+    /**
+     * The exact raw `workflow_definition.steps_json` frozen when this instance started.
+     * Lets the Exchange diagram reproduce the same topology and labels the builder showed
+     * (including the frontend-only step `name` that per-step snapshots drop) without ever
+     * reading the later, mutable definition. Always set by the engine at instance start.
+     */
+    @Column(name = "definition_snapshot_json", nullable = true, columnDefinition = "text")
+    var definitionSnapshotJson: String? = null
+
     @Column(name = "initiated_by_app_user_id", nullable = true)
     @Serializable(with = UUIDSerializer::class)
     var initiatedByAppUserId: UUID? = null

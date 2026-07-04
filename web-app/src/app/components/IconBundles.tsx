@@ -56,6 +56,8 @@
     CommentRegular,
     ContentViewFilled,
     ContentViewRegular,
+    DataTreemapFilled,
+    DataTreemapRegular,
     DeleteFilled,
     DeleteRegular,
     DocumentAddFilled,
@@ -82,6 +84,8 @@
     FilterRegular,
     GridFilled,
     GridRegular,
+    LayoutColumnTwoFilled,
+    LayoutColumnTwoRegular,
     TableFilled,
     TableRegular,
     TextboxFilled,
@@ -229,3 +233,16 @@ export const FullScreenEnterIcon = bundleIcon(FullScreenMaximizeFilled, FullScre
 export const FullScreenExitIcon = bundleIcon(FullScreenMinimizeFilled, FullScreenMinimizeRegular)
 export const ViewCardsIcon = bundleIcon(GridFilled, GridRegular)
 export const ViewTableIcon = bundleIcon(TableFilled, TableRegular)
+
+// Workflow graph step-kind node icons.
+export const WorkflowApprovalNodeIcon = bundleIcon(CheckmarkNoteFilled, CheckmarkNoteRegular)
+export const WorkflowNotificationNodeIcon = bundleIcon(AlertFilled, AlertRegular)
+export const WorkflowConditionNodeIcon = bundleIcon(BranchRegular, BranchRegular)
+export const WorkflowActionNodeIcon = bundleIcon(SettingsCogMultipleFilled, SettingsCogMultipleRegular)
+export const WorkflowWaitNodeIcon = bundleIcon(DocumentBulletListClockFilled, DocumentBulletListClockRegular)
+export const WorkflowWebhookNodeIcon = bundleIcon(ChannelShareFilled, ChannelShareRegular)
+export const WorkflowUnknownStepNodeIcon = bundleIcon(InfoFilled, InfoRegular)
+export const WorkflowInvalidNodeIcon = bundleIcon(LinkDismissFilled, LinkDismissRegular)
+export const TimelineIcon = bundleIcon(DocumentBulletListClockFilled, DocumentBulletListClockRegular)
+export const DiagramIcon = bundleIcon(DataTreemapFilled, DataTreemapRegular)
+export const SplitViewIcon = bundleIcon(LayoutColumnTwoFilled, LayoutColumnTwoRegular)

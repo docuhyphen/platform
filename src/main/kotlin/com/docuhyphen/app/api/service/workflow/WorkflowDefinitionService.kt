@@ -10,6 +10,7 @@ import com.docuhyphen.app.api.model.dto.WorkflowInstanceDetailResponseDto
 import com.docuhyphen.app.api.model.dto.WorkflowInstanceListItemDto
 import com.docuhyphen.app.api.model.dto.WorkflowPrincipalRefResponseDto
 import com.docuhyphen.app.api.model.dto.WorkflowStepInstanceResponseDto
+import com.docuhyphen.app.api.model.dto.WorkflowStepTransitionResponseDto
 import com.docuhyphen.app.api.model.dto.WorkflowSubjectFieldResponseDto
 import com.docuhyphen.app.api.model.dto.WorkflowTriggerEventResponseDto
 import com.docuhyphen.app.api.model.entity.AppUser
@@ -60,6 +61,7 @@ class WorkflowDefinitionService @Inject constructor(
     private val definitionRepository: WorkflowDefinitionRepository,
     private val instanceRepository: WorkflowInstanceRepository,
     private val stepRepository: WorkflowStepInstanceRepository,
+    private val transitionRepository: com.docuhyphen.app.api.repository.WorkflowStepTransitionRepository,
     private val assigneeRepository: com.docuhyphen.app.api.repository.WorkflowStepAssigneeRepository,
     private val decisionRepository: com.docuhyphen.app.api.repository.WorkflowStepDecisionRepository,
     private val triggerEventRepository: WorkflowTriggerEventRepository,
@@ -366,8 +368,9 @@ class WorkflowDefinitionService @Inject constructor(
         }
 
         val steps = stepRepository.findByInstance(instance.id)
+        val transitions = transitionRepository.findByInstanceId(instance.id)
         val defName = runCatching { definitionRepository.findById(instance.definitionId)?.name }.getOrNull()
-        return instance.toDetailDto(defName, steps)
+        return instance.toDetailDto(defName, steps, transitions)
     }
 
     // -------------------------------------------------------------------------
@@ -670,6 +673,7 @@ class WorkflowDefinitionService @Inject constructor(
     private fun WorkflowInstance.toDetailDto(
         defName: String?,
         steps: List<WorkflowStepInstance>,
+        transitions: List<com.docuhyphen.app.api.model.entity.WorkflowStepTransition>,
     ) = WorkflowInstanceDetailResponseDto(
         id = id,
         definitionId = definitionId,
@@ -679,6 +683,15 @@ class WorkflowDefinitionService @Inject constructor(
         status = status.name,
         currentStepIndex = currentStepIndex,
         steps = steps.map { it.toDto() },
+        definitionVersion = definitionVersion,
+        definitionSnapshotJson = definitionSnapshotJson ?: "",
+        transitions = transitions.map {
+            WorkflowStepTransitionResponseDto(
+                fromStepIndex = it.fromStepIndex,
+                toStepIndex = it.toStepIndex,
+                outcome = it.outcome.name,
+            )
+        },
         createdAt = createdAt,
         completedAt = completedAt,
     )

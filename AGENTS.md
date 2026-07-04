@@ -46,6 +46,7 @@ An "Exchange" is a first class word and should be used as a noun. For example, i
 
 ---
 ## FRONT-END RULES
+- Treat ts as if it was strongly typed language, so no use of any.
 - All HTML tags, react tags, etc attributes must be on a new line when they have more than oone attribute like example:
 <Button appearance="primary"
         shape={"circular"}

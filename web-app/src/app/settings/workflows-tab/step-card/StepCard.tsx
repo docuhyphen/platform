@@ -348,17 +348,17 @@ interface Props
 {
     index: number;
     step: WorkflowStepSpecDraft;
-    stepCount: number;
+    steps: WorkflowStepSpecDraft[];
     onChange: (step: WorkflowStepSpecDraft) => void;
     onRemove: () => void;
     triggers: WorkflowTriggerEventDto[];
     subjectFields: WorkflowSubjectFieldDto[];
 }
 
-const OutcomeField = ({label, value, stepCount, triggers, onChange}: {
+const OutcomeField = ({label, value, steps, triggers, onChange}: {
     label: string;
     value?: StepOutcomeSpecDraft;
-    stepCount: number;
+    steps: WorkflowStepSpecDraft[];
     triggers: WorkflowTriggerEventDto[];
     onChange: (v: StepOutcomeSpecDraft) => void;
 }) =>
@@ -375,8 +375,10 @@ const OutcomeField = ({label, value, stepCount, triggers, onChange}: {
                     size="small"
                 >
                     <option value="END">End workflow</option>
-                    {Array.from({length: stepCount}, (_, i) => (
-                        <option key={i} value={String(i)}>Go to step {i + 1}</option>
+                    {steps.map((s, i) => (
+                        <option key={i} value={String(i)}>
+                            {`Go to step ${i + 1}${s.name ? ` (${s.name})` : ""}`}
+                        </option>
                     ))}
                 </Select>
                 <Select
@@ -404,7 +406,7 @@ const OutcomeField = ({label, value, stepCount, triggers, onChange}: {
 
 const DELETE_COUNTDOWN = 5;
 
-const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subjectFields}: Props) =>
+const StepCard = ({index, step, steps, onChange, onRemove, triggers, subjectFields}: Props) =>
 {
     const styles = useStepCardStyles();
     const [expanded, setExpanded] = React.useState(true);
@@ -716,7 +718,7 @@ const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subject
                                 Pauses this workflow until all workflows on the other party's side of this exchange have completed.
                             </Text>
                             <div className={styles.outcomeRow}>
-                                <OutcomeField label="When unblocked" value={step.onApprove} stepCount={stepCount}
+                                <OutcomeField label="When unblocked" value={step.onApprove} steps={steps}
                                               triggers={triggers} onChange={v => patch({onApprove: v})}/>
                             </div>
                         </>
@@ -726,18 +728,18 @@ const StepCard = ({index, step, stepCount, onChange, onRemove, triggers, subject
 
                     {step.type === "APPROVAL" && (
                         <div className={styles.outcomeRow}>
-                            <OutcomeField label="On Approve" value={step.onApprove} stepCount={stepCount}
+                            <OutcomeField label="On Approve" value={step.onApprove} steps={steps}
                                           triggers={triggers} onChange={v => patch({onApprove: v})}/>
-                            <OutcomeField label="On Reject" value={step.onReject} stepCount={stepCount}
+                            <OutcomeField label="On Reject" value={step.onReject} steps={steps}
                                           triggers={triggers} onChange={v => patch({onReject: v})}/>
                         </div>
                     )}
 
                     {step.type === "CONDITION" && (
                         <div className={styles.outcomeRow}>
-                            <OutcomeField label="If condition is true" value={step.onTrue} stepCount={stepCount}
+                            <OutcomeField label="If condition is true" value={step.onTrue} steps={steps}
                                           triggers={triggers} onChange={v => patch({onTrue: v})}/>
-                            <OutcomeField label="If condition is false" value={step.onFalse} stepCount={stepCount}
+                            <OutcomeField label="If condition is false" value={step.onFalse} steps={steps}
                                           triggers={triggers} onChange={v => patch({onFalse: v})}/>
                         </div>
                     )}
