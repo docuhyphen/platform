@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -9,29 +10,21 @@ import java.util.UUID
 @RequestScoped
 class OrganizationIdpSecretRotationRunbookService @Inject constructor(
     private val authTokenContext: AuthTokenContext,
-    private val adminActionGuardService: AdminActionGuardService,
     private val rotationSchedulerService: OrganizationIdpSecretRotationSchedulerService,
     private val userRoleService: UserRoleService,
 )
 {
+    @EnforceAdminAction("ORG_IDP_SECRET_ROTATION_PREVIEW")
     fun previewEmergencyRotationCandidates(organizationId: String): OrganizationIdpRotationPreviewResult
     {
-        val actor = requireOrgAdminActor(organizationId)
+        requireOrgAdminActor(organizationId)
         val orgId = runCatching { UUID.fromString(organizationId) }
             .getOrElse { throw IllegalArgumentException("Invalid organization ID format") }
 
         return rotationSchedulerService.previewRotationForOrganization(orgId)
-            .also {
-                adminActionGuardService.enforce(
-                    action = "ORG_IDP_SECRET_ROTATION_PREVIEW",
-                    actorId = actor.id,
-                    context = AdminApprovalContext(
-                        requestId = null,
-                    ),
-                )
-            }
     }
 
+    @EnforceAdminAction("ORG_IDP_SECRET_ROTATION_RUNBOOK")
     fun runEmergencyRotation(
         organizationId: String,
         adminApprovalContext: AdminApprovalContext,
@@ -41,12 +34,6 @@ class OrganizationIdpSecretRotationRunbookService @Inject constructor(
 
         val orgId = runCatching { UUID.fromString(organizationId) }
             .getOrElse { throw IllegalArgumentException("Invalid organization ID format") }
-
-        adminActionGuardService.enforce(
-            action = "ORG_IDP_SECRET_ROTATION_RUNBOOK",
-            actorId = actor.id,
-            context = adminApprovalContext,
-        )
 
         return rotationSchedulerService.runManualRotationForOrganization(
             organizationId = orgId,

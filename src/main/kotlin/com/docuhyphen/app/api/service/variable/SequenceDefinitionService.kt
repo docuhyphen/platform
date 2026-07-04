@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.model.dto.toDto
 import com.docuhyphen.app.api.model.entity.SequenceDefinition
 import com.docuhyphen.app.api.model.entity.SequenceResetPeriod
 import com.docuhyphen.app.api.repository.SequenceDefinitionRepository
-import com.docuhyphen.app.api.service.auth.AdminActionGuardService
+import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.Action
@@ -29,7 +29,6 @@ import java.util.*
 @ApplicationScoped
 class SequenceDefinitionService @Inject constructor(
     private val repository: SequenceDefinitionRepository,
-    private val adminActionGuardService: AdminActionGuardService,
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val userRoleService: UserRoleService,
@@ -58,6 +57,7 @@ class SequenceDefinitionService @Inject constructor(
         return seq.toDto()
     }
 
+    @EnforceAdminAction("ORG_SEQUENCE_CREATE")
     @Transactional
     fun createSequence(request: CreateSequenceRequest, context: AdminApprovalContext): SequenceDefinitionDto
     {
@@ -81,12 +81,6 @@ class SequenceDefinitionService @Inject constructor(
         val resetPeriod = runCatching { SequenceResetPeriod.valueOf(request.resetPeriod.uppercase()) }
             .getOrElse { throw IllegalArgumentException("Invalid resetPeriod '${request.resetPeriod}'") }
 
-        adminActionGuardService.enforce(
-            action = "ORG_SEQUENCE_CREATE",
-            actorId = principal.id,
-            context = context,
-        )
-
         val seq = SequenceDefinition().apply {
             this.organizationId = activeOrgId
             this.name = request.name.trim()
@@ -100,6 +94,7 @@ class SequenceDefinitionService @Inject constructor(
         return repository.save(seq).toDto()
     }
 
+    @EnforceAdminAction("ORG_SEQUENCE_UPDATE")
     @Transactional
     fun updateSequence(id: UUID, request: UpdateSequenceRequest, context: AdminApprovalContext): SequenceDefinitionDto
     {
@@ -107,11 +102,6 @@ class SequenceDefinitionService @Inject constructor(
         val authContext = currentContext()
         val seq = repository.findById(id) ?: throw IllegalArgumentException("Sequence not found")
         checkWriteAccess(seq, principal, authContext)
-        adminActionGuardService.enforce(
-            action = "ORG_SEQUENCE_UPDATE",
-            actorId = principal.id,
-            context = context,
-        )
 
         request.name?.trim()?.let { if (it.isNotBlank()) seq.name = it }
         request.padWidth?.let { seq.padWidth = it.coerceAtLeast(0) }
@@ -126,6 +116,7 @@ class SequenceDefinitionService @Inject constructor(
         return repository.update(seq).toDto()
     }
 
+    @EnforceAdminAction("ORG_SEQUENCE_DELETE")
     @Transactional
     fun deleteSequence(id: UUID, context: AdminApprovalContext)
     {
@@ -133,17 +124,13 @@ class SequenceDefinitionService @Inject constructor(
         val authContext = currentContext()
         val seq = repository.findById(id) ?: throw IllegalArgumentException("Sequence not found")
         checkWriteAccess(seq, principal, authContext)
-        adminActionGuardService.enforce(
-            action = "ORG_SEQUENCE_DELETE",
-            actorId = principal.id,
-            context = context,
-        )
         seq.isDeleted = true
         seq.isActive = false
         repository.update(seq)
         logger.info("Sequence {} soft-deleted", id)
     }
 
+    @EnforceAdminAction("ORG_SEQUENCE_RESET")
     @Transactional
     fun resetCounter(id: UUID, context: AdminApprovalContext): SequenceDefinitionDto
     {
@@ -151,11 +138,6 @@ class SequenceDefinitionService @Inject constructor(
         val authContext = currentContext()
         val seq = repository.findById(id) ?: throw IllegalArgumentException("Sequence not found")
         checkWriteAccess(seq, principal, authContext)
-        adminActionGuardService.enforce(
-            action = "ORG_SEQUENCE_RESET",
-            actorId = principal.id,
-            context = context,
-        )
         seq.currentValue = 0L
         seq.lastResetAt = Timestamp.from(Instant.now())
         return repository.update(seq).toDto()

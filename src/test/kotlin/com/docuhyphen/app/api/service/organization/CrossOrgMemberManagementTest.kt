@@ -7,7 +7,6 @@ import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.repository.OrganizationSubscriptionPolicyRepository
 import com.docuhyphen.app.api.service.AppUserService
-import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
@@ -35,7 +34,6 @@ class CrossOrgMemberManagementTest
     @Mock private lateinit var authenticationService: AuthenticationService
     @Mock private lateinit var appUserService: AppUserService
     @Mock private lateinit var subscriptionPolicyRepository: OrganizationSubscriptionPolicyRepository
-    @Mock private lateinit var adminActionGuardService: AdminActionGuardService
     @Mock private lateinit var authAuditService: AuthAuditService
     @Mock private lateinit var emailService: EmailService
     @Mock private lateinit var emailTemplateService: EmailTemplateService
@@ -64,7 +62,6 @@ class CrossOrgMemberManagementTest
             appUserService = appUserService,
             authTokenContext = authTokenContext,
             organizationSubscriptionPolicyRepository = subscriptionPolicyRepository,
-            adminActionGuardService = adminActionGuardService,
             authAuditService = authAuditService,
             emailService = emailService,
             emailTemplateService = emailTemplateService,

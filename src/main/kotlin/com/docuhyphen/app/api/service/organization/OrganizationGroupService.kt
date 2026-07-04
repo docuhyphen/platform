@@ -20,9 +20,9 @@ import com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.PrincipalGroupRepository
 import com.docuhyphen.app.api.repository.ShareRepository
 import com.docuhyphen.app.api.service.AppUserService
-import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
+import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
@@ -46,7 +46,6 @@ class OrganizationGroupService @Inject constructor(
     private val organizationRepository: OrganizationRepository,
     private val authTokenContext: AuthTokenContext,
     private val appUserService: AppUserService,
-    private val adminActionGuardService: AdminActionGuardService,
     private val authAuditService: AuthAuditService,
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
@@ -83,6 +82,7 @@ class OrganizationGroupService @Inject constructor(
         organizationRepository.findById(uUID)
             ?: throw OrganizationNotFoundException("Organization not found for id: $uUID")
 
+    @EnforceAdminAction("ORG_GROUP_ADD")
     @Transactional
     fun addOrganizationGroup(
         organizationId: String,
@@ -93,16 +93,7 @@ class OrganizationGroupService @Inject constructor(
     )
     {
         val orgId = UUID.fromString(organizationId)
-        // Creating a group is an org-level action: no group resource exists yet, so we authorize
-        // against the org itself. ORG_MANAGE_MEMBERS requires ORG_ADMIN/ORG_OWNER/ORG_USER_MANAGER
-        // in exactly this org, not merely the caller's primary org.
         authorizeOrg(Action.ORG_MANAGE_MEMBERS, orgId)
-        adminActionGuardService.enforce(
-            action = "ORG_GROUP_ADD",
-            actorId = authTokenContext.authToken.appUser?.id,
-            context = adminApprovalContext,
-            requireStepUp = true,
-        )
 
         val organization = organizationRepository.findById(orgId)
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
@@ -152,6 +143,7 @@ class OrganizationGroupService @Inject constructor(
         }
     }
 
+    @EnforceAdminAction("ORG_GROUP_UPDATE")
     @Transactional
     fun updateOrganizationGroup(
         organizationId: String?,
@@ -174,11 +166,6 @@ class OrganizationGroupService @Inject constructor(
         // Managing a group's membership/metadata requires GROUP_ADMIN on the group itself,
         // satisfied by an org admin of the group's org or by a group OWNER/MANAGER.
         authorizeGroup(Action.GROUP_MANAGE_MEMBERS, gid)
-        adminActionGuardService.enforce(
-            action = "ORG_GROUP_UPDATE",
-            actorId = authTokenContext.authToken.appUser?.id,
-            context = adminApprovalContext,
-        )
         val organization = organizationRepository.findById(orgId)
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
         val group = principalGroupRepository.findById(gid)
@@ -247,6 +234,7 @@ class OrganizationGroupService @Inject constructor(
         }
     }
 
+    @EnforceAdminAction("ORG_GROUP_DELETE")
     @Transactional
     fun deleteOrganizationGroup(organizationId: String?, groupId: String?, adminApprovalContext: AdminApprovalContext)
     {
@@ -259,11 +247,6 @@ class OrganizationGroupService @Inject constructor(
         // Deleting a group requires GROUP_DELETE on the group, satisfied by an org ADMIN/OWNER
         // of the group's org or by a group OWNER (group MANAGER cannot delete).
         authorizeGroup(Action.GROUP_DELETE, gid)
-        adminActionGuardService.enforce(
-            action = "ORG_GROUP_DELETE",
-            actorId = authTokenContext.authToken.appUser?.id,
-            context = adminApprovalContext,
-        )
 
         val organization = organizationRepository.findById(UUID.fromString(organizationId))
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")

@@ -9,7 +9,6 @@ import com.docuhyphen.app.api.model.entity.OrganizationExchangeLink
 import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.repository.OrganizationExchangeLinkRepository
 import com.docuhyphen.app.api.repository.OrganizationRepository
-import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
@@ -37,7 +36,6 @@ class CrossOrgExchangeLinkTest
     @Mock private lateinit var emailService: EmailService
     @Mock private lateinit var configurationService: ConfigurationService
     @Mock private lateinit var orgService: OrganizationService
-    @Mock private lateinit var adminActionGuardService: AdminActionGuardService
     @Mock private lateinit var authAuditService: AuthAuditService
     @Mock private lateinit var realtimeEventService: RealtimeEventService
     @Mock private lateinit var userRoleService: UserRoleService
@@ -66,7 +64,6 @@ class CrossOrgExchangeLinkTest
             emailService = emailService,
             configurationService = configurationService,
             appUserService = orgService,
-            adminActionGuardService = adminActionGuardService,
             authAuditService = authAuditService,
             realtimeEventService = realtimeEventService,
             userRoleService = userRoleService,

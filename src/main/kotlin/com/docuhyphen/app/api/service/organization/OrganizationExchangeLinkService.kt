@@ -3,6 +3,7 @@
 import com.docuhyphen.app.api.exception.OrganizationLinkNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.dto.NotificationDto
 import com.docuhyphen.app.api.model.dto.NotificationType
 import com.docuhyphen.app.api.model.entity.AppUser
@@ -12,7 +13,6 @@ import com.docuhyphen.app.api.model.entity.OrganizationExchangeLink
 import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.repository.OrganizationExchangeLinkRepository
-import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.communication.EmailService
@@ -33,7 +33,6 @@ class OrganizationExchangeLinkService @Inject constructor(
     private val emailService: EmailService,
     private val configurationService: ConfigurationService,
     private val appUserService: OrganizationService,
-    private val adminActionGuardService: AdminActionGuardService,
     private val authAuditService: AuthAuditService,
     private val realtimeEventService: RealtimeEventService,
     private val userRoleService: com.docuhyphen.app.api.service.auth.UserRoleService,
@@ -73,6 +72,7 @@ class OrganizationExchangeLinkService @Inject constructor(
         }
     }
 
+    @EnforceAdminAction("ORG_LINK_CREATE")
     fun createLink(
         requestingOrganizationId: String?,
         requestedOrganizationId: String?,
@@ -99,12 +99,6 @@ class OrganizationExchangeLinkService @Inject constructor(
         {
             throw IllegalArgumentException("Only organization administrators can create exchange links")
         }
-
-        adminActionGuardService.enforce(
-            action = "ORG_LINK_CREATE",
-            actorId = appUser.id,
-            context = adminApprovalContext,
-        )
 
         if (!organizationMembershipService.isMember(appUser.id, requestingOrganization.id))
         {
@@ -156,6 +150,7 @@ class OrganizationExchangeLinkService @Inject constructor(
         return createdLink
     }
 
+    @EnforceAdminAction("ORG_LINK_DECIDE")
     fun acceptLink(
         linkId: String?,
         linkStatus: LinkStatus?,
@@ -187,12 +182,6 @@ class OrganizationExchangeLinkService @Inject constructor(
         {
             throw IllegalArgumentException("Only administrators of the requested organization can accept or decline exchange links")
         }
-
-        adminActionGuardService.enforce(
-            action = "ORG_LINK_DECIDE",
-            actorId = appUser.id,
-            context = adminApprovalContext,
-        )
 
         link.status = linkStatus
 
@@ -293,6 +282,7 @@ class OrganizationExchangeLinkService @Inject constructor(
         }
     }
 
+    @EnforceAdminAction("ORG_LINK_DELETE")
     fun deLink(linkId: String?, adminApprovalContext: AdminApprovalContext)
     {
         val link = organizationExchangeLinkRepository.findById(UUID.fromString(linkId))
@@ -312,12 +302,6 @@ class OrganizationExchangeLinkService @Inject constructor(
         {
             throw IllegalArgumentException("Only an administrator of either linked organization can remove the link")
         }
-
-        adminActionGuardService.enforce(
-            action = "ORG_LINK_DELETE",
-            actorId = appUser.id,
-            context = adminApprovalContext,
-        )
 
         // Notify the *other* organization's admins about the un-pair / cancelled request.
         val otherOrg = if (link.requestingOrganization?.id

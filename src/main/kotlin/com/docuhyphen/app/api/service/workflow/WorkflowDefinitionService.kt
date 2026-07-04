@@ -28,7 +28,7 @@ import com.docuhyphen.app.api.repository.WorkflowStepInstanceRepository
 import com.docuhyphen.app.api.repository.WorkflowTriggerEventRepository
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.UserContactService
-import com.docuhyphen.app.api.service.auth.AdminActionGuardService
+import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.Action
@@ -63,7 +63,6 @@ class WorkflowDefinitionService @Inject constructor(
     private val assigneeRepository: com.docuhyphen.app.api.repository.WorkflowStepAssigneeRepository,
     private val decisionRepository: com.docuhyphen.app.api.repository.WorkflowStepDecisionRepository,
     private val triggerEventRepository: WorkflowTriggerEventRepository,
-    private val adminActionGuardService: AdminActionGuardService,
     private val userContactService: UserContactService,
     private val principalGroupRepository: PrincipalGroupRepository,
     private val appUserService: AppUserService,
@@ -197,15 +196,10 @@ class WorkflowDefinitionService @Inject constructor(
         return definitionRepository.update(def).toDto()
     }
 
+    @EnforceAdminAction("ORG_WORKFLOW_DEFINITION_DELETE")
     @Transactional
     fun deleteDefinition(id: UUID, context: AdminApprovalContext)
     {
-        adminActionGuardService.enforce(
-            action = "ORG_WORKFLOW_DEFINITION_DELETE",
-            actorId = null,
-            context = context,
-        )
-
         val principal = currentPrincipal()
         val authContext = currentContext()
         val def = definitionRepository.findById(id)

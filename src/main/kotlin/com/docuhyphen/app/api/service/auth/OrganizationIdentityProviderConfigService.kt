@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationIdentityProviderConfig
 import com.docuhyphen.app.api.repository.OrganizationIdentityProviderConfigRepository
@@ -21,7 +22,6 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
     private val organizationIdentityProviderConfigRepository: OrganizationIdentityProviderConfigRepository,
     private val organizationRepository: OrganizationRepository,
     private val authTokenContext: AuthTokenContext,
-    private val adminActionGuardService: AdminActionGuardService,
     private val authAuditService: AuthAuditService,
     private val configurationService: ConfigurationService,
     private val userRoleService: UserRoleService,
@@ -50,6 +50,7 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
             }
     }
 
+    @EnforceAdminAction("ORG_IDP_CONFIG_CREATE")
     @Transactional
     fun create(
         organizationId: String,
@@ -59,12 +60,6 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
     {
         val actor = requireOrgAdminForOrganization(organizationId)
         val organization = requireOrganization(organizationId)
-
-        adminActionGuardService.enforce(
-            action = "ORG_IDP_CONFIG_CREATE",
-            actorId = actor.id,
-            context = adminApprovalContext,
-        )
 
         validateRequest(request)
         ensureProviderUniqueWithinOrganization(organization.id, request.provider, null)
@@ -94,6 +89,7 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
         return entity
     }
 
+    @EnforceAdminAction("ORG_IDP_CONFIG_UPDATE")
     @Transactional
     fun update(
         organizationId: String,
@@ -104,12 +100,6 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
     {
         val actor = requireOrgAdminForOrganization(organizationId)
         val orgId = requireUuid(organizationId, "organization ID")
-
-        adminActionGuardService.enforce(
-            action = "ORG_IDP_CONFIG_UPDATE",
-            actorId = actor.id,
-            context = adminApprovalContext,
-        )
 
         validateRequest(request)
 
@@ -138,6 +128,7 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
         return config
     }
 
+    @EnforceAdminAction("ORG_IDP_CONFIG_DELETE")
     @Transactional
     fun delete(
         organizationId: String,
@@ -147,12 +138,6 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
     {
         val actor = requireOrgAdminForOrganization(organizationId)
         val orgId = requireUuid(organizationId, "organization ID")
-
-        adminActionGuardService.enforce(
-            action = "ORG_IDP_CONFIG_DELETE",
-            actorId = actor.id,
-            context = adminApprovalContext,
-        )
 
         val config = requireConfigBelongsToOrg(orgId, configId)
         val beforeSnapshot = snapshot(config)
@@ -190,6 +175,7 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
      * event with before/after snapshots. Step-up is intentionally deferred per
      * the current hardening roadmap.
      */
+    @EnforceAdminAction("ORG_AUTH_EXCHANGE_POLICY_UPDATE", requireStepUp = false)
     @Transactional
     fun updateSessionPolicyFields(
         organizationId: String,
@@ -200,13 +186,6 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
     {
         val actor = requireOrgAdminForOrganization(organizationId)
         val orgId = requireUuid(organizationId, "organization ID")
-
-        adminActionGuardService.enforce(
-            action = "ORG_AUTH_EXCHANGE_POLICY_UPDATE",
-            actorId = actor.id,
-            context = adminApprovalContext,
-            requireStepUp = false,
-        )
 
         validateSessionPolicyRequest(request)
 

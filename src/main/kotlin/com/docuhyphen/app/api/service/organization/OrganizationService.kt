@@ -2,10 +2,10 @@ package com.docuhyphen.app.api.service.organization
 
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.repository.OrganizationRepository
-import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
@@ -24,7 +24,6 @@ class OrganizationService @Inject constructor(
     private val organizationGroupService: OrganizationGroupService,
     private val authTokenContext: AuthTokenContext,
     private val organizationRepository: OrganizationRepository,
-    private val adminActionGuardService: AdminActionGuardService,
     private val authAuditService: AuthAuditService,
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
@@ -38,6 +37,7 @@ class OrganizationService @Inject constructor(
         private val logger = LoggerFactory.getLogger(OrganizationService::class.java)
     }
 
+    @EnforceAdminAction("ORG_UPDATE")
     @Transactional
     fun updateOrganization(
         organizationId: String?,
@@ -56,12 +56,6 @@ class OrganizationService @Inject constructor(
         {
             throw UnauthorizedException("User does not have permission to update this organization")
         }
-
-        adminActionGuardService.enforce(
-            action = "ORG_UPDATE",
-            actorId = authTokenContext.authToken.appUser?.id,
-            context = adminApprovalContext,
-        )
 
         val organization = organizationGroupService.getOrganizationById(UUID.fromString(organizationId))
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
@@ -100,6 +94,7 @@ class OrganizationService @Inject constructor(
         }
     }
 
+    @EnforceAdminAction("ORG_SETTINGS_UPDATE")
     fun enforceAdminSafeguardForSettingsUpdate(organizationId: String?, adminApprovalContext: AdminApprovalContext)
     {
         if (authTokenContext.authToken.appUser?.id?.let { userRoleService.isOrgAdmin(it) } != true)
@@ -111,12 +106,6 @@ class OrganizationService @Inject constructor(
         {
             throw OrganizationNotFoundException("Organization ID cannot be null or blank")
         }
-
-        adminActionGuardService.enforce(
-            action = "ORG_SETTINGS_UPDATE",
-            actorId = authTokenContext.authToken.appUser?.id,
-            context = adminApprovalContext,
-        )
     }
 
     fun getOrganizationById(organizationId: UUID): Organization

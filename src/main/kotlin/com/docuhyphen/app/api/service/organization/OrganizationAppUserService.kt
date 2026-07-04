@@ -4,12 +4,12 @@ import com.docuhyphen.app.api.exception.AppUserNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Person
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.repository.OrganizationSubscriptionPolicyRepository
 import com.docuhyphen.app.api.service.AppUserService
-import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
@@ -34,7 +34,6 @@ class OrganizationAppUserService @Inject constructor(
     private val appUserService: AppUserService,
     private val authTokenContext: AuthTokenContext,
     private val organizationSubscriptionPolicyRepository: OrganizationSubscriptionPolicyRepository,
-    private val adminActionGuardService: AdminActionGuardService,
     private val authAuditService: AuthAuditService,
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
@@ -52,6 +51,7 @@ class OrganizationAppUserService @Inject constructor(
             DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss 'UTC'").withZone(ZoneOffset.UTC)
     }
 
+    @EnforceAdminAction("ORG_APP_USER_ADD")
     @Transactional
     fun addAppUser(
         organizationId: String,
@@ -68,12 +68,6 @@ class OrganizationAppUserService @Inject constructor(
         {
             throw IllegalArgumentException("User does not have permission to add members to this organization")
         }
-
-        adminActionGuardService.enforce(
-            action = "ORG_APP_USER_ADD",
-            actorId = authTokenContext.authToken.appUser?.id,
-            context = adminApprovalContext,
-        )
 
         val organization = organizationGroupService.getOrganizationById(UUID.fromString(organizationId))
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
@@ -177,6 +171,7 @@ class OrganizationAppUserService @Inject constructor(
         return organizationMembershipService.membersOf(organization.id)
     }
 
+    @EnforceAdminAction("ORG_APP_USER_UPDATE")
     @Transactional
     fun updateAppUser(
         organizationId: String?,
@@ -200,12 +195,6 @@ class OrganizationAppUserService @Inject constructor(
         {
             throw IllegalArgumentException("User does not have permission to update members of this organization")
         }
-
-        adminActionGuardService.enforce(
-            action = "ORG_APP_USER_UPDATE",
-            actorId = authTokenContext.authToken.appUser?.id,
-            context = adminApprovalContext,
-        )
 
         if (appUserId.isNullOrBlank())
         {
@@ -318,6 +307,7 @@ class OrganizationAppUserService @Inject constructor(
         }
     }
 
+    @EnforceAdminAction("ORG_APP_USER_DELETE")
     @Transactional
     fun deleteAppUser(organizationId: String?, appUserId: String?, adminApprovalContext: AdminApprovalContext)
     {
@@ -331,12 +321,6 @@ class OrganizationAppUserService @Inject constructor(
         {
             throw IllegalArgumentException("User does not have permission to remove members from this organization")
         }
-
-        adminActionGuardService.enforce(
-            action = "ORG_APP_USER_DELETE",
-            actorId = authTokenContext.authToken.appUser?.id,
-            context = adminApprovalContext,
-        )
 
         if (appUserId.isNullOrBlank())
         {

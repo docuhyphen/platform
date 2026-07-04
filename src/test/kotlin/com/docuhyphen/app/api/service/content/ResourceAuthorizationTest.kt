@@ -261,7 +261,6 @@ class ResourceAuthorizationTest
         repo: SequenceDefinitionRepository = mock(),
     ): SequenceDefinitionService = SequenceDefinitionService(
         repository = repo,
-        adminActionGuardService = mock(),
         authorizationService = authSvc,
         authorizationContextFactory = factory,
         userRoleService = roleService,

@@ -3,12 +3,12 @@ package com.docuhyphen.app.api.service
 import com.docuhyphen.app.api.exception.AppUserNotFoundException
 import com.docuhyphen.app.api.exception.DataIntegrityException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.dto.AppUserSettingsDto
 import com.docuhyphen.app.api.model.dto.OrganizationSettingsDto
 import com.docuhyphen.app.api.model.entity.AppUserSettings
 import com.docuhyphen.app.api.model.entity.NotificationChannelType
 import com.docuhyphen.app.api.model.entity.OrganizationSettings
-import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.ServiceActionAuthorizationService
 import com.docuhyphen.app.api.service.auth.UserRoleService
@@ -27,7 +27,6 @@ class SettingsService @Inject constructor(
     var authTokenContext: AuthTokenContext,
     var appUserService: AppUserService,
     var organizationService: OrganizationService,
-    var adminActionGuardService: AdminActionGuardService,
     var userRoleService: UserRoleService,
 )
 {
@@ -146,6 +145,7 @@ class SettingsService @Inject constructor(
         return settings
     }
 
+    @EnforceAdminAction("ORG_SETTINGS_UPDATE")
     @Transactional
     fun updateOrganizationSettings(
         organizationId: String,
@@ -162,12 +162,6 @@ class SettingsService @Inject constructor(
         {
             throw UnauthorizedException("User does not have permission to update organization settings")
         }
-
-        adminActionGuardService.enforce(
-            action = "ORG_SETTINGS_UPDATE",
-            actorId = currentUser.id,
-            context = adminApprovalContext,
-        )
 
         // Get the organization
         val organization = organizationService.getOrganizationById(orgUuid)

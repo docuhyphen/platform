@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
@@ -38,7 +39,6 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val organizationRepository: OrganizationRepository,
     private val organizationSubscriptionPolicyRepository: OrganizationSubscriptionPolicyRepository,
-    private val adminActionGuardService: AdminActionGuardService,
     private val authAuditService: AuthAuditService,
     private val userRoleService: UserRoleService,
     private val organizationMembershipService: com.docuhyphen.app.api.service.organization.OrganizationMembershipService,
@@ -144,6 +144,7 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         )
     }
 
+    @EnforceAdminAction("PLATFORM_ORG_SUBSCRIPTION_POLICY_UPSERT")
     @Transactional
     fun upsertPolicy(
         organizationId: String,
@@ -157,12 +158,6 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         validateRequest(request, normalizedTierCode)
 
         val existing = organizationSubscriptionPolicyRepository.findByOrganizationId(organization.id)
-
-        adminActionGuardService.enforce(
-            action = "PLATFORM_ORG_SUBSCRIPTION_POLICY_UPSERT",
-            actorId = actor.id,
-            context = adminApprovalContext,
-        )
 
         val beforeSnapshot = existing?.let { snapshot(it, organization) }
 
@@ -211,6 +206,7 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         return result
     }
 
+    @EnforceAdminAction("PLATFORM_ORG_SUBSCRIPTION_POLICY_DELETE")
     @Transactional
     fun deletePolicy(organizationId: String, adminApprovalContext: AdminApprovalContext): PolicyResult
     {
@@ -218,12 +214,6 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         val organization = requireOrganization(organizationId)
         val existing = organizationSubscriptionPolicyRepository.findByOrganizationId(organization.id)
             ?: throw IllegalArgumentException("Organization subscription policy not found")
-
-        adminActionGuardService.enforce(
-            action = "PLATFORM_ORG_SUBSCRIPTION_POLICY_DELETE",
-            actorId = actor.id,
-            context = adminApprovalContext,
-        )
 
         val beforeSnapshot = snapshot(existing, organization)
         organizationSubscriptionPolicyRepository.delete(existing)
