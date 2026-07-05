@@ -5,7 +5,7 @@ import { useExchangeWorkflowTabStyles } from "./ExchangeWorkflowTabStyles.tsx";
 const BADGE_APPEARANCE: Record<string, "filled" | "ghost" | "outline" | "tint"> = {
     NONE: "ghost",
     RUNNING: "tint",
-    CLEARED: "filled",
+    CLEARED: "outline",
     BLOCKED: "filled",
 };
 

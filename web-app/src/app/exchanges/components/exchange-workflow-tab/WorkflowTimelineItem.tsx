@@ -93,6 +93,7 @@ interface Props
 const WorkflowTimelineItem = ({ step, isActivePending }: Props) =>
 {
     const styles = useExchangeWorkflowTabStyles();
+    const collapsedSummary = collapsedSummaryText(step, isActivePending);
 
     return (
         <AccordionItem value={step.id}>
@@ -100,10 +101,18 @@ const WorkflowTimelineItem = ({ step, isActivePending }: Props) =>
                 icon={<StepIcon step={step} isActivePending={isActivePending} />}
             >
                 <div className={styles.stepHeaderContent}>
-                    <Text size={300} weight={isActivePending ? "semibold" : "regular"}>
+                    <Text
+                        id={`workflow-step-title-${step.id}`}
+                        size={300}
+                        weight={isActivePending ? "semibold" : "regular"}
+                        className={styles.stepHeaderTitle}
+                    >
                         Step {step.stepIndex + 1}: {STEP_TYPE_LABELS[step.stepType] ?? step.stepType}
                     </Text>
-                    <div className={styles.stepHeaderMeta}>
+                    <div
+                        id={`workflow-step-meta-${step.id}`}
+                        className={styles.stepHeaderMeta}
+                    >
                         <Badge
                             color={STEP_STATUS_COLORS[step.status] ?? "subtle"}
                             appearance="outline"
@@ -111,9 +120,13 @@ const WorkflowTimelineItem = ({ step, isActivePending }: Props) =>
                         >
                             {collapsedBadgeLabel(step, isActivePending)}
                         </Badge>
-                        {collapsedSummaryText(step, isActivePending) && (
-                            <Text size={200}>
-                                {collapsedSummaryText(step, isActivePending)}
+                        {collapsedSummary && (
+                            <Text
+                                id={`workflow-step-summary-${step.id}`}
+                                size={200}
+                                className={styles.stepHeaderMetaText}
+                            >
+                                {collapsedSummary}
                             </Text>
                         )}
                     </div>

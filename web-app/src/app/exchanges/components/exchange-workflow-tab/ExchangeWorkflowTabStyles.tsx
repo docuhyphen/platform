@@ -33,7 +33,7 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: tokens.spacingVerticalM,
-        padding: "1rem"
+        padding: "1rem",
     },
     // Side-by-side "Both" view: detail/actions on the left, diagram preview
     // on the right at 60% width. Stacks to a single column on narrow
@@ -145,14 +145,34 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         alignItems: "center",
         gap: tokens.spacingHorizontalS,
         width: "100%",
+        minWidth: 0,
         flexWrap: "wrap",
+    },
+    stepHeaderTitle: {
+        flex: "1 1 12rem",
+        minWidth: 0,
+        overflowWrap: "anywhere",
     },
     stepHeaderMeta: {
         display: "flex",
         alignItems: "center",
+        flex: "1 1 16rem",
+        minWidth: 0,
+        flexWrap: "wrap",
         gap: tokens.spacingHorizontalS,
+        rowGap: tokens.spacingVerticalXXS,
         color: tokens.colorNeutralForeground3,
         marginLeft: "auto",
+        justifyContent: "flex-end",
+        "@media (max-width: 1200px)": {
+            marginLeft: 0,
+            width: "100%",
+            justifyContent: "flex-start",
+        },
+    },
+    stepHeaderMetaText: {
+        minWidth: 0,
+        overflowWrap: "anywhere",
     },
     stepDetail: {
         display: "flex",

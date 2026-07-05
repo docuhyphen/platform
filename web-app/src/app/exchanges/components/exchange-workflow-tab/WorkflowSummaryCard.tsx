@@ -64,7 +64,7 @@ const WorkflowSummaryCard = ({ instance }: Props) =>
                 <Text weight="semibold" size={400}>{instance.definitionName ?? "Workflow"}</Text>
                 <Badge
                     color={INSTANCE_STATUS_COLORS[instance.status] ?? "subtle"}
-                    appearance="filled"
+                    appearance="outline"
                     size="small"
                 >
                     {INSTANCE_STATUS_LABELS[instance.status] ?? instance.status}
