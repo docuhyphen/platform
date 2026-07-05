@@ -99,6 +99,16 @@ const Settings = () =>
     };
 
     const currentTabLabel = tabLabels[selectedValue as string] ?? "Settings";
+    const managesOwnContentScroll = [
+        tabIds.blueprints,
+        tabIds.workflows,
+        tabIds.variables,
+        tabIds.fields,
+        tabIds.communications,
+        tabIds.documents,
+    ].includes(selectedValue as string) || (
+        selectedValue === tabIds.organization && !!appUserPersonOrganization?.isActive
+    );
 
     const hasOrg = !!appUserPersonOrganization?.isActive;
     const canManageOrganization =
@@ -210,6 +220,7 @@ const Settings = () =>
                 </div>
 
                 <div className={styles.tabsContainer} id="settings-tabs">
+                    <div className={managesOwnContentScroll ? styles.managedTabPanel : styles.tabPanelScroller}>
                     {selectedValue === tabIds.profile && <ProfileTab/>}
                     {selectedValue === tabIds.linkedAccounts && <LinkedAccountsTab/>}
                     {selectedValue === tabIds.sessions && <SessionsTab/>}
@@ -229,6 +240,7 @@ const Settings = () =>
                     {selectedValue === tabIds.fields && <FieldsTab/>}
                     {selectedValue === tabIds.communications && <CommunicationsTab/>}
                     {selectedValue === tabIds.documents && <DocumentLibraryTab/>}
+                    </div>
                 </div>
 
             </div>

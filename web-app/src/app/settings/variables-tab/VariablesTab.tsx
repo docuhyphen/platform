@@ -185,6 +185,7 @@ const VariablesTab = () =>
                 )}
             </div>
 
+            <div className={styles.scrollableContent}>
             {activeTab !== 'PLATFORM' && (
                 <div className={styles.toolbar}>
                     <ViewModeToggle value={viewMode} onChange={handleViewModeChange}/>
@@ -194,6 +195,7 @@ const VariablesTab = () =>
             {activeTab === 'PERSONAL' && <PersonalVariablesTab ref={personalRef} viewMode={viewMode}/>}
             {activeTab === 'ORG' && <OrganizationVariablesTab ref={orgRef} viewMode={viewMode}/>}
             {activeTab === 'PLATFORM' && <PlatformVariablesView/>}
+            </div>
         </div>
     );
 };

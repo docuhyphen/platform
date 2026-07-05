@@ -29,20 +29,22 @@ export const useOrganizationTabStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: "8px",
+        height: "100%",
+        minHeight: 0,
     },
 
     /**
      * Sticky wrapper for the inner TabList (Details / People / Groups / …).
-     * Sticks just below the fixed app header so the sub-navigation is always
-     * visible while the section content scrolls past.
+     * The Settings content pane is the scroll container, so the sub-navigation
+     * stays at its top while the selected section scrolls beneath it.
      */
     tabListWrapper: {
-        position: "sticky",
-        top: SETTINGS_HEADER_HEIGHT,
-        zIndex: 1,
         background: tokens.colorNeutralBackground1,
         paddingBottom: "4px",
         marginBottom: "4px",
+        flexShrink: 0,
+        paddingInline: "0.5rem",
+        boxSizing: "border-box",
         // borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
     },
 
@@ -65,7 +67,13 @@ export const useOrganizationTabStyles = makeStyles({
         width: "300px"
     },
     tabsContainer: {
-        // Natural height exch- content scrolls via the settings container scroller.
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        overflowX: "hidden",
+        overscrollBehavior: "contain",
+        paddingInline: "0.5rem",
+        boxSizing: "border-box",
     },
     loadingWrapper: {
         display: "flex",

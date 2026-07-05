@@ -416,6 +416,7 @@ const DocumentLibraryTab = () =>
                         label="Loading documents..."
                     />
                 )}
+                <div className={styles.scrollableContent}>
                 {!loading && error && (
                     <Text
                         id="doc-error-text"
@@ -529,6 +530,7 @@ const DocumentLibraryTab = () =>
                         />
                     </div>
                 )}
+                </div>
             </div>
 
             <DocumentLibraryEditorDialog

@@ -6,11 +6,12 @@ interface Props
 {
     isEdit: boolean;
     workflowName?: string;
+    backDestinationLabel: string;
     onBack: () => void;
     onHelp: () => void;
 }
 
-const WorkflowDesignerHeader = ({isEdit, workflowName, onBack, onHelp}: Props) =>
+const WorkflowDesignerHeader = ({isEdit, workflowName, backDestinationLabel, onBack, onHelp}: Props) =>
 {
     const styles = useWorkflowDesignerHeaderStyles();
 
@@ -23,7 +24,7 @@ const WorkflowDesignerHeader = ({isEdit, workflowName, onBack, onHelp}: Props) =
                 shape={"circular"}
                 onClick={onBack}
             >
-                Back
+                Back to {backDestinationLabel}
             </Button>
             <div className={styles.titleGroup}>
                 <Text size={500}

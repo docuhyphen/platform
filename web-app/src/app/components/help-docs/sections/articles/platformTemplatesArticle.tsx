@@ -13,12 +13,12 @@ export const platformTemplatesArticle = (
         <ol>
             <li>Open Settings and go to the <b>Workflows</b> tab.</li>
             <li>
-                Scroll down to the <b>Platform Templates</b> section below your
-                organization's workflows.
+                Select the <b>Platform</b> sub-tab.
             </li>
             <li>
-                Browse by name, description, or tags. Examples of
-                available tags: Legal, Finance, Healthcare, HR, Logistics.
+                Search by name, summary, trigger, or tag. Use the tag filter,
+                sorting menu, and card or table layout control to narrow and
+                arrange the results.
             </li>
         </ol>
 
@@ -62,7 +62,7 @@ export const platformTemplatesArticle = (
         <h3>Customizing a cloned template</h3>
         <ol>
             <li>
-                Find the cloned workflow in the <b>My Workflows</b> section and
+                Find the cloned workflow in the <b>My Workflows</b> sub-tab and
                 click <b>Edit</b>.
             </li>
             <li>
@@ -85,7 +85,7 @@ export const platformTemplatesArticle = (
         <h3>Duplicating your own workflows</h3>
         <p>
             You can also duplicate your own org's workflows using the{" "}
-            <b>Duplicate</b> row action in the My Workflows list. The duplicate
+            <b>Duplicate</b> action in the My Workflows list. The duplicate
             starts inactive and is a full independent copy that you can edit
             without affecting the original.
         </p>
@@ -94,8 +94,8 @@ export const platformTemplatesArticle = (
         <p>
             Tags are free-form strings, not a fixed list. You can add any tag when
             creating or editing a workflow definition, which means new industries
-            are supported without any platform updates. The Platform Templates
-            section uses these tags to help you filter relevant templates.
+            are supported without any platform updates. The Platform
+            sub-tab uses these tags to help you filter relevant templates.
         </p>
     </>
 );

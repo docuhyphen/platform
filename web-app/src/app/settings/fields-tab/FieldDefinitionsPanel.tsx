@@ -13,6 +13,7 @@ import {DeleteRegular, MoreVerticalRegular} from '@fluentui/react-icons';
 import {FieldDefinitionDto, ViewMode} from '../../models/models';
 import {useFieldsTabStyles} from './FieldsTabStyles';
 import {VALUE_TYPE_LABELS} from './fieldLabels';
+import FieldTypeLabel from './field-type-label/FieldTypeLabel';
 
 interface Props
 {
@@ -115,9 +116,10 @@ const FieldDefinitionsPanel = ({definitions, viewMode, canManage, loading, error
                             {definition.namespace}:{definition.fieldKey}
                         </code>
                         {definition.latestContract && (
-                            <Text className={styles.cardFieldType}>
-                                {VALUE_TYPE_LABELS[definition.latestContract.valueType]}
-                            </Text>
+                            <FieldTypeLabel
+                                id={`field-type-${definition.id}`}
+                                valueType={definition.latestContract.valueType}
+                            />
                         )}
                     </div>
                     <div className={styles.cardCol2}>

@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useState} from "react";
-import ViewModeToggle from "../../../components/ViewModeToggle.tsx";
 import TagList from "../../../components/TagList.tsx";
 import {updateAppUserSettings} from "../../../../services/appUserApi";
 import {useAuth} from "../../../../context/AuthContext";
@@ -38,10 +37,13 @@ import {useWorkflowsListViewStyles} from "./WorkflowsListViewStyles.tsx";
 import {ActivateIcon, AddIcon, CopyIcon, DeactivateIcon, DeleteIcon, EditIcon, PublishIcon, UnpublishIcon} from "../../../components/IconBundles.tsx";
 import {formatTriggerName} from "../workflowUtils.ts";
 import WorkflowDeleteDialog from "../WorkflowDeleteDialog.tsx";
+import WorkflowListControls, {
+    WorkflowSortOrder,
+} from "./workflow-list-controls/WorkflowListControls.tsx";
 
-type ListTab = 'PERSONAL' | 'ORG' | 'APP';
+export type WorkflowListTab = 'PERSONAL' | 'ORG' | 'APP';
 
-const TAB_LABEL: Record<ListTab, string> = {
+const TAB_LABEL: Record<WorkflowListTab, string> = {
     PERSONAL: 'My Workflows',
     ORG: 'Organization',
     APP: 'Platform',
@@ -49,6 +51,8 @@ const TAB_LABEL: Record<ListTab, string> = {
 
 interface Props
 {
+    activeTab: WorkflowListTab;
+    onActiveTabChange: (tab: WorkflowListTab) => void;
     onEdit: (definition: WorkflowDefinitionSummaryDto) => void;
     onNew: (scope: 'PERSONAL' | 'ORG') => void;
 }
@@ -139,12 +143,11 @@ const WorkflowCard = ({def, isPersonal, onEdit, onToggleActive, onTogglePublishe
 
 // ── Main list view ────────────────────────────────────────────────────────────
 
-const WorkflowsListView = ({onEdit, onNew}: Props) =>
+const WorkflowsListView = ({activeTab, onActiveTabChange, onEdit, onNew}: Props) =>
 {
     const styles = useWorkflowsListViewStyles();
     const {appUser, setAppUser, token, appUserPersonOrganization} = useAuth();
     const hasOrg = !!appUserPersonOrganization?.isActive;
-    const [activeTab, setActiveTab] = useState<ListTab>('PERSONAL');
     const [viewMode, setViewMode] = useState<ViewMode>(appUser?.settings?.workflowsView ?? 'cards');
     const [definitions, setDefinitions] = useState<WorkflowDefinitionSummaryDto[]>([]);
     const [loading, setLoading] = useState(false);
@@ -153,6 +156,9 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
     const [cloningDef, setCloningDef] = useState<WorkflowDefinitionSummaryDto | null>(null);
     const [cloneNameInput, setCloneNameInput] = useState("");
     const [cloning, setCloning] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+    const [sortOrder, setSortOrder] = useState<WorkflowSortOrder>("newest");
 
     const handleViewModeChange = async (mode: ViewMode) => {
         setViewMode(mode);
@@ -162,7 +168,7 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
         catch { /* non-critical */ }
     };
 
-    const load = useCallback(async (tab: ListTab) =>
+    const load = useCallback(async (tab: WorkflowListTab) =>
     {
         setLoading(true);
         setError(null);
@@ -184,6 +190,48 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
     {
         load(activeTab);
     }, [load, activeTab]);
+
+    const selectTab = (tab: WorkflowListTab) =>
+    {
+        onActiveTabChange(tab);
+        setSearchQuery("");
+        setSelectedTags(new Set());
+        setSortOrder("newest");
+    };
+
+    const toggleTag = (tag: string) =>
+    {
+        setSelectedTags(previous =>
+        {
+            const next = new Set(previous);
+            if (next.has(tag)) next.delete(tag);
+            else next.add(tag);
+            return next;
+        });
+    };
+
+    const availableTags = [...new Set(definitions.flatMap(definition => definition.generalTags))]
+        .sort((left, right) => left.localeCompare(right));
+    const normalizedSearch = searchQuery.trim().toLowerCase();
+    const visibleDefinitions = definitions
+        .filter(definition =>
+        {
+            const matchesSearch = normalizedSearch.length === 0 || [
+                definition.name,
+                definition.summary ?? "",
+                formatTriggerName(definition.triggerEvent),
+                ...definition.generalTags,
+            ].some(value => value.toLowerCase().includes(normalizedSearch));
+            const matchesTags = selectedTags.size === 0 ||
+                [...selectedTags].every(tag => definition.generalTags.includes(tag));
+            return matchesSearch && matchesTags;
+        })
+        .sort((left, right) =>
+        {
+            if (sortOrder === "nameAsc") return left.name.localeCompare(right.name);
+            if (sortOrder === "nameDesc") return right.name.localeCompare(left.name);
+            return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+        });
 
     const toggleActive = async (def: WorkflowDefinitionSummaryDto) =>
     {
@@ -219,7 +267,7 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
         {
             await cloneWorkflowDefinition(cloningDef.id, {newName: cloneNameInput.trim() || undefined});
             setCloningDef(null);
-            setActiveTab('PERSONAL');
+            selectTab('PERSONAL');
         }
         catch { /* ignore */ }
         finally
@@ -256,11 +304,11 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
 
     return (
         <>
-            <div>
+            <div className={styles.container}>
                 <div className={styles.outerWrapper}>
                     <TabList
                         selectedValue={activeTab}
-                        onTabSelect={(_, d) => setActiveTab(d.value as ListTab)}
+                        onTabSelect={(_, d) => selectTab(d.value as WorkflowListTab)}
                     >
                         <Tab value="PERSONAL">{TAB_LABEL.PERSONAL}</Tab>
                         {hasOrg && <Tab value="ORG">{TAB_LABEL.ORG}</Tab>}
@@ -280,12 +328,20 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                     )}
                 </div>
 
-                {activeTab !== 'APP' && (
-                    <div className={styles.toolbar}>
-                        <ViewModeToggle value={viewMode} onChange={handleViewModeChange}/>
-                    </div>
-                )}
+                <WorkflowListControls
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    availableTags={availableTags}
+                    selectedTags={selectedTags}
+                    onTagToggle={toggleTag}
+                    onClearTags={() => setSelectedTags(new Set())}
+                    sortOrder={sortOrder}
+                    onSortOrderChange={setSortOrder}
+                    viewMode={viewMode}
+                    onViewModeChange={handleViewModeChange}
+                />
 
+                <div className={styles.scrollableContent}>
                 {error && (
                     <MessageBar intent="error" className={styles.errorBar}>
                         <MessageBarBody>{error}</MessageBarBody>
@@ -304,9 +360,15 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                     </div>
                 )}
 
-                {!loading && !error && definitions.length > 0 && (activeTab === 'APP' || viewMode === 'cards') && (
+                {!loading && !error && definitions.length > 0 && visibleDefinitions.length === 0 && (
+                    <div className={styles.emptyState}>
+                        <Text>No workflows match your search and filters.</Text>
+                    </div>
+                )}
+
+                {!loading && !error && visibleDefinitions.length > 0 && viewMode === 'cards' && (
                     <div className={styles.cardGrid}>
-                        {definitions.map(def =>
+                        {visibleDefinitions.map(def =>
                             activeTab === 'APP'
                                 ? renderPlatformCard(def)
                                 : (
@@ -325,7 +387,7 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                     </div>
                 )}
 
-                {!loading && !error && definitions.length > 0 && activeTab !== 'APP' && viewMode === 'table' && (
+                {!loading && !error && visibleDefinitions.length > 0 && viewMode === 'table' && (
                     <table className={styles.table}>
                         <thead>
                             <tr>
@@ -338,7 +400,7 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                             </tr>
                         </thead>
                         <tbody>
-                            {definitions.map(def => (
+                            {visibleDefinitions.map(def => (
                                 <tr key={def.id} className={styles.tr}>
                                     <td className={styles.td}>
                                         <Text weight="semibold">{def.name}</Text>
@@ -357,7 +419,18 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                                         </Badge>
                                     </td>
                                     <td className={styles.td}>
-                                        <Menu>
+                                        {activeTab === 'APP' ? (
+                                            <Button
+                                                id={`workflows-table-add-platform-btn-${def.id}`}
+                                                size="small"
+                                                appearance="outline"
+                                                shape="circular"
+                                                onClick={() => openCloneDialog(def)}
+                                            >
+                                                Add to my workflows
+                                            </Button>
+                                        ) : (
+                                            <Menu>
                                             <MenuTrigger disableButtonEnhancement>
                                                 <Button size="small" appearance="subtle" shape="circular" icon={<MoreVerticalRegular/>} aria-label="More actions"/>
                                             </MenuTrigger>
@@ -376,13 +449,15 @@ const WorkflowsListView = ({onEdit, onNew}: Props) =>
                                                     <MenuItem icon={<DeleteIcon/>} onClick={() => setDeletingDef(def)}>Delete</MenuItem>
                                                 </MenuList>
                                             </MenuPopover>
-                                        </Menu>
+                                            </Menu>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 )}
+                </div>
             </div>
 
             {deletingDef && (

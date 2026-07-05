@@ -168,6 +168,7 @@ const CommunicationsTab = () =>
                     )}
                 </div>
 
+                <div className={styles.scrollableContent}>
                 <div className={styles.toolbar}>
                     <ViewModeToggle value={viewMode} onChange={handleViewModeChange}/>
                 </div>
@@ -318,6 +319,7 @@ const CommunicationsTab = () =>
                         </tbody>
                     </table>
                 )}
+                </div>
             </div>
 
             <CommunicationEditorDialog

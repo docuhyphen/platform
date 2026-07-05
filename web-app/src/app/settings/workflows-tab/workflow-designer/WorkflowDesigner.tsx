@@ -37,6 +37,7 @@ interface Props
 {
     definitionId?: string;
     scope?: 'PERSONAL' | 'ORG' | 'APP';
+    backDestinationLabel: string;
     onBack: () => void;
     onSaved: () => void;
 }
@@ -52,7 +53,7 @@ const defaultState = (): WorkflowDesignerState => ({
     name: "", summary: "", generalTags: [], triggerEvent: "", isActive: false, steps: [],
 });
 
-const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
+const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, onSaved}: Props) =>
 {
     const styles = useWorkflowDesignerStyles();
     const {openHelpArticle} = useHelpSidebar();
@@ -184,6 +185,7 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
                 <WorkflowDesignerHeader
                     isEdit={!!definitionId}
                     workflowName={state.name}
+                    backDestinationLabel={backDestinationLabel}
                     onBack={handleBack}
                     onHelp={() => openHelpArticle("building-a-workflow")}
                 />
@@ -192,6 +194,7 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
                                     onChange={setView} />
             </div>
 
+            <div className={styles.scrollableContent}>
             {error && (
                 <MessageBar intent="error">
                     <MessageBarBody>{error}</MessageBarBody>
@@ -244,6 +247,7 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
                 onCancel={handleBack}
                 onSave={requestSave}
             />
+            </div>
 
             <SaveWorkflowDialog
                 open={showSaveDialog}
@@ -277,7 +281,7 @@ const WorkflowDesigner = ({definitionId, scope, onBack, onSaved}: Props) =>
                                 shape={"circular"}
                                 onClick={onBack}
                             >
-                                Discard changes
+                                Discard and return to {backDestinationLabel}
                             </Button>
                         </DialogActions>
                     </DialogBody>

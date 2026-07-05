@@ -1,6 +1,12 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useWorkflowsListViewStyles = makeStyles({
+    container: {
+        height: "100%",
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+    },
     section: {
         marginBottom: "2rem",
     },
@@ -112,7 +118,22 @@ export const useWorkflowsListViewStyles = makeStyles({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: "0.75rem",
+        background: tokens.colorNeutralBackground1,
+        paddingBottom: "0.75rem",
+        gap: "8px",
+        flexWrap: "wrap",
+        flexShrink: 0,
+        paddingInline: "0.5rem",
+        boxSizing: "border-box",
+    },
+    scrollableContent: {
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        overflowX: "hidden",
+        overscrollBehavior: "contain",
+        paddingInline: "0.5rem",
+        boxSizing: "border-box",
     },
 
     cloneNameLabel: {
@@ -131,11 +152,6 @@ export const useWorkflowsListViewStyles = makeStyles({
     overflowTagsButton: {
         padding: "0 6px",
         minWidth: "0",
-    },
-    toolbar: {
-        display: "flex",
-        justifyContent: "flex-end",
-        marginBottom: "0.5rem",
     },
     table: {
         width: "100%",

@@ -70,8 +70,7 @@ const ExchangeInitiationFieldsTab = (
         <div id="exchange-initiation-fields-tab-content"
              className={styles.container}>
             <div className={styles.schemaRow}>
-                <Field label="Business schema"
-                       className={styles.grow}>
+                <Field label="Business schema">
                     <Dropdown id="exchange-initiation-schema-select"
                               placeholder="Select a schema (optional)..."
                               disabled={locked || schemas.length === 0}

@@ -379,6 +379,7 @@ const BlueprintsTab = () =>
                 </div>
 
                 {loading && <Spinner size="small" label="Loading blueprints…"/>}
+                <div className={styles.scrollableContent}>
                 {!loading && error && (
                     <Text className={styles.errorText}>{error}</Text>
                 )}
@@ -588,6 +589,7 @@ const BlueprintsTab = () =>
                         />
                     </div>
                 )}
+                </div>
             </div>
 
             <BlueprintEditorDialog

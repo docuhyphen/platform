@@ -328,7 +328,7 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
                                     onClick={() => { setPhase('review'); setError(null); }}
                                     disabled={isBusy}
                                 >
-                                    Back
+                                    Back to review
                                 </Button>
                             </>
                         )}
@@ -351,7 +351,7 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
                                     onClick={() => { setPhase('review'); setError(null); }}
                                     disabled={isBusy}
                                 >
-                                    Back
+                                    Back to review
                                 </Button>
                             </>
                         )}

@@ -380,6 +380,7 @@ const FieldsTab = () =>
                 )}
             </div>
 
+            <div className={styles.scrollableContent}>
             {selected === 'fields' && (
                 <FieldDefinitionsPanel definitions={filteredDefinitions}
                                        viewMode={fieldViewMode}
@@ -397,6 +398,7 @@ const FieldsTab = () =>
                               canManage={canManage}
                               onRefresh={loadSchemas}/>
             )}
+            </div>
 
             <FieldDefinitionDialog open={dialogOpen}
                                    existingNamespaces={fieldNamespaces}
