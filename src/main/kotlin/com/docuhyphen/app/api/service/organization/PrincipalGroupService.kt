@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.organization
 
+import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
 import com.docuhyphen.app.api.model.entity.PrincipalGroup
 import com.docuhyphen.app.api.model.entity.PrincipalGroupMember
@@ -10,6 +11,7 @@ import com.docuhyphen.app.api.repository.PrincipalGroupRepository
 import com.docuhyphen.app.api.repository.UserContactRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
+import jakarta.transaction.Transactional
 import java.util.UUID
 
 /**
@@ -255,6 +257,8 @@ class PrincipalGroupService @Inject constructor(
     }
 
     /** Soft-delete a personal group and deactivate all its members. */
+    @EnforceAdminAction("PERSONAL_GROUP_DELETE")
+    @Transactional
     fun deletePersonalGroup(groupId: UUID)
     {
         val group = groupRepository.findById(groupId)

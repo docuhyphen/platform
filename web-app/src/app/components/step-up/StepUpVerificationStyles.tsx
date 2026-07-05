@@ -1,7 +1,7 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
 
-export const useStepUpModalStyles = makeStyles({
-    dialogContent: {
+export const useStepUpVerificationStyles = makeStyles({
+    container: {
         display: "flex",
         flexDirection: "column",
         gap: "16px",
@@ -9,5 +9,12 @@ export const useStepUpModalStyles = makeStyles({
     },
     infoText: {
         color: tokens.colorPaletteGreenForeground1,
+    },
+    errorText: {
+        color: tokens.colorStatusDangerForeground1,
+    },
+    resendRow: {
+        display: "flex",
+        justifyContent: "start",
     },
 });

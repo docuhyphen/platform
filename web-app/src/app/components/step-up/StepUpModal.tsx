@@ -7,14 +7,11 @@ import {
     DialogContent,
     DialogSurface,
     DialogTitle,
-    Field,
-    Input,
     Spinner,
-    Text,
 } from "@fluentui/react-components";
 import {StepUpPrompt, subscribeStepUp} from "../../../services/stepUpBroker";
 import {getOtpFriendlyMessage, normalizeApiError} from "../../../utils/apiErrorUtils";
-import {useStepUpModalStyles} from "./StepUpModalStyles.tsx";
+import StepUpVerification, {STEP_UP_DIALOG_TITLE} from "./StepUpVerification.tsx";
 
 const friendlyActionLabel = (action?: string | null): string =>
 {
@@ -25,7 +22,6 @@ const friendlyActionLabel = (action?: string | null): string =>
 
 const StepUpModal: React.FC = () =>
 {
-    const styles = useStepUpModalStyles();
     const [prompt, setPrompt] = useState<StepUpPrompt | null>(null);
     const [otp, setOtp] = useState("");
     const [submitting, setSubmitting] = useState(false);
@@ -127,68 +123,38 @@ const StepUpModal: React.FC = () =>
         <Dialog modalType="alert" open={!!prompt}>
             <DialogSurface>
                 <DialogBody>
-                    <DialogTitle>Confirm it's you</DialogTitle>
-                    <DialogContent className={styles.dialogContent}>
-                        {isOtpFlow ? (
-                            <>
-                                <Text>
-                                    For your security, enter the verification code sent to your email to continue with <b>{friendlyActionLabel(prompt?.action)}</b>.
-                                </Text>
-                                <Field
-                                    label="Verification code"
-                                    validationState={error ? "error" : "none"}
-                                    validationMessage={error ?? undefined}
-                                >
-                                    <Input
-                                        id={"step-up-otp-input"}
-                                        type="text"
-                                        autoComplete="one-time-code"
-                                        value={otp}
-                                        disabled={submitting}
-                                        onChange={(e) => setOtp(e.target.value)}
-                                        onKeyDown={(e) =>
-                                        {
-                                            if (e.key === "Enter") onSubmitOtp();
-                                        }}
-                                    />
-                                </Field>
-                                {info && <Text className={styles.infoText}>{info}</Text>}
-                            </>
-                        ) : (
-                            <>
-                                <Text>
-                                    To continue with <b>{friendlyActionLabel(prompt?.action)}</b>, you must re-authenticate with {prompt?.provider || "your identity provider"}.
-                                    Silent SSO is disabled for this step.
-                                </Text>
-                                {error && <Text>{error}</Text>}
-                            </>
-                        )}
+                    <DialogTitle>{STEP_UP_DIALOG_TITLE}</DialogTitle>
+                    <DialogContent>
+                        <StepUpVerification
+                            method={isOtpFlow ? "INTERNAL_EMAIL_OTP" : "EXTERNAL_RELOGIN"}
+                            actionLabel={<>continue with <b>{friendlyActionLabel(prompt?.action)}</b></>}
+                            provider={prompt?.provider}
+                            error={error}
+                            otp={otp}
+                            onOtpChange={setOtp}
+                            onSubmitOtp={onSubmitOtp}
+                            submitting={submitting}
+                            info={info}
+                            onResend={onResendOtp}
+                            resending={resending}
+                            resendDisabled={submitting}
+                            otpInputId="step-up-otp-input"
+                            resendButtonId="step-up-resend-btn"
+                        />
                     </DialogContent>
                 </DialogBody>
                 <DialogActions>
                     {isOtpFlow ? (
-                        <>
-                            <Button
-                                id={"step-up-verify-btn"}
-                                appearance="primary"
-                                shape="circular"
-                                disabled={submitting}
-                                onClick={onSubmitOtp}
-                            >
-                                {submitting && <Spinner size="tiny"/>}
-                                Verify & continue
-                            </Button>
-                            <Button
-                                id={"step-up-resend-btn"}
-                                appearance="secondary"
-                                shape="circular"
-                                disabled={resending || submitting}
-                                onClick={onResendOtp}
-                            >
-                                {resending && <Spinner size="tiny"/>}
-                                Resend code
-                            </Button>
-                        </>
+                        <Button
+                            id={"step-up-verify-btn"}
+                            appearance="primary"
+                            shape="circular"
+                            disabled={submitting}
+                            onClick={onSubmitOtp}
+                        >
+                            {submitting && <Spinner size="tiny"/>}
+                            Verify & continue
+                        </Button>
                     ) : (
                         <Button
                             id={"step-up-continue-external-btn"}

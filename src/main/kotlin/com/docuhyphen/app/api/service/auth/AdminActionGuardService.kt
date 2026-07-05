@@ -32,6 +32,7 @@ class AdminActionGuardService @Inject constructor(
             "ORG_GROUP_ADD"                             to "create a group",
             "ORG_GROUP_UPDATE"                          to "update a group",
             "ORG_GROUP_DELETE"                          to "delete a group",
+            "PERSONAL_GROUP_DELETE"                     to "delete a personal group",
             "ORG_SHARE_EXTERNAL_CUSTOMER"               to "share with an external customer",
             "ORG_LINK_CREATE"                           to "create an organization link",
             "ORG_LINK_DECIDE"                           to "respond to an organization link request",

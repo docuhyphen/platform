@@ -1,10 +1,6 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useStyles = makeStyles({
-    surface: {
-        maxWidth: "500px",
-        width: "100%",
-    },
     contentWrapper: {
         display: "flex",
         flexDirection: "column",

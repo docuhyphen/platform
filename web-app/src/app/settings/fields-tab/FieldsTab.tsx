@@ -204,7 +204,7 @@ const FieldsTab = () =>
 
                     {canManage && selected === 'fields' && (
                         <Button id="field-def-create-btn"
-                                appearance="secondary"
+                                appearance="subtle"
                                 shape="circular"
                                 icon={<AddIcon/>}
                                 onClick={() => setDialogOpen(true)}>
@@ -213,7 +213,7 @@ const FieldsTab = () =>
                     )}
                     {canManage && selected === 'schemas' && (
                         <Button id="schema-create-btn"
-                                appearance="secondary"
+                                appearance="subtle"
                                 shape="circular"
                                 icon={<AddIcon/>}
                                 onClick={() => schemasPanelRef.current?.openCreate()}>

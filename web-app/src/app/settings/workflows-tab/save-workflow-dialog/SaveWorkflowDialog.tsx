@@ -9,8 +9,6 @@ import {
     DialogSurface,
     DialogTitle,
     Divider,
-    Field,
-    Input,
     MessageBar,
     MessageBarBody,
     Spinner,
@@ -27,6 +25,7 @@ import {
     StepUpInitiateResponse,
 } from "../../../../services/authApi.ts";
 import {getOtpFriendlyMessage, normalizeApiError} from "../../../../utils/apiErrorUtils.ts";
+import StepUpVerification, {STEP_UP_DIALOG_TITLE} from "../../../components/step-up/StepUpVerification.tsx";
 
 type Phase = 'review' | 'verify-otp' | 'verify-external';
 
@@ -143,17 +142,17 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
 
     const title = phase === 'review'
         ? (isEdit ? "Review & Update Workflow" : "Review & Save Workflow")
-        : "Confirm it's you";
+        : STEP_UP_DIALOG_TITLE;
 
     return (
         <Dialog open={open} onOpenChange={(_, d) => { if (!d.open) handleClose(); }}>
-            <DialogSurface className={styles.surface}>
+            <DialogSurface>
                 <DialogBody>
                     <DialogTitle>{title}</DialogTitle>
                     <DialogContent>
                         <div className={styles.contentWrapper}>
 
-                            {error && (
+                            {phase === 'review' && error && (
                                 <MessageBar intent="error">
                                     <MessageBarBody>{error}</MessageBarBody>
                                 </MessageBar>
@@ -242,37 +241,23 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
                                 </>
                             )}
 
-                            {phase === 'verify-otp' && (
-                                <>
-                                    <Text>
-                                        For your security, enter the verification code sent to your email to{" "}
-                                        <b>{isEdit ? "update" : "save"} this workflow</b>.
-                                    </Text>
-                                    <Field
-                                        label="Verification code"
-                                        validationState={error ? "error" : "none"}
-                                        validationMessage={error ?? undefined}
-                                    >
-                                        <Input
-                                            id={"input-workflow-otp"}
-                                            type="text"
-                                            autoComplete="one-time-code"
-                                            value={otp}
-                                            disabled={submitting}
-                                            onChange={e => setOtp(e.target.value)}
-                                            onKeyDown={e => { if (e.key === "Enter") handleSubmitOtp(); }}
-                                        />
-                                    </Field>
-                                    {info && <Text size={200}>{info}</Text>}
-                                </>
-                            )}
-
-                            {phase === 'verify-external' && (
-                                <Text>
-                                    To {isEdit ? "update" : "save"} this workflow, you must re-authenticate
-                                    with {stepUpSession?.provider || "your identity provider"}.
-                                    Silent SSO is disabled for this step.
-                                </Text>
+                            {(phase === 'verify-otp' || phase === 'verify-external') && (
+                                <StepUpVerification
+                                    method={phase === 'verify-otp' ? "INTERNAL_EMAIL_OTP" : "EXTERNAL_RELOGIN"}
+                                    actionLabel={<>{isEdit ? "update" : "save"} this workflow</>}
+                                    provider={stepUpSession?.provider}
+                                    error={error}
+                                    otp={otp}
+                                    onOtpChange={setOtp}
+                                    onSubmitOtp={handleSubmitOtp}
+                                    submitting={submitting}
+                                    info={info}
+                                    onResend={handleResendOtp}
+                                    resending={resending}
+                                    resendDisabled={isBusy}
+                                    otpInputId="input-workflow-otp"
+                                    resendButtonId="button-workflow-resend-code"
+                                />
                             )}
                         </div>
                     </DialogContent>
@@ -313,17 +298,8 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
                                     {submitting ? <><Spinner size="tiny"/> {isEdit ? "Updating…" : "Saving…"}</> : "Verify & continue"}
                                 </Button>
                                 <Button
-                                    id={"button-workflow-resend-code"}
-                                    appearance="secondary"
-                                    shape="circular"
-                                    onClick={handleResendOtp}
-                                    disabled={isBusy}
-                                >
-                                    {resending ? <><Spinner size="tiny"/> Sending…</> : "Resend code"}
-                                </Button>
-                                <Button
                                     id={"button-workflow-verify-back"}
-                                    appearance="subtle"
+                                    appearance="secondary"
                                     shape="circular"
                                     onClick={() => { setPhase('review'); setError(null); }}
                                     disabled={isBusy}
@@ -346,7 +322,7 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
                                 </Button>
                                 <Button
                                     id={"button-workflow-external-back"}
-                                    appearance="subtle"
+                                    appearance="secondary"
                                     shape="circular"
                                     onClick={() => { setPhase('review'); setError(null); }}
                                     disabled={isBusy}

@@ -49,7 +49,7 @@ import {
 } from '../../../services/meGroupsApi';
 import {searchContacts, UserContactDto} from '../../../services/personalContactsApi';
 import {PrincipalGroupDto} from '../../../services/types/dtos';
-import {PrincipalGroupRoleDisplayNames} from '../../../services/types/roles';
+import {PrincipalGroupRoleDisplayNames, PrincipalGroupRoleName} from '../../../services/types/roles';
 import MultiPersonPicker from '../../components/person-picker/multi-person-picker/MultiPersonPicker.tsx';
 import {PersonPickerItem} from '../../components/person-picker/personPickerTypes.ts';
 
