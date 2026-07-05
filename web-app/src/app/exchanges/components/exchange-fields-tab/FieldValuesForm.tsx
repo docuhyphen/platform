@@ -1,10 +1,16 @@
 import {useMemo, useState} from 'react';
-import {Button, Spinner} from '@fluentui/react-components';
+import {Badge, Button, Spinner, Text} from '@fluentui/react-components';
 import {FieldValueDto, SchemaFieldBindingDto} from '../../../models/models';
 import {setExchangeFieldValues} from '../../../../services/fieldsService';
 import {useExchangeFieldsTabStyles} from './ExchangeFieldsTabStyles';
 import {toCanonicalValue} from './fieldValueUtils';
+import FieldCard from './FieldCard';
 import FieldValueEditor from './FieldValueEditor';
+import {
+    groupBindingsBySection,
+    shouldFieldSpanWide,
+    toFieldElementId,
+} from './fieldLayoutUtils';
 
 interface Props
 {
@@ -17,6 +23,7 @@ interface Props
 const FieldValuesForm = ({exchangeId, bindings, values, onSaved}: Props) =>
 {
     const styles = useExchangeFieldsTabStyles();
+    const sections = useMemo(() => groupBindingsBySection(bindings), [bindings]);
     const initial = useMemo(() =>
     {
         const map: Record<string, unknown> = {};
@@ -62,17 +69,31 @@ const FieldValuesForm = ({exchangeId, bindings, values, onSaved}: Props) =>
     };
 
     return (
-        <div className={styles.fieldList}>
-            <div className={styles.fieldGrid}>
-                {bindings.map(binding => (
-                    <div key={binding.fieldContractId}
-                         className={styles.fieldGridItem}>
-                        <FieldValueEditor binding={binding}
-                                          value={state[binding.fieldContractId]}
-                                          onChange={value => setValue(binding.fieldContractId, value)}/>
+        <div id="exchange-fields-form-sections"
+             className={styles.fieldList}>
+            {sections.map(section => (
+                <div id={`exchange-field-section-${section.key}`}
+                     key={section.key}
+                     className={styles.sectionBlock}>
+                    <div className={styles.fieldLane}>
+                        {section.bindings.map(binding => (
+                            <FieldCard id={`exchange-field-card-${toFieldElementId(binding.fieldContractId)}`}
+                                       key={binding.fieldContractId}
+                                       title={binding.label}
+                                       description={binding.description ?? binding.helpText}
+                                       valueType={binding.valueType}
+                                       wide={shouldFieldSpanWide(binding.valueType, state[binding.fieldContractId])}
+                                       required={binding.isRequired}
+                                       readOnly={binding.isReadOnly}>
+                                <FieldValueEditor binding={binding}
+                                                  value={state[binding.fieldContractId]}
+                                                  onChange={value => setValue(binding.fieldContractId, value)}
+                                                  showLabel={false}/>
+                            </FieldCard>
+                        ))}
                     </div>
-                ))}
-            </div>
+                </div>
+            ))}
             {error && <span className={styles.errorText}>{error}</span>}
             <div className={styles.buttonRow}>
                 <Button id="exchange-fields-save-btn"

@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {Badge, Spinner, Text} from '@fluentui/react-components';
 import {
     ExchangeDetailedDto,
@@ -13,6 +13,7 @@ import {useExchangeFieldsTabStyles} from './ExchangeFieldsTabStyles';
 import SchemaAssignPanel from './SchemaAssignPanel';
 import FieldValuesForm from './FieldValuesForm';
 import FieldValuesReadOnly from './FieldValuesReadOnly';
+import {groupBindingsBySection} from './fieldLayoutUtils';
 
 interface Props
 {
@@ -29,6 +30,21 @@ const ExchangeFieldsTab = ({exchange}: Props) =>
     const [schemas, setSchemas] = useState<SchemaDefinitionDto[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const fieldCount = resolved?.fields.length ?? assignment?.fields.length ?? 0;
+    const sectionCount = useMemo(() =>
+    {
+        if (resolved?.fields?.length)
+        {
+            return groupBindingsBySection(resolved.fields).length;
+        }
+
+        if (assignment?.fields?.length)
+        {
+            return 1;
+        }
+
+        return 0;
+    }, [assignment?.fields, resolved?.fields]);
 
     const load = () =>
     {
@@ -79,13 +95,28 @@ const ExchangeFieldsTab = ({exchange}: Props) =>
 
             {assignment && (
                 <>
-                    <div className={styles.headerRow}>
+                    <div id="exchange-fields-schema-summary"
+                         className={styles.schemaSummaryCard}>
+                        <div className={styles.headerTitleBlock}>
+                            <Text className={styles.schemaTitle}>
+                                {assignment.displayName}
+                            </Text>
+                        </div>
                         <div className={styles.schemaBadgeRow}>
-                            <Text weight="semibold">{assignment.displayName}</Text>
                             <Badge appearance="tint"
                                    color="informative"
                                    size="small">
                                 v{assignment.versionNumber}
+                            </Badge>
+                            <Badge appearance="outline"
+                                   color="brand"
+                                   size="small">
+                                {fieldCount} {fieldCount === 1 ? 'field' : 'fields'}
+                            </Badge>
+                            <Badge appearance="outline"
+                                   color={editable ? 'success' : 'subtle'}
+                                   size="small">
+                                {editable ? 'Editable' : 'Read only'}
                             </Badge>
                         </div>
                     </div>

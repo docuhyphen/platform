@@ -97,6 +97,7 @@ const Exchanges: React.FC = () =>
     const [exchangeDetails, setExchangeDetails] = useState<ExchangeDetailedDto | null>(null);
     const [fetchingDetails, setFetchingDetails] = useState<boolean>(true);
     const [filteredDocuments, setFilteredDocuments] = useState<DocumentDetailedDto[]>([]);
+    const [documentSearchQuery, setDocumentSearchQuery] = useState<string>("");
     const [appUserHasExchanges, setAppUserHasExchanges] = useState<boolean>(false);
     const [detailsActiveTab, setDetailsActiveTab] = useState<TabValue>('documents');
     const permissions = useMemo<ExchangePermissions>(
@@ -144,6 +145,7 @@ const Exchanges: React.FC = () =>
         setSelectedExchangeDocument(undefined);
         setSelectedExchangeId(null);
         setExchangeDetails(null);
+        setDocumentSearchQuery("");
         setFilteredDocuments([]);
     };
 
@@ -288,6 +290,27 @@ const Exchanges: React.FC = () =>
     //         subscribeToExchange(exchangeId);
     //     }
     // }, [exchangeId, subscribeToExchange]);
+
+    useEffect(() =>
+    {
+        setDocumentSearchQuery("");
+    }, [selectedExchangeId]);
+
+    useEffect(() =>
+    {
+        const documents = exchangeDetails?.documents || [];
+        const normalizedQuery = documentSearchQuery.trim().toLowerCase();
+
+        if (normalizedQuery === "")
+        {
+            setFilteredDocuments(documents);
+            return;
+        }
+
+        setFilteredDocuments(
+            documents.filter(document => document.title.toLowerCase().includes(normalizedQuery))
+        );
+    }, [documentSearchQuery, exchangeDetails?.documents]);
 
     useEffect(() =>
     {
@@ -649,19 +672,7 @@ const Exchanges: React.FC = () =>
 
     const onFilterDocuments = (_event: SearchBoxChangeEvent, data: InputOnChangeData) =>
     {
-        const query = data.value.toLowerCase();
-
-        if (query === "")
-        {
-            setFilteredDocuments(exchangeDetails?.documents || []);
-            return;
-        }
-
-        const filtered = exchangeDetails?.documents?.filter(document =>
-            document.title.toLowerCase().includes(query)
-        );
-
-        setFilteredDocuments(filtered || []);
+        setDocumentSearchQuery(data.value);
     };
 
     const onExchangeAccepted = (exchange: ExchangeDetailedDto) =>
@@ -838,6 +849,7 @@ const Exchanges: React.FC = () =>
                                         exchangeDetails={exchangeDetails}
                                         permissions={permissions}
                                         onFilterDocuments={onFilterDocuments}
+                                        documentSearchQuery={documentSearchQuery}
                                         filteredDocuments={filteredDocuments}
                                         selectedExchangeDocument={selectedExchangeDocument}
                                         setSelectedExchangeDocument={setSelectedExchangeDocument}

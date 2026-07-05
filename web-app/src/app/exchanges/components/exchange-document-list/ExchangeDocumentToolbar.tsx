@@ -21,6 +21,7 @@ interface ExchangeDocumentToolbarProps {
     uploadedCount: number;
     activeFilter: DocumentStatusFilter;
     sortOption: DocumentSortOption;
+    searchQuery: string;
     onSearchChange: (event: SearchBoxChangeEvent, data: InputOnChangeData) => void;
     onFilterChange: (filter: DocumentStatusFilter) => void;
     onSortChange: (sort: DocumentSortOption) => void;
@@ -45,6 +46,7 @@ const ExchangeDocumentToolbar: React.FC<ExchangeDocumentToolbarProps> = (props) 
                        className={styles.searchField}
                        placeholder="Search documents"
                        aria-label="Search documents"
+                       value={props.searchQuery}
                        onChange={props.onSearchChange}/>
             <div id="exchange-document-status-filters"
                  className={styles.filterGroup}

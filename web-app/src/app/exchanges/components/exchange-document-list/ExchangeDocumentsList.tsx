@@ -1,5 +1,5 @@
 import React from "react";
-import {Button, mergeClasses} from "@fluentui/react-components";
+import {Button, InputOnChangeData, mergeClasses, SearchBoxChangeEvent} from "@fluentui/react-components";
 import {ChevronLeftRegular, ChevronRightRegular} from "@fluentui/react-icons";
 import {DocumentDetailedDto, ExchangeDetailedDto, ExchangeStatus} from "../../../models/models.tsx";
 import {useExchangeDocumentsListStyles} from "./ExchangeDocumentsListStyles.tsx";
@@ -14,6 +14,7 @@ import {useDocumentStrip} from "./useDocumentStrip.ts";
 interface ExchangeDocumentsListProps {
     exchangeDetails: ExchangeDetailedDto | null;
     filteredDocuments: DocumentDetailedDto[];
+    documentSearchQuery: string;
     selectedExchangeDocument?: DocumentDetailedDto;
     setSelectedExchangeDocument: (document: DocumentDetailedDto) => void;
     setSelectedUpdateExchangeDocument: (document: DocumentDetailedDto) => void;
@@ -21,7 +22,7 @@ interface ExchangeDocumentsListProps {
     setIsDocumentUpdateDialogOpen: (isOpen: boolean) => void;
     onDocumentDeleted: (documentId: string) => void;
     permissions: ExchangePermissions;
-    onFilterDocuments: (event: any, data: any) => void;
+    onFilterDocuments: (event: SearchBoxChangeEvent, data: InputOnChangeData) => void;
     setIsDocumentSidebarOpen: (isOpen: boolean) => void;
 }
 
@@ -81,6 +82,7 @@ const ExchangeDocumentsList: React.FC<ExchangeDocumentsListProps> = (props) => {
                                      uploadedCount={uploadedCount}
                                      activeFilter={statusFilter}
                                      sortOption={sortOption}
+                                     searchQuery={props.documentSearchQuery}
                                      onSearchChange={props.onFilterDocuments}
                                      onFilterChange={setStatusFilter}
                                      onSortChange={setSortOption}/>

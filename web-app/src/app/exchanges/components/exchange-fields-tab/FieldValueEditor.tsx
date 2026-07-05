@@ -6,12 +6,13 @@ interface Props
     binding: SchemaFieldBindingDto;
     value: unknown;
     onChange: (value: unknown) => void;
+    showLabel?: boolean;
 }
 
 const activeOptions = (binding: SchemaFieldBindingDto) =>
     binding.options.filter(o => o.active !== false);
 
-const FieldValueEditor = ({binding, value, onChange}: Props) =>
+const FieldValueEditor = ({binding, value, onChange, showLabel = true}: Props) =>
 {
     const id = `exchange-field-${binding.fieldContractId}`;
     const disabled = binding.isReadOnly;
@@ -23,10 +24,11 @@ const FieldValueEditor = ({binding, value, onChange}: Props) =>
             case FieldValueType.LONG_TEXT:
                 return (
                     <Textarea id={id}
-                              disabled={disabled}
-                              rows={3}
-                              value={typeof value === 'string' ? value : ''}
-                              onChange={(_, d) => onChange(d.value)}/>
+                               disabled={disabled}
+                               placeholder="Enter details"
+                               rows={3}
+                               value={typeof value === 'string' ? value : ''}
+                               onChange={(_, d) => onChange(d.value)}/>
                 );
             case FieldValueType.BOOLEAN:
                 return (
@@ -41,6 +43,7 @@ const FieldValueEditor = ({binding, value, onChange}: Props) =>
                            type="number"
                            step={1}
                            disabled={disabled}
+                           placeholder="Enter a whole number"
                            value={value === null || value === undefined ? '' : String(value)}
                            onKeyDown={e =>
                            {
@@ -57,6 +60,7 @@ const FieldValueEditor = ({binding, value, onChange}: Props) =>
                     <Input id={id}
                            type="number"
                            disabled={disabled}
+                           placeholder="Enter a decimal number"
                            value={value === null || value === undefined ? '' : String(value)}
                            onChange={(_, d) => onChange(d.value)}/>
                 );
@@ -79,9 +83,10 @@ const FieldValueEditor = ({binding, value, onChange}: Props) =>
             case FieldValueType.SINGLE_SELECT:
                 return (
                     <Dropdown id={id}
-                              disabled={disabled}
-                              selectedOptions={value ? [String(value)] : []}
-                              value={activeOptions(binding).find(o => o.code === value)?.label ?? ''}
+                               disabled={disabled}
+                               placeholder="Select an option"
+                               selectedOptions={value ? [String(value)] : []}
+                               value={activeOptions(binding).find(o => o.code === value)?.label ?? ''}
                               onOptionSelect={(_, d) => onChange(d.optionValue)}>
                         {activeOptions(binding).map(option => (
                             <Option key={option.code}
@@ -96,10 +101,11 @@ const FieldValueEditor = ({binding, value, onChange}: Props) =>
                 const selected = Array.isArray(value) ? value.map(String) : [];
                 return (
                     <Dropdown id={id}
-                              multiselect
-                              disabled={disabled}
-                              selectedOptions={selected}
-                              value={activeOptions(binding)
+                               multiselect
+                               disabled={disabled}
+                               placeholder="Select one or more options"
+                               selectedOptions={selected}
+                               value={activeOptions(binding)
                                   .filter(o => selected.includes(o.code))
                                   .map(o => o.label)
                                   .join(', ')}
@@ -117,6 +123,7 @@ const FieldValueEditor = ({binding, value, onChange}: Props) =>
                 return (
                     <Input id={id}
                            disabled={disabled}
+                           placeholder="Enter a value"
                            value={typeof value === 'string' ? value : ''}
                            onChange={(_, d) => onChange(d.value)}/>
                 );
@@ -124,9 +131,9 @@ const FieldValueEditor = ({binding, value, onChange}: Props) =>
     };
 
     return (
-        <Field label={binding.label}
-               required={binding.isRequired}
-               hint={binding.helpText ?? undefined}>
+        <Field label={showLabel ? binding.label : undefined}
+               required={showLabel && binding.isRequired}
+               hint={showLabel ? binding.helpText ?? undefined : undefined}>
             {renderControl()}
         </Field>
     );
