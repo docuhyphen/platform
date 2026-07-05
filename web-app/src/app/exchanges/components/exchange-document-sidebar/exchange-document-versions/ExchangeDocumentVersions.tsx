@@ -203,7 +203,7 @@ const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
                 <div className={styles.uploadButtonRow}>
                     <Button
                         id={"exchange-document-version-upload-btn"}
-                        appearance="primary"
+                        appearance="secondary\"
                         shape="circular"
                         size="small"
                         icon={<ArrowUploadRegular/>}

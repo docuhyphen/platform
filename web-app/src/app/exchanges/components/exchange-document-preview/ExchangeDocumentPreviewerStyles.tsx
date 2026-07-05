@@ -430,6 +430,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         border: `1px dashed ${tokens.colorNeutralStroke2}`,
         borderRadius: tokens.borderRadiusLarge,
         backgroundColor: tokens.colorNeutralBackground1,
+        minWidth: "100%",
     },
 
     pdfLoadingText: {
