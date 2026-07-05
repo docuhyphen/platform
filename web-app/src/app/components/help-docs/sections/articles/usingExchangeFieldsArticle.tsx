@@ -13,7 +13,7 @@ export const usingExchangeFieldsArticle = (
             organization has at least one eligible published schema, the creation wizard shows a
             <b> Business Fields</b> step: pick a schema and fill in its values before you select
             <b> Start Exchange</b>. The values are saved with the Exchange as it is created. You can
-            also do this later: open an Exchange and select the <b>Fields</b> tab.
+            also do this later: open an Exchange and select the <b>Details</b> tab.
         </p>
         <p>
             While the exchange is still a draft (status <b>Pending</b>), choose a published schema
@@ -23,7 +23,7 @@ export const usingExchangeFieldsArticle = (
 
         <h3>Entering values</h3>
         <p>
-            After a schema is assigned, the Fields tab shows an editor for each field. The
+            After a schema is assigned, the Details tab shows an editor for each field. The
             control matches the field type: a text box, a Yes or No switch, a number, a
             date picker, or a selection dropdown. Required fields are marked, and read-only
             fields cannot be changed. Select <b>Save values</b> to store them. Values are
@@ -33,7 +33,7 @@ export const usingExchangeFieldsArticle = (
         <h3>When values can change</h3>
         <p>
             Fields can be assigned and edited only while the exchange is <b>Pending</b>.
-            Once the exchange becomes <b>Active</b> or is ended, the Fields tab shows the
+            Once the exchange becomes <b>Active</b> or is ended, the Details tab shows the
             recorded values as read-only. This keeps the business data consistent with the
             point at which the exchange started.
         </p>

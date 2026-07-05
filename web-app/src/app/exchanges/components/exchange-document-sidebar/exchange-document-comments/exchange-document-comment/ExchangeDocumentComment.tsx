@@ -1,5 +1,5 @@
 ﻿import React from "react";
-import {Avatar, Popover, PopoverSurface, PopoverTrigger, Text} from "@fluentui/react-components";
+import {Avatar, Badge, Popover, PopoverSurface, PopoverTrigger, Text} from "@fluentui/react-components";
 import {useExchangeDocumentCommentStyles} from "./ExchangeDocumentCommentStyles.tsx";
 import {DocumentCommentDetailedDto} from "../../../../../models/models.tsx";
 import {formatDateTimeWithOrdinal} from "../../../../../helpers.ts";
@@ -14,7 +14,10 @@ const ExchangeDocumentComment: React.FC<ExchangeDocumentCommentProps> = ({commen
     const styles = useExchangeDocumentCommentStyles();
 
     return (
-        <div className={styles.container} id={"styles.container"}>
+        <div
+            className={styles.container}
+            id={`document-comment-${comment.id}`}
+        >
             <Popover withArrow openOnHover>
                 <PopoverTrigger disableButtonEnhancement>
                     <Avatar name={`${comment.commentedByFirstName} ${comment.commentedByLastName}`}/>
@@ -29,11 +32,29 @@ const ExchangeDocumentComment: React.FC<ExchangeDocumentCommentProps> = ({commen
                 </PopoverSurface>
             </Popover>
             <div className={styles.commentTextContainer}>
-                <Text className={styles.commentDate}
-                      size={100}
-                      weight={"semibold"}>
-                    {formatDateTimeWithOrdinal(comment.createdDate)}
-                </Text>
+                <div
+                    id={`document-comment-${comment.id}-metadata`}
+                    className={styles.commentMetadata}
+                >
+                    {comment.isInternal && (
+                        <Badge
+                            id={`document-comment-${comment.id}-internal-badge`}
+                            appearance={"tint"}
+                            color={"brand"}
+                            size={"small"}
+                        >
+                            Internal
+                        </Badge>
+                    )}
+                    <Text
+                        id={`document-comment-${comment.id}-date`}
+                        className={styles.commentDate}
+                        size={100}
+                        weight={"semibold"}
+                    >
+                        {formatDateTimeWithOrdinal(comment.createdDate)}
+                    </Text>
+                </div>
                 <Text className={styles.commentText}>{comment.text}</Text>
             </div>
         </div>

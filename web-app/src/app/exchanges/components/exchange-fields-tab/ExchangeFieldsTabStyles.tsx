@@ -42,12 +42,24 @@ export const useExchangeFieldsTabStyles = makeStyles({
         flexDirection: 'column',
         gap: '14px',
     },
+    fieldGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+        gap: '14px 16px',
+        '@media (max-width: 768px)': {
+            gridTemplateColumns: 'minmax(0, 1fr)',
+        },
+    },
+    fieldGridItem: {
+        minWidth: 0,
+    },
     readOnlyRow: {
         display: 'flex',
         flexDirection: 'column',
         gap: '2px',
         borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
         paddingBottom: '8px',
+        minWidth: 0,
     },
     label: {
         fontWeight: tokens.fontWeightSemibold,

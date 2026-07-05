@@ -32,5 +32,9 @@ class ExchangeDocumentComment
     @JoinColumn(name = "commented_by_user_id", nullable = false)
     lateinit var commentedBy: AppUser
 
+    @Column(name = "internal_organization_id")
+    @Serializable(with = UUIDSerializer::class)
+    var internalOrganizationId: UUID? = null
+
     constructor()
 }

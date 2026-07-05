@@ -22,32 +22,5 @@ export const useExchangeDocumentCommentsStyles = makeStyles({
         textAlign: "center",
         color: tokens.colorNeutralForeground3,
         ...shorthands.padding("16px")
-    },
-
-    commentFieldContainer: {
-        display: "flex",
-        gap: "4px",
-        flexDirection: "column"
-    },
-
-    commentFieldContainerField: {
-        display: "flex",
-        paddingTop: "8px",
-        gap: "4px",
-        flex: "1"
-    },
-
-    commentField: {
-        alignItems: "start",
-        gap: "4px",
-        width: "100%",
-        transition: "* 0.2s ease",
-    },
-
-    commentCounterSend: {
-        display: "flex",
-        justifyContent: "space-between",
-        flexDirection: "row",
-        alignItems: "center"
     }
 });

@@ -1,44 +1,31 @@
 ﻿import React, {useEffect, useRef, useState} from "react";
-import {
-    Button,
-    Divider,
-    Field,
-    Spinner,
-    Text,
-    Textarea,
-    Toast,
-    ToastTitle,
-    useId,
-    useToastController
-} from "@fluentui/react-components";
+import {Spinner} from "@fluentui/react-components";
 import ExchangeDocumentComment from "./exchange-document-comment/ExchangeDocumentComment";
 import {useExchangeDocumentCommentsStyles} from "./ExchangeDocumentCommentsStyles.tsx";
 import {DocumentCommentDetailedDto, DocumentDetailedDto} from "../../../../models/models.tsx";
 import {DocumentCommentService} from "../../../../../services/DocumentCommentService.tsx";
-import {SendCommentIcon} from "../../../../components/IconBundles.tsx";
+import ExchangeDocumentCommentComposer from
+    "./exchange-document-comment-composer/ExchangeDocumentCommentComposer.tsx";
 
 interface ExchangeDocumentCommentsProps
 {
     exchangeId: string;
     exchangeDocument: DocumentDetailedDto;
-    currentUserEmail: string;
 }
 
 const ExchangeDocumentComments: React.FC<ExchangeDocumentCommentsProps> = (
     {
         exchangeId,
-        exchangeDocument,
-        currentUserEmail
+        exchangeDocument
     }) =>
 {
     const [loading, setLoading] = useState<boolean>(true);
     const [comments, setComments] = useState<DocumentCommentDetailedDto[]>([]);
     const [newComment, setNewComment] = useState<string>("");
+    const [isInternal, setIsInternal] = useState<boolean>(false);
     const [addingComment, setAddingComment] = useState<boolean>(false);
     const commentService = new DocumentCommentService();
     const styles = useExchangeDocumentCommentsStyles();
-    const toasterId = useId("document-comments-toaster");
-    const {dispatchToast} = useToastController(toasterId);
     const commentsListRef = useRef<HTMLDivElement>(null);
 
     const fetchComments = async () =>
@@ -66,12 +53,12 @@ const ExchangeDocumentComments: React.FC<ExchangeDocumentCommentsProps> = (
             return;
         }
 
-        setAddingComment(true);
-
         if (!newComment.trim())
         {
             return;
         }
+
+        setAddingComment(true);
 
         try
         {
@@ -79,11 +66,12 @@ const ExchangeDocumentComments: React.FC<ExchangeDocumentCommentsProps> = (
                 exchangeId,
                 exchangeDocument.id,
                 newComment,
-                currentUserEmail
+                isInternal
             );
 
-            setComments([addedComment, ...comments]);
+            setComments(currentComments => [addedComment, ...currentComments]);
             setNewComment("");
+            setIsInternal(false);
 
             if (commentsListRef.current)
             {
@@ -108,69 +96,46 @@ const ExchangeDocumentComments: React.FC<ExchangeDocumentCommentsProps> = (
         }
     }, [exchangeDocument?.id]);
 
-    const showServerErrorToast = (message: string) =>
-    {
-        dispatchToast(
-            <Toast>
-                <ToastTitle> {message}</ToastTitle>
-            </Toast>, {intent: 'error', timeout: 15000, position: "top"},
-        );
-    };
-
-    const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) =>
-    {
-        if (event.key === 'Enter' && !event.shiftKey)
-        {
-            event.preventDefault();
-            onAddComment();
-        }
-    };
-
     return (
-        <div className={styles.container}>
-            <div className={styles.list} ref={commentsListRef}>
+        <div
+            id={"exchange-document-comments"}
+            className={styles.container}
+        >
+            <div
+                id={"exchange-document-comments-list"}
+                className={styles.list}
+                ref={commentsListRef}
+            >
                 {loading ? (
-                    <Spinner size={"small"}/>
+                    <Spinner
+                        id={"exchange-document-comments-spinner"}
+                        size={"small"}
+                    />
                 ) : comments.length > 0 ? (
-                    comments.map((comment, index) => (
-
-                        <ExchangeDocumentComment comment={comment}/>
+                    comments.map(comment => (
+                        <ExchangeDocumentComment
+                            key={comment.id}
+                            comment={comment}
+                        />
                     ))
                 ) : (
-                    <div className={styles.noComments}>No notes have been added yet.</div>
+                    <div
+                        id={"exchange-document-comments-empty"}
+                        className={styles.noComments}
+                    >
+                        No notes have been added yet.
+                    </div>
                 )}
             </div>
 
-            <div className={styles.commentFieldContainer}>
-                <div className={styles.commentFieldContainerField}>
-                    <Field className={styles.commentField}>
-                        <Textarea
-                            id={"textarea-exchange-document-comment"}
-                            placeholder="Add note"
-                            maxLength={255}
-                            value={newComment}
-                            onChange={(e, data) => setNewComment(data.value)}
-                            onKeyDown={handleKeyDown}
-                            disabled={addingComment}
-                        />
-                    </Field>
-                </div>
-                <div className={styles.commentCounterSend}>
-                    <Text>
-                        {newComment.length}/255
-                    </Text>
-
-                    <Button
-                        id={"exchange-document-comment-send-btn"}
-                        icon={addingComment ? <Spinner size={"extra-small"}/> : <SendCommentIcon/>}
-                        appearance="transparent"
-                        shape={"circular"}
-                        onClick={onAddComment}
-                        size={"large"}
-                        disabled={!newComment.trim() || addingComment}
-                    />
-                </div>
-            </div>
+            <ExchangeDocumentCommentComposer
+                value={newComment}
+                isInternal={isInternal}
+                isSubmitting={addingComment}
+                onValueChange={setNewComment}
+                onInternalChange={setIsInternal}
+                onSubmit={onAddComment}
+            />
         </div>
     );
 };

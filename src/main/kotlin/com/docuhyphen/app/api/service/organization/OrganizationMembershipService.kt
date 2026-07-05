@@ -37,6 +37,11 @@ class OrganizationMembershipService @Inject constructor(
     fun isMember(appUserId: UUID, organizationId: UUID): Boolean =
         membershipRepository.findActiveByUserAndOrg(appUserId, organizationId) != null
 
+    fun activeOrganizationIds(appUserId: UUID): Set<UUID> =
+        membershipRepository.findActiveByUser(appUserId)
+            .map { it.organizationId }
+            .toSet()
+
     /** Count of ACTIVE memberships of the organization. */
     fun activeMemberCount(organizationId: UUID): Long =
         membershipRepository.countActiveMembersOfOrg(organizationId)

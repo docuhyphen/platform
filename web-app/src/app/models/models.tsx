@@ -377,7 +377,8 @@ export interface DocumentCommentDetailedDto
     text?: string;
     commentedByFirstName?: string,
     commentedByLastName?: string,
-    commentedByEmail?: string
+    commentedByEmail?: string;
+    isInternal: boolean;
 }
 
 export interface DocumentDetailedDto

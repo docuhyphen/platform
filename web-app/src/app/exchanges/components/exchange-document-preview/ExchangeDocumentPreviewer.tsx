@@ -16,7 +16,7 @@ import {
     LastPageIcon,
     NextPageIcon,
     PreviousPageIcon,
-    ResetZoomIcon,
+    ResetZoomIcon, UploadIcon,
     ZoomInIcon,
     ZoomOutIcon
 } from "../../../components/IconBundles.tsx";
@@ -764,7 +764,10 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                         Upload a file for <b>{exchangeDocument.title}</b> to start previewing.
                     </Text>
                     {canUploadDocument && (
-                        <Button id="exchange-document-preview-upload-empty-cta" appearance="primary" shape="circular"
+                        <Button id="exchange-document-preview-upload-empty-cta"
+                                appearance="primary"
+                                shape="circular"
+                                icon={<UploadIcon/>}
                                 onClick={onUploadDocument}>
                             Upload document
                         </Button>

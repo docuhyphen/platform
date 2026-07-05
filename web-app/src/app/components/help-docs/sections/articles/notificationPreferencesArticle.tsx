@@ -28,7 +28,10 @@ export const notificationPreferencesArticle = (
 
         <h3>Document notifications</h3>
         <ul>
-            <li><b>Document notes and comments</b> covers new collaboration notes or comments.</li>
+            <li>
+                <b>Document notes and comments</b> covers new shared collaboration notes or comments.
+                Internal notes do not send collaboration notifications.
+            </li>
             <li><b>Document deleted</b> covers documents removed from an Exchange.</li>
             <li><b>Document added</b> covers new documents added to an Exchange.</li>
             <li><b>Document uploaded</b> covers initial files and newly uploaded file versions.</li>

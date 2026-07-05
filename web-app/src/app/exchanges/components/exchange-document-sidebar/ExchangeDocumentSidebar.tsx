@@ -285,7 +285,6 @@ const ExchangeDocumentSidebar: React.FC<ExchangeDocumentSidebarProps> = (
                     <ExchangeDocumentComments
                         exchangeId={exchange.id}
                         exchangeDocument={exchangeDocument}
-                        currentUserEmail={appUser?.email}
                     />
                 )}
                 {selectedValue === "versions" && (

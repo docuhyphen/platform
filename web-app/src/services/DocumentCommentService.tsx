@@ -21,7 +21,7 @@ export class DocumentCommentService
         exchangeId: string,
         documentId: string,
         commentText: string,
-        commentedBy: string
+        isInternal: boolean
     ): Promise<DocumentCommentDetailedDto>
     {
         try
@@ -30,7 +30,7 @@ export class DocumentCommentService
                 exchangeId,
                 documentId,
                 commentText,
-                commentedBy
+                isInternal
             );
             return response as DocumentCommentDetailedDto;
         }

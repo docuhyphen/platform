@@ -225,7 +225,8 @@ class DetailedEntityToDtoTransformer
                         commentText,
                         commentedBy.person?.firstName,
                         commentedBy.person?.lastName,
-                        commentedBy.email
+                        commentedBy.email,
+                        internalOrganizationId != null
                     )
                 }
             }

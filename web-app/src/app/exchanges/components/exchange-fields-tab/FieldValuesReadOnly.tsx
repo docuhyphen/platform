@@ -30,12 +30,12 @@ const FieldValuesReadOnly = ({bindings, values}: Props) =>
         }));
 
     return (
-        <div className={styles.fieldList}>
+        <div className={styles.fieldGrid}>
             {rows.map(row => (
                 <div key={row.key}
-                     className={styles.readOnlyRow}>
+                     className={`${styles.fieldGridItem} ${styles.readOnlyRow}`}>
                     <Text className={styles.label}
-                          size={200}>
+                           size={200}>
                         {row.label}
                     </Text>
                     <Text>{row.display}</Text>

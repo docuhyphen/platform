@@ -72,6 +72,8 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
     },
 
     pdfDocumentContainer: {
+        justifyContent: "center",
+        display: "flex",
         flex: "1",
         background: tokens.colorNeutralBackground1,
         border: `1px solid ${tokens.colorNeutralStroke2}`,
@@ -382,6 +384,8 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
     },
 
     mainDocumentPane: {
+        display: "flex",
+        justifyContent: "center",
         flex: 1,
         minWidth: 0,
         minHeight: 0,

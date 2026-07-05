@@ -1,6 +1,6 @@
 import React from "react";
 import {Button, ProgressBar, Tab, TabList, TabValue, Text, Tooltip} from "@fluentui/react-components";
-import {AuditIcon, DetailsIcon, DocumentsIcon, ExchangeWorkflowsTabIcon, ExchangeFieldsTabIcon, ZipDocumentsIcon} from "../../../components/IconBundles.tsx";
+import {AuditIcon, DetailsIcon, DocumentsIcon, ExchangeWorkflowsTabIcon, ZipDocumentsIcon} from "../../../components/IconBundles.tsx";
 import {DocumentDetailedDto} from "../../../models/models.tsx";
 import {useExchangeTabsHeaderStyles} from "./ExchangeTabsHeaderStyles.tsx";
 
@@ -37,20 +37,15 @@ const ExchangeTabsHeader: React.FC<ExchangeTabsHeaderProps> = (props) => {
                          icon={<DetailsIcon/>}>
                         Details
                     </Tab>
-                    <Tab id="exchange-audit-tab"
-                         value="audit"
-                         icon={<AuditIcon/>}>
-                        Audit
-                    </Tab>
                     <Tab id="exchange-workflow-tab"
                          value="workflow"
                          icon={<ExchangeWorkflowsTabIcon/>}>
                         Workflow
                     </Tab>
-                    <Tab id="exchange-fields-tab"
-                         value="fields"
-                         icon={<ExchangeFieldsTabIcon/>}>
-                        Fields
+                    <Tab id="exchange-audit-tab"
+                         value="audit"
+                         icon={<AuditIcon/>}>
+                        Audit
                     </Tab>
                 </TabList>
             </div>

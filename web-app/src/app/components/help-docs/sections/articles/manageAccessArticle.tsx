@@ -42,6 +42,13 @@ export const manageAccessArticle = (
             </li>
         </ul>
 
+        <h3>Internal document notes</h3>
+        <p>
+            When adding a note from a document's Notes tab, select <strong>Internal note</strong> to make
+            it visible only to active members of your selected organization. Internal notes are marked
+            <strong>Internal</strong>. Other Exchange participants cannot see them.
+        </p>
+
         <h3>Constraints</h3>
         <p>
             Constraints are additional restrictions applicable to <strong>Viewer</strong> and{' '}

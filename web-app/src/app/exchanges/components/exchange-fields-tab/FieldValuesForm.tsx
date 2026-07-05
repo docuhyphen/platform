@@ -63,12 +63,16 @@ const FieldValuesForm = ({exchangeId, bindings, values, onSaved}: Props) =>
 
     return (
         <div className={styles.fieldList}>
-            {bindings.map(binding => (
-                <FieldValueEditor key={binding.fieldContractId}
-                                  binding={binding}
-                                  value={state[binding.fieldContractId]}
-                                  onChange={value => setValue(binding.fieldContractId, value)}/>
-            ))}
+            <div className={styles.fieldGrid}>
+                {bindings.map(binding => (
+                    <div key={binding.fieldContractId}
+                         className={styles.fieldGridItem}>
+                        <FieldValueEditor binding={binding}
+                                          value={state[binding.fieldContractId]}
+                                          onChange={value => setValue(binding.fieldContractId, value)}/>
+                    </div>
+                ))}
+            </div>
             {error && <span className={styles.errorText}>{error}</span>}
             <div className={styles.buttonRow}>
                 <Button id="exchange-fields-save-btn"

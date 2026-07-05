@@ -46,7 +46,6 @@ import EmptyStateIllustration from "./components/empty-state-illustration/EmptyS
 import {ExchangeListTab} from "./components/exchange-list/exchange-list-tabs/ExchangeListTabs.tsx";
 import {InboxRole, ExchangeTabCounts} from "./components/exchange-list/ExchangeList.tsx";
 import {useIsMobile} from "../../utils/useMediaQuery.ts";
-import ExchangeDetailsTab from "./components/exchange-details-tab/ExchangeDetailsTab.tsx";
 import ExchangeAuditTab from "./components/exchange-audit-tab/ExchangeAuditTab.tsx";
 import ExchangeWorkflowTab from "./components/exchange-workflow-tab/ExchangeWorkflowTab.tsx";
 import ExchangeFieldsTab from "./components/exchange-fields-tab/ExchangeFieldsTab.tsx";
@@ -883,15 +882,7 @@ const Exchanges: React.FC = () =>
                         {detailsActiveTab === 'details' && (
                             <div className={styles.documentsSectionContainer}>
                                 <div className={styles.documentsSection}>
-                                    <ExchangeDetailsTab exchangeDetails={exchangeDetails}/>
-                                </div>
-                            </div>
-                        )}
-
-                        {detailsActiveTab === 'audit' && (
-                            <div className={styles.documentsSectionContainer}>
-                                <div className={styles.documentsSection}>
-                                    <ExchangeAuditTab exchange={exchangeDetails}/>
+                                    <ExchangeFieldsTab exchange={exchangeDetails}/>
                                 </div>
                             </div>
                         )}
@@ -904,10 +895,10 @@ const Exchanges: React.FC = () =>
                             </div>
                         )}
 
-                        {detailsActiveTab === 'fields' && (
+                        {detailsActiveTab === 'audit' && (
                             <div className={styles.documentsSectionContainer}>
                                 <div className={styles.documentsSection}>
-                                    <ExchangeFieldsTab exchange={exchangeDetails}/>
+                                    <ExchangeAuditTab exchange={exchangeDetails}/>
                                 </div>
                             </div>
                         )}

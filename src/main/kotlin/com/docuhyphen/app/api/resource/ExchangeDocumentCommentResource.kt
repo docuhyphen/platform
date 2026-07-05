@@ -28,7 +28,7 @@ class ExchangeDocumentCommentResource @Inject constructor(
             exchangeId,
             documentId,
             commentRequest.commentText,
-            commentRequest.commentedBy
+            commentRequest.isInternal
         )
 
         return Response.ok(DetailedEntityToDtoTransformer.toDto(comment)).build()
@@ -36,11 +36,12 @@ class ExchangeDocumentCommentResource @Inject constructor(
 
     @GET
     fun getComments(
+        @PathParam("exchangeId") exchangeId: String,
         @PathParam("documentId") documentId: String
     ): Response
     {
 
-        val comments = documentCommentsService.getDocumentComments(documentId)
+        val comments = documentCommentsService.getDocumentComments(exchangeId, documentId)
 
         return Response.ok(comments.map { DetailedEntityToDtoTransformer.toDto(it) }.toTypedArray()).build()
     }
