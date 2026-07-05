@@ -59,6 +59,7 @@ const ApplicabilityConditionRow = ({index, condition, binding, onChange, onRemov
                 .join(", ");
             return (
                 <Dropdown
+                    size={"small"}
                     id={`applicability-condition-${index}-values`}
                     multiselect
                     selectedOptions={selected}
@@ -78,6 +79,7 @@ const ApplicabilityConditionRow = ({index, condition, binding, onChange, onRemov
         if (isSelect)
             return (
                 <Select
+                    size={"small"}
                     id={`applicability-condition-${index}-value`}
                     value={typeof condition.value === "string" ? condition.value : ""}
                     onChange={(_, d) => setValue(d.value)}
@@ -102,6 +104,7 @@ const ApplicabilityConditionRow = ({index, condition, binding, onChange, onRemov
 
         return (
             <Input
+                size={"small"}
                 id={`applicability-condition-${index}-value`}
                 type={inputType}
                 value={condition.value == null ? "" : String(condition.value)}
@@ -120,6 +123,7 @@ const ApplicabilityConditionRow = ({index, condition, binding, onChange, onRemov
             <div className={styles.rowField}>
                 <Text size={200} weight="semibold">Condition</Text>
                 <Select
+                    size={"small"}
                     id={`applicability-condition-${index}-operator`}
                     value={condition.operator}
                     onChange={(_, d) => setOperator(d.value as FieldOperator)}
@@ -133,6 +137,7 @@ const ApplicabilityConditionRow = ({index, condition, binding, onChange, onRemov
                 {renderValueInput() ?? <Text size={200} className={styles.hint}>No value needed</Text>}
             </div>
             <Button
+                size={"small"}
                 id={`applicability-condition-${index}-remove`}
                 appearance="subtle"
                 shape="circular"

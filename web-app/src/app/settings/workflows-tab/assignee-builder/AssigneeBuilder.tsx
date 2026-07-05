@@ -216,6 +216,7 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
                         {a.kind === "PRINCIPAL" && (
                             <SinglePersonPicker
                                 id={`assignee-principal-select-${i}`}
+                                size={"small"}
                                 people={people.filter(person => matchesPersonQuery(person, personQueries[i] ?? ""))}
                                 query={personQueries[i] ?? ""}
                                 onQueryChange={query => setPersonQueries(current => ({...current, [i]: query}))}

@@ -57,7 +57,10 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
         transitionProperty: "border-color, box-shadow, transform",
         transitionDuration: "160ms",
         ':hover': {
-            borderColor: tokens.colorBrandStroke1,
+            borderTopColor: tokens.colorBrandStroke1,
+            borderRightColor: tokens.colorBrandStroke1,
+            borderBottomColor: tokens.colorBrandStroke1,
+            borderLeftColor: tokens.colorBrandStroke1,
             boxShadow: tokens.shadow8,
             transform: "translateY(-1px)",
         },

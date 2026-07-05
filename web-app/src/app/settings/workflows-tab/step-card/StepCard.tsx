@@ -22,6 +22,7 @@ import AssigneeBuilder from "../assignee-builder/AssigneeBuilder.tsx";
 import {formatTriggerName} from "../workflowUtils.ts";
 import CommunicationPickerDialog from "../../../components/communication-picker/CommunicationPickerDialog.tsx";
 import {getCommunication} from "../../../../services/communicationService.ts";
+import {DismissCircleRegular} from "@fluentui/react-icons";
 
 const STEP_TYPE_LABELS: Record<WorkflowStepType, string> = {
     APPROVAL: "Approval",
@@ -634,6 +635,7 @@ const StepCard = ({index, step, steps, onChange, onRemove, triggers, subjectFiel
                                                 size="small"
                                                 appearance="subtle"
                                                 shape="circular"
+                                                icon={<DismissCircleRegular/>}
                                                 onClick={() => { patch({communicationId: undefined}); setSelectedCommunicationName(null); }}
                                             >
                                                 Clear

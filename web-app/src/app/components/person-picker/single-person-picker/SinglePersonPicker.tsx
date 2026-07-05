@@ -8,6 +8,7 @@ const toSafeDomIdSegment = (value: string): string =>
 interface Props
 {
     id: string;
+    size?: 'small' | 'medium' | 'large';
     people: PersonPickerItem[];
     query: string;
     onQueryChange: (query: string) => void;
@@ -36,6 +37,7 @@ const SinglePersonPicker = ({
     noResultsText = "No matching people found",
     children,
     onSpecialOptionSelect,
+    size,
 }: Props) =>
 {
     const handleSelect: ComboboxProps["onOptionSelect"] = (_, data) =>
@@ -48,6 +50,7 @@ const SinglePersonPicker = ({
 
     return (
         <Combobox
+            size={size}
             id={id}
             placeholder={placeholder}
             value={query}

@@ -24,7 +24,7 @@ const ExchangeWorkflowTab = ({exchange}: Props) =>
     const [pendingSteps, setPendingSteps] = useState<PendingWorkflowStep[]>([]);
     const [clearanceStatus, setClearanceStatus] = useState<ExchangeClearanceStatusDto | null>(null);
     // Tab-level view preference (Decision 8, Decision 15): local state only, default Timeline.
-    const [viewMode, setViewMode] = useState<WorkflowViewMode>("TIMELINE");
+    const [viewMode, setViewMode] = useState<WorkflowViewMode>("BOTH");
 
     const fetchData = async () =>
     {

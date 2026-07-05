@@ -1,0 +1,46 @@
+import {makeStyles, tokens} from "@fluentui/react-components";
+
+export const useWorkflowGraphCanvasStyles = makeStyles({
+    wrapper: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+        width: "100%",
+    },
+
+    canvasContainer: {
+        position: "relative",
+        width: "100%",
+        height: "clamp(240px, 45vh, 600px)",
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderRadius: tokens.borderRadiusMedium,
+        backgroundColor: tokens.colorNeutralBackground2,
+        overflow: "hidden",
+        "@media (max-width: 480px)": {
+            height: "clamp(240px, 60vh, 480px)",
+        },
+
+        // ── Theme the React Flow controls (zoom/fit/lock) to match the app's
+        // secondary button appearance instead of the library's hard-coded white
+        // defaults, in both light and dark themes.
+        "--xy-controls-button-background-color": tokens.colorNeutralBackground1,
+        "--xy-controls-button-background-color-hover": tokens.colorNeutralBackground1Hover,
+        "--xy-controls-button-color": tokens.colorNeutralForeground1,
+        "--xy-controls-button-color-hover": tokens.colorNeutralForeground1Hover,
+        "--xy-controls-button-border-color": tokens.colorNeutralStroke1,
+        "--xy-controls-box-shadow": tokens.shadow4,
+    },
+
+    warningList: {
+        margin: 0,
+        paddingLeft: "18px",
+    },
+
+    // Applied in addition to canvasContainer while the browser Fullscreen API
+    // is active on this element, so the diagram fills the whole screen instead
+    // of staying clamped to its normal in-page size.
+    canvasContainerFullscreen: {
+        height: "100vh",
+        borderRadius: 0,
+    },
+});

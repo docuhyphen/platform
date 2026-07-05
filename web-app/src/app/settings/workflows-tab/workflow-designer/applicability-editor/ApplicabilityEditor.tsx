@@ -77,6 +77,7 @@ const ApplicabilityEditor = ({applicability, onChange}: Props) =>
                 <Text size={200} weight="semibold">Schema</Text>
                 <Select
                     id="applicability-schema-select"
+                    size={"small"}
                     value={selectedSchemaId}
                     onChange={(_, d) => setSelectedSchemaId(d.value)}
                 >
@@ -115,6 +116,7 @@ const ApplicabilityEditor = ({applicability, onChange}: Props) =>
                 <div className={styles.schemaPicker}>
                     <Text size={200} weight="semibold">Add condition</Text>
                     <Select
+                        size={"small"}
                         id="applicability-add-field-select"
                         value=""
                         onChange={(_, d) => { if (d.value) addField(d.value); }}
