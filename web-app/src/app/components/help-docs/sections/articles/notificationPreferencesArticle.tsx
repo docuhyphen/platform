@@ -14,8 +14,16 @@ export const notificationPreferencesArticle = (
         <p>
             Selected channels appear as tags when the dropdown is closed. Email sends the
             notification to your account email address. Push delivers it through the
-            DocuHyphen in-app notification channel. Selecting no channels disables that
-            notification for your account.
+            DocuHyphen in-app notification channel. To also receive native browser alerts
+            on the current device, select <b>Enable</b> beside <b>Browser notifications</b>
+            and approve the browser permission prompt. Selecting no channels disables that
+            event notification for your account.
+        </p>
+        <p>
+            Browser permission applies only to the browser and device where you grant it.
+            If permission is blocked, enable notifications for the DocuHyphen site in your
+            browser settings. In-app Push notifications continue to appear in DocuHyphen
+            even when browser alerts are blocked or unsupported.
         </p>
 
         <h3>Exchange notifications</h3>

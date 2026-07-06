@@ -2,6 +2,7 @@ import React, {createContext, useContext, useEffect, useState} from 'react';
 import {NotificationDto} from '../app/models/models';
 import {useAuth} from "./AuthContext.tsx";
 import {notificationService} from "../services/NotificationService.tsx";
+import {showBrowserNotification} from "../services/BrowserNotificationService.ts";
 
 interface NotificationContextType
 {
@@ -53,6 +54,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({c
             const removeHandler = notificationService.addMessageHandler((notification) =>
             {
                 setNotifications(prev => [...prev, notification]);
+                showBrowserNotification(notification);
             });
 
             return () =>

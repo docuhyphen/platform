@@ -12,6 +12,7 @@ import {
     NotificationPreferenceDefinition,
     notificationPreferenceDefinitions
 } from "./notificationPreferenceDefinitions.ts";
+import BrowserNotificationsCard from "./browser-notifications-card/BrowserNotificationsCard.tsx";
 
 const AppSettingsTab = () => {
     const styles = useAppSettingsTabStyles();
@@ -121,6 +122,7 @@ const AppSettingsTab = () => {
                     </Divider>
                     <div id="notification-preferences-list"
                          className={styles.notificationList}>
+                        <BrowserNotificationsCard/>
                         {notificationPreferenceDefinitions.map(definition => (
                             <NotificationPreferenceRow key={definition.id}
                                                        id={definition.id}
