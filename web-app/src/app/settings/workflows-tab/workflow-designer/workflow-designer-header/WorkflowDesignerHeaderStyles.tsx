@@ -7,14 +7,13 @@ export const useWorkflowDesignerHeaderStyles = makeStyles({
         gap: "0.75rem",
         marginBottom: "0.25rem",
     },
-
-    titleGroup: {
+    topBarLeft: {
         display: "flex",
-        alignItems: "baseline",
-        gap: "0.5rem",
-        minWidth: 0,
-        flex: "1 1 auto",
-        overflow: "hidden",
+        flexDirection: "column"
+    },
+
+    backNavButton: {
+        marginBottom: tokens.spacingVerticalM
     },
 
     workflowName: {

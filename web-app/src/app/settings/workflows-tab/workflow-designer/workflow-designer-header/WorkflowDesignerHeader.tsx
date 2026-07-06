@@ -17,16 +17,18 @@ const WorkflowDesignerHeader = ({isEdit, workflowName, backDestinationLabel, onB
 
     return (
         <div className={styles.topBar}>
-            <Button
-                id="workflow-designer-back-btn"
-                appearance="subtle"
-                icon={<BackIcon/>}
-                shape={"circular"}
-                onClick={onBack}
-            >
-                Back to {backDestinationLabel}
-            </Button>
-            <div className={styles.titleGroup}>
+            <div className={styles.topBarLeft}>
+                <span className={styles.backNavButton}>
+                    <Button
+                        id="workflow-designer-back-btn"
+                        appearance="subtle"
+                        icon={<BackIcon/>}
+                        shape={"circular"}
+                        size={"small"}
+                        onClick={onBack}>
+                    Back to {backDestinationLabel}
+                    </Button>
+                </span>
                 <Text size={500}
                       weight="semibold">
                     {isEdit ? "Edit Workflow" : "New Workflow"}

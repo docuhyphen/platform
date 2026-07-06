@@ -22,7 +22,7 @@ export const useSettingsStyles = makeStyles({
         flex: 1,
         minHeight: 0,
         width: "100%",
-        maxWidth: "70rem",
+        maxWidth: "85rem",
         margin: "0 auto",
         padding: "1rem 2rem 3rem 2rem",
         boxSizing: "border-box",
