@@ -33,6 +33,10 @@ export const useStepSummaryCardStyles = makeStyles({
     typeBadge: {
         justifyContent: "flex-end",
     },
+    stepIcon: {
+        color: tokens.colorNeutralForeground3,
+        flexShrink: 0,
+    },
     stepNumber: {
         flex: 1,
         color: tokens.colorNeutralForeground3,

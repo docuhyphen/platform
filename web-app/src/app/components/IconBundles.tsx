@@ -140,7 +140,7 @@
     CheckmarkFilled, CheckmarkRegular,
     DismissFilled, DismissRegular, CopyRegular, CopyFilled,
     EyeFilled, EyeRegular, EyeOffFilled, EyeOffRegular,
-    ToggleRightFilled, ToggleRightRegular, ToggleLeftFilled, ToggleLeftRegular, BranchRegular,
+    ToggleRightFilled, ToggleRightRegular, ToggleLeftFilled, ToggleLeftRegular, BranchFilled, BranchRegular,
     BranchForkFilled, BranchForkRegular,
     ChatMailFilled, ChatMailRegular, BookNumberFilled, BookNumberRegular, MailEditFilled,
     MailEditRegular, PersonEditFilled, PersonEditRegular, PhoneFilled, PhoneRegular, PhoneAddRegular, PhoneAddFilled,
@@ -245,13 +245,13 @@ export const ViewCardsIcon = bundleIcon(GridFilled, GridRegular)
 export const ViewTableIcon = bundleIcon(TableFilled, TableRegular)
 
 // Workflow graph step-kind node icons.
-export const WorkflowApprovalNodeIcon = bundleIcon(CheckmarkNoteFilled, CheckmarkNoteRegular)
-export const WorkflowNotificationNodeIcon = bundleIcon(AlertFilled, AlertRegular)
-export const WorkflowConditionNodeIcon = bundleIcon(BranchRegular, BranchRegular)
-export const WorkflowActionNodeIcon = bundleIcon(SettingsCogMultipleFilled, SettingsCogMultipleRegular)
-export const WorkflowWaitNodeIcon = bundleIcon(DocumentBulletListClockFilled, DocumentBulletListClockRegular)
-export const WorkflowWebhookNodeIcon = bundleIcon(ChannelShareFilled, ChannelShareRegular)
-export const WorkflowUnknownStepNodeIcon = bundleIcon(InfoFilled, InfoRegular)
+export const WorkflowApprovalNodeIcon = CheckmarkNoteFilled
+export const WorkflowNotificationNodeIcon = AlertFilled
+export const WorkflowConditionNodeIcon = BranchFilled
+export const WorkflowActionNodeIcon = SettingsCogMultipleFilled
+export const WorkflowWaitNodeIcon = DocumentBulletListClockFilled
+export const WorkflowWebhookNodeIcon = ChannelShareFilled
+export const WorkflowUnknownStepNodeIcon = InfoFilled
 export const WorkflowInvalidNodeIcon = bundleIcon(LinkDismissFilled, LinkDismissRegular)
 export const TimelineIcon = bundleIcon(DocumentBulletListClockFilled, DocumentBulletListClockRegular)
 export const DiagramIcon = bundleIcon(DataTreemapFilled, DataTreemapRegular)

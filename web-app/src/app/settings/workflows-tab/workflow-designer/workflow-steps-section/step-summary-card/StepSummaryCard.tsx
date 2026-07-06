@@ -1,5 +1,6 @@
 import {Badge, Card, mergeClasses, Text} from "@fluentui/react-components";
 import {WorkflowStepSpecDraft, WorkflowStepType} from "../../../../../models/models.tsx";
+import {stepKindIcon} from "../../../workflow-graph/workflowGraphPresentation.tsx";
 import {useStepSummaryCardStyles} from "./StepSummaryCardStyles.tsx";
 
 const STEP_TYPE_LABELS: Record<WorkflowStepType, string> = {
@@ -40,6 +41,7 @@ const getStepDetail = (step: WorkflowStepSpecDraft): string =>
 const StepSummaryCard = ({index, step, isNew, onClick}: Props) =>
 {
     const styles = useStepSummaryCardStyles();
+    const StepIcon = stepKindIcon(step.type);
 
     return (
         <Card
@@ -63,6 +65,11 @@ const StepSummaryCard = ({index, step, isNew, onClick}: Props) =>
                 id={`workflow-step-summary-heading-${index}`}
                 className={styles.firstRow}
             >
+                <StepIcon
+                    id={`workflow-step-summary-icon-${index}`}
+                    className={styles.stepIcon}
+                    aria-hidden={true}
+                />
                 <Text
                     id={`workflow-step-summary-number-${index}`}
                     size={200}
@@ -85,7 +92,7 @@ const StepSummaryCard = ({index, step, isNew, onClick}: Props) =>
                 weight="semibold"
                 className={styles.name}
             >
-                Step Name: {step.name || "Unnamed step"}
+                {step.name || "Unnamed step"}
             </Text>
             <Text
                 id={`workflow-step-summary-detail-${index}`}
