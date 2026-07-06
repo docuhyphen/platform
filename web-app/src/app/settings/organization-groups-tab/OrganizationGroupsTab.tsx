@@ -1,80 +1,46 @@
-import {
-    AvatarGroup,
-    AvatarGroupItem,
-    AvatarGroupPopover,
-    Badge,
-    Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger,
-    partitionAvatarGroupItems,
-    Spinner,
-    Table,
-    TableBody,
-    TableCell,
-    TableCellLayout,
-    TableHeader,
-    TableHeaderCell,
-    TableRow, Text, Tooltip
-} from "@fluentui/react-components";
-import * as React from "react";
+import {Spinner} from "@fluentui/react-components";
 import {useEffect, useState} from "react";
-import {GroupAddIcon} from "../../components/IconBundles.tsx";
 import {useAuth} from "../../../context/AuthContext.tsx";
-import {deleteOrganizationGroup, fetchMyOrganizationGroups} from "../../../services/organizationApi.ts";
-import AddGroupDialog from "./add-group-dialog/AddGroupDialog.tsx";
-import EditGroupDialog from "./edit-group-dialog/EditGroupDialog.tsx";
-import {
-    DeleteRegular,
-    EditRegular,
-    GroupRegular,
-    MoreHorizontalRegular,
-    PeopleEditRegular, PersonEditRegular
-} from "@fluentui/react-icons";
-import {useOrganizationGroupTabStyles} from "./OrganizationGroupsTabStyles.tsx";
+import {fetchMyOrganizationGroups} from "../../../services/organizationApi.ts";
 import {OrganizationDetailedDto, OrganizationGroupDetailedDto} from "../../models/models.tsx";
-import GroupDeleteDialog from "./group-delete-dialog/GroupDeleteDialog.tsx";
+import {useOrganizationGroupTabStyles} from "./OrganizationGroupsTabStyles.tsx";
+import OrganizationGroupsToolbar from "./organization-groups-toolbar/OrganizationGroupsToolbar.tsx";
+import OrganizationGroupsTable from "./organization-groups-table/OrganizationGroupsTable.tsx";
+import OrganizationGroupsPagination from "./organization-groups-pagination/OrganizationGroupsPagination.tsx";
+import OrganizationGroupsDialogs from "./organization-groups-dialogs/OrganizationGroupsDialogs.tsx";
+import {useOrganizationGroupsList} from "./useOrganizationGroupsList.ts";
 
 interface OrganizationGroupsTabProps
 {
-    appUserPersonOrganization: OrganizationDetailedDto
+    appUserPersonOrganization: OrganizationDetailedDto;
 }
 
-const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
-    {
-        appUserPersonOrganization
-    }
-) =>
+const PAGE_SIZE = 20;
+
+const OrganizationGroupsTab = ({appUserPersonOrganization}: OrganizationGroupsTabProps) =>
 {
     const styles = useOrganizationGroupTabStyles();
     const {token} = useAuth();
-    const [organizationId, setOrganizationId] = useState('')
     const [groups, setGroups] = useState<OrganizationGroupDetailedDto[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-    const [isGroupDeleteDialogOpen, setIsGroupDeleteDialogOpen] = useState(false);
+    const [isAddOpen, setIsAddOpen] = useState(false);
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [selectedGroup, setSelectedGroup] = useState<OrganizationGroupDetailedDto | null>(null);
-
-    const columns = [
-        {columnKey: "name", label: "Group Name"},
-        {columnKey: "members", label: "Members"},
-        {columnKey: "status", label: "Status", className: styles.statusCell},
-        {columnKey: "actions", label: "Actions", className: styles.actionsCell}
-    ];
+    const groupList = useOrganizationGroupsList(groups, PAGE_SIZE);
 
     const loadGroups = async () =>
     {
         setLoading(true);
         setError(null);
-
         try
         {
-            const fetchedGroups = await fetchMyOrganizationGroups(token || undefined);
-            setGroups(fetchedGroups);
+            setGroups(await fetchMyOrganizationGroups(token || undefined));
         }
-        catch (err: any)
+        catch (error: unknown)
         {
-            setError(err.message || "Failed to load groups");
-            console.error("Failed to load groups:", err);
+            setError(error instanceof Error ? error.message : "Failed to load groups");
         }
         finally
         {
@@ -84,192 +50,83 @@ const OrganizationGroupsTab: React.FC<OrganizationGroupsTabProps> = (
 
     useEffect(() =>
     {
-        if (appUserPersonOrganization)
-        {
-            setOrganizationId(appUserPersonOrganization.id!)
-            loadGroups();
-        }
-    }, [appUserPersonOrganization]);
+        loadGroups();
+    }, [appUserPersonOrganization.id]);
 
-    const onAddGroup = () =>
-    {
-        setIsAddDialogOpen(true);
-    };
-
-    const onEditGroup = (group: any) =>
+    const openEdit = (group: OrganizationGroupDetailedDto) =>
     {
         setSelectedGroup(group);
-        setIsEditDialogOpen(true);
+        setIsEditOpen(true);
     };
 
-    const onDeleteGroup = (group: OrganizationGroupDetailedDto) =>
+    const openDelete = (group: OrganizationGroupDetailedDto) =>
     {
-        setIsGroupDeleteDialogOpen(true)
-        setSelectedGroup(group)
-    }
-
-    const renderTableRow = (group: any) =>
-    {
-        return (
-            <TableRow key={group.id}>
-                <TableCell>
-                    <TableCellLayout>
-                        {group.name}
-                    </TableCellLayout>
-                </TableCell>
-                <TableCell>
-                    {(() =>
-                    {
-                        const members = group.members ?? [];
-                        if (members.length === 0) return <Text size={200}>exch-</Text>;
-                        const items = members.map(m => ({
-                            name: [m.user?.person?.firstName, m.user?.person?.lastName].filter(Boolean).join(' ') || m.user?.email || 'Unknown',
-                            key: m.user?.id || m.user?.email || String(Math.random()),
-                        }));
-                        const {inlineItems, overflowItems} = partitionAvatarGroupItems({items, maxInlineItems: 5});
-                        return (
-                                <AvatarGroup size={24} layout="stack">
-                                    {inlineItems?.map(item => (
-                                        <Tooltip key={item.key} content={item.name} relationship="label">
-                                            <AvatarGroupItem name={item.name}/>
-                                        </Tooltip>
-                                    ))}
-                                {overflowItems?.length > 0 && (
-                                    <AvatarGroupPopover>
-                                        {overflowItems.map(item => (
-                                            <AvatarGroupItem key={item.key} name={item.name}/>
-                                        ))}
-                                    </AvatarGroupPopover>
-                                )}
-                            </AvatarGroup>
-                        );
-                    })()}
-                </TableCell>
-                <TableCell className={styles.statusCell}>
-                    <Badge
-                        color={group.isActive ? "success" : "danger"}
-                        appearance="outline">
-                        {group.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                </TableCell>
-                <TableCell className={styles.actionsCell}>
-                    <Menu positioning={{autoSize: true}}>
-                        <MenuTrigger disableButtonEnhancement>
-                            <Button
-                                id="org-groups-row-actions-menu"
-                                icon={<MoreHorizontalRegular/>}
-                                appearance={"subtle"}
-                                shape={"circular"}/>
-                        </MenuTrigger>
-                        <MenuPopover>
-                            <MenuList>
-                                <MenuItem
-                                    icon={<PeopleEditRegular/>}
-                                    onClick={() => onEditGroup(group)}>
-                                    Manage Group
-                                </MenuItem>
-                                <MenuItem
-                                    icon={<DeleteRegular/>}
-                                    onClick={() => onDeleteGroup(group)}>
-                                    Delete
-                                </MenuItem>
-                            </MenuList>
-                        </MenuPopover>
-                    </Menu>
-                </TableCell>
-            </TableRow>
-        )
+        setSelectedGroup(group);
+        setIsDeleteOpen(true);
     };
 
-    const renderTable = () =>
+    const closeDialogsAndReload = () =>
     {
-        return <>
-
-            <div className={styles.header}>
-                <span></span>
-                <Button
-                    id="org-groups-create-group"
-                    icon={<GroupAddIcon/>}
-                    appearance="subtle"
-                    shape="circular"
-                    onClick={onAddGroup}>
-                    Create Group
-                </Button>
-            </div>
-
-            <Table className={styles.table}>
-                <TableHeader>
-                    <TableRow>
-                        {columns.map((column) => (
-                            <TableHeaderCell key={column.columnKey} className={column.className}>
-                                <Text weight={"semibold"}> {column.label}</Text>
-                            </TableHeaderCell>
-                        ))}
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {groups.map((group) => renderTableRow(group))}
-                    {groups.length === 0 && (
-                        <TableRow>
-                            <TableCell colSpan={4}>
-                                <Text>No organization groups yet. Create one to start organizing your members.</Text>
-                            </TableCell>
-                        </TableRow>
-                    )}
-                </TableBody>
-            </Table>
-        </>
+        setIsAddOpen(false);
+        setIsEditOpen(false);
+        setIsDeleteOpen(false);
+        setSelectedGroup(null);
+        loadGroups();
     };
 
-    return <>
-        <div className={styles.container}>
-
+    return (
+        <div
+            id="organization-groups"
+            className={styles.container}
+        >
             {error && <div className={styles.error}>{error}</div>}
-
-            {loading ? (
-                <div className={styles.loading}>
-                    <Spinner label="Loading..."
-                             size={"small"}/>
-                </div>
-            ) : renderTable()}
-
-            <AddGroupDialog
-                isOpen={isAddDialogOpen}
-                onDismiss={() => setIsAddDialogOpen(false)}
-                organizationId={organizationId}
-                onComplete={() =>
-                {
-                    setIsAddDialogOpen(false);
-                    loadGroups();
-                }}
+            <OrganizationGroupsToolbar
+                searchQuery={groupList.searchQuery}
+                statusFilter={groupList.statusFilter}
+                sortOption={groupList.sortOption}
+                onSearchChange={groupList.setSearchQuery}
+                onStatusChange={groupList.setStatusFilter}
+                onSortChange={groupList.setSortOption}
+                onCreate={() => setIsAddOpen(true)}
             />
-
-            <EditGroupDialog
-                isOpen={isEditDialogOpen}
-                onDismiss={() => setIsEditDialogOpen(false)}
-                appUserPersonOrganization={appUserPersonOrganization}
-                group={selectedGroup}
-                onComplete={() =>
-                {
-                    setIsEditDialogOpen(false);
-                    loadGroups();
-                }}
-            />
-
-            <GroupDeleteDialog
-                isOpen={isGroupDeleteDialogOpen}
-                organizationId={organizationId}
-                group={selectedGroup}
-                onDismiss={() => setIsGroupDeleteDialogOpen(false)}
-                onDeleted={() =>
-                {
-                    setIsGroupDeleteDialogOpen(false);
-                    setSelectedGroup(null);
-                    loadGroups();
-                }}
+            <div
+                id="organization-groups-table-scroll"
+                className={styles.tableScroll}
+            >
+                {loading
+                    ? <div className={styles.loading}><Spinner label="Loading..." size="small"/></div>
+                    : <OrganizationGroupsTable
+                        groups={groupList.visibleGroups}
+                        onEdit={openEdit}
+                        onDelete={openDelete}
+                    />}
+            </div>
+            <div
+                id="organization-groups-pagination-footer"
+                className={styles.paginationFooter}
+            >
+                <OrganizationGroupsPagination
+                    currentPage={groupList.currentPage}
+                    totalPages={groupList.totalPages}
+                    totalItems={groupList.totalItems}
+                    pageSize={PAGE_SIZE}
+                    onPageChange={groupList.setCurrentPage}
+                />
+            </div>
+            <OrganizationGroupsDialogs
+                organizationId={appUserPersonOrganization.id ?? ""}
+                organization={appUserPersonOrganization}
+                selectedGroup={selectedGroup}
+                isAddOpen={isAddOpen}
+                isEditOpen={isEditOpen}
+                isDeleteOpen={isDeleteOpen}
+                onAddDismiss={() => setIsAddOpen(false)}
+                onEditDismiss={() => setIsEditOpen(false)}
+                onDeleteDismiss={() => setIsDeleteOpen(false)}
+                onComplete={closeDialogsAndReload}
             />
         </div>
-    </>
+    );
 };
 
 export default OrganizationGroupsTab;

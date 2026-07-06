@@ -2,91 +2,38 @@ import {makeStyles, shorthands, tokens} from "@fluentui/react-components";
 
 export const useOrganizationPeopleTabStyles = makeStyles({
     container: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '20px',
-        width: '100%'
+        display: "flex",
+        flexDirection: "column",
+        gap: "12px",
+        width: "100%",
+        height: "100%",
+        minHeight: 0,
+        overflow: "hidden"
     },
-    header: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
+    tableScroll: {
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        overflowX: "auto",
+        overscrollBehavior: "contain"
     },
-    searchBox: {
-      flexGrow: 1
-    },
-    table: {
-        width: '100%'
+    paginationFooter: {
+        display: "flex",
+        flexShrink: 0,
+        paddingTop: "8px",
+        backgroundColor: tokens.colorNeutralBackground1,
+        borderTop: `1px solid ${tokens.colorNeutralStroke2}`
     },
     loading: {
-        display: 'flex',
-        justifyContent: 'center',
+        display: "flex",
+        justifyContent: "center",
+        padding: "20px"
     },
     error: {
         color: tokens.colorStatusDangerForeground1,
-        ...shorthands.padding('10px'),
+        ...shorthands.padding("10px"),
         backgroundColor: tokens.colorStatusDangerBackground1,
-        ...shorthands.borderRadius('4px')
-    },
-    actions: {
-        display: 'flex',
-        gap: '8px'
-    },
-
-    dataContainer: {
-        display: "flex",
-        flexDirection: "row",
-        gap: "16px"
-    },
-
-    dataEditable: {
-        display: "flex",
-        gap: "8px"
-    },
-    truncateCell: {
-        maxWidth: "260px",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap"
-    },
-    personCell: {
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-        minWidth: 0
-    },
-    personName: {
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap"
-    },
-    statusCell: {
-        width: "90px",
-        minWidth: "90px",
-        maxWidth: "90px",
-    },
-    actionsCell: {
-        width: "60px",
-        minWidth: "60px",
-        maxWidth: "60px",
-    },
-    capacityBox: {
-        padding: '12px 16px',
-        borderRadius: tokens.borderRadiusXLarge,
-        border: `1px solid ${tokens.colorNeutralStroke2}`,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '6px',
-    },
-    capacityBoxRow: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    capacityAtCap: {
-        color: 'var(--colorPaletteRedForeground1)',
-    },
-    capacityNearCap: {
-        color: 'var(--colorPaletteYellowForeground1)',
-    },
+        ...shorthands.borderRadius("4px"),
+        flexShrink: 0
+    }
 });

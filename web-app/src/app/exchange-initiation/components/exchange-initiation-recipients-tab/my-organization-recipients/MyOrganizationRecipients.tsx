@@ -18,10 +18,22 @@ import {
 import MyOrgRecipients from "../MyOrgRecipients.tsx";
 import {useAuth} from "../../../../../context/AuthContext.tsx";
 import SinglePersonPicker from "../../../../components/person-picker/single-person-picker/SinglePersonPicker.tsx";
+import {useMyOrganizationRecipientsStyles} from "./MyOrganizationRecipientsStyles.tsx";
 import {
     matchesPersonQuery,
     PersonPickerItem,
 } from "../../../../components/person-picker/personPickerTypes.ts";
+
+const MAX_VISIBLE_GROUPS = 10;
+
+interface OrganizationGroupMember
+{
+    user?: {id?: string};
+}
+
+type SelectableOrganizationGroup = Omit<OrganizationGroupBasicDto, "members"> & {
+    members?: OrganizationGroupMember[];
+};
 
 interface MyOrganizationRecipientsProps
 {
@@ -57,11 +69,12 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
         setInternalParticipants
     }) =>
 {
+    const styles = useMyOrganizationRecipientsStyles();
     const {appUser} = useAuth()
     const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
     const [isLoadingGroups, setIsLoadingGroups] = useState<boolean>(false);
     const [myOrgUsers, setMyOrgUsers] = useState<AppUserPublicDto[]>([]);
-    const [myOrgGroups, setMyOrgGroups] = useState<any[]>([]);
+    const [myOrgGroups, setMyOrgGroups] = useState<SelectableOrganizationGroup[]>([]);
     const [selectedOrgUser, setSelectedOrgUser] = useState<AppUserPublicDto | null>(null);
     const [selectedOrgGroup, setSelectedOrgGroup] = useState<OrganizationGroupBasicDto | null>(null);
     const [selectedInternalRecipients, setSelectedInternalParticipants] = useState<AppUserPublicDto[]>([]);
@@ -162,7 +175,7 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
         setIsLoadingGroups(true);
         try
         {
-            const groups = await fetchMyOrganizationGroups();
+            const groups = await fetchMyOrganizationGroups() as SelectableOrganizationGroup[];
             setMyOrgGroups(groups);
         }
         catch (error)
@@ -180,11 +193,16 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
         .map(toPersonPickerItem)
         .filter(person => person.id && matchesPersonQuery(person, userSearchQuery));
 
-    const filteredGroups = myOrgGroups
-        .filter(group => !groupSearchQuery || group.name.toLowerCase().includes(groupSearchQuery.toLowerCase()))
+    const normalizedGroupQuery = groupSearchQuery.trim().toLocaleLowerCase();
+    const matchingGroups = myOrgGroups
+        .filter(group => !normalizedGroupQuery || group.name.toLocaleLowerCase().includes(normalizedGroupQuery))
+        .sort((left, right) => left.name.localeCompare(right.name, undefined, {sensitivity: "base"}));
+    const hiddenGroupCount = Math.max(0, matchingGroups.length - MAX_VISIBLE_GROUPS);
+    const filteredGroups = matchingGroups
+        .slice(0, MAX_VISIBLE_GROUPS)
         .map(group =>
         {
-            const orgGroupCount = group.members.length
+            const orgGroupCount = group.members?.length ?? 0
             const orgGroupCountText = orgGroupCount > 1 ? "s" : ""
 
             return (
@@ -278,7 +296,7 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
             // Remove any already-selected participants who are members of this group
             // to prevent a user from appearing as both a group recipient and a participant.
             const groupMemberIds = new Set(
-                (group.members || []).map((m: any) => m.user?.id).filter(Boolean)
+                (group.members || []).map(member => member.user?.id).filter(Boolean)
             );
             if (groupMemberIds.size > 0 && setInternalParticipants)
             {
@@ -308,7 +326,9 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
         if (selectedOrgGroup)
         {
             const groupMemberIds = new Set(
-                (selectedOrgGroup.members || []).map((m: any) => m.user?.id).filter(Boolean)
+                (selectedOrgGroup.members || [])
+                    .map((member: OrganizationGroupMember) => member.user?.id)
+                    .filter(Boolean)
             );
             usersToFilter = usersToFilter.filter(user => !groupMemberIds.has(user.id));
         }
@@ -355,11 +375,20 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
                     ) : (
                         <Combobox
                             id={"my-org-group-combobox"}
+                            listbox={{className: styles.groupListbox}}
                             onOptionSelect={setRecipientOrgGroupOptionItem}
                             placeholder="Select Group/Team/Department"
                             onChange={(ev) => setGroupSearchQuery(ev.target.value)}
                             value={groupSearchQuery}>
                             {filteredGroups}
+                            {hiddenGroupCount > 0 && (
+                                <Option
+                                    disabled
+                                    text={`${hiddenGroupCount} more groups. Type to narrow the list.`}
+                                >
+                                    {hiddenGroupCount} more groups. Type to narrow the list.
+                                </Option>
+                            )}
                         </Combobox>
                     )}
                 </Field>

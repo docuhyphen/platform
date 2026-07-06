@@ -1,30 +1,18 @@
-import {
-    Avatar,
-    Badge,
-    Button, Caption1, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger,
-    ProgressBar,
-    SearchBox,
-    Spinner,
-    Table,
-    TableBody,
-    TableCell,
-    TableHeader,
-    TableHeaderCell,
-    TableRow, Text
-} from "@fluentui/react-components";
+import {Spinner} from "@fluentui/react-components";
 import {useEffect, useState} from "react";
-import {PersonAddIcon} from "../../components/IconBundles.tsx";
 import {useOrganizationPeopleTabStyles} from "./OrganizationPeopleTabStyles.tsx";
 import {fetchMyOrganizationUsers} from "../../../services/organizationApi.ts";
 import {useAuth} from "../../../context/AuthContext.tsx";
 import {AppUserPublicDto, OrgMemberCapacityResponse} from "../../models/models.tsx";
-import {OrganizationRoleDisplayNames, OrganizationRoleName} from '../../../services/types/roles.ts';
 import {getOrgMemberCapacity} from "../../../services/authApi.ts";
-import AddAppUserDialog from "./add-app-user-dialog/AddAppUserDialog.tsx";
-import EditUserDialog from "./app-user-edit-dialog/EditUserDialog.tsx";
-import {MoreHorizontalRegular, PersonEditRegular} from "@fluentui/react-icons";
-import AppUserDeactivateDialog from "./app-user-deactivate-dialog/AppUserDeactivateDialog.tsx";
-import TagList from "../../components/TagList.tsx";
+import OrganizationPeopleTable from "./organization-people-table/OrganizationPeopleTable.tsx";
+import OrganizationPeoplePagination from "./organization-people-pagination/OrganizationPeoplePagination.tsx";
+import OrganizationPeopleCapacity from "./organization-people-capacity/OrganizationPeopleCapacity.tsx";
+import OrganizationPeopleDialogs from "./organization-people-dialogs/OrganizationPeopleDialogs.tsx";
+import OrganizationPeopleToolbar from "./organization-people-toolbar/OrganizationPeopleToolbar.tsx";
+import {useOrganizationPeopleList} from "./useOrganizationPeopleList.ts";
+
+const PAGE_SIZE = 20;
 
 const OrganizationPeopleTab = () =>
 {
@@ -35,10 +23,9 @@ const OrganizationPeopleTab = () =>
     const [error, setError] = useState<string | null>(null);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-    const [isDeleteAppUserDialogOpen, setIsDeleteAppUserDialogOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<AppUserPublicDto | null>(null);
     const [capacity, setCapacity] = useState<OrgMemberCapacityResponse | null>(null);
-    const [searchQuery, setSearchQuery] = useState("");
+    const peopleList = useOrganizationPeopleList(users, PAGE_SIZE);
 
     const loadUsers = async () =>
     {
@@ -46,13 +33,11 @@ const OrganizationPeopleTab = () =>
         setError(null);
         try
         {
-            const fetchedUsers = await fetchMyOrganizationUsers(token || undefined);
-            setUsers(fetchedUsers);
+            setUsers(await fetchMyOrganizationUsers(token || undefined));
         }
-        catch (err: any)
+        catch (error: unknown)
         {
-            setError(err.message || "Failed to load users");
-            console.error("Failed to load users:", err);
+            setError(error instanceof Error ? error.message : "Failed to load users");
         }
         finally
         {
@@ -60,241 +45,79 @@ const OrganizationPeopleTab = () =>
         }
     };
 
-    const loadCapacity = async () =>
-    {
-        if (!appUserPersonOrganization?.id) return;
-        try
-        {
-            const cap = await getOrgMemberCapacity(appUserPersonOrganization.id);
-            setCapacity(cap);
-        }
-        catch
-        {
-            // Capacity indicator is non-critical; fail silently
-        }
-    };
-
     useEffect(() =>
     {
         loadUsers();
-        loadCapacity();
+        if (appUserPersonOrganization?.id)
+        {
+            getOrgMemberCapacity(appUserPersonOrganization.id)
+                .then(setCapacity)
+                .catch(() => setCapacity(null));
+        }
     }, []);
 
-    const handleAddUser = () =>
-    {
-        setIsAddDialogOpen(true);
-    };
-
-    const onEditOrgAppUser = (user: AppUserPublicDto) =>
+    const openEditDialog = (user: AppUserPublicDto) =>
     {
         setSelectedUser(user);
         setIsEditDialogOpen(true);
     };
 
-    const columns = [
-        {columnKey: "person", label: "Person name"},
-        {columnKey: "email", label: "Email"},
-        {columnKey: "role", label: "Role"},
-        {columnKey: "status", label: "Status", className: styles.statusCell},
-        {columnKey: "actions", label: "Actions", className: styles.actionsCell}
-    ];
-
-    const filteredUsers = users.filter(user =>
-    {
-        const query = searchQuery.trim().toLocaleLowerCase();
-        if (!query) return true;
-        const name = [user.person?.firstName, user.person?.lastName]
-            .filter(Boolean)
-            .join(" ")
-            .toLocaleLowerCase();
-        return name.includes(query) || user.email.toLocaleLowerCase().includes(query);
-    });
-
     return (
-        <div className={styles.container}>
-
+        <div
+            id="organization-people"
+            className={styles.container}
+        >
             {error && <div className={styles.error}>{error}</div>}
-
-            {capacity && (
-                <div className={styles.capacityBox}>
-                    <div className={styles.capacityBoxRow}>
-                        <Caption1>
-                            <strong>Member capacity</strong> &nbsp;·&nbsp; Tier: {capacity.tierCode}
-                        </Caption1>
-                        <Caption1>
-                            {capacity.activeUsers}{capacity.maxUsers != null ? ` / ${capacity.maxUsers}` : ' / Unlimited'}
-                        </Caption1>
-                    </div>
-                    {capacity.maxUsers != null && (
-                        <ProgressBar
-                            value={capacity.activeUsers / capacity.maxUsers}
-                            color={capacity.atCap ? "error" : capacity.nearCap ? "warning" : "brand"}
-                            thickness="medium"
-                        />
-                    )}
-                    {capacity.atCap && (
-                        <Caption1 className={styles.capacityAtCap}>
-                            Organization has reached its user limit. Upgrade your plan to add more members.
-                        </Caption1>
-                    )}
-                    {!capacity.atCap && capacity.nearCap && (
-                        <Caption1 className={styles.capacityNearCap}>
-                            Approaching user limit.
-                        </Caption1>
-                    )}
-                </div>
-            )}
-
-            {loading ? (
-                <div className={styles.loading}>
-                    <Spinner label="Loading..."
-                             size={"small"}/>
-                </div>
-            ) : <>
-                <div className={styles.header}>
-                    <SearchBox
-                        id="organization-people-search"
-                        className={styles.searchBox}
-                        placeholder="Search by name or email"
-                        value={searchQuery}
-                        onChange={(_, data) => setSearchQuery(data.value)}
-                    />
-                    <Button
-                        id={"org-people-add-person-btn"}
-                        icon={<PersonAddIcon/>}
-                        appearance="subtle"
-                        shape="circular"
-                        onClick={handleAddUser}>
-                        Add Person
-                    </Button>
-                </div>
-                <Table className={styles.table}>
-                    <TableHeader>
-                        <TableRow>
-                            {columns.map((column) => (
-                                <TableHeaderCell key={column.columnKey} className={column.className}>
-                                    <Text weight={"semibold"}> {column.label}</Text>
-                                </TableHeaderCell>
-                            ))}
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {filteredUsers.map((user) => (
-                            <TableRow key={user.id}>
-                                <TableCell title={`${user.person?.firstName ?? ""} ${user.person?.lastName ?? ""}`.trim()}>
-                                    <div
-                                        id={`organization-person-${user.id}`}
-                                        className={styles.personCell}
-                                    >
-                                        <Avatar
-                                            id={`organization-person-avatar-${user.id}`}
-                                            name={[user.person?.firstName, user.person?.lastName].filter(Boolean).join(" ") || user.email}
-                                            image={user.avatarUrl ? {src: user.avatarUrl} : undefined}
-                                        />
-                                        <Text
-                                            id={`organization-person-name-${user.id}`}
-                                            className={styles.personName}
-                                        >
-                                            {[user.person?.firstName, user.person?.lastName].filter(Boolean).join(" ")}
-                                        </Text>
-                                    </div>
-                                </TableCell>
-                                <TableCell title={user.email}>
-                                    <div className={styles.truncateCell}>{user.email}</div>
-                                </TableCell>
-                                <TableCell>
-                                    <TagList
-                                        tags={user.organizationRoles
-                                            .map((role) => OrganizationRoleDisplayNames[role as OrganizationRoleName] || role)}
-                                        max={1}
-                                    />
-                                </TableCell>
-                                <TableCell className={styles.statusCell}>
-                                    <Badge
-                                        color={user.isActive ? "success" : "danger"}
-                                        appearance="outline"
-                                    >
-                                        {user.isActive ? "Active" : "Inactive"}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell className={styles.actionsCell}>
-                                    <Menu positioning={{autoSize: true}}>
-                                        <MenuTrigger disableButtonEnhancement>
-                                            <Button
-                                                id={`org-people-actions-menu-btn-${user.id}`}
-                                                icon={<MoreHorizontalRegular/>}
-                                                appearance={"subtle"}
-                                                shape={"circular"}/>
-                                        </MenuTrigger>
-                                        <MenuPopover>
-                                            <MenuList>
-                                                <MenuItem icon={<PersonEditRegular/>}
-                                                          disabled={user.id == appUser?.id}
-                                                          onClick={() => onEditOrgAppUser(user)}>
-                                                    Edit
-                                                </MenuItem>
-                                                {/*<MenuItem icon={<DeleteRegular/>}*/}
-                                                {/*          disabled={user.id == appUser?.id}*/}
-                                                {/*          onClick={() => onDeleteOrgAppUser(user)}>*/}
-                                                {/*    Delete*/}
-                                                {/*</MenuItem>*/}
-                                            </MenuList>
-                                        </MenuPopover>
-                                    </Menu>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </>}
-
-            <AddAppUserDialog
-                isOpen={isAddDialogOpen}
-                onDismiss={() => setIsAddDialogOpen(false)}
+            <OrganizationPeopleCapacity capacity={capacity}/>
+            <OrganizationPeopleToolbar
+                searchQuery={peopleList.searchQuery}
+                statusFilters={peopleList.statusFilters}
+                roleFilters={peopleList.roleFilters}
+                sortOption={peopleList.sortOption}
+                onSearchChange={peopleList.setSearchQuery}
+                onStatusToggle={peopleList.toggleStatusFilter}
+                onRoleToggle={peopleList.toggleRoleFilter}
+                onSortChange={peopleList.setSortOption}
+                onAdd={() => setIsAddDialogOpen(true)}
+            />
+            <div
+                id="organization-people-table-scroll"
+                className={styles.tableScroll}
+            >
+                {loading
+                    ? <div className={styles.loading}><Spinner label="Loading..." size="small"/></div>
+                    : <OrganizationPeopleTable
+                        users={peopleList.visibleUsers}
+                        currentUserId={appUser?.id}
+                        onEdit={openEditDialog}
+                    />}
+            </div>
+            <div
+                id="organization-people-pagination-footer"
+                className={styles.paginationFooter}
+            >
+                <OrganizationPeoplePagination
+                    currentPage={peopleList.currentPage}
+                    totalPages={peopleList.totalPages}
+                    totalItems={peopleList.totalItems}
+                    pageSize={PAGE_SIZE}
+                    onPageChange={peopleList.setCurrentPage}
+                />
+            </div>
+            <OrganizationPeopleDialogs
                 organizationId={appUserPersonOrganization?.id}
+                selectedUser={selectedUser}
+                isAddOpen={isAddDialogOpen}
+                isEditOpen={isEditDialogOpen}
+                onAddDismiss={() => setIsAddDialogOpen(false)}
+                onEditDismiss={() => setIsEditDialogOpen(false)}
                 onComplete={() =>
                 {
                     setIsAddDialogOpen(false);
-                    loadUsers();
-                }}
-            />
-
-            <EditUserDialog
-                isOpen={isEditDialogOpen}
-                onDismiss={() => setIsEditDialogOpen(false)}
-                organizationId={appUserPersonOrganization?.id}
-                user={selectedUser}
-                onComplete={() =>
-                {
                     setIsEditDialogOpen(false);
                     loadUsers();
                 }}
             />
-
-            <AppUserDeactivateDialog
-                isOpen={isDeleteAppUserDialogOpen}
-                onDismiss={() =>
-                {
-                    setSelectedUser(null);
-                    setIsDeleteAppUserDialogOpen(false)
-                }
-                }
-                appUser={selectedUser!}
-                organizationId={appUserPersonOrganization?.id}
-                onDeactivated={() =>
-                {
-                    setIsDeleteAppUserDialogOpen(false)
-                    setSelectedUser(null);
-                    loadUsers();
-                }}
-                onDeleted={() =>
-                {
-                    setIsDeleteAppUserDialogOpen(false)
-                    setSelectedUser(null);
-                    loadUsers();
-                }}
-            />
-
         </div>
     );
 };

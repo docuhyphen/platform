@@ -1,53 +1,39 @@
-import {makeStyles, tokens} from "@fluentui/react-components";
+import {makeStyles, shorthands, tokens} from "@fluentui/react-components";
 
 export const useOrganizationGroupTabStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
+        gap: "12px",
         width: "100%",
-        minWidth: 0,
+        height: "100%",
+        minHeight: 0,
+        overflow: "hidden"
     },
-    header: {
+    tableScroll: {
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        overflowX: "auto",
+        overscrollBehavior: "contain"
+    },
+    paginationFooter: {
         display: "flex",
-        marginBottom: "16px",
-        justifyContent: "space-between",
-        alignItems: "center",
-        flexWrap: "wrap",
-        gap: "8px",
-    },
-    searchBox: {
-        flex: 1
+        flexShrink: 0,
+        paddingTop: "8px",
+        backgroundColor: tokens.colorNeutralBackground1,
+        borderTop: `1px solid ${tokens.colorNeutralStroke2}`
     },
     error: {
         color: tokens.colorStatusDangerForeground1,
-        marginBottom: "16px",
+        ...shorthands.padding("10px"),
+        backgroundColor: tokens.colorStatusDangerBackground1,
+        ...shorthands.borderRadius("4px"),
+        flexShrink: 0
     },
     loading: {
         display: "flex",
         justifyContent: "center",
-        padding: "24px",
-    },
-    // Keep tabular data legible on phones by letting the table scroll
-    // horizontally inside its own container instead of forcing the
-    // settings card to grow wider than the viewport.
-    table: {
-        width: "100%",
-        overflowX: "auto",
-        minWidth: 0,
-    },
-    actions: {
-        display: "flex",
-        gap: "8px",
-    },
-    statusCell: {
-        width: "90px",
-        minWidth: "90px",
-        maxWidth: "90px",
-    },
-    actionsCell: {
-        width: "60px",
-        minWidth: "60px",
-        maxWidth: "60px",
-    },
+        padding: "24px"
+    }
 });

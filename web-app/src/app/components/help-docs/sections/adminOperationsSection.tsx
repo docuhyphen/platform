@@ -55,6 +55,17 @@ export const adminOperationsSection: HelpDocSectionInput = {
 
                     <h3>Finding people</h3>
                     <p>
+                        In Settings, open Administration and select People to search members by
+                        name or email. Filter the list by account status or organization role,
+                        sort it by name, email, or status, and use the pagination controls below
+                        the table to move through the results.
+                    </p>
+                    <p>
+                        The Groups/Teams tab uses the same list layout. Search by group or member,
+                        filter by status, sort by name, member count, or status, and use the fixed
+                        pagination controls below the group table.
+                    </p>
+                    <p>
                         Person selectors in organization groups and App Admin settings
                         are searchable by name or email. Results show a person card with
                         an avatar or initials, full name, and email. Multi-person selectors
