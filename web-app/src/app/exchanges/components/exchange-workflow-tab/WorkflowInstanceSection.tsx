@@ -20,7 +20,7 @@ interface Props
 /**
  * One workflow instance. The banner, summary, and action-required decision
  * controls stay unchanged in every view; only the detail region below them
- * changes: full-width Timeline, full-width (vertical) Diagram, or a
+ * changes: full-width Timeline, full-width Diagram, or a
  * side-by-side split showing both at once (detail on the left, diagram
  * preview on the right).
  */

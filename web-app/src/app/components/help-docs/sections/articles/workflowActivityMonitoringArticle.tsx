@@ -111,8 +111,11 @@ export const workflowActivityMonitoringArticle = (
             whole tab; Timeline is the default and the control changes every
             workflow shown in the tab at once. <b>Both</b> splits the tab into a
             detail column (summary, action required, and Timeline) on the left and
-            a live diagram preview on the right. The Diagram overlays runtime state
-            and the traversed route onto the frozen workflow structure. If a
+            a live diagram preview on the right. Each diagram also has a{" "}
+            <b>Display vertically</b> checkbox above the canvas so viewers can
+            switch between vertical and horizontal layouts. The Diagram overlays
+            runtime state and the traversed route onto the frozen workflow
+            structure. If a
             diagram cannot render, that section offers a <b>View timeline</b>
             button and falls back to the Timeline. See{" "}
             <a href="#"

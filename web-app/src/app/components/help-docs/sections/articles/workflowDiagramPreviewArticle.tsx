@@ -4,27 +4,28 @@ export const workflowDiagramPreviewArticle = (
     <>
         <p>
             Two read-only diagram surfaces visualize a workflow: the{" "}
-            <b>Preview</b> in the Workflow Designer, drawn left to right, and the{" "}
-            <b>Diagram</b> view on an Exchange's Workflow tab, drawn top to bottom.
-            Both are read-only for workflow data. You cannot add, edit, connect, or
+            <b>Diagram</b> in the Workflow Designer and the <b>Diagram</b> view on
+            an Exchange's Workflow tab. Both are read-only for workflow data. You
+            cannot add, edit, connect, or
             delete anything from a diagram, but you can drag a node to reposition it
             for easier viewing; this only changes the on-screen layout and never
-            changes the workflow. The Form builder stays the only workflow editor
+            changes the workflow. The Form pane stays the only workflow editor
             and the Timeline stays the detailed audit view.
         </p>
 
         <h3>Preview in the Workflow Designer</h3>
-        <ol>
-            <li>
-                Open the designer from Settings and use the <b>Form</b> and{" "}
-                <b>Preview</b> tabs at the top. Form is selected by default.
-            </li>
-            <li>
-                Switch to <b>Preview</b> to see a live diagram of the workflow you
-                are editing, including unsaved changes. Switching back to Form keeps
-                your edits.
-            </li>
-        </ol>
+        <p>
+            Open the designer from Settings. The live Diagram is always visible on
+            the left at about 60% width, including unsaved Form changes, while the
+            editable Form stays on the right at about 40% width. The Diagram fills
+            the available height while the Form pane scrolls. On narrow screens
+            the two sections stack.
+        </p>
+        <p>
+            A bottom-right orientation icon switches between horizontal and
+            vertical layouts. It starts in its pressed vertical state so the
+            workflow fits the split layout.
+        </p>
         <p>
             An <b>Applicability</b> summary line above the diagram states whether
             the workflow always runs or only when field conditions match. The
@@ -51,7 +52,7 @@ export const workflowDiagramPreviewArticle = (
 
         <h3>Diagram notices</h3>
         <p>
-            The Preview reports structural notices such as an outcome pointing to a
+            The Diagram reports structural notices such as an outcome pointing to a
             missing step, an unreachable step, or a branch with no path to End.
             These notices are <b>informational only</b>. They do not block saving,
             and the Save rules are unchanged.
@@ -73,10 +74,12 @@ export const workflowDiagramPreviewArticle = (
         </ol>
         <p>
             The control changes every workflow shown in the tab at once. The tab
-            header stays fixed while the content below it scrolls. In Diagram (or
-            the diagram half of Both) each workflow instance shows the same frozen
-            structure it started with, laid out top to bottom, with runtime state
-            layered on top.
+            header stays fixed while the content below it scrolls. Each workflow
+            diagram also has its own bottom-right orientation icon. Exchange
+            diagrams open in vertical mode by default, and pressing the icon
+            switches that diagram between vertical and horizontal layout. In Diagram
+            (or the diagram half of Both) each workflow instance shows the same
+            frozen structure it started with, with runtime state layered on top.
         </p>
         <ul>
             <li>

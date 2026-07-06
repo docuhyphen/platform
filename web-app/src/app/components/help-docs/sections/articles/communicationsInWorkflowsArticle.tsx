@@ -16,8 +16,8 @@ export const communicationsInWorkflowsArticle = (
                 Open the workflow in the <b>Workflow Designer</b> (Settings {">"} Workflows {">"} Edit).
             </li>
             <li>
-                Find the NOTIFICATION step (or add one by clicking <b>Add step</b>
-                and selecting <b>NOTIFICATION</b>).
+                Find and click the NOTIFICATION step card (or add one by clicking
+                <b>Add Step</b>, click its card, and select <b>NOTIFICATION</b>).
             </li>
             <li>
                 Click <b>Select communication...</b>. The Communication Picker dialog

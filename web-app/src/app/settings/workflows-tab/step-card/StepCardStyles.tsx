@@ -2,32 +2,28 @@ import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useStepCardStyles = makeStyles({
     card: {
-        border: `1px solid ${tokens.colorNeutralStroke2}`,
-        borderRadius: tokens.borderRadiusMedium,
-        overflow: "hidden",
+        minWidth: 0,
     },
 
     cardHeader: {
         display: "flex",
         alignItems: "center",
+        justifyContent: "space-between",
         gap: "0.5rem",
         padding: "0.625rem 1rem",
         background: tokens.colorNeutralBackground2,
-        cursor: "pointer",
-        userSelect: "none",
-    },
-
-    stepNumber: {
-        color: tokens.colorNeutralForeground3,
-        flexShrink: 0,
-    },
-
-    headerTitle: {
-        flex: 1,
+        position: "sticky",
+        top: 0,
+        zIndex: 2,
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderRadius: tokens.borderRadiusMedium,
     },
 
     cardBody: {
-        padding: "1rem",
+        paddingTop: tokens.spacingVerticalM,
+        paddingRight: tokens.spacingHorizontalL,
+        paddingBottom: tokens.spacingVerticalL,
+        paddingLeft: tokens.spacingHorizontalL,
         display: "flex",
         flexDirection: "column",
         gap: "0.875rem",
@@ -35,9 +31,9 @@ export const useStepCardStyles = makeStyles({
 
     fieldGroup: {
         display: "grid",
-        gridTemplateColumns: "1fr 1fr",
+        gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
         gap: "0.75rem",
-        "@media (max-width: 600px)": {
+        "@media (max-width: 900px)": {
             gridTemplateColumns: "1fr",
         },
     },
@@ -46,6 +42,7 @@ export const useStepCardStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: "4px",
+        minWidth: 0,
     },
 
     fullWidth: {
@@ -53,9 +50,9 @@ export const useStepCardStyles = makeStyles({
     },
 
     outcomeRow: {
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: "0.75rem",
+        display: "flex",
+        gap: tokens.spacingVerticalS,
+        flexDirection: "column"
     },
 
     sectionLabel: {
@@ -72,26 +69,31 @@ export const useStepCardStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: "4px",
+        minWidth: 0,
     },
 
     outcomeFieldRow: {
         display: "flex",
         gap: "4px",
         flexWrap: "wrap",
+        minWidth: 0,
     },
 
     outcomeEmitSelect: {
-        flex: "1",
-        minWidth: "10rem",
+        flex: "1 1 10rem",
+        minWidth: 0,
     },
 
     quorumRow: {
         display: "flex",
         gap: "4px",
+        flexWrap: "wrap",
+        minWidth: 0,
     },
 
     quorumNInput: {
         width: "4rem",
+        flexShrink: 0,
     },
 
     notificationRow: {
@@ -123,14 +125,17 @@ export const useStepCardStyles = makeStyles({
 
     conditionOperatorSelect: {
         flex: "1 1 10rem",
+        minWidth: 0,
     },
 
     conditionValueSelect: {
         flex: "1 1 8rem",
+        minWidth: 0,
     },
 
     conditionValueInput: {
         flex: "1 1 8rem",
+        minWidth: 0,
     },
 
     entityPickerCombobox: {

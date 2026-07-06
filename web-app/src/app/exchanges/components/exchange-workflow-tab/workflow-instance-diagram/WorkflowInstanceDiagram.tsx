@@ -15,9 +15,9 @@ interface Props
 /**
  * Builds the frozen instance graph and renders it through the shared read-only
  * renderer. The adapter runs inside the graph error boundary (Decision 16) so a
- * malformed snapshot falls back to Timeline instead of throwing to the tab.
- * Rendered top-to-bottom so it reads naturally in the narrower side-by-side
- * preview column of the Exchange Workflow tab.
+ * malformed snapshot falls back to Timeline instead of throwing to the tab. The
+ * Exchange view opens in a top-to-bottom layout by default, but each diagram can
+ * be switched to a horizontal layout from its own checkbox.
  */
 const InstanceGraphBody = ({instance, onViewTimeline}: Props) =>
 {
@@ -27,7 +27,9 @@ const InstanceGraphBody = ({instance, onViewTimeline}: Props) =>
                               mode="INSTANCE_VIEW"
                               ariaLabel={`Workflow diagram for ${instance.definitionName ?? "workflow"}`}
                               onViewTimeline={onViewTimeline}
-                              direction="TB" />
+                              defaultDirection="TB"
+                              allowDirectionToggle={true}
+                              directionToggleId={`workflow-instance-orientation-toggle-${instance.id}`} />
     );
 };
 

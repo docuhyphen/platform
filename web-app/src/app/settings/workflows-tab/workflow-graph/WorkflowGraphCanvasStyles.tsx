@@ -7,6 +7,10 @@ export const useWorkflowGraphCanvasStyles = makeStyles({
         gap: "8px",
         width: "100%",
     },
+    wrapperFillHeight: {
+        flex: 1,
+        minHeight: 0,
+    },
 
     canvasContainer: {
         position: "relative",
@@ -29,6 +33,26 @@ export const useWorkflowGraphCanvasStyles = makeStyles({
         "--xy-controls-button-color-hover": tokens.colorNeutralForeground1Hover,
         "--xy-controls-button-border-color": tokens.colorNeutralStroke1,
         "--xy-controls-box-shadow": tokens.shadow4,
+    },
+    directionToggle: {
+        position: "absolute",
+        right: tokens.spacingHorizontalM,
+        bottom: tokens.spacingVerticalM,
+        zIndex: 2,
+    },
+    directionToggleButton: {
+        boxShadow: tokens.shadow4,
+    },
+    directionToggleIcon: {
+        fontSize: "18px",
+    },
+    canvasContainerFillHeight: {
+        flex: 1,
+        minHeight: "240px",
+        height: "100%",
+        "@media (max-width: 480px)": {
+            height: "100%",
+        },
     },
 
     warningList: {

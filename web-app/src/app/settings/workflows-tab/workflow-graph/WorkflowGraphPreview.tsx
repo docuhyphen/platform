@@ -1,4 +1,4 @@
-import {lazy, Suspense} from "react";
+import {lazy, Suspense, useEffect, useState} from "react";
 import {Spinner} from "@fluentui/react-components";
 import {WorkflowGraph, WorkflowGraphDirection, WorkflowGraphMode} from "./workflowGraphModels.ts";
 import {WorkflowGraphErrorBoundary} from "./WorkflowGraphErrorBoundary.tsx";
@@ -13,8 +13,11 @@ interface WorkflowGraphPreviewProps
     ariaLabel?: string;
     emptyMessage?: string;
     onViewTimeline?: () => void;
-    /** Flow orientation; defaults to left-to-right (the workflow builder's wide preview). */
-    direction?: WorkflowGraphDirection;
+    /** Starting orientation for the read-only diagram layout. */
+    defaultDirection?: WorkflowGraphDirection;
+    allowDirectionToggle?: boolean;
+    directionToggleId?: string;
+    fillHeight?: boolean;
 }
 
 /**
@@ -25,24 +28,51 @@ interface WorkflowGraphPreviewProps
  */
 export function WorkflowGraphPreview(props: WorkflowGraphPreviewProps)
 {
-    const {graph, mode, ariaLabel = "Workflow diagram", emptyMessage, onViewTimeline, direction} = props;
+    const {
+        graph,
+        mode,
+        ariaLabel = "Workflow diagram",
+        emptyMessage,
+        onViewTimeline,
+        defaultDirection = "LR",
+        allowDirectionToggle = false,
+        directionToggleId,
+        fillHeight = false,
+    } = props;
     const styles = useWorkflowGraphPreviewStyles();
+    const [direction, setDirection] = useState<WorkflowGraphDirection>(defaultDirection);
+
+    useEffect(() =>
+    {
+        setDirection(defaultDirection);
+    }, [defaultDirection]);
 
     return (
         <WorkflowGraphErrorBoundary onViewTimeline={onViewTimeline}>
-            <Suspense fallback={
-                <div id="workflow-graph-preview-loading"
-                     className={styles.loading}>
-                    <Spinner id="workflow-graph-preview-spinner"
-                             label="Loading diagram" />
-                </div>
-            }>
-                <WorkflowGraphCanvas graph={graph}
-                                     mode={mode}
-                                     ariaLabel={ariaLabel}
-                                     emptyMessage={emptyMessage}
-                                     direction={direction} />
-            </Suspense>
+            <div className={fillHeight ? `${styles.preview} ${styles.previewFillHeight}` : styles.preview}>
+                {allowDirectionToggle && (
+                    null
+                )}
+                <Suspense
+                    fallback={
+                        <div id="workflow-graph-preview-loading"
+                             className={styles.loading}>
+                            <Spinner id="workflow-graph-preview-spinner"
+                                     label="Loading diagram" />
+                        </div>
+                    }
+                >
+                    <WorkflowGraphCanvas graph={graph}
+                                         mode={mode}
+                                         ariaLabel={ariaLabel}
+                                         emptyMessage={emptyMessage}
+                                         direction={direction}
+                                         fillHeight={fillHeight}
+                                         allowDirectionToggle={allowDirectionToggle}
+                                         directionToggleId={directionToggleId}
+                                         onDirectionToggle={checked => setDirection(checked ? "TB" : "LR")} />
+                </Suspense>
+            </div>
         </WorkflowGraphErrorBoundary>
     );
 }

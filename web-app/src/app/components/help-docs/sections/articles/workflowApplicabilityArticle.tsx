@@ -11,9 +11,10 @@ export const workflowApplicabilityArticle = (
         <h3>Where to find it</h3>
         <p>
             Open the Workflow Designer in Settings for an organization workflow.
-            The <b>Applicability</b> section appears below the steps. It is available
-            only for organization-scoped workflows, because conditions reference an
-            organization Exchange schema.
+            Open the <b>Applicability</b> card on the Workflow Designer's Form pane.
+            It is available only for organization-scoped workflows, because
+            conditions reference an organization Exchange schema. Use the fixed
+            arrow button to return to the three main workflow cards.
         </p>
 
         <h3>How conditions work</h3>

@@ -14,6 +14,10 @@ export const useAssigneeBuilderStyles = makeStyles({
         padding: "0.5rem",
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         borderRadius: tokens.borderRadiusMedium,
+        minWidth: 0,
+        "@media (max-width: 900px)": {
+            flexWrap: "wrap",
+        },
     },
 
     rowFields: {
@@ -21,15 +25,24 @@ export const useAssigneeBuilderStyles = makeStyles({
         display: "flex",
         flexWrap: "wrap",
         gap: "0.5rem",
+        minWidth: 0,
     },
 
     kindSelect: {
-        minWidth: "8rem",
+        flex: "1 1 10rem",
+        minWidth: 0,
     },
 
     fieldInput: {
-        flex: 1,
-        minWidth: "8rem",
+        flex: "1 1 10rem",
+        minWidth: 0,
+    },
+
+    removeButton: {
+        flexShrink: 0,
+        "@media (max-width: 900px)": {
+            marginLeft: "auto",
+        },
     },
 
     addRow: {

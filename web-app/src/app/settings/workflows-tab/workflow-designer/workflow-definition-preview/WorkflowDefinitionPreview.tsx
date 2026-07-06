@@ -3,14 +3,17 @@ import {Text} from "@fluentui/react-components";
 import {WorkflowDesignerState} from "../../../../models/models.tsx";
 import {buildDefinitionGraph} from "../../workflow-graph/workflowDefinitionGraphAdapter.ts";
 import {WorkflowGraphPreview} from "../../workflow-graph/WorkflowGraphPreview.tsx";
+import {WorkflowGraphDirection} from "../../workflow-graph/workflowGraphModels.ts";
 import {useWorkflowDefinitionPreviewStyles} from "./WorkflowDefinitionPreviewStyles.tsx";
 
 interface Props
 {
     state: WorkflowDesignerState;
+    defaultDirection?: WorkflowGraphDirection;
+    fillHeight?: boolean;
 }
 
-const WorkflowDefinitionPreview = ({state}: Props) =>
+const WorkflowDefinitionPreview = ({state, defaultDirection = "LR", fillHeight = false}: Props) =>
 {
     const styles = useWorkflowDefinitionPreviewStyles();
 
@@ -23,9 +26,9 @@ const WorkflowDefinitionPreview = ({state}: Props) =>
 
     return (
         <div id="workflow-definition-preview"
-             className={styles.container}>
+             className={fillHeight ? `${styles.container} ${styles.containerFillHeight}` : styles.container}>
             <div id="workflow-definition-preview-applicability"
-                 className={styles.applicabilitySummary}>
+                  className={styles.applicabilitySummary}>
                 <Text size={200}
                       weight="semibold">
                     Applicability
@@ -40,6 +43,10 @@ const WorkflowDefinitionPreview = ({state}: Props) =>
                 graph={graph}
                 mode="DEFINITION_PREVIEW"
                 ariaLabel="Workflow definition diagram"
+                defaultDirection={defaultDirection}
+                allowDirectionToggle={true}
+                directionToggleId="workflow-definition-orientation-toggle"
+                fillHeight={fillHeight}
             />
         </div>
     );

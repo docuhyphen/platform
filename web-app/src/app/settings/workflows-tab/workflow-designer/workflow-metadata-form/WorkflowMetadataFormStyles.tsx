@@ -2,12 +2,9 @@ import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useWorkflowMetadataFormStyles = makeStyles({
     formGrid: {
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: "1rem",
-        "@media (max-width: 768px)": {
-            gridTemplateColumns: "1fr",
-        },
+        display: "flex",
+        gap: tokens.spacingVerticalS,
+        flexDirection: "column"
     },
 
     formField: {

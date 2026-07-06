@@ -6,7 +6,6 @@ export const buildingAWorkflowArticle = (
             This guide walks you through creating a workflow from scratch using the
             Workflow Designer in Settings.
         </p>
-
         <h3>Before you begin</h3>
         <ul>
             <li>You must be an Organization Admin.</li>
@@ -25,7 +24,6 @@ export const buildingAWorkflowArticle = (
                 over hardcoded user IDs.
             </li>
         </ul>
-
         <h3>Step 1: open the Workflow Designer</h3>
         <ol>
             <li>Open Settings from the top navigation bar.</li>
@@ -34,21 +32,21 @@ export const buildingAWorkflowArticle = (
                 Click <b>New workflow</b> to open the designer, or click{" "}
                 <b>Edit</b> on an existing workflow row to modify it.
             </li>
-        </ol>
-        <p>
+        </ol><p>
             The info button (i) in the top-right of the title bar opens this help
             article at any time.
         </p>
-
-        <h3>Form and Preview</h3>
+        <h3>Form and Diagram</h3>
         <p>
-            The designer has <b>Form</b> and <b>Preview</b> tabs; Form is the editor
-            and opens by default. Switch to <b>Preview</b> for a live read-only
-            diagram of the workflow you are editing (see{" "}
-            <a href="#" data-help-article="workflow-diagram-preview">Workflow diagrams and preview</a>).
+            The designer always keeps the live read-only Diagram on the left and
+            the editable Form on the right. The Diagram uses about 60% of the
+            width and stays fixed while the Form pane scrolls. On narrow screens,
+            the panes stack so both remain available. The bottom-right orientation
+            icon switches the Diagram between vertical and horizontal layouts; it
+            starts in the vertical state to fit the split layout. See{" "}
+            <a href="#" data-help-article="workflow-diagram-preview">Workflow diagrams and preview</a>.
         </p>
-
-        <h3>Step 2: fill in the header fields</h3>
+        <h3>Step 2: fill in the header fields</h3><p>Open the <b>Workflow configuration</b> card.</p>
         <ul>
             <li>
                 <b>Name</b> - a short, descriptive name shown in the workflow list
@@ -73,12 +71,11 @@ export const buildingAWorkflowArticle = (
                 event fires. Toggle this off to pause a workflow without deleting it.
             </li>
         </ul>
-
         <h3>Step 3: add steps</h3>
         <ol>
-            <li>Click <b>Add step</b> below the header section.</li>
+            <li>Return with the arrow button, open <b>Steps</b>, and click <b>Add Step</b>.</li>
             <li>
-                Choose a{" "}
+                Click the new step card, then choose a{" "}
                 <a href="#"
                    data-help-article="step-types">
                     step type
@@ -115,33 +112,33 @@ export const buildingAWorkflowArticle = (
                 index or to END.
             </li>
             <li>Repeat for each step in the workflow.</li>
+            <li>
+                Use the fixed header's arrow button to return to the step cards.
+                The header keeps the section title beside the arrow and its main
+                action, such as <b>Add Step</b> or delete, on the right.
+            </li>
         </ol>
-
         <h3>Step 4: review portability warnings</h3>
         <p>
             Before saving, the designer flags any step that uses a hardcoded
             principal UUID in an assignee entry. Such UUIDs work in your org but
             cannot be reused if the workflow is cloned, so replace them with{" "}
             <a href="#" data-help-article="assignees-and-portability">role-based or group-role-based assignees</a>.
-        </p>
-        <h3>Step 5: set applicability (optional)</h3>
+        </p><h3>Step 5: set applicability (optional)</h3>
         <p>
-            For organization workflows, the <b>Applicability</b> section below the steps restricts the workflow to Exchanges whose business field values match one or more conditions (leave empty to always run); see <a href="#" data-help-article="workflow-applicability">field-based applicability</a>.
-        </p>
-        <h3>Step 6: save</h3>
+            Open the <b>Applicability</b> card to restrict an organization workflow to Exchanges whose business field values match one or more conditions (leave empty to always run); see <a href="#" data-help-article="workflow-applicability">field-based applicability</a>.
+        </p><h3>Step 6: save</h3>
         <p>
             Click <b>Save workflow</b>. The workflow is created (POST) or updated
             (PUT) immediately. If the Active toggle is on, the engine will use it
             the next time the trigger event fires for an Exchange in your organization.
         </p>
-
         <h3>Editing a live workflow</h3>
         <p>
             You cannot edit a workflow while it is still in progress for one or
             more Exchanges. The message lists the affected Exchanges so you know
             what still needs to finish or be cancelled before you try again.
         </p>
-
         <h3>Deleting a workflow</h3>
         <p>
             Delete deactivates the workflow (soft delete). It cannot be deleted

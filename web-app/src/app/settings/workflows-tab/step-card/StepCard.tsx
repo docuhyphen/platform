@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {
-    Badge, Button, Combobox, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface,
+    Button, Combobox, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface,
     DialogTitle, Divider, Input, Option, Select, Text,
 } from "@fluentui/react-components";
 import {
@@ -17,7 +17,7 @@ import {
 } from "../../../models/models.tsx";
 import {lookupWorkflowEntities} from "../../../../services/workflowService.ts";
 import {useStepCardStyles} from "./StepCardStyles.tsx";
-import {DeleteIcon, ToggleHeaderDownIcon, ToggleHeaderUpIcon} from "../../../components/IconBundles.tsx";
+import {BackIcon, DeleteIcon} from "../../../components/IconBundles.tsx";
 import AssigneeBuilder from "../assignee-builder/AssigneeBuilder.tsx";
 import {formatTriggerName} from "../workflowUtils.ts";
 import CommunicationPickerDialog from "../../../components/communication-picker/CommunicationPickerDialog.tsx";
@@ -166,6 +166,7 @@ function getAllowedOperators(f: WorkflowSubjectFieldDto | undefined)
 const ConditionExpressionBuilder = ({expression, subjectFields, onChange}: {
     expression: string | undefined;
     subjectFields: WorkflowSubjectFieldDto[];
+    onBack: () => void;
     onChange: (expr: string | undefined) => void;
 }) =>
 {
@@ -407,10 +408,9 @@ const OutcomeField = ({label, value, steps, triggers, onChange}: {
 
 const DELETE_COUNTDOWN = 5;
 
-const StepCard = ({index, step, steps, onChange, onRemove, triggers, subjectFields}: Props) =>
+const StepCard = ({index, step, steps, onChange, onRemove, triggers, subjectFields, onBack}: Props) =>
 {
     const styles = useStepCardStyles();
-    const [expanded, setExpanded] = React.useState(true);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [deleteStarted, setDeleteStarted] = useState(false);
     const [countdown, setCountdown] = useState(DELETE_COUNTDOWN);
@@ -478,21 +478,23 @@ const StepCard = ({index, step, steps, onChange, onRemove, triggers, subjectFiel
 
     return (
         <div className={styles.card}>
-            <div className={styles.cardHeader} onClick={() => setExpanded(e => !e)}>
-                <Text className={styles.stepNumber} size={200}>
-                    Step {index + 1} ({step.name || STEP_TYPE_LABELS[step.type]})
-                </Text>
-                <Badge appearance="outline" color="informative" className={styles.headerTitle}>
-                    {STEP_TYPE_LABELS[step.type]}
-                </Badge>
-                {expanded ? <ToggleHeaderUpIcon/> : <ToggleHeaderDownIcon/>}
+            <div className={styles.cardHeader}>
+                <Button
+                    id={`step-card-back-btn-${index}`}
+                    size="small"
+                    appearance="subtle"
+                    shape="circular"
+                    icon={<BackIcon/>}
+                    aria-label="Back to steps"
+                    onClick={onBack}
+                />
                 <Button
                     id={`step-card-delete-btn-${index}`}
                     size="small"
                     appearance="subtle"
                     shape={"circular"}
                     icon={<DeleteIcon/>}
-                    onClick={(e) => { e.stopPropagation(); setShowDeleteDialog(true); }}
+                    onClick={() => setShowDeleteDialog(true)}
                     aria-label="Remove step"
                 />
             </div>
@@ -545,8 +547,7 @@ const StepCard = ({index, step, steps, onChange, onRemove, triggers, subjectFiel
                 </DialogSurface>
             </Dialog>
 
-            {expanded && (
-                <div className={styles.cardBody}>
+            <div className={styles.cardBody}>
                     <div className={styles.fieldGroup}>
                         <div className={`${styles.field} ${styles.fullWidth}`}>
                             <Text size={200} weight="semibold">Step Name</Text>
@@ -745,8 +746,7 @@ const StepCard = ({index, step, steps, onChange, onRemove, triggers, subjectFiel
                                           triggers={triggers} onChange={v => patch({onFalse: v})}/>
                         </div>
                     )}
-                </div>
-            )}
+            </div>
 
             <CommunicationPickerDialog
                 open={templatePickerOpen}

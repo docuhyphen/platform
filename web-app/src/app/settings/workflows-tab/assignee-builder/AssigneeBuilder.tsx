@@ -260,6 +260,7 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
                     </div>
                     <Button
                         id={`assignee-remove-btn-${i}`}
+                        className={styles.removeButton}
                         size="small"
                         appearance="subtle"
                         shape={"circular"}

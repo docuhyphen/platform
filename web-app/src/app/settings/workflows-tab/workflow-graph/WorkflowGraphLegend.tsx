@@ -63,7 +63,6 @@ export function WorkflowGraphLegend({graph, mode}: WorkflowGraphLegendProps)
                     })}
                 </div>
             ) : null}
-            <Divider/>
             {runtimeStates.length > 0 ? (
                 <div className={styles.group}>
                     <span className={styles.groupTitle}>Status</span>

@@ -2,7 +2,7 @@ import "@xyflow/react/dist/style.css";
 
 import {useCallback, useEffect, useRef, useState} from "react";
 import {Background, ControlButton, Controls, ReactFlow, ReactFlowInstance, useEdgesState, useNodesState} from "@xyflow/react";
-import {mergeClasses, MessageBar, MessageBarBody, MessageBarTitle} from "@fluentui/react-components";
+import {Button, mergeClasses, MessageBar, MessageBarBody, MessageBarTitle, Tooltip} from "@fluentui/react-components";
 import {WorkflowGraph, WorkflowGraphDirection, WorkflowGraphMode} from "./workflowGraphModels.ts";
 import {toReactFlow} from "./workflowGraphToReactFlow.ts";
 import {WorkflowStepNode} from "./WorkflowStepNode.tsx";
@@ -10,7 +10,7 @@ import {WorkflowTerminalNode} from "./WorkflowTerminalNode.tsx";
 import {WorkflowInvalidNode} from "./WorkflowInvalidNode.tsx";
 import {WorkflowGraphLegend} from "./WorkflowGraphLegend.tsx";
 import {useWorkflowGraphCanvasStyles} from "./WorkflowGraphCanvasStyles.tsx";
-import {FullScreenEnterIcon, FullScreenExitIcon} from "../../../components/IconBundles.tsx";
+import {FullScreenEnterIcon, FullScreenExitIcon, VerticalLayoutIcon} from "../../../components/IconBundles.tsx";
 import {WorkflowGraphEdge} from "./WorkflowGraphEdge.tsx";
 
 const NODE_TYPES = {
@@ -51,6 +51,10 @@ interface WorkflowGraphCanvasProps
     emptyMessage?: string;
     /** Flow orientation; defaults to left-to-right (the workflow builder's wide preview). */
     direction?: WorkflowGraphDirection;
+    fillHeight?: boolean;
+    allowDirectionToggle?: boolean;
+    directionToggleId?: string;
+    onDirectionToggle?: (checked: boolean) => void;
 }
 
 /**
@@ -62,11 +66,32 @@ interface WorkflowGraphCanvasProps
  */
 export default function WorkflowGraphCanvas(props: WorkflowGraphCanvasProps)
 {
-    const {graph, mode, ariaLabel, emptyMessage = "This workflow has no steps.", direction = "LR"} = props;
+    const {
+        graph,
+        mode,
+        ariaLabel,
+        emptyMessage = "This workflow has no steps.",
+        direction = "LR",
+        fillHeight = false,
+        allowDirectionToggle = false,
+        directionToggleId,
+        onDirectionToggle,
+    } = props;
     const styles = useWorkflowGraphCanvasStyles();
     const canvasContainerRef = useRef<HTMLDivElement | null>(null);
     const reactFlowInstanceRef = useRef<ReactFlowInstance | null>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
+
+    const scheduleFitView = useCallback(() =>
+    {
+        requestAnimationFrame(() =>
+        {
+            requestAnimationFrame(() =>
+            {
+                reactFlowInstanceRef.current?.fitView();
+            });
+        });
+    }, []);
 
     // Nodes/edges are owned as local React Flow state (not derived via useMemo)
     // so that `onNodesChange` can apply drag-position updates. Without this,
@@ -84,7 +109,8 @@ export default function WorkflowGraphCanvas(props: WorkflowGraphCanvasProps)
         const next = toReactFlow(graph, direction);
         setNodes(next.nodes);
         setEdges(next.edges);
-    }, [graph, direction, setNodes, setEdges]);
+        scheduleFitView();
+    }, [graph, direction, scheduleFitView, setNodes, setEdges]);
 
     const isEmpty = !graph.nodes.some(n => n.kind === "STEP");
     const isLarge = graph.nodes.length > LARGE_NODE_COUNT || graph.edges.length > LARGE_EDGE_COUNT;
@@ -101,16 +127,13 @@ export default function WorkflowGraphCanvas(props: WorkflowGraphCanvasProps)
         {
             const nowFullscreen = document.fullscreenElement === canvasContainerRef.current;
             setIsFullscreen(nowFullscreen);
-            // Wait a tick for the container to resize before fitting, so
-            // React Flow measures its final bounds.
-            requestAnimationFrame(() =>
-            {
-                reactFlowInstanceRef.current?.fitView();
-            });
+            // Wait for the fullscreen size transition to settle before fitting
+            // so React Flow measures the canvas at its final size.
+            scheduleFitView();
         };
         document.addEventListener("fullscreenchange", handleFullscreenChange);
         return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-    }, []);
+    }, [scheduleFitView]);
 
     const toggleFullscreen = useCallback(async () =>
     {
@@ -133,7 +156,7 @@ export default function WorkflowGraphCanvas(props: WorkflowGraphCanvasProps)
 
     return (
         <div id="workflow-graph-canvas"
-             className={styles.wrapper}>
+             className={mergeClasses(styles.wrapper, fillHeight ? styles.wrapperFillHeight : undefined)}>
             {graph.warnings.length > 0 ? (
                 <MessageBar id="workflow-graph-warnings"
                             intent="warning">
@@ -165,7 +188,11 @@ export default function WorkflowGraphCanvas(props: WorkflowGraphCanvasProps)
             ) : null}
 
             <div ref={canvasContainerRef}
-                 className={mergeClasses(styles.canvasContainer, isFullscreen ? styles.canvasContainerFullscreen : undefined)}>
+                 className={mergeClasses(
+                     styles.canvasContainer,
+                     fillHeight ? styles.canvasContainerFillHeight : undefined,
+                     isFullscreen ? styles.canvasContainerFullscreen : undefined,
+                 )}>
                 <ReactFlow id="workflow-graph-reactflow"
                            nodes={nodes}
                            edges={edges}
@@ -198,6 +225,28 @@ export default function WorkflowGraphCanvas(props: WorkflowGraphCanvasProps)
                         </ControlButton>
                     </Controls>
                 </ReactFlow>
+                {allowDirectionToggle && (
+                    <div
+                        id={directionToggleId ? `${directionToggleId}-container` : "workflow-graph-direction-toggle-container"}
+                        className={styles.directionToggle}
+                    >
+                        <Tooltip
+                            content={direction === "TB" ? "Display horizontally" : "Display vertically"}
+                            relationship="label"
+                        >
+                            <Button
+                                id={directionToggleId ?? "workflow-graph-direction-toggle"}
+                                className={styles.directionToggleButton}
+                                appearance="secondary"
+                                shape={"circular"}
+                                icon={<VerticalLayoutIcon className={styles.directionToggleIcon} />}
+                                aria-label={direction === "TB" ? "Display horizontally" : "Display vertically"}
+                                aria-pressed={direction === "TB"}
+                                onClick={() => onDirectionToggle?.(direction !== "TB")}
+                            />
+                        </Tooltip>
+                    </div>
+                )}
             </div>
 
             <WorkflowGraphLegend graph={graph}

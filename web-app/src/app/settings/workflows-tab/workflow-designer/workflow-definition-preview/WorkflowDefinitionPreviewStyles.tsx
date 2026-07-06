@@ -6,6 +6,10 @@ export const useWorkflowDefinitionPreviewStyles = makeStyles({
         flexDirection: "column",
         gap: "0.75rem",
     },
+    containerFillHeight: {
+        flex: 1,
+        minHeight: 0,
+    },
 
     applicabilitySummary: {
         display: "flex",

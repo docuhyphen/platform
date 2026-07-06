@@ -67,7 +67,6 @@ const ApplicabilityEditor = ({applicability, onChange}: Props) =>
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <Text size={400} weight="semibold">Applicability</Text>
                 <Text size={200} className={styles.hint}>
                     The workflow runs only when every condition matches (AND). Leave empty to always run.
                 </Text>

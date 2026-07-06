@@ -15,6 +15,8 @@
     ArrowNextRegular,
     ArrowPreviousFilled,
     ArrowPreviousRegular,
+    ArrowRotateClockwiseFilled,
+    ArrowRotateClockwiseRegular,
     ArrowSortDownLinesFilled,
     ArrowSortDownLinesRegular,
     ArrowSortUpLinesFilled,
@@ -80,6 +82,8 @@
     DocumentOnePageRegular,
     DocumentSearchFilled,
     DocumentSearchRegular,
+    DocumentSettingsFilled,
+    DocumentSettingsRegular,
     FilterFilled,
     FilterRegular,
     GridFilled,
@@ -90,6 +94,8 @@
     TableRegular,
     TextboxFilled,
     TextboxRegular,
+    TextBulletListCheckmarkFilled,
+    TextBulletListCheckmarkRegular,
     FullScreenMaximizeFilled,
     FullScreenMaximizeRegular,
     FullScreenMinimizeFilled,
@@ -135,6 +141,7 @@
     DismissFilled, DismissRegular, CopyRegular, CopyFilled,
     EyeFilled, EyeRegular, EyeOffFilled, EyeOffRegular,
     ToggleRightFilled, ToggleRightRegular, ToggleLeftFilled, ToggleLeftRegular, BranchRegular,
+    BranchForkFilled, BranchForkRegular,
     ChatMailFilled, ChatMailRegular, BookNumberFilled, BookNumberRegular, MailEditFilled,
     MailEditRegular, PersonEditFilled, PersonEditRegular, PhoneFilled, PhoneRegular, PhoneAddRegular, PhoneAddFilled,
     PhoneEditFilled, PhoneEditRegular,
@@ -161,6 +168,9 @@ export const SettingsBlueprintsTabIcon = bundleIcon(BookTemplateFilled, BookTemp
 export const BlueprintAddIcon = bundleIcon(BookAddFilled, BookAddRegular)
 export const SettingsAppAdminsIcon = bundleIcon(PersonShieldFilled, PersonShieldRegular)
 export const SettingsWorkflowsTabIcon = bundleIcon(BranchRegular, BranchRegular)
+export const WorkflowConfigurationIcon = bundleIcon(DocumentSettingsFilled, DocumentSettingsRegular)
+export const WorkflowStepsIcon = bundleIcon(BranchForkFilled, BranchForkRegular)
+export const WorkflowApplicabilityIcon = bundleIcon(TextBulletListCheckmarkFilled, TextBulletListCheckmarkRegular)
 export const ExchangeWorkflowsTabIcon = bundleIcon(BranchRegular, BranchRegular)
 export const AddIcon = bundleIcon(AddFilled, AddRegular)
 export const BackIcon = bundleIcon(ArrowLeftFilled, ArrowLeftRegular)
@@ -246,3 +256,4 @@ export const WorkflowInvalidNodeIcon = bundleIcon(LinkDismissFilled, LinkDismiss
 export const TimelineIcon = bundleIcon(DocumentBulletListClockFilled, DocumentBulletListClockRegular)
 export const DiagramIcon = bundleIcon(DataTreemapFilled, DataTreemapRegular)
 export const SplitViewIcon = bundleIcon(LayoutColumnTwoFilled, LayoutColumnTwoRegular)
+export const VerticalLayoutIcon = bundleIcon(ArrowRotateClockwiseFilled, ArrowRotateClockwiseRegular)
