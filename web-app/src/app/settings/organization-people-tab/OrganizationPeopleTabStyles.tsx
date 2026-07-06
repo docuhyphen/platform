@@ -49,6 +49,17 @@ export const useOrganizationPeopleTabStyles = makeStyles({
         textOverflow: "ellipsis",
         whiteSpace: "nowrap"
     },
+    personCell: {
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        minWidth: 0
+    },
+    personName: {
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+    },
     statusCell: {
         width: "90px",
         minWidth: "90px",

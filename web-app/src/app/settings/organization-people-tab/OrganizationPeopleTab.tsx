@@ -1,7 +1,7 @@
 import {
+    Avatar,
     Badge,
     Button, Caption1, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger,
-    Persona,
     ProgressBar,
     SearchBox,
     Spinner,
@@ -182,13 +182,22 @@ const OrganizationPeopleTab = () =>
                         {filteredUsers.map((user) => (
                             <TableRow key={user.id}>
                                 <TableCell title={`${user.person?.firstName ?? ""} ${user.person?.lastName ?? ""}`.trim()}>
-                                    <Persona
+                                    <div
                                         id={`organization-person-${user.id}`}
-                                        name={[user.person?.firstName, user.person?.lastName].filter(Boolean).join(" ") || user.email}
-                                        secondaryText={user.email}
-                                        size="small"
-                                        avatar={user.avatarUrl ? {image: {src: user.avatarUrl}} : undefined}
-                                    />
+                                        className={styles.personCell}
+                                    >
+                                        <Avatar
+                                            id={`organization-person-avatar-${user.id}`}
+                                            name={[user.person?.firstName, user.person?.lastName].filter(Boolean).join(" ") || user.email}
+                                            image={user.avatarUrl ? {src: user.avatarUrl} : undefined}
+                                        />
+                                        <Text
+                                            id={`organization-person-name-${user.id}`}
+                                            className={styles.personName}
+                                        >
+                                            {[user.person?.firstName, user.person?.lastName].filter(Boolean).join(" ")}
+                                        </Text>
+                                    </div>
                                 </TableCell>
                                 <TableCell title={user.email}>
                                     <div className={styles.truncateCell}>{user.email}</div>
