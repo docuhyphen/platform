@@ -100,7 +100,6 @@ const ExchangeWorkflowTab = ({exchange}: Props) =>
                  className={styles.header}>
                 <Text className={styles.headerTitle}
                       weight="semibold">
-                    Workflow
                 </Text>
                 <WorkflowViewToggle mode={viewMode}
                                     onChange={setViewMode} />

@@ -123,7 +123,7 @@ const ExchangeDocumentComments: React.FC<ExchangeDocumentCommentsProps> = (
                         id={"exchange-document-comments-empty"}
                         className={styles.noComments}
                     >
-                        No notes have been added yet.
+                        No notes or comments have been added yet.
                     </div>
                 )}
             </div>

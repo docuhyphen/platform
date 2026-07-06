@@ -62,6 +62,9 @@ const NotificationsPanel: React.FC = () =>
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('notifications');
     const [openItemId, setOpenItemId] = useState<string | null>(null);
+    const hasBellAlert = notifications.length > 0 || items.length > 0;
+    const hasNotificationAlert = notifications.length > 0;
+    const hasPendingApprovalAlert = items.length > 0;
 
     const handleToggle = (_: unknown, data: { openItems: string[] }) =>
     {
@@ -205,12 +208,10 @@ const NotificationsPanel: React.FC = () =>
                         shape="circular"
                         aria-label="Notifications and pending approvals"
                     />
-                    {unreadCount > 0 && (
-                        <CounterBadge
-                            className={styles.badge}
-                            appearance="filled"
-                            color="danger"
-                            count={unreadCount}
+                    {hasBellAlert && (
+                        <span
+                            id={"notifications-panel-bell-dot"}
+                            className={styles.alertDot}
                         />
                     )}
                 </div>
@@ -222,7 +223,11 @@ const NotificationsPanel: React.FC = () =>
                         selectedValue={activeTab}
                         onTabSelect={(_e, data) => setActiveTab(data.value as ActiveTab)}
                     >
-                        <Tab value="notifications">
+                        <Tab
+                            id={"notifications-panel-tab-notifications"}
+                            value="notifications"
+                            className={hasNotificationAlert ? styles.alertTab : undefined}
+                        >
                             Notifications
                             {unreadCount > 0 && (
                                 <CounterBadge
@@ -234,7 +239,11 @@ const NotificationsPanel: React.FC = () =>
                                 />
                             )}
                         </Tab>
-                        <Tab value="pending-approvals">
+                        <Tab
+                            id={"notifications-panel-tab-pending-approvals"}
+                            value="pending-approvals"
+                            className={hasPendingApprovalAlert ? styles.alertTab : undefined}
+                        >
                             Pending Approvals
                             {items.length > 0 && (
                                 <CounterBadge

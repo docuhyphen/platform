@@ -1,5 +1,5 @@
 import {useMemo} from "react";
-import {mergeClasses} from "@fluentui/react-components";
+import {Divider, mergeClasses} from "@fluentui/react-components";
 import {legendSampleStateClass, useWorkflowGraphLegendStyles} from "./WorkflowGraphLegendStyles.tsx";
 import {stepKindIcon} from "./workflowGraphPresentation.tsx";
 import {nodeStatePresentation, stepKindLabel} from "./workflowGraphUtils.ts";
@@ -63,7 +63,7 @@ export function WorkflowGraphLegend({graph, mode}: WorkflowGraphLegendProps)
                     })}
                 </div>
             ) : null}
-
+            <Divider/>
             {runtimeStates.length > 0 ? (
                 <div className={styles.group}>
                     <span className={styles.groupTitle}>Status</span>

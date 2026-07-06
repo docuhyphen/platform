@@ -268,7 +268,7 @@ const ExchangeDocumentSidebar: React.FC<ExchangeDocumentSidebarProps> = (
 
                         <TabList selectedValue={selectedValue} onTabSelect={onTabSelect}>
                             <Tab id="comments" icon={<CommentIcon/>} value="comments">
-                                Notes
+                                Notes/Comments
                             </Tab>
                             <Tab id="versions" icon={<DocumentVersionsIcon/>} value="versions">
                                 Versions

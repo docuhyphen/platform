@@ -45,7 +45,7 @@ const ExchangeDocumentCommentComposer: React.FC<ExchangeDocumentCommentComposerP
             >
                 <Textarea
                     id={"textarea-exchange-document-comment"}
-                    placeholder={"Add note"}
+                    placeholder={"Add note or comment"}
                     maxLength={255}
                     value={value}
                     onChange={(_event, data) => onValueChange(data.value)}
@@ -55,7 +55,7 @@ const ExchangeDocumentCommentComposer: React.FC<ExchangeDocumentCommentComposerP
             </Field>
             <Checkbox
                 id={"exchange-document-comment-internal-checkbox"}
-                label={"Internal note"}
+                label={"Internal"}
                 checked={isInternal}
                 onChange={(_event, data) => onInternalChange(data.checked === true)}
                 disabled={isSubmitting}

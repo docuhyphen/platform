@@ -1,4 +1,4 @@
-import {makeStyles, shorthands} from '@fluentui/react-components';
+import {makeStyles, shorthands, tokens} from '@fluentui/react-components';
 
 export const useNotificationsPanelStyles = makeStyles({
     triggerContainer: {
@@ -9,6 +9,16 @@ export const useNotificationsPanelStyles = makeStyles({
         position: 'absolute',
         top: '-5px',
         right: '-5px',
+    },
+    alertDot: {
+        position: 'absolute',
+        top: '6px',
+        right: '6px',
+        width: '8px',
+        height: '8px',
+        borderRadius: '999px',
+        backgroundColor: tokens.colorPaletteRedBackground3,
+        boxShadow: `0 0 0 2px ${tokens.colorNeutralBackground1}`,
     },
     popoverContent: {
         display: 'flex',
@@ -73,6 +83,12 @@ export const useNotificationsPanelStyles = makeStyles({
 
     tabCountBadge: {
         marginLeft: '4px',
+    },
+    alertTab: {
+        color: tokens.colorPaletteRedForeground1,
+        ':hover': {
+            color: tokens.colorPaletteRedForeground1,
+        },
     },
 });
 
