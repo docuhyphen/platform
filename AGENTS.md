@@ -45,6 +45,18 @@ An "Exchange" is a first class word and should be used as a noun. For example, i
 ---
 
 ---
+## INFRASTRUCTURE AND COST RULES
+- No agent may add a new AWS service (or any new paid cloud resource type) without explicit
+  confirmation from the user first. Keep infrastructure cost at a minimum.
+- Reuse the services already declared in `infra/cloudformation.yml` (e.g. VPC/EC2, RDS Postgres,
+  ECR, ECS/Fargate, CloudWatch Logs, IAM, ELB, S3, CloudFront, Secrets Manager). Adding a new
+  bucket, table, role, or log group within an existing service is allowed; introducing a new
+  service type (e.g. KMS, CloudTrail data events, DynamoDB, SQS, Kinesis, ElastiCache,
+  OpenSearch, cross-Region/account replication) is not, unless the user explicitly approves it.
+- If a task appears to require a new AWS service, stop and ask the user before making the change.
+---
+
+---
 ## FRONT-END RULES
 - Treat ts as if it was strongly typed language, so no use of any.
 - All HTML tags, react tags, etc attributes must be on a new line when they have more than oone attribute like example:
