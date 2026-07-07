@@ -66,7 +66,9 @@ These are good ingredients, but they do not currently form an evidence system.
 | Exchange audit UI | Aggregates document logs for documents currently on the Exchange | It omits Exchange lifecycle, access, participant, workflow, Field, and deleted-document history. It also makes one request per current document. |
 | Document audit authorization | The service checks that an Exchange and document separately exist | It does not prove that the document belongs to that Exchange and does not authorize audit access. Any authenticated caller may reach the resource. |
 | Auditor roles | Auditor roles and capabilities are defined | `AuthAuditResource` allows only app or organization administrators. There is no auditor route or portal. |
-| Auditor content boundary | `ORG_AUDITOR` currently receives `EXCHANGE_READ` and `DOCUMENT_READ` | Audit-evidence access is coupled to customer-content access. Standing auditor privilege should not automatically expose document content. |
+| Auditor content boundary | `ORG_AUDITOR` currently receives `EXCHANGE_READ`, `DOCUMENT_READ`, and a broad set of other content-read capabilities (`DOC_LIBRARY_READ`, `BLUEPRINT_READ`, `WORKFLOW_READ`, `SEQUENCE_READ`, `COMMUNICATION_READ`, `FIELD_SCHEMA_READ`, `GROUP_READ`, `WEBHOOK_AUDIT_READ`). `ORG_BILLING_ADMIN` also receives `ORG_AUDIT_READ`. | Audit-evidence access is coupled to customer-content access across many resource types, not just Exchanges and documents. Standing auditor privilege should not automatically expose content, and audit-read should not ride along with an unrelated billing role. |
+| Audit persistence coupling | `DocumentAuditLog` holds a non-null `@ManyToOne` foreign key to `Document` (`nullable = false`). `AccessAuditLog` correctly uses denormalized stable UUID columns with no relations. | Hard-deleting a document can cascade or orphan its audit rows, erasing compliance history. The two existing audit entities are already inconsistent about this. The canonical ledger must follow the `AccessAuditLog` pattern, never the `DocumentAuditLog` pattern. |
+| Field-to-column mismap | `AuthAuditEvent.sessionId` is persisted to the database column `exchange_id` (`@Column(name = "exchange_id")`). | A session identifier is stored under an exchange-named column. The migration to the canonical ledger must correct this mapping and must not carry the mislabeled column forward. |
 | Audit API authorization | `AuthAuditResource` uses role helpers and membership repositories | It bypasses the centralized `APP_READ_AUDIT` and `ORG_READ_AUDIT` authorization actions, and a resource class performs scope decisions directly. |
 | Audit scope | Organization scope uses the primary or first membership | It ignores the explicit active organization and cannot model a time-bound audit engagement or resource subset. |
 | Immutability switch | `AuthAuditService` persists only when immutable auditing is enabled | Disabling the feature can remove the database evidence entirely, leaving only ordinary application logs. |
@@ -159,6 +161,11 @@ event-class based:
 - Permit a documented degraded mode only for explicitly classified low-risk operations.
 - Never silently discard an event. Surface health alerts and a machine-readable service state.
 
+The exact set of fail-closed operations, the classified low-risk exceptions, and the resulting
+availability objective are not left to implementation. They are decided together with the event
+catalog before Phase 1, because fail-closed capture means an outbox write failure rolls back the
+business transaction and therefore trades availability for evidence integrity on those paths.
+
 ### 2. Transactional Audit Outbox
 
 The outbox is a durable handoff, not the evidence ledger. It should contain immutable event drafts,
@@ -195,6 +202,15 @@ raw document content, unrestricted webhook payloads, or unrestricted Field Value
 Prefer stable IDs, approved labels, changed-field names, byte counts, content hashes, and classified
 value hashes. Sensitive readable evidence belongs in a separately protected payload envelope only
 when compliance owners approve a concrete purpose.
+
+Audit and ledger rows must not hold database foreign-key constraints to mutable business entities.
+Because an audit record must survive deletion of the resource it describes, every reference is a
+denormalized, stable identifier plus approved label captured at occurrence time, never a live
+relation. Deleting an Exchange, document, user, participant, or organization must leave every audit
+event intact and still renderable. The existing `AccessAuditLog` entity already models this correctly
+with plain UUID columns and no relations; the existing `DocumentAuditLog` entity does the opposite
+with a non-null foreign key to `Document` and must not be used as the pattern for the canonical
+ledger.
 
 ### 4. Ordering and Tamper Evidence
 
@@ -261,10 +277,23 @@ Keep roles convenient, but authorize every operation by capability. At minimum, 
 - `AUDIT_RETENTION_MANAGE` and `AUDIT_LEGAL_HOLD_MANAGE` for separately controlled governance.
 - `AUDIT_INTEGRITY_VERIFY` for integrity reports and checkpoint verification.
 
-Remove standing Exchange and document-content access from the default organization auditor role.
-An auditor who genuinely needs source documents should receive a separate, explicit, time-bound
-content grant. Platform auditors must not receive unrestricted customer-content access by standing
-privilege, matching the analytics architecture.
+Remove standing content access from the default organization auditor role. Today `ORG_AUDITOR`
+carries `EXCHANGE_READ`, `DOCUMENT_READ`, and a wider set of content-read capabilities
+(`DOC_LIBRARY_READ`, `BLUEPRINT_READ`, `WORKFLOW_READ`, `SEQUENCE_READ`, `COMMUNICATION_READ`,
+`FIELD_SCHEMA_READ`, `GROUP_READ`, `WEBHOOK_AUDIT_READ`); all of these should be reviewed and
+stripped from the audit role rather than only the two Exchange and document capabilities.
+Additionally, `ORG_AUDIT_READ` currently rides along on the unrelated `ORG_BILLING_ADMIN` role and
+should be decoupled. An auditor who genuinely needs source documents should receive a separate,
+explicit, time-bound content grant. Platform auditors must not receive unrestricted customer-content
+access by standing privilege, matching the analytics architecture.
+
+Naming note: in the code the audit permissions exist as `Capability` values named `APP_AUDIT_READ`
+and `ORG_AUDIT_READ`, and as `Action` values named `APP_READ_AUDIT` and `ORG_READ_AUDIT`. Both forms
+exist and are easy to conflate. New audit permissions introduced by this architecture
+(`ORG_AUDIT_EXPORT`, `ORG_AUDIT_VIEW_SENSITIVE`, `APP_AUDIT_EXPORT`, `AUDIT_EXPORT_APPROVE`,
+`AUDIT_RETENTION_MANAGE`, `AUDIT_LEGAL_HOLD_MANAGE`, `AUDIT_INTEGRITY_VERIFY`) are named against the
+`Capability` convention. The centralized `Action` entries authorize resources against those
+capabilities.
 
 ### Audit Engagement
 
@@ -421,6 +450,14 @@ Use cursor pagination over immutable sequence and event ID, not offset paginatio
 date ranges, approved filters, rate limits, and asynchronous export generation. Contextual resources
 query the same authorized projection as the organization and platform resources, with a mandatory
 Resource Reference filter.
+
+These paths replace, rather than extend, the current audit endpoints. The existing routes are
+singular and not tenant-scoped (`GET /auth/audit-events` and
+`GET /exchanges/{exchangeId}/documents/{documentId}/audit`), so adopting the plural, org-scoped
+`audit-events` shape is a rename with frontend impact and should ship behind the compatibility
+projections described in the delivery sequence. `GET /platform/...` and `GET /users/me/...` are
+deliberate singleton and self scopes rather than plural collections with an identifier; keep them as
+the only sanctioned exceptions to the plural-resource rule.
 
 ## Verifiable Evidence Exports
 
