@@ -82,7 +82,6 @@ const FieldValuesForm = ({exchangeId, bindings, values, onSaved}: Props) =>
                                            key={binding.fieldContractId}
                                            title={binding.label}
                                            description={binding.description ?? binding.helpText}
-                                           valueType={binding.valueType}
                                            required={binding.isRequired}
                                            readOnly={binding.isReadOnly}>
                                     <FieldValueEditor binding={binding}

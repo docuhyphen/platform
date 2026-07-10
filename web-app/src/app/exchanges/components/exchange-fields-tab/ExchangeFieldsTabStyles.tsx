@@ -155,14 +155,16 @@ export const useExchangeFieldsTabStyles = makeStyles({
         flexWrap: 'wrap',
         alignItems: 'center',
     },
+    fieldLabelRow: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        minWidth: 0,
+    },
     fieldLabel: {
         fontSize: tokens.fontSizeBase300,
         fontWeight: tokens.fontWeightSemibold,
         color: tokens.colorNeutralForeground1,
-    },
-    fieldDescription: {
-        color: tokens.colorNeutralForeground3,
-        lineHeight: tokens.lineHeightBase300,
     },
     fieldValueArea: {
         display: 'flex',

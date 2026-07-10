@@ -1,5 +1,5 @@
 import {useState} from "react";
-import {SelectTabData, SelectTabEvent, Tab, TabList, TabValue} from "@fluentui/react-components";
+import {mergeClasses, SelectTabData, SelectTabEvent, Tab, TabList, TabValue} from "@fluentui/react-components";
 import {WorkflowDefinitionSummaryDto} from "../../models/models.tsx";
 import {useWorkflowsTabStyles} from "./WorkflowsTabStyles.tsx";
 import WorkflowsListView, {WorkflowListTab} from "./workflows-list-view/WorkflowsListView.tsx";
@@ -8,6 +8,7 @@ import WorkflowInstanceDashboard from "./workflow-instance-dashboard/WorkflowIns
 import WorkflowInstanceDetail from "./workflow-instance-detail/WorkflowInstanceDetail.tsx";
 
 type SubTab = "workflows" | "activity";
+type WorkflowsViewTransitionDirection = "forward" | "back" | null;
 
 const WORKFLOW_TAB_LABELS: Record<WorkflowListTab, string> = {
     PERSONAL: "My Workflows",
@@ -28,59 +29,105 @@ const WorkflowsTab = () =>
     const [designerTarget, setDesignerTarget] = useState<DesignerTarget | null>(null);
     const [workflowListTab, setWorkflowListTab] = useState<WorkflowListTab>("PERSONAL");
     const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
+    const [viewTransitionDirection, setViewTransitionDirection] =
+        useState<WorkflowsViewTransitionDirection>(null);
 
     const onTabSelect = (_: SelectTabEvent, data: SelectTabData) =>
     {
         setSubTab(data.value);
+        setViewTransitionDirection(null);
         setDesignerTarget(null);
     };
 
     const openDesigner = (definition?: WorkflowDefinitionSummaryDto, scope?: 'PERSONAL' | 'ORG' | 'APP') =>
+    {
+        setViewTransitionDirection("forward");
         setDesignerTarget({definitionId: definition?.id, scope});
+    };
 
-    const closeDesigner = () => setDesignerTarget(null);
+    const closeDesigner = () =>
+    {
+        setViewTransitionDirection("back");
+        setDesignerTarget(null);
+    };
+
+    const transitionClassName = mergeClasses(
+        styles.transitionFrame,
+        viewTransitionDirection === "forward" ? styles.slideInFromRight : undefined,
+        viewTransitionDirection === "back" ? styles.slideInFromLeft : undefined,
+    );
 
     if (designerTarget !== null)
     {
         return (
-            <WorkflowDesigner
-                definitionId={designerTarget.definitionId}
-                scope={designerTarget.scope}
-                backDestinationLabel={WORKFLOW_TAB_LABELS[workflowListTab]}
-                onBack={closeDesigner}
-                onSaved={closeDesigner}
-            />
+            <div
+                id="workflows-designer-transition"
+                key={`designer-${designerTarget.definitionId ?? "new"}`}
+                className={transitionClassName}
+            >
+                <WorkflowDesigner
+                    definitionId={designerTarget.definitionId}
+                    scope={designerTarget.scope}
+                    backDestinationLabel={WORKFLOW_TAB_LABELS[workflowListTab]}
+                    onBack={closeDesigner}
+                    onSaved={closeDesigner}
+                />
+            </div>
         );
     }
 
     return (
         <div className={styles.container}>
             <div className={styles.tabListWrapper}>
-                <TabList selectedValue={subTab} onTabSelect={onTabSelect} size="medium">
-                    <Tab value={"workflows" satisfies SubTab}>Workflows</Tab>
-                    <Tab value={"activity" satisfies SubTab}>Activity</Tab>
+                <TabList
+                    id="workflows-tab-subtab-list"
+                    selectedValue={subTab}
+                    onTabSelect={onTabSelect}
+                    size="medium"
+                >
+                    <Tab
+                        id="workflows-tab-workflows-subtab"
+                        value={"workflows" satisfies SubTab}
+                    >
+                        Workflows
+                    </Tab>
+                    <Tab
+                        id="workflows-tab-activity-subtab"
+                        value={"activity" satisfies SubTab}
+                    >
+                        Activity
+                    </Tab>
                 </TabList>
             </div>
 
             <div className={styles.content}>
-                {subTab === "workflows" && (
-                    <WorkflowsListView
-                        activeTab={workflowListTab}
-                        onActiveTabChange={setWorkflowListTab}
-                        onEdit={(def) => openDesigner(def, def.scope as 'PERSONAL' | 'ORG' | 'APP')}
-                        onNew={(scope) => openDesigner(undefined, scope)}
-                    />
-                )}
-
-                {subTab === "activity" && (
-                    <div className={styles.scrollableContent}>
-                        <WorkflowInstanceDashboard onSelectInstance={setSelectedInstanceId}/>
-                        <WorkflowInstanceDetail
-                            instanceId={selectedInstanceId}
-                            onDismiss={() => setSelectedInstanceId(null)}
+                <div
+                    id={`workflows-tab-content-transition-${subTab}`}
+                    key={`list-${subTab}`}
+                    className={transitionClassName}
+                >
+                    {subTab === "workflows" && (
+                        <WorkflowsListView
+                            activeTab={workflowListTab}
+                            onActiveTabChange={setWorkflowListTab}
+                            onEdit={(def) => openDesigner(def, def.scope as 'PERSONAL' | 'ORG' | 'APP')}
+                            onNew={(scope) => openDesigner(undefined, scope)}
                         />
-                    </div>
-                )}
+                    )}
+
+                    {subTab === "activity" && (
+                        <div
+                            id="workflows-activity-content"
+                            className={styles.scrollableContent}
+                        >
+                            <WorkflowInstanceDashboard onSelectInstance={setSelectedInstanceId}/>
+                            <WorkflowInstanceDetail
+                                instanceId={selectedInstanceId}
+                                onDismiss={() => setSelectedInstanceId(null)}
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

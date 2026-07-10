@@ -91,8 +91,7 @@ const FieldValuesReadOnly = ({bindings, values}: Props) =>
                                 <FieldCard id={`exchange-field-card-${toFieldElementId(binding.fieldContractId)}`}
                                            key={binding.fieldContractId}
                                            title={binding.label}
-                                           description={binding.description ?? binding.helpText}
-                                           valueType={valueType}>
+                                           description={binding.description ?? binding.helpText}>
                                     <FieldValueDisplay valueType={valueType}
                                                        value={displayValue}
                                                        options={binding.options}

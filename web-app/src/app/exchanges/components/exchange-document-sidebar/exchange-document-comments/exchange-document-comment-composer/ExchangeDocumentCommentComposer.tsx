@@ -1,5 +1,5 @@
 import React from "react";
-import {Button, Checkbox, Field, Spinner, Text, Textarea} from "@fluentui/react-components";
+import {Button, Checkbox, Field, mergeClasses, Spinner, Text, Textarea} from "@fluentui/react-components";
 import {SendCommentIcon} from "../../../../../components/IconBundles.tsx";
 import {useExchangeDocumentCommentComposerStyles} from "./ExchangeDocumentCommentComposerStyles.tsx";
 
@@ -45,6 +45,7 @@ const ExchangeDocumentCommentComposer: React.FC<ExchangeDocumentCommentComposerP
             >
                 <Textarea
                     id={"textarea-exchange-document-comment"}
+                    className={mergeClasses(styles.input, value.trim() ? styles.inputActive : undefined)}
                     placeholder={"Add note or comment"}
                     maxLength={255}
                     value={value}

@@ -8,6 +8,7 @@ import {
     DialogSurface,
     DialogTitle,
     DialogTrigger, Link,
+    mergeClasses,
     MessageBar,
     MessageBarActions,
     MessageBarBody,
@@ -71,6 +72,7 @@ type CreatedExchangeSummary = {
     requiresSignIn: boolean;
     shareLink?: string;
 };
+type ExchangeInitiationTransitionDirection = "forward" | "back" | null;
 
 const ExchangeInitiation: React.FC = () =>
 {
@@ -120,8 +122,34 @@ const ExchangeInitiation: React.FC = () =>
     const [availableVariables, setAvailableVariables] = React.useState<AvailableVariablesDto | null>(null);
     const [variableOverrides, setVariableOverrides] = React.useState<Record<string, string>>({});
     const [pendingVariableTokens, setPendingVariableTokens] = React.useState<string[]>([]);
+    const [contentTransitionDirection, setContentTransitionDirection] =
+        React.useState<ExchangeInitiationTransitionDirection>(null);
 
     const {dispatchToast} = useToastController(toasterId);
+
+    const openBlueprintPicker = () =>
+    {
+        setContentTransitionDirection("forward");
+        setChoosingBlueprint(true);
+    };
+
+    const closeBlueprintPicker = () =>
+    {
+        setContentTransitionDirection("back");
+        setChoosingBlueprint(false);
+    };
+
+    const openSaveBlueprintPanel = () =>
+    {
+        setContentTransitionDirection("forward");
+        setSaveBlueprintDialogOpen(true);
+    };
+
+    const closeSaveBlueprintPanel = () =>
+    {
+        setContentTransitionDirection("back");
+        setSaveBlueprintDialogOpen(false);
+    };
 
     const showServerErrorToast = (message: string) =>
     {
@@ -245,6 +273,7 @@ const ExchangeInitiation: React.FC = () =>
             // Invalid configJson; apply what we can, ignore the rest
         }
         setSelectedBlueprintName(blueprint.name);
+        setContentTransitionDirection("forward");
         setChoosingBlueprint(false);
         setSelectedTab('recipients-tab');
 
@@ -1012,7 +1041,7 @@ const ExchangeInitiation: React.FC = () =>
                     {choosingBlueprint ? (
                         <BlueprintPicker
                             onSelect={handleBlueprintSelect}
-                            onCancel={() => setChoosingBlueprint(false)}
+                            onCancel={closeBlueprintPicker}
                         />
                     ) : renderTabs()}
                 </div>
@@ -1020,12 +1049,26 @@ const ExchangeInitiation: React.FC = () =>
         </>
     }
 
+    const dialogContentKey = saveBlueprintDialogOpen
+        ? "save-blueprint"
+        : exchangeInitiatedSuccessfully
+            ? "success"
+            : choosingBlueprint
+                ? "blueprint-picker"
+                : "initiation-form";
+
+    const dialogContentTransitionClassName = mergeClasses(
+        styles.dialogContentTransitionFrame,
+        contentTransitionDirection === "forward" ? styles.dialogContentSlideInFromRight : undefined,
+        contentTransitionDirection === "back" ? styles.dialogContentSlideInFromLeft : undefined,
+    );
+
     return (
         <Dialog modalType="alert" open={isDialogOpen} onOpenChange={onDialogOpenChange}>
             <DialogTrigger disableButtonEnhancement>
                 <ExchangeInitiationDialogTrigger
                     onRequestingDocumentsChange={handleRequestingDocumentsChange}
-                    onChooseBlueprint={() => { setChoosingBlueprint(true); }}
+                    onChooseBlueprint={openBlueprintPicker}
                 />
             </DialogTrigger>
             <DialogSurface>
@@ -1039,7 +1082,7 @@ const ExchangeInitiation: React.FC = () =>
                                     shape="circular"
                                     size="small"
                                     icon={<ArrowLeftRegular/>}
-                                    onClick={() => setSaveBlueprintDialogOpen(false)}
+                                    onClick={closeSaveBlueprintPanel}
                                     aria-label="Back to exchange"
                                 />
                                 <Text weight="semibold" size={500}>Save as Blueprint</Text>
@@ -1058,25 +1101,31 @@ const ExchangeInitiation: React.FC = () =>
                                         setMessageGroupMessages([]);
                                         setSelectedTab(data.value);
                                     }}
-                                    onSaveAsBlueprint={() => setSaveBlueprintDialogOpen(true)}
+                                    onSaveAsBlueprint={openSaveBlueprintPanel}
                                 />
                                 {renderErrorMessageBar()}
                             </>
                         )}
                     </DialogTitle>
                     <DialogContent className={styles.dialogContent}>
-                        {saveBlueprintDialogOpen ? (
-                            <SaveBlueprintPanel
-                                onBack={() => setSaveBlueprintDialogOpen(false)}
-                                onSaved={() => setSaveBlueprintDialogOpen(false)}
-                                initialName={name}
-                                configJson={buildBlueprintConfigJson()}
-                                exchangeDocuments={buildBlueprintDocuments()}
-                                participants={internalParticipants ?? []}
-                                schemaDefinitionId={schemaDefinitionId || undefined}
-                                fieldDefaults={buildBlueprintFieldDefaults(schemaDefinitionId, fieldBindings, fieldValueMap)}
-                            />
-                        ) : renderDialogContent()}
+                        <div
+                            id={`exchange-initiation-content-transition-${dialogContentKey}`}
+                            key={dialogContentKey}
+                            className={dialogContentTransitionClassName}
+                        >
+                            {saveBlueprintDialogOpen ? (
+                                <SaveBlueprintPanel
+                                    onBack={closeSaveBlueprintPanel}
+                                    onSaved={closeSaveBlueprintPanel}
+                                    initialName={name}
+                                    configJson={buildBlueprintConfigJson()}
+                                    exchangeDocuments={buildBlueprintDocuments()}
+                                    participants={internalParticipants ?? []}
+                                    schemaDefinitionId={schemaDefinitionId || undefined}
+                                    fieldDefaults={buildBlueprintFieldDefaults(schemaDefinitionId, fieldBindings, fieldValueMap)}
+                                />
+                            ) : renderDialogContent()}
+                        </div>
                     </DialogContent>
                     {!saveBlueprintDialogOpen && (
                         <DialogActions>

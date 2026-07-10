@@ -796,12 +796,18 @@ const Exchanges: React.FC = () =>
                     />
                 </div>
 
-                {fetchingDetails && !!selectedExchangeId && !exchangeDetails && <ExchangeDetailsLoading/>}
+                {!!selectedExchangeId && (
+                    <div
+                        id={`exchange-details-transition-${selectedExchangeId}`}
+                        key={selectedExchangeId}
+                        className={`${styles.detailsTransitionFrame} ${styles.detailsSlideInFromRight}`}
+                    >
+                        {fetchingDetails && !exchangeDetails && <ExchangeDetailsLoading/>}
 
-                {(selectedExchangeId && exchangeDetails) &&
-                    <div className={detailsPaneClassName}>
+                        {exchangeDetails &&
+                            <div className={detailsPaneClassName}>
 
-                        <div className={`${styles.detailsContent} ${fetchingDetails ? styles.detailsContentLoading : ''}`}>
+                                <div className={`${styles.detailsContent} ${fetchingDetails ? styles.detailsContentLoading : ''}`}>
 
                         {/* Single-exchange: inline banner above the exchange header so content
                             remains fully visible; no overlay needed because there's nothing
@@ -935,13 +941,15 @@ const Exchanges: React.FC = () =>
                         )}
                         </div>
 
-                        {fetchingDetails && (
-                            <div className={styles.detailsLoadingOverlay}>
-                                <Spinner size="small" label="Loading exchange..." labelPosition="after"/>
+                                {fetchingDetails && (
+                                    <div className={styles.detailsLoadingOverlay}>
+                                        <Spinner size="small" label="Loading exchange..." labelPosition="after"/>
+                                    </div>
+                                )}
                             </div>
-                        )}
+                        }
                     </div>
-                }
+                )}
                 {showDetailsColumnFallbacks && shouldShowIncomingInboxEmptyDetails &&
                     <div className={styles.noExchangeSelectedSection}>
                         <div className={styles.inboxEmptyDetailsContent}>

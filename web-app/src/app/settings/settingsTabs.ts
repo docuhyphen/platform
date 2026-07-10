@@ -1,0 +1,57 @@
+import {SettingsTabIds} from "./components/settings-tab-content/SettingsTabContent.tsx";
+
+export const tabIds = {
+    profile: "ProfileTab",
+    linkedAccounts: "LinkedAccountsTab",
+    sessions: "SessionsTab",
+    organization: "OrganizationDetailsTab",
+    organizationBilling: "OrganizationBillingTab",
+    appSettings: "AppSettingsTab",
+    people: "PeopleTab",
+    groups: "GroupsTab",
+    organizationPairing: "OrganizationPairingTab",
+    blueprints: "BlueprintsTab",
+    myGroups: "MyGroupsTab",
+    appAdmins: "AppAdminsTab",
+    workflows: "WorkflowsTab",
+    sequences: "SequencesTab",
+    variables: "VariablesTab",
+    fields: "FieldsTab",
+    communications: "CommunicationsTab",
+    documents: "DocumentsTab",
+    audit: "AuditTab",
+} satisfies SettingsTabIds;
+
+export const settingsTabOrder = [
+    tabIds.profile,
+    tabIds.myGroups,
+    tabIds.linkedAccounts,
+    tabIds.sessions,
+    tabIds.appSettings,
+    tabIds.documents,
+    tabIds.blueprints,
+    tabIds.fields,
+    tabIds.workflows,
+    tabIds.sequences,
+    tabIds.variables,
+    tabIds.communications,
+    tabIds.organization,
+    tabIds.organizationBilling,
+    tabIds.audit,
+];
+
+export const tabLabels: Record<string, string> = {
+    [tabIds.profile]: "Profile",
+    [tabIds.linkedAccounts]: "Linked Accounts",
+    [tabIds.sessions]: "Device Sessions",
+    [tabIds.organization]: "Organization",
+    [tabIds.appSettings]: "App Preferences",
+    [tabIds.myGroups]: "My Groups",
+    [tabIds.blueprints]: "Blueprints",
+    [tabIds.sequences]: "Sequences",
+    [tabIds.variables]: "Variables",
+    [tabIds.fields]: "Fields",
+    [tabIds.communications]: "Communications",
+    [tabIds.documents]: "Document Library",
+    [tabIds.audit]: "Audit",
+};

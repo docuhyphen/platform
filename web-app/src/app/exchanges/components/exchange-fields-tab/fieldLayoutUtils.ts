@@ -1,4 +1,4 @@
-import {FieldValueType, SchemaFieldBindingDto} from '../../../models/models';
+import {SchemaFieldBindingDto} from '../../../models/models';
 
 export interface FieldSectionGroup
 {
@@ -17,33 +17,6 @@ const normalizeSectionTitle = (section?: string): string =>
 
 export const toFieldElementId = (value: string): string =>
     value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-
-export const getFieldTypeLabel = (valueType: FieldValueType): string =>
-{
-    switch (valueType)
-    {
-        case FieldValueType.SHORT_TEXT:
-            return 'Short text';
-        case FieldValueType.LONG_TEXT:
-            return 'Long text';
-        case FieldValueType.BOOLEAN:
-            return 'Yes or no';
-        case FieldValueType.INTEGER:
-            return 'Number';
-        case FieldValueType.DECIMAL:
-            return 'Decimal';
-        case FieldValueType.DATE:
-            return 'Date';
-        case FieldValueType.DATE_TIME:
-            return 'Date and time';
-        case FieldValueType.SINGLE_SELECT:
-            return 'Selection';
-        case FieldValueType.MULTI_SELECT:
-            return 'Multi selection';
-        default:
-            return 'Value';
-    }
-};
 
 export const groupBindingsBySection = (bindings: SchemaFieldBindingDto[]): FieldSectionGroup[] =>
 {

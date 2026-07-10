@@ -1,120 +1,49 @@
 import {useState} from "react";
 import {
-    Button, Divider,
+    Button,
     DrawerBody,
     DrawerHeader,
     DrawerHeaderTitle,
     OverlayDrawer,
     SelectTabData,
     SelectTabEvent,
-    Tab,
-    TabList,
     TabValue,
     Text,
 } from "@fluentui/react-components";
 import {Navigation24Regular} from "@fluentui/react-icons";
 import {useSettingsStyles} from "./SettingsStyles.tsx";
-import {
-    SettingsAppSettingsTabIcon, SettingsDeviceSessionsTabIcon,
-    SettingsDocumentsTabIcon,
-    SettingsExchangeBlueprintsTabIcon, SettingsLinkedAccountsTabIcon, SettingsCommunicationsTabIcon,
-    SettingsMyGroupsTabIcon,
-    SettingsOrganizationTabIcon,
-    SettingsProfileTabIcon,
-    SettingsSequencesTabIcon,
-    SettingsVariablesTabIcon,
-    SettingsWorkflowsTabIcon, SettingsOrganizationBillingTabIcon,
-    SettingsFieldsTabIcon,
-    AuditIcon,
-} from "../components/IconBundles.tsx";
-import BlueprintsTab from "./blueprints-tab/BlueprintsTab.tsx";
-import WorkflowsTab from "./workflows-tab/WorkflowsTab.tsx";
-import AppSettingsTab from "./app-settings-tab/AppSettingsTab.tsx";
-import ProfileTab from "./profile-tab/ProfileTab.tsx";
-import OrganizationGroupsTab from "./organization-groups-tab/OrganizationGroupsTab.tsx";
-import OrganizationPeopleTab from "./organization-people-tab/OrganizationPeopleTab.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
-import OrganizationPairingTab from "./organization-pairing-tab/OrganizationPairingTab.tsx";
-import LinkedAccountsTab from "./linked-accounts-tab/LinkedAccountsTab.tsx";
-import SessionsTab from "./sessions-tab/SessionsTab.tsx";
-import MyGroupsTab from "./my-groups-tab/MyGroupsTab.tsx";
-import AppAdminsTab from "./app-admins-tab/AppAdminsTab.tsx";
-import OrganizationTab from "./organization-tab/OrganizationTab.tsx";
-import OrganizationSequencesTab from "./organization-sequences-tab/OrganizationSequencesTab.tsx";
-import VariablesTab from "./variables-tab/VariablesTab.tsx";
-import FieldsTab from "./fields-tab/FieldsTab.tsx";
-import CommunicationsTab from "./communications-tab/CommunicationsTab.tsx";
-import DocumentLibraryTab from "./document-library-tab/DocumentLibraryTab.tsx";
-import BillingTab from "./billing-tab/BillingTab.tsx";
-import AuditWorkspace from "../audit/AuditWorkspace.tsx";
 import {useIsMobile} from "../../utils/useMediaQuery.ts";
 import {Capability} from '../../app/models/models.tsx';
+import {SettingsPageTransitionDirection} from "./components/settings-page-transition/SettingsPageTransition.tsx";
+import SettingsTabContent from "./components/settings-tab-content/SettingsTabContent.tsx";
+import SettingsMenu from "./components/settings-menu/SettingsMenu.tsx";
+import {settingsTabOrder, tabIds, tabLabels} from "./settingsTabs.ts";
 
 const Settings = () =>
 {
-    const tabIds = {
-        profile: "ProfileTab",
-        linkedAccounts: "LinkedAccountsTab",
-        sessions: "SessionsTab",
-        organization: "OrganizationDetailsTab",
-        organizationBilling: "OrganizationBillingTab",
-        appSettings: "AppSettingsTab",
-        people: "PeopleTab",
-        groups: "GroupsTab",
-        organizationPairing: "OrganizationPairingTab",
-        blueprints: "BlueprintsTab",
-        myGroups: "MyGroupsTab",
-        appAdmins: "AppAdminsTab",
-        workflows: "WorkflowsTab",
-        sequences: "SequencesTab",
-        variables: "VariablesTab",
-        fields: "FieldsTab",
-        communications: "CommunicationsTab",
-        documents: "DocumentsTab",
-        audit: "AuditTab",
-    }
-
-    const tabLabels: Record<string, string> = {
-        [tabIds.profile]: "Profile",
-        [tabIds.linkedAccounts]: "Linked Accounts",
-        [tabIds.sessions]: "Device Sessions",
-        [tabIds.organization]: "Organization",
-        [tabIds.appSettings]: "App Preferences",
-        [tabIds.myGroups]: "My Groups",
-        [tabIds.blueprints]: "Blueprints",
-        [tabIds.sequences]: "Sequences",
-        [tabIds.variables]: "Variables",
-        [tabIds.fields]: "Fields",
-        [tabIds.communications]: "Communications",
-        [tabIds.documents]: "Document Library",
-        [tabIds.audit]: "Audit",
-    };
-
     const {appUserPersonOrganization, hasCapability} = useAuth();
     const styles = useSettingsStyles();
     const isMobile = useIsMobile();
     const [selectedValue, setSelectedValue] = useState<TabValue>(tabIds.profile);
+    const [pageTransitionDirection, setPageTransitionDirection] =
+        useState<SettingsPageTransitionDirection>(null);
     const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
     const onTabSelect = (_event: SelectTabEvent, data: SelectTabData) =>
     {
+        const nextValue = data.value;
+        const currentIndex = settingsTabOrder.indexOf(selectedValue as string);
+        const nextIndex = settingsTabOrder.indexOf(nextValue as string);
+        const nextDirection = currentIndex >= 0 && nextIndex >= 0 && nextIndex < currentIndex
+            ? "back"
+            : "forward";
+        setPageTransitionDirection(nextValue === selectedValue ? null : nextDirection);
         setSelectedValue(data.value);
         setIsMobileDrawerOpen(false);
     };
 
     const currentTabLabel = tabLabels[selectedValue as string] ?? "Settings";
-    const managesOwnContentScroll = [
-        tabIds.blueprints,
-        tabIds.workflows,
-        tabIds.variables,
-        tabIds.fields,
-        tabIds.communications,
-        tabIds.documents,
-        tabIds.audit,
-    ].includes(selectedValue as string) || (
-        selectedValue === tabIds.organization && !!appUserPersonOrganization?.isActive
-    );
-
     const hasOrg = !!appUserPersonOrganization?.isActive;
     const canManageOrganization =
         appUserPersonOrganization?.isActive &&
@@ -124,78 +53,16 @@ const Settings = () =>
     const canSeeOrganizationAdminTab = !appUserPersonOrganization?.isActive || canManageOrganization;
     const canSeeAuditTab = hasCapability(Capability.ORG_AUDIT_READ) || hasCapability(Capability.APP_AUDIT_READ);
 
-    const tabListContent = (
-        <TabList
+    const settingsMenu = (
+        <SettingsMenu
             selectedValue={selectedValue}
-            appearance="subtle-circular"
+            tabIds={tabIds}
+            hasOrg={hasOrg}
+            canManageOrganization={canManageOrganization}
+            canSeeOrganizationAdminTab={canSeeOrganizationAdminTab}
+            canSeeAuditTab={canSeeAuditTab}
             onTabSelect={onTabSelect}
-            vertical
-            size="medium"
-        >
-            <Divider appearance={"brand"} alignContent={"start"} className={styles.tabSettingDivider}>Personal</Divider>
-            <Tab id="ProfileTab" icon={<SettingsProfileTabIcon/>} value={tabIds.profile}>
-                Profile
-            </Tab>
-            <Tab id="MyGroupsTab" icon={<SettingsMyGroupsTabIcon/>} value={tabIds.myGroups}>
-                Groups
-            </Tab>
-            <Tab id="LinkedAccountsTab" icon={<SettingsLinkedAccountsTabIcon/>} value={tabIds.linkedAccounts}>
-                Linked Accounts
-            </Tab>
-            <Tab id="SessionsTab" icon={<SettingsDeviceSessionsTabIcon/>} value={tabIds.sessions}>
-                Device Sessions
-            </Tab>
-            <Tab id="AppSettingsTab" icon={<SettingsAppSettingsTabIcon/>} value={tabIds.appSettings}>
-                Preferences
-            </Tab>
-            <Divider appearance={"brand"} alignContent={"start"} className={styles.tabSettingDivider}>Content</Divider>
-            <Tab id="DocumentsTab" icon={<SettingsDocumentsTabIcon/>} value={tabIds.documents}>
-                Document Library
-            </Tab>
-            <Tab id="BlueprintsTab" icon={<SettingsExchangeBlueprintsTabIcon/>} value={tabIds.blueprints}>
-                Blueprints
-            </Tab>
-            {canManageOrganization && (
-                <Tab id="FieldsTab" icon={<SettingsFieldsTabIcon/>} value={tabIds.fields}>
-                    Fields
-                </Tab>
-            )}
-            <Divider appearance={"brand"} alignContent={"start"} className={styles.tabSettingDivider}>Automation</Divider>
-            <Tab id="WorkflowsTab" icon={<SettingsWorkflowsTabIcon/>} value={tabIds.workflows}>
-                Workflows
-            </Tab>
-            {hasOrg && (
-                <Tab id="SequencesTab" icon={<SettingsSequencesTabIcon/>} value={tabIds.sequences}>
-                    Sequences
-                </Tab>
-            )}
-            <Tab id="VariablesTab" icon={<SettingsVariablesTabIcon/>} value={tabIds.variables}>
-                Variables
-            </Tab>
-            <Tab id="CommunicationsTab" icon={<SettingsCommunicationsTabIcon/>} value={tabIds.communications}>
-                Communications
-            </Tab>
-            {(canSeeOrganizationAdminTab || canSeeAuditTab) && (
-                <>
-                    <Divider appearance={"brand"} alignContent={"start"} className={styles.tabSettingDivider}>Organization</Divider>
-                    {canSeeOrganizationAdminTab && (
-                        <Tab id="OrganizationTab" icon={<SettingsOrganizationTabIcon/>} value={tabIds.organization}>
-                            Administration
-                        </Tab>
-                    )}
-                    {canManageOrganization && (
-                        <Tab id="OrganizationBillingTab" icon={<SettingsOrganizationBillingTabIcon/>} value={tabIds.organizationBilling}>
-                            Billing
-                        </Tab>
-                    )}
-                    {canSeeAuditTab && (
-                        <Tab id="AuditTab" icon={<AuditIcon/>} value={tabIds.audit}>
-                            Audit
-                        </Tab>
-                    )}
-                </>
-            )}
-        </TabList>
+        />
     );
 
     return (
@@ -222,39 +89,22 @@ const Settings = () =>
                     <DrawerHeaderTitle>Settings</DrawerHeaderTitle>
                 </DrawerHeader>
                 <DrawerBody>
-                    {tabListContent}
+                    {settingsMenu}
                 </DrawerBody>
             </OverlayDrawer>
 
             <div className={styles.layout}>
 
                 <div className={styles.sidebarWrapper}>
-                    {tabListContent}
+                    {settingsMenu}
                 </div>
 
                 <div className={styles.tabsContainer} id="settings-tabs">
-                    <div className={managesOwnContentScroll ? styles.managedTabPanel : styles.tabPanelScroller}>
-                    {selectedValue === tabIds.profile && <ProfileTab/>}
-                    {selectedValue === tabIds.linkedAccounts && <LinkedAccountsTab/>}
-                    {selectedValue === tabIds.sessions && <SessionsTab/>}
-                    {selectedValue === tabIds.organization && <OrganizationTab/>}
-                    {selectedValue === tabIds.organizationBilling && <BillingTab/>}
-                    {selectedValue === tabIds.appSettings && <AppSettingsTab/>}
-                    {selectedValue === tabIds.myGroups && <MyGroupsTab/>}
-                    {selectedValue === tabIds.people && <OrganizationPeopleTab/>}
-                    {selectedValue === tabIds.groups &&
-                        <OrganizationGroupsTab appUserPersonOrganization={appUserPersonOrganization}/>}
-                    {selectedValue === tabIds.organizationPairing && <OrganizationPairingTab/>}
-                    {selectedValue === tabIds.appAdmins && <AppAdminsTab/>}
-                    {selectedValue === tabIds.blueprints && <BlueprintsTab/>}
-                    {selectedValue === tabIds.workflows && <WorkflowsTab/>}
-                    {selectedValue === tabIds.sequences && <OrganizationSequencesTab/>}
-                    {selectedValue === tabIds.variables && <VariablesTab/>}
-                    {selectedValue === tabIds.fields && <FieldsTab/>}
-                    {selectedValue === tabIds.communications && <CommunicationsTab/>}
-                    {selectedValue === tabIds.documents && <DocumentLibraryTab/>}
-                    {selectedValue === tabIds.audit && <AuditWorkspace/>}
-                    </div>
+                    <SettingsTabContent
+                        selectedValue={selectedValue}
+                        tabIds={tabIds}
+                        direction={pageTransitionDirection}
+                    />
                 </div>
 
             </div>
