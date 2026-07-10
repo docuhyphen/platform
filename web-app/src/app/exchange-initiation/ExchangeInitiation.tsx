@@ -1115,7 +1115,6 @@ const ExchangeInitiation: React.FC = () =>
                         >
                             {saveBlueprintDialogOpen ? (
                                 <SaveBlueprintPanel
-                                    onBack={closeSaveBlueprintPanel}
                                     onSaved={closeSaveBlueprintPanel}
                                     initialName={name}
                                     configJson={buildBlueprintConfigJson()}

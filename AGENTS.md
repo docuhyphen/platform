@@ -74,6 +74,9 @@ An "Exchange" is a first class word and should be used as a noun. For example, i
 - Do not add any emojis or characters such as ⚠
 - When creating a component that has styling, create a folder to include the styling and the component itself
 - Every new component added or updated must be responsive following best Web responsiveness designs
+- Dialog actions must sit at the bottom right of the dialog. Dialogs should have one or two footer
+  actions only, with the primary action on the left when two actions are present. Do not add a footer
+  Back action when the dialog already has a header Back button.
 ---
 
 ## Tech Stack

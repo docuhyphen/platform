@@ -25,7 +25,6 @@ import {useExchangeInitiationStyles} from '../../ExchangeInitiationStyles.tsx';
 
 interface SaveBlueprintPanelProps
 {
-    onBack: () => void;
     onSaved: () => void;
     initialName: string;
     configJson: string;
@@ -39,7 +38,6 @@ type SaveTarget = 'PERSONAL' | 'ORG';
 
 const SaveBlueprintPanel: React.FC<SaveBlueprintPanelProps> = (
     {
-        onBack,
         onSaved,
         initialName,
         configJson,
@@ -108,7 +106,7 @@ const SaveBlueprintPanel: React.FC<SaveBlueprintPanelProps> = (
             }
             onSaved();
         }
-        catch (e: any)
+        catch (e: unknown)
         {
             setError(typeof e === 'string' ? e : 'Failed to save blueprint');
         }
@@ -197,11 +195,6 @@ const SaveBlueprintPanel: React.FC<SaveBlueprintPanelProps> = (
                 >
                     {saving ? <><Spinner size="tiny"/> Saving...</> : 'Save Blueprint'}
                 </Button>
-                <Button
-                    id={"save-blueprint-back-btn"}
-                    shape="circular"
-                    onClick={onBack}
-                    disabled={saving}>Back</Button>
             </div>
         </div>
     );

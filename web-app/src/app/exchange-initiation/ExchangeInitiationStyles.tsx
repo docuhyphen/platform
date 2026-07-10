@@ -347,6 +347,7 @@ export const useExchangeInitiationStyles = makeStyles({
     saveBlueprintActions: {
         display: "flex",
         gap: "8px",
+        justifyContent: "flex-end",
         paddingTop: "4px",
     },
     docLinkedBadgeRow: {
