@@ -212,11 +212,33 @@ const ExchangeAcceptanceDialog: React.FC<ExchangeAcceptanceDialogProps> = (
 
                 {/* InfoBar: last pending request */}
                 {!rejectingExchange && !canDecideLater && (
-                    <MessageBar intent="info" icon={<InfoRegular/>}>
-                        <MessageBarBody>
-                            <Text size={200}>This is your last pending request.</Text>
-                        </MessageBarBody>
-                    </MessageBar>
+                    <>
+                        <MessageBar intent="info" icon={<InfoRegular/>}>
+                            <MessageBarBody>
+                                <Text size={200}>This is your last pending request.</Text>
+                            </MessageBarBody>
+                        </MessageBar>
+                        {!isSingleExchange && (
+                            <div className={styles.navigationActions}>
+                                <Button
+                                    id={"acceptance-open-active-btn"}
+                                    appearance="secondary"
+                                    shape="circular"
+                                    disabled={updatingExchange || activeCount === 0}
+                                    onClick={onOpenActive}>
+                                    Open Active ({activeCount})
+                                </Button>
+                                <Button
+                                    id={"acceptance-open-archive-btn"}
+                                    appearance="secondary"
+                                    shape="circular"
+                                    disabled={updatingExchange || archiveCount === 0}
+                                    onClick={onOpenArchive}>
+                                    Open Archive ({archiveCount})
+                                </Button>
+                            </div>
+                        )}
+                    </>
                 )}
 
                 {/* Decline reason */}
@@ -247,34 +269,25 @@ const ExchangeAcceptanceDialog: React.FC<ExchangeAcceptanceDialogProps> = (
 
                 {/* Actions */}
                 <div className={styles.actions}>
-                    <div className={styles.primaryActions}>
-                        <Button
-                            id={"acceptance-accept-btn"}
-                            appearance="primary"
-                            disabled={updatingExchange}
-                            className={globalStyles.buttonWithLoading}
-                            shape="circular"
-                            onClick={() => onAcceptOrReject(ExchangeStatus.ACCEPTED_STARTED)}>
-                            {(!rejectingExchange && updatingExchange) && <Spinner size="tiny"/>}
-                            Accept
-                        </Button>
-
-                        {!rejectingExchange && (
+                    {!isSingleExchange && !rejectingExchange && canDecideLater && (
+                        <div className={styles.tertiaryActions}>
                             <Button
-                                id={"acceptance-decline-btn"}
-                                appearance="secondary"
+                                id={"acceptance-decide-later-btn"}
+                                appearance="subtle"
                                 shape="circular"
                                 disabled={updatingExchange}
-                                onClick={() => setRejectingExchange(true)}>
-                                Decline
+                                onClick={onDismiss}>
+                                Decide Later
                             </Button>
-                        )}
+                        </div>
+                    )}
 
-                        {rejectingExchange && (
+                    <div className={styles.primaryActions}>
+                        {rejectingExchange ? (
                             <>
                                 <Button
                                     id={"acceptance-confirm-decline-btn"}
-                                    appearance="secondary"
+                                    appearance="primary"
                                     className={globalStyles.buttonWithLoading}
                                     shape="circular"
                                     disabled={updatingExchange}
@@ -284,49 +297,36 @@ const ExchangeAcceptanceDialog: React.FC<ExchangeAcceptanceDialogProps> = (
                                 </Button>
                                 <Button
                                     id={"acceptance-cancel-decline-btn"}
-                                    appearance="subtle"
+                                    appearance="secondary"
                                     shape="circular"
                                     disabled={updatingExchange}
                                     onClick={cancelDecline}>
                                     Cancel
                                 </Button>
                             </>
-                        )}
-                    </div>
-
-                    {!isSingleExchange && !rejectingExchange && (
-                        <div className={styles.secondaryActions}>
-                            {canDecideLater ? (
+                        ) : (
+                            <>
                                 <Button
-                                    id={"acceptance-decide-later-btn"}
-                                    appearance="subtle"
+                                    id={"acceptance-accept-btn"}
+                                    appearance="primary"
+                                    disabled={updatingExchange}
+                                    className={globalStyles.buttonWithLoading}
+                                    shape="circular"
+                                    onClick={() => onAcceptOrReject(ExchangeStatus.ACCEPTED_STARTED)}>
+                                    {updatingExchange && <Spinner size="tiny"/>}
+                                    Accept
+                                </Button>
+                                <Button
+                                    id={"acceptance-decline-btn"}
+                                    appearance="secondary"
                                     shape="circular"
                                     disabled={updatingExchange}
-                                    onClick={onDismiss}>
-                                    Decide Later
+                                    onClick={() => setRejectingExchange(true)}>
+                                    Decline
                                 </Button>
-                            ) : (
-                                <>
-                                    <Button
-                                        id={"acceptance-open-active-btn"}
-                                        appearance="secondary"
-                                        shape="circular"
-                                        disabled={updatingExchange || activeCount === 0}
-                                        onClick={onOpenActive}>
-                                        Open Active ({activeCount})
-                                    </Button>
-                                    <Button
-                                        id={"acceptance-open-archive-btn"}
-                                        appearance="secondary"
-                                        shape="circular"
-                                        disabled={updatingExchange || archiveCount === 0}
-                                        onClick={onOpenArchive}>
-                                        Open Archive ({archiveCount})
-                                    </Button>
-                                </>
-                            )}
-                        </div>
-                    )}
+                            </>
+                        )}
+                    </div>
                 </div>
 
             </Card>

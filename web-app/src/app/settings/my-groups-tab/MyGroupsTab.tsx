@@ -554,26 +554,28 @@ const MyGroupsTab: React.FC = () =>
 
                             {/* Add members */}
                             <Field label="Add Members" hint="Only contacts with a registered account can be added.">
-                                {memberTagPicker(
-                                    managingGroup?.members
-                                        .map(m => m.user?.id)
-                                        .filter((id): id is string => !!id) ?? [],
-                                )}
+                                <div className={styles.addMembersRow}>
+                                    {memberTagPicker(
+                                        managingGroup?.members
+                                            .map(m => m.user?.id)
+                                            .filter((id): id is string => !!id) ?? [],
+                                    )}
+                                    <Button
+                                        id="manage-group-add-members"
+                                        appearance="primary"
+                                        shape={"circular"}
+                                        disabled={addingMember || selectedContacts.length === 0}
+                                        onClick={onAddMembersConfirm}
+                                    >
+                                        {addingMember && <Spinner size="tiny"/>} Add Members
+                                    </Button>
+                                </div>
                             </Field>
                         </DialogContent>
                         <DialogActions>
                             <Button
-                                id="manage-group-add-members"
-                                appearance="primary"
-                                shape={"circular"}
-                                disabled={addingMember || selectedContacts.length === 0}
-                                onClick={onAddMembersConfirm}
-                            >
-                                {addingMember && <Spinner size="tiny"/>} Add Members
-                            </Button>
-                            <Button
                                 id="manage-group-save"
-                                appearance="secondary"
+                                appearance="primary"
                                 shape={"circular"}
                                 disabled={savingGroupDetails || !manageGroupName.trim()}
                                 onClick={handleSaveGroupDetails}

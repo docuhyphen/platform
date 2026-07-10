@@ -258,15 +258,6 @@ const DocumentLibraryEditorDialog = ({open, onClose, onSaved, entry, scope}: Pro
                     <DialogActions>
                         <div className={styles.dialogActions}>
                             <Button
-                                id="doc-editor-cancel-btn"
-                                appearance="secondary"
-                                shape="circular"
-                                onClick={onClose}
-                                disabled={saving}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
                                 id="doc-editor-save-btn"
                                 appearance="primary"
                                 shape="circular"
@@ -275,6 +266,15 @@ const DocumentLibraryEditorDialog = ({open, onClose, onSaved, entry, scope}: Pro
                                 icon={saving ? <Spinner size="tiny"/> : undefined}
                             >
                                 {saving ? 'Saving...' : 'Save'}
+                            </Button>
+                            <Button
+                                id="doc-editor-cancel-btn"
+                                appearance="secondary"
+                                shape="circular"
+                                onClick={onClose}
+                                disabled={saving}
+                            >
+                                Cancel
                             </Button>
                         </div>
                     </DialogActions>

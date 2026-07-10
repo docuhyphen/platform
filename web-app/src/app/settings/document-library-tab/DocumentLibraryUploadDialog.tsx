@@ -140,15 +140,6 @@ const DocumentLibraryUploadDialog = ({open, entryId, entryTitle, onClose, onUplo
                     <DialogActions>
                         <div className={styles.dialogActions}>
                             <Button
-                                id="doc-upload-cancel-btn"
-                                appearance="secondary"
-                                shape="circular"
-                                onClick={handleClose}
-                                disabled={uploading}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
                                 id="doc-upload-confirm-btn"
                                 appearance="primary"
                                 shape="circular"
@@ -157,6 +148,15 @@ const DocumentLibraryUploadDialog = ({open, entryId, entryTitle, onClose, onUplo
                                 icon={uploading ? <Spinner size="tiny"/> : undefined}
                             >
                                 {uploading ? 'Uploading...' : 'Upload'}
+                            </Button>
+                            <Button
+                                id="doc-upload-cancel-btn"
+                                appearance="secondary"
+                                shape="circular"
+                                onClick={handleClose}
+                                disabled={uploading}
+                            >
+                                Cancel
                             </Button>
                         </div>
                     </DialogActions>

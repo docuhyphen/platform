@@ -537,14 +537,6 @@ const WorkflowsListView = ({activeTab, onActiveTabChange, onEdit, onNew}: Props)
                         </DialogContent>
                         <DialogActions>
                             <Button
-                                id="workflows-list-clone-cancel-btn"
-                                appearance="secondary"
-                                shape="circular"
-                                onClick={() => setCloningDef(null)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
                                 id="workflows-list-clone-confirm-btn"
                                 appearance="primary"
                                 shape="circular"
@@ -552,6 +544,14 @@ const WorkflowsListView = ({activeTab, onActiveTabChange, onEdit, onNew}: Props)
                                 disabled={cloning || !cloneNameInput.trim()}
                             >
                                 {cloning ? "Cloning..." : "Clone"}
+                            </Button>
+                            <Button
+                                id="workflows-list-clone-cancel-btn"
+                                appearance="secondary"
+                                shape="circular"
+                                onClick={() => setCloningDef(null)}
+                            >
+                                Cancel
                             </Button>
                         </DialogActions>
                     </DialogBody>

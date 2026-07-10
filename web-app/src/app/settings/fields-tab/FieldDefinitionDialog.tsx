@@ -121,13 +121,6 @@ const FieldDefinitionDialog = ({open, onClose, onSaved, existingNamespaces = []}
                                                  existingNamespaces={existingNamespaces}/>
                     </DialogContent>
                     <DialogActions>
-                        <Button id="field-def-cancel"
-                                appearance="secondary"
-                                shape="circular"
-                                disabled={saving}
-                                onClick={onClose}>
-                            Cancel
-                        </Button>
                         <Button id="field-def-save"
                                 appearance="primary"
                                 shape="circular"
@@ -135,6 +128,13 @@ const FieldDefinitionDialog = ({open, onClose, onSaved, existingNamespaces = []}
                                 icon={saving ? <Spinner size="tiny"/> : undefined}
                                 onClick={handleSave}>
                             {saving ? 'Saving...' : 'Create'}
+                        </Button>
+                        <Button id="field-def-cancel"
+                                appearance="secondary"
+                                shape="circular"
+                                disabled={saving}
+                                onClick={onClose}>
+                            Cancel
                         </Button>
                     </DialogActions>
                 </DialogBody>

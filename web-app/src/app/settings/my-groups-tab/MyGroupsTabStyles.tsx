@@ -64,4 +64,10 @@ export const useMyGroupsTabStyles = makeStyles({
     memberName: {
         flex: 1,
     },
+    addMembersRow: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        flexWrap: 'wrap',
+    },
 });

@@ -342,16 +342,18 @@ export function SpeakToSalesDialog({trigger}: SpeakToSalesDialogProps)
                     <DialogActions className={styles.actions}>
                         {submitStatus === "success" ? (
                             <DialogTrigger action="close">
-                                <Button appearance="primary" shape="circular">Close</Button>
+                                <Button
+                                    id="speak-to-sales-close-btn"
+                                    appearance="primary"
+                                    shape="circular"
+                                >
+                                    Close
+                                </Button>
                             </DialogTrigger>
                         ) : submitStatus !== "error" && (
                             <>
-                                <DialogTrigger action="close">
-                                    <Button appearance="secondary" shape="circular" disabled={isSubmitting}>
-                                        Cancel
-                                    </Button>
-                                </DialogTrigger>
                                 <Button
+                                    id="speak-to-sales-submit-btn"
                                     appearance="primary"
                                     shape="circular"
                                     icon={isSubmitting ? <Spinner size="tiny"/> : <Send24Regular/>}
@@ -361,6 +363,16 @@ export function SpeakToSalesDialog({trigger}: SpeakToSalesDialogProps)
                                 >
                                     {isSubmitting ? "Sending..." : "Send enquiry"}
                                 </Button>
+                                <DialogTrigger action="close">
+                                    <Button
+                                        id="speak-to-sales-cancel-btn"
+                                        appearance="secondary"
+                                        shape="circular"
+                                        disabled={isSubmitting}
+                                    >
+                                        Cancel
+                                    </Button>
+                                </DialogTrigger>
                             </>
                         )}
                     </DialogActions>

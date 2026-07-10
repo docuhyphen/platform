@@ -277,7 +277,22 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
         {<Dialog modalType="alert" open={isOpen}>
             <DialogSurface>
                 <DialogBody>
-                    <DialogTitle>Manage access</DialogTitle>
+                    <DialogTitle>
+                        <div className={styles.titleRow}>
+                            <span>Manage access</span>
+                            <Tooltip content="Learn how access works" relationship="label">
+                                <Button
+                                    id={"access-mgmt-help-btn"}
+                                    icon={<InfoIcon/>}
+                                    appearance="subtle"
+                                    shape="circular"
+                                    size="medium"
+                                    onClick={() => openHelpArticle('manage-access')}
+                                    aria-label="How access works"
+                                />
+                            </Tooltip>
+                        </div>
+                    </DialogTitle>
                     <DialogContent>
                         <>
                         {dialogErrorMessage && (
@@ -499,18 +514,6 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
                         </div>
                         </>
                     </DialogContent>
-                    <DialogActions position="start">
-                        <Tooltip content="Learn how access works" relationship="label">
-                            <Button
-                                icon={<InfoIcon/>}
-                                appearance="subtle"
-                                shape="circular"
-                                size="medium"
-                                onClick={() => openHelpArticle('manage-access')}
-                                aria-label="How access works"
-                            />
-                        </Tooltip>
-                    </DialogActions>
                     <DialogActions>
                         <>
                             <Button

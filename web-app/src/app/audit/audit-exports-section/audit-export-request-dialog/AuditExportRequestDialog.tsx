@@ -118,14 +118,6 @@ const AuditExportRequestDialog = (
                     </DialogContent>
                     <DialogActions>
                         <Button
-                            id={"button-audit-export-request-cancel"}
-                            appearance={"secondary"}
-                            shape={"circular"}
-                            onClick={onDismiss}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
                             id={"button-audit-export-request-submit"}
                             appearance={"primary"}
                             shape={"circular"}
@@ -133,6 +125,14 @@ const AuditExportRequestDialog = (
                             onClick={submit}
                         >
                             Request export
+                        </Button>
+                        <Button
+                            id={"button-audit-export-request-cancel"}
+                            appearance={"secondary"}
+                            shape={"circular"}
+                            onClick={onDismiss}
+                        >
+                            Cancel
                         </Button>
                     </DialogActions>
                 </DialogBody>

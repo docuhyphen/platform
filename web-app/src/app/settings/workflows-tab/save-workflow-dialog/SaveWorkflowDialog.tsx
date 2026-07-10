@@ -266,15 +266,6 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
                         {phase === 'review' && (
                             <>
                                 <Button
-                                    id={"button-workflow-save-back"}
-                                    appearance="secondary"
-                                    shape="circular"
-                                    onClick={handleClose}
-                                    disabled={isBusy}
-                                >
-                                    Back to editing
-                                </Button>
-                                <Button
                                     id={"button-workflow-save-confirm"}
                                     appearance="primary"
                                     shape="circular"
@@ -282,6 +273,15 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
                                     disabled={isBusy}
                                 >
                                     {initiating ? <><Spinner size="tiny"/> Verifying…</> : (isEdit ? "Confirm & Update" : "Confirm & Save")}
+                                </Button>
+                                <Button
+                                    id={"button-workflow-save-back"}
+                                    appearance="secondary"
+                                    shape="circular"
+                                    onClick={handleClose}
+                                    disabled={isBusy}
+                                >
+                                    Back to editing
                                 </Button>
                             </>
                         )}

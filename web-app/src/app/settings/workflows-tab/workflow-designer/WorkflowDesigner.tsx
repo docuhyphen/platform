@@ -382,20 +382,20 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
                         </DialogContent>
                         <DialogActions>
                             <Button
-                                id="workflow-designer-keep-editing-btn"
-                                appearance="secondary"
-                                shape={"circular"}
-                                onClick={() => setShowDiscardDialog(false)}
-                            >
-                                Keep editing
-                            </Button>
-                            <Button
                                 id="workflow-designer-discard-btn"
                                 appearance="primary"
                                 shape={"circular"}
                                 onClick={onBack}
                             >
                                 Discard
+                            </Button>
+                            <Button
+                                id="workflow-designer-keep-editing-btn"
+                                appearance="secondary"
+                                shape={"circular"}
+                                onClick={() => setShowDiscardDialog(false)}
+                            >
+                                Keep editing
                             </Button>
                         </DialogActions>
                     </DialogBody>

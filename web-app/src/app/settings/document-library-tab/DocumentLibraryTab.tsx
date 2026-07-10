@@ -615,16 +615,6 @@ const DocumentLibraryTab = () =>
                             reference it will lose the file association but will not be deleted.
                         </DialogContent>
                         <DialogActions>
-                            <DialogTrigger disableButtonEnhancement>
-                                <Button
-                                    id="doc-library-delete-cancel-btn"
-                                    shape="circular"
-                                    appearance="secondary"
-                                    onClick={() => setConfirmDeleteId(null)}
-                                >
-                                    Cancel
-                                </Button>
-                            </DialogTrigger>
                             <Button
                                 id="doc-library-delete-confirm-btn"
                                 shape="circular"
@@ -637,6 +627,16 @@ const DocumentLibraryTab = () =>
                             >
                                 Delete
                             </Button>
+                            <DialogTrigger disableButtonEnhancement>
+                                <Button
+                                    id="doc-library-delete-cancel-btn"
+                                    shape="circular"
+                                    appearance="secondary"
+                                    onClick={() => setConfirmDeleteId(null)}
+                                >
+                                    Cancel
+                                </Button>
+                            </DialogTrigger>
                         </DialogActions>
                     </DialogBody>
                 </DialogSurface>

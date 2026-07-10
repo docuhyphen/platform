@@ -163,17 +163,23 @@ export function IndustryPickerDialog({onSelect}: IndustryPickerDialogProps)
                         </div>
                     </DialogContent>
                     <DialogActions className={styles.actions}>
-                        <Button appearance="subtle" shape="circular" onClick={handleSkip}>
+                        <Button
+                            id="industry-picker-continue-btn"
+                            appearance="primary"
+                            shape="circular"
+                            disabled={!selected}
+                            onClick={handleConfirm}
+                        >
+                            Continue
+                        </Button>
+                        <Button
+                            id="industry-picker-skip-btn"
+                            appearance="subtle"
+                            shape="circular"
+                            onClick={handleSkip}
+                        >
                             Skip
                         </Button>
-                    <Button
-                        appearance="primary"
-                        shape="circular"
-                        disabled={!selected}
-                        onClick={handleConfirm}
-                    >
-                        Continue
-                    </Button>
                     </DialogActions>
                 </DialogBody>
             </DialogSurface>

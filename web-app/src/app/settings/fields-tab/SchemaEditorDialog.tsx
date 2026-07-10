@@ -146,13 +146,6 @@ const SchemaEditorDialog = ({open, onClose, onSaved, definitions, schema}: Props
                         </div>
                     </DialogContent>
                     <DialogActions>
-                        <Button id="schema-editor-cancel"
-                                appearance="secondary"
-                                shape="circular"
-                                disabled={saving}
-                                onClick={onClose}>
-                            Cancel
-                        </Button>
                         <Button id="schema-editor-save"
                                 appearance="primary"
                                 shape="circular"
@@ -160,6 +153,13 @@ const SchemaEditorDialog = ({open, onClose, onSaved, definitions, schema}: Props
                                 icon={saving ? <Spinner size="tiny"/> : undefined}
                                 onClick={handleSave}>
                             {saving ? 'Saving...' : isEdit ? 'Save draft' : 'Create'}
+                        </Button>
+                        <Button id="schema-editor-cancel"
+                                appearance="secondary"
+                                shape="circular"
+                                disabled={saving}
+                                onClick={onClose}>
+                            Cancel
                         </Button>
                     </DialogActions>
                 </DialogBody>

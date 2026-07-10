@@ -1,6 +1,14 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useAccessManagementDialogStyles = makeStyles({
+    titleRow: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: "12px",
+        width: "100%",
+    },
+
     tabList: {
         marginTop: "8px",
     },

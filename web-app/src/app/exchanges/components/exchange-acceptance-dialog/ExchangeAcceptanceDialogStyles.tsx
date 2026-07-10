@@ -102,21 +102,32 @@ export const useExchangeAcceptanceDialogStyles = makeStyles({
         gap: "8px",
     },
 
-    actions: {
+    navigationActions: {
         display: "flex",
-        flexDirection: "column",
-        gap: "8px",
-    },
-
-    primaryActions: {
-        justifyContent: "end",
-        display: "flex",
+        justifyContent: "flex-end",
         gap: "8px",
         flexWrap: "wrap",
     },
 
-    secondaryActions: {
+    actions: {
         display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: "8px",
+        flexWrap: "wrap",
+    },
+
+    primaryActions: {
+        display: "flex",
+        justifyContent: "flex-end",
+        gap: "8px",
+        flexWrap: "wrap",
+        marginLeft: "auto",
+    },
+
+    tertiaryActions: {
+        display: "flex",
+        justifyContent: "flex-start",
         gap: "8px",
         flexWrap: "wrap",
     },
