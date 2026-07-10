@@ -13,13 +13,33 @@ export const useWorkflowListControlsStyles = makeStyles({
     controlsRow: {
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'space-between',
         gap: '8px',
         width: '100%',
-        flexWrap: 'wrap',
+        '@media screen and (max-width: 600px)': {
+            alignItems: 'stretch',
+            flexDirection: 'column',
+        },
+    },
+    leftControls: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: tokens.spacingVerticalS,
+        flex: '0 1 auto',
+        minWidth: 0,
+        '@media screen and (max-width: 600px)': {
+            width: '100%',
+        },
     },
     searchField: {
-        flex: '1 1 16rem',
-        minWidth: '10rem',
+        flex: '0 1 420px',
+        width: '420px',
+        maxWidth: '100%',
+        minWidth: 0,
+        '@media screen and (max-width: 600px)': {
+            flex: 1,
+            width: 'auto',
+        },
     },
     filterPopover: {
         padding: '8px',

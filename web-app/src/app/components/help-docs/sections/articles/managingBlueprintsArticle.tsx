@@ -92,5 +92,10 @@ export const managingBlueprintsArticle = (
             <li><b>Duplicate</b> - creates a copy with "(copy)" appended to the name. The duplicate starts inactive.</li>
             <li><b>Delete</b> - permanently removes the blueprint.</li>
         </ul>
+        <p>
+            When any Blueprint scope has multiple pages of results, the footer shows
+            the visible blueprint range on the left and page navigation actions on
+            the right.
+        </p>
     </>
 );

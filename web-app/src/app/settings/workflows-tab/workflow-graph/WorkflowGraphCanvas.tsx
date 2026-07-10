@@ -10,7 +10,13 @@ import {WorkflowTerminalNode} from "./WorkflowTerminalNode.tsx";
 import {WorkflowInvalidNode} from "./WorkflowInvalidNode.tsx";
 import {WorkflowGraphLegend} from "./WorkflowGraphLegend.tsx";
 import {useWorkflowGraphCanvasStyles} from "./WorkflowGraphCanvasStyles.tsx";
-import {FullScreenEnterIcon, FullScreenExitIcon, VerticalLayoutIcon} from "../../../components/IconBundles.tsx";
+import {
+    CollapseIcon,
+    ExpandIcon,
+    FullScreenEnterIcon,
+    FullScreenExitIcon,
+    VerticalLayoutIcon,
+} from "../../../components/IconBundles.tsx";
 import {WorkflowGraphEdge} from "./WorkflowGraphEdge.tsx";
 
 const NODE_TYPES = {
@@ -80,6 +86,7 @@ export default function WorkflowGraphCanvas(props: WorkflowGraphCanvasProps)
     const styles = useWorkflowGraphCanvasStyles();
     const canvasContainerRef = useRef<HTMLDivElement | null>(null);
     const reactFlowInstanceRef = useRef<ReactFlowInstance | null>(null);
+    const [isEnlarged, setIsEnlarged] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
     const scheduleFitView = useCallback(() =>
@@ -154,6 +161,23 @@ export default function WorkflowGraphCanvas(props: WorkflowGraphCanvasProps)
         }
     }, []);
 
+    const toggleEnlarged = useCallback(() =>
+    {
+        if (isEnlarged)
+        {
+            if (document.fullscreenElement === canvasContainerRef.current)
+            {
+                document.exitFullscreen().catch(() => { /* noop */ });
+            }
+            setIsEnlarged(false);
+            scheduleFitView();
+            return;
+        }
+
+        setIsEnlarged(true);
+        scheduleFitView();
+    }, [isEnlarged, scheduleFitView]);
+
     return (
         <div id="workflow-graph-canvas"
              className={mergeClasses(styles.wrapper, fillHeight ? styles.wrapperFillHeight : undefined)}>
@@ -191,6 +215,7 @@ export default function WorkflowGraphCanvas(props: WorkflowGraphCanvasProps)
                  className={mergeClasses(
                      styles.canvasContainer,
                      fillHeight ? styles.canvasContainerFillHeight : undefined,
+                     isEnlarged ? styles.canvasContainerEnlarged : undefined,
                      isFullscreen ? styles.canvasContainerFullscreen : undefined,
                  )}>
                 <ReactFlow id="workflow-graph-reactflow"
@@ -216,11 +241,20 @@ export default function WorkflowGraphCanvas(props: WorkflowGraphCanvasProps)
                            aria-label={ariaLabel}>
                     <Background id="workflow-graph-background" />
                     <Controls id="workflow-graph-controls"
+                              showFitView={false}
                               showInteractive={false}>
+                        <ControlButton id="workflow-graph-enlarge-btn"
+                                       onClick={toggleEnlarged}
+                                       title={isEnlarged ? "Exit enlarged view" : "Enlarge"}
+                                       aria-label={isEnlarged ? "Exit enlarged view" : "Enlarge"}
+                                       aria-pressed={isEnlarged}>
+                            {isEnlarged ? <CollapseIcon /> : <ExpandIcon />}
+                        </ControlButton>
                         <ControlButton id="workflow-graph-fullscreen-btn"
                                        onClick={toggleFullscreen}
                                        title={isFullscreen ? "Exit full screen" : "Full screen"}
-                                       aria-label={isFullscreen ? "Exit full screen" : "Full screen"}>
+                                       aria-label={isFullscreen ? "Exit full screen" : "Full screen"}
+                                       aria-pressed={isFullscreen}>
                             {isFullscreen ? <FullScreenExitIcon /> : <FullScreenEnterIcon />}
                         </ControlButton>
                     </Controls>

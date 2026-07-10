@@ -145,6 +145,8 @@
     ChatMailFilled, ChatMailRegular, BookNumberFilled, BookNumberRegular, MailEditFilled,
     MailEditRegular, PersonEditFilled, PersonEditRegular, PhoneFilled, PhoneRegular, PhoneAddRegular, PhoneAddFilled,
     PhoneEditFilled, PhoneEditRegular,
+    PersonFilled, PersonRegular, ClockFilled, ClockRegular, TagFilled, TagRegular, TargetFilled, TargetRegular,
+    ArrowRightFilled, ArrowRightRegular, ArrowDownFilled, ArrowDownRegular,
 } from "@fluentui/react-icons";
 
 export const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
@@ -257,3 +259,11 @@ export const TimelineIcon = bundleIcon(DocumentBulletListClockFilled, DocumentBu
 export const DiagramIcon = bundleIcon(DataTreemapFilled, DataTreemapRegular)
 export const SplitViewIcon = bundleIcon(LayoutColumnTwoFilled, LayoutColumnTwoRegular)
 export const VerticalLayoutIcon = bundleIcon(ArrowRotateClockwiseFilled, ArrowRotateClockwiseRegular)
+
+// Audit event detail card icons.
+export const PersonIcon = bundleIcon(PersonFilled, PersonRegular)
+export const ClockIcon = bundleIcon(ClockFilled, ClockRegular)
+export const TagIcon = bundleIcon(TagFilled, TagRegular)
+export const TargetIcon = bundleIcon(TargetFilled, TargetRegular)
+export const ArrowRightIcon = bundleIcon(ArrowRightFilled, ArrowRightRegular)
+export const ArrowDownIcon = bundleIcon(ArrowDownFilled, ArrowDownRegular)

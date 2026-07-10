@@ -67,5 +67,9 @@ export const documentLibraryOverviewArticle = (
             Add comma-separated tags (e.g. LEGAL, COMPLIANCE) to help categorize and
             discover documents across scopes.
         </p>
+        <p>
+            When a scope has multiple pages of results, the footer shows the visible
+            document range on the left and page navigation actions on the right.
+        </p>
     </>
 );

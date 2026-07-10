@@ -8,6 +8,13 @@ import com.docuhyphen.app.api.model.entity.ShareSource
 import com.docuhyphen.app.api.model.entity.ShareStatus
 import com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.ShareRepository
+import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
+import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
+import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
+import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
+import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
@@ -28,6 +35,7 @@ import java.util.UUID
 class ShareService @Inject constructor(
     private val shareRepository: ShareRepository,
     private val groupMemberRepository: PrincipalGroupMemberRepository,
+    private val auditRecorder: AuditRecorder,
 )
 {
     companion object
@@ -50,6 +58,7 @@ class ShareService @Inject constructor(
         constraintsJson: String? = null,
         expiresAt: Timestamp? = null,
         status: ShareStatus = ShareStatus.ACTIVE,
+        resourceLabel: String? = null,
     ): Share
     {
         val existingDirect = shareRepository
@@ -81,6 +90,14 @@ class ShareService @Inject constructor(
         }
         val persisted = if (existingDirect == null && previouslyDirect == null) shareRepository.save(share) else shareRepository.update(share)
 
+        recordShareEvent(
+            eventType = AuditEventType.SHARE_GRANT,
+            share = persisted,
+            actorId = grantedByAppUserId,
+            extraPayload = mapOf("role_name" to roleName.name, "principal_kind" to principalKind.name),
+            resourceLabel = resourceLabel,
+        )
+
         if (principalKind == PrincipalKind.PRINCIPAL_GROUP && status == ShareStatus.ACTIVE)
         {
             materialiseGroupInheritance(persisted)
@@ -91,6 +108,12 @@ class ShareService @Inject constructor(
     /**
      * Create `INHERITED_FROM_GROUP` shares for each active member of the group named by
      * [parentShare]. Re-runnable: members already holding the inherited share are left as-is.
+     *
+     * Individual inherited-member shares are not each given their own ledger event: for a group
+     * with many members that would be audit noise unrelated to a distinct human decision. The
+     * triggering [grant]/[activate] call already records one event with
+     * `principal_kind=PRINCIPAL_GROUP` in its payload, which is enough to discover that
+     * inheritance was (re)materialised; see the Phase 3 handoff for this scoping decision.
      */
     private fun materialiseGroupInheritance(parentShare: Share)
     {
@@ -135,6 +158,14 @@ class ShareService @Inject constructor(
         if (share.status != ShareStatus.PENDING_APPROVAL) return share
         share.status = ShareStatus.ACTIVE
         val activated = shareRepository.update(share)
+
+        recordShareEvent(
+            eventType = AuditEventType.SHARE_ACTIVATE,
+            share = activated,
+            actorId = null,
+            extraPayload = mapOf("role_name" to activated.roleName.name, "principal_kind" to activated.principalKind.name),
+        )
+
         if (activated.principalKind == PrincipalKind.PRINCIPAL_GROUP)
         {
             materialiseGroupInheritance(activated)
@@ -152,11 +183,12 @@ class ShareService @Inject constructor(
         resourceType: ResourceType,
         resourceId: UUID,
         revokedByAppUserId: UUID? = null,
+        resourceLabel: String? = null,
     )
     {
         val now = Timestamp.from(Instant.now())
         shareRepository.findByResourceAndStatus(resourceType, resourceId, ShareStatus.PENDING_APPROVAL)
-            .forEach { markRevoked(it, revokedByAppUserId, now) }
+            .forEach { markRevoked(it, revokedByAppUserId, now, resourceLabel) }
     }
 
     /**
@@ -174,9 +206,11 @@ class ShareService @Inject constructor(
         roleName: ExchangeShareRoleName,
         constraintsJson: String?,
         applyConstraints: Boolean,
+        resourceLabel: String? = null,
     ): Share?
     {
         val share = shareRepository.findById(shareId) ?: return null
+        val previousRole = share.roleName
         share.roleName = roleName
         if (applyConstraints)
         {
@@ -192,6 +226,19 @@ class ShareService @Inject constructor(
             }
             shareRepository.update(child)
         }
+
+        recordShareEvent(
+            eventType = AuditEventType.SHARE_ROLE_CHANGE,
+            share = updated,
+            actorId = null,
+            extraPayload = mapOf(
+                "previous_role" to previousRole.name,
+                "new_role" to roleName.name,
+                "constraints_changed" to applyConstraints.toString(),
+            ),
+            resourceLabel = resourceLabel,
+        )
+
         return updated
     }
 
@@ -301,13 +348,13 @@ class ShareService @Inject constructor(
     }
 
     /** Revoke a single share and any inherited children that point at it. */
-    fun revoke(shareId: UUID, revokedByAppUserId: UUID? = null)
+    fun revoke(shareId: UUID, revokedByAppUserId: UUID? = null, resourceLabel: String? = null)
     {
         val now = Timestamp.from(Instant.now())
         shareRepository.findById(shareId)?.let { share ->
-            markRevoked(share, revokedByAppUserId, now)
+            markRevoked(share, revokedByAppUserId, now, resourceLabel)
             shareRepository.findBySourceShareId(shareId).forEach { child ->
-                markRevoked(child, revokedByAppUserId, now)
+                markRevoked(child, revokedByAppUserId, now, resourceLabel)
             }
         }
     }
@@ -317,20 +364,85 @@ class ShareService @Inject constructor(
         resourceType: ResourceType,
         resourceId: UUID,
         revokedByAppUserId: UUID? = null,
+        resourceLabel: String? = null,
     )
     {
         val now = Timestamp.from(Instant.now())
         shareRepository.findActiveByResource(resourceType, resourceId).forEach {
-            markRevoked(it, revokedByAppUserId, now)
+            markRevoked(it, revokedByAppUserId, now, resourceLabel)
         }
     }
 
-    private fun markRevoked(share: Share, revokedByAppUserId: UUID?, now: Timestamp)
+    /**
+     * Phase 3 task 3: the single choke point for every revoke variant (direct [revoke],
+     * [revokePendingForResource], [revokeAllForResource]) so SHARE_REVOKE is captured exactly
+     * once per share regardless of which caller triggered it. The `status == REVOKED` guard
+     * above (unchanged) also prevents a duplicate event for an already-revoked share.
+     */
+    private fun markRevoked(share: Share, revokedByAppUserId: UUID?, now: Timestamp, resourceLabel: String? = null)
     {
         if (share.status == ShareStatus.REVOKED) return
         share.status = ShareStatus.REVOKED
         share.revokedAt = now
         share.revokedByAppUserId = revokedByAppUserId
         shareRepository.update(share)
+
+        recordShareEvent(
+            eventType = AuditEventType.SHARE_REVOKE,
+            share = share,
+            actorId = revokedByAppUserId,
+            extraPayload = mapOf("role_name" to share.roleName.name, "principal_kind" to share.principalKind.name),
+            resourceLabel = resourceLabel,
+        )
+    }
+
+    /**
+     * Phase 3 task 3 (AUDIT-ARCHITECTURE-IMPLEMENTATION.md): captures Share
+     * grant/activation/role-constraint-change/revocation through [AuditRecorder]. `AccessAuditLog`
+     * is superseded as the write path (its table/repository are left untouched, out of scope to
+     * remove). Target is the resource being shared (denormalized `resourceType.name`/
+     * `resourceId`), not the Share row itself, so the event is discoverable alongside every other
+     * event about that resource. Actor kind is HUMAN when an acting app user id is known (a
+     * human-initiated grant/role-change/revoke); grants/activations with no acting app user id
+     * (e.g. system/workflow-driven activation after an approval step completes) are recorded as
+     * SYSTEM, since ShareService has no per-request context of its own to distinguish a workflow
+     * actor from another background process (see Phase 3 handoff for this scoping decision).
+     * Failures are caught and logged, never propagated, so audit plumbing can never break a
+     * Share mutation.
+     */
+    private fun recordShareEvent(
+        eventType: AuditEventType,
+        share: Share,
+        actorId: UUID?,
+        extraPayload: Map<String, String>,
+        resourceLabel: String? = null,
+    )
+    {
+        try
+        {
+            auditRecorder.record(
+                AuditEventDraft(
+                    eventTypeKey = eventType.key,
+                    outcome = AuditOutcome.SUCCESS,
+                    actorId = actorId,
+                    actorKind = if (actorId != null) AuditActorKind.HUMAN else AuditActorKind.SYSTEM,
+                    targetType = share.resourceType.name,
+                    targetId = share.resourceId.toString(),
+                    targetLabel = resourceLabel,
+                    payload = buildMap {
+                        put("share_id", share.id.toString())
+                        putAll(extraPayload)
+                    },
+                )
+            )
+        }
+        catch (e: AuditDraftInvalidException)
+        {
+            logger.warn("ShareService: AuditRecorder rejected draft for eventType={}: {}", eventType.key, e.message)
+        }
+        catch (e: AuditCaptureFailedException)
+        {
+            logger.error("ShareService: AuditRecorder capture failed (fail-closed) for eventType={}: {}", eventType.key, e.message, e)
+        }
     }
 }

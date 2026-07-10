@@ -102,14 +102,30 @@ export const useDocumentsTabStyles = makeStyles({
     },
     searchRow: {
         display: "flex",
+        flexDirection: "row",
+        justifyContent: "space-between",
         alignItems: "center",
         gap: "8px",
         width: "100%",
+        "@media screen and (max-width: 600px)": {
+            alignItems: "stretch",
+            flexDirection: "column",
+        },
     },
-    paginationRow: {
+    searchRowInputs: {
         display: "flex",
-        justifyContent: "center",
-        paddingTop: "4px",
+        alignItems: "center",
+        gap: tokens.spacingVerticalS,
+        flex: 1,
+        minWidth: 0,
+    },
+    searchField: {
+        flex: 1,
+        minWidth: 0,
+    },
+    filterEmptyText: {
+        padding: "4px 8px",
+        color: tokens.colorNeutralForeground3,
     },
     cardGrid: {
         display: "grid",

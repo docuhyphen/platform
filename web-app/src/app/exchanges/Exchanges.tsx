@@ -893,7 +893,7 @@ const Exchanges: React.FC = () =>
 
                         {detailsActiveTab === 'details' && (
                             <div className={styles.documentsSectionContainer}>
-                                <div className={styles.documentsSection}>
+                                <div className={`${styles.documentsSection} ${styles.scrollableTabContent}`}>
                                     <ExchangeFieldsTab exchange={exchangeDetails}/>
                                 </div>
                             </div>
@@ -901,7 +901,7 @@ const Exchanges: React.FC = () =>
 
                         {detailsActiveTab === 'workflow' && (
                             <div className={styles.documentsSectionContainer}>
-                                <div className={styles.documentsSection}>
+                                <div className={`${styles.documentsSection} ${styles.scrollableTabContent}`}>
                                     <ExchangeWorkflowTab exchange={exchangeDetails}/>
                                 </div>
                             </div>
@@ -909,7 +909,7 @@ const Exchanges: React.FC = () =>
 
                         {detailsActiveTab === 'audit' && (
                             <div className={styles.documentsSectionContainer}>
-                                <div className={styles.documentsSection}>
+                                <div className={`${styles.documentsSection} ${styles.scrollableTabContent}`}>
                                     <ExchangeAuditTab exchange={exchangeDetails}/>
                                 </div>
                             </div>

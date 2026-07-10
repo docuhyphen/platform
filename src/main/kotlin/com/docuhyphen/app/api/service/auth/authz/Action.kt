@@ -105,6 +105,8 @@ enum class Action(val required: Capability)
     ORG_MANAGE_POLICY(Capability.ORG_POLICY_MANAGE),
     ORG_MANAGE_BILLING(Capability.ORG_BILLING_MANAGE),
     ORG_READ_AUDIT(Capability.ORG_AUDIT_READ),
+    ORG_REQUEST_AUDIT_EXPORT(Capability.ORG_AUDIT_EXPORT),
+    ORG_VIEW_SENSITIVE_AUDIT(Capability.ORG_AUDIT_VIEW_SENSITIVE),
 
     // Fields & Schema configuration
     FIELD_CONFIG_VIEW(Capability.FIELD_SCHEMA_READ),
@@ -114,6 +116,7 @@ enum class Action(val required: Capability)
     // Platform
     APP_ADMINISTRATE(Capability.APP_ADMIN),
     APP_READ_AUDIT(Capability.APP_AUDIT_READ),
+    APP_REQUEST_AUDIT_EXPORT(Capability.APP_AUDIT_EXPORT),
     APP_SUPPORT_OPERATE(Capability.APP_SUPPORT),
 
     // Application Registration
@@ -123,4 +126,10 @@ enum class Action(val required: Capability)
     APP_REG_ROTATE_CREDENTIALS(Capability.APP_REG_ADMIN),
     APP_REG_GRANT_CAPABILITIES(Capability.APP_REG_ADMIN),
     APP_REG_DEACTIVATE(Capability.APP_REG_ADMIN),
+
+    // Audit governance
+    AUDIT_EXPORT_APPROVE(Capability.AUDIT_EXPORT_APPROVE),
+    AUDIT_RETENTION_MANAGE(Capability.AUDIT_RETENTION_MANAGE),
+    AUDIT_LEGAL_HOLD_MANAGE(Capability.AUDIT_LEGAL_HOLD_MANAGE),
+    AUDIT_INTEGRITY_VERIFY(Capability.AUDIT_INTEGRITY_VERIFY),
 }

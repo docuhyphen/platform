@@ -40,8 +40,10 @@ import WorkflowDeleteDialog from "../WorkflowDeleteDialog.tsx";
 import WorkflowListControls, {
     WorkflowSortOrder,
 } from "./workflow-list-controls/WorkflowListControls.tsx";
+import WorkflowsPagination from "../workflows-pagination/WorkflowsPagination.tsx";
 
 export type WorkflowListTab = 'PERSONAL' | 'ORG' | 'APP';
+const PAGE_SIZE = 12;
 
 const TAB_LABEL: Record<WorkflowListTab, string> = {
     PERSONAL: 'My Workflows',
@@ -59,7 +61,6 @@ interface Props
 
 const statusColor = (isActive: boolean): "success" | "warning" => (isActive ? "success" : "warning");
 
-// ── Workflow card ────────────────────────────────────────────────────────────
 
 interface WorkflowCardProps
 {
@@ -141,7 +142,6 @@ const WorkflowCard = ({def, isPersonal, onEdit, onToggleActive, onTogglePublishe
     );
 };
 
-// ── Main list view ────────────────────────────────────────────────────────────
 
 const WorkflowsListView = ({activeTab, onActiveTabChange, onEdit, onNew}: Props) =>
 {
@@ -159,6 +159,7 @@ const WorkflowsListView = ({activeTab, onActiveTabChange, onEdit, onNew}: Props)
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
     const [sortOrder, setSortOrder] = useState<WorkflowSortOrder>("newest");
+    const [currentPage, setCurrentPage] = useState(0);
 
     const handleViewModeChange = async (mode: ViewMode) => {
         setViewMode(mode);
@@ -197,6 +198,7 @@ const WorkflowsListView = ({activeTab, onActiveTabChange, onEdit, onNew}: Props)
         setSearchQuery("");
         setSelectedTags(new Set());
         setSortOrder("newest");
+        setCurrentPage(0);
     };
 
     const toggleTag = (tag: string) =>
@@ -232,6 +234,19 @@ const WorkflowsListView = ({activeTab, onActiveTabChange, onEdit, onNew}: Props)
             if (sortOrder === "nameDesc") return right.name.localeCompare(left.name);
             return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
         });
+    const totalPages = Math.ceil(visibleDefinitions.length / PAGE_SIZE);
+    const pagedDefinitions = visibleDefinitions.slice(
+        currentPage * PAGE_SIZE,
+        (currentPage + 1) * PAGE_SIZE,
+    );
+
+    useEffect(() =>
+    {
+        if (currentPage > 0 && currentPage >= Math.max(totalPages, 1))
+        {
+            setCurrentPage(Math.max(totalPages - 1, 0));
+        }
+    }, [currentPage, totalPages]);
 
     const toggleActive = async (def: WorkflowDefinitionSummaryDto) =>
     {
@@ -330,13 +345,29 @@ const WorkflowsListView = ({activeTab, onActiveTabChange, onEdit, onNew}: Props)
 
                 <WorkflowListControls
                     searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
+                    onSearchChange={(value) =>
+                    {
+                        setSearchQuery(value);
+                        setCurrentPage(0);
+                    }}
                     availableTags={availableTags}
                     selectedTags={selectedTags}
-                    onTagToggle={toggleTag}
-                    onClearTags={() => setSelectedTags(new Set())}
+                    onTagToggle={(tag) =>
+                    {
+                        toggleTag(tag);
+                        setCurrentPage(0);
+                    }}
+                    onClearTags={() =>
+                    {
+                        setSelectedTags(new Set());
+                        setCurrentPage(0);
+                    }}
                     sortOrder={sortOrder}
-                    onSortOrderChange={setSortOrder}
+                    onSortOrderChange={(value) =>
+                    {
+                        setSortOrder(value);
+                        setCurrentPage(0);
+                    }}
                     viewMode={viewMode}
                     onViewModeChange={handleViewModeChange}
                 />
@@ -366,9 +397,9 @@ const WorkflowsListView = ({activeTab, onActiveTabChange, onEdit, onNew}: Props)
                     </div>
                 )}
 
-                {!loading && !error && visibleDefinitions.length > 0 && viewMode === 'cards' && (
+                {!loading && !error && pagedDefinitions.length > 0 && viewMode === 'cards' && (
                     <div className={styles.cardGrid}>
-                        {visibleDefinitions.map(def =>
+                        {pagedDefinitions.map(def =>
                             activeTab === 'APP'
                                 ? renderPlatformCard(def)
                                 : (
@@ -387,7 +418,7 @@ const WorkflowsListView = ({activeTab, onActiveTabChange, onEdit, onNew}: Props)
                     </div>
                 )}
 
-                {!loading && !error && visibleDefinitions.length > 0 && viewMode === 'table' && (
+                {!loading && !error && pagedDefinitions.length > 0 && viewMode === 'table' && (
                     <table className={styles.table}>
                         <thead>
                             <tr>
@@ -400,7 +431,7 @@ const WorkflowsListView = ({activeTab, onActiveTabChange, onEdit, onNew}: Props)
                             </tr>
                         </thead>
                         <tbody>
-                            {visibleDefinitions.map(def => (
+                            {pagedDefinitions.map(def => (
                                 <tr key={def.id} className={styles.tr}>
                                     <td className={styles.td}>
                                         <Text weight="semibold">{def.name}</Text>
@@ -458,6 +489,17 @@ const WorkflowsListView = ({activeTab, onActiveTabChange, onEdit, onNew}: Props)
                     </table>
                 )}
                 </div>
+                {!loading && !error && visibleDefinitions.length > 0 && (
+                    <WorkflowsPagination
+                        currentPage={currentPage}
+                        totalPages={Math.max(totalPages, 1)}
+                        firstItem={currentPage * PAGE_SIZE + 1}
+                        lastItem={Math.min((currentPage + 1) * PAGE_SIZE, visibleDefinitions.length)}
+                        totalItems={visibleDefinitions.length}
+                        itemLabel={activeTab === "APP" ? "templates" : "workflows"}
+                        onPageChange={setCurrentPage}
+                    />
+                )}
             </div>
 
             {deletingDef && (
@@ -509,7 +551,7 @@ const WorkflowsListView = ({activeTab, onActiveTabChange, onEdit, onNew}: Props)
                                 onClick={confirmClone}
                                 disabled={cloning || !cloneNameInput.trim()}
                             >
-                                {cloning ? "Cloning…" : "Clone"}
+                                {cloning ? "Cloning..." : "Clone"}
                             </Button>
                         </DialogActions>
                     </DialogBody>

@@ -39,6 +39,13 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
+import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
+import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
+import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
+import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -73,6 +80,7 @@ class WorkflowDefinitionService @Inject constructor(
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val userRoleService: UserRoleService,
     private val applicabilityEvaluator: WorkflowApplicabilityEvaluator,
+    private val auditRecorder: AuditRecorder,
 )
 {
     private val logger = LoggerFactory.getLogger(WorkflowDefinitionService::class.java)
@@ -144,7 +152,9 @@ class WorkflowDefinitionService @Inject constructor(
             isTemplate = if (isAppAdmin) request.isTemplate else false
             createdByAppUserId = principal.id
         }
-        return definitionRepository.save(def).toDto()
+        val saved = definitionRepository.save(def)
+        recordDefinitionEvent(AuditEventType.WORKFLOW_DEFINITION_CREATE, saved.id, saved.name, principal.id, activeOrgId)
+        return saved.toDto()
     }
 
     @Transactional
@@ -171,7 +181,9 @@ class WorkflowDefinitionService @Inject constructor(
         request.generalTags?.let { def.generalTags = encodeTags(it) }
         request.isActive?.let { def.isActive = it }
 
-        return definitionRepository.update(def).toDto()
+        val updated = definitionRepository.update(def)
+        recordDefinitionEvent(AuditEventType.WORKFLOW_DEFINITION_UPDATE, updated.id, updated.name, principal.id, def.organizationId)
+        return updated.toDto()
     }
 
     @Transactional
@@ -183,7 +195,12 @@ class WorkflowDefinitionService @Inject constructor(
             ?: throw IllegalArgumentException("Workflow definition not found: $id")
         checkWriteAccess(def, principal, context)
         def.isPublished = isPublished
-        return definitionRepository.update(def).toDto()
+        val updated = definitionRepository.update(def)
+        if (isPublished)
+        {
+            recordDefinitionEvent(AuditEventType.WORKFLOW_DEFINITION_PUBLISH, updated.id, updated.name, principal.id, def.organizationId)
+        }
+        return updated.toDto()
     }
 
     @Transactional
@@ -217,6 +234,7 @@ class WorkflowDefinitionService @Inject constructor(
         def.isDeleted = true
         def.isActive = false
         definitionRepository.update(def)
+        recordDefinitionEvent(AuditEventType.WORKFLOW_DEFINITION_DELETE, def.id, def.name, principal.id, def.organizationId)
         logger.info("Workflow definition {} soft-deleted", id)
     }
 
@@ -525,6 +543,44 @@ class WorkflowDefinitionService @Inject constructor(
 
     private fun currentContext(): AuthorizationContext =
         authorizationContextFactory.currentContext()
+
+    /**
+     * Phase 3 task 4 (breadth): captures workflow definition lifecycle mutations onto the
+     * ledger. Follows the catch-and-log pattern established across Phase 3 so a plumbing
+     * failure never blocks the underlying definition write.
+     */
+    private fun recordDefinitionEvent(
+        eventType: AuditEventType,
+        definitionId: UUID,
+        definitionName: String?,
+        actorId: UUID,
+        organizationId: UUID?,
+    )
+    {
+        try
+        {
+            auditRecorder.record(
+                AuditEventDraft(
+                    eventTypeKey = eventType.key,
+                    outcome = AuditOutcome.SUCCESS,
+                    actorId = actorId,
+                    actorKind = AuditActorKind.HUMAN,
+                    targetType = ResourceType.WORKFLOW_DEFINITION.name,
+                    targetId = definitionId.toString(),
+                    targetLabel = definitionName,
+                    organizationId = organizationId,
+                )
+            )
+        }
+        catch (e: AuditDraftInvalidException)
+        {
+            logger.warn("WorkflowDefinitionService: AuditRecorder rejected {} draft: {}", eventType.key, e.message)
+        }
+        catch (e: AuditCaptureFailedException)
+        {
+            logger.error("WorkflowDefinitionService: AuditRecorder capture failed for {}: {}", eventType.key, e.message, e)
+        }
+    }
 
     // -------------------------------------------------------------------------
     // JSON helpers

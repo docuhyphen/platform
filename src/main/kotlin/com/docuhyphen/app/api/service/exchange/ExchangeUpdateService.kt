@@ -1,4 +1,4 @@
-﻿package com.docuhyphen.app.api.service.exchange
+package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.exception.NoAuthOtpException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
@@ -24,6 +24,13 @@ import com.docuhyphen.app.api.repository.WorkflowStepInstanceRepository
 import com.docuhyphen.app.api.resource.model.UpdateExchangeRequest
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.UserContactService
+import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
+import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
+import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
+import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
+import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
@@ -70,6 +77,7 @@ class ExchangeUpdateService @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
+    private val auditRecorder: AuditRecorder,
 )
 {
     @PersistenceContext
@@ -129,7 +137,7 @@ class ExchangeUpdateService @Inject constructor(
             }
         }
 
-        exchangeRepository.findById(sessionUUID)
+        val existingExchange = exchangeRepository.findById(sessionUUID)
             ?: throw ExchangeNotFoundException("Exchange not found")
 
         request?.name?.let {
@@ -143,6 +151,7 @@ class ExchangeUpdateService @Inject constructor(
         if (request?.status != null)
         {
             val newStatus = request.status!!
+            val previousStatus = existingExchange.status
 
             if (newStatus == ExchangeStatus.RESCINDED)
             {
@@ -178,11 +187,12 @@ class ExchangeUpdateService @Inject constructor(
                     exchangeRepository.updateStatus(sessionUUID, newStatus)
                     if (newStatus == ExchangeStatus.REJECTED)
                     {
-                        shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID)
+                        shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID, resourceLabel = existingExchange.name)
                     }
                     request.rejectionReason?.let { exchangeRepository.updateRejectionReason(sessionUUID, it) }
                     exchangeRepository.updateLastActivity(sessionUUID, Timestamp.from(Instant.now()))
                     val updatedSession = exchangeRepository.findById(sessionUUID)!!
+                    recordLifecycleTransition(sessionUUID, existingExchange.name, existingExchange.ownerOrganizationId, previousStatus, newStatus)
                     sendStatusChangeEmails(updatedSession, newStatus, request.rejectionReason)
                     broadcastStatusChange(updatedSession, newStatus)
                     logger.info(
@@ -239,8 +249,10 @@ class ExchangeUpdateService @Inject constructor(
                 newStatus == ExchangeStatus.RESCINDED
             )
             {
-                shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID)
+                shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID, resourceLabel = existingExchange.name)
             }
+
+            recordLifecycleTransition(sessionUUID, existingExchange.name, existingExchange.ownerOrganizationId, previousStatus, newStatus)
         }
 
         request?.rejectionReason?.let {
@@ -384,16 +396,39 @@ class ExchangeUpdateService @Inject constructor(
         }
 
         val rescindedAt = Timestamp.from(Instant.now())
+        val previousStatus = exchange.status
         exchangeRepository.updateStatus(exchangeUuid, ExchangeStatus.RESCINDED)
         exchangeRepository.updateEndDate(exchangeUuid, rescindedAt)
         exchangeRepository.updateLastActivity(exchangeUuid, rescindedAt)
+
+        // Reference implementation for Phase 1 of AUDIT-ARCHITECTURE-IMPLEMENTATION.md: the
+        // durable audit intent is written in this same transaction, so it commits/rolls back
+        // atomically with the status transition above. idempotencyKey is deterministic per
+        // exchange so a retried rescind call writes at most one outbox row for this occurrence.
+        auditRecorder.record(
+            AuditEventDraft(
+                eventTypeKey = AuditEventType.EXCHANGE_RESCINDED.key,
+                outcome = AuditOutcome.SUCCESS,
+                actorId = authTokenContext.authToken.appUser?.id,
+                targetType = ResourceType.EXCHANGE.name,
+                targetId = exchangeUuid.toString(),
+                targetLabel = exchange.name,
+                organizationId = exchange.ownerOrganizationId,
+                payload = mapOf(
+                    "previousStatus" to previousStatus.name,
+                    "newStatus" to ExchangeStatus.RESCINDED.name,
+                ),
+                idempotencyKey = "exchange.rescind:$exchangeUuid",
+                businessTransactionId = exchangeUuid.toString(),
+            )
+        )
 
         workflowInstanceRepository.findAllRunningForSubject(ResourceType.EXCHANGE.name, exchangeUuid)
             .forEach { instance ->
                 workflowEngineService.cancel(instance.id, "Exchange rescinded")
             }
 
-        shareService.revokeAllForResource(ResourceType.EXCHANGE, exchangeUuid)
+        shareService.revokeAllForResource(ResourceType.EXCHANGE, exchangeUuid, resourceLabel = exchange.name)
 
         val updatedExchange = exchangeRepository.findById(exchangeUuid)
             ?: throw ExchangeNotFoundException("Exchange not found")
@@ -438,9 +473,91 @@ class ExchangeUpdateService @Inject constructor(
                 workflowEngineService.cancel(instance.id, "Exchange deleted")
             }
 
-        shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID)
+        shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID, resourceLabel = session.name)
+
+        recordExchangeDeleted(sessionUUID, session.name, session.ownerOrganizationId)
 
         logger.info("Exchange ${session.name} deleted")
+    }
+
+    /**
+     * Phase 3 task 4 (breadth): captures ACCEPTED_STARTED / REJECTED / ENDED transitions from
+     * [updateExchange] onto the ledger, mirroring the [rescindExchange] reference pattern but
+     * using the catch-and-log style established for the new Phase 3 call sites so a plumbing
+     * failure here never blocks the underlying status transition. Statuses without a mapped
+     * event (e.g. INITIATED, RESCINDED - the latter has its own dedicated capture in
+     * [rescindExchange]) are silently skipped.
+     */
+    private fun recordLifecycleTransition(
+        exchangeId: UUID,
+        exchangeName: String?,
+        organizationId: UUID?,
+        previousStatus: ExchangeStatus,
+        newStatus: ExchangeStatus,
+    )
+    {
+        val eventType = when (newStatus)
+        {
+            ExchangeStatus.ACCEPTED_STARTED -> AuditEventType.EXCHANGE_ACCEPTED
+            ExchangeStatus.REJECTED -> AuditEventType.EXCHANGE_REJECTED
+            ExchangeStatus.ENDED -> AuditEventType.EXCHANGE_ENDED
+            else -> return
+        }
+        try
+        {
+            auditRecorder.record(
+                AuditEventDraft(
+                    eventTypeKey = eventType.key,
+                    outcome = AuditOutcome.SUCCESS,
+                    actorId = authTokenContext.authToken.appUser?.id,
+                    actorKind = AuditActorKind.HUMAN,
+                    targetType = ResourceType.EXCHANGE.name,
+                    targetId = exchangeId.toString(),
+                    targetLabel = exchangeName,
+                    organizationId = organizationId,
+                    payload = mapOf(
+                        "previousStatus" to previousStatus.name,
+                        "newStatus" to newStatus.name,
+                    ),
+                )
+            )
+        }
+        catch (e: AuditDraftInvalidException)
+        {
+            logger.warn("ExchangeUpdateService: AuditRecorder rejected {} draft: {}", eventType.key, e.message)
+        }
+        catch (e: AuditCaptureFailedException)
+        {
+            logger.error("ExchangeUpdateService: AuditRecorder capture failed for {}: {}", eventType.key, e.message, e)
+        }
+    }
+
+    /** Phase 3 task 4 (breadth): captures exchange deletion onto the ledger. */
+    private fun recordExchangeDeleted(exchangeId: UUID, exchangeName: String?, organizationId: UUID?)
+    {
+        try
+        {
+            auditRecorder.record(
+                AuditEventDraft(
+                    eventTypeKey = AuditEventType.EXCHANGE_DELETED.key,
+                    outcome = AuditOutcome.SUCCESS,
+                    actorId = authTokenContext.authToken.appUser?.id,
+                    actorKind = AuditActorKind.HUMAN,
+                    targetType = ResourceType.EXCHANGE.name,
+                    targetId = exchangeId.toString(),
+                    targetLabel = exchangeName,
+                    organizationId = organizationId,
+                )
+            )
+        }
+        catch (e: AuditDraftInvalidException)
+        {
+            logger.warn("ExchangeUpdateService: AuditRecorder rejected EXCHANGE_DELETED draft: {}", e.message)
+        }
+        catch (e: AuditCaptureFailedException)
+        {
+            logger.error("ExchangeUpdateService: AuditRecorder capture failed for EXCHANGE_DELETED: {}", e.message, e)
+        }
     }
 
     fun updateNoAuthExchange(
@@ -536,12 +653,12 @@ class ExchangeUpdateService @Inject constructor(
                         decision = decision,
                         reason = rejectReason,
                     )
-                    // Write status directly — EVENT_EXCHANGE_ACTIVATED does not advance status
+                    // Write status directly � EVENT_EXCHANGE_ACTIVATED does not advance status
                     // when requireRecipientAcceptance=true, so this path owns the transition.
                     exchangeRepository.updateStatus(sessionUUID, requestedStatus)
                     if (requestedStatus == ExchangeStatus.REJECTED)
                     {
-                        shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID)
+                        shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID, resourceLabel = session.name)
                     }
                     if (requestedStatus == ExchangeStatus.ACCEPTED_STARTED)
                     {
@@ -655,7 +772,7 @@ class ExchangeUpdateService @Inject constructor(
 
         if (session.status == ExchangeStatus.ACCEPTED_STARTED)
         {
-            // Recipient already verified and accepted — OTP re-issuance via this endpoint is
+            // Recipient already verified and accepted � OTP re-issuance via this endpoint is
             // not permitted. Any re-verification is handled by the initiator from Manage Access.
             throw ForbiddenException("Exchange not found")
         }
@@ -672,7 +789,7 @@ class ExchangeUpdateService @Inject constructor(
         throwIfOtpLocked(sessionUUID)
 
         // If a valid OTP already exists (including the long-lived initial invite code), silently
-        // succeed without sending another email. The frontend calls this on page load — returning
+        // succeed without sending another email. The frontend calls this on page load � returning
         // 204 lets the user proceed to enter the code they already received.
         val existingExpiry = session.recipientOtpExpiry?.toInstant()
         if (existingExpiry != null && existingExpiry.isAfter(Instant.now()))

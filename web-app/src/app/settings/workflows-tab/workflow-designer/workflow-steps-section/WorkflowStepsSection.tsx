@@ -1,14 +1,11 @@
-import {Button, Text} from "@fluentui/react-components";
 import {
     WorkflowStepSpecDraft,
     WorkflowSubjectFieldDto,
     WorkflowTriggerEventDto,
 } from "../../../../models/models.tsx";
-import {AddIcon, BackIcon} from "../../../../components/IconBundles.tsx";
-import StepCard from "../../step-card/StepCard.tsx";
-import {useWorkflowStepsSectionStyles} from "./WorkflowStepsSectionStyles.tsx";
-import StepSummaryCard from "./step-summary-card/StepSummaryCard.tsx";
 import {useEffect, useState} from "react";
+import WorkflowStepDetailPage from "./WorkflowStepDetailPage.tsx";
+import WorkflowStepListPage from "./WorkflowStepListPage.tsx";
 
 interface Props
 {
@@ -23,14 +20,15 @@ interface Props
 
 const WorkflowStepsSection = ({steps, triggers, subjectFields, onAdd, onUpdate, onRemove, onBack}: Props) =>
 {
-    const styles = useWorkflowStepsSectionStyles();
     const [selectedStepIndex, setSelectedStepIndex] = useState<number | null>(null);
     const [newStepIndex, setNewStepIndex] = useState<number | null>(null);
+    const [transitionDirection, setTransitionDirection] = useState<"forward" | "back" | null>(null);
 
     useEffect(() =>
     {
         if (selectedStepIndex !== null && selectedStepIndex >= steps.length)
         {
+            setTransitionDirection("back");
             setSelectedStepIndex(null);
         }
     }, [selectedStepIndex, steps.length]);
@@ -57,77 +55,51 @@ const WorkflowStepsSection = ({steps, triggers, subjectFields, onAdd, onUpdate, 
         setNewStepIndex(addedStepIndex);
     };
 
+    const openStep = (index: number) =>
+    {
+        if (newStepIndex === index) setNewStepIndex(null);
+        setTransitionDirection("forward");
+        setSelectedStepIndex(index);
+    };
+
+    const closeStep = () =>
+    {
+        setTransitionDirection("back");
+        setSelectedStepIndex(null);
+    };
+
     if (selectedStepIndex !== null)
     {
         const selectedStep = steps[selectedStepIndex];
 
         return (
-            <div className={styles.stepDetail}>
-                <StepCard
-                    index={selectedStepIndex}
-                    step={selectedStep}
-                    steps={steps}
-                    onChange={step => onUpdate(selectedStepIndex, step)}
-                    onRemove={() =>
-                    {
-                        onRemove(selectedStepIndex);
-                        setSelectedStepIndex(null);
-                    }}
-                    triggers={triggers}
-                    subjectFields={subjectFields}
-                    onBack={() => setSelectedStepIndex(null)}
-                />
-            </div>
+            <WorkflowStepDetailPage
+                selectedStepIndex={selectedStepIndex}
+                step={selectedStep}
+                steps={steps}
+                triggers={triggers}
+                subjectFields={subjectFields}
+                transitionDirection={transitionDirection}
+                onUpdate={onUpdate}
+                onRemove={(index) =>
+                {
+                    onRemove(index);
+                    closeStep();
+                }}
+                onBack={closeStep}
+            />
         );
     }
 
     return (
-        <div className={styles.stepList}>
-            <div className={styles.stepListHeader}>
-                <div className={styles.headerTitle}>
-                    <Button
-                        id="workflow-steps-back-btn"
-                        size="small"
-                        appearance="subtle"
-                        shape="circular"
-                        icon={<BackIcon/>}
-                        aria-label="Back to workflow sections"
-                        onClick={onBack}
-                    />
-                    <Text weight="semibold">Steps ({steps.length})</Text>
-                </div>
-                <Button
-                    id="workflow-designer-add-step-btn"
-                    size="small"
-                    appearance="subtle"
-                    shape={"circular"}
-                    icon={<AddIcon/>}
-                    onClick={addStep}
-                >
-                    Add Step
-                </Button>
-            </div>
-
-            {steps.map((step, i) => (
-                <StepSummaryCard
-                    key={i}
-                    index={i}
-                    step={step}
-                    isNew={newStepIndex === i}
-                    onClick={() =>
-                    {
-                        if (newStepIndex === i) setNewStepIndex(null);
-                        setSelectedStepIndex(i);
-                    }}
-                />
-            ))}
-
-            {steps.length === 0 && (
-                <Text className={styles.noStepsText}>
-                    No steps yet. Add a step to define the workflow logic.
-                </Text>
-            )}
-        </div>
+        <WorkflowStepListPage
+            steps={steps}
+            newStepIndex={newStepIndex}
+            transitionDirection={transitionDirection}
+            onAdd={addStep}
+            onBack={onBack}
+            onOpenStep={openStep}
+        />
     );
 };
 

@@ -5,7 +5,6 @@ import FieldValueDisplay from './FieldValueDisplay';
 import {
     DEFAULT_FIELD_SECTION_TITLE,
     groupBindingsBySection,
-    shouldFieldSpanWide,
     toFieldElementId,
 } from './fieldLayoutUtils';
 
@@ -76,7 +75,7 @@ const FieldValuesReadOnly = ({bindings, values}: Props) =>
 
     return (
         <div id="exchange-fields-readonly-sections"
-             className={styles.fieldList}>
+             className={`${styles.fieldList} ${styles.scrollableFieldSections}`}>
             {sections.map(section => (
                 <div id={`exchange-field-section-${section.key}`}
                      key={section.key}
@@ -93,8 +92,7 @@ const FieldValuesReadOnly = ({bindings, values}: Props) =>
                                            key={binding.fieldContractId}
                                            title={binding.label}
                                            description={binding.description ?? binding.helpText}
-                                           valueType={valueType}
-                                           wide={shouldFieldSpanWide(valueType, displayValue)}>
+                                           valueType={valueType}>
                                     <FieldValueDisplay valueType={valueType}
                                                        value={displayValue}
                                                        options={binding.options}

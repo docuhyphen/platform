@@ -78,10 +78,6 @@ export const useCommunicationsTabStyles = makeStyles({
     emptyText: {
         color: "var(--colorNeutralForeground3)",
     },
-    toolbar: {
-        display: "flex",
-        justifyContent: "flex-end",
-    },
     table: {
         width: "100%",
         borderCollapse: "collapse",

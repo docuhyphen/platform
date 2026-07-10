@@ -1,9 +1,15 @@
 import {HelpDocSectionInput} from "../helpDocsRegistry";
+import {auditWorkspaceOverviewArticle} from "./articles/auditWorkspaceOverviewArticle";
 
 export const adminOperationsSection: HelpDocSectionInput = {
     id: "admin-operations",
     title: "Admin operations",
     articles: [
+        {
+            id: "audit-workspace-overview",
+            title: "Audit workspace overview",
+            content: auditWorkspaceOverviewArticle,
+        },
         {
             id: "role-permission-matrix",
             title: "Role & Permission Matrix",

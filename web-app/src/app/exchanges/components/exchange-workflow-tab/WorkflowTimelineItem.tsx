@@ -77,10 +77,10 @@ const collapsedSummaryText = (step: WorkflowStepInstanceDto, isActivePending: bo
     if (isActivePending) return "";
     const latestApprove = step.decisions.find(d => d.decision === "APPROVE");
     if (latestApprove)
-        return `by ${principalLabel(latestApprove.displayName, latestApprove.email, latestApprove.principalId)} · ${formatEpoch(latestApprove.atEpochMillis)}`;
+        return `by ${principalLabel(latestApprove.displayName, '', latestApprove.principalId)}`;
     const latestReject = step.decisions.find(d => d.decision === "REJECT");
     if (latestReject)
-        return `by ${principalLabel(latestReject.displayName, latestReject.email, latestReject.principalId)} · ${formatEpoch(latestReject.atEpochMillis)}`;
+        return `by ${principalLabel(latestReject.displayName, '', latestReject.principalId)} · ${formatEpoch(latestReject.atEpochMillis)}`;
     return "";
 };
 
@@ -113,13 +113,6 @@ const WorkflowTimelineItem = ({ step, isActivePending }: Props) =>
                         id={`workflow-step-meta-${step.id}`}
                         className={styles.stepHeaderMeta}
                     >
-                        <Badge
-                            color={STEP_STATUS_COLORS[step.status] ?? "subtle"}
-                            appearance="outline"
-                            size="small"
-                        >
-                            {collapsedBadgeLabel(step, isActivePending)}
-                        </Badge>
                         {collapsedSummary && (
                             <Text
                                 id={`workflow-step-summary-${step.id}`}
@@ -129,6 +122,13 @@ const WorkflowTimelineItem = ({ step, isActivePending }: Props) =>
                                 {collapsedSummary}
                             </Text>
                         )}
+                        <Badge
+                            color={STEP_STATUS_COLORS[step.status] ?? "subtle"}
+                            appearance="outline"
+                            size="small"
+                        >
+                            {collapsedBadgeLabel(step, isActivePending)}
+                        </Badge>
                     </div>
                 </div>
             </AccordionHeader>

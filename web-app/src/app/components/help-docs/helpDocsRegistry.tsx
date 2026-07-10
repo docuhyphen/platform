@@ -9,7 +9,6 @@ import {variablesSection}       from "./sections/variablesSection";
 import {fieldsSection}          from "./sections/fieldsSection";
 import {communicationsSection}  from "./sections/communicationsSection";
 import {documentLibrarySection}  from "./sections/documentLibrarySection";
-
 export type HelpDocArticle = {
     id: string;
     sectionId: string;
@@ -26,7 +25,6 @@ export type HelpDocSectionInput = {
         content: ReactNode;
     }>;
 };
-
 const helpDocSections: HelpDocSectionInput[] = [
     startHereSection,
     identitySection,
@@ -39,7 +37,6 @@ const helpDocSections: HelpDocSectionInput[] = [
     communicationsSection,
     documentLibrarySection,
 ];
-
 export const HELP_DOC_ARTICLES: HelpDocArticle[] = helpDocSections.flatMap((section) =>
     section.articles.map((article) => ({
         id: article.id,
@@ -49,12 +46,10 @@ export const HELP_DOC_ARTICLES: HelpDocArticle[] = helpDocSections.flatMap((sect
         content: article.content,
     })),
 );
-
 export function getDefaultHelpDocArticle(): HelpDocArticle
 {
     return HELP_DOC_ARTICLES[0];
 }
-
 export function getHelpDocArticleById(articleId: string): HelpDocArticle | undefined
 {
     return HELP_DOC_ARTICLES.find((article) => article.id === articleId);

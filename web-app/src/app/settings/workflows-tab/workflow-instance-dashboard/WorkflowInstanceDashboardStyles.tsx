@@ -5,6 +5,15 @@ export const useWorkflowInstanceDashboardStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: "1rem",
+        height: "100%",
+        minHeight: "100%",
+    },
+    listContent: {
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        overflowX: "hidden",
+        overscrollBehavior: "contain",
     },
 
     filterBar: {
@@ -41,14 +50,6 @@ export const useWorkflowInstanceDashboardStyles = makeStyles({
         padding: "2rem",
         color: tokens.colorNeutralForeground3,
         textAlign: "center",
-    },
-
-    pagination: {
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "flex-end",
-        gap: "0.5rem",
-        paddingTop: "0.75rem",
     },
 
     statusFilterSelect: {

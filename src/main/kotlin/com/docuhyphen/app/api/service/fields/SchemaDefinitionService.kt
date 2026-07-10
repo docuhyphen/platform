@@ -27,6 +27,13 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
+import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
+import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
+import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
+import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -53,8 +60,10 @@ class SchemaDefinitionService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val userRoleService: UserRoleService,
+    private val auditRecorder: AuditRecorder,
 )
 {
+    private val logger = org.slf4j.LoggerFactory.getLogger(SchemaDefinitionService::class.java)
     private val keyPattern = Regex("^[a-z0-9][a-z0-9-]*$")
 
     // ── Reads ─────────────────────────────────────────────────────────────────
@@ -159,6 +168,7 @@ class SchemaDefinitionService @Inject constructor(
         schemaVersionRepository.save(version)
         replaceBindings(version, orgId, scopeKind, scopeOrgId, request.bindings)
 
+        recordSchemaEvent(AuditEventType.SCHEMA_DEFINITION_CREATE, definition.id, definition.displayName, principal.id, scopeOrgId)
         return definition.toDto()
     }
 
@@ -236,18 +246,22 @@ class SchemaDefinitionService @Inject constructor(
         def.status = FieldLifecycleStatus.PUBLISHED
         def.updatedAt = Timestamp.from(Instant.now())
         schemaDefinitionRepository.update(def)
+        recordSchemaEvent(AuditEventType.SCHEMA_DEFINITION_PUBLISH, def.id, def.displayName, principal.id, def.scopeOrgId)
         return def.toDto()
     }
 
     @Transactional
     fun retireSchema(schemaDefinitionId: UUID): SchemaDefinitionDto
     {
+        val principal = currentPrincipal()
         requirePublish()
         val def = schemaDefinitionRepository.findById(schemaDefinitionId)
             ?: throw IllegalArgumentException("Schema not found: $schemaDefinitionId")
         def.status = FieldLifecycleStatus.RETIRED
         def.updatedAt = Timestamp.from(Instant.now())
-        return schemaDefinitionRepository.update(def).toDto()
+        val updated = schemaDefinitionRepository.update(def)
+        recordSchemaEvent(AuditEventType.SCHEMA_DEFINITION_RETIRE, updated.id, updated.displayName, principal.id, updated.scopeOrgId)
+        return updated.toDto()
     }
 
     // ── Internals ───────────────────────────────────────────────────────────────
@@ -344,6 +358,44 @@ class SchemaDefinitionService @Inject constructor(
 
     private fun currentContext(): AuthorizationContext =
         authorizationContextFactory.currentContext()
+
+    /**
+     * Phase 3 task 4 (breadth): captures Schema Definition lifecycle mutations onto the ledger.
+     * targetType uses the literal "SCHEMA_DEFINITION" (no dedicated ResourceType entry exists
+     * for this resource today) per the no-business-FK / denormalized-string rule.
+     */
+    private fun recordSchemaEvent(
+        eventType: AuditEventType,
+        schemaDefinitionId: UUID,
+        schemaDisplayName: String?,
+        actorId: UUID,
+        organizationId: UUID?,
+    )
+    {
+        try
+        {
+            auditRecorder.record(
+                AuditEventDraft(
+                    eventTypeKey = eventType.key,
+                    outcome = AuditOutcome.SUCCESS,
+                    actorId = actorId,
+                    actorKind = AuditActorKind.HUMAN,
+                    targetType = "SCHEMA_DEFINITION",
+                    targetId = schemaDefinitionId.toString(),
+                    targetLabel = schemaDisplayName,
+                    organizationId = organizationId,
+                )
+            )
+        }
+        catch (e: AuditDraftInvalidException)
+        {
+            logger.warn("SchemaDefinitionService: AuditRecorder rejected {} draft: {}", eventType.key, e.message)
+        }
+        catch (e: AuditCaptureFailedException)
+        {
+            logger.error("SchemaDefinitionService: AuditRecorder capture failed for {}: {}", eventType.key, e.message, e)
+        }
+    }
 
     // ── Mapping ──────────────────────────────────────────────────────────────
 

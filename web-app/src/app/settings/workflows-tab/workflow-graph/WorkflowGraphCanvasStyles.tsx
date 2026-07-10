@@ -54,6 +54,19 @@ export const useWorkflowGraphCanvasStyles = makeStyles({
             height: "100%",
         },
     },
+    canvasContainerEnlarged: {
+        position: "fixed",
+        inset: tokens.spacingHorizontalL,
+        width: "auto",
+        height: "auto",
+        zIndex: 1000,
+        borderRadius: tokens.borderRadiusLarge,
+        boxShadow: tokens.shadow64,
+        "@media (max-width: 600px)": {
+            inset: 0,
+            borderRadius: 0,
+        },
+    },
 
     warningList: {
         margin: 0,

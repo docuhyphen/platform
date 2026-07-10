@@ -54,7 +54,7 @@ import {useAuth} from '../../../context/AuthContext.tsx';
 import DocumentLibraryEntryCard from './DocumentLibraryEntryCard.tsx';
 import DocumentLibraryEditorDialog from './DocumentLibraryEditorDialog.tsx';
 import DocumentLibraryUploadDialog from './DocumentLibraryUploadDialog.tsx';
-import ExchangeListPagination from '../../exchanges/components/exchange-list/exchange-list-pagination/ExchangeListPagination.tsx';
+import DocumentLibraryPagination from "./document-library-pagination/DocumentLibraryPagination.tsx";
 
 const PAGE_SIZE = 12;
 
@@ -123,6 +123,14 @@ const DocumentLibraryTab = () =>
     const totalPages = Math.ceil(filteredEntries.length / PAGE_SIZE);
     const visibleEntries = filteredEntries.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
+    useEffect(() =>
+    {
+        if (currentPage > 0 && currentPage >= Math.max(totalPages, 1))
+        {
+            setCurrentPage(Math.max(totalPages - 1, 0));
+        }
+    }, [currentPage, totalPages]);
+
     const toggleTag = (tag: string) =>
     {
         setSelectedTags(prev =>
@@ -152,14 +160,24 @@ const DocumentLibraryTab = () =>
             .finally(() => setLoading(false));
     };
 
-    useEffect(() => { loadEntries(); }, [activeTab]);
+    useEffect(() =>
+    {
+        loadEntries();
+    }, [activeTab]);
 
-    const handleViewModeChange = async (mode: ViewMode) => {
+    const handleViewModeChange = async (mode: ViewMode) =>
+    {
         setViewMode(mode);
         if (!appUser?.settings) return;
         const updated = {...appUser.settings, documentLibraryView: mode};
-        try { await updateAppUserSettings(updated, token); if (appUser) setAppUser({...appUser, settings: updated}); }
-        catch { /* non-critical: preference saved locally at least */ }
+        try
+        {
+            await updateAppUserSettings(updated, token);
+            if (appUser) setAppUser({...appUser, settings: updated});
+        }
+        catch
+        { /* non-critical: preference saved locally at least */
+        }
     };
 
     const handlePublish = async (entry: DocumentLibraryEntrySummaryDto) =>
@@ -288,96 +306,115 @@ const DocumentLibraryTab = () =>
                     </div>
 
                     <div className={styles.searchRow}>
-                        <Field style={{flex: 1}}>
-                            <SearchBox
-                                id="doc-search-input"
-                                placeholder="Search documents"
-                                maxLength={100}
-                                value={searchQuery}
-                                onChange={(_, data) =>
+                        <div className={styles.searchRowInputs}>
+                            <Field className={styles.searchField}>
+                                <SearchBox
+                                    id="doc-search-input"
+                                    placeholder="Search documents"
+                                    maxLength={100}
+                                    value={searchQuery}
+                                    onChange={(_, data) =>
+                                    {
+                                        setSearchQuery(data.value);
+                                        setCurrentPage(0);
+                                    }}
+                                />
+                            </Field>
+                            {availableTags.length > 0 && (
+                                <Popover positioning="below-end" onOpenChange={(_, {open}) =>
                                 {
-                                    setSearchQuery(data.value);
-                                    setCurrentPage(0);
-                                }}
-                            />
-                        </Field>
-                        {availableTags.length > 0 && (
-                            <Popover positioning="below-end" onOpenChange={(_, {open}) => { if (!open) setFilterSearch(''); }}>
-                                <PopoverTrigger disableButtonEnhancement>
-                                    <Tooltip content="Filter by tag" relationship="description">
+                                    if (!open) setFilterSearch('');
+                                }}>
+                                    <PopoverTrigger disableButtonEnhancement>
+                                        <Tooltip content="Filter by tag" relationship="description">
+                                            <Button
+                                                id="doc-filter-btn"
+                                                icon={<FilterIcon/>}
+                                                appearance={selectedTags.size > 0 ? 'primary' : 'subtle'}
+                                                shape="circular"
+                                            />
+                                        </Tooltip>
+                                    </PopoverTrigger>
+                                    <PopoverSurface className={styles.filterPopover}>
+                                        <SearchBox
+                                            placeholder="Search tags"
+                                            size="small"
+                                            value={filterSearch}
+                                            onChange={(_, d) => setFilterSearch(d.value)}
+                                        />
+                                        <div className={styles.filterPopoverList}>
+                                            {filteredTagOptions.map(tag => (
+                                                <Checkbox
+                                                    key={tag}
+                                                    label={tag}
+                                                    checked={selectedTags.has(tag)}
+                                                    onChange={() => toggleTag(tag)}
+                                                />
+                                            ))}
+                                            {filteredTagOptions.length === 0 && (
+                                                <Text
+                                                    size={200}
+                                                    className={styles.filterEmptyText}
+                                                >
+                                                    No tags found
+                                                </Text>
+                                            )}
+                                        </div>
+                                    </PopoverSurface>
+                                </Popover>
+                            )}
+                            <Menu>
+                                <MenuTrigger>
+                                    <Tooltip
+                                        content={sortOrder === 'nameAsc' ? 'Name (A-Z)' : sortOrder === 'nameDesc' ? 'Name (Z-A)' : 'Recently updated'}
+                                        relationship="description"
+                                    >
                                         <Button
-                                            id="doc-filter-btn"
-                                            icon={<FilterIcon/>}
-                                            appearance={selectedTags.size > 0 ? 'primary' : 'subtle'}
+                                            id="doc-sort-btn"
+                                            icon={sortOrder === 'nameDesc' ? <SortDownIcon/> : <SortUpIcon/>}
+                                            appearance={sortOrder !== 'default' ? 'primary' : 'subtle'}
                                             shape="circular"
                                         />
                                     </Tooltip>
-                                </PopoverTrigger>
-                                <PopoverSurface className={styles.filterPopover}>
-                                    <SearchBox
-                                        placeholder="Search tags"
-                                        size="small"
-                                        value={filterSearch}
-                                        onChange={(_, d) => setFilterSearch(d.value)}
-                                    />
-                                    <div className={styles.filterPopoverList}>
-                                        {filteredTagOptions.map(tag => (
-                                            <Checkbox
-                                                key={tag}
-                                                label={tag}
-                                                checked={selectedTags.has(tag)}
-                                                onChange={() => toggleTag(tag)}
-                                            />
-                                        ))}
-                                        {filteredTagOptions.length === 0 && (
-                                            <Text size={200} style={{padding: '4px 8px', color: 'var(--colorNeutralForeground3)'}}>
-                                                No tags found
-                                            </Text>
-                                        )}
-                                    </div>
-                                </PopoverSurface>
-                            </Popover>
-                        )}
-                        <Menu>
-                            <MenuTrigger>
-                                <Tooltip
-                                    content={sortOrder === 'nameAsc' ? 'Name (A-Z)' : sortOrder === 'nameDesc' ? 'Name (Z-A)' : 'Recently updated'}
-                                    relationship="description"
-                                >
-                                    <Button
-                                        id="doc-sort-btn"
-                                        icon={sortOrder === 'nameDesc' ? <SortDownIcon/> : <SortUpIcon/>}
-                                        appearance={sortOrder !== 'default' ? 'primary' : 'subtle'}
-                                        shape="circular"
-                                    />
-                                </Tooltip>
-                            </MenuTrigger>
-                            <MenuPopover>
-                                <MenuList>
-                                    <MenuItem
-                                        icon={sortOrder === 'default' ? <CheckmarkIcon/> : undefined}
-                                        onClick={() => { setSortOrder('default'); setCurrentPage(0); }}
-                                    >
-                                        Recently updated
-                                    </MenuItem>
-                                    <MenuItem
-                                        icon={sortOrder === 'nameAsc' ? <CheckmarkIcon/> : undefined}
-                                        onClick={() => { setSortOrder('nameAsc'); setCurrentPage(0); }}
-                                    >
-                                        Name (A-Z)
-                                    </MenuItem>
-                                    <MenuItem
-                                        icon={sortOrder === 'nameDesc' ? <CheckmarkIcon/> : undefined}
-                                        onClick={() => { setSortOrder('nameDesc'); setCurrentPage(0); }}
-                                    >
-                                        Name (Z-A)
-                                    </MenuItem>
-                                </MenuList>
-                            </MenuPopover>
-                        </Menu>
+                                </MenuTrigger>
+                                <MenuPopover>
+                                    <MenuList>
+                                        <MenuItem
+                                            icon={sortOrder === 'default' ? <CheckmarkIcon/> : undefined}
+                                            onClick={() =>
+                                            {
+                                                setSortOrder('default');
+                                                setCurrentPage(0);
+                                            }}
+                                        >
+                                            Recently updated
+                                        </MenuItem>
+                                        <MenuItem
+                                            icon={sortOrder === 'nameAsc' ? <CheckmarkIcon/> : undefined}
+                                            onClick={() =>
+                                            {
+                                                setSortOrder('nameAsc');
+                                                setCurrentPage(0);
+                                            }}
+                                        >
+                                            Name (A-Z)
+                                        </MenuItem>
+                                        <MenuItem
+                                            icon={sortOrder === 'nameDesc' ? <CheckmarkIcon/> : undefined}
+                                            onClick={() =>
+                                            {
+                                                setSortOrder('nameDesc');
+                                                setCurrentPage(0);
+                                            }}
+                                        >
+                                            Name (Z-A)
+                                        </MenuItem>
+                                    </MenuList>
+                                </MenuPopover>
+                            </Menu>
+                        </div>
                         <ViewModeToggle value={viewMode} onChange={handleViewModeChange}/>
                     </div>
-
                     {selectedTags.size > 0 && (
                         <div className={styles.activeTagsRow}>
                             <TagGroup
@@ -400,8 +437,13 @@ const DocumentLibraryTab = () =>
                             </TagGroup>
                             <Button
                                 size="small"
-                                appearance="subtle"
-                                onClick={() => { setSelectedTags(new Set()); setCurrentPage(0); }}
+                                appearance="outline"
+                                shape={"circular"}
+                                onClick={() =>
+                                {
+                                    setSelectedTags(new Set());
+                                    setCurrentPage(0);
+                                }}
                             >
                                 Clear all
                             </Button>
@@ -417,54 +459,54 @@ const DocumentLibraryTab = () =>
                     />
                 )}
                 <div className={styles.scrollableContent}>
-                {!loading && error && (
-                    <Text
-                        id="doc-error-text"
-                        className={styles.errorText}
-                    >
-                        {error}
-                    </Text>
-                )}
-                {!loading && !error && entries.length === 0 && (
-                    <Text
-                        id="doc-empty-text"
-                        className={styles.emptyText}
-                    >
-                        {emptyMessage[activeTab]}
-                    </Text>
-                )}
-                {!loading && !error && entries.length > 0 && filteredEntries.length === 0 && (
-                    <Text
-                        id="doc-no-results-text"
-                        className={styles.emptyText}
-                    >
-                        No documents match your search.
-                    </Text>
-                )}
-                {!loading && !error && visibleEntries.length > 0 && viewMode === 'cards' && (
-                    <div className={styles.cardGrid}>
-                        {visibleEntries.map(entry => (
-                            <DocumentLibraryEntryCard
-                                key={entry.id}
-                                entry={entry}
-                                canManage={canManageItem(entry)}
-                                showPublishToggle={activeTab !== 'PERSONAL'}
-                                onEdit={() => openEdit(entry)}
-                                onUpload={() => openUpload(entry)}
-                                onDownload={() => handleDownload(entry)}
-                                onPublish={() => handlePublish(entry)}
-                                onActivate={() => handleActivate(entry)}
-                                onClone={() => handleClone(entry)}
-                                onDelete={() => setConfirmDeleteId(entry.id)}
-                                onCloneToPersonal={activeTab === 'APP' ? () => handleCloneToPersonal(entry) : undefined}
-                                onCloneToOrg={activeTab === 'APP' && canManageOrganization ? () => handleCloneToOrg(entry) : undefined}
-                            />
-                        ))}
-                    </div>
-                )}
-                {!loading && !error && visibleEntries.length > 0 && viewMode === 'table' && (
-                    <table className={styles.table}>
-                        <thead>
+                    {!loading && error && (
+                        <Text
+                            id="doc-error-text"
+                            className={styles.errorText}
+                        >
+                            {error}
+                        </Text>
+                    )}
+                    {!loading && !error && entries.length === 0 && (
+                        <Text
+                            id="doc-empty-text"
+                            className={styles.emptyText}
+                        >
+                            {emptyMessage[activeTab]}
+                        </Text>
+                    )}
+                    {!loading && !error && entries.length > 0 && filteredEntries.length === 0 && (
+                        <Text
+                            id="doc-no-results-text"
+                            className={styles.emptyText}
+                        >
+                            No documents match your search.
+                        </Text>
+                    )}
+                    {!loading && !error && visibleEntries.length > 0 && viewMode === 'cards' && (
+                        <div className={styles.cardGrid}>
+                            {visibleEntries.map(entry => (
+                                <DocumentLibraryEntryCard
+                                    key={entry.id}
+                                    entry={entry}
+                                    canManage={canManageItem(entry)}
+                                    showPublishToggle={activeTab !== 'PERSONAL'}
+                                    onEdit={() => openEdit(entry)}
+                                    onUpload={() => openUpload(entry)}
+                                    onDownload={() => handleDownload(entry)}
+                                    onPublish={() => handlePublish(entry)}
+                                    onActivate={() => handleActivate(entry)}
+                                    onClone={() => handleClone(entry)}
+                                    onDelete={() => setConfirmDeleteId(entry.id)}
+                                    onCloneToPersonal={activeTab === 'APP' ? () => handleCloneToPersonal(entry) : undefined}
+                                    onCloneToOrg={activeTab === 'APP' && canManageOrganization ? () => handleCloneToOrg(entry) : undefined}
+                                />
+                            ))}
+                        </div>
+                    )}
+                    {!loading && !error && visibleEntries.length > 0 && viewMode === 'table' && (
+                        <table className={styles.table}>
+                            <thead>
                             <tr>
                                 <th className={styles.th}>Title</th>
                                 <th className={styles.th}>Type</th>
@@ -473,18 +515,19 @@ const DocumentLibraryTab = () =>
                                 <th className={styles.th}>Active</th>
                                 <th className={styles.th}/>
                             </tr>
-                        </thead>
-                        <tbody>
+                            </thead>
+                            <tbody>
                             {visibleEntries.map(entry => (
                                 <tr key={entry.id} className={styles.tr}>
                                     <td className={styles.td}>
                                         <Text weight="semibold">{entry.title}</Text>
                                         {entry.description && (
-                                            <Text size={200} className={styles.descriptionText} block>{entry.description}</Text>
+                                            <Text size={200} className={styles.descriptionText}
+                                                  block>{entry.description}</Text>
                                         )}
                                     </td>
                                     <td className={styles.td}>
-                                        <Text size={200}>{entry.documentType ?? '—'}</Text>
+                                        <Text size={200}>{entry.documentType ?? '-'}</Text>
                                     </td>
                                     <td className={styles.td}>
                                         <TagList tags={entry.generalTags}/>
@@ -495,7 +538,8 @@ const DocumentLibraryTab = () =>
                                         </td>
                                     )}
                                     <td className={styles.td}>
-                                        <Badge appearance="tint" color={entry.isActive ? 'success' : 'warning'} size="small">
+                                        <Badge appearance="tint" color={entry.isActive ? 'success' : 'warning'}
+                                               size="small">
                                             {entry.isActive ? 'Active' : 'Inactive'}
                                         </Badge>
                                     </td>
@@ -518,25 +562,29 @@ const DocumentLibraryTab = () =>
                                     </td>
                                 </tr>
                             ))}
-                        </tbody>
-                    </table>
-                )}
-                {!loading && !error && totalPages > 1 && (
-                    <div className={styles.paginationRow}>
-                        <ExchangeListPagination
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            onPageChange={setCurrentPage}
-                        />
-                    </div>
-                )}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
+                {!loading && !error && filteredEntries.length > 0 && (
+                    <DocumentLibraryPagination
+                        currentPage={currentPage}
+                        totalPages={Math.max(totalPages, 1)}
+                        totalItems={filteredEntries.length}
+                        pageSize={PAGE_SIZE}
+                        onPageChange={setCurrentPage}
+                    />
+                )}
             </div>
 
             <DocumentLibraryEditorDialog
                 open={editorOpen}
                 onClose={() => setEditorOpen(false)}
-                onSaved={() => { setEditorOpen(false); loadEntries(); }}
+                onSaved={() =>
+                {
+                    setEditorOpen(false);
+                    loadEntries();
+                }}
                 entry={editingEntry}
                 scope={activeTab as DocumentLibraryScope}
             />
@@ -547,7 +595,11 @@ const DocumentLibraryTab = () =>
                     entryId={uploadingEntry.id}
                     entryTitle={uploadingEntry.title}
                     onClose={() => setUploadOpen(false)}
-                    onUploaded={() => { setUploadOpen(false); loadEntries(); }}
+                    onUploaded={() =>
+                    {
+                        setUploadOpen(false);
+                        loadEntries();
+                    }}
                 />
             )}
 
@@ -577,7 +629,11 @@ const DocumentLibraryTab = () =>
                                 id="doc-library-delete-confirm-btn"
                                 shape="circular"
                                 appearance="primary"
-                                onClick={() => { handleDelete(confirmDeleteId!); setConfirmDeleteId(null); }}
+                                onClick={() =>
+                                {
+                                    handleDelete(confirmDeleteId!);
+                                    setConfirmDeleteId(null);
+                                }}
                             >
                                 Delete
                             </Button>

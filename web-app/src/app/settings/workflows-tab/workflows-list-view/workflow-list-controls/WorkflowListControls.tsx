@@ -40,24 +40,29 @@ const WorkflowListControls = (props: Props) =>
                 id="workflow-list-controls-row"
                 className={styles.controlsRow}
             >
-                <Field className={styles.searchField}>
-                    <SearchBox
-                        id="workflow-list-search"
-                        placeholder="Search workflows"
-                        maxLength={100}
-                        value={props.searchQuery}
-                        onChange={(_, data) => props.onSearchChange(data.value)}
+                <div
+                    id="workflow-list-controls-left"
+                    className={styles.leftControls}
+                >
+                    <Field className={styles.searchField}>
+                        <SearchBox
+                            id="workflow-list-search"
+                            placeholder="Search workflows"
+                            maxLength={100}
+                            value={props.searchQuery}
+                            onChange={(_, data) => props.onSearchChange(data.value)}
+                        />
+                    </Field>
+                    <WorkflowTagFilter
+                        availableTags={props.availableTags}
+                        selectedTags={props.selectedTags}
+                        onTagToggle={props.onTagToggle}
                     />
-                </Field>
-                <WorkflowTagFilter
-                    availableTags={props.availableTags}
-                    selectedTags={props.selectedTags}
-                    onTagToggle={props.onTagToggle}
-                />
-                <WorkflowSortMenu
-                    value={props.sortOrder}
-                    onChange={props.onSortOrderChange}
-                />
+                    <WorkflowSortMenu
+                        value={props.sortOrder}
+                        onChange={props.onSortOrderChange}
+                    />
+                </div>
                 <ViewModeToggle
                     value={props.viewMode}
                     onChange={props.onViewModeChange}

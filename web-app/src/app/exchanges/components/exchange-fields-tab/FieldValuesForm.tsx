@@ -8,7 +8,6 @@ import FieldCard from './FieldCard';
 import FieldValueEditor from './FieldValueEditor';
 import {
     groupBindingsBySection,
-    shouldFieldSpanWide,
     toFieldElementId,
 } from './fieldLayoutUtils';
 
@@ -70,31 +69,33 @@ const FieldValuesForm = ({exchangeId, bindings, values, onSaved}: Props) =>
 
     return (
         <div id="exchange-fields-form-sections"
-             className={styles.fieldList}>
-            {sections.map(section => (
-                <div id={`exchange-field-section-${section.key}`}
-                     key={section.key}
-                     className={styles.sectionBlock}>
-                    <div className={styles.fieldLane}>
-                        {section.bindings.map(binding => (
-                            <FieldCard id={`exchange-field-card-${toFieldElementId(binding.fieldContractId)}`}
-                                       key={binding.fieldContractId}
-                                       title={binding.label}
-                                       description={binding.description ?? binding.helpText}
-                                       valueType={binding.valueType}
-                                       wide={shouldFieldSpanWide(binding.valueType, state[binding.fieldContractId])}
-                                       required={binding.isRequired}
-                                       readOnly={binding.isReadOnly}>
-                                <FieldValueEditor binding={binding}
-                                                  value={state[binding.fieldContractId]}
-                                                  onChange={value => setValue(binding.fieldContractId, value)}
-                                                  showLabel={false}/>
-                            </FieldCard>
-                        ))}
+             className={styles.fieldForm}>
+            <div id="exchange-fields-scrollable-sections"
+                 className={styles.scrollableFieldSections}>
+                {sections.map(section => (
+                    <div id={`exchange-field-section-${section.key}`}
+                         key={section.key}
+                         className={styles.sectionBlock}>
+                        <div className={styles.fieldLane}>
+                            {section.bindings.map(binding => (
+                                <FieldCard id={`exchange-field-card-${toFieldElementId(binding.fieldContractId)}`}
+                                           key={binding.fieldContractId}
+                                           title={binding.label}
+                                           description={binding.description ?? binding.helpText}
+                                           valueType={binding.valueType}
+                                           required={binding.isRequired}
+                                           readOnly={binding.isReadOnly}>
+                                    <FieldValueEditor binding={binding}
+                                                      value={state[binding.fieldContractId]}
+                                                      onChange={value => setValue(binding.fieldContractId, value)}
+                                                      showLabel={false}/>
+                                </FieldCard>
+                            ))}
+                        </div>
                     </div>
-                </div>
-            ))}
-            {error && <span className={styles.errorText}>{error}</span>}
+                ))}
+                {error && <span className={styles.errorText}>{error}</span>}
+            </div>
             <div className={styles.buttonRow}>
                 <Button id="exchange-fields-save-btn"
                         appearance="primary"

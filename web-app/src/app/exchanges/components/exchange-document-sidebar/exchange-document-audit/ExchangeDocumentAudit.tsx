@@ -1,18 +1,11 @@
-﻿import React, {useEffect, useState} from "react";
-import {
-    Spinner,
-    Table,
-    TableBody,
-    TableCell,
-    TableHeader,
-    TableHeaderCell,
-    TableRow,
-    Text
-} from "@fluentui/react-components";
+import {useState} from "react";
+import {Spinner, Text} from "@fluentui/react-components";
 import {useExchangeDocumentAuditStyles} from "./ExchangeDocumentAuditStyles";
-import {DocumentAuditDetailedDto, DocumentDetailedDto} from "../../../../models/models";
-import {fetchExchangeDocumentAuditLogs} from "../../../../../services/exchangeApi";
-import {formatAuditAction, formatDate} from "../../../../helpers.ts";
+import {AuditEventDto, DocumentDetailedDto} from "../../../../models/models";
+import {fetchExchangeDocumentLedgerEvents} from "../../../../../services/auditService.ts";
+import {useAuditEventPage} from "../../../../audit/components/use-audit-event-page/useAuditEventPage.ts";
+import AuditEventCardList from "../../../../audit/components/audit-event-card-list/AuditEventCardList.tsx";
+import AuditEventDetail from "../../../../audit/components/audit-event-detail/AuditEventDetail.tsx";
 
 interface ExchangeDocumentAuditProps
 {
@@ -20,42 +13,25 @@ interface ExchangeDocumentAuditProps
     exchangeDocument: DocumentDetailedDto;
 }
 
-const ExchangeDocumentAudit: React.FC<ExchangeDocumentAuditProps> = ({
-                                                                       exchangeId,
-                                                                       exchangeDocument
-                                                                   }) =>
-{
-    const [auditLogs, setAuditLogs] = useState<DocumentAuditDetailedDto[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
-    const styles = useExchangeDocumentAuditStyles();
-
-    useEffect(() =>
+/**
+ * Ledger-backed document audit view (Phase 7), paginated over
+ * `GET /exchanges/{exchangeId}/documents/{documentId}/audit-events` via the shared audit
+ * card-list/detail components instead of the legacy single-page audit log list.
+ */
+const ExchangeDocumentAudit = (
     {
-        const fetchAuditLogs = async () =>
-        {
-            try
-            {
-                setLoading(true);
-                const logs = await fetchExchangeDocumentAuditLogs(exchangeId, exchangeDocument.id);
-                setAuditLogs(logs as DocumentAuditDetailedDto[]);
-                setError(null);
-            }
-            catch (err: any)
-            {
-                setError(err.message || "Failed to load audit logs");
-                console.error("Error fetching audit logs:", err);
-            }
-            finally
-            {
-                setLoading(false);
-            }
-        };
+        exchangeId,
+        exchangeDocument,
+    }: ExchangeDocumentAuditProps
+) =>
+{
+    const styles = useExchangeDocumentAuditStyles();
+    const [selectedEvent, setSelectedEvent] = useState<AuditEventDto | null>(null);
+    const {items, loading, error, cursor, loadMore} = useAuditEventPage((params) =>
+        fetchExchangeDocumentLedgerEvents(exchangeId, exchangeDocument.id, params)
+    );
 
-        fetchAuditLogs();
-    }, [exchangeId, exchangeDocument.id]);
-
-    if (loading)
+    if (loading && items.length === 0)
     {
         return <Spinner size={"small"}/>;
     }
@@ -65,33 +41,21 @@ const ExchangeDocumentAudit: React.FC<ExchangeDocumentAuditProps> = ({
         return <Text className={styles.error}>Error: {error}</Text>;
     }
 
-    if (!auditLogs || auditLogs.length === 0)
-    {
-        return <Text className={styles.noLogs}>
-            No audit logs available for this document.
-        </Text>;
-    }
-
     return (
-        <div className={styles.auditContainer}>
-            <Table className={styles.auditTable}>
-                <TableHeader>
-                    <TableRow>
-                        <TableHeaderCell>Date & Time</TableHeaderCell>
-                        <TableHeaderCell>Action</TableHeaderCell>
-                        <TableHeaderCell>User</TableHeaderCell>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {auditLogs.map((log) => (
-                        <TableRow key={log.id}>
-                            <TableCell>{formatDate(log.timestamp)}</TableCell>
-                            <TableCell>{formatAuditAction(log.action)}</TableCell>
-                            <TableCell>{log.performedByEmail || 'Unknown'}</TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+        <div id={"exchange-document-audit-container"} className={styles.auditContainer}>
+            <AuditEventCardList
+                items={items}
+                nextCursor={cursor}
+                onLoadMore={loadMore}
+                onEventClick={setSelectedEvent}
+                loading={loading}
+            />
+
+            <AuditEventDetail
+                event={selectedEvent}
+                open={selectedEvent !== null}
+                onDismiss={() => setSelectedEvent(null)}
+            />
         </div>
     );
 };

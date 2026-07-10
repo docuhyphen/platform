@@ -100,6 +100,8 @@ enum class Capability
     ORG_POLICY_MANAGE,
     ORG_BILLING_MANAGE,
     ORG_AUDIT_READ,
+    ORG_AUDIT_EXPORT,
+    ORG_AUDIT_VIEW_SENSITIVE,
 
     // Fields & Schema configuration
     FIELD_SCHEMA_READ,
@@ -109,9 +111,16 @@ enum class Capability
     // Platform
     APP_ADMIN,
     APP_AUDIT_READ,
+    APP_AUDIT_EXPORT,
     APP_SUPPORT,
 
     // Application Registration
     APP_REG_READ,
     APP_REG_ADMIN,
+
+    // Audit governance
+    AUDIT_EXPORT_APPROVE,
+    AUDIT_RETENTION_MANAGE,
+    AUDIT_LEGAL_HOLD_MANAGE,
+    AUDIT_INTEGRITY_VERIFY,
 }

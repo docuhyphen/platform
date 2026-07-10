@@ -175,6 +175,11 @@ export const useExchangesStyles = makeStyles({
             minWidth: 0,
         },
     },
+    scrollableTabContent: {
+        overflowY: "auto",
+        overflowX: "hidden",
+        scrollbarGutter: "stable",
+    },
     noExchangeImg: {
         width: "300px"
     },

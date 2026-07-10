@@ -580,11 +580,20 @@ export enum Capability
     ORG_POLICY_MANAGE = 'ORG_POLICY_MANAGE',
     ORG_BILLING_MANAGE = 'ORG_BILLING_MANAGE',
     ORG_AUDIT_READ = 'ORG_AUDIT_READ',
+    ORG_AUDIT_EXPORT = 'ORG_AUDIT_EXPORT',
+    ORG_AUDIT_VIEW_SENSITIVE = 'ORG_AUDIT_VIEW_SENSITIVE',
 
     // Platform
     APP_ADMIN = 'APP_ADMIN',
     APP_AUDIT_READ = 'APP_AUDIT_READ',
+    APP_AUDIT_EXPORT = 'APP_AUDIT_EXPORT',
     APP_SUPPORT = 'APP_SUPPORT',
+
+    // Audit governance (export approval, retention, legal hold, integrity verification)
+    AUDIT_EXPORT_APPROVE = 'AUDIT_EXPORT_APPROVE',
+    AUDIT_RETENTION_MANAGE = 'AUDIT_RETENTION_MANAGE',
+    AUDIT_LEGAL_HOLD_MANAGE = 'AUDIT_LEGAL_HOLD_MANAGE',
+    AUDIT_INTEGRITY_VERIFY = 'AUDIT_INTEGRITY_VERIFY',
 
     // Application Registration
     APP_REG_READ = 'APP_REG_READ',
@@ -731,6 +740,8 @@ export interface DocumentAuditDetailedDto
     action?: string;
     performedBy?: AppUserPublicDto;
     performedByEmail?: string;
+    documentId?: string;
+    documentTitle?: string;
 }
 
 export enum DocumentType
@@ -1712,4 +1723,108 @@ export interface SchemaAssignmentDto
     assignmentSource: SchemaAssignmentSource;
     assignedAt: string;
     fields: FieldValueDto[];
+}
+
+// ── Audit projection, exports, and integrity (Phase 7) ────────────────────────
+// Mirrors com.docuhyphen.app.api.model.dto.AuditProjectionDtos / AuditExportDtos exactly.
+
+export interface AuditEventCursorDto
+{
+    occurredAt: string;
+    eventId: string;
+}
+
+export interface AuditEventDto
+{
+    eventId: string;
+    category: string;
+    eventTypeKey: string;
+    outcome: string;
+    occurredAt: string;
+    recordedAt: string;
+    ledgerTime: string;
+    streamId: string;
+    streamSequence: number;
+    actorKind: string;
+    actorId?: string;
+    actorRole?: string;
+    actorLabel?: string;
+    organizationId?: string;
+    organizationLabel?: string;
+    targetType?: string;
+    targetId?: string;
+    targetLabel?: string;
+    reason?: string;
+    payload: Record<string, string>;
+    eventHash: string;
+    prevHash?: string;
+}
+
+export interface AuditEventPageDto
+{
+    items: AuditEventDto[];
+    nextCursor: AuditEventCursorDto | null;
+}
+
+export interface AuditExportCreateRequestDto
+{
+    categories: string[];
+    occurredAfter: string;
+    occurredBefore: string;
+    purpose: string;
+    caseReference?: string;
+    legalBasis?: string;
+    downloadLimit?: number;
+}
+
+export interface AuditExportDto
+{
+    exportId: string;
+    organizationId?: string;
+    requestedByUserId: string;
+    requestedAt: string;
+    categories: string[];
+    occurredAfter: string;
+    occurredBefore: string;
+    purpose: string;
+    caseReference?: string;
+    legalBasis?: string;
+    status: string;
+    requiredApprovals: number;
+    approvalCount: number;
+    readyAt?: string;
+    expiresAt?: string;
+    failedAt?: string;
+    failureReason?: string;
+    revokedAt?: string;
+    downloadCount: number;
+    downloadLimit?: number;
+    eventCount?: number;
+    bundleDigest?: string;
+    signingKeyId?: string;
+}
+
+export interface AuditExportApprovalDto
+{
+    approvedByUserId: string;
+    approvedAt: string;
+    note?: string;
+}
+
+export interface AuditStreamIntegrityDto
+{
+    streamId: string;
+    chainValid: boolean;
+    chainNote: string;
+    segmentsChecked: number;
+    segmentsValid: number;
+    segmentFailureNotes: string[];
+}
+
+export interface AuditOrganizationIntegrityDto
+{
+    organizationId?: string;
+    platformOnly: boolean;
+    allValid: boolean;
+    streams: AuditStreamIntegrityDto[];
 }

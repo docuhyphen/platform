@@ -42,6 +42,7 @@ class SchemaDefinitionServiceDefaultsTest
         mock(),
         mock(),
         mock(),
+        mock(),
     )
 
     private val schemaId = UUID.randomUUID()

@@ -5,6 +5,10 @@ export const useExchangeFieldsTabStyles = makeStyles({
         display: 'flex',
         flexDirection: 'column',
         gap: '20px',
+        height: '100%',
+        minHeight: 0,
+        boxSizing: 'border-box',
+        overflow: 'hidden',
         padding: '8px 4px 20px',
     },
     headerRow: {
@@ -75,6 +79,24 @@ export const useExchangeFieldsTabStyles = makeStyles({
         flexDirection: 'column',
         gap: '20px',
     },
+    fieldForm: {
+        display: 'flex',
+        flexDirection: 'column',
+        flex: 1,
+        minHeight: 0,
+    },
+    scrollableFieldSections: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        flex: 1,
+        minHeight: 0,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        scrollbarGutter: 'stable',
+        paddingRight: '4px',
+        paddingBottom: '16px',
+    },
     sectionBlock: {
         display: 'flex',
         flexDirection: 'column',
@@ -93,43 +115,25 @@ export const useExchangeFieldsTabStyles = makeStyles({
         color: tokens.colorNeutralForeground1,
     },
     fieldLane: {
-        display: 'flex',
-        flexWrap: 'wrap',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))',
         gap: '16px',
-        alignItems: 'stretch',
     },
     fieldCardItem: {
         minWidth: 0,
-        flex: '1 1 100%',
-        maxWidth: '100%',
-        '@media (min-width: 769px)': {
-            flex: '1 1 calc((100% - 16px) / 2)',
-            maxWidth: 'calc((100% - 16px) / 2)',
-        },
-        '@media (min-width: 1401px)': {
-            flex: '1 1 calc((100% - 32px) / 3)',
-            maxWidth: 'calc((100% - 32px) / 3)',
-        },
+        width: '100%',
     },
     fieldCard: {
         display: 'flex',
         flexDirection: 'column',
         gap: '14px',
+        height: '100%',
         minWidth: 0,
+        boxSizing: 'border-box',
         padding: '16px',
         borderRadius: tokens.borderRadiusLarge,
         backgroundColor: tokens.colorNeutralBackground1,
         border: `1px solid ${tokens.colorNeutralStroke2}`,
-    },
-    fieldCardWide: {
-        '@media (min-width: 769px)': {
-            flexBasis: '100%',
-            maxWidth: '100%',
-        },
-        '@media (min-width: 1401px)': {
-            flexBasis: 'calc((((100% - 32px) / 3) * 2) + 16px)',
-            maxWidth: 'calc((((100% - 32px) / 3) * 2) + 16px)',
-        },
     },
     fieldCardHeader: {
         display: 'flex',
@@ -195,6 +199,8 @@ export const useExchangeFieldsTabStyles = makeStyles({
         gap: '8px',
         justifyContent: 'flex-end',
         flexWrap: 'wrap',
+        flexShrink: 0,
+        paddingTop: '12px',
     },
     schemaBadgeRow: {
         display: 'flex',

@@ -24,6 +24,13 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
+import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
+import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
+import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
+import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
+import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -56,6 +63,7 @@ class ExchangeAccessManagementService @Inject constructor(
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
     private val configurationService: ConfigurationService,
+    private val auditRecorder: AuditRecorder,
 )
 {
     companion object
@@ -108,6 +116,7 @@ class ExchangeAccessManagementService @Inject constructor(
             grantedByAppUserId = callerAppUserId,
             constraintsJson = normalizedConstraints,
             expiresAt = expiresAtEpochMillis?.let { Timestamp(it) },
+            resourceLabel = session.name,
         )
 
         // Send invitation email to the newly added person.
@@ -117,7 +126,7 @@ class ExchangeAccessManagementService @Inject constructor(
     @Transactional
     fun changeRole(exchangeId: UUID, shareId: UUID, roleName: ExchangeShareRoleName, constraintsJson: String? = null)
     {
-        requireSessionOwner(exchangeId)
+        val session = requireSessionOwnerAndReturn(exchangeId)
         requireMutableAccessShare(exchangeId, shareId)
         val hasConstraintsPayload = constraintsJson != null
         val normalizedConstraints = if (hasConstraintsPayload) ShareConstraints.normalizeForStorage(constraintsJson) else null
@@ -126,22 +135,23 @@ class ExchangeAccessManagementService @Inject constructor(
             roleName = roleName,
             constraintsJson = normalizedConstraints,
             applyConstraints = hasConstraintsPayload,
+            resourceLabel = session.name,
         )
     }
 
     @Transactional
     fun revokeAccess(exchangeId: UUID, shareId: UUID)
     {
-        requireSessionOwner(exchangeId)
+        val session = requireSessionOwnerAndReturn(exchangeId)
         requireMutableAccessShare(exchangeId, shareId)
-        shareService.revoke(shareId, authTokenContext.authToken.appUser?.id)
+        shareService.revoke(shareId, authTokenContext.authToken.appUser?.id, resourceLabel = session.name)
     }
 
     fun getSessionAccessView(exchangeId: UUID): List<SessionAccessEntryDto>
     {
         val principal = authorizationContextFactory.currentPrincipal()
             ?: throw ExchangeNotFoundException("Exchange not found")
-        loadSessionOrThrow(exchangeId)
+        val session = loadSessionOrThrow(exchangeId)
         val decision = authorizationService.authorize(
             principal = principal,
             action = Action.EXCHANGE_MANAGE_ACCESS,
@@ -150,6 +160,7 @@ class ExchangeAccessManagementService @Inject constructor(
         )
         if (decision is Decision.Deny)
         {
+            recordAuthorizationDenied(exchangeId, principal.id, Action.EXCHANGE_MANAGE_ACCESS.name, session.name)
             throw ExchangeNotFoundException("Exchange not found")
         }
         return shareQueryService.getSessionAccessView(exchangeId)
@@ -214,7 +225,7 @@ class ExchangeAccessManagementService @Inject constructor(
      */
     private fun requireSessionOwner(exchangeId: UUID)
     {
-        loadSessionOrThrow(exchangeId)
+        val session = loadSessionOrThrow(exchangeId)
 
         val principal = authorizationContextFactory.currentPrincipal()
             ?: throw ForbiddenException("Authentication required to manage access")
@@ -226,6 +237,7 @@ class ExchangeAccessManagementService @Inject constructor(
         )
         if (decision is Decision.Deny)
         {
+            recordAuthorizationDenied(exchangeId, principal.id, Action.EXCHANGE_MANAGE_ACCESS.name, session.name)
             throw ForbiddenException("Not authorized to manage access on this session")
         }
     }
@@ -245,6 +257,7 @@ class ExchangeAccessManagementService @Inject constructor(
         )
         if (decision is Decision.Deny)
         {
+            recordAuthorizationDenied(exchangeId, principal.id, Action.EXCHANGE_MANAGE_ACCESS.name, session.name)
             throw ForbiddenException("Not authorized to manage access on this session")
         }
         return session
@@ -338,5 +351,38 @@ class ExchangeAccessManagementService @Inject constructor(
             this.emailLower = email.lowercase()
         }
         return externalParticipantRepository.save(created)
+    }
+
+    /**
+     * Phase 3 task 3 (small, targeted deny capture): denying `EXCHANGE_MANAGE_ACCESS` is a
+     * genuinely sensitive authorization decision (someone tried to view or change who has access
+     * to an exchange without permission), so it gets its own AUTHORIZATION_DENIED ledger row.
+     * Failures are caught and logged, never propagated.
+     */
+    private fun recordAuthorizationDenied(exchangeId: UUID, actorId: UUID, action: String, exchangeName: String? = null)
+    {
+        try
+        {
+            auditRecorder.record(
+                AuditEventDraft(
+                    eventTypeKey = AuditEventType.AUTHORIZATION_DENIED.key,
+                    outcome = AuditOutcome.DENIED,
+                    actorId = actorId,
+                    actorKind = AuditActorKind.HUMAN,
+                    targetType = ResourceType.EXCHANGE.name,
+                    targetId = exchangeId.toString(),
+                    targetLabel = exchangeName,
+                    payload = mapOf("action" to action),
+                )
+            )
+        }
+        catch (e: AuditDraftInvalidException)
+        {
+            logger.warn("ExchangeAccessManagementService: AuditRecorder rejected AUTHORIZATION_DENIED draft: {}", e.message)
+        }
+        catch (e: AuditCaptureFailedException)
+        {
+            logger.error("ExchangeAccessManagementService: AuditRecorder capture failed (fail-closed) for AUTHORIZATION_DENIED: {}", e.message, e)
+        }
     }
 }

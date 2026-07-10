@@ -125,6 +125,7 @@ class ExchangeAuthorizationTest
         authTokenContext = makeTokenContext(makeUser()),
         authorizationService = authSvc,
         authorizationContextFactory = factory,
+        auditRecorder = mock(),
     )
 
     // -------------------------------------------------------------------------

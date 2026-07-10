@@ -21,6 +21,11 @@
   the result to a `Response`. No repository calls, no entity manipulation, no domain
   decisions inside a resource class. Business logic belongs exclusively in the service layer
   (`service/`).
+- When implementing work from a planning/implementation document (e.g. a phased implementation
+  plan file), code comments must never reference that document, its phase/task numbers, or its
+  file name (no "Phase 6 task 3", no "see AUDIT-ARCHITECTURE-IMPLEMENTATION.md", etc). Comments
+  must instead describe what that section of the code actually does, on its own terms, so the
+  code remains self-explanatory to a reader with no access to the planning document.
 
 ---
 
@@ -42,6 +47,7 @@ An "Exchange" is a first class word and should be used as a noun. For example, i
 ---
 ## BACKEND RULES
 - A service should not user another service's repository directly, they should communicate via methods
+- toDto methods must be in their own dedicated class an not in the service or resource class
 ---
 
 ---

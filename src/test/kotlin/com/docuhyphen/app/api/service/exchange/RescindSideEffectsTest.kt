@@ -13,6 +13,9 @@ import com.docuhyphen.app.api.repository.ExchangeRepository
 import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.UserContactService
+import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
+import com.docuhyphen.app.api.service.audit.AuditCaptureResult
+import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
@@ -101,6 +104,9 @@ class RescindSideEffectsTest
             whenever(it.findAllRunningForSubject(any(), any())).thenReturn(emptyList())
         },
         workflowEngineService: WorkflowEngineService = mock(),
+        auditRecorder: AuditRecorder = mock<AuditRecorder>().also {
+            whenever(it.record(any())).thenReturn(AuditCaptureResult.Captured(UUID.randomUUID(), UUID.randomUUID()))
+        },
     ): ExchangeUpdateService = ExchangeUpdateService(
         exchangeRepository = exchangeRepo,
         emailService = mock(),
@@ -119,6 +125,7 @@ class RescindSideEffectsTest
         authTokenContext = makeTokenContext(makeUser()),
         authorizationService = authSvc,
         authorizationContextFactory = makeFactory(),
+        auditRecorder = auditRecorder,
     )
 
     // -------------------------------------------------------------------------
@@ -193,7 +200,7 @@ class RescindSideEffectsTest
 
         assertThrows<ForbiddenException> { svc.rescindExchange(exchangeId.toString()) }
 
-        verify(shareService, never()).revokeAllForResource(any(), any(), anyOrNull())
+        verify(shareService, never()).revokeAllForResource(any(), any(), anyOrNull(), anyOrNull())
     }
 
     // -------------------------------------------------------------------------
@@ -217,7 +224,7 @@ class RescindSideEffectsTest
 
         assertThrows<IllegalArgumentException> { svc.rescindExchange(exchangeId.toString()) }
 
-        verify(shareService, never()).revokeAllForResource(any(), any(), anyOrNull())
+        verify(shareService, never()).revokeAllForResource(any(), any(), anyOrNull(), anyOrNull())
     }
 
     @Test
@@ -237,7 +244,69 @@ class RescindSideEffectsTest
 
         assertThrows<IllegalArgumentException> { svc.rescindExchange(exchangeId.toString()) }
 
-        verify(shareService, never()).revokeAllForResource(any(), any(), anyOrNull())
+        verify(shareService, never()).revokeAllForResource(any(), any(), anyOrNull(), anyOrNull())
+    }
+
+    // -------------------------------------------------------------------------
+    // Phase 1 audit capture: fail-closed propagates, degraded does not (AUDIT-ARCHITECTURE)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `rescindExchange - audit capture fails closed - propagates and does not revoke shares or cancel workflows`()
+    {
+        val instance = WorkflowInstance().apply { id = UUID.randomUUID() }
+
+        val exchange = makeExchange(ExchangeStatus.INITIATED)
+        val repo = mock<ExchangeRepository>()
+        whenever(repo.findById(exchangeId)).thenReturn(exchange, exchange)
+
+        val workflowInstanceRepo = mock<WorkflowInstanceRepository>()
+        whenever(workflowInstanceRepo.findAllRunningForSubject(any(), any())).thenReturn(listOf(instance))
+
+        val workflowEngineService = mock<WorkflowEngineService>()
+        val shareService = mock<ShareService>()
+
+        val auditRecorder = mock<AuditRecorder>()
+        whenever(auditRecorder.record(any())).thenThrow(AuditCaptureFailedException("capture failed", null))
+
+        val svc = makeService(
+            authSvc = makeAuthService(Action.EXCHANGE_RESCIND),
+            exchangeRepo = repo,
+            shareService = shareService,
+            workflowInstanceRepo = workflowInstanceRepo,
+            workflowEngineService = workflowEngineService,
+            auditRecorder = auditRecorder,
+        )
+
+        assertThrows<AuditCaptureFailedException> { svc.rescindExchange(exchangeId.toString()) }
+
+        verify(shareService, never()).revokeAllForResource(any(), any(), anyOrNull(), anyOrNull())
+        verify(workflowEngineService, never()).cancel(any(), any())
+    }
+
+    @Test
+    fun `rescindExchange - audit capture degraded - still completes rescind side effects`()
+    {
+        val exchange = makeExchange(ExchangeStatus.INITIATED)
+        val repo = mock<ExchangeRepository>()
+        whenever(repo.findById(exchangeId)).thenReturn(exchange, exchange)
+
+        val shareService = mock<ShareService>()
+
+        val auditRecorder = mock<AuditRecorder>()
+        whenever(auditRecorder.record(any()))
+            .thenReturn(AuditCaptureResult.Degraded(UUID.randomUUID(), "db unavailable"))
+
+        val svc = makeService(
+            authSvc = makeAuthService(Action.EXCHANGE_RESCIND),
+            exchangeRepo = repo,
+            shareService = shareService,
+            auditRecorder = auditRecorder,
+        )
+
+        svc.rescindExchange(exchangeId.toString())
+
+        verify(shareService).revokeAllForResource(ResourceType.EXCHANGE, exchangeId)
     }
 
     // -------------------------------------------------------------------------
@@ -283,6 +352,7 @@ class RescindSideEffectsTest
             appUserService = mock(),
             authorizationService = authSvc,
             authorizationContextFactory = factory,
+            auditRecorder = mock(),
         )
 
         assertThrows<ExchangeDocumentNotFoundException> {

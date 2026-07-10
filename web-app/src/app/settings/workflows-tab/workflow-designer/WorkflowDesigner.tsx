@@ -7,6 +7,7 @@ import {
     DialogContent,
     DialogSurface,
     DialogTitle,
+    mergeClasses,
     MessageBar,
     MessageBarBody,
     Spinner,
@@ -61,6 +62,7 @@ const defaultState = (): WorkflowDesignerState => ({
 });
 
 type FormPage = "overview" | "configuration" | "applicability" | "steps";
+type FormPageTransitionDirection = "forward" | "back" | null;
 
 const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, onSaved}: Props) =>
 {
@@ -75,6 +77,8 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
     const [showSaveDialog, setShowSaveDialog] = useState(false);
     const [defScope, setDefScope] = useState<'PERSONAL' | 'ORG' | 'APP' | undefined>(scope);
     const [formPage, setFormPage] = useState<FormPage>("overview");
+    const [formPageTransitionDirection, setFormPageTransitionDirection] =
+        useState<FormPageTransitionDirection>(null);
     const initialStateRef = useRef<string | null>(null);
 
     const isDirty = () =>
@@ -89,6 +93,7 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
     const load = useCallback(async () =>
     {
         setFormPage("overview");
+        setFormPageTransitionDirection(null);
         try
         {
             setTriggers(await listWorkflowTriggers());
@@ -186,6 +191,12 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
 
     const handleBack = () => isDirty() ? setShowDiscardDialog(true) : onBack();
 
+    const navigateFormPage = (nextPage: FormPage) =>
+    {
+        setFormPageTransitionDirection(nextPage === "overview" ? "back" : "forward");
+        setFormPage(nextPage);
+    };
+
     const formBackButton = (label: string, onBackClick: () => void) => (
         <div className={styles.formNavigationHeader}>
             <Button
@@ -228,7 +239,7 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
                 description="Name, trigger event, summary, tags, and active status."
                 summary={configurationSummary}
                 icon={<WorkflowConfigurationIcon/>}
-                onClick={() => setFormPage("configuration")}
+                onClick={() => navigateFormPage("configuration")}
             />
             <WorkflowSectionCard
                 id="workflow-applicability-card"
@@ -236,7 +247,7 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
                 description="Choose which matching Exchanges can start this workflow."
                 summary={applicabilitySummary}
                 icon={<WorkflowApplicabilityIcon/>}
-                onClick={() => setFormPage("applicability")}
+                onClick={() => navigateFormPage("applicability")}
             />
             <WorkflowSectionCard
                 id="workflow-steps-card"
@@ -244,12 +255,12 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
                 description="Build the approvals, notifications, conditions, and actions in this workflow."
                 summary={stepsSummary}
                 icon={<WorkflowStepsIcon/>}
-                onClick={() => setFormPage("steps")}
+                onClick={() => navigateFormPage("steps")}
             />
         </div>
     ) : formPage === "configuration" ? (
         <div className={styles.formPage}>
-            {formBackButton("Workflow configuration", () => setFormPage("overview"))}
+            {formBackButton("Workflow configuration", () => navigateFormPage("overview"))}
             <WorkflowMetadataForm
                 state={state}
                 onPatch={patch}
@@ -266,11 +277,11 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
                 onAdd={() => patch({steps: [...state.steps, defaultStep()]})}
                 onUpdate={updateStep}
                 onRemove={removeStep}
-                onBack={() => setFormPage("overview")}
+                onBack={() => navigateFormPage("overview")}
             />
     ) : (
         <div className={styles.formPage}>
-            {formBackButton("Applicability", () => setFormPage("overview"))}
+            {formBackButton("Applicability", () => navigateFormPage("overview"))}
             {defScope === "ORG" ? (
                 <ApplicabilityEditor
                     applicability={state.applicability}
@@ -332,7 +343,17 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
                         </div>
                     </div>
                     <div className={styles.splitFormColumn}>
-                        {formContent}
+                        <div
+                            id={`workflow-designer-form-page-${formPage}`}
+                            key={formPage}
+                            className={mergeClasses(
+                                styles.formPageTransitionFrame,
+                                formPageTransitionDirection === "forward" ? styles.formPageSlideLeft : undefined,
+                                formPageTransitionDirection === "back" ? styles.formPageSlideRight : undefined,
+                            )}
+                        >
+                            {formContent}
+                        </div>
                     </div>
                 </div>
             </div>

@@ -10,7 +10,6 @@ interface FieldCardProps
     title: string;
     description?: string;
     valueType: FieldValueType;
-    wide?: boolean;
     required?: boolean;
     readOnly?: boolean;
     children: ReactNode;
@@ -21,7 +20,6 @@ const FieldCard = ({
     title,
     description,
     valueType,
-    wide = false,
     required = false,
     readOnly = false,
     children,
@@ -31,10 +29,7 @@ const FieldCard = ({
 
     return (
         <div id={id}
-             className={[
-                 styles.fieldCardItem,
-                 wide ? styles.fieldCardWide : '',
-             ].filter(Boolean).join(' ')}>
+             className={styles.fieldCardItem}>
             <div className={styles.fieldCard}>
                 <div className={styles.fieldCardHeader}>
                     <div className={styles.fieldCardTitleBlock}>

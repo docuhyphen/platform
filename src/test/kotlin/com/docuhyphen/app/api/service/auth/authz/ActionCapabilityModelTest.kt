@@ -187,6 +187,8 @@ class ActionCapabilityModelTest
         val caps = RoleCapabilities.forAppRole(AppRoleName.APP_AUDITOR)
         assertTrue(caps.contains(Capability.APP_REG_READ))
         assertFalse(caps.contains(Capability.APP_REG_ADMIN))
+        assertFalse(caps.contains(Capability.EXCHANGE_READ))
+        assertFalse(caps.contains(Capability.DOCUMENT_READ))
     }
 
     @Test
@@ -210,6 +212,7 @@ class ActionCapabilityModelTest
         assertTrue(effective.contains(Capability.GROUP_READ)) { "member role must supply group read" }
         assertTrue(effective.contains(Capability.EXCHANGE_INITIATE)) { "member role must supply exchange initiate" }
         assertFalse(effective.contains(Capability.ORG_MEMBER_MANAGE)) { "neither role must supply member manage" }
+        assertFalse(effective.contains(Capability.ORG_AUDIT_READ)) { "billing admin must not implicitly receive audit read" }
     }
 
     @Test
@@ -219,6 +222,24 @@ class ActionCapabilityModelTest
         assertTrue(memberCaps.contains(Capability.EXCHANGE_INITIATE))
         assertTrue(memberCaps.contains(Capability.GROUP_READ))
         assertFalse(memberCaps.contains(Capability.ORG_BILLING_MANAGE))
+    }
+
+    @Test
+    fun `ORG_AUDITOR does not gain standing content read capabilities by role alone`()
+    {
+        val caps = RoleCapabilities.forOrganizationRole(OrganizationRoleName.ORG_AUDITOR)
+        assertTrue(caps.contains(Capability.ORG_AUDIT_READ))
+        assertTrue(caps.contains(Capability.ORG_AUDIT_EXPORT))
+        assertFalse(caps.contains(Capability.EXCHANGE_READ))
+        assertFalse(caps.contains(Capability.DOCUMENT_READ))
+        assertFalse(caps.contains(Capability.DOC_LIBRARY_READ))
+        assertFalse(caps.contains(Capability.BLUEPRINT_READ))
+        assertFalse(caps.contains(Capability.WORKFLOW_READ))
+        assertFalse(caps.contains(Capability.SEQUENCE_READ))
+        assertFalse(caps.contains(Capability.COMMUNICATION_READ))
+        assertFalse(caps.contains(Capability.FIELD_SCHEMA_READ))
+        assertFalse(caps.contains(Capability.GROUP_READ))
+        assertFalse(caps.contains(Capability.WEBHOOK_AUDIT_READ))
     }
 
     // --- scope isolation ---

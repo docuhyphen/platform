@@ -7,10 +7,18 @@ import com.docuhyphen.app.api.model.entity.DocumentAuditLogAction
 import com.docuhyphen.app.api.model.entity.DocumentType
 import com.docuhyphen.app.api.model.entity.DocumentVersion
 import com.docuhyphen.app.api.model.entity.Exchange
+import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.repository.DocumentVersionRepository
 import com.docuhyphen.app.api.repository.ExchangeDocumentRepository
 import com.docuhyphen.app.api.repository.ExchangeRepository
+import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
+import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
+import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
+import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
+import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
@@ -40,6 +48,7 @@ class ExchangeDocumentVersionService @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
+    private val auditRecorder: AuditRecorder,
 )
 {
     companion object
@@ -119,11 +128,13 @@ class ExchangeDocumentVersionService @Inject constructor(
 
         validateDownloadPermission(exchange)
 
-        exchangeDocumentRepository.findByDocumentId(UUID.fromString(documentId))
+        val document = exchangeDocumentRepository.findByDocumentId(UUID.fromString(documentId))
             ?: throw ExchangeDocumentNotFoundException("Document not found")
 
         val version = documentVersionRepository.findById(UUID.fromString(versionId))
             ?: throw IllegalArgumentException("Version not found")
+
+        recordVersionDownloadEvent(exchange, document.id, document.title, version.id)
 
         return File(version.storagePath)
     }
@@ -172,6 +183,45 @@ class ExchangeDocumentVersionService @Inject constructor(
         if (decision is Decision.Deny)
         {
             throw IllegalArgumentException("Permission to download document version not granted")
+        }
+    }
+
+    /**
+     * Phase 3 task 2: historical-version download had zero capture before this phase. Failures
+     * are caught and logged, never propagated, so audit plumbing can never break an actual
+     * version-file download - same catch-and-log style as
+     * [ExchangeDocumentAuditService.recordOnRecorder].
+     */
+    private fun recordVersionDownloadEvent(exchange: Exchange, documentId: UUID, documentTitle: String?, versionId: UUID)
+    {
+        val actorId = authTokenContext.authToken.appUser?.id
+        try
+        {
+            auditRecorder.record(
+                AuditEventDraft(
+                    eventTypeKey = AuditEventType.DOCUMENT_VERSION_DOWNLOAD.key,
+                    outcome = AuditOutcome.SUCCESS,
+                    actorId = actorId,
+                    actorKind = AuditActorKind.HUMAN,
+                    actorRole = "APP_USER",
+                    targetType = ResourceType.DOCUMENT.name,
+                    targetId = documentId.toString(),
+                    targetLabel = documentTitle,
+                    organizationId = exchange.ownerOrganizationId,
+                    payload = mapOf(
+                        "version_id" to versionId.toString(),
+                        "exchange_id" to exchange.id.toString(),
+                    ),
+                )
+            )
+        }
+        catch (e: AuditDraftInvalidException)
+        {
+            logger.warn("ExchangeDocumentVersionService: AuditRecorder rejected draft for version download: {}", e.message)
+        }
+        catch (e: AuditCaptureFailedException)
+        {
+            logger.error("ExchangeDocumentVersionService: AuditRecorder capture failed (fail-closed) for version download: {}", e.message, e)
         }
     }
 }

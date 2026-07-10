@@ -15,6 +15,45 @@ export const useWorkflowDesignerStyles = makeStyles({
         minWidth: 0,
         minHeight: "100%",
     },
+    formPageTransitionFrame: {
+        minWidth: 0,
+        minHeight: "100%",
+        animationFillMode: "both",
+        willChange: "opacity, transform",
+        "@media (prefers-reduced-motion: reduce)": {
+            animationName: "none",
+            animationDuration: "0ms",
+            transform: "none",
+        },
+    },
+    formPageSlideLeft: {
+        animationName: {
+            from: {
+                opacity: 0,
+                transform: "translateX(28px)",
+            },
+            to: {
+                opacity: 1,
+                transform: "translateX(0)",
+            },
+        },
+        animationDuration: "190ms",
+        animationTimingFunction: "cubic-bezier(0.2, 0, 0, 1)",
+    },
+    formPageSlideRight: {
+        animationName: {
+            from: {
+                opacity: 0,
+                transform: "translateX(-28px)",
+            },
+            to: {
+                opacity: 1,
+                transform: "translateX(0)",
+            },
+        },
+        animationDuration: "190ms",
+        animationTimingFunction: "cubic-bezier(0.2, 0, 0, 1)",
+    },
     formNavigationHeader: {
         position: "sticky",
         top: 0,

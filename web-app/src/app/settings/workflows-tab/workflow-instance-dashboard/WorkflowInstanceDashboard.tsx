@@ -5,6 +5,7 @@ import {listWorkflowInstances} from "../../../../services/workflowService.ts";
 import {useWorkflowInstanceDashboardStyles} from "./WorkflowInstanceDashboardStyles.tsx";
 import {INSTANCE_STATUS_LABELS} from "../workflowUtils.ts";
 import {ArrowSyncRegular} from "@fluentui/react-icons";
+import WorkflowsPagination from "../workflows-pagination/WorkflowsPagination.tsx";
 
 type InstanceStatus = WorkflowInstanceSummaryDto["status"] | "";
 
@@ -101,59 +102,48 @@ const WorkflowInstanceDashboard = ({onSelectInstance}: Props) =>
                 </div>
             )}
 
-            {loading && <Spinner size="small" label="Loading instances..."/>}
+            <div className={styles.listContent}>
+                {loading && <Spinner size="small" label="Loading instances..."/>}
 
-            {!loading && instances.length === 0 && (
-                <div className={styles.emptyState}>
-                    <Text>{isFiltered ? "No instances match the selected filter." : "No workflow instances found."}</Text>
-                </div>
-            )}
-
-            {!loading && instances.map(inst => (
-                <div
-                    key={inst.id}
-                    className={styles.row}
-                    onClick={() => onSelectInstance?.(inst.id)}
-                >
-                    <div className={styles.rowInfo}>
-                        <Text weight="semibold">{inst.definitionName ?? inst.definitionId}</Text>
-                        {inst.exchangeName && <Text size={200} block>Exchange: {inst.exchangeName}</Text>}
-                        <Text
-                            size={200}
-                            block
-                            className={styles.rowMetaInherit}
-                        >
-                            Step {inst.currentStepIndex + 1} &middot; Started {formatDate(inst.createdAt)}
-                        </Text>
+                {!loading && instances.length === 0 && (
+                    <div className={styles.emptyState}>
+                        <Text>{isFiltered ? "No instances match the selected filter." : "No workflow instances found."}</Text>
                     </div>
-                    <Badge color={STATUS_COLORS[inst.status] ?? "subtle"} appearance="filled" size="small">
-                        {INSTANCE_STATUS_LABELS[inst.status] ?? inst.status}
-                    </Badge>
+                )}
+
+                {!loading && instances.map(inst => (
+                    <div
+                        key={inst.id}
+                        className={styles.row}
+                        onClick={() => onSelectInstance?.(inst.id)}
+                    >
+                        <div className={styles.rowInfo}>
+                            <Text weight="semibold">{inst.definitionName ?? inst.definitionId}</Text>
+                            {inst.exchangeName && <Text size={200} block>Exchange: {inst.exchangeName}</Text>}
+                            <Text
+                                size={200}
+                                block
+                                className={styles.rowMetaInherit}
+                            >
+                                Step {inst.currentStepIndex + 1} &middot; Started {formatDate(inst.createdAt)}
+                            </Text>
+                        </div>
+                        <Badge color={STATUS_COLORS[inst.status] ?? "subtle"} appearance="filled" size="small">
+                            {INSTANCE_STATUS_LABELS[inst.status] ?? inst.status}
+                        </Badge>
+                    </div>
+                ))}
                 </div>
-            ))}
 
             {!loading && hasResults && (
-                <div className={styles.pagination}>
-                    <Button
-                        id="workflow-instance-prev-page-btn"
-                        size="small"
-                        shape={"circular"}
-                        disabled={page === 0}
-                        onClick={() => setPage(p => p - 1)}
-                    >
-                        Previous
-                    </Button>
-                    <Text size={200}>Page {page + 1}</Text>
-                    <Button
-                        id="workflow-instance-next-page-btn"
-                        size="small"
-                        shape={"circular"}
-                        disabled={instances.length < PAGE_SIZE}
-                        onClick={() => setPage(p => p + 1)}
-                    >
-                        Next
-                    </Button>
-                </div>
+                <WorkflowsPagination
+                    currentPage={page}
+                    firstItem={page * PAGE_SIZE + 1}
+                    lastItem={page * PAGE_SIZE + instances.length}
+                    itemLabel={"instances"}
+                    hasNextPage={instances.length === PAGE_SIZE}
+                    onPageChange={setPage}
+                />
             )}
         </div>
     );

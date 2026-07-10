@@ -45,21 +45,6 @@ export const getFieldTypeLabel = (valueType: FieldValueType): string =>
     }
 };
 
-export const shouldFieldSpanWide = (valueType: FieldValueType, value: unknown): boolean =>
-{
-    if (valueType === FieldValueType.LONG_TEXT || valueType === FieldValueType.MULTI_SELECT)
-    {
-        return true;
-    }
-
-    if (typeof value === 'string')
-    {
-        return value.trim().length > 42;
-    }
-
-    return Array.isArray(value) && value.length > 2;
-};
-
 export const groupBindingsBySection = (bindings: SchemaFieldBindingDto[]): FieldSectionGroup[] =>
 {
     const sortedBindings = [...bindings].sort((left, right) =>

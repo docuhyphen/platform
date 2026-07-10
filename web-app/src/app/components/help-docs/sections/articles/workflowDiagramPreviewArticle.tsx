@@ -27,6 +27,11 @@ export const workflowDiagramPreviewArticle = (
             workflow fits the split layout.
         </p>
         <p>
+            The diagram controls include an enlarge button for an in-app expanded
+            preview and a full screen button for browser full screen mode. Each
+            button changes to its matching exit icon while that mode is active.
+        </p>
+        <p>
             An <b>Applicability</b> summary line above the diagram states whether
             the workflow always runs or only when field conditions match. The
             diagram itself is read-only: pan, zoom, drag a node to reposition it,
@@ -78,8 +83,10 @@ export const workflowDiagramPreviewArticle = (
             diagram also has its own bottom-right orientation icon. Exchange
             diagrams open in vertical mode by default, and pressing the icon
             switches that diagram between vertical and horizontal layout. In Diagram
-            (or the diagram half of Both) each workflow instance shows the same
-            frozen structure it started with, with runtime state layered on top.
+            (or the diagram half of Both), the diagram controls also support
+            enlarged and full screen viewing. Each workflow instance shows the
+            same frozen structure it started with, with runtime state layered on
+            top.
         </p>
         <ul>
             <li>

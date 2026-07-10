@@ -59,6 +59,35 @@ class AuthTokenContext
 
     /** The OrganizationMembership row ID corresponding to [activeOrganizationId]. */
     var activeMembershipId: UUID? = null
+
+    /**
+     * Server-generated trace ID for this request. Always set by [CorrelationContextFilter],
+     * never derived from a client-supplied header, so every request (authenticated or not) has a
+     * trustworthy identifier for log/audit correlation.
+     */
+    var serverTraceId: String? = null
+
+    /**
+     * Correlation ID grouping this request with related requests/events across a multi-step or
+     * multi-service flow. Reused from an incoming `X-Correlation-Id` header when present and
+     * well-formed, otherwise generated fresh. Safe to trust for grouping only; it grants no
+     * authorization and is never taken from the untrusted `X-Request-Id` hint.
+     */
+    var correlationId: String? = null
+
+    /**
+     * Identifies the event/request that caused this one, when the caller supplies a well-formed
+     * `X-Causation-Id` header. Null when there is no known cause (this request is the origin of
+     * its own chain).
+     */
+    var causationId: String? = null
+
+    /**
+     * Raw `X-Request-Id` header value, if present. This is an untrusted client-supplied hint kept
+     * only for correlating with client-side logs; it must never be used as the trace or
+     * correlation ID and must never be trusted for authorization or idempotency decisions.
+     */
+    var clientRequestIdHint: String? = null
 }
 
 class AuthTokenProducer

@@ -137,6 +137,11 @@ export const fetchExchangeDocumentAuditLogs = (exchangeId: string, documentId: s
         apiClient.get(`/exchanges/${exchangeId}/documents/${documentId}/audit`)
     );
 
+export const fetchExchangeAuditEvents = (exchangeId: string) =>
+    executeRequest(() =>
+        apiClient.get(`/exchanges/${exchangeId}/audit-events`)
+    );
+
 export const uploadExchangeDocument = (
     exchangeId: string,
     documentId?: string,

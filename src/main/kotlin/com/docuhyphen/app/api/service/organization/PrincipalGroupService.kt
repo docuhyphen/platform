@@ -34,6 +34,11 @@ class PrincipalGroupService @Inject constructor(
     private val userContactRepository: UserContactRepository,
 )
 {
+    fun getActiveGroupIdsForPrincipal(principalKind: PrincipalKind, principalId: UUID): Set<UUID> =
+        memberRepository.findGroupsForPrincipal(principalKind, principalId)
+            .map { it.principalGroupId }
+            .toSet()
+
     /** A desired member of a group, after the caller has mapped legacy permissions to a role. */
     data class GroupMemberSpec(
         val principalId: UUID,

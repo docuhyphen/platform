@@ -3,18 +3,26 @@ import React from "react";
 export const managingCommunicationsArticle = (
     <>
         <p>
-            The <b>Settings {">"} Communications</b> tab is where you create, edit,
-            publish, and manage all communications accessible to you. The tab is
-            split into three scope tabs: <b>My Communications</b>, <b>Organization</b>,
-            and <b>Platform</b>.
+            The <b>Settings {">"} Automation {">"} Communications</b> tab is where
+            you create, edit, publish, and manage all communications accessible to
+            you. The tab is split into three scope tabs: <b>My Communications</b>,
+            <b>Organization</b>, and <b>Platform</b>.
+        </p>
+
+        <h3>Finding communications</h3>
+        <p>
+            Use search to find communications by name, summary, subject, or tag.
+            The toolbar also includes filters for status, publication state, and
+            tags, plus sorting and card/table layout controls. The footer shows
+            the visible item range on the left and page actions on the right.
         </p>
 
         <h3>Creating a communication</h3>
         <ol>
             <li>Open <b>Settings</b> from the top navigation bar.</li>
-            <li>Click the <b>Communications</b> tab.</li>
+            <li>Open <b>Automation</b>, then click the <b>Communications</b> tab.</li>
             <li>Select the scope tab where you want to create it.</li>
-            <li>Click <b>Create</b>.</li>
+            <li>Click <b>Create Communication</b>.</li>
             <li>
                 Fill in the fields:
                 <ul>

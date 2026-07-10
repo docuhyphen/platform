@@ -9,7 +9,15 @@ import com.docuhyphen.app.api.model.dto.PatchDocumentLibraryStatusRequest
 import com.docuhyphen.app.api.model.dto.UpdateDocumentLibraryEntryRequest
 import com.docuhyphen.app.api.model.entity.BlueprintScope
 import com.docuhyphen.app.api.model.entity.DocumentLibraryEntry
+import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.repository.DocumentLibraryRepository
+import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
+import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
+import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
+import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
+import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
@@ -39,6 +47,7 @@ class DocumentLibraryService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val userRoleService: UserRoleService,
+    private val auditRecorder: AuditRecorder,
 )
 {
     private val logger = LoggerFactory.getLogger(DocumentLibraryService::class.java)
@@ -149,6 +158,8 @@ class DocumentLibraryService @Inject constructor(
 
         val path = entry.storagePath
             ?: throw IllegalArgumentException("No file uploaded for document library entry $id")
+
+        recordLibraryDownloadEvent(entry, principal.id, context.activeOrgId)
 
         return fileStorageService.downloadDocument(path)
     }
@@ -384,4 +395,37 @@ class DocumentLibraryService @Inject constructor(
         createdAt = createdAt,
         updatedAt = updatedAt,
     )
+
+    /**
+     * Phase 3 task 2: document library download had zero capture before this phase. Failures are
+     * caught and logged, never propagated, so audit plumbing can never break an actual file
+     * download response.
+     */
+    private fun recordLibraryDownloadEvent(entry: DocumentLibraryEntry, actorId: UUID, organizationId: UUID?)
+    {
+        try
+        {
+            auditRecorder.record(
+                AuditEventDraft(
+                    eventTypeKey = AuditEventType.DOCUMENT_LIBRARY_DOWNLOAD.key,
+                    outcome = AuditOutcome.SUCCESS,
+                    actorId = actorId,
+                    actorKind = AuditActorKind.HUMAN,
+                    targetType = ResourceType.DOC_LIBRARY.name,
+                    targetId = entry.id.toString(),
+                    targetLabel = entry.title,
+                    organizationId = organizationId ?: entry.organizationId,
+                    payload = mapOf("title" to entry.title, "scope" to entry.scope.name),
+                )
+            )
+        }
+        catch (e: AuditDraftInvalidException)
+        {
+            logger.warn("DocumentLibraryService: AuditRecorder rejected draft for library download: {}", e.message)
+        }
+        catch (e: AuditCaptureFailedException)
+        {
+            logger.error("DocumentLibraryService: AuditRecorder capture failed (fail-closed) for library download: {}", e.message, e)
+        }
+    }
 }

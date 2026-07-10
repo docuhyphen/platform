@@ -11,6 +11,7 @@ import PasswordResetDialog from "./password-reset-dialog/PasswordResetDialog.tsx
 import ProfileOverviewCard from "./profile-overview-card/ProfileOverviewCard.tsx";
 import ProfileSecurityCard from "./profile-security-card/ProfileSecurityCard.tsx";
 import ProfileNotificationsCard from "./profile-notifications-card/ProfileNotificationsCard.tsx";
+import ProfileSecurityEvents from "./profile-security-events/ProfileSecurityEvents.tsx";
 
 const ProfileTab = () =>
 {
@@ -82,6 +83,8 @@ const ProfileTab = () =>
                     onNotifyLoginChange={notifyLoginChange}
                 />
             </div>
+
+            <ProfileSecurityEvents/>
         </div>
 
         <AppUserEmailUpdateDialog

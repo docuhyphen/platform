@@ -63,6 +63,10 @@ export const workflowOverviewArticle = (
             clone, or delete workflow definitions. The Workflows tab in Settings is only
             visible to users with the admin role.
         </p>
+        <p>
+            The workflow lists use a fixed footer with the visible range on the
+            left and page navigation actions on the right.
+        </p>
 
         <h3>Learn more</h3>
         <ul>

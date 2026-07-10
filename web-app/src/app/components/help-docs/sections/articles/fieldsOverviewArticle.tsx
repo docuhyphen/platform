@@ -54,5 +54,9 @@ export const fieldsOverviewArticle = (
             <li><b>Fields</b> - create and retire reusable field definitions.</li>
             <li><b>Schemas</b> - compose fields into schemas, publish, and version them.</li>
         </ul>
+        <p>
+            When either sub-tab has results, the footer shows the visible range on
+            the left and page navigation actions on the right.
+        </p>
     </>
 );

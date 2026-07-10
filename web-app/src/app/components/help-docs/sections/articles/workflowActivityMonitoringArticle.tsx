@@ -26,7 +26,7 @@ export const workflowActivityMonitoringArticle = (
             </li>
             <li>
                 <b>Step and started date</b> - the current step number and when
-                the instance was created (for example, "Step 2 · Started Jun 21,
+                the instance was created (for example, "Step 2 - Started Jun 21,
                 2026").
             </li>
             <li>
@@ -42,6 +42,10 @@ export const workflowActivityMonitoringArticle = (
             For example, select <b>In Progress</b> to see all instances currently
             waiting for human decisions. Use the <b>Refresh</b> button to reload
             the list after filtering.
+        </p>
+        <p>
+            The Activity list footer shows the visible instance range on the left
+            and page navigation actions on the right.
         </p>
 
         <h3>Viewing the step timeline</h3>
@@ -112,10 +116,10 @@ export const workflowActivityMonitoringArticle = (
             workflow shown in the tab at once. <b>Both</b> splits the tab into a
             detail column (summary, action required, and Timeline) on the left and
             a live diagram preview on the right. Each diagram also has a{" "}
-            <b>Display vertically</b> checkbox above the canvas so viewers can
-            switch between vertical and horizontal layouts. The Diagram overlays
-            runtime state and the traversed route onto the frozen workflow
-            structure. If a
+            bottom-right orientation button so viewers can switch between vertical
+            and horizontal layouts. The canvas controls include enlarge and full
+            screen buttons for focused viewing. The Diagram overlays runtime state
+            and the traversed route onto the frozen workflow structure. If a
             diagram cannot render, that section offers a <b>View timeline</b>
             button and falls back to the Timeline. See{" "}
             <a href="#"

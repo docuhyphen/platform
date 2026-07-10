@@ -56,7 +56,7 @@ const ExchangeTabsHeader: React.FC<ExchangeTabsHeaderProps> = (props) => {
                     <Button id="exchange-documents-zip-download"
                             aria-label="Download all uploaded documents"
                             size="small"
-                            disabled={!props.canDownloadZip}
+                            disabled={!props.canDownloadZip || uploadedCount == 0}
                             onClick={props.onDownloadZip}
                             appearance="subtle"
                             shape="circular"

@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {
     Badge,
     Button,
@@ -34,11 +34,17 @@ import {
 import CommunicationEditorDialog from './CommunicationEditorDialog';
 import {useAuth} from '../../../context/AuthContext';
 import {useCommunicationsTabStyles} from './CommunicationsTabStyles';
-import ViewModeToggle from '../../components/ViewModeToggle.tsx';
 import TagList from '../../components/TagList.tsx';
 import {updateAppUserSettings} from '../../../services/appUserApi';
+import CommunicationsPagination from './communications-pagination/CommunicationsPagination';
+import CommunicationsToolbar, {
+    CommunicationPublicationFilter,
+    CommunicationSortOrder,
+    CommunicationStatusFilter,
+} from './communications-toolbar/CommunicationsToolbar';
 
 type ActiveTab = 'PERSONAL' | 'ORG' | 'PLATFORM';
+const PAGE_SIZE = 12;
 
 const tabLabels: Record<ActiveTab, string> = {
     PERSONAL: 'My Communications',
@@ -71,6 +77,12 @@ const CommunicationsTab = () =>
     const [error, setError] = useState<string | null>(null);
     const [editorOpen, setEditorOpen] = useState(false);
     const [editingCommunication, setEditingCommunication] = useState<CommunicationSummaryDto | undefined>();
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+    const [statusFilter, setStatusFilter] = useState<CommunicationStatusFilter>('ALL');
+    const [publicationFilter, setPublicationFilter] = useState<CommunicationPublicationFilter>('ALL');
+    const [sortOrder, setSortOrder] = useState<CommunicationSortOrder>('updatedDesc');
+    const [currentPage, setCurrentPage] = useState(0);
 
     const loadCommunications = () =>
     {
@@ -83,6 +95,56 @@ const CommunicationsTab = () =>
     };
 
     useEffect(() => { loadCommunications(); }, [activeTab]);
+
+    const availableTags = useMemo(() =>
+        [...new Set(communications.flatMap(communication => communication.generalTags))]
+            .sort((left, right) => left.localeCompare(right)),
+    [communications]);
+
+    const visibleCommunications = useMemo(() =>
+    {
+        const query = searchQuery.trim().toLowerCase();
+        return communications
+            .filter(communication =>
+            {
+                const matchesSearch = query.length === 0 || [
+                    communication.name,
+                    communication.summary ?? '',
+                    communication.subject,
+                    ...communication.generalTags,
+                ].some(value => value.toLowerCase().includes(query));
+                const matchesTags = selectedTags.size === 0 ||
+                    [...selectedTags].every(tag => communication.generalTags.includes(tag));
+                const matchesStatus = statusFilter === 'ALL' ||
+                    (statusFilter === 'ACTIVE' && communication.isActive) ||
+                    (statusFilter === 'INACTIVE' && !communication.isActive);
+                const matchesPublication = publicationFilter === 'ALL' ||
+                    (publicationFilter === 'PUBLISHED' && communication.isPublished) ||
+                    (publicationFilter === 'DRAFT' && !communication.isPublished);
+                return matchesSearch && matchesTags && matchesStatus && matchesPublication;
+            })
+            .sort((left, right) =>
+            {
+                if (sortOrder === 'nameAsc') return left.name.localeCompare(right.name);
+                if (sortOrder === 'nameDesc') return right.name.localeCompare(left.name);
+                if (sortOrder === 'subjectAsc') return left.subject.localeCompare(right.subject);
+                return new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
+            });
+    }, [communications, publicationFilter, searchQuery, selectedTags, sortOrder, statusFilter]);
+
+    const totalPages = Math.ceil(visibleCommunications.length / PAGE_SIZE);
+    const pagedCommunications = visibleCommunications.slice(
+        currentPage * PAGE_SIZE,
+        (currentPage + 1) * PAGE_SIZE,
+    );
+
+    useEffect(() =>
+    {
+        if (currentPage > 0 && currentPage >= Math.max(totalPages, 1))
+        {
+            setCurrentPage(Math.max(totalPages - 1, 0));
+        }
+    }, [currentPage, totalPages]);
 
     const handleViewModeChange = async (mode: ViewMode) => {
         setViewMode(mode);
@@ -143,16 +205,40 @@ const CommunicationsTab = () =>
             <div className={styles.outerContainer}>
                 <div className={styles.headerRow}>
                     <TabList
+                        id={"communications-tabs"}
                         selectedValue={activeTab}
                         onTabSelect={(_, d) =>
                         {
                             setActiveTab(d.value as ActiveTab);
                             setCommunications([]);
+                            setSearchQuery('');
+                            setSelectedTags(new Set());
+                            setStatusFilter('ALL');
+                            setPublicationFilter('ALL');
+                            setSortOrder('updatedDesc');
+                            setCurrentPage(0);
                         }}
                     >
-                        <Tab value="PERSONAL">{tabLabels.PERSONAL}</Tab>
-                        {hasOrg && <Tab value="ORG">{tabLabels.ORG}</Tab>}
-                        <Tab value="PLATFORM">{tabLabels.PLATFORM}</Tab>
+                        <Tab
+                            id={"communications-tab-personal"}
+                            value="PERSONAL"
+                        >
+                            {tabLabels.PERSONAL}
+                        </Tab>
+                        {hasOrg && (
+                            <Tab
+                                id={"communications-tab-organization"}
+                                value="ORG"
+                            >
+                                {tabLabels.ORG}
+                            </Tab>
+                        )}
+                        <Tab
+                            id={"communications-tab-platform"}
+                            value="PLATFORM"
+                        >
+                            {tabLabels.PLATFORM}
+                        </Tab>
                     </TabList>
 
                     {canCreate && (
@@ -168,21 +254,68 @@ const CommunicationsTab = () =>
                     )}
                 </div>
 
-                <div className={styles.scrollableContent}>
-                <div className={styles.toolbar}>
-                    <ViewModeToggle value={viewMode} onChange={handleViewModeChange}/>
-                </div>
+                <CommunicationsToolbar
+                    searchQuery={searchQuery}
+                    onSearchChange={(value) =>
+                    {
+                        setSearchQuery(value);
+                        setCurrentPage(0);
+                    }}
+                    availableTags={availableTags}
+                    selectedTags={selectedTags}
+                    onTagToggle={(tag) =>
+                    {
+                        setSelectedTags(previous =>
+                        {
+                            const next = new Set(previous);
+                            if (next.has(tag)) next.delete(tag);
+                            else next.add(tag);
+                            return next;
+                        });
+                        setCurrentPage(0);
+                    }}
+                    statusFilter={statusFilter}
+                    onStatusFilterChange={(value) =>
+                    {
+                        setStatusFilter(value);
+                        setCurrentPage(0);
+                    }}
+                    publicationFilter={publicationFilter}
+                    onPublicationFilterChange={(value) =>
+                    {
+                        setPublicationFilter(value);
+                        setCurrentPage(0);
+                    }}
+                    showPublicationFilter={activeTab !== 'PERSONAL'}
+                    sortOrder={sortOrder}
+                    onSortOrderChange={(value) =>
+                    {
+                        setSortOrder(value);
+                        setCurrentPage(0);
+                    }}
+                    viewMode={viewMode}
+                    onViewModeChange={handleViewModeChange}
+                />
 
-                {loading && <Spinner size="small" label="Loading communications…"/>}
+                <div className={styles.scrollableContent}>
+                {loading && (
+                    <Spinner
+                        size="small"
+                        label={"Loading communications..."}
+                    />
+                )}
                 {!loading && error && (
                     <Text className={styles.errorText}>{error}</Text>
                 )}
                 {!loading && !error && communications.length === 0 && (
                     <Text className={styles.emptyText}>{emptyMessage[activeTab]}</Text>
                 )}
-                {!loading && !error && communications.length > 0 && viewMode === 'cards' && (
+                {!loading && !error && communications.length > 0 && visibleCommunications.length === 0 && (
+                    <Text className={styles.emptyText}>No communications match your search and filters.</Text>
+                )}
+                {!loading && !error && pagedCommunications.length > 0 && viewMode === 'cards' && (
                     <div className={styles.cardGrid}>
-                        {communications.map(t => (
+                        {pagedCommunications.map(t => (
                             <div
                                 key={t.id}
                                 className={styles.commCard}
@@ -259,7 +392,7 @@ const CommunicationsTab = () =>
                         ))}
                     </div>
                 )}
-                {!loading && !error && communications.length > 0 && viewMode === 'table' && (
+                {!loading && !error && pagedCommunications.length > 0 && viewMode === 'table' && (
                     <table className={styles.table}>
                         <thead>
                             <tr>
@@ -272,7 +405,7 @@ const CommunicationsTab = () =>
                             </tr>
                         </thead>
                         <tbody>
-                            {communications.map(t => (
+                            {pagedCommunications.map(t => (
                                 <tr key={t.id} className={styles.tr}>
                                     <td className={styles.td}>
                                         <Text weight="semibold">{t.name}</Text>
@@ -294,7 +427,14 @@ const CommunicationsTab = () =>
                                         {canManageItem(t) && (
                                             <Menu>
                                                 <MenuTrigger disableButtonEnhancement>
-                                                    <Button size="small" appearance="subtle" shape="circular" icon={<MoreVerticalRegular/>} aria-label="More actions"/>
+                                                    <Button
+                                                        id={`button-communication-table-more-${t.id}`}
+                                                        size="small"
+                                                        appearance="subtle"
+                                                        shape={"circular"}
+                                                        icon={<MoreVerticalRegular/>}
+                                                        aria-label="More actions"
+                                                    />
                                                 </MenuTrigger>
                                                 <MenuPopover>
                                                     <MenuList>
@@ -320,6 +460,15 @@ const CommunicationsTab = () =>
                     </table>
                 )}
                 </div>
+                {!loading && !error && visibleCommunications.length > 0 && (
+                    <CommunicationsPagination
+                        currentPage={currentPage}
+                        totalPages={Math.max(totalPages, 1)}
+                        totalItems={visibleCommunications.length}
+                        pageSize={PAGE_SIZE}
+                        onPageChange={setCurrentPage}
+                    />
+                )}
             </div>
 
             <CommunicationEditorDialog

@@ -19,6 +19,13 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
+import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
+import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
+import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
+import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -42,8 +49,10 @@ class FieldDefinitionService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val userRoleService: UserRoleService,
+    private val auditRecorder: AuditRecorder,
 )
 {
+    private val logger = org.slf4j.LoggerFactory.getLogger(FieldDefinitionService::class.java)
     private val keyPattern = Regex("^[a-z0-9][a-z0-9-]*$")
 
     // ── Reads ─────────────────────────────────────────────────────────────────
@@ -108,6 +117,7 @@ class FieldDefinitionService @Inject constructor(
         fieldDefinitionRepository.save(definition)
 
         buildContract(definition.id, 1, request.contract)
+        recordFieldEvent(AuditEventType.FIELD_DEFINITION_CREATE, definition.id, "${definition.namespace}:${definition.fieldKey}", principal.id, scopeOrgId)
         return definition.toDto()
     }
 
@@ -134,12 +144,14 @@ class FieldDefinitionService @Inject constructor(
     @Transactional
     fun retireDefinition(id: UUID): FieldDefinitionDto
     {
-        requireOrgConfigEdit()
+        val (principal, orgId) = requireOrgConfigEdit()
         val def = fieldDefinitionRepository.findById(id)
             ?: throw IllegalArgumentException("Field definition not found: $id")
         def.status = FieldLifecycleStatus.RETIRED
         def.updatedAt = Timestamp.from(Instant.now())
-        return fieldDefinitionRepository.update(def).toDto()
+        val updated = fieldDefinitionRepository.update(def)
+        recordFieldEvent(AuditEventType.FIELD_DEFINITION_RETIRE, updated.id, "${updated.namespace}:${updated.fieldKey}", principal.id, orgId)
+        return updated.toDto()
     }
 
     // ── Internals ───────────────────────────────────────────────────────────────
@@ -215,6 +227,44 @@ class FieldDefinitionService @Inject constructor(
 
     private fun currentContext(): AuthorizationContext =
         authorizationContextFactory.currentContext()
+
+    /**
+     * Phase 3 task 4 (breadth): captures Field Definition lifecycle mutations onto the ledger.
+     * targetType uses the literal "FIELD_DEFINITION" (no dedicated ResourceType entry exists
+     * for this resource today) per the no-business-FK / denormalized-string rule.
+     */
+    private fun recordFieldEvent(
+        eventType: AuditEventType,
+        definitionId: UUID,
+        definitionLabel: String?,
+        actorId: UUID,
+        organizationId: UUID?,
+    )
+    {
+        try
+        {
+            auditRecorder.record(
+                AuditEventDraft(
+                    eventTypeKey = eventType.key,
+                    outcome = AuditOutcome.SUCCESS,
+                    actorId = actorId,
+                    actorKind = AuditActorKind.HUMAN,
+                    targetType = "FIELD_DEFINITION",
+                    targetId = definitionId.toString(),
+                    targetLabel = definitionLabel,
+                    organizationId = organizationId,
+                )
+            )
+        }
+        catch (e: AuditDraftInvalidException)
+        {
+            logger.warn("FieldDefinitionService: AuditRecorder rejected {} draft: {}", eventType.key, e.message)
+        }
+        catch (e: AuditCaptureFailedException)
+        {
+            logger.error("FieldDefinitionService: AuditRecorder capture failed for {}: {}", eventType.key, e.message, e)
+        }
+    }
 
     // ── Mapping ──────────────────────────────────────────────────────────────
 

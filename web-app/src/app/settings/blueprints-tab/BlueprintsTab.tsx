@@ -51,7 +51,7 @@ import ViewModeToggle from '../../components/ViewModeToggle.tsx';
 import TagList from '../../components/TagList.tsx';
 import {updateAppUserSettings} from '../../../services/appUserApi';
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
-import ExchangeListPagination from '../../exchanges/components/exchange-list/exchange-list-pagination/ExchangeListPagination.tsx';
+import BlueprintsPagination from "./blueprints-pagination/BlueprintsPagination.tsx";
 
 type ActiveTab = 'PERSONAL' | 'ORG' | 'APP';
 
@@ -123,6 +123,14 @@ const BlueprintsTab = () =>
 
     const totalPages = Math.ceil(filteredBlueprints.length / PAGE_SIZE);
     const visibleBlueprints = filteredBlueprints.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+
+    useEffect(() =>
+    {
+        if (currentPage > 0 && currentPage >= Math.max(totalPages, 1))
+        {
+            setCurrentPage(Math.max(totalPages - 1, 0));
+        }
+    }, [currentPage, totalPages]);
 
     const toggleTag = (tag: string) =>
     {
@@ -257,93 +265,98 @@ const BlueprintsTab = () =>
                     </div>
 
                     <div className={styles.searchRow}>
-                        <Field style={{flex: 1}}>
-                            <SearchBox
-                                id="blueprint-search-input"
-                                placeholder="Search blueprints"
-                                maxLength={100}
-                                value={searchQuery}
-                                onChange={(_, data) =>
+                        <div className={styles.searchRowInputs}>
+                            <Field className={styles.searchField}>
+                                <SearchBox
+                                    id="blueprint-search-input"
+                                    placeholder="Search blueprints"
+                                    maxLength={100}
+                                    value={searchQuery}
+                                    onChange={(_, data) =>
+                                    {
+                                        setSearchQuery(data.value);
+                                        setCurrentPage(0);
+                                    }}
+                                />
+                            </Field>
+                            {availableTags.length > 0 && (
+                                <Popover positioning="below-end" onOpenChange={(_, {open}) =>
                                 {
-                                    setSearchQuery(data.value);
-                                    setCurrentPage(0);
-                                }}
-                            />
-                        </Field>
-                        {availableTags.length > 0 && (
-                            <Popover positioning="below-end" onOpenChange={(_, {open}) => { if (!open) setFilterSearch(''); }}>
-                                <PopoverTrigger disableButtonEnhancement>
-                                    <Tooltip content="Filter by tag" relationship="description">
+                                    if (!open) setFilterSearch('');
+                                }}>
+                                    <PopoverTrigger disableButtonEnhancement>
+                                        <Tooltip content="Filter by tag" relationship="description">
+                                            <Button
+                                                id="blueprint-filter-btn"
+                                                icon={<FilterIcon/>}
+                                                appearance={selectedTags.size > 0 ? 'primary' : 'subtle'}
+                                                shape="circular"
+                                            />
+                                        </Tooltip>
+                                    </PopoverTrigger>
+                                    <PopoverSurface className={styles.filterPopover}>
+                                        <SearchBox
+                                            placeholder="Search tags"
+                                            size="small"
+                                            value={filterSearch}
+                                            onChange={(_, d) => setFilterSearch(d.value)}
+                                        />
+                                        <div className={styles.filterPopoverList}>
+                                            {filteredTagOptions.map(tag => (
+                                                <Checkbox
+                                                    key={tag}
+                                                    label={tag}
+                                                    checked={selectedTags.has(tag)}
+                                                    onChange={() => toggleTag(tag)}
+                                                />
+                                            ))}
+                                            {filteredTagOptions.length === 0 && (
+                                                <Text size={200} className={styles.filterEmptyText}>
+                                                    No tags found
+                                                </Text>
+                                            )}
+                                        </div>
+                                    </PopoverSurface>
+                                </Popover>
+                            )}
+                            <Menu>
+                                <MenuTrigger>
+                                    <Tooltip
+                                        content={sortOrder === 'nameAsc' ? 'Name (A-Z)' : sortOrder === 'nameDesc' ? 'Name (Z-A)' : 'Recently updated'}
+                                        relationship="description"
+                                    >
                                         <Button
-                                            id="blueprint-filter-btn"
-                                            icon={<FilterIcon/>}
-                                            appearance={selectedTags.size > 0 ? 'primary' : 'subtle'}
+                                            id="blueprint-sort-btn"
+                                            icon={sortOrder === 'nameDesc' ? <SortDownIcon/> : <SortUpIcon/>}
+                                            appearance={sortOrder !== 'default' ? 'primary' : 'subtle'}
                                             shape="circular"
                                         />
                                     </Tooltip>
-                                </PopoverTrigger>
-                                <PopoverSurface className={styles.filterPopover}>
-                                    <SearchBox
-                                        placeholder="Search tags"
-                                        size="small"
-                                        value={filterSearch}
-                                        onChange={(_, d) => setFilterSearch(d.value)}
-                                    />
-                                    <div className={styles.filterPopoverList}>
-                                        {filteredTagOptions.map(tag => (
-                                            <Checkbox
-                                                key={tag}
-                                                label={tag}
-                                                checked={selectedTags.has(tag)}
-                                                onChange={() => toggleTag(tag)}
-                                            />
-                                        ))}
-                                        {filteredTagOptions.length === 0 && (
-                                            <Text size={200} style={{padding: '4px 8px', color: 'var(--colorNeutralForeground3)'}}>
-                                                No tags found
-                                            </Text>
-                                        )}
-                                    </div>
-                                </PopoverSurface>
-                            </Popover>
-                        )}
-                        <Menu>
-                            <MenuTrigger>
-                                <Tooltip
-                                    content={sortOrder === 'nameAsc' ? 'Name (A-Z)' : sortOrder === 'nameDesc' ? 'Name (Z-A)' : 'Recently updated'}
-                                    relationship="description"
-                                >
-                                    <Button
-                                        id="blueprint-sort-btn"
-                                        icon={sortOrder === 'nameDesc' ? <SortDownIcon/> : <SortUpIcon/>}
-                                        appearance={sortOrder !== 'default' ? 'primary' : 'subtle'}
-                                        shape="circular"
-                                    />
-                                </Tooltip>
-                            </MenuTrigger>
-                            <MenuPopover>
-                                <MenuList>
-                                    <MenuItem
-                                        icon={sortOrder === 'default' ? <CheckmarkIcon/> : undefined}
-                                        onClick={() => { setSortOrder('default'); setCurrentPage(0); }}
-                                    >
-                                        Recently updated
-                                    </MenuItem>
-                                    <MenuItem
-                                        icon={sortOrder === 'nameAsc' ? <CheckmarkIcon/> : undefined}
-                                        onClick={() => { setSortOrder('nameAsc'); setCurrentPage(0); }}
-                                    >
-                                        Name (A-Z)
-                                    </MenuItem>
-                                    <MenuItem
-                                        icon={sortOrder === 'nameDesc' ? <CheckmarkIcon/> : undefined}
-                                        onClick={() => { setSortOrder('nameDesc'); setCurrentPage(0); }}
-                                    >
-                                        Name (Z-A)
-                                    </MenuItem>
-                                </MenuList>
-                            </MenuPopover>
-                        </Menu>
+                                </MenuTrigger>
+                                <MenuPopover>
+                                    <MenuList>
+                                        <MenuItem
+                                            icon={sortOrder === 'default' ? <CheckmarkIcon/> : undefined}
+                                            onClick={() => { setSortOrder('default'); setCurrentPage(0); }}
+                                        >
+                                            Recently updated
+                                        </MenuItem>
+                                        <MenuItem
+                                            icon={sortOrder === 'nameAsc' ? <CheckmarkIcon/> : undefined}
+                                            onClick={() => { setSortOrder('nameAsc'); setCurrentPage(0); }}
+                                        >
+                                            Name (A-Z)
+                                        </MenuItem>
+                                        <MenuItem
+                                            icon={sortOrder === 'nameDesc' ? <CheckmarkIcon/> : undefined}
+                                            onClick={() => { setSortOrder('nameDesc'); setCurrentPage(0); }}
+                                        >
+                                            Name (Z-A)
+                                        </MenuItem>
+                                    </MenuList>
+                                </MenuPopover>
+                            </Menu>
+                        </div>
                         <ViewModeToggle value={viewMode} onChange={handleViewModeChange}/>
                     </div>
 
@@ -378,7 +391,7 @@ const BlueprintsTab = () =>
                     )}
                 </div>
 
-                {loading && <Spinner size="small" label="Loading blueprints…"/>}
+                {loading && <Spinner size="small" label="Loading blueprints..."/>}
                 <div className={styles.scrollableContent}>
                 {!loading && error && (
                     <Text className={styles.errorText}>{error}</Text>
@@ -517,7 +530,7 @@ const BlueprintsTab = () =>
                             {visibleBlueprints.map(bp => (
                                 <tr key={bp.id} className={styles.tr}>
                                     <td className={styles.td}><Text weight="semibold">{bp.name}</Text></td>
-                                    <td className={styles.td}><Text size={200}>{bp.summary ?? '—'}</Text></td>
+                                    <td className={styles.td}><Text size={200}>{bp.summary ?? '-'}</Text></td>
                                     <td className={styles.td}>
                                         <TagList tags={bp.generalTags}/>
                                     </td>
@@ -580,16 +593,16 @@ const BlueprintsTab = () =>
                         </tbody>
                     </table>
                 )}
-                {!loading && !error && totalPages > 1 && (
-                    <div className={styles.paginationRow}>
-                        <ExchangeListPagination
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            onPageChange={setCurrentPage}
-                        />
-                    </div>
-                )}
                 </div>
+                {!loading && !error && filteredBlueprints.length > 0 && (
+                    <BlueprintsPagination
+                        currentPage={currentPage}
+                        totalPages={Math.max(totalPages, 1)}
+                        totalItems={filteredBlueprints.length}
+                        pageSize={PAGE_SIZE}
+                        onPageChange={setCurrentPage}
+                    />
+                )}
             </div>
 
             <BlueprintEditorDialog

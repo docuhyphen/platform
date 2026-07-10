@@ -9,6 +9,13 @@ import com.docuhyphen.app.api.realtime.RealtimeMessage
 import com.docuhyphen.app.api.realtime.RealtimeMessageType
 import com.docuhyphen.app.api.repository.ExchangeRepository
 import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
+import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
+import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
+import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
+import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
@@ -48,6 +55,7 @@ class ExchangeDocumentService @Inject constructor(
     private val appUserService: AppUserService,
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
+    private val auditRecorder: AuditRecorder,
 )
 {
     private enum class DocumentAction
@@ -310,6 +318,13 @@ class ExchangeDocumentService @Inject constructor(
         validateDownloadFormat(document, constraintsJson)
 
         val fileKey = "${document.id}${DocumentType.toFileExtension(document.type!!)}"
+        recordDocumentAccessEvent(
+            eventType = AuditEventType.DOCUMENT_DOWNLOAD,
+            document = document,
+            exchange = exchange,
+            actorKind = AuditActorKind.HUMAN,
+            actorId = authTokenContext.authToken.appUser?.id,
+        )
         return fileStorageService.downloadDocument(fileKey)
     }
 
@@ -363,6 +378,13 @@ class ExchangeDocumentService @Inject constructor(
         }
 
         val fileKey = "${document.id}${DocumentType.toFileExtension(document.type!!)}"
+        recordDocumentAccessEvent(
+            eventType = AuditEventType.DOCUMENT_NO_AUTH_DOWNLOAD,
+            document = document,
+            exchange = exchange,
+            actorKind = AuditActorKind.PUBLIC_LINK,
+            actorId = null,
+        )
         return fileStorageService.downloadDocument(fileKey)
     }
 
@@ -375,6 +397,8 @@ class ExchangeDocumentService @Inject constructor(
 
         val constraintsJson = shareService.recipientConstraintsJson(exchange.id)
         val allowedFormats = ShareConstraints.parse(constraintsJson)?.allowedDownloadFormats
+
+        recordZipExportEvent(exchange, documents)
 
         if (allowedFormats == null)
         {
@@ -607,6 +631,7 @@ class ExchangeDocumentService @Inject constructor(
 
         if (decision is Decision.Deny)
         {
+            recordAuthorizationDenied(exchange, appUser.id, Action.DOCUMENT_DOWNLOAD.name)
             throw IllegalArgumentException("Permission to download document not granted")
         }
     }
@@ -687,6 +712,25 @@ class ExchangeDocumentService @Inject constructor(
         val fileKey = "${document.id}${DocumentType.toFileExtension(document.type!!)}"
         val originalFile = fileStorageService.downloadDocument(fileKey)
 
+        // A preview is both a content "view" (reuses the pre-existing DOCUMENT_VIEW event type)
+        // and specifically the preview/PDF-conversion feature (the new DOCUMENT_PREVIEW type,
+        // which callers can use to distinguish inline preview from a generic view elsewhere).
+        val actorId = authTokenContext.authToken.appUser?.id
+        recordDocumentAccessEvent(
+            eventType = AuditEventType.DOCUMENT_VIEW,
+            document = document,
+            exchange = exchange,
+            actorKind = AuditActorKind.HUMAN,
+            actorId = actorId,
+        )
+        recordDocumentAccessEvent(
+            eventType = AuditEventType.DOCUMENT_PREVIEW,
+            document = document,
+            exchange = exchange,
+            actorKind = AuditActorKind.HUMAN,
+            actorId = actorId,
+        )
+
         if (fileKey.endsWith(".pdf"))
         {
             return originalFile
@@ -745,6 +789,126 @@ class ExchangeDocumentService @Inject constructor(
             )
         }.onFailure { e ->
             logger.warn("Failed to broadcast {} for session={} document={}", type, exchangeId, documentId, e)
+        }
+    }
+
+    /**
+     * Phase 3 task 2 (AUDIT-ARCHITECTURE-IMPLEMENTATION.md): dual write onto [AuditRecorder] for
+     * document-access events that had zero capture at all before this phase (view/preview/
+     * current-version download/no-auth download). Failures are caught and logged, never
+     * propagated, so audit plumbing can never break an actual file download/preview response -
+     * same catch-and-log style as [ExchangeDocumentAuditService.recordOnRecorder].
+     */
+    private fun recordDocumentAccessEvent(
+        eventType: AuditEventType,
+        document: Document,
+        exchange: Exchange,
+        actorKind: AuditActorKind,
+        actorId: UUID?,
+        extraPayload: Map<String, String> = emptyMap(),
+    )
+    {
+        try
+        {
+            auditRecorder.record(
+                AuditEventDraft(
+                    eventTypeKey = eventType.key,
+                    outcome = AuditOutcome.SUCCESS,
+                    actorId = actorId,
+                    actorKind = actorKind,
+                    actorRole = if (actorId != null) "APP_USER" else "PUBLIC_LINK_OR_EMAIL_ACTOR",
+                    targetType = ResourceType.DOCUMENT.name,
+                    targetId = document.id.toString(),
+                    targetLabel = document.title,
+                    organizationId = exchange.ownerOrganizationId,
+                    payload = buildMap {
+                        put("document_title", document.title ?: "")
+                        put("exchange_id", exchange.id.toString())
+                        putAll(extraPayload)
+                    },
+                )
+            )
+        }
+        catch (e: AuditDraftInvalidException)
+        {
+            logger.warn("ExchangeDocumentService: AuditRecorder rejected draft for eventType={}: {}", eventType.key, e.message)
+        }
+        catch (e: AuditCaptureFailedException)
+        {
+            logger.error(
+                "ExchangeDocumentService: AuditRecorder capture failed (fail-closed) for eventType={}: {}",
+                eventType.key, e.message, e,
+            )
+        }
+    }
+
+    /** ZIP export is one event per request (not per document), listing the exported document ids. */
+    private fun recordZipExportEvent(exchange: Exchange, documents: List<Document>)
+    {
+        val actorId = authTokenContext.authToken.appUser?.id
+        try
+        {
+            auditRecorder.record(
+                AuditEventDraft(
+                    eventTypeKey = AuditEventType.DOCUMENT_ZIP_EXPORT.key,
+                    outcome = AuditOutcome.SUCCESS,
+                    actorId = actorId,
+                    actorKind = AuditActorKind.HUMAN,
+                    actorRole = "APP_USER",
+                    targetType = ResourceType.EXCHANGE.name,
+                    targetId = exchange.id.toString(),
+                    targetLabel = exchange.name,
+                    organizationId = exchange.ownerOrganizationId,
+                    payload = mapOf(
+                        "document_count" to documents.size.toString(),
+                        "document_ids" to documents.joinToString(",") { it.id.toString() },
+                    ),
+                )
+            )
+        }
+        catch (e: AuditDraftInvalidException)
+        {
+            logger.warn("ExchangeDocumentService: AuditRecorder rejected draft for eventType={}: {}", AuditEventType.DOCUMENT_ZIP_EXPORT.key, e.message)
+        }
+        catch (e: AuditCaptureFailedException)
+        {
+            logger.error(
+                "ExchangeDocumentService: AuditRecorder capture failed (fail-closed) for eventType={}: {}",
+                AuditEventType.DOCUMENT_ZIP_EXPORT.key, e.message, e,
+            )
+        }
+    }
+
+    /**
+     * Phase 3 task 3 (small, targeted deny capture): a denied DOCUMENT_DOWNLOAD authorization
+     * decision is a genuinely sensitive event worth its own ledger row, distinct from the
+     * DOCUMENT_DOWNLOAD success event recorded on the happy path above.
+     */
+    private fun recordAuthorizationDenied(exchange: Exchange, actorId: UUID?, action: String)
+    {
+        try
+        {
+            auditRecorder.record(
+                AuditEventDraft(
+                    eventTypeKey = AuditEventType.AUTHORIZATION_DENIED.key,
+                    outcome = AuditOutcome.DENIED,
+                    actorId = actorId,
+                    actorKind = AuditActorKind.HUMAN,
+                    targetType = ResourceType.EXCHANGE.name,
+                    targetId = exchange.id.toString(),
+                    targetLabel = exchange.name,
+                    organizationId = exchange.ownerOrganizationId,
+                    payload = mapOf("action" to action),
+                )
+            )
+        }
+        catch (e: AuditDraftInvalidException)
+        {
+            logger.warn("ExchangeDocumentService: AuditRecorder rejected AUTHORIZATION_DENIED draft: {}", e.message)
+        }
+        catch (e: AuditCaptureFailedException)
+        {
+            logger.error("ExchangeDocumentService: AuditRecorder capture failed (fail-closed) for AUTHORIZATION_DENIED: {}", e.message, e)
         }
     }
 }

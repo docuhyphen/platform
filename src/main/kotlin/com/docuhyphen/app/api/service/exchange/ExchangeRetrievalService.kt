@@ -74,6 +74,36 @@ class ExchangeRetrievalService @Inject constructor(
         return session
     }
 
+    fun hasDocumentInExchange(exchangeId: UUID, documentId: UUID): Boolean =
+        exchangeRepository.findDocumentBySessionIdAndDocumentId(exchangeId, documentId) != null
+
+    /**
+     * Every non-deleted document id belonging to [exchangeId]. Used by
+     * [com.docuhyphen.app.api.service.audit.AuditSearchProjectionService.listExchangeEvents] to
+     * widen a document-scoped ledger query to every document in the Exchange plus the
+     * Exchange-level target itself, without that service touching [ExchangeRepository] directly.
+     */
+    fun getDocumentIdsForExchange(exchangeId: UUID): List<UUID>
+    {
+        val exchange = exchangeRepository.findByIdWithDocumentsOrderedByTitle(exchangeId) ?: return emptyList()
+        return exchange.documents.filter { it.isDeleted == false }.map { it.id }
+    }
+
+    /**
+     * Display-only Exchange name lookup with no authorization check, following the same
+     * "display" convention as [primaryRecipientUserIdForDisplay]: used by
+     * [com.docuhyphen.app.api.service.audit.AuditSearchProjectionService] to label an
+     * Exchange-scoped audit search without re-running [Action.EXCHANGE_VIEW] authorization,
+     * which would wrongly fail the label lookup (and, if not caught, the whole search) for an
+     * auditor who has audit-read rights on the organization but no direct Exchange-view grant.
+     * Must not be used to decide whether the caller may see the Exchange.
+     */
+    fun getExchangeNameForDisplay(exchangeId: UUID): String? = exchangeRepository.findById(exchangeId)?.name
+
+    /** Same "display, not authorization" convention as [getExchangeNameForDisplay], for a single document's title. */
+    fun getDocumentTitleForDisplay(exchangeId: UUID, documentId: UUID): String? =
+        exchangeRepository.findDocumentBySessionIdAndDocumentId(exchangeId, documentId)?.title
+
     fun getAllSessionsForSignedInAppUser(): List<Exchange>
     {
         val appUserId = authTokenContext.authToken.appUser?.id ?: return emptyList()

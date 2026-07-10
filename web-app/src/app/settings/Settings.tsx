@@ -25,6 +25,7 @@ import {
     SettingsVariablesTabIcon,
     SettingsWorkflowsTabIcon, SettingsOrganizationBillingTabIcon,
     SettingsFieldsTabIcon,
+    AuditIcon,
 } from "../components/IconBundles.tsx";
 import BlueprintsTab from "./blueprints-tab/BlueprintsTab.tsx";
 import WorkflowsTab from "./workflows-tab/WorkflowsTab.tsx";
@@ -45,6 +46,7 @@ import FieldsTab from "./fields-tab/FieldsTab.tsx";
 import CommunicationsTab from "./communications-tab/CommunicationsTab.tsx";
 import DocumentLibraryTab from "./document-library-tab/DocumentLibraryTab.tsx";
 import BillingTab from "./billing-tab/BillingTab.tsx";
+import AuditWorkspace from "../audit/AuditWorkspace.tsx";
 import {useIsMobile} from "../../utils/useMediaQuery.ts";
 import {Capability} from '../../app/models/models.tsx';
 
@@ -69,6 +71,7 @@ const Settings = () =>
         fields: "FieldsTab",
         communications: "CommunicationsTab",
         documents: "DocumentsTab",
+        audit: "AuditTab",
     }
 
     const tabLabels: Record<string, string> = {
@@ -84,6 +87,7 @@ const Settings = () =>
         [tabIds.fields]: "Fields",
         [tabIds.communications]: "Communications",
         [tabIds.documents]: "Document Library",
+        [tabIds.audit]: "Audit",
     };
 
     const {appUserPersonOrganization, hasCapability} = useAuth();
@@ -106,6 +110,7 @@ const Settings = () =>
         tabIds.fields,
         tabIds.communications,
         tabIds.documents,
+        tabIds.audit,
     ].includes(selectedValue as string) || (
         selectedValue === tabIds.organization && !!appUserPersonOrganization?.isActive
     );
@@ -117,6 +122,7 @@ const Settings = () =>
     // Show the Administration tab when the user has no org (to register) or a pending org (to
     // view status), in addition to the normal case of an active org with management capabilities.
     const canSeeOrganizationAdminTab = !appUserPersonOrganization?.isActive || canManageOrganization;
+    const canSeeAuditTab = hasCapability(Capability.ORG_AUDIT_READ) || hasCapability(Capability.APP_AUDIT_READ);
 
     const tabListContent = (
         <TabList
@@ -169,15 +175,22 @@ const Settings = () =>
             <Tab id="CommunicationsTab" icon={<SettingsCommunicationsTabIcon/>} value={tabIds.communications}>
                 Communications
             </Tab>
-            {canSeeOrganizationAdminTab && (
+            {(canSeeOrganizationAdminTab || canSeeAuditTab) && (
                 <>
                     <Divider appearance={"brand"} alignContent={"start"} className={styles.tabSettingDivider}>Organization</Divider>
-                    <Tab id="OrganizationTab" icon={<SettingsOrganizationTabIcon/>} value={tabIds.organization}>
-                        Administration
-                    </Tab>
+                    {canSeeOrganizationAdminTab && (
+                        <Tab id="OrganizationTab" icon={<SettingsOrganizationTabIcon/>} value={tabIds.organization}>
+                            Administration
+                        </Tab>
+                    )}
                     {canManageOrganization && (
                         <Tab id="OrganizationBillingTab" icon={<SettingsOrganizationBillingTabIcon/>} value={tabIds.organizationBilling}>
                             Billing
+                        </Tab>
+                    )}
+                    {canSeeAuditTab && (
+                        <Tab id="AuditTab" icon={<AuditIcon/>} value={tabIds.audit}>
+                            Audit
                         </Tab>
                     )}
                 </>
@@ -240,6 +253,7 @@ const Settings = () =>
                     {selectedValue === tabIds.fields && <FieldsTab/>}
                     {selectedValue === tabIds.communications && <CommunicationsTab/>}
                     {selectedValue === tabIds.documents && <DocumentLibraryTab/>}
+                    {selectedValue === tabIds.audit && <AuditWorkspace/>}
                     </div>
                 </div>
 
