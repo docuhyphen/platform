@@ -1,8 +1,4 @@
 import {
-    Accordion,
-    AccordionHeader,
-    AccordionItem,
-    AccordionPanel,
     Button,
     Dialog,
     DialogActions,
@@ -10,25 +6,23 @@ import {
     DialogContent,
     DialogSurface,
     DialogTitle,
-    Text,
 } from "@fluentui/react-components";
-import {ClockIcon, CommentIcon, DismissIcon, PersonIcon, TagIcon, TargetIcon} from "../../../components/IconBundles.tsx";
 import {AuditEventDto} from "../../../models/models.tsx";
 import {formatDateTime} from "../../../helpers.ts";
-import {getAuditEventTypeLabel} from "../../auditEventTypeLabels.ts";
+import {
+    formatAuditActor,
+    formatAuditEntityLabel,
+    formatAuditEventType,
+} from "../../auditDisplayFormatters.ts";
 import AuditCategoryBadge from "../audit-category-badge/AuditCategoryBadge.tsx";
 import AuditEventDetailCard from "./AuditEventDetailCard.tsx";
-import AuditEventDetailField from "./AuditEventDetailField.tsx";
+import AuditEventDetailMoreInfo from "./AuditEventDetailMoreInfo.tsx";
 import {useAuditEventDetailStyles} from "./AuditEventDetailStyles.tsx";
 import {
-    ChatWarning24Filled, ChatWarning24Regular,
-    Clock24Filled,
-    Clock24Regular,
-    ClockFilled, Person24Regular,
-    PersonRegular,
-    Tag24Filled,
+    Box24Regular,
+    ChatWarning24Regular,
+    Clock24Regular, Person24Regular,
     Tag24Regular,
-    TagFilled, Target24Regular, TargetFilled
 } from "@fluentui/react-icons";
 
 interface AuditEventDetailProps
@@ -54,10 +48,9 @@ const AuditEventDetail = (
         return null;
     }
 
-    const payloadEntries = Object.entries(event.payload ?? {});
-    const actorValue = `${event.actorLabel ?? event.actorKind}${event.actorRole ? ` - ${event.actorRole}` : ""}`;
-    const actorCopyValue = [event.actorLabel ?? event.actorKind, event.actorId].filter(Boolean).join(", ");
-    const targetValue = event.targetLabel ?? event.targetType ?? "-";
+    const actorValue = formatAuditActor(event.actorKind, event.actorLabel, event.actorRole);
+    const actorCopyValue = [actorValue, event.actorId].filter(Boolean).join(", ");
+    const targetValue = formatAuditEntityLabel(event.targetLabel, event.targetType);
     const targetCopyValue = [targetValue, event.targetId].filter(Boolean).join(", ");
 
     return (
@@ -82,7 +75,7 @@ const AuditEventDetail = (
                                 id={"audit-event-detail-event-type"}
                                 icon={<Tag24Regular/>}
                                 label={"Event type"}
-                                value={getAuditEventTypeLabel(event.eventTypeKey)}
+                                value={formatAuditEventType(event.eventTypeKey)}
                             />
                             <AuditEventDetailCard
                                 id={"audit-event-detail-occurred-at"}
@@ -95,14 +88,12 @@ const AuditEventDetail = (
                                 icon={<Person24Regular/>}
                                 label={"Actor"}
                                 value={actorValue}
-                                copyValue={actorCopyValue}
                             />
                             <AuditEventDetailCard
                                 id={"audit-event-detail-target"}
-                                icon={<Target24Regular/>}
+                                icon={<Box24Regular/>}
                                 label={"Target"}
                                 value={targetValue}
-                                copyValue={targetCopyValue}
                             />
                             {event.reason && (
                                 <AuditEventDetailCard
@@ -114,43 +105,7 @@ const AuditEventDetail = (
                             )}
                         </div>
 
-                        <Accordion id={"audit-event-detail-more-info"} collapsible>
-                            <AccordionItem value={"more-info"}>
-                                <AccordionHeader>More info</AccordionHeader>
-                                <AccordionPanel>
-                                    <div className={styles.fieldGrid}>
-                                        <AuditEventDetailField label={"Outcome"} value={event.outcome}/>
-                                        {event.organizationLabel && (
-                                            <AuditEventDetailField label={"Organization"} value={event.organizationLabel}/>
-                                        )}
-                                        <AuditEventDetailField label={"Event type key"} value={event.eventTypeKey}/>
-                                        <AuditEventDetailField label={"Ledger time"} value={formatDateTime(event.ledgerTime)}/>
-                                        <AuditEventDetailField label={"Event hash"} value={event.eventHash}/>
-                                        {event.prevHash && (
-                                            <AuditEventDetailField label={"Previous hash"} value={event.prevHash}/>
-                                        )}
-                                    </div>
-
-                                    {payloadEntries.length > 0 && (
-                                        <div id={"audit-event-detail-payload"}>
-                                            <Text size={200} className={styles.fieldLabel}>Payload</Text>
-                                            <div className={styles.payloadList}>
-                                                {payloadEntries.map(([key, value]) => (
-                                                    <div key={key} className={styles.payloadRow}>
-                                                        <Text weight={"semibold"}>{key}:</Text>
-                                                        <Text>{value}</Text>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <Text id={"audit-event-detail-redaction-note"} size={200} className={styles.note}>
-                                        Some fields may be masked or withheld based on your access.
-                                    </Text>
-                                </AccordionPanel>
-                            </AccordionItem>
-                        </Accordion>
+                        <AuditEventDetailMoreInfo event={event}/>
                     </DialogContent>
                     <DialogActions>
                         <Button

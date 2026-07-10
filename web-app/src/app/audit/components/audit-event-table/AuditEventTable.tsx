@@ -11,7 +11,12 @@ import {
 } from "@fluentui/react-components";
 import {AuditEventCursorDto, AuditEventDto} from "../../../models/models.tsx";
 import {formatDateTime} from "../../../helpers.ts";
-import {getAuditEventTypeLabel} from "../../auditEventTypeLabels.ts";
+import {
+    formatAuditActor,
+    formatAuditEntityLabel,
+    formatAuditEventType,
+    formatAuditOutcome,
+} from "../../auditDisplayFormatters.ts";
 import AuditCategoryBadge from "../audit-category-badge/AuditCategoryBadge.tsx";
 import {useAuditEventTableStyles} from "./AuditEventTableStyles.tsx";
 import AuditEventTablePagination from "./AuditEventTablePagination.tsx";
@@ -119,10 +124,10 @@ const AuditEventTable = (
                                 <TableCell>
                                     <AuditCategoryBadge category={event.category}/>
                                 </TableCell>
-                                <TableCell>{getAuditEventTypeLabel(event.eventTypeKey)}</TableCell>
-                                <TableCell>{event.outcome}</TableCell>
-                                <TableCell>{event.actorLabel ?? event.actorKind}</TableCell>
-                                <TableCell>{event.targetLabel ?? event.targetType ?? "-"}</TableCell>
+                                <TableCell>{formatAuditEventType(event.eventTypeKey)}</TableCell>
+                                <TableCell>{formatAuditOutcome(event.outcome)}</TableCell>
+                                <TableCell>{formatAuditActor(event.actorKind, event.actorLabel)}</TableCell>
+                                <TableCell>{formatAuditEntityLabel(event.targetLabel, event.targetType)}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>

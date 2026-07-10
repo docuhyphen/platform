@@ -46,6 +46,67 @@ describe("AuditEventDetail", () =>
         expect(screen.getByText("login attempt")).toBeTruthy();
     });
 
+    it("shows friendly detail text instead of raw audit codes", () =>
+    {
+        render(
+            <AuditEventDetail
+                event={{
+                    ...event,
+                    actorKind: "APP_USER",
+                    actorLabel: "Christopher Mahlangu <mchrizy@gmail.com>",
+                    actorRole: "APP_USER",
+                    eventTypeKey: "document.preview",
+                    payload: {
+                        document_title: "Bank Statements (3 Months)",
+                        exchange_id: "8358a44e-7c2f-4ea9-947e-b9e595498386",
+                        exchange_name: "Quarterly Finance Review",
+                    },
+                }}
+                open={true}
+                onDismiss={vi.fn()}
+            />
+        );
+
+        fireEvent.click(screen.getByText("More info"));
+
+        expect(screen.getAllByText("Document previewed").length).toBeGreaterThan(0);
+        expect(screen.getByText("Christopher Mahlangu <mchrizy@gmail.com> - Application user")).toBeTruthy();
+        expect(screen.getByText("Successful")).toBeTruthy();
+        expect(screen.getByText("Document title:")).toBeTruthy();
+        expect(screen.getByText("Exchange:")).toBeTruthy();
+        expect(screen.getByText("Quarterly Finance Review")).toBeTruthy();
+        expect(screen.queryByText("document.preview")).toBeFalsy();
+        expect(screen.queryByText("document_title:")).toBeFalsy();
+        expect(screen.queryByText("Exchange name:")).toBeFalsy();
+        expect(screen.queryByText("8358a44e-7c2f-4ea9-947e-b9e595498386")).toBeFalsy();
+        expect(screen.queryByText("APP_USER")).toBeFalsy();
+        expect(screen.queryByText("SUCCESS")).toBeFalsy();
+    });
+
+    it("uses the target label when a payload entity id points at the event target", () =>
+    {
+        render(
+            <AuditEventDetail
+                event={{
+                    ...event,
+                    targetType: "DOCUMENT",
+                    targetLabel: "Bank Statements (3 Months)",
+                    payload: {
+                        document_id: "8358a44e-7c2f-4ea9-947e-b9e595498386",
+                    },
+                }}
+                open={true}
+                onDismiss={vi.fn()}
+            />
+        );
+
+        fireEvent.click(screen.getByText("More info"));
+
+        expect(screen.getByText("Document:")).toBeTruthy();
+        expect(screen.getAllByText("Bank Statements (3 Months)").length).toBeGreaterThan(0);
+        expect(screen.queryByText("8358a44e-7c2f-4ea9-947e-b9e595498386")).toBeFalsy();
+    });
+
     it("hides the event hash, payload, and redaction note under a collapsed More info accordion", () =>
     {
         render(
@@ -94,7 +155,7 @@ describe("AuditEventDetail", () =>
         const copyButton = document.getElementById("button-audit-event-detail-actor-copy") as HTMLButtonElement;
         fireEvent.click(copyButton);
 
-        await waitFor(() => expect(writeText).toHaveBeenCalledWith("USER, user-1"));
+        await waitFor(() => expect(writeText).toHaveBeenCalledWith("User - Member, user-1"));
     });
 
     it("never renders the raw actor or target id as visible text", () =>

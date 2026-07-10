@@ -1,6 +1,7 @@
 ﻿import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
     Button, InputOnChangeData, Link, SearchBoxChangeEvent,
+    mergeClasses,
     Spinner, TabValue, Text, Toast, Toaster,
     ToastBody,
     ToastTitle,
@@ -51,6 +52,8 @@ import ExchangeWorkflowTab from "./components/exchange-workflow-tab/ExchangeWork
 import ExchangeFieldsTab from "./components/exchange-fields-tab/ExchangeFieldsTab.tsx";
 import ExchangeTabsHeader from "./components/exchange-tabs-header/ExchangeTabsHeader.tsx";
 
+type ExchangePaneNavigationDirection = "forward" | "back" | null;
+
 const parseExchangeListTab = (value: string | null | undefined): ExchangeListTab | null =>
 {
     if (value === 'inbox' || value === 'active' || value === 'archive')
@@ -78,6 +81,8 @@ const Exchanges: React.FC = () =>
     const [inboxRole, setInboxRole] = useState<InboxRole>('incoming');
     const [tabCounts, setTabCounts] = useState<ExchangeTabCounts>({inbox: 0, active: 0, archive: 0});
     const [selectedExchangeId, setSelectedExchangeId] = useState<string | null>(null);
+    const [paneNavigationDirection, setPaneNavigationDirection] =
+        useState<ExchangePaneNavigationDirection>(null);
     const [preparingExchanges, setPreparingExchanges] = useState<boolean>(true);
     const token = useToken();
     const {appUser} = useAuth();
@@ -136,6 +141,12 @@ const Exchanges: React.FC = () =>
         );
     };
 
+    const changeSelectedExchangeId = (exchangeId: string | null) =>
+    {
+        setPaneNavigationDirection(exchangeId ? "forward" : "back");
+        setSelectedExchangeId(exchangeId);
+    };
+
     const clearUnavailableExchangeContext = (exchangeId?: string | null) =>
     {
         notifyExchangeUnavailable(exchangeId);
@@ -143,7 +154,7 @@ const Exchanges: React.FC = () =>
         deepLinkedDocumentIdRef.current = null;
         deepLinkedDocumentExchangeIdRef.current = null;
         setSelectedExchangeDocument(undefined);
-        setSelectedExchangeId(null);
+        changeSelectedExchangeId(null);
         setExchangeDetails(null);
         setDocumentSearchQuery("");
         setFilteredDocuments([]);
@@ -599,7 +610,7 @@ const Exchanges: React.FC = () =>
         if (exchangeDetails && exchangeDetails.id === exchangeId)
         {
             setExchangeDetails(undefined);
-            setSelectedExchangeId(undefined);
+            changeSelectedExchangeId(null);
         }
     };
 
@@ -679,7 +690,7 @@ const Exchanges: React.FC = () =>
     {
         setExchangeDetails(exchange);
         setActiveListTab('active');
-        setSelectedExchangeId(exchange.id);
+        changeSelectedExchangeId(exchange.id);
     };
 
     const onExchangeRejected = (exchange: ExchangeDetailedDto) =>
@@ -719,7 +730,7 @@ const Exchanges: React.FC = () =>
         if (currentIndex < 0 || currentIndex >= exchangeList.length - 1) return;
 
         const nextIndex = currentIndex + 1;
-        setSelectedExchangeId(exchangeList[nextIndex].id);
+        changeSelectedExchangeId(exchangeList[nextIndex].id);
     };
 
     const renderExchangesSection = () =>
@@ -763,14 +774,17 @@ const Exchanges: React.FC = () =>
         // toggle visibility via classes rather than unmounting so the
         // ExchangeList preserves its fetched data / scroll / filters.
         const hasMobileSelection = !!selectedExchangeId;
-        const listPaneClassName = [
+        const listPaneClassName = mergeClasses(
             styles.listPaneWrapper,
-            isMobile && hasMobileSelection && styles.listPaneHidden,
-        ].filter(Boolean).join(" ");
-        const detailsPaneClassName = [
+            isMobile && hasMobileSelection ? styles.listPaneHidden : undefined,
+            isMobile && !hasMobileSelection && paneNavigationDirection === "back"
+                ? styles.listPaneSlideInFromLeft
+                : undefined,
+        );
+        const detailsPaneClassName = mergeClasses(
             styles.detailsContainer,
-            isMobile && !hasMobileSelection && styles.detailsPaneHidden,
-        ].filter(Boolean).join(" ");
+            isMobile && !hasMobileSelection ? styles.detailsPaneHidden : undefined,
+        );
 
         // The empty-state fallbacks below (inbox empty, "select a exchange"
         // hint, etc.) belong to the desktop details column. On mobile,
@@ -786,7 +800,7 @@ const Exchanges: React.FC = () =>
 
                 <div className={listPaneClassName}>
                     <ExchangeList
-                        onSelectionChange={setSelectedExchangeId}
+                        onSelectionChange={changeSelectedExchangeId}
                         onExchangeListChange={setExchangeList}
                         onTabChange={setActiveListTab}
                         onInboxRoleChange={setInboxRole}
@@ -800,7 +814,7 @@ const Exchanges: React.FC = () =>
                     <div
                         id={`exchange-details-transition-${selectedExchangeId}`}
                         key={selectedExchangeId}
-                        className={`${styles.detailsTransitionFrame} ${styles.detailsSlideInFromRight}`}
+                        className={mergeClasses(styles.detailsTransitionFrame, styles.detailsSlideInFromRight)}
                     >
                         {fetchingDetails && !exchangeDetails && <ExchangeDetailsLoading/>}
 
@@ -838,7 +852,7 @@ const Exchanges: React.FC = () =>
                             setIsExchangeAccessManagementDialogOpen={setIsExchangeAccessManagementDialogOpen}
                             exchangePermissions={permissions}
                             onRecreateRejectedExchange={onRecreateRejectedExchange}
-                            onBackToList={isMobile ? () => setSelectedExchangeId(null) : undefined}
+                            onBackToList={isMobile ? () => changeSelectedExchangeId(null) : undefined}
                         />
 
                         <ExchangeTabsHeader activeTab={detailsActiveTab}

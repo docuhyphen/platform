@@ -211,6 +211,7 @@ class ExchangeDocumentVersionService @Inject constructor(
                     payload = mapOf(
                         "version_id" to versionId.toString(),
                         "exchange_id" to exchange.id.toString(),
+                        "exchange_name" to (exchange.name ?: "Exchange"),
                     ),
                 )
             )

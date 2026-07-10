@@ -41,10 +41,10 @@ export const auditWorkspaceOverviewArticle = (
         </ul>
         <p>
             Selecting a row opens a detail view with the event's full record:
-            category, event type, outcome, actor (kind, identifier, and role),
-            target, timestamps, reason (if any), the recorded payload, and the
-            cryptographic event hash and previous-hash used to verify ledger
-            integrity. Some fields may be masked or withheld depending on your
+            category, event type, outcome, actor, target, timestamps, reason
+            (if any), the recorded payload, and the
+            verification hash and previous verification hash used to verify
+            ledger integrity. Some fields may be masked or withheld depending on your
             access level. Use the pagination controls at the bottom of the table
             to page through additional results with the same filters applied.
         </p>

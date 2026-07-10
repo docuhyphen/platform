@@ -1,4 +1,4 @@
-﻿import {makeStyles} from "@fluentui/react-components";
+﻿import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useExchangeListSearchControlsStyles = makeStyles({
 
@@ -10,6 +10,7 @@ export const useExchangeListSearchControlsStyles = makeStyles({
         boxSizing: "border-box"
     },
     searchField: {
-        flex: 1
+        flex: 1,
+        paddingBottom: tokens.spacingVerticalS
     }
 });

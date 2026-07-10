@@ -2,7 +2,7 @@ import {Button, Spinner, Text} from "@fluentui/react-components";
 import {AuditEventCursorDto, AuditEventDto} from "../../../models/models.tsx";
 import {formatDateTime} from "../../../helpers.ts";
 import {ArrowDownIcon, ArrowRightIcon} from "../../../components/IconBundles.tsx";
-import {getAuditEventTypeLabel} from "../../auditEventTypeLabels.ts";
+import {formatAuditActor, formatAuditEventType} from "../../auditDisplayFormatters.ts";
 import AuditCategoryBadge from "../audit-category-badge/AuditCategoryBadge.tsx";
 import {useAuditEventCardListStyles} from "./AuditEventCardListStyles.tsx";
 import {
@@ -78,11 +78,13 @@ const AuditEventCardList = (
                         <div className={styles.cardBottomRow}>
                             <div className={styles.cardBottomRowItem}>
                                 <Tag16Regular/>
-                                <Text className={styles.eventTypeLabel}>{getAuditEventTypeLabel(event.eventTypeKey)}</Text>
+                                <Text className={styles.eventTypeLabel}>{formatAuditEventType(event.eventTypeKey)}</Text>
                             </div>
                             <div className={styles.cardBottomRowItem}>
                                 <Person16Regular/>
-                                <Text size={200} className={styles.truncate}>{event.actorLabel ?? event.actorKind}</Text>
+                                <Text size={200} className={styles.truncate}>
+                                    {formatAuditActor(event.actorKind, event.actorLabel)}
+                                </Text>
                             </div>
                         </div>
                     </button>

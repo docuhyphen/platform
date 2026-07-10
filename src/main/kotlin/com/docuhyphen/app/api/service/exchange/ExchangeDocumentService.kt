@@ -824,6 +824,7 @@ class ExchangeDocumentService @Inject constructor(
                     payload = buildMap {
                         put("document_title", document.title ?: "")
                         put("exchange_id", exchange.id.toString())
+                        put("exchange_name", exchange.name ?: "Exchange")
                         putAll(extraPayload)
                     },
                 )
