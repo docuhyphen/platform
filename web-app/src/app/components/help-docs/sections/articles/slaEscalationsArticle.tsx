@@ -27,9 +27,10 @@ export const slaEscalationsArticle = (
         <ul>
             <li>
                 <b>Escalate</b> - the workflow instance transitions to ESCALATED
-                status, flagging it for administrative review. Use this when a
-                stalled approval should be surfaced rather than silently approved
-                or rejected.
+                status and the pending step is reassigned to the escalation
+                targets you choose in the designer. Use this when a stalled
+                approval should move to another approver rather than resolving
+                automatically.
             </li>
             <li>
                 <b>Auto-approve</b> - the step is automatically approved and the
@@ -64,7 +65,8 @@ export const slaEscalationsArticle = (
             </li>
             <li>
                 Use <b>Escalate</b> when a stalled approval needs an administrator
-                to step in rather than resolving automatically.
+                or another escalation target to step in rather than resolving
+                automatically.
             </li>
             <li>
                 Leave the SLA field empty on steps where no deadline is appropriate.

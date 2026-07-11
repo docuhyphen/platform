@@ -12,7 +12,10 @@ export const useStepSummaryCardStyles = makeStyles({
         transitionDuration: tokens.durationFaster,
         ":hover": {
             backgroundColor: tokens.colorNeutralBackground1Hover,
-            borderColor: tokens.colorBrandStroke1,
+            borderTopColor: tokens.colorBrandStroke1,
+            borderRightColor: tokens.colorBrandStroke1,
+            borderBottomColor: tokens.colorBrandStroke1,
+            borderLeftColor: tokens.colorBrandStroke1,
         },
         ":focus-visible": {
             outline: `2px solid ${tokens.colorStrokeFocus2}`,
@@ -21,7 +24,10 @@ export const useStepSummaryCardStyles = makeStyles({
     },
     newCard: {
         backgroundColor: tokens.colorBrandBackground2,
-        borderColor: tokens.colorBrandStroke1,
+        borderTopColor: tokens.colorBrandStroke1,
+        borderRightColor: tokens.colorBrandStroke1,
+        borderBottomColor: tokens.colorBrandStroke1,
+        borderLeftColor: tokens.colorBrandStroke1,
         boxShadow: tokens.shadow4Brand,
     },
     firstRow: {

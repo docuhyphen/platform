@@ -26,7 +26,10 @@ export const useWorkflowSectionCardStyles = makeStyles({
         transitionDuration: tokens.durationFaster,
         ":hover": {
             backgroundColor: tokens.colorNeutralBackground1Hover,
-            borderColor: tokens.colorBrandStroke1,
+            borderTopColor: tokens.colorBrandStroke1,
+            borderRightColor: tokens.colorBrandStroke1,
+            borderBottomColor: tokens.colorBrandStroke1,
+            borderLeftColor: tokens.colorBrandStroke1,
         },
         ":focus-visible": {
             outline: `2px solid ${tokens.colorStrokeFocus2}`,

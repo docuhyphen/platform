@@ -1,5 +1,4 @@
 import React from "react";
-
 export const buildingAWorkflowArticle = (
     <>
         <p>
@@ -93,7 +92,8 @@ export const buildingAWorkflowArticle = (
                     </li>
                     <li>
                         For <b>APPROVAL</b> steps, configure assignees, quorum,
-                        optional SLA, and escalation action.
+                        optional SLA, escalation action, and escalation targets
+                        when the action is <b>Escalate</b>.
                     </li>
                     <li>
                         For <b>NOTIFICATION</b> steps, optionally select a

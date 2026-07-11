@@ -5,7 +5,6 @@ import {
 } from "@fluentui/react-components";
 import {
     AssigneeSpecDraft,
-    EscalationAction,
     CommunicationSummaryDto,
     QuorumKind,
     StepOutcomeSpecDraft,
@@ -23,6 +22,7 @@ import {formatTriggerName} from "../workflowUtils.ts";
 import CommunicationPickerDialog from "../../../components/communication-picker/CommunicationPickerDialog.tsx";
 import {getCommunication} from "../../../../services/communicationService.ts";
 import {DismissCircleRegular} from "@fluentui/react-icons";
+import ApprovalSlaFields from "./approval-sla-fields/ApprovalSlaFields.tsx";
 
 const STEP_TYPE_LABELS: Record<WorkflowStepType, string> = {
     APPROVAL: "Approval",
@@ -664,38 +664,12 @@ const StepCard = ({index, step, steps, onChange, onRemove, triggers, subjectFiel
                         )}
 
                         {step.type === "APPROVAL" && (
-                            <>
-                                <div className={styles.field}>
-                                    <Text size={200} weight="semibold">SLA (minutes)</Text>
-                                    <Input
-                                        id={`step-card-sla-input-${index}`}
-                                        size="small"
-                                        type="number"
-                                        placeholder="No deadline"
-                                        value={step.slaMinutes !== undefined ? String(step.slaMinutes) : ""}
-                                        onChange={(_, d) => patch({slaMinutes: d.value ? parseInt(d.value) : undefined})}
-                                    />
-                                </div>
-
-                                {step.slaMinutes && (
-                                    <div className={styles.field}>
-                                        <Text size={200} weight="semibold">When deadline is missed</Text>
-                                        <Select
-                                            id={`step-card-escalation-select-${index}`}
-                                            value={step.escalation?.afterSlaBreach ?? "AUTO_REJECT"}
-                                            onChange={(_, d) => patch({escalation: {
-                                                afterSlaBreach: d.value as EscalationAction,
-                                                escalateTo: step.escalation?.escalateTo ?? [],
-                                            }})}
-                                            size="small"
-                                        >
-                                            <option value="AUTO_REJECT">Reject automatically</option>
-                                            <option value="AUTO_APPROVE">Approve automatically</option>
-                                            <option value="ESCALATE">Escalate to someone else</option>
-                                        </Select>
-                                    </div>
-                                )}
-                            </>
+                            <ApprovalSlaFields
+                                index={index}
+                                step={step}
+                                subjectFields={subjectFields}
+                                onPatch={patch}
+                            />
                         )}
                     </div>
 
