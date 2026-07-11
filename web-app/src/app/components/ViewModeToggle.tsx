@@ -1,5 +1,5 @@
 import React from 'react';
-import {ToggleButton, Tooltip} from '@fluentui/react-components';
+import {tokens, ToggleButton, Tooltip} from '@fluentui/react-components';
 import {ViewCardsIcon, ViewTableIcon} from './IconBundles.tsx';
 import {ViewMode} from '../models/models.tsx';
 
@@ -10,7 +10,7 @@ interface Props
 }
 
 const ViewModeToggle: React.FC<Props> = ({value, onChange}) => (
-    <div style={{display: 'flex', gap: '2px'}}>
+    <div style={{display: 'flex', gap: tokens.spacingHorizontalXXS}}>
         <Tooltip content="Cards view" relationship="description">
             <ToggleButton
                 icon={<ViewCardsIcon/>}

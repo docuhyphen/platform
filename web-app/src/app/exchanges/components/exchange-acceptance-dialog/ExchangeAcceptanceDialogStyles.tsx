@@ -17,8 +17,8 @@ export const useExchangeAcceptanceDialogStyles = makeStyles({
     overlayCard: {
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
-        padding: "20px 24px",
+        gap: tokens.spacingHorizontalM,
+        padding: `${tokens.spacingVerticalXL} ${tokens.spacingHorizontalXXL}`,
         maxWidth: "580px",
         width: "100%",
         boxShadow: tokens.shadow28,
@@ -28,13 +28,13 @@ export const useExchangeAcceptanceDialogStyles = makeStyles({
     section: {
         display: "flex",
         flexDirection: "column",
-        gap: "6px",
+        gap: tokens.spacingHorizontalSNudge,
     },
 
     sectionLabel: {
         display: "flex",
         alignItems: "center",
-        gap: "6px",
+        gap: tokens.spacingHorizontalSNudge,
     },
 
     sectionIcon: {
@@ -48,21 +48,21 @@ export const useExchangeAcceptanceDialogStyles = makeStyles({
     },
 
     sectionContent: {
-        paddingLeft: "20px",
+        paddingLeft: tokens.spacingHorizontalXL,
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
     },
 
     requesterCaption: {
         color: tokens.colorNeutralForeground2,
-        marginTop: "2px",
+        marginTop: tokens.spacingVerticalXXS,
     },
 
     messageBox: {
         backgroundColor: tokens.colorNeutralBackground3,
         borderRadius: tokens.borderRadiusMedium,
-        padding: "8px 12px",
+        padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
         borderLeftWidth: "3px",
         borderLeftStyle: "solid",
         borderLeftColor: tokens.colorBrandBackground,
@@ -71,13 +71,13 @@ export const useExchangeAcceptanceDialogStyles = makeStyles({
     documentList: {
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
     },
 
     documentItem: {
         display: "flex",
         alignItems: "center",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
     },
 
     documentIcon: {
@@ -92,20 +92,20 @@ export const useExchangeAcceptanceDialogStyles = makeStyles({
 
     alreadySharedLabel: {
         color: tokens.colorNeutralForeground2,
-        marginTop: "6px",
+        marginTop: tokens.spacingVerticalSNudge,
     },
 
     declineFieldContainer: {
         width: "100%",
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
     },
 
     navigationActions: {
         display: "flex",
         justifyContent: "flex-end",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         flexWrap: "wrap",
     },
 
@@ -113,14 +113,14 @@ export const useExchangeAcceptanceDialogStyles = makeStyles({
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         flexWrap: "wrap",
     },
 
     primaryActions: {
         display: "flex",
         justifyContent: "flex-end",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         flexWrap: "wrap",
         marginLeft: "auto",
     },
@@ -128,7 +128,7 @@ export const useExchangeAcceptanceDialogStyles = makeStyles({
     tertiaryActions: {
         display: "flex",
         justifyContent: "flex-start",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         flexWrap: "wrap",
     },
 });

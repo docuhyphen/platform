@@ -4,7 +4,7 @@ export const useWorkflowDefinitionPreviewStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "0.75rem",
+        gap: tokens.spacingHorizontalM,
     },
     containerFillHeight: {
         flex: 1,
@@ -14,14 +14,14 @@ export const useWorkflowDefinitionPreviewStyles = makeStyles({
     applicabilitySummary: {
         display: "flex",
         flexDirection: "column",
-        gap: "2px",
-        padding: "0.5rem 0.75rem",
+        gap: tokens.spacingHorizontalXXS,
+        padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
         borderRadius: tokens.borderRadiusMedium,
         backgroundColor: tokens.colorNeutralBackground2,
         border: `1px solid ${tokens.colorNeutralStroke2}`,
     },
 
     applicabilityDetail: {
-        color: "var(--colorNeutralForeground3)",
+        color: tokens.colorNeutralForeground3,
     },
 });

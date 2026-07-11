@@ -6,7 +6,7 @@ export const useNoAuthExchangeHeaderStyles = makeStyles({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        padding: "12px 24px",
+        padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalXXL}`,
         borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
         boxShadow: tokens.shadow8,
         background: tokens.colorNeutralBackground1,
@@ -15,18 +15,18 @@ export const useNoAuthExchangeHeaderStyles = makeStyles({
         width: "100%",
         boxSizing: "border-box",
         '@media (max-width: 640px)': {
-            padding: "10px 14px",
+            padding: `${tokens.spacingVerticalMNudge} ${tokens.spacingHorizontalM}`,
         },
     },
 
     brandContainer: {
         display: "flex",
         alignItems: "center",
-        gap: "14px",
+        gap: tokens.spacingHorizontalM,
     },
 
     secureRequestLabel: {
-        paddingLeft: "14px",
+        paddingLeft: tokens.spacingHorizontalM,
         color: tokens.colorNeutralForeground3,
         borderLeft: `1px solid ${tokens.colorNeutralStroke1}`,
         fontSize: "12px",
@@ -39,7 +39,7 @@ export const useNoAuthExchangeHeaderStyles = makeStyles({
     signInButtonContainer: {
         display: "flex",
         flexDirection: "row",
-        gap: "10px",
+        gap: tokens.spacingHorizontalMNudge,
         alignItems: "center",
     },
 
@@ -54,7 +54,7 @@ export const useNoAuthExchangeHeaderStyles = makeStyles({
     signInButton: {
         display: "flex",
         flexDirection: "row",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         backgroundColor: tokens.colorBrandBackground,
     },
 });

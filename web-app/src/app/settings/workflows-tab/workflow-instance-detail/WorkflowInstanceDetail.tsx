@@ -6,7 +6,7 @@ import {
     DrawerHeaderTitle,
     OverlayDrawer,
     Spinner,
-    Text,
+    Text, tokens,
 } from "@fluentui/react-components";
 import {WorkflowInstanceDetailDto, WorkflowStepInstanceDto} from "../../../models/models.tsx";
 import {getWorkflowInstanceDetail} from "../../../../services/workflowService.ts";
@@ -23,8 +23,8 @@ const STEP_STATUS_COLORS: Record<string, "success" | "warning" | "danger" | "inf
 };
 
 const DECISION_COLORS: Record<string, string> = {
-    APPROVE: "var(--colorStatusSuccessForeground1)",
-    REJECT: "var(--colorStatusDangerForeground1)",
+    APPROVE: tokens.colorStatusSuccessForeground1,
+    REJECT: tokens.colorStatusDangerForeground1,
 };
 
 const formatDateTime = (iso?: string) =>

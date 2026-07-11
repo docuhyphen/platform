@@ -4,6 +4,6 @@ export const useParingRequestDeleteDialogStyles = makeStyles({
     dialogContent: {
         display: "flex",
         flexDirection: "column",
-        gap: "26px"
+        gap: tokens.spacingHorizontalXXL
     }
 });

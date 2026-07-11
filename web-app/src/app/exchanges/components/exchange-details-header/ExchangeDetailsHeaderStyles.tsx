@@ -6,9 +6,9 @@ export const useExchangeDetailsHeaderStyles = makeStyles({
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         background: tokens.colorNeutralBackground1,
-        padding: "8px 16px",
+        padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalL}`,
         borderRadius: tokens.borderRadiusMedium,
         borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
         borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
@@ -18,8 +18,8 @@ export const useExchangeDetailsHeaderStyles = makeStyles({
         // important navigation context on mobile and must give as much
         // room as possible to the title + back button.
         "@media (max-width: 768px)": {
-            padding: "6px 8px",
-            gap: "4px",
+            padding: `${tokens.spacingVerticalSNudge} ${tokens.spacingHorizontalS}`,
+            gap: tokens.spacingHorizontalXS,
         },
     },
 
@@ -45,20 +45,20 @@ export const useExchangeDetailsHeaderStyles = makeStyles({
         transition: "max-height 200ms ease, opacity 180ms ease, margin-top 180ms ease",
         maxHeight: "0px",
         opacity: 0,
-        marginTop: "0px",
+        marginTop: "0",
     },
 
     headerAnimatedSectionExpanded: {
         maxHeight: "80px",
         opacity: 1,
-        marginTop: "4px",
+        marginTop: tokens.spacingVerticalXS,
     },
 
     headerLine1_2: {
         display: "flex",
         flexDirection: "row",
         alignItems: "center",
-        gap: "8px"
+        gap: tokens.spacingHorizontalS
     },
 
     headerLine2: {
@@ -66,7 +66,7 @@ export const useExchangeDetailsHeaderStyles = makeStyles({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         minWidth: 0,
     },
 
@@ -74,7 +74,7 @@ export const useExchangeDetailsHeaderStyles = makeStyles({
     headerTitleGroup: {
         display: "flex",
         alignItems: "center",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         flex: 1,
         minWidth: 0,
     },
@@ -152,11 +152,11 @@ export const useExchangeDetailsHeaderStyles = makeStyles({
 
     actions: {
         display: "flex",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         alignSelf: "center",
         flexShrink: 0,
         "@media (max-width: 768px)": {
-            gap: "2px",
+            gap: tokens.spacingHorizontalXXS,
         },
     },
 });

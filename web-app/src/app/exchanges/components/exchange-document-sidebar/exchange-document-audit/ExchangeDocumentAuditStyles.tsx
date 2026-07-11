@@ -11,17 +11,17 @@ export const useExchangeDocumentAuditStyles = makeStyles({
         width: "100%"
     },
     spinner: {
-        ...shorthands.margin("20px", "auto"),
+        ...shorthands.margin(tokens.spacingVerticalXL, "auto"),
         display: "flex"
     },
     error: {
-        color: "var(--colorPaletteRedForeground1)",
+        color: tokens.colorPaletteRedForeground1,
         textAlign: "center",
-        ...shorthands.margin("16px")
+        ...shorthands.margin(tokens.spacingHorizontalL)
     },
     noLogs: {
         textAlign: "center",
         color: tokens.colorNeutralForeground3,
-        ...shorthands.padding("16px")
+        ...shorthands.padding(tokens.spacingHorizontalL)
     }
 });

@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {tokens, makeStyles} from "@fluentui/react-components";
 
 export const useOAuthStyles = makeStyles({
     oauthCallbackContainer: {
@@ -7,8 +7,8 @@ export const useOAuthStyles = makeStyles({
         alignItems: "center",
         justifyContent: "center",
         height: "100vh",
-        gap: "16px",
-        padding: "32px",
+        gap: tokens.spacingHorizontalL,
+        padding: tokens.spacingHorizontalXXXL,
         maxWidth: "480px",
         margin: "0 auto",
     },
@@ -18,7 +18,7 @@ export const useOAuthStyles = makeStyles({
         alignItems: "center",
         justifyContent: "center",
         height: "100vh",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
     },
     oauthMessageBar: {
         width: "100%",

@@ -1,11 +1,11 @@
-import {makeStyles} from "@fluentui/react-components";
+import {tokens, makeStyles} from "@fluentui/react-components";
 
 export const useOrganizationGroupsPaginationStyles = makeStyles({
     container: {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         width: "100%",
         "@media (max-width: 600px)": {
             alignItems: "flex-start",
@@ -15,6 +15,6 @@ export const useOrganizationGroupsPaginationStyles = makeStyles({
     controls: {
         display: "flex",
         alignItems: "center",
-        gap: "8px"
+        gap: tokens.spacingHorizontalS
     }
 });

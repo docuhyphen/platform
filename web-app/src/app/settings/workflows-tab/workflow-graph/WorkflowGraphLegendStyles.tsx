@@ -5,8 +5,8 @@ export const useWorkflowGraphLegendStyles = makeStyles({
     legend: {
         display: "flex",
         flexWrap: "wrap",
-        gap: "16px",
-        padding: "8px 4px",
+        gap: tokens.spacingHorizontalL,
+        padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalXS}`,
         alignItems: "flex-start",
     },
 
@@ -14,20 +14,20 @@ export const useWorkflowGraphLegendStyles = makeStyles({
         display: "flex",
         flexWrap: "wrap",
         alignItems: "center",
-        gap: "10px",
+        gap: tokens.spacingHorizontalMNudge,
     },
 
     groupTitle: {
         fontSize: tokens.fontSizeBase200,
         fontWeight: tokens.fontWeightSemibold,
         color: tokens.colorNeutralForeground2,
-        marginRight: "2px",
+        marginRight: tokens.spacingHorizontalXXS,
     },
 
     item: {
         display: "flex",
         alignItems: "center",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         fontSize: tokens.fontSizeBase200,
         color: tokens.colorNeutralForeground2,
     },

@@ -4,7 +4,7 @@ export const useOnboardingBreadcrumbsStyles = makeStyles({
 
     onBoardingBreadcrumbs: {
         display: "flex",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         flexDirection: "column",
         alignItems: "start",
     },
@@ -14,7 +14,7 @@ export const useOnboardingBreadcrumbsStyles = makeStyles({
         display: "flex",
         alignItems: "center",
         width: "100%",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         position: "relative",
 
         "&:before": {
@@ -42,7 +42,7 @@ export const useOnboardingBreadcrumbsStyles = makeStyles({
     onBoardingBreadcrumbItemText: {
         flex: 1,
         background: tokens.colorNeutralBackgroundAlpha,
-        padding: "8px 16px",
+        padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalL}`,
         borderRadius: tokens.borderRadiusMedium,
         cursor: "default",
     },

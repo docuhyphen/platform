@@ -25,7 +25,7 @@ const ExchangeListTabs: React.FC<ExchangeListTabsProps> = ({activeTab, inboxCoun
     const collapsedIconStyle = collapsed ? {fontSize: 40, lineHeight: 1} : undefined;
     const tabContentStyle = collapsed
         ? {display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%'} as const
-        : {display: 'flex', alignItems: 'center', gap: '6px'} as const;
+        : {display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalSNudge} as const;
 
     return (
         <TabList

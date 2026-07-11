@@ -1,8 +1,8 @@
-import {makeStyles} from "@fluentui/react-components";
+import {tokens, makeStyles} from "@fluentui/react-components";
 
 export const useAllDeviceSignOutDialogStyles = makeStyles({
     dialogContentContainer: {
 
-        margin: "8px 0",
+        margin: `${tokens.spacingVerticalS} 0`,
     }
 });

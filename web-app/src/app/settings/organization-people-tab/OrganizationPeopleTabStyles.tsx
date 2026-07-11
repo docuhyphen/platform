@@ -4,7 +4,7 @@ export const useOrganizationPeopleTabStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         width: "100%",
         height: "100%",
         minHeight: 0,
@@ -20,18 +20,18 @@ export const useOrganizationPeopleTabStyles = makeStyles({
     paginationFooter: {
         display: "flex",
         flexShrink: 0,
-        paddingTop: "8px",
+        paddingTop: tokens.spacingVerticalS,
         backgroundColor: tokens.colorNeutralBackground1,
         borderTop: `1px solid ${tokens.colorNeutralStroke2}`
     },
     loading: {
         display: "flex",
         justifyContent: "center",
-        padding: "20px"
+        padding: tokens.spacingHorizontalXL
     },
     error: {
         color: tokens.colorStatusDangerForeground1,
-        ...shorthands.padding("10px"),
+        ...shorthands.padding(tokens.spacingHorizontalMNudge),
         backgroundColor: tokens.colorStatusDangerBackground1,
         ...shorthands.borderRadius("4px"),
         flexShrink: 0

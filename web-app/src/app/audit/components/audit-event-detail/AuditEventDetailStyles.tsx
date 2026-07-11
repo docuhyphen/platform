@@ -46,7 +46,7 @@ export const useAuditEventDetailStyles = makeStyles({
     cardIcon: {
         flexShrink: 0,
         color: tokens.colorNeutralForeground3,
-        marginTop: "2px",
+        marginTop: tokens.spacingVerticalXXS,
     },
     cardBody: {
         display: "flex",

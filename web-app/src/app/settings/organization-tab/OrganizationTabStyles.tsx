@@ -8,12 +8,12 @@ export const useOrganizationTabStyles = makeStyles({
         width: "100%",
         maxWidth: "30rem",
         minHeight: `calc(100vh - ${SETTINGS_HEADER_HEIGHT} - 8rem)`,
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         alignItems: "center",
         justifyContent: "center",
         textAlign: "center",
         margin: "0 auto",
-        padding: "16px",
+        padding: tokens.spacingHorizontalL,
         boxSizing: "border-box",
     },
 
@@ -28,7 +28,7 @@ export const useOrganizationTabStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         height: "100%",
         minHeight: 0,
     },
@@ -40,10 +40,10 @@ export const useOrganizationTabStyles = makeStyles({
      */
     tabListWrapper: {
         background: tokens.colorNeutralBackground1,
-        paddingBottom: "4px",
-        marginBottom: "4px",
+        paddingBottom: tokens.spacingVerticalXS,
+        marginBottom: tokens.spacingVerticalXS,
         flexShrink: 0,
-        paddingInline: "0.5rem",
+        paddingInline: tokens.spacingHorizontalS,
         boxSizing: "border-box",
         // borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
     },
@@ -51,7 +51,7 @@ export const useOrganizationTabStyles = makeStyles({
     dataContainer: {
         display: "flex",
         flexDirection: "row",
-        gap: "24px"
+        gap: tokens.spacingHorizontalXXL
     },
 
     dataName: {
@@ -60,7 +60,7 @@ export const useOrganizationTabStyles = makeStyles({
 
     dataEditable: {
         display: "flex",
-        gap: "8px"
+        gap: tokens.spacingHorizontalS
     },
 
     mainDivider: {
@@ -72,20 +72,20 @@ export const useOrganizationTabStyles = makeStyles({
         overflowY: "auto",
         overflowX: "hidden",
         overscrollBehavior: "contain",
-        paddingInline: "0.5rem",
+        paddingInline: tokens.spacingHorizontalS,
         boxSizing: "border-box",
     },
     loadingWrapper: {
         display: "flex",
         justifyContent: "center",
-        padding: "20px",
+        padding: tokens.spacingHorizontalXL,
     },
     errorWrapper: {
         color: tokens.colorStatusDangerForeground1,
-        padding: "10px",
-        marginBottom: "10px",
+        padding: tokens.spacingHorizontalMNudge,
+        marginBottom: tokens.spacingVerticalMNudge,
     },
     onboardingRow: {
-        marginTop: "8px",
+        marginTop: tokens.spacingVerticalS,
     },
 });

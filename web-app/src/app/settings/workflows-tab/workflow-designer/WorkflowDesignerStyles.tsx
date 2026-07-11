@@ -89,10 +89,10 @@ export const useWorkflowDesignerStyles = makeStyles({
         background: tokens.colorNeutralBackground1,
         display: "flex",
         flexDirection: "column",
-        gap: "0.75rem",
-        paddingBottom: "0.5rem",
+        gap: tokens.spacingHorizontalM,
+        paddingBottom: tokens.spacingVerticalS,
         flexShrink: 0,
-        paddingInline: "0.5rem",
+        paddingInline: tokens.spacingHorizontalS,
         boxSizing: "border-box",
     },
 
@@ -102,11 +102,11 @@ export const useWorkflowDesignerStyles = makeStyles({
         overflowY: "auto",
         overflowX: "hidden",
         overscrollBehavior: "contain",
-        paddingInline: "0.5rem",
+        paddingInline: tokens.spacingHorizontalS,
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
-        gap: "1.25rem",
+        gap: tokens.spacingHorizontalXL,
     },
     splitContentShell: {
         flex: 1,
@@ -118,13 +118,13 @@ export const useWorkflowDesignerStyles = makeStyles({
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
-        gap: "1.25rem",
+        gap: tokens.spacingHorizontalXL,
     },
 
     applicabilitySection: {
         display: "flex",
         flexDirection: "column",
-        gap: "0.75rem",
+        gap: tokens.spacingHorizontalM,
     },
 
     splitContent: {
@@ -145,7 +145,7 @@ export const useWorkflowDesignerStyles = makeStyles({
         minHeight: 0,
         display: "flex",
         flexDirection: "column",
-        gap: "1.25rem",
+        gap: tokens.spacingHorizontalXL,
         overflowY: "auto",
         overflowX: "hidden",
         overscrollBehavior: "contain",
@@ -177,7 +177,7 @@ export const useWorkflowDesignerStyles = makeStyles({
     diagramPanel: {
         display: "flex",
         flexDirection: "column",
-        gap: "1.25rem",
+        gap: tokens.spacingHorizontalXL,
         flex: 1,
         height: "100%",
         minHeight: 0,
@@ -186,6 +186,6 @@ export const useWorkflowDesignerStyles = makeStyles({
     previewLoading: {
         display: "flex",
         justifyContent: "center",
-        padding: "2rem",
+        padding: tokens.spacingHorizontalXXXL,
     },
 });

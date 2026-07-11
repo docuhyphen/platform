@@ -1,10 +1,10 @@
-import {makeStyles} from "@fluentui/react-components";
+import {tokens, makeStyles} from "@fluentui/react-components";
 
 export const useWorkflowGraphErrorBoundaryStyles = makeStyles({
     fallback: {
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
-        padding: "12px 0",
+        gap: tokens.spacingHorizontalS,
+        padding: `${tokens.spacingVerticalM} 0`,
     },
 });

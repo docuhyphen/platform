@@ -4,7 +4,7 @@ export const useExchangeInitiationStyles = makeStyles({
     sharingDetails: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
     },
     sharingDetailsInput: {
         flex: 1,
@@ -23,12 +23,12 @@ export const useExchangeInitiationStyles = makeStyles({
     },
     exchangeDocumentsTabContent: {
         display: "flex",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         flexDirection: "column",
     },
     exchangeDocumentsRestriction: {
         display: "flex",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
@@ -39,25 +39,25 @@ export const useExchangeInitiationStyles = makeStyles({
         "@media (max-width: 768px)": {
             flexDirection: "column",
             alignItems: "stretch",
-            gap: "12px",
+            gap: tokens.spacingHorizontalM,
         },
     },
     exchangeDocumentsRestrictionField: {
         flex: 1,
         display: "flex",
         alignItems: "center",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         minWidth: 0,
         // Phones: switch + dropdown stack rather than sit side-by-side,
         // matching the parent's vertical layout.
         "@media (max-width: 768px)": {
             flexDirection: "column",
             alignItems: "stretch",
-            gap: "8px",
+            gap: tokens.spacingHorizontalS,
         },
     },
     exchangeDocumentsDropdown: {
-        marginRight: "36px",
+        marginRight: tokens.spacingHorizontalXXXL,
         minWidth: "100px",
         // Phones: take full available width and drop the right margin
         // (which was there to visually separate it from the sibling
@@ -73,7 +73,7 @@ export const useExchangeInitiationStyles = makeStyles({
     },
     dialogTitle: {
         display: "flex",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         flexDirection: "column",
     },
     dialogContent: {
@@ -123,12 +123,12 @@ export const useExchangeInitiationStyles = makeStyles({
     },
     exchangeDetailsTap: {
         display: "flex",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         flexDirection: "column",
     },
     sharingOptionsTapContent: {
         display: "flex",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         flexDirection: "column",
     },
     exchangeInitiationSuccess: {
@@ -137,29 +137,29 @@ export const useExchangeInitiationStyles = makeStyles({
         justifyContent: "center",
         alignItems: "center",
         flexDirection: "column",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
     },
     exchangeSuccessDetails: {
         display: "grid",
         gridTemplateColumns: "auto 1fr",
-        columnGap: "12px",
-        rowGap: "8px",
+        columnGap: tokens.spacingHorizontalM,
+        rowGap: tokens.spacingVerticalS,
         width: "100%",
         maxWidth: "440px",
-        padding: "12px",
+        padding: tokens.spacingHorizontalM,
         borderRadius: tokens.borderRadiusMedium,
         backgroundColor: tokens.colorNeutralBackground2,
     },
     exchangeSuccessActions: {
         display: "flex",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         alignItems: "center",
-        marginBottom: "1rem"
+        marginBottom: tokens.spacingVerticalL
     },
     errorMessagesGroup: {
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
     },
     iconDeleteFilled: {
         color: tokens.colorPaletteRedForeground1,
@@ -167,8 +167,8 @@ export const useExchangeInitiationStyles = makeStyles({
     addDocumentButtonContainer: {
         display: "flex",
         justifyContent: "center",
-        marginBottom: "1rem",
-        gap: "1rem",
+        marginBottom: tokens.spacingVerticalL,
+        gap: tokens.spacingHorizontalL,
     },
     dialogContentContainer: {
         minHeight: "460px",
@@ -189,35 +189,35 @@ export const useExchangeInitiationStyles = makeStyles({
      */
     mobileSelectedTabTitle: {
         display: "block",
-        marginTop: "4px",
+        marginTop: tokens.spacingVerticalXS,
     },
     tagInput: {
         display: "flex",
         flexWrap: "wrap",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         alignItems: "center",
         border: `1px solid ${tokens.colorNeutralStroke1}`,
         borderRadius: tokens.borderRadiusMedium,
-        padding: "4px 8px",
+        padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
         minHeight: "32px",
         cursor: "text",
     },
     variableOverridesPanel: {
-        padding: "12px 16px",
-        border: "1px solid var(--colorBrandStroke2)",
+        padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL}`,
+        border: `1px solid ${tokens.colorBrandStroke2}`,
         borderRadius: tokens.borderRadiusXLarge,
-        background: "var(--colorNeutralBackground2)",
+        background: tokens.colorNeutralBackground2,
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
-        marginBottom: "12px",
+        gap: tokens.spacingHorizontalS,
+        marginBottom: tokens.spacingVerticalM,
     },
     variableOverridesSubtext: {
-        color: "var(--colorNeutralForeground3)",
+        color: tokens.colorNeutralForeground3,
     },
     variableOverridesRow: {
         display: "flex",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         alignItems: "center",
     },
     variableOverridesLabel: {
@@ -226,21 +226,21 @@ export const useExchangeInitiationStyles = makeStyles({
     },
     variableOverridesInput: {
         flex: 1,
-        padding: "4px 8px",
+        padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
         borderRadius: tokens.borderRadiusMedium,
-        border: "1px solid var(--colorNeutralStroke1)",
-        background: "var(--colorNeutralBackground1)",
+        border: `1px solid ${tokens.colorNeutralStroke1}`,
+        background: tokens.colorNeutralBackground1,
         color: "inherit",
     },
     saveBlueprintBackRow: {
         display: "flex",
         alignItems: "center",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
     },
     blueprintPickerContainer: {
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         minHeight: "300px",
     },
     blueprintPickerStickyHeader: {
@@ -250,18 +250,18 @@ export const useExchangeInitiationStyles = makeStyles({
         background: tokens.colorNeutralBackground1,
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
-        paddingBottom: "8px",
+        gap: tokens.spacingHorizontalS,
+        paddingBottom: tokens.spacingVerticalS,
     },
     blueprintPickerControls: {
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
     },
     blueprintPickerSearchRow: {
         display: "flex",
         alignItems: "center",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         width: "100%",
     },
     blueprintPickerSearchField: {
@@ -271,13 +271,13 @@ export const useExchangeInitiationStyles = makeStyles({
         display: "flex",
         flexWrap: "wrap",
         alignItems: "center",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
     },
     blueprintPickerFilterPopover: {
-        padding: "8px",
+        padding: tokens.spacingHorizontalS,
         display: "flex",
         flexDirection: "column",
-        gap: "6px",
+        gap: tokens.spacingHorizontalSNudge,
         minWidth: "180px",
         maxWidth: "260px",
     },
@@ -289,38 +289,38 @@ export const useExchangeInitiationStyles = makeStyles({
         flexDirection: "column",
     },
     blueprintPickerFilterEmptyText: {
-        padding: "4px 8px",
-        color: "var(--colorNeutralForeground3)",
+        padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
+        color: tokens.colorNeutralForeground3,
     },
     blueprintPickerSpinnerWrapper: {
         display: "flex",
         justifyContent: "center",
-        padding: "24px",
+        padding: tokens.spacingHorizontalXXL,
     },
     blueprintPickerErrorText: {
-        color: "var(--colorPaletteRedForeground1)",
+        color: tokens.colorPaletteRedForeground1,
     },
     blueprintPickerEmptyText: {
-        color: "var(--colorNeutralForeground3)",
+        color: tokens.colorNeutralForeground3,
     },
     blueprintList: {
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         overflowY: "auto",
     },
     blueprintPickerPaginationRow: {
         display: "flex",
         justifyContent: "center",
-        paddingTop: "4px",
+        paddingTop: tokens.spacingVerticalXS,
     },
     blueprintCard: {
-        border: "1px solid var(--colorNeutralStroke1)",
+        border: `1px solid ${tokens.colorNeutralStroke1}`,
         borderRadius: tokens.borderRadiusLarge,
-        padding: "12px 16px",
+        padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL}`,
         display: "flex",
         flexDirection: "column",
-        gap: "6px",
+        gap: tokens.spacingHorizontalSNudge,
     },
     blueprintCardHeader: {
         display: "flex",
@@ -328,41 +328,41 @@ export const useExchangeInitiationStyles = makeStyles({
         alignItems: "flex-start",
     },
     blueprintCardSummary: {
-        color: "var(--colorNeutralForeground2)",
+        color: tokens.colorNeutralForeground2,
     },
     blueprintTagRow: {
         display: "flex",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         flexWrap: "wrap",
     },
     saveBlueprintContainer: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
     },
     saveBlueprintErrorText: {
-        color: "var(--colorPaletteRedForeground1)",
+        color: tokens.colorPaletteRedForeground1,
         fontSize: "12px",
     },
     saveBlueprintActions: {
         display: "flex",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         justifyContent: "flex-end",
-        paddingTop: "4px",
+        paddingTop: tokens.spacingVerticalXS,
     },
     docLinkedBadgeRow: {
         display: "flex",
         alignItems: "center",
-        gap: "8px",
-        marginTop: "6px",
+        gap: tokens.spacingHorizontalS,
+        marginTop: tokens.spacingVerticalSNudge,
     },
     choosingBlueprintSubtext: {
-        color: "var(--colorNeutralForeground3)",
+        color: tokens.colorNeutralForeground3,
     },
     docPickerContainer: {
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         minHeight: "300px",
     },
     docPickerHeader: {
@@ -373,18 +373,18 @@ export const useExchangeInitiationStyles = makeStyles({
     docPickerSpinnerWrapper: {
         display: "flex",
         justifyContent: "center",
-        padding: "24px",
+        padding: tokens.spacingHorizontalXXL,
     },
     docPickerErrorText: {
-        color: "var(--colorPaletteRedForeground1)",
+        color: tokens.colorPaletteRedForeground1,
     },
     docPickerEmptyText: {
-        color: "var(--colorNeutralForeground3)",
+        color: tokens.colorNeutralForeground3,
     },
     docPickerList: {
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         overflowY: "auto",
     },
     docPickerEntryHeader: {
@@ -393,11 +393,11 @@ export const useExchangeInitiationStyles = makeStyles({
         alignItems: "flex-start",
     },
     docPickerEntryDescription: {
-        color: "var(--colorNeutralForeground2)",
+        color: tokens.colorNeutralForeground2,
     },
     docPickerEntryTagRow: {
         display: "flex",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         flexWrap: "wrap",
     },
 });

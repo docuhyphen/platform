@@ -33,7 +33,7 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: tokens.spacingVerticalM,
-        padding: "0 1rem",
+        padding: `0 ${tokens.spacingHorizontalL}`,
     },
     // Side-by-side "Both" view: detail/actions on the left, diagram preview
     // on the right at 60% width. Stacks to a single column on narrow
@@ -43,7 +43,7 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         flexDirection: "row",
         alignItems: "flex-start",
         gap: tokens.spacingHorizontalL,
-        padding: "0 1rem",
+        padding: `0 ${tokens.spacingHorizontalL}`,
         "@media (max-width: 900px)": {
             flexDirection: "column",
         },
@@ -184,7 +184,7 @@ export const useExchangeWorkflowTabStyles = makeStyles({
     decisionRow: {
         display: "flex",
         flexDirection: "column",
-        gap: "2px",
+        gap: tokens.spacingHorizontalXXS,
         padding: tokens.spacingHorizontalS,
         borderLeft: `4px solid ${tokens.colorNeutralStroke2}`,
         marginBottom: tokens.spacingVerticalXS,

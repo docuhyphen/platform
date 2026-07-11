@@ -4,7 +4,7 @@ export const useWorkflowGraphCanvasStyles = makeStyles({
     wrapper: {
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         width: "100%",
     },
     wrapperFillHeight: {
@@ -70,7 +70,7 @@ export const useWorkflowGraphCanvasStyles = makeStyles({
 
     warningList: {
         margin: 0,
-        paddingLeft: "18px",
+        paddingLeft: tokens.spacingHorizontalL,
     },
 
     // Applied in addition to canvasContainer while the browser Fullscreen API

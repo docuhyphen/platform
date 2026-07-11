@@ -1,4 +1,4 @@
-﻿import {makeStyles} from "@fluentui/react-components";
+﻿import {tokens, makeStyles} from "@fluentui/react-components";
 
 export const useExchangeDocumentAddDialogStyles = makeStyles({
     dialogContentContainer: {
@@ -6,8 +6,8 @@ export const useExchangeDocumentAddDialogStyles = makeStyles({
         flexDirection: 'column',
         alignItems: 'stretch',
         justifyContent: 'flex-start',
-        padding: "8px 0",
-        gap: "16px",
+        padding: `${tokens.spacingVerticalS} 0`,
+        gap: tokens.spacingHorizontalL,
         width: "100%",
         minWidth: 0,
         boxSizing: "border-box",
@@ -17,7 +17,7 @@ export const useExchangeDocumentAddDialogStyles = makeStyles({
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
-        gap: '12px',
+        gap: tokens.spacingHorizontalM,
         width: '100%',
         minWidth: 0,
         // Phones: stack the Restrict-type switch and the type Dropdown
@@ -28,7 +28,7 @@ export const useExchangeDocumentAddDialogStyles = makeStyles({
         "@media (max-width: 768px)": {
             flexDirection: 'column',
             alignItems: 'stretch',
-            gap: '8px',
+            gap: tokens.spacingHorizontalS,
         },
         // The Dropdown is the second child; let it take any remaining
         // horizontal space on desktop, or the full row width on mobile

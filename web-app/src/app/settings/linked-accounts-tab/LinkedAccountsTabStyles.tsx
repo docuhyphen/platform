@@ -4,14 +4,14 @@ export const useLinkedAccountsTabStyles = makeStyles({
     container: {
         display: 'flex',
         flexDirection: 'column',
-        ...shorthands.gap('18px'),
+        ...shorthands.gap(tokens.spacingHorizontalL),
         maxWidth: '760px',
     },
 
     headerBlock: {
         display: "flex",
         flexDirection: "column",
-        ...shorthands.gap("8px"),
+        ...shorthands.gap(tokens.spacingHorizontalS),
     },
 
     introText: {
@@ -24,8 +24,8 @@ export const useLinkedAccountsTabStyles = makeStyles({
         justifyContent: "space-between",
         alignItems: "center",
         flexWrap: "wrap",
-        gap: "16px",
-        ...shorthands.padding("18px", "20px"),
+        gap: tokens.spacingHorizontalL,
+        ...shorthands.padding(tokens.spacingVerticalL, tokens.spacingHorizontalXL),
         ...shorthands.border("1px", "solid", tokens.colorNeutralStroke2),
         ...shorthands.borderRadius(tokens.borderRadiusLarge),
         backgroundColor: tokens.colorNeutralBackground2,
@@ -34,7 +34,7 @@ export const useLinkedAccountsTabStyles = makeStyles({
     summaryCopy: {
         display: "flex",
         flexDirection: "column",
-        ...shorthands.gap("4px"),
+        ...shorthands.gap(tokens.spacingHorizontalXS),
     },
 
     summaryDetail: {
@@ -49,6 +49,6 @@ export const useLinkedAccountsTabStyles = makeStyles({
     providerList: {
         display: "flex",
         flexDirection: "column",
-        ...shorthands.gap("14px"),
+        ...shorthands.gap(tokens.spacingHorizontalM),
     },
 });

@@ -2,10 +2,10 @@ import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useAddGroupDialogStyles = makeStyles({
     dialogContentContainer: {
-        margin: "8px 0",
+        margin: `${tokens.spacingVerticalS} 0`,
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         // Allow the members table to scroll horizontally inside the
         // dialog on narrow screens (paired with the global mobile
         // DialogSurface size cap in index.css).
@@ -13,10 +13,10 @@ export const useAddGroupDialogStyles = makeStyles({
     },
     errorMessage: {
         color: tokens.colorStatusDangerForeground1,
-        marginBottom: "10px",
+        marginBottom: tokens.spacingVerticalMNudge,
     },
     addMembersField: {
-        marginBottom: "12px",
+        marginBottom: tokens.spacingVerticalM,
     },
     memberNameCell: {
         maxWidth: "180px",

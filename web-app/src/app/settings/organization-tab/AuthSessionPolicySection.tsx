@@ -192,18 +192,18 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
 
     return (
         <>
-            <Divider alignContent="start" appearance="brand" style={{marginTop: 20, marginBottom: 12}}>
+            <Divider alignContent="start" appearance="brand" style={{marginTop: tokens.spacingVerticalXL, marginBottom: tokens.spacingVerticalM}}>
                 Auth Session Policy
             </Divider>
 
             {loading && (
-                <div style={{padding: 8}}>
+                <div style={{padding: tokens.spacingHorizontalS}}>
                     <Spinner size="tiny" label="Loading policy"/>
                 </div>
             )}
 
             {error && (
-                <div style={{color: tokens.colorStatusDangerForeground1, marginBottom: 8}}>{error}</div>
+                <div style={{color: tokens.colorStatusDangerForeground1, marginBottom: tokens.spacingVerticalS}}>{error}</div>
             )}
 
             {settings && !loading && (
@@ -218,12 +218,12 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                         style={{
                             display: "grid",
                             gridTemplateColumns: "auto auto auto",
-                            columnGap: 16,
-                            rowGap: 4,
-                            marginBottom: 16,
-                            padding: 8,
+                            columnGap: tokens.spacingHorizontalL,
+                            rowGap: tokens.spacingVerticalXS,
+                            marginBottom: tokens.spacingVerticalL,
+                            padding: tokens.spacingHorizontalS,
                             background: tokens.colorNeutralBackground2,
-                            borderRadius: 4,
+                            borderRadius: tokens.borderRadiusMedium,
                         }}
                     >
                         <Text weight="semibold">Effective access token</Text>
@@ -272,12 +272,12 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                                 key={row.configId}
                                 style={{
                                     border: `1px solid ${tokens.colorNeutralStroke2}`,
-                                    borderRadius: 4,
-                                    padding: 12,
-                                    marginBottom: 12,
+                                    borderRadius: tokens.borderRadiusMedium,
+                                    padding: tokens.spacingHorizontalM,
+                                    marginBottom: tokens.spacingVerticalM,
                                 }}
                             >
-                                <div style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 8}}>
+                                <div style={{display: "flex", alignItems: "center", gap: tokens.spacingHorizontalS, marginBottom: tokens.spacingVerticalS}}>
                                     <Text weight="semibold">{row.provider}</Text>
                                     <Badge
                                         appearance="outline"
@@ -291,11 +291,11 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                                     style={{
                                         display: "grid",
                                         gridTemplateColumns: "1fr 1fr 1fr 1fr",
-                                        gap: 12,
-                                        marginBottom: 8,
+                                        gap: tokens.spacingHorizontalM,
+                                        marginBottom: tokens.spacingVerticalS,
                                     }}
                                 >
-                                    <label style={{display: "flex", flexDirection: "column", gap: 4}}>
+                                    <label style={{display: "flex", flexDirection: "column", gap: tokens.spacingHorizontalXS}}>
                                         <Text size={200}>Access token expiry (minutes)</Text>
                                         <Input
                                             value={draft.accessTokenExpiryMinutes}
@@ -309,7 +309,7 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                                             }
                                         />
                                     </label>
-                                    <label style={{display: "flex", flexDirection: "column", gap: 4}}>
+                                    <label style={{display: "flex", flexDirection: "column", gap: tokens.spacingHorizontalXS}}>
                                         <Text size={200}>Refresh token expiry (minutes)</Text>
                                         <Input
                                             value={draft.refreshTokenExpiryMinutes}
@@ -323,7 +323,7 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                                             }
                                         />
                                     </label>
-                                    <label style={{display: "flex", flexDirection: "column", gap: 4}}>
+                                    <label style={{display: "flex", flexDirection: "column", gap: tokens.spacingHorizontalXS}}>
                                         <Text size={200}>Max session duration (hours)</Text>
                                         <Input
                                             value={draft.maxSessionDurationHours}
@@ -337,7 +337,7 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                                             }
                                         />
                                     </label>
-                                    <label style={{display: "flex", flexDirection: "column", gap: 4}}>
+                                    <label style={{display: "flex", flexDirection: "column", gap: tokens.spacingHorizontalXS}}>
                                         <Text size={200}>Idle timeout (minutes)</Text>
                                         <Input
                                             value={draft.idleTimeoutMinutes}
@@ -357,14 +357,14 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                                     <div
                                         style={{
                                             color: tokens.colorStatusDangerForeground1,
-                                            marginBottom: 8,
+                                            marginBottom: tokens.spacingVerticalS,
                                         }}
                                     >
                                         {draft.error}
                                     </div>
                                 )}
 
-                                <div style={{display: "flex", gap: 8}}>
+                                <div style={{display: "flex", gap: tokens.spacingHorizontalS}}>
                                     <Button
                                         appearance="primary"
                                         size="small"

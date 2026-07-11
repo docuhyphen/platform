@@ -6,7 +6,7 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        gap: "14px",
+        gap: tokens.spacingHorizontalM,
     },
 
     documentContainer: {
@@ -16,15 +16,15 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
     verificationPanel: {
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         background: tokens.colorNeutralBackground1,
-        padding: "12px",
+        padding: tokens.spacingHorizontalM,
         borderRadius: tokens.borderRadiusLarge,
     },
 
     accessWindowHint: {
         color: tokens.colorNeutralForeground2,
-        padding: "10px 12px",
+        padding: `${tokens.spacingVerticalMNudge} ${tokens.spacingHorizontalM}`,
         background: tokens.colorNeutralBackground2,
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         borderRadius: tokens.borderRadiusLarge,
@@ -33,7 +33,7 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
 
     verificationControls: {
         display: "flex",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         alignItems: "flex-end",
         flexWrap: "wrap",
     },
@@ -45,11 +45,11 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
 
     documentCard: {
         width: "100%",
-        padding: "16px",
+        padding: tokens.spacingHorizontalL,
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         background: tokens.colorNeutralBackground1,
         border: `1px solid ${tokens.colorNeutralStroke1}`,
         borderRadius: tokens.borderRadiusLarge,
@@ -65,16 +65,16 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
             transform: "translateY(-1px)",
         },
         '@media (max-width: 640px)': {
-            padding: "14px",
-            gap: "10px",
+            padding: tokens.spacingHorizontalM,
+            gap: tokens.spacingHorizontalMNudge,
         },
         '@media (max-width: 390px)': {
-            padding: "12px",
+            padding: tokens.spacingHorizontalM,
         },
     },
 
     documentError: {
-        marginBottom: "10px",
+        marginBottom: tokens.spacingVerticalMNudge,
         whiteSpace: "normal",
         overflowWrap: "anywhere",
         minWidth: 0,
@@ -93,7 +93,7 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
     documentCardHeader: {
         display: "flex",
         flexDirection: "column",
-        gap: "6px",
+        gap: tokens.spacingHorizontalSNudge,
         alignItems: "normal",
     },
 
@@ -102,15 +102,15 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
         justifyContent: "space-between",
         alignItems: "center",
         flex: 1,
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         flexWrap: "wrap",
         '@media (max-width: 640px)': {
             flexDirection: "column",
             alignItems: "flex-start",
-            gap: "6px",
+            gap: tokens.spacingHorizontalSNudge,
         },
         '@media (max-width: 390px)': {
-            gap: "4px",
+            gap: tokens.spacingHorizontalXS,
         },
     },
 
@@ -124,7 +124,7 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
         width: "fit-content",
         color: tokens.colorNeutralForeground2,
         background: tokens.colorNeutralBackground3,
-        padding: "3px 8px",
+        padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
         borderRadius: tokens.borderRadiusCircular,
         fontSize: "12px",
         lineHeight: "1.3",
@@ -133,26 +133,26 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
 
     documentActions: {
         display: "flex",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         flexDirection: "column",
     },
 
     documentActionsLine1: {
         display: "flex",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         justifyContent: "space-between",
         alignItems: "flex-start",
         flexWrap: "wrap",
         '@media (max-width: 640px)': {
             flexDirection: "column",
             alignItems: "stretch",
-            gap: "8px",
+            gap: tokens.spacingHorizontalS,
         },
     },
 
     uploadActions: {
         display: "flex",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         flexWrap: "wrap",
         '@media (max-width: 640px)': {
             width: "100%",
@@ -161,7 +161,7 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
         },
         '@media (max-width: 350px)': {
             gridTemplateColumns: "1fr",
-            gap: "6px",
+            gap: tokens.spacingHorizontalSNudge,
         },
     },
 
@@ -170,8 +170,8 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
             width: "100%",
             justifyContent: "center",
             minHeight: "38px",
-            paddingLeft: "10px",
-            paddingRight: "10px",
+            paddingLeft: tokens.spacingHorizontalMNudge,
+            paddingRight: tokens.spacingHorizontalMNudge,
         },
         '@media (max-width: 350px)': {
             minHeight: "36px",
@@ -189,14 +189,14 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
     fileNameText: {
         overflowWrap: "anywhere",
         color: tokens.colorBrandForeground1,
-        padding: "6px 8px",
+        padding: `${tokens.spacingVerticalSNudge} ${tokens.spacingHorizontalS}`,
         background: tokens.colorBrandBackground2,
         borderRadius: tokens.borderRadiusMedium,
     },
 
     documentActionsLine2: {
         '@media (max-width: 390px)': {
-            marginTop: "2px",
+            marginTop: tokens.spacingVerticalXXS,
         },
     },
 

@@ -7,12 +7,12 @@ export const useAuthorizationStyles = makeStyles({
         justifyContent: "center",
         width: "100%",
         minHeight: "100vh",
-        padding: "24px",
+        padding: tokens.spacingHorizontalXXL,
         boxSizing: "border-box",
         background: tokens.colorNeutralBackground2,
 
         "@media (max-width: 768px)": {
-            padding: "12px",
+            padding: tokens.spacingHorizontalM,
         },
     },
     authSection: {
@@ -39,7 +39,7 @@ export const useAuthorizationStyles = makeStyles({
         height: "auto",
         boxSizing: "border-box",
         flex: 1,
-        padding: "38px",
+        padding: tokens.spacingHorizontalXXXL,
         maxWidth: "50%",
 
         "@media (max-width: 768px)": {
@@ -53,7 +53,7 @@ export const useAuthorizationStyles = makeStyles({
         height: "auto",
         boxSizing: "border-box",
         flex: 1,
-        padding: "38px",
+        padding: tokens.spacingHorizontalXXXL,
         maxWidth: "50%",
 
         "@media (max-width: 768px)": {
@@ -64,13 +64,13 @@ export const useAuthorizationStyles = makeStyles({
         height: "100%",
         boxSizing: "border-box",
         flex: 1,
-        padding: "38px",
+        padding: tokens.spacingHorizontalXXXL,
         maxWidth: "50%",
     },
     authorizationFormSection: {
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         flex: "1",
         justifyContent: "center",
         overflowY: "auto",

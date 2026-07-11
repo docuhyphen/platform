@@ -1,18 +1,18 @@
-import {makeStyles} from "@fluentui/react-components";
+import {tokens, makeStyles} from "@fluentui/react-components";
 
 export const useOrganizationParingTabStyles = makeStyles({
     tabContainer: {
         display: "flex",
         flexDirection: "row",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         flexWrap: "wrap",
     },
     header: {
         display: "flex",
-        marginBottom: "16px",
+        marginBottom: tokens.spacingVerticalL,
         justifyContent: "space-between",
         flexWrap: "wrap",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
     },
     container: {
         display: "flex",
@@ -26,7 +26,7 @@ export const useOrganizationParingTabStyles = makeStyles({
     tabListContainer: {
         display: "flex",
         flexDirection: "row",
-        gap: "36px"
+        gap: tokens.spacingHorizontalXXXL
     },
     tabs: {
         flexGrow: "1"

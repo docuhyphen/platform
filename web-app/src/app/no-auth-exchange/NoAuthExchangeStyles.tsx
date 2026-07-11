@@ -30,7 +30,7 @@ export const useNoAuthExchangeStyles = makeStyles({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "96px 16px 32px",
+        padding: `calc(${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalXXXL}) ${tokens.spacingHorizontalL} ${tokens.spacingVerticalXXXL}`,
         boxSizing: "border-box",
     },
 

@@ -26,7 +26,7 @@ export const useNotificationsPanelStyles = makeStyles({
         minWidth: '360px',
     },
     tabContent: {
-        paddingTop: '8px',
+        paddingTop: tokens.spacingVerticalS,
     },
 
     // Notification list styles
@@ -36,10 +36,10 @@ export const useNotificationsPanelStyles = makeStyles({
         width: '350px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '4px',
+        gap: tokens.spacingHorizontalXS,
     },
     markAllAsRead: {
-        paddingTop: '16px',
+        paddingTop: tokens.spacingVerticalL,
         display: 'flex',
         justifyContent: 'end',
     },
@@ -48,7 +48,7 @@ export const useNotificationsPanelStyles = makeStyles({
     approvalsList: {
         display: 'flex',
         flexDirection: 'column',
-        ...shorthands.gap('8px'),
+        ...shorthands.gap(tokens.spacingHorizontalS),
         maxHeight: '400px',
         overflowY: 'auto',
     },
@@ -57,32 +57,32 @@ export const useNotificationsPanelStyles = makeStyles({
         alignItems: 'center',
         justifyContent: 'space-between',
         width: '100%',
-        ...shorthands.gap('8px'),
-        paddingRight: '8px',
+        ...shorthands.gap(tokens.spacingHorizontalS),
+        paddingRight: tokens.spacingHorizontalS,
     },
     panelContent: {
         display: 'flex',
         flexDirection: 'column',
-        ...shorthands.gap('8px'),
-        paddingBottom: '8px',
+        ...shorthands.gap(tokens.spacingHorizontalS),
+        paddingBottom: tokens.spacingVerticalS,
     },
     actions: {
         display: 'flex',
-        ...shorthands.gap('8px'),
+        ...shorthands.gap(tokens.spacingHorizontalS),
         justifyContent: 'flex-end',
-        marginTop: '4px',
+        marginTop: tokens.spacingVerticalXS,
     },
     emptyState: {
         display: 'flex',
         justifyContent: 'center',
-        ...shorthands.padding('16px'),
+        ...shorthands.padding(tokens.spacingHorizontalL),
     },
     commentField: {
-        marginTop: '4px',
+        marginTop: tokens.spacingVerticalXS,
     },
 
     tabCountBadge: {
-        marginLeft: '4px',
+        marginLeft: tokens.spacingHorizontalXS,
     },
     alertTab: {
         color: tokens.colorPaletteRedForeground1,

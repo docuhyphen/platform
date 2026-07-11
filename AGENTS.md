@@ -16,6 +16,13 @@
   `makeStyles` / `useStyles` pattern in a co-located `*Styles.tsx` file (e.g.
   `WorkflowDesigner.tsx` + `WorkflowDesignerStyles.tsx`). Never use inline `style={{}}` props
   except for purely dynamic values that cannot be expressed in `makeStyles`.
+- Frontend styling must use Fluent UI `tokens` for design-system values. Use spacing tokens
+  for gaps, padding, margins, inset spacing, and related offsets (for example
+  `tokens.spacingHorizontalM` or `tokens.spacingVerticalS`) instead of hardcoded px/rem
+  values. Use color and stroke tokens instead of hardcoded colors whenever a Fluent token
+  exists. Literal `0`, percentages, viewport units, content dimensions, and
+  component-specific measurements are acceptable when they are layout mechanics rather than
+  design-system spacing or color.
 - REST resource classes (`resource/`) must contain no business logic. They are thin HTTP
   adapters only: validate the request, delegate to an `@ApplicationScoped` service, and map
   the result to a `Response`. No repository calls, no entity manipulation, no domain

@@ -13,7 +13,7 @@ const useExchangeStyles = makeStyles({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        padding: "60px",
+        padding: `calc(${tokens.spacingHorizontalXXXL} + ${tokens.spacingHorizontalXXL} + ${tokens.spacingHorizontalXS})`,
         boxSizing: "border-box"
     },
 
@@ -23,17 +23,17 @@ const useExchangeStyles = makeStyles({
 
     skeletonExchangeName: {
         flex: 1,
-        marginRight: "10px",
+        marginRight: tokens.spacingHorizontalMNudge,
     },
 
     skeletonCreatedDate: {
         width: "50px",
-        marginRight: "10px",
+        marginRight: tokens.spacingHorizontalMNudge,
     },
 
     skeletonExchangeDescription: {
         flex: "1",
-        marginRight: "10px",
+        marginRight: tokens.spacingHorizontalMNudge,
     },
 
     truncatedText: {
@@ -133,7 +133,7 @@ const useExchangeStyles = makeStyles({
         paddingRight: tokens.spacingVerticalS,
         boxSizing: "border-box",
         display: "flex",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
     },
 
     filterSearchField: {
@@ -142,7 +142,7 @@ const useExchangeStyles = makeStyles({
 
     listCard: {
         width: "100%",
-        padding: "8px",
+        padding: tokens.spacingHorizontalS,
         borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
         boxSizing: "border-box",
         // Allow flex children inside this card to shrink (the text rows
@@ -165,7 +165,7 @@ const useExchangeStyles = makeStyles({
 
     exchangesListFooter: {
         background: tokens.colorNeutralBackground1,
-        padding: "8px",
+        padding: tokens.spacingHorizontalS,
         fontSize: "12px",
         width: "100%",
         boxSizing: "border-box",
@@ -181,10 +181,10 @@ const useExchangeStyles = makeStyles({
     exchangesListBody: {
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         overflow: "auto",
         height: "100%",
-        paddingTop: "2px",
+        paddingTop: tokens.spacingVerticalXXS,
         boxSizing: "border-box",
         scrollbarWidth: "thin",
         scrollbarColor: `${tokens.colorNeutralStroke1} transparent`,
@@ -211,7 +211,7 @@ const useExchangeStyles = makeStyles({
     listCardItem: {
         display: "flex",
         flexDirection: "row",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         boxSizing: "border-box",
         maxWidth: "100%",
         // Without min-width: 0, the inner text rows (with whiteSpace:
@@ -223,7 +223,7 @@ const useExchangeStyles = makeStyles({
     listCardItemDetails: {
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         flex: 1,
         // calc(100% - 86px) was the original intent (avatar + gap budget),
         // but combined with a flex item that can't shrink it overflowed
@@ -235,14 +235,14 @@ const useExchangeStyles = makeStyles({
     listCardItemRow: {
         display: "flex",
         justifyContent: "space-between",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         minWidth: 0,
     },
 
     titleMetaRow: {
         display: "flex",
         alignItems: "center",
-        gap: "6px",
+        gap: tokens.spacingHorizontalSNudge,
         whiteSpace: "nowrap",
         flexShrink: 0,
     },
@@ -289,9 +289,9 @@ const useExchangeStyles = makeStyles({
 
     inboxActions: {
         display: "flex",
-        gap: "6px",
-        marginTop: "6px",
-        paddingTop: "6px",
+        gap: tokens.spacingHorizontalSNudge,
+        marginTop: tokens.spacingVerticalSNudge,
+        paddingTop: tokens.spacingVerticalSNudge,
         borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
     },
 
@@ -306,7 +306,7 @@ const useExchangeStyles = makeStyles({
     tabContentFlex: {
         display: "flex",
         alignItems: "center",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
     },
 });
 

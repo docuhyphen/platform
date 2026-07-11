@@ -2,7 +2,7 @@ import {makeStyles, shorthands, tokens} from "@fluentui/react-components";
 
 export const useLinkedProviderCardStyles = makeStyles({
     card: {
-        ...shorthands.padding("16px"),
+        ...shorthands.padding(tokens.spacingHorizontalL),
         ...shorthands.border("1px", "solid", tokens.colorNeutralStroke2),
         boxShadow: tokens.shadow4,
     },
@@ -11,14 +11,14 @@ export const useLinkedProviderCardStyles = makeStyles({
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         flexWrap: "wrap",
     },
 
     identityBlock: {
         display: "flex",
         alignItems: "center",
-        gap: "14px",
+        gap: tokens.spacingHorizontalM,
         flex: "1 1 360px",
         minWidth: 0,
     },
@@ -38,14 +38,14 @@ export const useLinkedProviderCardStyles = makeStyles({
     metaBlock: {
         display: "flex",
         flexDirection: "column",
-        gap: "6px",
+        gap: tokens.spacingHorizontalSNudge,
         minWidth: 0,
     },
 
     titleRow: {
         display: "flex",
         alignItems: "center",
-        gap: "10px",
+        gap: tokens.spacingHorizontalMNudge,
         flexWrap: "wrap",
     },
 
@@ -57,7 +57,7 @@ export const useLinkedProviderCardStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-end",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         minWidth: "180px",
         "@media (max-width: 640px)": {
             width: "100%",

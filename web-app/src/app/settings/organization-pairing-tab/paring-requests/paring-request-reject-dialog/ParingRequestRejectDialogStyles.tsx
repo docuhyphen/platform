@@ -1,9 +1,9 @@
-import {makeStyles} from "@fluentui/react-components";
+import {tokens, makeStyles} from "@fluentui/react-components";
 
 export const useParingRequestRejectDialogStyles = makeStyles({
     dialogContent: {
         display: "flex",
         flexDirection: "column",
-        gap: "26px"
+        gap: tokens.spacingHorizontalXXL
     }
 });

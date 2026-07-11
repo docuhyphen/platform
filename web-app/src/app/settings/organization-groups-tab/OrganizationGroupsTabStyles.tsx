@@ -4,7 +4,7 @@ export const useOrganizationGroupTabStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         width: "100%",
         height: "100%",
         minHeight: 0,
@@ -20,13 +20,13 @@ export const useOrganizationGroupTabStyles = makeStyles({
     paginationFooter: {
         display: "flex",
         flexShrink: 0,
-        paddingTop: "8px",
+        paddingTop: tokens.spacingVerticalS,
         backgroundColor: tokens.colorNeutralBackground1,
         borderTop: `1px solid ${tokens.colorNeutralStroke2}`
     },
     error: {
         color: tokens.colorStatusDangerForeground1,
-        ...shorthands.padding("10px"),
+        ...shorthands.padding(tokens.spacingHorizontalMNudge),
         backgroundColor: tokens.colorStatusDangerBackground1,
         ...shorthands.borderRadius("4px"),
         flexShrink: 0
@@ -34,6 +34,6 @@ export const useOrganizationGroupTabStyles = makeStyles({
     loading: {
         display: "flex",
         justifyContent: "center",
-        padding: "24px"
+        padding: tokens.spacingHorizontalXXL
     }
 });

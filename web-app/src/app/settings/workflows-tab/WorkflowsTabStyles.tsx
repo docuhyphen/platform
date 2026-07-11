@@ -11,11 +11,11 @@ export const useWorkflowsTabStyles = makeStyles({
 
     tabListWrapper: {
         background: tokens.colorNeutralBackground1,
-        paddingBottom: "4px",
+        paddingBottom: tokens.spacingVerticalXS,
         boxSizing: "border-box",
         minHeight: "2.75rem",
         flexShrink: 0,
-        paddingInline: "0.5rem",
+        paddingInline: tokens.spacingHorizontalS,
         boxSizing: "border-box",
     },
 
@@ -70,7 +70,7 @@ export const useWorkflowsTabStyles = makeStyles({
         overflowY: "auto",
         overflowX: "hidden",
         overscrollBehavior: "contain",
-        paddingInline: "0.5rem",
+        paddingInline: tokens.spacingHorizontalS,
         boxSizing: "border-box",
     },
 });

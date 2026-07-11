@@ -4,9 +4,9 @@ export const useProfileSectionCardStyles = makeStyles({
     card: {
         display: "flex",
         flexDirection: "column",
-        gap: "18px",
+        gap: tokens.spacingHorizontalL,
         minHeight: "100%",
-        ...shorthands.padding("20px"),
+        ...shorthands.padding(tokens.spacingHorizontalXL),
         ...shorthands.border("1px", "solid", tokens.colorNeutralStroke2),
         boxShadow: "none",
         backgroundColor: "transparent",
@@ -15,7 +15,7 @@ export const useProfileSectionCardStyles = makeStyles({
     header: {
         display: "flex",
         justifyContent: "space-between",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         alignItems: "flex-start",
         flexWrap: "wrap",
     },
@@ -23,7 +23,7 @@ export const useProfileSectionCardStyles = makeStyles({
     copyBlock: {
         display: "flex",
         flexDirection: "column",
-        gap: "6px",
+        gap: tokens.spacingHorizontalSNudge,
     },
 
     action: {
@@ -38,6 +38,6 @@ export const useProfileSectionCardStyles = makeStyles({
     content: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
     }
 });

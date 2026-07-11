@@ -4,7 +4,7 @@ export const useProfileTabStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "20px",
+        gap: tokens.spacingHorizontalXL,
         width: "100%",
         minWidth: 0,
         maxWidth: "1120px",
@@ -13,7 +13,7 @@ export const useProfileTabStyles = makeStyles({
     cardGrid: {
         display: "grid",
         gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         alignItems: "stretch",
         "@media (max-width: 900px)": {
             gridTemplateColumns: "1fr",
@@ -23,14 +23,14 @@ export const useProfileTabStyles = makeStyles({
     infoStack: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
     },
 
     infoRow: {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "flex-start",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         flexWrap: "wrap",
     },
 
@@ -41,7 +41,7 @@ export const useProfileTabStyles = makeStyles({
     contentBlock: {
         display: "flex",
         flexDirection: "column",
-        gap: "6px",
+        gap: tokens.spacingHorizontalSNudge,
         minWidth: 0,
     },
 
@@ -52,13 +52,13 @@ export const useProfileTabStyles = makeStyles({
     securityStack: {
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
     },
 
     securityPanel: {
         display: "flex",
         justifyContent: "space-between",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         alignItems: "center",
         flexWrap: "wrap",
     },
@@ -66,8 +66,8 @@ export const useProfileTabStyles = makeStyles({
     securityNote: {
         display: "flex",
         alignItems: "flex-start",
-        gap: "10px",
-        ...shorthands.padding("12px", "14px"),
+        gap: tokens.spacingHorizontalMNudge,
+        ...shorthands.padding(tokens.spacingVerticalM, tokens.spacingHorizontalM),
         ...shorthands.borderRadius(tokens.borderRadiusLarge),
         ...shorthands.border("1px", "solid", tokens.colorNeutralStroke2),
         color: tokens.colorNeutralForeground2,
@@ -76,6 +76,6 @@ export const useProfileTabStyles = makeStyles({
     notificationCardContent: {
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
     }
 });

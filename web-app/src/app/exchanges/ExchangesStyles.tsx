@@ -4,10 +4,10 @@ export const useExchangesStyles = makeStyles({
 
     container: {
         display: "flex",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         height: "100%",
         width: "100%",
-        padding: "76px 16px 16px 16px",
+        padding: `calc(${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalM}) ${tokens.spacingHorizontalL} ${tokens.spacingVerticalL} ${tokens.spacingHorizontalL}`,
         boxSizing: "border-box",
         // Phones: stack the list and the details pane, and use the
         // `*PaneHidden` modifiers below to swap between them so users
@@ -15,8 +15,8 @@ export const useExchangesStyles = makeStyles({
         // so we only need a small inline gap on top.
         "@media (max-width: 768px)": {
             flexDirection: "column",
-            gap: "8px",
-            padding: "68px 8px 8px 8px",
+            gap: tokens.spacingHorizontalS,
+            padding: `calc(${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalXS}) ${tokens.spacingHorizontalS} ${tokens.spacingVerticalS} ${tokens.spacingHorizontalS}`,
         },
     },
 
@@ -102,10 +102,10 @@ export const useExchangesStyles = makeStyles({
     },
     containerNoExchanges: {
         display: "flex",
-        gap: "20px",
+        gap: tokens.spacingHorizontalXL,
         height: "100%",
         width: "100%",
-        padding: "76px 16px 16px 16px",
+        padding: `calc(${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalM}) ${tokens.spacingHorizontalL} ${tokens.spacingVerticalL} ${tokens.spacingHorizontalL}`,
         boxSizing: "border-box",
         flexDirection: "column",
         justifyContent: "center",
@@ -118,13 +118,13 @@ export const useExchangesStyles = makeStyles({
         width: "100%",
         maxWidth: "440px",
         height: "auto",
-        color: "var(--colorBrandForeground1)",
-        marginBottom: "8px"
+        color: tokens.colorBrandForeground1,
+        marginBottom: tokens.spacingVerticalS
     },
     exchangeDocumentsContainer: {
         display: "flex",
         flexDirection: "row",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         flex: 1
     },
 
@@ -143,21 +143,21 @@ export const useExchangesStyles = makeStyles({
         flex: 1,
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         width: "480px",
         minHeight: 0,
         // Take the entire viewport width on phones; the fixed 480px above
         // is only relevant for desktop multi-column flex layouts.
         "@media (max-width: 768px)": {
             width: "100%",
-            gap: "8px",
+            gap: tokens.spacingHorizontalS,
         },
     },
 
     detailsContent: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         transition: "opacity 180ms ease",
         opacity: 1,
         flex: 1,
@@ -187,11 +187,11 @@ export const useExchangesStyles = makeStyles({
     inboxEmptyDetailsContent: {
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         alignItems: "center",
         maxWidth: "520px",
         textAlign: "center",
-        padding: "16px"
+        padding: tokens.spacingHorizontalL
     },
     inboxEmptyIllustration: {
         width: "100%",
@@ -201,7 +201,7 @@ export const useExchangesStyles = makeStyles({
     },
     inboxEmptyActions: {
         display: "flex",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         justifyContent: "center",
         flexWrap: "wrap"
     },
@@ -215,7 +215,7 @@ export const useExchangesStyles = makeStyles({
     documentsSection: {
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         flex: "1",
         minWidth: "200px",
         minHeight: 0,

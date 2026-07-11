@@ -4,21 +4,21 @@ export const useAddPersonPanelStyles = makeStyles({
     container: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px',
+        gap: tokens.spacingHorizontalL,
     },
     topBar: {
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
     },
     form: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '12px',
+        gap: tokens.spacingHorizontalM,
     },
     row: {
         display: 'flex',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
     },
     personField: {
         flex: '1',
@@ -29,6 +29,6 @@ export const useAddPersonPanelStyles = makeStyles({
     actions: {
         display: 'flex',
         justifyContent: 'flex-end',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
     },
 });

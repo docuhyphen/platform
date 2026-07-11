@@ -5,11 +5,11 @@ export const useCommunicationsToolbarStyles = makeStyles({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         width: "100%",
         background: tokens.colorNeutralBackground1,
-        paddingInline: "0.5rem",
-        paddingBottom: "8px",
+        paddingInline: tokens.spacingHorizontalS,
+        paddingBottom: tokens.spacingVerticalS,
         boxSizing: "border-box",
         flexShrink: 0,
         "@media screen and (max-width: 600px)": {
@@ -38,17 +38,17 @@ export const useCommunicationsToolbarStyles = makeStyles({
         },
     },
     filterPopover: {
-        padding: "8px",
+        padding: tokens.spacingHorizontalS,
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         minWidth: "220px",
         maxWidth: "280px",
     },
     filterSection: {
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
     },
     filterSectionTitle: {
         fontSize: tokens.fontSizeBase200,
@@ -64,6 +64,6 @@ export const useCommunicationsToolbarStyles = makeStyles({
     },
     emptyText: {
         color: tokens.colorNeutralForeground3,
-        padding: "4px 0",
+        padding: `${tokens.spacingVerticalXS} 0`,
     },
 });

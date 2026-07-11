@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {tokens, makeStyles} from "@fluentui/react-components";
 
 export const useNotificationListStyles = makeStyles({
 
@@ -11,10 +11,10 @@ export const useNotificationListStyles = makeStyles({
         width: '350px',
         display: "flex",
         flexDirection: "column",
-        gap: "4px"
+        gap: tokens.spacingHorizontalXS
     },
     markAllAsRead: {
-        paddingTop: "16px",
+        paddingTop: tokens.spacingVerticalL,
         display: "flex",
         justifyContent: "end"
     },

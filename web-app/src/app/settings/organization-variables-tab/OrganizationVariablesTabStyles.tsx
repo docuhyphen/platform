@@ -4,8 +4,8 @@ export const useOrganizationVariablesTabStyles = makeStyles({
     container: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '12px',
-        padding: '0 4px',
+        gap: tokens.spacingHorizontalM,
+        padding: `0 ${tokens.spacingHorizontalXS}`,
     },
     descriptionText: {
         color: tokens.colorNeutralForeground3,
@@ -19,15 +19,15 @@ export const useOrganizationVariablesTabStyles = makeStyles({
     variableRow: {
         border: `1px solid ${tokens.colorNeutralStroke1}`,
         borderRadius: tokens.borderRadiusXLarge,
-        padding: '10px 16px',
+        padding: `${tokens.spacingVerticalMNudge} ${tokens.spacingHorizontalL}`,
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
     },
     variableRowInner: {
         display: 'flex',
-        gap: '12px',
+        gap: tokens.spacingHorizontalM,
         alignItems: 'center',
         flex: '1',
         minWidth: '0',
@@ -35,7 +35,7 @@ export const useOrganizationVariablesTabStyles = makeStyles({
     actionGroup: {
         display: 'flex',
         alignItems: 'center',
-        gap: '4px',
+        gap: tokens.spacingHorizontalXS,
         flexShrink: 0,
     },
     copySuccess: {
@@ -48,7 +48,7 @@ export const useOrganizationVariablesTabStyles = makeStyles({
     tokenCell: {
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
     },
     defaultValueText: {
         color: tokens.colorNeutralForeground2,
@@ -56,12 +56,12 @@ export const useOrganizationVariablesTabStyles = makeStyles({
     drawerBody: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px',
-        paddingTop: '16px',
+        gap: tokens.spacingHorizontalL,
+        paddingTop: tokens.spacingVerticalL,
     },
     buttonRow: {
         display: 'flex',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
         justifyContent: 'flex-end',
     },
     table: {
@@ -70,7 +70,7 @@ export const useOrganizationVariablesTabStyles = makeStyles({
     },
     th: {
         textAlign: 'left',
-        padding: '6px 12px',
+        padding: `${tokens.spacingVerticalSNudge} ${tokens.spacingHorizontalM}`,
         fontSize: tokens.fontSizeBase200,
         fontWeight: tokens.fontWeightSemibold,
         color: tokens.colorNeutralForeground3,
@@ -82,7 +82,7 @@ export const useOrganizationVariablesTabStyles = makeStyles({
         ':hover': {backgroundColor: tokens.colorNeutralBackground2},
     },
     td: {
-        padding: '8px 12px',
+        padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
         verticalAlign: 'middle',
     },
 });

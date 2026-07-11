@@ -2,8 +2,8 @@ import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useNotificationListItemStyles = makeStyles({
     container: {
-        marginBottom: '8px',
-        padding: '8px 12px',
+        marginBottom: tokens.spacingVerticalS,
+        padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
         cursor: 'pointer',
         '&:hover': {
             backgroundColor: tokens.colorNeutralBackground1Hover,
@@ -15,7 +15,7 @@ export const useNotificationListItemStyles = makeStyles({
     notificationHeader: {
         display: 'flex',
         justifyContent: 'space-between',
-        marginBottom: '4px',
+        marginBottom: tokens.spacingVerticalXS,
     },
     isUnread: {
         borderLeft: '3px solid',

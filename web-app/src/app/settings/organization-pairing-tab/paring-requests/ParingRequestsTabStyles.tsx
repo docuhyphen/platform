@@ -4,7 +4,7 @@ export const useOrganizationParingTabStyles = makeStyles({
     tabContainer: {
         display: "flex",
         flexDirection: "column",
-        gap: "26px",
+        gap: tokens.spacingHorizontalXXL,
         width: "100%",
         minWidth: 0,
         // Tables inside this section can be wide; let them scroll
@@ -13,10 +13,10 @@ export const useOrganizationParingTabStyles = makeStyles({
     },
     header: {
         display: "flex",
-        marginBottom: "16px",
+        marginBottom: tokens.spacingVerticalL,
         justifyContent: "space-between",
         flexWrap: "wrap",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
     },
     container: {
         display: "flex",
@@ -27,7 +27,7 @@ export const useOrganizationParingTabStyles = makeStyles({
     tabListContainer: {
         display: "flex",
         flexDirection: "row",
-        gap: "36px"
+        gap: tokens.spacingHorizontalXXXL
     },
     tabs: {
         flexGrow: "1"

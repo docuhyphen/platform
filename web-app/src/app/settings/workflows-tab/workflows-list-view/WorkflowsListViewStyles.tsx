@@ -8,18 +8,18 @@ export const useWorkflowsListViewStyles = makeStyles({
         flexDirection: "column",
     },
     section: {
-        marginBottom: "2rem",
+        marginBottom: tokens.spacingVerticalXXXL,
     },
 
     sectionHeader: {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: "0.75rem",
+        marginBottom: tokens.spacingVerticalM,
     },
 
     emptyState: {
-        padding: "1.5rem",
+        padding: tokens.spacingHorizontalXXL,
         color: tokens.colorNeutralForeground3,
         textAlign: "center",
         border: `1px dashed ${tokens.colorNeutralStroke2}`,
@@ -29,8 +29,8 @@ export const useWorkflowsListViewStyles = makeStyles({
     row: {
         display: "flex",
         flexDirection: "column",
-        gap: "6px",
-        padding: "0.75rem 1rem",
+        gap: tokens.spacingHorizontalSNudge,
+        padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL}`,
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         borderRadius: tokens.borderRadiusMedium,
         minWidth: 0,
@@ -41,7 +41,7 @@ export const useWorkflowsListViewStyles = makeStyles({
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         minWidth: 0,
     },
 
@@ -53,7 +53,7 @@ export const useWorkflowsListViewStyles = makeStyles({
     middleRow: {
         display: "flex",
         alignItems: "center",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         minWidth: 0,
     },
 
@@ -69,24 +69,24 @@ export const useWorkflowsListViewStyles = makeStyles({
     middleActions: {
         display: "flex",
         alignItems: "center",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         flexShrink: 0,
     },
 
     tagsContainer: {
         display: "flex",
         overflow: "hidden",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         minWidth: 0,
     },
 
     templateCard: {
-        padding: "1rem",
+        padding: tokens.spacingHorizontalL,
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         borderRadius: tokens.borderRadiusMedium,
         display: "flex",
         alignItems: "flex-start",
-        gap: "1rem",
+        gap: tokens.spacingHorizontalL,
     },
 
     templateCardInfo: {
@@ -97,18 +97,18 @@ export const useWorkflowsListViewStyles = makeStyles({
     tagRow: {
         display: "flex",
         flexWrap: "wrap",
-        gap: "4px",
-        marginTop: "4px",
+        gap: tokens.spacingHorizontalXS,
+        marginTop: tokens.spacingVerticalXS,
     },
 
     errorBar: {
-        marginBottom: "0.75rem",
+        marginBottom: tokens.spacingVerticalM,
     },
 
     cardGrid: {
         display: "grid",
         gridTemplateColumns: "repeat(2, 1fr)",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         "@media screen and (max-width: 768px)": {
             gridTemplateColumns: "1fr",
         },
@@ -119,11 +119,11 @@ export const useWorkflowsListViewStyles = makeStyles({
         alignItems: "center",
         justifyContent: "space-between",
         background: tokens.colorNeutralBackground1,
-        paddingBottom: "0.75rem",
-        gap: "8px",
+        paddingBottom: tokens.spacingVerticalM,
+        gap: tokens.spacingHorizontalS,
         flexWrap: "wrap",
         flexShrink: 0,
-        paddingInline: "0.5rem",
+        paddingInline: tokens.spacingHorizontalS,
         boxSizing: "border-box",
     },
     scrollableContent: {
@@ -132,13 +132,13 @@ export const useWorkflowsListViewStyles = makeStyles({
         overflowY: "auto",
         overflowX: "hidden",
         overscrollBehavior: "contain",
-        paddingInline: "0.5rem",
+        paddingInline: tokens.spacingHorizontalS,
         boxSizing: "border-box",
     },
 
     cloneNameLabel: {
         display: "block",
-        marginBottom: "0.25rem",
+        marginBottom: tokens.spacingVerticalXS,
     },
 
     cloneNameInput: {
@@ -146,11 +146,11 @@ export const useWorkflowsListViewStyles = makeStyles({
     },
 
     platformCardTriggerText: {
-        marginTop: "2px",
+        marginTop: tokens.spacingVerticalXXS,
     },
 
     overflowTagsButton: {
-        padding: "0 6px",
+        padding: `0 ${tokens.spacingHorizontalSNudge}`,
         minWidth: "0",
     },
     table: {
@@ -159,7 +159,7 @@ export const useWorkflowsListViewStyles = makeStyles({
     },
     th: {
         textAlign: "left",
-        padding: "6px 12px",
+        padding: `${tokens.spacingVerticalSNudge} ${tokens.spacingHorizontalM}`,
         fontSize: tokens.fontSizeBase200,
         fontWeight: tokens.fontWeightSemibold,
         color: tokens.colorNeutralForeground3,
@@ -171,7 +171,7 @@ export const useWorkflowsListViewStyles = makeStyles({
         ":hover": {backgroundColor: tokens.colorNeutralBackground2},
     },
     td: {
-        padding: "8px 12px",
+        padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
         verticalAlign: "middle",
     },
 });

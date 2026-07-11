@@ -5,13 +5,13 @@ export const useExchangeDocumentCommentStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "row",
-        gap: "8px"
+        gap: tokens.spacingHorizontalS
     },
     commentTextContainer: {
         display: "flex",
         flexGrow: 1,
         flexDirection: "column",
-        gap: "4px"
+        gap: tokens.spacingHorizontalXS
     },
     commentText: {
         border: '1px dotted',
@@ -22,7 +22,7 @@ export const useExchangeDocumentCommentStyles = makeStyles({
         whiteSpace: "pre-wrap",
         wordBreak: "break-word",
         borderRadius: tokens.borderRadiusMedium,
-        padding: "4px"
+        padding: tokens.spacingHorizontalXS
     },
     commentDate: {
         display: "inline-block",
@@ -33,6 +33,6 @@ export const useExchangeDocumentCommentStyles = makeStyles({
         flexWrap: "wrap",
         justifyContent: "space-between",
         alignItems: "center",
-        gap: "4px"
+        gap: tokens.spacingHorizontalXS
     }
 });

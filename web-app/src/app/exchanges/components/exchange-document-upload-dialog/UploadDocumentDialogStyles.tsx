@@ -4,7 +4,7 @@ export const useDocumentDialogStyles = makeStyles({
     contentContainer: {
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         minWidth: "420px",
         boxSizing: "border-box",
         // Phones: drop the 420px floor (smallest phones are ~320-360px),
@@ -19,8 +19,8 @@ export const useDocumentDialogStyles = makeStyles({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        gap: "8px",
-        padding: "8px 0",
+        gap: tokens.spacingHorizontalS,
+        padding: `${tokens.spacingVerticalS} 0`,
         flexWrap: "wrap",
     },
 
@@ -31,11 +31,11 @@ export const useDocumentDialogStyles = makeStyles({
     fileInfoCard: {
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         borderRadius: tokens.borderRadiusXLarge,
-        padding: "12px",
+        padding: tokens.spacingHorizontalM,
         backgroundColor: tokens.colorNeutralBackground1,
         display: "flex",
         flexDirection: "column",
-        gap: "6px",
+        gap: tokens.spacingHorizontalSNudge,
         minWidth: 0,
         wordBreak: "break-word",
     },
@@ -43,13 +43,13 @@ export const useDocumentDialogStyles = makeStyles({
     keyValueRow: {
         display: "grid",
         gridTemplateColumns: "120px 1fr",
-        columnGap: "10px",
+        columnGap: tokens.spacingHorizontalMNudge,
         minWidth: 0,
         // Phones: stack the label above the value so long file names
         // don't squeeze the value column into one character per line.
         "@media (max-width: 768px)": {
             gridTemplateColumns: "1fr",
-            rowGap: "2px",
+            rowGap: tokens.spacingVerticalXXS,
         },
     },
 

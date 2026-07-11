@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {tokens, makeStyles} from "@fluentui/react-components";
 
 export const useTourCoachStyles = makeStyles({
     hiddenAnchor: {
@@ -12,7 +12,7 @@ export const useTourCoachStyles = makeStyles({
         maxWidth: "340px",
     },
     backButtonRow: {
-        paddingBottom: "10px",
-        paddingInlineStart: "16px",
+        paddingBottom: tokens.spacingVerticalMNudge,
+        paddingInlineStart: tokens.spacingHorizontalL,
     },
 });

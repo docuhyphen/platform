@@ -5,20 +5,20 @@ export const useOrganizationTabStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         width: "400px",
-        gap: "16px"
+        gap: tokens.spacingHorizontalL
     },
 
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
-        paddingTop: "1.5rem"
+        gap: tokens.spacingHorizontalL,
+        paddingTop: tokens.spacingVerticalXXL
     },
 
     dataContainer: {
         display: "flex",
         flexDirection: "row",
-        gap: "24px"
+        gap: tokens.spacingHorizontalXXL
     },
 
     dataName: {
@@ -27,7 +27,7 @@ export const useOrganizationTabStyles = makeStyles({
 
     dataEditable: {
         display: "flex",
-        gap: "8px"
+        gap: tokens.spacingHorizontalS
     },
 
     mainDivider: {
@@ -37,24 +37,24 @@ export const useOrganizationTabStyles = makeStyles({
     loadingWrapper: {
         display: "flex",
         justifyContent: "center",
-        padding: "20px"
+        padding: tokens.spacingHorizontalXL
     },
 
     errorMessage: {
         color: tokens.colorStatusDangerForeground1,
-        padding: "10px",
-        marginBottom: "10px"
+        padding: tokens.spacingHorizontalMNudge,
+        marginBottom: tokens.spacingVerticalMNudge
     },
 
     orgNameSection: {
-        marginBottom: "20px"
+        marginBottom: tokens.spacingVerticalXL
     },
 
     registrationRow: {
-        marginTop: "5px"
+        marginTop: tokens.spacingVerticalXS
     },
 
     pendingInfoRow: {
-        marginTop: "8px"
+        marginTop: tokens.spacingVerticalS
     }
 });

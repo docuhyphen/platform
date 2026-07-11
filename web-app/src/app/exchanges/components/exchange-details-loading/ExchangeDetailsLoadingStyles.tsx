@@ -5,7 +5,7 @@ export const useExchangeDetailsLoadingStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         flex: 1,
         // Allow the loading view to shrink to fit the master-detail
         // mobile pane (which is the full viewport). Without this, the
@@ -19,10 +19,10 @@ export const useExchangeDetailsLoadingStyles = makeStyles({
     heading: {
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         width: "100%",
-        padding: "8px 16px",
+        padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalL}`,
         boxSizing: "border-box",
         borderRadius: tokens.borderRadiusMedium,
         minWidth: 0,
@@ -30,8 +30,8 @@ export const useExchangeDetailsLoadingStyles = makeStyles({
         // the skeleton occupies the same vertical footprint as the loaded
         // header on phones.
         "@media (max-width: 768px)": {
-            padding: "6px 8px",
-            gap: "4px",
+            padding: `${tokens.spacingVerticalSNudge} ${tokens.spacingHorizontalS}`,
+            gap: tokens.spacingHorizontalXS,
         },
     },
 
@@ -46,7 +46,7 @@ export const useExchangeDetailsLoadingStyles = makeStyles({
     headerLine2: {
         display: "flex",
         flexDirection: "row",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         justifyContent: "space-between",
         alignItems: "center",
         minWidth: 0,
@@ -63,10 +63,10 @@ export const useExchangeDetailsLoadingStyles = makeStyles({
     exchangeActions: {
         display: "flex",
         flexDirection: "row",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         flexShrink: 0,
         "@media (max-width: 768px)": {
-            gap: "4px",
+            gap: tokens.spacingHorizontalXS,
         },
     },
 
@@ -78,7 +78,7 @@ export const useExchangeDetailsLoadingStyles = makeStyles({
     documentSearch: {
         display: "flex",
         flexDirection: "row",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         minWidth: 0,
         width: "100%",
         boxSizing: "border-box",
@@ -100,8 +100,8 @@ export const useExchangeDetailsLoadingStyles = makeStyles({
     documentCardList: {
         display: "flex",
         flexDirection: "row",
-        gap: "8px",
-        padding: "2px 2px",
+        gap: tokens.spacingHorizontalS,
+        padding: `${tokens.spacingVerticalXXS} ${tokens.spacingHorizontalXXS}`,
         // Phones: stack cards so each card uses the full row width
         // instead of trying to fit two 230px-min-wide cards on a
         // ~360px viewport (which produced horizontal overflow).
@@ -115,7 +115,7 @@ export const useExchangeDetailsLoadingStyles = makeStyles({
         display: "flex",
         flexDirection: "row",
         justifyContent: "space-between",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         height: "70px",
         flex: 1,
         boxSizing: "border-box",
@@ -133,7 +133,7 @@ export const useExchangeDetailsLoadingStyles = makeStyles({
     documentUploadDate: {
         width: "100px",
         maxWidth: "40%",
-        marginTop: "8px",
+        marginTop: tokens.spacingVerticalS,
     },
 
     documentMoreOptions: {

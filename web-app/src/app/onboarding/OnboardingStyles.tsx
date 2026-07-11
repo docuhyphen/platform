@@ -18,7 +18,7 @@ export const useOnboardingStyles = makeStyles({
         flexDirection: "row",
         maxWidth: "100%",
         width: "800px",
-        margin: "80px",
+        margin: `calc(${tokens.spacingHorizontalXXXL} + ${tokens.spacingHorizontalXXXL} + ${tokens.spacingHorizontalL})`,
         maxHeight: "650px",
         borderRadius: tokens.borderRadiusXLarge,
         boxShadow: tokens.shadow16,
@@ -32,7 +32,7 @@ export const useOnboardingStyles = makeStyles({
         height: "100%",
         boxSizing: "border-box",
         flex: 1,
-        padding: "38px",
+        padding: tokens.spacingHorizontalXXXL,
         maxWidth: "50%",
     },
     onboardingSection2: {
@@ -42,7 +42,7 @@ export const useOnboardingStyles = makeStyles({
         height: "100%",
         boxSizing: "border-box",
         flex: 1,
-        padding: "38px",
+        padding: tokens.spacingHorizontalXXXL,
         maxWidth: "50%",
         alignItems: "center",
         display: "flex",
@@ -53,13 +53,13 @@ export const useOnboardingStyles = makeStyles({
     onboardingSection2_1: {
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
     },
 
     orgOnboardingContainer: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         justifyContent: "space-between",
     }
 });

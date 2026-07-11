@@ -1,11 +1,11 @@
-import {makeStyles} from "@fluentui/react-components";
+import {tokens, makeStyles} from "@fluentui/react-components";
 
 export const useStepUpStyles = makeStyles({
     stepUpContainer: {
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         alignItems: "center",
-        marginTop: "80px",
+        marginTop: `calc(${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalL})`,
     },
 });

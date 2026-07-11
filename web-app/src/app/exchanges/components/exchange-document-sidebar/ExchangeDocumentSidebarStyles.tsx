@@ -37,7 +37,7 @@ export const useExchangeDocumentSidebarStyles = makeStyles({
     headerContent: {
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         width: "100%",
         minWidth: 0,
         boxSizing: "border-box",
@@ -48,7 +48,7 @@ export const useExchangeDocumentSidebarStyles = makeStyles({
     documentTitleRow: {
         display: "flex",
         alignItems: "center",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         minWidth: 0,
     },
     metadataToggleButton: {
@@ -58,7 +58,7 @@ export const useExchangeDocumentSidebarStyles = makeStyles({
         backgroundColor: tokens.colorNeutralBackground2,
         borderRadius: tokens.borderRadiusLarge,
         border: `1px solid ${tokens.colorNeutralStroke2}`,
-        padding: "8px",
+        padding: tokens.spacingHorizontalS,
         overflow: "hidden",
         width: "100%",
         boxSizing: "border-box",
@@ -104,10 +104,10 @@ export const useExchangeDocumentSidebarStyles = makeStyles({
     },
     metadataLabelCell: {
         width: "120px",
-        padding: "4px 8px 4px 0",
+        padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS} ${tokens.spacingVerticalXS} 0`,
     },
     metadataValueCell: {
-        padding: "4px 0",
+        padding: `${tokens.spacingVerticalXS} 0`,
     },
     metadataLabel: {
         color: tokens.colorNeutralForeground3,
@@ -129,7 +129,7 @@ export const useExchangeDocumentSidebarStyles = makeStyles({
         bottom: "0",
         display: "flex",
         flexDirection: "row",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
     },
     commentField: {
         flex: 1,

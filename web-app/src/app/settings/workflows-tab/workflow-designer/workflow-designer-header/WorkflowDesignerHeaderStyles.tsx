@@ -4,8 +4,8 @@ export const useWorkflowDesignerHeaderStyles = makeStyles({
     topBar: {
         display: "flex",
         alignItems: "center",
-        gap: "0.75rem",
-        marginBottom: "0.25rem",
+        gap: tokens.spacingHorizontalM,
+        marginBottom: tokens.spacingVerticalXS,
     },
     topBarLeft: {
         display: "flex",

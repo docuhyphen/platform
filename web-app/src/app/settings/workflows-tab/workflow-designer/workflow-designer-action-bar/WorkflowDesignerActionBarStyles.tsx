@@ -8,7 +8,7 @@ export const useWorkflowDesignerActionBarStyles = makeStyles({
         display: "flex",
         alignItems: "center",
         justifyContent: "flex-end",
-        gap: "0.5rem",
+        gap: tokens.spacingHorizontalS,
         paddingTop: tokens.spacingVerticalM,
         paddingBottom: tokens.spacingVerticalS,
         paddingInline: tokens.spacingHorizontalM,

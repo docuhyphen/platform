@@ -34,16 +34,16 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
     previewHeader: {
         display: "flex",
         flexDirection: "column",
-        padding: "8px",
-        marginBottom: "8px",
+        padding: tokens.spacingHorizontalS,
+        marginBottom: tokens.spacingVerticalS,
         justifyContent: "center",
         alignItems: "center",
         width: "100%",
         minWidth: 0,
         boxSizing: "border-box",
         "@media (max-width: 768px)": {
-            padding: "4px",
-            marginBottom: "4px",
+            padding: tokens.spacingHorizontalXS,
+            marginBottom: tokens.spacingVerticalXS,
         },
     },
 
@@ -56,7 +56,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         // horizontal room. This is what makes the preview controls
         // usable on phones / split panes.
         flexWrap: "wrap",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         alignItems: "center",
         maxWidth: "100%",
         minWidth: 0,
@@ -67,7 +67,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
             // normal row direction on phones so wrapped controls flow
             // top-to-bottom, left-to-right.
             flexDirection: "row",
-            rowGap: "4px",
+            rowGap: tokens.spacingVerticalXS,
         },
     },
 
@@ -85,14 +85,14 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         margin: "0 auto",
         minWidth: "480px",
         minHeight: 0,
-        padding: "16px",
+        padding: tokens.spacingHorizontalL,
         boxSizing: "border-box",
         width: "100%",
         // Drop the 480px floor on phones (smallest viewports are ~360px);
         // otherwise the previewer forces horizontal page scrolling.
         "@media (max-width: 768px)": {
             minWidth: 0,
-            padding: "8px",
+            padding: tokens.spacingHorizontalS,
             // `pan-x pan-y pinch-zoom` keeps single-finger panning AND
             // pinch-zoom working inside the scroll container. (Plain
             // `pinch-zoom` disables panning, which made the PDF
@@ -114,9 +114,9 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         boxSizing: "border-box",
         background: tokens.colorBackgroundOverlay,
         zIndex: 9999,
-        padding: "16px",
+        padding: tokens.spacingHorizontalL,
         backgroundPosition: "relative",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-around",
@@ -166,7 +166,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         width: "100%",
         display: "flex",
         justifyContent: "space-between",
-        padding: "16px",
+        padding: tokens.spacingHorizontalL,
         borderRadius: tokens.borderRadiusMedium,
         animationName: {
             from: {
@@ -187,8 +187,8 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         "@media (max-width: 768px)": {
             flexDirection: "column",
             alignItems: "center",
-            gap: "8px",
-            padding: "10px 12px",
+            gap: tokens.spacingHorizontalS,
+            padding: `${tokens.spacingVerticalMNudge} ${tokens.spacingHorizontalM}`,
         },
     },
 
@@ -210,7 +210,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
     enlargedPreviewHeaderActions: {
         display: "flex",
         alignItems: "center",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         flexWrap: "wrap",
         justifyContent: "center",
         maxWidth: "100%",
@@ -220,7 +220,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
     pagesInputContainer: {
         display: "flex",
         alignItems: "center",
-        gap: "2px",
+        gap: tokens.spacingHorizontalXXS,
         // Keep the page-navigation cluster together; on tight viewports
         // the surrounding toolbar wraps before this group is broken up.
         flexShrink: 0,
@@ -289,7 +289,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
     pdfPagesStack: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         alignItems: "center",
     },
 
@@ -332,11 +332,11 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         backgroundColor: tokens.colorNeutralBackground2,
         overflowY: "auto",
         overflowX: "hidden",
-        padding: "10px 8px",
+        padding: `${tokens.spacingVerticalMNudge} ${tokens.spacingHorizontalS}`,
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
-        gap: "10px",
+        gap: tokens.spacingHorizontalMNudge,
         zIndex: 1,
         boxShadow: `inset -1px 0 0 ${tokens.colorNeutralStroke2}`,
         // Hide the thumbnail rail on phones - it would consume half the
@@ -348,7 +348,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
     },
 
     thumbnailSidebarEmpty: {
-        padding: "8px 4px",
+        padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalXS}`,
         color: tokens.colorNeutralForeground3,
         textAlign: "center",
     },
@@ -357,12 +357,12 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         borderRadius: tokens.borderRadiusLarge,
         backgroundColor: tokens.colorNeutralBackground1,
-        padding: "6px",
+        padding: tokens.spacingHorizontalSNudge,
         cursor: "pointer",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         transition: "border-color 140ms ease, box-shadow 140ms ease",
         "&:hover": {
             boxShadow: `0 0 0 1px ${tokens.colorBrandStroke1}`,
@@ -390,7 +390,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         minWidth: 0,
         minHeight: 0,
         overflow: "auto",
-        padding: "16px",
+        padding: tokens.spacingHorizontalL,
         boxSizing: "border-box",
         // Phones (enlarged reader): zero out the padding so the page
         // renders at the FULL viewport width, and allow native
@@ -425,7 +425,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: "10px",
+        gap: tokens.spacingHorizontalMNudge,
         minHeight: "240px",
         border: `1px dashed ${tokens.colorNeutralStroke2}`,
         borderRadius: tokens.borderRadiusLarge,
@@ -442,12 +442,12 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: "10px",
+        gap: tokens.spacingHorizontalMNudge,
         minHeight: "280px",
         border: `1px dashed ${tokens.colorNeutralStroke2}`,
         borderRadius: tokens.borderRadiusLarge,
         backgroundColor: tokens.colorNeutralBackground1,
-        padding: "20px",
+        padding: tokens.spacingHorizontalXL,
         textAlign: "center",
         margin: "auto",
         maxWidth: "380px"
@@ -462,8 +462,8 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: "12px",
-        padding: "32px",
+        gap: tokens.spacingHorizontalM,
+        padding: tokens.spacingHorizontalXXXL,
         textAlign: "center",
     },
 
@@ -488,7 +488,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         opacity: "0.15",
         fontSize: "4rem",
         fontWeight: 700,
-        color: "#000",
+        color: tokens.colorNeutralForeground1,
         whiteSpace: "nowrap",
         letterSpacing: "0.2em",
     },

@@ -4,7 +4,7 @@ export const useOrganizationGroupsToolbarStyles = makeStyles({
     container: {
         display: "flex",
         alignItems: "center",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         flexShrink: 0,
         backgroundColor: tokens.colorNeutralBackground1,
         "@media (max-width: 900px)": {
@@ -19,7 +19,7 @@ export const useOrganizationGroupsToolbarStyles = makeStyles({
     tools: {
         display: "flex",
         alignItems: "center",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         flexShrink: 0
     },
     actionButton: {

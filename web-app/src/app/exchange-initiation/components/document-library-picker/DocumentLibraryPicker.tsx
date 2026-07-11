@@ -159,14 +159,14 @@ const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, 
                             id={`doc-picker-item-${entry.id}`}
                             onClick={() => toggleEntry(entry.id)}
                             style={{
-                                border: `1px solid ${selectedIds.has(entry.id) ? 'var(--colorBrandStroke1)' : 'var(--colorNeutralStroke1)'}`,
+                                border: `1px solid ${selectedIds.has(entry.id) ? tokens.colorBrandStroke1 : tokens.colorNeutralStroke1}`,
                                 borderRadius: tokens.borderRadiusXLarge,
-                                padding: '12px 16px',
+                                padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL}`,
                                 display: 'flex',
                                 flexDirection: 'column',
-                                gap: '6px',
+                                gap: tokens.spacingHorizontalSNudge,
                                 cursor: 'pointer',
-                                backgroundColor: selectedIds.has(entry.id) ? 'var(--colorBrandBackground2)' : undefined,
+                                backgroundColor: selectedIds.has(entry.id) ? tokens.colorBrandBackground2 : undefined,
                             }}
                         >
                             <div className={styles.docPickerEntryHeader}>

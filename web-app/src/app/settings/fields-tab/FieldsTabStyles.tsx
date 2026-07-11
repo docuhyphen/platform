@@ -4,7 +4,7 @@ export const useFieldsTabStyles = makeStyles({
     container: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '0',
+        gap: "0",
         height: '100%',
         minHeight: 0,
     },
@@ -12,10 +12,10 @@ export const useFieldsTabStyles = makeStyles({
         background: tokens.colorNeutralBackground1,
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px',
-        paddingBottom: '12px',
+        gap: tokens.spacingHorizontalS,
+        paddingBottom: tokens.spacingVerticalM,
         flexShrink: 0,
-        paddingInline: '0.5rem',
+        paddingInline: tokens.spacingHorizontalS,
         boxSizing: 'border-box',
     },
     scrollableContent: {
@@ -24,7 +24,7 @@ export const useFieldsTabStyles = makeStyles({
         overflowY: 'auto',
         overflowX: 'hidden',
         overscrollBehavior: 'contain',
-        paddingInline: '0.5rem',
+        paddingInline: tokens.spacingHorizontalS,
         boxSizing: 'border-box',
     },
     tabsHeaderRow: {
@@ -32,13 +32,13 @@ export const useFieldsTabStyles = makeStyles({
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
     },
     headerRow: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
         flexWrap: 'wrap',
     },
     searchRow: {
@@ -46,7 +46,7 @@ export const useFieldsTabStyles = makeStyles({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
         width: '100%',
         '@media screen and (max-width: 600px)': {
             alignItems: 'stretch',
@@ -85,12 +85,12 @@ export const useFieldsTabStyles = makeStyles({
     list: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
     },
     cardGrid: {
         display: 'grid',
         gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '12px',
+        gap: tokens.spacingHorizontalM,
         '@media screen and (max-width: 768px)': {
             gridTemplateColumns: '1fr',
         },
@@ -98,16 +98,16 @@ export const useFieldsTabStyles = makeStyles({
     card: {
         border: `1px solid ${tokens.colorNeutralStroke1}`,
         borderRadius: tokens.borderRadiusXLarge,
-        padding: '12px 16px',
+        padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL}`,
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'stretch',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
     },
     cardMain: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '3px',
+        gap: tokens.spacingHorizontalXS,
         minWidth: '0',
         flex: '1',
     },
@@ -132,7 +132,7 @@ export const useFieldsTabStyles = makeStyles({
         alignItems: 'flex-end',
         justifyContent: 'center',
         flexShrink: 0,
-        gap: '4px',
+        gap: tokens.spacingHorizontalXS,
     },
     schemaCardCol2: {
         display: 'flex',
@@ -140,12 +140,12 @@ export const useFieldsTabStyles = makeStyles({
         alignItems: 'flex-end',
         justifyContent: 'space-between',
         flexShrink: 0,
-        gap: '4px',
+        gap: tokens.spacingHorizontalXS,
     },
     cardTitleRow: {
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
         flexWrap: 'wrap',
     },
     codeKey: {
@@ -164,29 +164,29 @@ export const useFieldsTabStyles = makeStyles({
     actionGroup: {
         display: 'flex',
         alignItems: 'center',
-        gap: '4px',
+        gap: tokens.spacingHorizontalXS,
         flexShrink: 0,
     },
     badgeRow: {
         display: 'flex',
-        gap: '6px',
+        gap: tokens.spacingHorizontalSNudge,
         alignItems: 'center',
         flexWrap: 'wrap',
     },
     drawerBody: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px',
-        paddingTop: '16px',
+        gap: tokens.spacingHorizontalL,
+        paddingTop: tokens.spacingVerticalL,
     },
     fieldGroup: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '12px',
+        gap: tokens.spacingHorizontalM,
     },
     twoColumn: {
         display: 'flex',
-        gap: '12px',
+        gap: tokens.spacingHorizontalM,
         flexWrap: 'wrap',
     },
     grow: {
@@ -195,56 +195,56 @@ export const useFieldsTabStyles = makeStyles({
     },
     optionRow: {
         display: 'flex',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
         alignItems: 'flex-end',
     },
     bindingRow: {
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         borderRadius: tokens.borderRadiusMedium,
-        padding: '10px 12px',
+        padding: `${tokens.spacingVerticalMNudge} ${tokens.spacingHorizontalM}`,
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
     },
     bindingHeader: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
     },
     bindingToggles: {
         display: 'flex',
-        gap: '16px',
+        gap: tokens.spacingHorizontalL,
         alignItems: 'center',
         flexWrap: 'wrap',
     },
     buttonRow: {
         display: 'flex',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
         justifyContent: 'flex-end',
         flexWrap: 'wrap',
     },
     inlineSpinner: {
-        paddingTop: '8px',
+        paddingTop: tokens.spacingVerticalS,
     },
     filterPopover: {
-        padding: '8px',
+        padding: tokens.spacingHorizontalS,
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
         minWidth: '200px',
         maxWidth: '280px',
     },
     filterSection: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '4px',
+        gap: tokens.spacingHorizontalXS,
     },
     filterSectionTitle: {
         fontSize: tokens.fontSizeBase200,
         fontWeight: tokens.fontWeightSemibold,
         color: tokens.colorNeutralForeground3,
-        paddingLeft: '2px',
+        paddingLeft: tokens.spacingHorizontalXXS,
     },
     filterSectionList: {
         maxHeight: '160px',
@@ -255,7 +255,7 @@ export const useFieldsTabStyles = makeStyles({
     filterDivider: {
         border: 'none',
         borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
-        margin: '0',
+        margin: "0",
     },
     table: {
         width: '100%',
@@ -263,7 +263,7 @@ export const useFieldsTabStyles = makeStyles({
     },
     th: {
         textAlign: 'left',
-        padding: '6px 12px',
+        padding: `${tokens.spacingVerticalSNudge} ${tokens.spacingHorizontalM}`,
         fontSize: tokens.fontSizeBase200,
         fontWeight: tokens.fontWeightSemibold,
         color: tokens.colorNeutralForeground3,
@@ -277,7 +277,7 @@ export const useFieldsTabStyles = makeStyles({
         },
     },
     td: {
-        padding: '8px 12px',
+        padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
         verticalAlign: 'middle',
     },
     dialogTitle: {

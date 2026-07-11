@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {tokens, makeStyles} from "@fluentui/react-components";
 
 export const useEditGroupDialogStyles = makeStyles({
 
@@ -8,14 +8,14 @@ export const useEditGroupDialogStyles = makeStyles({
         justifyContent: "space-between",
         alignItems: "center",
         flexWrap: "wrap",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
     },
 
     dialogContentContainer: {
-        margin: "8px 0",
+        margin: `${tokens.spacingVerticalS} 0`,
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         minHeight: "520px",
         // The members table can be very wide; let the body scroll
         // horizontally inside the dialog instead of pushing content out
@@ -32,8 +32,8 @@ export const useEditGroupDialogStyles = makeStyles({
     appUserPermissionListContainer: {
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
-        paddingTop: "8px"
+        gap: tokens.spacingHorizontalS,
+        paddingTop: tokens.spacingVerticalS
 
     },
 
@@ -45,7 +45,7 @@ export const useEditGroupDialogStyles = makeStyles({
         },
     },
     addMembersField: {
-        marginBottom: "12px",
+        marginBottom: tokens.spacingVerticalM,
     },
     memberNameCell: {
         maxWidth: "180px",

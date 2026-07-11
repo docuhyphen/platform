@@ -4,24 +4,24 @@ export const useExchangeAccessPanelStyles = makeStyles({
     container: {
         display: 'flex',
         flexDirection: 'column',
-        ...shorthands.gap('10px'),
-        marginTop: '8px',
+        ...shorthands.gap(tokens.spacingHorizontalMNudge),
+        marginTop: tokens.spacingVerticalS,
     },
     toolbar: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         flexWrap: 'wrap',
-        ...shorthands.gap('8px'),
+        ...shorthands.gap(tokens.spacingHorizontalS),
     },
     addForm: {
         display: 'flex',
         flexDirection: "column",
-        gap: "8px"
+        gap: tokens.spacingHorizontalS
     },
     addFormRow1: {
         display: "flex",
-        gap: "8px"
+        gap: tokens.spacingHorizontalS
     },
     addFormPersonField: {
         flex: "1"
@@ -31,35 +31,35 @@ export const useExchangeAccessPanelStyles = makeStyles({
         gridColumn: '1 / -1',
     },
     constraintsEditor: {
-        ...shorthands.margin('2px', '0', '0', '0'),
+        ...shorthands.margin(tokens.spacingVerticalXXS, '0', '0', '0'),
         display: 'flex',
         flexDirection: 'column',
-        ...shorthands.gap('6px'),
+        ...shorthands.gap(tokens.spacingHorizontalSNudge),
     },
     constraintChips: {
         display: 'flex',
-        ...shorthands.gap('6px'),
+        ...shorthands.gap(tokens.spacingHorizontalSNudge),
         flexWrap: 'wrap',
     },
     entries: {
         display: 'flex',
         flexDirection: 'column',
-        gap: "16px"
+        gap: tokens.spacingHorizontalL
     },
     row: {
         ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
         ...shorthands.borderRadius(tokens.borderRadiusMedium),
-        ...shorthands.padding('8px'),
+        ...shorthands.padding(tokens.spacingHorizontalS),
         display: 'flex',
         flexDirection: 'column',
-        ...shorthands.gap('8px'),
+        ...shorthands.gap(tokens.spacingHorizontalS),
         minWidth: 0,
         position: 'relative',
     },
     rowTop: {
         display: 'flex',
         alignItems: 'center',
-        ...shorthands.gap('8px'),
+        ...shorthands.gap(tokens.spacingHorizontalS),
     },
     detailsRow1: {
         display: "flex",
@@ -78,7 +78,7 @@ export const useExchangeAccessPanelStyles = makeStyles({
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
         display: "flex",
-        gap: "2xp"
+        gap: tokens.spacingHorizontalXXS
     },
     // roleField: {
     //     width: '120px',
@@ -87,7 +87,7 @@ export const useExchangeAccessPanelStyles = makeStyles({
     rowBottom: {
         display: 'flex',
         alignItems: 'center',
-        ...shorthands.gap('8px'),
+        ...shorthands.gap(tokens.spacingHorizontalS),
         flexWrap: 'wrap',
     },
     actionButton: {
@@ -95,22 +95,22 @@ export const useExchangeAccessPanelStyles = makeStyles({
     },
     floatingStatus: {
         position: 'absolute',
-        top: '-8px',
-        left: '-8px',
+        top: `-${tokens.spacingVerticalS}`,
+        left: `-${tokens.spacingHorizontalS}`,
         zIndex: 1
     },
     details: {
         ...shorthands.borderTop('1px', 'solid', tokens.colorNeutralStroke2),
-        ...shorthands.padding('8px', '0', '0', '0'),
+        ...shorthands.padding(tokens.spacingVerticalS, '0', '0', '0'),
         display: 'grid',
         gridTemplateColumns: '1fr',
-        ...shorthands.gap('8px'),
+        ...shorthands.gap(tokens.spacingHorizontalS),
     },
     detailsMeta: {
         color: tokens.colorNeutralForeground3,
         display: 'flex',
         flexWrap: 'wrap',
-        ...shorthands.gap('10px'),
+        ...shorthands.gap(tokens.spacingHorizontalMNudge),
     },
     error: {
         color: tokens.colorPaletteRedForeground1,

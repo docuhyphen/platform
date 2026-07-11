@@ -10,17 +10,17 @@ export const useExchangeDocumentCommentsStyles = makeStyles({
     },
 
     list: {
-        padding: "4px 8px",
+        padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
         display: "flex",
         flexDirection: "column",
         flexGrow: 1,
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         overflowY: "auto",
     },
 
     noComments: {
         textAlign: "center",
         color: tokens.colorNeutralForeground3,
-        ...shorthands.padding("16px")
+        ...shorthands.padding(tokens.spacingHorizontalL)
     }
 });

@@ -1,15 +1,15 @@
-import {makeStyles} from "@fluentui/react-components";
+import {tokens, makeStyles} from "@fluentui/react-components";
 
 export const useExchangeDocumentCommentComposerStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         width: "100%",
     },
     field: {
         alignItems: "start",
-        paddingTop: "8px",
+        paddingTop: tokens.spacingVerticalS,
         width: "100%",
     },
     input: {
@@ -24,8 +24,8 @@ export const useExchangeDocumentCommentComposerStyles = makeStyles({
             resize: "none",
             overflowY: "hidden",
             lineHeight: "20px",
-            paddingTop: "5px",
-            paddingBottom: "5px",
+            paddingTop: tokens.spacingVerticalXS,
+            paddingBottom: tokens.spacingVerticalXS,
         },
         "&:focus-within textarea": {
             minHeight: "96px",
@@ -48,7 +48,7 @@ export const useExchangeDocumentCommentComposerStyles = makeStyles({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         flexWrap: "wrap",
     },
 });

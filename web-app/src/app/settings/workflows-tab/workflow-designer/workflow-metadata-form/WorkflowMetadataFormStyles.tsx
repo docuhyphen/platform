@@ -10,7 +10,7 @@ export const useWorkflowMetadataFormStyles = makeStyles({
     formField: {
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
     },
 
     fullWidth: {
@@ -22,17 +22,17 @@ export const useWorkflowMetadataFormStyles = makeStyles({
     },
 
     triggerDescription: {
-        color: "var(--colorNeutralForeground3)",
+        color: tokens.colorNeutralForeground3,
     },
 
     tagInput: {
         display: "flex",
         flexWrap: "wrap",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         alignItems: "center",
         border: `1px solid ${tokens.colorNeutralStroke1}`,
         borderRadius: tokens.borderRadiusMedium,
-        padding: "4px 8px",
+        padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
         minHeight: "32px",
         cursor: "text",
     },

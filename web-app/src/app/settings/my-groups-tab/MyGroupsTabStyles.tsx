@@ -4,7 +4,7 @@ export const useMyGroupsTabStyles = makeStyles({
     container: {
         display: 'flex',
         flexDirection: 'column',
-        ...shorthands.gap('12px'),
+        ...shorthands.gap(tokens.spacingHorizontalM),
     },
     header: {
         display: 'flex',
@@ -19,11 +19,11 @@ export const useMyGroupsTabStyles = makeStyles({
     loading: {
         display: 'flex',
         justifyContent: 'center',
-        ...shorthands.padding('32px'),
+        ...shorthands.padding(tokens.spacingHorizontalXXXL),
     },
     error: {
         color: tokens.colorPaletteRedForeground1,
-        ...shorthands.padding('8px'),
+        ...shorthands.padding(tokens.spacingHorizontalS),
     },
     statusCell: {
         width: '90px',
@@ -38,28 +38,28 @@ export const useMyGroupsTabStyles = makeStyles({
     dialogContentColumn: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '12px',
+        gap: tokens.spacingHorizontalM,
     },
     dialogContentColumnLarge: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px',
+        gap: tokens.spacingHorizontalL,
     },
     manageSurface: {
         minWidth: '480px',
     },
     memberList: {
-        marginTop: '8px',
+        marginTop: tokens.spacingVerticalS,
         display: 'flex',
         flexDirection: 'column',
-        gap: '2px',
+        gap: tokens.spacingHorizontalXXS,
     },
     memberRow: {
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
-        paddingTop: '4px',
-        paddingBottom: '4px',
+        gap: tokens.spacingHorizontalS,
+        paddingTop: tokens.spacingVerticalXS,
+        paddingBottom: tokens.spacingVerticalXS,
     },
     memberName: {
         flex: 1,
@@ -67,7 +67,7 @@ export const useMyGroupsTabStyles = makeStyles({
     addMembersRow: {
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
         flexWrap: 'wrap',
     },
 });

@@ -4,7 +4,7 @@ export const useCommunicationsTabStyles = makeStyles({
     cardGrid: {
         display: "grid",
         gridTemplateColumns: "repeat(2, 1fr)",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         "@media screen and (max-width: 768px)": {
             gridTemplateColumns: "1fr",
         },
@@ -12,7 +12,7 @@ export const useCommunicationsTabStyles = makeStyles({
     outerContainer: {
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         width: "100%",
         height: "100%",
         minHeight: 0,
@@ -22,10 +22,10 @@ export const useCommunicationsTabStyles = makeStyles({
         alignItems: "center",
         justifyContent: "space-between",
         background: tokens.colorNeutralBackground1,
-        paddingBottom: "8px",
+        paddingBottom: tokens.spacingVerticalS,
         flexWrap: "wrap",
-        gap: "8px",
-        paddingInline: "0.5rem",
+        gap: tokens.spacingHorizontalS,
+        paddingInline: tokens.spacingHorizontalS,
         boxSizing: "border-box",
     },
     scrollableContent: {
@@ -34,33 +34,33 @@ export const useCommunicationsTabStyles = makeStyles({
         overflowY: "auto",
         overflowX: "hidden",
         overscrollBehavior: "contain",
-        paddingInline: "0.5rem",
+        paddingInline: tokens.spacingHorizontalS,
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
     },
     commCard: {
         border: `1px solid ${tokens.colorNeutralStroke1}`,
         borderRadius: tokens.borderRadiusXLarge,
-        padding: "12px 16px",
+        padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL}`,
         display: "flex",
         justifyContent: "space-between",
         alignItems: "flex-start",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
     },
     commCardContent: {
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         flex: "1",
         minWidth: 0,
     },
     summaryText: {
-        color: "var(--colorNeutralForeground2)",
+        color: tokens.colorNeutralForeground2,
     },
     subjectText: {
-        color: "var(--colorNeutralForeground3)",
+        color: tokens.colorNeutralForeground3,
         fontStyle: "italic",
         overflow: "hidden",
         textOverflow: "ellipsis",
@@ -68,15 +68,15 @@ export const useCommunicationsTabStyles = makeStyles({
     },
     badgeRow: {
         display: "flex",
-        gap: "6px",
+        gap: tokens.spacingHorizontalSNudge,
         flexWrap: "wrap",
         alignItems: "center",
     },
     errorText: {
-        color: "var(--colorPaletteRedForeground1)",
+        color: tokens.colorPaletteRedForeground1,
     },
     emptyText: {
-        color: "var(--colorNeutralForeground3)",
+        color: tokens.colorNeutralForeground3,
     },
     table: {
         width: "100%",
@@ -84,7 +84,7 @@ export const useCommunicationsTabStyles = makeStyles({
     },
     th: {
         textAlign: "left",
-        padding: "6px 12px",
+        padding: `${tokens.spacingVerticalSNudge} ${tokens.spacingHorizontalM}`,
         fontSize: tokens.fontSizeBase200,
         fontWeight: tokens.fontWeightSemibold,
         color: tokens.colorNeutralForeground3,
@@ -96,7 +96,7 @@ export const useCommunicationsTabStyles = makeStyles({
         ":hover": {backgroundColor: tokens.colorNeutralBackground2},
     },
     td: {
-        padding: "8px 12px",
+        padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
         verticalAlign: "middle",
     },
 });
@@ -105,11 +105,11 @@ export const useCommunicationEditorStyles = makeStyles({
     tagInput: {
         display: "flex",
         flexWrap: "wrap",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         alignItems: "center",
         border: `1px solid ${tokens.colorNeutralStroke1}`,
         borderRadius: tokens.borderRadiusMedium,
-        padding: "4px 8px",
+        padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
         minHeight: "32px",
         cursor: "text",
     },
@@ -118,25 +118,25 @@ export const useCommunicationEditorStyles = makeStyles({
         width: "100%",
     },
     tabList: {
-        marginBottom: "16px",
+        marginBottom: tokens.spacingVerticalL,
     },
     tabContent: {
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
     },
     tokenHintLabel: {
-        color: "var(--colorNeutralForeground3)",
+        color: tokens.colorNeutralForeground3,
         display: "block",
-        marginBottom: "6px",
+        marginBottom: tokens.spacingVerticalSNudge,
     },
     tokenHintRow: {
         display: "flex",
         flexWrap: "wrap",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
     },
     tokenHintMore: {
-        color: "var(--colorNeutralForeground3)",
+        color: tokens.colorNeutralForeground3,
     },
     tokenBadge: {
         fontFamily: "monospace",
@@ -145,23 +145,23 @@ export const useCommunicationEditorStyles = makeStyles({
     previewResultsContainer: {
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
     },
     previewBox: {
         border: `1px solid ${tokens.colorNeutralStroke1}`,
         borderRadius: tokens.borderRadiusXLarge,
-        padding: "12px",
-        background: "var(--colorNeutralBackground2)",
+        padding: tokens.spacingHorizontalM,
+        background: tokens.colorNeutralBackground2,
     },
     previewSubjectLabel: {
         display: "block",
-        marginBottom: "4px",
-        color: "var(--colorNeutralForeground3)",
+        marginBottom: tokens.spacingVerticalXS,
+        color: tokens.colorNeutralForeground3,
     },
     previewBodyLabel: {
         display: "block",
-        marginBottom: "8px",
-        color: "var(--colorNeutralForeground3)",
+        marginBottom: tokens.spacingVerticalS,
+        color: tokens.colorNeutralForeground3,
     },
     previewPre: {
         fontFamily: "inherit",
@@ -170,16 +170,16 @@ export const useCommunicationEditorStyles = makeStyles({
         margin: 0,
     },
     errorSpan: {
-        color: "var(--colorPaletteRedForeground1)",
+        color: tokens.colorPaletteRedForeground1,
         fontSize: "12px",
-        marginTop: "8px",
+        marginTop: tokens.spacingVerticalS,
         display: "block",
     },
     renderPreviewButton: {
         alignSelf: "flex-start",
     },
     previewErrorText: {
-        color: "var(--colorPaletteRedForeground1)",
+        color: tokens.colorPaletteRedForeground1,
     },
     tagInputField: {
         border: "none",

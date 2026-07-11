@@ -4,14 +4,14 @@ export const useAssigneeBuilderStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "0.5rem",
+        gap: tokens.spacingHorizontalS,
     },
 
     row: {
         display: "flex",
         alignItems: "flex-start",
-        gap: "0.5rem",
-        padding: "0.5rem",
+        gap: tokens.spacingHorizontalS,
+        padding: tokens.spacingHorizontalS,
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         borderRadius: tokens.borderRadiusMedium,
         minWidth: 0,
@@ -24,7 +24,7 @@ export const useAssigneeBuilderStyles = makeStyles({
         flex: 1,
         display: "flex",
         flexWrap: "wrap",
-        gap: "0.5rem",
+        gap: tokens.spacingHorizontalS,
         minWidth: 0,
     },
 
@@ -48,7 +48,7 @@ export const useAssigneeBuilderStyles = makeStyles({
     addRow: {
         display: "flex",
         alignItems: "center",
-        gap: "0.5rem",
+        gap: tokens.spacingHorizontalS,
     },
 
     emptyHint: {

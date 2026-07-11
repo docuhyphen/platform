@@ -5,23 +5,23 @@ export const useAccessManagementDialogStyles = makeStyles({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         width: "100%",
     },
 
     tabList: {
-        marginTop: "8px",
+        marginTop: tokens.spacingVerticalS,
     },
 
     tabPanel: {
-        marginTop: "12px",
+        marginTop: tokens.spacingVerticalM,
     },
 
     layout: {
-        marginTop: "12px",
+        marginTop: tokens.spacingVerticalM,
         display: "grid",
         gridTemplateColumns: "1fr 1fr",
-        gap: "20px",
+        gap: tokens.spacingHorizontalXL,
         '@media (max-width: 960px)': {
             gridTemplateColumns: "1fr",
         },
@@ -30,7 +30,7 @@ export const useAccessManagementDialogStyles = makeStyles({
     peopleSection: {
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
     },
 
     personCard: {
@@ -39,14 +39,14 @@ export const useAccessManagementDialogStyles = makeStyles({
         alignItems: "center",
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         borderRadius: tokens.borderRadiusMedium,
-        padding: "10px 12px",
-        gap: "8px",
+        padding: `${tokens.spacingVerticalMNudge} ${tokens.spacingHorizontalM}`,
+        gap: tokens.spacingHorizontalS,
     },
 
     personDetails: {
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         minWidth: 0,
     },
 
@@ -58,21 +58,21 @@ export const useAccessManagementDialogStyles = makeStyles({
     metaGrid: {
         display: "grid",
         gridTemplateColumns: "160px 1fr",
-        rowGap: "8px",
-        columnGap: "8px",
+        rowGap: tokens.spacingVerticalS,
+        columnGap: tokens.spacingHorizontalS,
     },
 
     switchGroup: {
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
     },
 
     requireSignInField: {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         '@media (max-width: 640px)': {
             flexDirection: "column",
             alignItems: "stretch",

@@ -4,17 +4,17 @@ export const useWorkflowListControlsStyles = makeStyles({
     root: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px',
-        paddingBottom: '8px',
+        gap: tokens.spacingHorizontalS,
+        paddingBottom: tokens.spacingVerticalS,
         background: tokens.colorNeutralBackground1,
-        paddingInline: '0.5rem',
+        paddingInline: tokens.spacingHorizontalS,
         boxSizing: 'border-box',
     },
     controlsRow: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
         width: '100%',
         '@media screen and (max-width: 600px)': {
             alignItems: 'stretch',
@@ -42,10 +42,10 @@ export const useWorkflowListControlsStyles = makeStyles({
         },
     },
     filterPopover: {
-        padding: '8px',
+        padding: tokens.spacingHorizontalS,
         display: 'flex',
         flexDirection: 'column',
-        gap: '6px',
+        gap: tokens.spacingHorizontalSNudge,
         minWidth: '180px',
         maxWidth: '260px',
     },
@@ -59,11 +59,11 @@ export const useWorkflowListControlsStyles = makeStyles({
     activeTagsRow: {
         display: 'flex',
         alignItems: 'center',
-        gap: '4px',
+        gap: tokens.spacingHorizontalXS,
         flexWrap: 'wrap',
     },
     emptyText: {
         color: tokens.colorNeutralForeground3,
-        padding: '4px 8px',
+        padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
     },
 });

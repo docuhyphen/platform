@@ -5,8 +5,8 @@ export const useBillingTabStyles = makeStyles({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '2.5rem',
-        padding: '3rem 1rem 4rem',
+        gap: tokens.spacingHorizontalXXXL,
+        padding: `calc(${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalL}) ${tokens.spacingHorizontalL} calc(${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalXXXL})`,
         textAlign: 'center',
         maxWidth: '42rem',
         margin: '0 auto',
@@ -20,7 +20,7 @@ export const useBillingTabStyles = makeStyles({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '0.75rem',
+        gap: tokens.spacingHorizontalM,
     },
     tagline: {
         color: tokens.colorNeutralForeground2,
@@ -30,7 +30,7 @@ export const useBillingTabStyles = makeStyles({
     featureGrid: {
         display: 'grid',
         gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '1rem',
+        gap: tokens.spacingHorizontalL,
         width: '100%',
         textAlign: 'left',
         '@media (max-width: 480px)': {
@@ -40,8 +40,8 @@ export const useBillingTabStyles = makeStyles({
     featureCard: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.375rem',
-        padding: '1rem 1.125rem',
+        gap: tokens.spacingHorizontalSNudge,
+        padding: `${tokens.spacingVerticalL} ${tokens.spacingHorizontalL}`,
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         borderRadius: tokens.borderRadiusMedium,
         backgroundColor: tokens.colorNeutralBackground2,
@@ -49,7 +49,7 @@ export const useBillingTabStyles = makeStyles({
     featureCardHeader: {
         display: 'flex',
         alignItems: 'center',
-        gap: '0.5rem',
+        gap: tokens.spacingHorizontalS,
         color: tokens.colorNeutralForeground1,
     },
     featureIcon: {
@@ -59,12 +59,12 @@ export const useBillingTabStyles = makeStyles({
     },
     featureDescription: {
         color: tokens.colorNeutralForeground3,
-        paddingLeft: '1.625rem',
+        paddingLeft: tokens.spacingHorizontalXXL,
     },
     footer: {
         color: tokens.colorNeutralForeground3,
         borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
-        paddingTop: '1.5rem',
+        paddingTop: tokens.spacingVerticalXXL,
         width: '100%',
     },
 });

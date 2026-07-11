@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {tokens, makeStyles} from "@fluentui/react-components";
 
 export const useSignInStyles = makeStyles({
     signInSection: {
@@ -15,18 +15,18 @@ export const useSignInStyles = makeStyles({
         justifyContent: "space-between",
     },
     authNoAccount: {
-        marginTop: "8px",
+        marginTop: tokens.spacingVerticalS,
         textAlign: "center",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
     },
     orgPickerList: {
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
-        marginTop: "8px",
+        gap: tokens.spacingHorizontalS,
+        marginTop: tokens.spacingVerticalS,
     },
     orgPickerButton: {
         justifyContent: "flex-start",

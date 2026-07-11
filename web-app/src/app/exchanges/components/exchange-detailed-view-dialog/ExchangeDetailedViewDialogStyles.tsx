@@ -9,26 +9,26 @@ export const useExchangeDDetailedViewDialogStyles = makeStyles({
     dialogContent: {
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         maxHeight: "68vh",
         overflowY: "auto",
-        paddingRight: "4px",
+        paddingRight: tokens.spacingHorizontalXS,
     },
 
     sectionCard: {
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         borderRadius: tokens.borderRadiusXLarge,
-        padding: "12px",
+        padding: tokens.spacingHorizontalM,
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
     },
 
     titleRow: {
         display: "grid",
         gridTemplateColumns: "1fr auto",
         alignItems: "start",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         minWidth: 0,
     },
 
@@ -47,8 +47,8 @@ export const useExchangeDDetailedViewDialogStyles = makeStyles({
     keyValueGrid: {
         display: "grid",
         gridTemplateColumns: "minmax(180px, 240px) 1fr",
-        columnGap: "12px",
-        rowGap: "6px",
+        columnGap: tokens.spacingHorizontalM,
+        rowGap: tokens.spacingVerticalSNudge,
     },
 
     keyLabel: {
@@ -56,15 +56,15 @@ export const useExchangeDDetailedViewDialogStyles = makeStyles({
     },
 
     additionalParticipantsContainer: {
-        marginTop: "8px",
+        marginTop: tokens.spacingVerticalS,
     },
 
     additionalParticipantsLabel: {
         display: "block",
-        marginBottom: "4px",
+        marginBottom: tokens.spacingVerticalXS,
     },
 
     participantRow: {
-        marginBottom: "2px",
+        marginBottom: tokens.spacingVerticalXXS,
     },
 });

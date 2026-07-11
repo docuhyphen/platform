@@ -9,8 +9,8 @@ export const useStepCardStyles = makeStyles({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        gap: "0.5rem",
-        padding: "0.625rem 1rem",
+        gap: tokens.spacingHorizontalS,
+        padding: `${tokens.spacingVerticalMNudge} ${tokens.spacingHorizontalL}`,
         background: tokens.colorNeutralBackground2,
         position: "sticky",
         top: 0,
@@ -26,13 +26,13 @@ export const useStepCardStyles = makeStyles({
         paddingLeft: tokens.spacingHorizontalL,
         display: "flex",
         flexDirection: "column",
-        gap: "0.875rem",
+        gap: tokens.spacingHorizontalM,
     },
 
     fieldGroup: {
         display: "grid",
         gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
-        gap: "0.75rem",
+        gap: tokens.spacingHorizontalM,
         "@media (max-width: 900px)": {
             gridTemplateColumns: "1fr",
         },
@@ -41,7 +41,7 @@ export const useStepCardStyles = makeStyles({
     field: {
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         minWidth: 0,
     },
 
@@ -57,7 +57,7 @@ export const useStepCardStyles = makeStyles({
 
     sectionLabel: {
         color: tokens.colorNeutralForeground3,
-        marginBottom: "4px",
+        marginBottom: tokens.spacingVerticalXS,
     },
 
     removeButton: {
@@ -68,13 +68,13 @@ export const useStepCardStyles = makeStyles({
     outcomeFieldColumn: {
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         minWidth: 0,
     },
 
     outcomeFieldRow: {
         display: "flex",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         flexWrap: "wrap",
         minWidth: 0,
     },
@@ -86,7 +86,7 @@ export const useStepCardStyles = makeStyles({
 
     quorumRow: {
         display: "flex",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
         flexWrap: "wrap",
         minWidth: 0,
     },
@@ -98,22 +98,22 @@ export const useStepCardStyles = makeStyles({
 
     notificationRow: {
         display: "flex",
-        gap: "6px",
+        gap: tokens.spacingHorizontalSNudge,
         alignItems: "center",
         flexWrap: "wrap",
     },
 
     notificationHint: {
-        color: "var(--colorNeutralForeground3)",
+        color: tokens.colorNeutralForeground3,
     },
 
     conditionHint: {
-        color: "var(--colorNeutralForeground3)",
+        color: tokens.colorNeutralForeground3,
     },
 
     conditionRow: {
         display: "flex",
-        gap: "0.5rem",
+        gap: tokens.spacingHorizontalS,
         flexWrap: "wrap",
         alignItems: "center",
     },
@@ -144,17 +144,17 @@ export const useStepCardStyles = makeStyles({
     },
 
     sublabel: {
-        color: "var(--colorNeutralForeground3)",
-        marginLeft: "0.5rem",
+        color: tokens.colorNeutralForeground3,
+        marginLeft: tokens.spacingHorizontalS,
         fontSize: "0.8em",
     },
 
     waitDescription: {
-        color: "var(--colorNeutralForeground3)",
+        color: tokens.colorNeutralForeground3,
     },
 
     conditionPreview: {
-        color: "var(--colorNeutralForeground3)",
+        color: tokens.colorNeutralForeground3,
     },
 });
 

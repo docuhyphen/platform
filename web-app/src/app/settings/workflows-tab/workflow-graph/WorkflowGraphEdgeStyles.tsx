@@ -15,7 +15,7 @@ export const useWorkflowGraphEdgeStyles = makeStyles({
         alignItems: "center",
         justifyContent: "center",
         maxWidth: "160px",
-        padding: "2px 8px",
+        padding: `${tokens.spacingVerticalXXS} ${tokens.spacingHorizontalS}`,
         borderRadius: tokens.borderRadiusCircular,
         border: `1px solid ${tokens.colorNeutralStroke1}`,
         backgroundColor: tokens.colorNeutralBackground1,

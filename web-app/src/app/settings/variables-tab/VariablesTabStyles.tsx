@@ -4,7 +4,7 @@ export const useVariablesTabStyles = makeStyles({
     container: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
         width: '100%',
         height: '100%',
         minHeight: 0,
@@ -14,10 +14,10 @@ export const useVariablesTabStyles = makeStyles({
         alignItems: 'center',
         justifyContent: 'space-between',
         background: tokens.colorNeutralBackground1,
-        paddingBottom: '8px',
+        paddingBottom: tokens.spacingVerticalS,
         flexWrap: 'wrap',
-        gap: '8px',
-        paddingInline: '0.5rem',
+        gap: tokens.spacingHorizontalS,
+        paddingInline: tokens.spacingHorizontalS,
         boxSizing: 'border-box',
     },
     scrollableContent: {
@@ -26,25 +26,25 @@ export const useVariablesTabStyles = makeStyles({
         overflowY: 'auto',
         overflowX: 'hidden',
         overscrollBehavior: 'contain',
-        paddingInline: '0.5rem',
+        paddingInline: tokens.spacingHorizontalS,
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px',
+        gap: tokens.spacingHorizontalL,
     },
     platformContainer: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px',
-        padding: '0 4px',
+        gap: tokens.spacingHorizontalL,
+        padding: `0 ${tokens.spacingHorizontalXS}`,
     },
     systemVarTitle: {
-        marginBottom: '4px',
+        marginBottom: tokens.spacingVerticalXS,
     },
     systemVarSubtitle: {
         color: tokens.colorNeutralForeground3,
         display: 'block',
-        marginBottom: '12px',
+        marginBottom: tokens.spacingVerticalM,
     },
     errorText: {
         color: tokens.colorPaletteRedForeground1,
@@ -59,7 +59,7 @@ export const useVariablesTabStyles = makeStyles({
     tokenCell: {
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
     },
     toolbar: {
         display: 'flex',

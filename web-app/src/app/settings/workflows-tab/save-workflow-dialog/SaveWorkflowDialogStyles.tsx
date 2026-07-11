@@ -4,7 +4,7 @@ export const useStyles = makeStyles({
     contentWrapper: {
         display: "flex",
         flexDirection: "column",
-        gap: "1rem",
+        gap: tokens.spacingHorizontalL,
     },
     mutedText: {
         color: tokens.colorNeutralForeground3,
@@ -15,12 +15,12 @@ export const useStyles = makeStyles({
     reviewSection: {
         display: "flex",
         flexDirection: "column",
-        gap: "0.75rem",
+        gap: tokens.spacingHorizontalM,
     },
     reviewRow: {
         display: "flex",
         flexDirection: "column",
-        gap: "2px",
+        gap: tokens.spacingHorizontalXXS,
     },
     reviewLabel: {
         color: tokens.colorNeutralForeground3,
@@ -32,12 +32,12 @@ export const useStyles = makeStyles({
     stepList: {
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
     },
     stepItem: {
         display: "flex",
         alignItems: "center",
-        gap: "0.5rem",
+        gap: tokens.spacingHorizontalS,
     },
     stepNumber: {
         width: "20px",
@@ -54,6 +54,6 @@ export const useStyles = makeStyles({
     tagRow: {
         display: "flex",
         flexWrap: "wrap",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
     },
 });

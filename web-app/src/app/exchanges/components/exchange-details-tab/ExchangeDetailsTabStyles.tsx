@@ -4,8 +4,8 @@ export const useExchangeDetailsTabStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "1rem",
-        padding: "8px 0",
+        gap: tokens.spacingHorizontalL,
+        padding: `${tokens.spacingVerticalS} 0`,
         overflowY: "auto",
         flex: 1,
         minHeight: 0,
@@ -13,7 +13,7 @@ export const useExchangeDetailsTabStyles = makeStyles({
     section: {
         display: "flex",
         flexDirection: "column",
-        gap: "6px",
+        gap: tokens.spacingHorizontalSNudge,
     },
     sectionTitle: {
         color: tokens.colorNeutralForeground3,
@@ -23,12 +23,12 @@ export const useExchangeDetailsTabStyles = makeStyles({
     row: {
         display: "flex",
         flexDirection: "column",
-        gap: "2px",
+        gap: tokens.spacingHorizontalXXS,
     },
     labelValueRow: {
         display: "flex",
         flexDirection: "row",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         alignItems: "flex-start",
         flexWrap: "wrap",
     },
@@ -41,12 +41,12 @@ export const useExchangeDetailsTabStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gridTemplateColumns: "1fr 1fr",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
     },
     settingItem: {
         display: "flex",
         flexDirection: "row",
-        gap: "6px",
+        gap: tokens.spacingHorizontalSNudge,
         alignItems: "center",
     },
     descriptionText: {
@@ -60,8 +60,8 @@ export const useExchangeDetailsTabStyles = makeStyles({
     participantRow: {
         display: "flex",
         flexDirection: "column",
-        gap: "2px",
-        padding: "6px 0",
+        gap: tokens.spacingHorizontalXXS,
+        padding: `${tokens.spacingVerticalSNudge} 0`,
         borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
         ":last-child": {
             borderBottom: "none",
@@ -74,13 +74,13 @@ export const useExchangeDetailsTabStyles = makeStyles({
         alignSelf: "flex-start",
     },
     additionalParticipantsContainer: {
-        marginTop: "4px",
+        marginTop: tokens.spacingVerticalXS,
     },
     additionalParticipantsLabel: {
         color: tokens.colorNeutralForeground3,
     },
     initialShareMessageText: {
-        marginTop: "6px",
+        marginTop: tokens.spacingVerticalSNudge,
         fontStyle: "italic",
     },
 });

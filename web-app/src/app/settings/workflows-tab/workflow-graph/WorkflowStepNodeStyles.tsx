@@ -13,8 +13,8 @@ export const useWorkflowStepNodeStyles = makeStyles({
         height: "88px",
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
-        padding: "10px 10px",
+        gap: tokens.spacingHorizontalXS,
+        padding: `${tokens.spacingVerticalMNudge} ${tokens.spacingHorizontalMNudge}`,
         borderRadius: tokens.borderRadiusMedium,
         border: `2px solid ${tokens.colorNeutralStroke1}`,
         backgroundColor: tokens.colorNeutralBackground1,
@@ -24,7 +24,7 @@ export const useWorkflowStepNodeStyles = makeStyles({
     headerRow: {
         display: "flex",
         alignItems: "center",
-        gap: "6px",
+        gap: tokens.spacingHorizontalSNudge,
         minHeight: "16px",
     },
 
@@ -49,7 +49,7 @@ export const useWorkflowStepNodeStyles = makeStyles({
         textOverflow: "ellipsis",
         // Room for descenders ("p", "g", "y") that a line-height tight to the
         // font size would otherwise clip against the node's overflow:hidden.
-        paddingBottom: "2px",
+        paddingBottom: tokens.spacingVerticalXXS,
     },
 
     details: {
@@ -91,8 +91,8 @@ export const useWorkflowStepNodeStyles = makeStyles({
         height: "88px",
         display: "flex",
         alignItems: "center",
-        gap: "6px",
-        padding: "8px 10px",
+        gap: tokens.spacingHorizontalSNudge,
+        padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalMNudge}`,
         borderRadius: tokens.borderRadiusMedium,
         border: `2px dashed ${tokens.colorStatusDangerBorder1}`,
         backgroundColor: tokens.colorStatusDangerBackground1,

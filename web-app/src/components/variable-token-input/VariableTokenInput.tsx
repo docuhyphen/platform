@@ -80,7 +80,7 @@ const TokenChip: React.FC<TokenChipProps> = ({token, available, resolved, onRemo
             <Badge
                 appearance="tint"
                 color={color}
-                style={{cursor: 'default', display: 'inline-flex', alignItems: 'center', gap: '2px', margin: '0 2px'}}
+                style={{cursor: 'default', display: 'inline-flex', alignItems: 'center', gap: tokens.spacingHorizontalXXS, margin: `0 ${tokens.spacingHorizontalXXS}`}}
             >
                 {token}
                 {!disabled && (
@@ -89,7 +89,7 @@ const TokenChip: React.FC<TokenChipProps> = ({token, available, resolved, onRemo
                         appearance="transparent"
                         icon={<DismissRegular style={{fontSize: '10px'}}/>}
                         onClick={onRemove}
-                        style={{minWidth: 0, padding: '0 2px', height: '16px'}}
+                        style={{minWidth: 0, padding: `0 ${tokens.spacingHorizontalXXS}`, height: '16px'}}
                         aria-label={`Remove ${token}`}
                     />
                 )}
@@ -113,17 +113,17 @@ function PickerGroup<T>({label, items, getKey, getLabel, getBadge, badgeColor, o
 {
     if (items.length === 0) return null;
     return (
-        <div style={{marginBottom: '8px'}}>
-            <Text size={100} weight="semibold" style={{color: 'var(--colorNeutralForeground3)', display: 'block', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px'}}>
+        <div style={{marginBottom: tokens.spacingVerticalS}}>
+            <Text size={100} weight="semibold" style={{color: tokens.colorNeutralForeground3, display: 'block', marginBottom: tokens.spacingVerticalXS, textTransform: 'uppercase', letterSpacing: '0.5px'}}>
                 {label}
             </Text>
-            <div style={{display: 'flex', flexDirection: 'column', gap: '2px'}}>
+            <div style={{display: 'flex', flexDirection: 'column', gap: tokens.spacingHorizontalXXS}}>
                 {items.map(item => (
                     <Button
                         key={getKey(item)}
                         appearance="subtle"
                         size="small"
-                        style={{justifyContent: 'flex-start', gap: '8px', padding: '4px 6px'}}
+                        style={{justifyContent: 'flex-start', gap: tokens.spacingHorizontalS, padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalSNudge}`}}
                         onClick={() => onSelect(getKey(item))}
                     >
                         <Badge appearance="tint" color={badgeColor} size="small">{getBadge(item)}</Badge>
@@ -211,14 +211,14 @@ const VariableTokenInput: React.FC<VariableTokenInputProps> = ({
             <PopoverTrigger disableButtonEnhancement>
                 <span/>
             </PopoverTrigger>
-            <PopoverSurface style={{padding: '12px', minWidth: '260px', maxWidth: '320px', maxHeight: '400px', overflowY: 'auto'}}>
-                <Text weight="semibold" size={300} block style={{marginBottom: '8px'}}>Insert Variable</Text>
+            <PopoverSurface style={{padding: tokens.spacingHorizontalM, minWidth: '260px', maxWidth: '320px', maxHeight: '400px', overflowY: 'auto'}}>
+                <Text weight="semibold" size={300} block style={{marginBottom: tokens.spacingVerticalS}}>Insert Variable</Text>
                 <Input
                     size="small"
                     placeholder="Search variables…"
                     value={pickerSearch}
                     onChange={(_, d) => setPickerSearch(d.value)}
-                    style={{marginBottom: '8px', width: '100%'}}
+                    style={{marginBottom: tokens.spacingVerticalS, width: '100%'}}
                 />
                 <PickerGroup<SystemVariableDto>
                     label="System"
@@ -261,7 +261,7 @@ const VariableTokenInput: React.FC<VariableTokenInputProps> = ({
     );
 
     return (
-        <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+        <div style={{display: 'flex', flexDirection: 'column', gap: tokens.spacingHorizontalXS}}>
             {label && <Label>{label}</Label>}
             <div style={{position: 'relative'}}>
                 {multiline ? (
@@ -290,7 +290,7 @@ const VariableTokenInput: React.FC<VariableTokenInputProps> = ({
                                 onClick={() => setPickerOpen(true)}
                                 disabled={disabled}
                                 title="Insert variable"
-                                style={{fontSize: '11px', padding: '0 4px', minWidth: 0}}
+                                style={{fontSize: '11px', padding: `0 ${tokens.spacingHorizontalXS}`, minWidth: 0}}
                             >
                                 {'{ }'}
                             </Button>
@@ -301,8 +301,8 @@ const VariableTokenInput: React.FC<VariableTokenInputProps> = ({
             </div>
             {vTokens.length > 0 && (
                 <div style={{
-                    padding: '6px 8px',
-                    background: 'var(--colorNeutralBackground2)',
+                    padding: `${tokens.spacingVerticalSNudge} ${tokens.spacingHorizontalS}`,
+                    background: tokens.colorNeutralBackground2,
                     borderRadius: tokens.borderRadiusMedium,
                     fontSize: '12px',
                     lineHeight: '1.8',

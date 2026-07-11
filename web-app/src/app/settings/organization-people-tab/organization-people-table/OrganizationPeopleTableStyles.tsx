@@ -14,7 +14,7 @@ export const useOrganizationPeopleTableStyles = makeStyles({
     personCell: {
         display: "flex",
         alignItems: "center",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         minWidth: 0
     },
     truncateCell: {

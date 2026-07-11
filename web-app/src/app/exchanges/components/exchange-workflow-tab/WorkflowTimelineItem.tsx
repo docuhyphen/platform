@@ -1,4 +1,4 @@
-import { AccordionHeader, AccordionItem, AccordionPanel, Badge, Text } from "@fluentui/react-components";
+import {tokens,  AccordionHeader, AccordionItem, AccordionPanel, Badge, Text } from "@fluentui/react-components";
 import {
     ArrowForwardFilled,
     CheckmarkCircleFilled,
@@ -11,7 +11,6 @@ import { WorkflowStepInstanceDto } from "../../../models/models.tsx";
 import { useExchangeWorkflowTabStyles } from "./ExchangeWorkflowTabStyles.tsx";
 import {
     DECISION_LABELS,
-    PRINCIPAL_KIND_LABELS,
     STEP_STATUS_LABELS,
     STEP_TYPE_LABELS,
 } from "../../../settings/workflows-tab/workflowUtils.ts";
@@ -26,8 +25,8 @@ const STEP_STATUS_COLORS: Record<string, "success" | "warning" | "danger" | "inf
 };
 
 const DECISION_COLORS: Record<string, string> = {
-    APPROVE: "var(--colorStatusSuccessForeground1)",
-    REJECT: "var(--colorStatusDangerForeground1)",
+    APPROVE: tokens.colorStatusSuccessForeground1,
+    REJECT: tokens.colorStatusDangerForeground1,
 };
 
 const formatDateTime = (iso?: string) =>
@@ -45,17 +44,17 @@ const formatEpoch = (ms: number) =>
 const StepIcon = ({ step, isActivePending }: { step: WorkflowStepInstanceDto; isActivePending: boolean }) =>
 {
     if (step.status === "COMPLETED" || step.status === "APPROVED")
-        return <CheckmarkCircleFilled style={{ color: "var(--colorStatusSuccessForeground1)", flexShrink: 0 }} />;
+        return <CheckmarkCircleFilled style={{ color: tokens.colorStatusSuccessForeground1, flexShrink: 0 }} />;
     if (step.status === "REJECTED")
-        return <DismissCircleFilled style={{ color: "var(--colorStatusDangerForeground1)", flexShrink: 0 }} />;
+        return <DismissCircleFilled style={{ color: tokens.colorStatusDangerForeground1, flexShrink: 0 }} />;
     if (step.status === "ESCALATED")
-        return <WarningFilled style={{ color: "var(--colorStatusWarningForeground1)", flexShrink: 0 }} />;
+        return <WarningFilled style={{ color: tokens.colorStatusWarningForeground1, flexShrink: 0 }} />;
     if (step.status === "SKIPPED")
-        return <ArrowForwardFilled style={{ color: "var(--colorNeutralForeground3)", flexShrink: 0 }} />;
+        return <ArrowForwardFilled style={{ color: tokens.colorNeutralForeground3, flexShrink: 0 }} />;
     if (step.status === "PENDING" && isActivePending)
-        return <RecordFilled style={{ color: "var(--colorBrandBackground)", flexShrink: 0 }} />;
+        return <RecordFilled style={{ color: tokens.colorBrandBackground, flexShrink: 0 }} />;
     // PENDING future step
-    return <CircleRegular style={{ color: "var(--colorNeutralForeground3)", flexShrink: 0 }} />;
+    return <CircleRegular style={{ color: tokens.colorNeutralForeground3, flexShrink: 0 }} />;
 };
 
 const principalLabel = (displayName?: string, email?: string, fallback?: string): string =>

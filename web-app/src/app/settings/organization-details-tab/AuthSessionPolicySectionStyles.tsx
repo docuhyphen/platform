@@ -2,26 +2,26 @@ import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useAuthSessionPolicySectionStyles = makeStyles({
     divider: {
-        marginTop: "20px",
-        marginBottom: "12px",
+        marginTop: tokens.spacingVerticalXL,
+        marginBottom: tokens.spacingVerticalM,
     },
 
     loadingWrapper: {
-        padding: "8px",
+        padding: tokens.spacingHorizontalS,
     },
 
     error: {
         color: tokens.colorStatusDangerForeground1,
-        marginBottom: "8px",
+        marginBottom: tokens.spacingVerticalS,
     },
 
     effectiveGrid: {
         display: "grid",
         gridTemplateColumns: "auto auto auto",
-        columnGap: "16px",
-        rowGap: "4px",
-        marginBottom: "16px",
-        padding: "8px",
+        columnGap: tokens.spacingHorizontalL,
+        rowGap: tokens.spacingVerticalXS,
+        marginBottom: tokens.spacingVerticalL,
+        padding: tokens.spacingHorizontalS,
         background: tokens.colorNeutralBackground2,
         borderRadius: "4px",
     },
@@ -33,37 +33,37 @@ export const useAuthSessionPolicySectionStyles = makeStyles({
     idpCard: {
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         borderRadius: "4px",
-        padding: "12px",
-        marginBottom: "12px",
+        padding: tokens.spacingHorizontalM,
+        marginBottom: tokens.spacingVerticalM,
     },
 
     idpCardHeader: {
         display: "flex",
         alignItems: "center",
-        gap: "8px",
-        marginBottom: "8px",
+        gap: tokens.spacingHorizontalS,
+        marginBottom: tokens.spacingVerticalS,
     },
 
     inputsGrid: {
         display: "grid",
         gridTemplateColumns: "1fr 1fr 1fr 1fr",
-        gap: "12px",
-        marginBottom: "8px",
+        gap: tokens.spacingHorizontalM,
+        marginBottom: tokens.spacingVerticalS,
     },
 
     inputLabel: {
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
     },
 
     draftError: {
         color: tokens.colorStatusDangerForeground1,
-        marginBottom: "8px",
+        marginBottom: tokens.spacingVerticalS,
     },
 
     actionRow: {
         display: "flex",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
     },
 });

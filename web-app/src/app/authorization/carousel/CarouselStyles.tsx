@@ -18,18 +18,18 @@ export const useCarouselStyles = makeStyles({
     carouselItem: {
         minWidth: "100%",
         boxSizing: "border-box",
-        padding: "20px",
+        padding: tokens.spacingHorizontalXL,
         textAlign: "center",
     },
     carouselDots: {
         display: "flex",
-        gap: "5px",
-        marginTop: "10px",
+        gap: tokens.spacingHorizontalXS,
+        marginTop: tokens.spacingVerticalMNudge,
     },
     dot: {
         width: "10px",
         height: "10px",
-        backgroundColor: "rgba(255, 255, 255, 0.35)",
+        backgroundColor: tokens.colorNeutralBackgroundAlpha,
         borderRadius: tokens.borderRadiusCircular,
         cursor: "pointer",
         transition: "background-color 0.15s ease",

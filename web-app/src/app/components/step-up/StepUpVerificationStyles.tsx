@@ -4,8 +4,8 @@ export const useStepUpVerificationStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
-        margin: "8px 0",
+        gap: tokens.spacingHorizontalL,
+        margin: `${tokens.spacingVerticalS} 0`,
     },
     infoText: {
         color: tokens.colorPaletteGreenForeground1,

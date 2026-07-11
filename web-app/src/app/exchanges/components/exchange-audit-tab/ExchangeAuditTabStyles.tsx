@@ -4,41 +4,41 @@ export const useExchangeAuditTabStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         flex: 1,
         minHeight: 0,
         overflowY: "auto",
-        padding: "8px 0",
+        padding: `${tokens.spacingVerticalS} 0`,
     },
     spinner: {
-        padding: "32px",
+        padding: tokens.spacingHorizontalXXXL,
         alignSelf: "center",
     },
     errorText: {
         color: tokens.colorPaletteRedForeground1,
-        padding: "16px",
+        padding: tokens.spacingHorizontalL,
     },
     emptyText: {
         color: tokens.colorNeutralForeground4,
         fontStyle: "italic",
-        padding: "16px",
+        padding: tokens.spacingHorizontalL,
     },
     table: {
         width: "100%",
     },
     docLabel: {
         color: tokens.colorNeutralForeground3,
-        marginBottom: "2px",
+        marginBottom: tokens.spacingVerticalXXS,
     },
     docGroup: {
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
-        marginBottom: "16px",
+        gap: tokens.spacingHorizontalXS,
+        marginBottom: tokens.spacingVerticalL,
     },
     docGroupHeader: {
-        padding: "6px 0 4px 0",
+        padding: `${tokens.spacingVerticalSNudge} 0 ${tokens.spacingVerticalXS} 0`,
         borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-        marginBottom: "2px",
+        marginBottom: tokens.spacingVerticalXXS,
     },
 });

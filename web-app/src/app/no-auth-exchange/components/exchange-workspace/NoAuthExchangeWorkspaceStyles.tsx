@@ -5,37 +5,37 @@ export const useNoAuthExchangeWorkspaceStyles = makeStyles({
         display: "grid",
         gridTemplateColumns: "minmax(280px, 0.72fr) minmax(0, 1.55fr)",
         alignItems: "start",
-        gap: "24px",
+        gap: tokens.spacingHorizontalXXL,
         flex: 1,
         maxWidth: "1240px",
         width: "100%",
         margin: "0 auto",
-        padding: "112px 32px 56px",
+        padding: `calc(${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalL}) ${tokens.spacingHorizontalXXXL} calc(${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalXXL})`,
         boxSizing: "border-box",
         '@media (max-width: 920px)': {
             gridTemplateColumns: "1fr",
             maxWidth: "760px",
         },
         '@media (max-width: 640px)': {
-            padding: "88px 16px 32px",
-            gap: "16px",
+            padding: `calc(${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalXXL}) ${tokens.spacingHorizontalL} ${tokens.spacingVerticalXXXL}`,
+            gap: tokens.spacingHorizontalL,
         },
     },
 
     documentWorkspace: {
         display: "flex",
         flexDirection: "column",
-        gap: "20px",
+        gap: tokens.spacingHorizontalXL,
         minWidth: 0,
         background: tokens.colorNeutralBackground1,
-        padding: "24px",
+        padding: tokens.spacingHorizontalXXL,
         border: `1px solid ${tokens.colorNeutralStroke1}`,
         boxShadow: tokens.shadow16,
         borderRadius: tokens.borderRadiusXLarge,
         '@media (max-width: 640px)': {
-            padding: "18px 12px 12px",
+            padding: `${tokens.spacingVerticalL} ${tokens.spacingHorizontalM} ${tokens.spacingVerticalM}`,
             borderRadius: tokens.borderRadiusLarge,
-            gap: "16px",
+            gap: tokens.spacingHorizontalL,
         },
     },
 
@@ -43,8 +43,8 @@ export const useNoAuthExchangeWorkspaceStyles = makeStyles({
         display: "flex",
         justifyContent: "space-between",
         alignItems: "flex-start",
-        gap: "16px",
-        paddingBottom: "18px",
+        gap: tokens.spacingHorizontalL,
+        paddingBottom: tokens.spacingVerticalL,
         borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
         '@media (max-width: 520px)': {
             flexDirection: "column",
@@ -54,7 +54,7 @@ export const useNoAuthExchangeWorkspaceStyles = makeStyles({
     workspaceTitleGroup: {
         display: "flex",
         flexDirection: "column",
-        gap: "6px",
+        gap: tokens.spacingHorizontalSNudge,
     },
 
     workspaceDescription: {
@@ -64,7 +64,7 @@ export const useNoAuthExchangeWorkspaceStyles = makeStyles({
 
     privateLabel: {
         flexShrink: 0,
-        padding: "6px 10px",
+        padding: `${tokens.spacingVerticalSNudge} ${tokens.spacingHorizontalMNudge}`,
         color: tokens.colorBrandForeground1,
         background: tokens.colorBrandBackground2,
         borderRadius: "999px",

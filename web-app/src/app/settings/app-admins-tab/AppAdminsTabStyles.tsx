@@ -4,7 +4,7 @@ export const useAppAdminsTabStyles = makeStyles({
     container: {
         display: 'flex',
         flexDirection: 'column',
-        ...shorthands.gap('12px'),
+        ...shorthands.gap(tokens.spacingHorizontalM),
     },
     header: {
         display: 'flex',
@@ -17,11 +17,11 @@ export const useAppAdminsTabStyles = makeStyles({
     loading: {
         display: 'flex',
         justifyContent: 'center',
-        ...shorthands.padding('32px'),
+        ...shorthands.padding(tokens.spacingHorizontalXXXL),
     },
     error: {
         color: tokens.colorPaletteRedForeground1,
-        ...shorthands.padding('8px'),
+        ...shorthands.padding(tokens.spacingHorizontalS),
     },
     actionsCell: {
         width: '90px',

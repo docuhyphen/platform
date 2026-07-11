@@ -4,35 +4,35 @@ export const useWorkflowInstanceDetailStyles = makeStyles({
     stepTimeline: {
         display: "flex",
         flexDirection: "column",
-        gap: "1rem",
-        paddingTop: "1rem",
+        gap: tokens.spacingHorizontalL,
+        paddingTop: tokens.spacingVerticalL,
     },
 
     stepCard: {
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         borderRadius: tokens.borderRadiusMedium,
-        padding: "0.875rem",
+        padding: tokens.spacingHorizontalM,
     },
 
     stepHeader: {
         display: "flex",
         alignItems: "center",
-        gap: "0.5rem",
-        marginBottom: "0.5rem",
+        gap: tokens.spacingHorizontalS,
+        marginBottom: tokens.spacingVerticalS,
     },
 
     decisionList: {
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
-        marginTop: "0.5rem",
-        paddingLeft: "0.75rem",
+        gap: tokens.spacingHorizontalXS,
+        marginTop: tokens.spacingVerticalS,
+        paddingLeft: tokens.spacingHorizontalM,
         borderLeft: `3px solid ${tokens.colorNeutralStroke2}`,
     },
 
     decisionRow: {
         display: "flex",
-        gap: "0.5rem",
+        gap: tokens.spacingHorizontalS,
         alignItems: "center",
     },
 
@@ -52,12 +52,12 @@ export const useWorkflowInstanceDetailStyles = makeStyles({
     },
 
     exchangeName: {
-        marginBottom: "0.5rem",
+        marginBottom: tokens.spacingVerticalS,
     },
 
     instanceStatus: {
-        marginBottom: "0.75rem",
-        color: "var(--colorNeutralForeground3)",
+        marginBottom: tokens.spacingVerticalM,
+        color: tokens.colorNeutralForeground3,
     },
 });
 

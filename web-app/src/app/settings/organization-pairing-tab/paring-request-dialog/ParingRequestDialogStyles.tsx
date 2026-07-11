@@ -4,8 +4,8 @@ export const useParingRequestDialogStyles = makeStyles({
     dialogContent: {
         display: "flex",
         flexDirection: "column",
-        gap: "24px",
-        margin: "24px 0"
+        gap: tokens.spacingHorizontalXXL,
+        margin: `${tokens.spacingVerticalXXL} 0`
     },
 
     tagsList: {
@@ -30,6 +30,6 @@ export const useParingRequestDialogStyles = makeStyles({
     sendingRow: {
         display: "flex",
         alignItems: "center",
-        gap: "8px"
+        gap: tokens.spacingHorizontalS
     }
 });

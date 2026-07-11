@@ -126,14 +126,14 @@ const CommunicationPickerDialog: React.FC<Props> = ({open, onClose, onSelect, se
                                             key={t.id}
                                             onClick={() => setPending(t)}
                                             style={{
-                                                border: `2px solid ${isSelected ? 'var(--colorBrandStroke1)' : 'var(--colorNeutralStroke1)'}`,
+                                                border: `2px solid ${isSelected ? tokens.colorBrandStroke1 : tokens.colorNeutralStroke1}`,
                                                 borderRadius: tokens.borderRadiusXLarge,
-                                                padding: '10px 14px',
+                                                padding: `${tokens.spacingVerticalMNudge} ${tokens.spacingHorizontalM}`,
                                                 cursor: 'pointer',
-                                                background: isSelected ? 'var(--colorBrandBackground2)' : 'transparent',
+                                                background: isSelected ? tokens.colorBrandBackground2 : 'transparent',
                                                 display: 'flex',
                                                 flexDirection: 'column',
-                                                gap: '4px',
+                                                gap: tokens.spacingHorizontalXS,
                                             }}
                                         >
                                             <div className={styles.itemHeader}>

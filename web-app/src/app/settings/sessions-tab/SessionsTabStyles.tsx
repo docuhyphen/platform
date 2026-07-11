@@ -4,7 +4,7 @@ export const useSessionsTabStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         width: "100%",
         minWidth: 0,
         height: "100%",
@@ -16,13 +16,13 @@ export const useSessionsTabStyles = makeStyles({
         justifyContent: "space-between",
         alignItems: "center",
         flexWrap: "wrap",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
     },
 
     summaryBlock: {
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
     },
 
     subtleText: {
@@ -70,7 +70,7 @@ export const useSessionsTabStyles = makeStyles({
     currentDeviceCell: {
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
     },
 
     deviceName: {

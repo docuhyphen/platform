@@ -76,6 +76,6 @@ export const useWorkflowStepsSectionStyles = makeStyles({
     },
 
     noStepsText: {
-        color: "var(--colorNeutralForeground3)",
+        color: tokens.colorNeutralForeground3,
     },
 });

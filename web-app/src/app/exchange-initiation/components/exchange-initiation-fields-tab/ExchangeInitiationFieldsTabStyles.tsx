@@ -8,12 +8,12 @@ export const useExchangeInitiationFieldsTabStyles = makeStyles({
     },
     schemaRow: {
         display: 'flex',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
     },
     fieldList: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '14px',
+        gap: tokens.spacingHorizontalM,
     },
     subText: {
         color: tokens.colorNeutralForeground3,

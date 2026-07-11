@@ -4,8 +4,8 @@ export const useProfileOverviewCardStyles = makeStyles({
     card: {
         display: "flex",
         flexDirection: "column",
-        gap: "20px",
-        ...shorthands.padding("24px"),
+        gap: tokens.spacingHorizontalXL,
+        ...shorthands.padding(tokens.spacingHorizontalXXL),
         ...shorthands.borderRadius(tokens.borderRadiusXLarge),
     },
 
@@ -13,34 +13,34 @@ export const useProfileOverviewCardStyles = makeStyles({
         display: "flex",
         justifyContent: "space-between",
         alignItems: "flex-start",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         flexWrap: "wrap",
     },
 
     identityBlock: {
         display: "flex",
         alignItems: "center",
-        gap: "16px",
+        gap: tokens.spacingHorizontalL,
         flexWrap: "wrap",
     },
 
     copyBlock: {
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         minWidth: 0,
     },
 
     badgeRow: {
         display: "flex",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         flexWrap: "wrap",
     },
 
     metaGrid: {
         display: "grid",
         gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         "@media (max-width: 900px)": {
             gridTemplateColumns: "1fr",
         },
@@ -49,8 +49,8 @@ export const useProfileOverviewCardStyles = makeStyles({
     metaItem: {
         display: "flex",
         flexDirection: "column",
-        gap: "6px",
-        ...shorthands.padding("14px", "16px"),
+        gap: tokens.spacingHorizontalSNudge,
+        ...shorthands.padding(tokens.spacingVerticalM, tokens.spacingHorizontalL),
         ...shorthands.borderRadius(tokens.borderRadiusLarge),
         backgroundColor: tokens.colorNeutralBackground3,
     },
@@ -66,7 +66,7 @@ export const useProfileOverviewCardStyles = makeStyles({
     inlineDetailRow: {
         display: "flex",
         alignItems: "center",
-        gap: "6px",
+        gap: tokens.spacingHorizontalSNudge,
         minWidth: 0,
     }
 });

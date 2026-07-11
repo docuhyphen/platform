@@ -4,7 +4,7 @@ export const useOrganizationPeopleToolbarStyles = makeStyles({
     container: {
         display: "flex",
         alignItems: "center",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
         flexShrink: 0,
         backgroundColor: tokens.colorNeutralBackground1,
         "@media (max-width: 900px)": {
@@ -19,7 +19,7 @@ export const useOrganizationPeopleToolbarStyles = makeStyles({
     tools: {
         display: "flex",
         alignItems: "center",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         flexShrink: 0
     },
     actionButton: {
@@ -27,23 +27,23 @@ export const useOrganizationPeopleToolbarStyles = makeStyles({
         flexShrink: 0
     },
     filterPopover: {
-        padding: "8px",
+        padding: tokens.spacingHorizontalS,
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         minWidth: "220px",
         maxWidth: "300px"
     },
     filterSection: {
         display: "flex",
         flexDirection: "column",
-        gap: "4px"
+        gap: tokens.spacingHorizontalXS
     },
     filterSectionTitle: {
         fontSize: tokens.fontSizeBase200,
         fontWeight: tokens.fontWeightSemibold,
         color: tokens.colorNeutralForeground3,
-        paddingLeft: "2px"
+        paddingLeft: tokens.spacingHorizontalXXS
     },
     filterSectionList: {
         maxHeight: "180px",

@@ -1,4 +1,4 @@
-﻿import {makeStyles} from "@fluentui/react-components";
+﻿import {tokens, makeStyles} from "@fluentui/react-components";
 
 export const useNoExchangeDocumentsStyles = makeStyles({
     noDocumentsContainer: {
@@ -7,6 +7,6 @@ export const useNoExchangeDocumentsStyles = makeStyles({
         alignItems: 'center',
         justifyContent: 'center',
         height: '50%',
-        gap: "16px"
+        gap: tokens.spacingHorizontalL
     },
 });

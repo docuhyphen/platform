@@ -4,7 +4,7 @@ export const useWorkflowInstanceDashboardStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "1rem",
+        gap: tokens.spacingHorizontalL,
         height: "100%",
         minHeight: "100%",
     },
@@ -18,7 +18,7 @@ export const useWorkflowInstanceDashboardStyles = makeStyles({
 
     filterBar: {
         display: "flex",
-        gap: "0.75rem",
+        gap: tokens.spacingHorizontalM,
         justifyContent: "end",
         alignItems: "center",
         flexWrap: "wrap",
@@ -27,8 +27,8 @@ export const useWorkflowInstanceDashboardStyles = makeStyles({
     row: {
         display: "flex",
         alignItems: "center",
-        gap: "0.75rem",
-        padding: "0.75rem 0",
+        gap: tokens.spacingHorizontalM,
+        padding: `${tokens.spacingVerticalM} 0`,
         borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
         cursor: "pointer",
         ":hover": {
@@ -47,7 +47,7 @@ export const useWorkflowInstanceDashboardStyles = makeStyles({
     },
 
     emptyState: {
-        padding: "2rem",
+        padding: tokens.spacingHorizontalXXXL,
         color: tokens.colorNeutralForeground3,
         textAlign: "center",
     },

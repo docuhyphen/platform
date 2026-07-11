@@ -4,30 +4,30 @@ export const useManageAccessHelpGuideStyles = makeStyles({
     container: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
     },
 
     intro: {
         color: tokens.colorNeutralForeground3,
-        marginBottom: '4px',
+        marginBottom: tokens.spacingVerticalXS,
     },
 
     section: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
     },
 
     sectionIntro: {
         color: tokens.colorNeutralForeground3,
-        marginBottom: '4px',
+        marginBottom: tokens.spacingVerticalXS,
     },
 
     roleCard: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '4px',
-        padding: '8px 12px',
+        gap: tokens.spacingHorizontalXS,
+        padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
         borderRadius: tokens.borderRadiusMedium,
         backgroundColor: tokens.colorNeutralBackground3,
     },
@@ -35,20 +35,20 @@ export const useManageAccessHelpGuideStyles = makeStyles({
     roleHeader: {
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
     },
 
     constraintCard: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '2px',
-        padding: '8px 12px',
+        gap: tokens.spacingHorizontalXXS,
+        padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
         borderRadius: tokens.borderRadiusMedium,
         backgroundColor: tokens.colorNeutralBackground3,
     },
 
     footerDivider: {
-        marginTop: '4px',
+        marginTop: tokens.spacingVerticalXS,
     },
 
     footerNote: {

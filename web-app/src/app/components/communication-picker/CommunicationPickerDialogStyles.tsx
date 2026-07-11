@@ -8,12 +8,12 @@ export const useCommunicationPickerDialogStyles = makeStyles({
     contentContainer: {
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
     },
     itemList: {
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         maxHeight: "360px",
         overflowY: "auto",
     },
@@ -30,7 +30,7 @@ export const useCommunicationPickerDialogStyles = makeStyles({
     itemHeader: {
         display: "flex",
         alignItems: "center",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
     },
     noResults: {
         color: tokens.colorNeutralForeground3,

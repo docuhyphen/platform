@@ -1,21 +1,21 @@
-import {makeStyles} from "@fluentui/react-components";
+import {tokens, makeStyles} from "@fluentui/react-components";
 
 export const useSignUpStyles = makeStyles({
     signUpCompletionForm: {
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
+        gap: tokens.spacingHorizontalXS,
     },
     authHasAccount: {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
     },
     signUpSuccessfulSection: {
         display: "flex",
         flexDirection: "column",
-        gap: "20px",
+        gap: tokens.spacingHorizontalXL,
         alignItems: "center",
         justifyContent: "center",
         flex: 1,
@@ -23,6 +23,6 @@ export const useSignUpStyles = makeStyles({
     validatingSpinnerContainer: {
         display: "flex",
         justifyContent: "center",
-        padding: "12px 0",
+        padding: `${tokens.spacingVerticalM} 0`,
     },
 });

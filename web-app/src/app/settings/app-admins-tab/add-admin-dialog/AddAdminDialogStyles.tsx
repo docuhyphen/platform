@@ -8,16 +8,16 @@ export const useAddAdminDialogStyles = makeStyles({
     content: {
         display: 'flex',
         flexDirection: 'column',
-        ...shorthands.gap('16px'),
-        marginTop: '1rem',
-        marginBottom: '1rem',
+        ...shorthands.gap(tokens.spacingHorizontalL),
+        marginTop: tokens.spacingVerticalL,
+        marginBottom: tokens.spacingVerticalL,
     },
     errorText: {
         color: tokens.colorStatusDangerForeground1,
     },
     selectedBadges: {
         display: 'flex',
-        ...shorthands.gap('6px'),
+        ...shorthands.gap(tokens.spacingHorizontalSNudge),
         flexWrap: 'wrap',
     },
     searchResults: {
@@ -27,7 +27,7 @@ export const useAddAdminDialogStyles = makeStyles({
         overflowY: 'auto',
     },
     searchPadding: {
-        ...shorthands.padding('12px'),
+        ...shorthands.padding(tokens.spacingHorizontalM),
     },
     checkboxCell: {
         width: '44px',

@@ -4,8 +4,8 @@ export const useOrganizationSequencesTabStyles = makeStyles({
     container: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px',
-        padding: '0 4px',
+        gap: tokens.spacingHorizontalL,
+        padding: `0 ${tokens.spacingHorizontalXS}`,
     },
     header: {
         display: 'flex',
@@ -24,16 +24,16 @@ export const useOrganizationSequencesTabStyles = makeStyles({
     sequenceCard: {
         border: `1px solid ${tokens.colorNeutralStroke1}`,
         borderRadius: tokens.borderRadiusMedium,
-        padding: '12px 16px',
+        padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL}`,
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
     },
     sequenceCardInner: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '4px',
+        gap: tokens.spacingHorizontalXS,
         flex: '1',
         minWidth: '0',
     },
@@ -44,7 +44,7 @@ export const useOrganizationSequencesTabStyles = makeStyles({
     },
     badgeRow: {
         display: 'flex',
-        gap: '6px',
+        gap: tokens.spacingHorizontalSNudge,
         flexWrap: 'wrap',
         alignItems: 'center',
     },
@@ -54,11 +54,11 @@ export const useOrganizationSequencesTabStyles = makeStyles({
     drawerBody: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px',
-        paddingTop: '16px',
+        gap: tokens.spacingHorizontalL,
+        paddingTop: tokens.spacingVerticalL,
     },
     previewBox: {
-        padding: '8px 12px',
+        padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
         background: tokens.colorNeutralBackground2,
         borderRadius: tokens.borderRadiusLarge,
     },
@@ -70,7 +70,7 @@ export const useOrganizationSequencesTabStyles = makeStyles({
     },
     buttonRow: {
         display: 'flex',
-        gap: '8px',
+        gap: tokens.spacingHorizontalS,
         justifyContent: 'flex-end',
     },
     toolbar: {
@@ -83,7 +83,7 @@ export const useOrganizationSequencesTabStyles = makeStyles({
     },
     th: {
         textAlign: 'left',
-        padding: '6px 12px',
+        padding: `${tokens.spacingVerticalSNudge} ${tokens.spacingHorizontalM}`,
         fontSize: tokens.fontSizeBase200,
         fontWeight: tokens.fontWeightSemibold,
         color: tokens.colorNeutralForeground3,
@@ -95,7 +95,7 @@ export const useOrganizationSequencesTabStyles = makeStyles({
         ':hover': {backgroundColor: tokens.colorNeutralBackground2},
     },
     td: {
-        padding: '8px 12px',
+        padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
         verticalAlign: 'middle',
     },
 });

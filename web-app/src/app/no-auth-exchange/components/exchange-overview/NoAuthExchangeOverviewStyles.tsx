@@ -4,10 +4,10 @@ export const useNoAuthExchangeOverviewStyles = makeStyles({
     container: {
         display: "flex",
         flexDirection: "column",
-        gap: "20px",
+        gap: tokens.spacingHorizontalXL,
         position: "sticky",
         top: "88px",
-        padding: "24px",
+        padding: tokens.spacingHorizontalXXL,
         color: tokens.colorNeutralForeground1,
         background: tokens.colorNeutralBackground1,
         border: `1px solid ${tokens.colorNeutralStroke1}`,
@@ -21,15 +21,15 @@ export const useNoAuthExchangeOverviewStyles = makeStyles({
             top: "72px",
         },
         '@media (max-width: 640px)': {
-            padding: "18px",
+            padding: tokens.spacingHorizontalL,
             borderRadius: tokens.borderRadiusLarge,
         },
     },
 
     collapsedContainer: {
         gap: 0,
-        paddingTop: "12px",
-        paddingBottom: "12px",
+        paddingTop: tokens.spacingVerticalM,
+        paddingBottom: tokens.spacingVerticalM,
         boxShadow: tokens.shadow8,
     },
 
@@ -37,13 +37,13 @@ export const useNoAuthExchangeOverviewStyles = makeStyles({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
     },
 
     eyebrow: {
         display: "flex",
         alignItems: "center",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
         color: tokens.colorBrandForeground1,
         textTransform: "uppercase",
         letterSpacing: "0.08em",
@@ -53,13 +53,13 @@ export const useNoAuthExchangeOverviewStyles = makeStyles({
     details: {
         display: "flex",
         flexDirection: "column",
-        gap: "20px",
+        gap: tokens.spacingHorizontalXL,
     },
 
     heading: {
         display: "flex",
         flexDirection: "column",
-        gap: "7px",
+        gap: tokens.spacingHorizontalS,
     },
 
     requestedBy: {
@@ -79,8 +79,8 @@ export const useNoAuthExchangeOverviewStyles = makeStyles({
     message: {
         display: "flex",
         flexDirection: "column",
-        gap: "6px",
-        padding: "16px",
+        gap: tokens.spacingHorizontalSNudge,
+        padding: tokens.spacingHorizontalL,
         background: tokens.colorNeutralBackground2,
         border: `1px solid ${tokens.colorNeutralStroke2}`,
         borderRadius: tokens.borderRadiusLarge,
@@ -101,13 +101,13 @@ export const useNoAuthExchangeOverviewStyles = makeStyles({
     assuranceList: {
         display: "flex",
         flexDirection: "column",
-        gap: "18px",
+        gap: tokens.spacingHorizontalL,
     },
 
     assuranceItem: {
         display: "flex",
         alignItems: "flex-start",
-        gap: "12px",
+        gap: tokens.spacingHorizontalM,
     },
 
     assuranceIcon: {
@@ -120,13 +120,13 @@ export const useNoAuthExchangeOverviewStyles = makeStyles({
     assuranceText: {
         display: "flex",
         flexDirection: "column",
-        gap: "3px",
+        gap: tokens.spacingHorizontalXS,
         color: tokens.colorNeutralForeground2,
         lineHeight: "1.4",
     },
 
     footerNote: {
-        paddingTop: "18px",
+        paddingTop: tokens.spacingVerticalL,
         color: tokens.colorNeutralForeground3,
         borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
         fontSize: "12px",

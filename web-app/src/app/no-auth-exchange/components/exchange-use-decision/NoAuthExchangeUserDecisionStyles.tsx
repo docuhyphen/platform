@@ -6,8 +6,8 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        padding: "48px",
-        gap: "16px",
+        padding: `calc(${tokens.spacingHorizontalXXXL} + ${tokens.spacingHorizontalL})`,
+        gap: tokens.spacingHorizontalL,
         maxWidth: "680px",
         width: "100%",
         margin: "0 auto",
@@ -18,14 +18,14 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
 
     decisionActions: {
         display: "flex",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
     },
 
     termsAndConditions: {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        marginTop: "36px",
+        marginTop: tokens.spacingVerticalXXXL,
     },
 
     declineButton: {
@@ -37,22 +37,22 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
     declineDialogContent: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
-        padding: "16px 0",
-        marginBottom: "16px",
+        gap: tokens.spacingHorizontalL,
+        padding: `${tokens.spacingVerticalL} 0`,
+        marginBottom: tokens.spacingVerticalL,
     },
 
     acceptDialogContent: {
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
-        padding: "16px 0",
-        marginBottom: "16px",
+        gap: tokens.spacingHorizontalL,
+        padding: `${tokens.spacingVerticalL} 0`,
+        marginBottom: tokens.spacingVerticalL,
     },
 
     otpInputGroup: {
         display: "flex",
-        gap: "8px",
+        gap: tokens.spacingHorizontalS,
     },
 
     otpInput: {
