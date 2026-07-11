@@ -49,7 +49,12 @@ export const useExchangeDetailsHeaderStyles = makeStyles({
     },
 
     headerAnimatedSectionExpanded: {
-        maxHeight: "80px",
+        maxHeight: "64px",
+        opacity: 1,
+        marginTop: tokens.spacingVerticalXS,
+    },
+    headerAnimatedSectionExpandedLarge: {
+        maxHeight: "96px",
         opacity: 1,
         marginTop: tokens.spacingVerticalXS,
     },

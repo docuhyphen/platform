@@ -104,7 +104,7 @@ const DocumentLibraryUploadDialog = ({open, entryId, entryTitle, onClose, onUplo
                                 accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.png,.jpg"
                                 onChange={handleFileChange}
                                 disabled={uploading}
-                                style={{display: 'none'}}
+                                className={styles.hiddenFileInput}
                             />
                             <span>
                                 <Button

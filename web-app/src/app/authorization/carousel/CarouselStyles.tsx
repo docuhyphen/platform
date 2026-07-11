@@ -11,15 +11,18 @@ export const useCarouselStyles = makeStyles({
         overflow: "hidden",
     },
     carouselInner: {
-        display: "flex",
-        transition: "transform 0.5s ease-in-out",
+        display: "block",
         maxWidth: "100%",
+        width: "100%",
     },
     carouselItem: {
-        minWidth: "100%",
+        display: "none",
         boxSizing: "border-box",
         padding: tokens.spacingHorizontalXL,
         textAlign: "center",
+    },
+    carouselItemActive: {
+        display: "block",
     },
     carouselDots: {
         display: "flex",

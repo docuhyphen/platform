@@ -681,8 +681,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     const fitToWidth = isMobile && containerWidth > 0;
     const fitWidthPx = fitToWidth ? containerWidth : undefined;
 
-    // Memoized scaled placeholder dimensions, so resizing doesn't re-create style objects per-page.
-    const placeholderStyle = useMemo<React.CSSProperties>(() =>
+    const placeholderDimensions = useMemo(() =>
     {
         if (fitToWidth && pageDimensions.width > 0)
         {
@@ -697,6 +696,12 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
             height: `${pageDimensions.height * scale}px`,
         };
     }, [pageDimensions, scale, fitToWidth, fitWidthPx]);
+
+    useEffect(() =>
+    {
+        pdfContainerRef.current?.style.setProperty("--pdf-page-placeholder-width", placeholderDimensions.width);
+        pdfContainerRef.current?.style.setProperty("--pdf-page-placeholder-height", placeholderDimensions.height);
+    }, [placeholderDimensions]);
 
     // Props passed to react-pdf's <Page>. When `width` is set the
     // library auto-computes scale, so we omit `scale` in that mode.
@@ -828,7 +833,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                                             {...pagePresentationProps}
                                             onLoadSuccess={handlePageLoadSuccess}
                                             loading={
-                                                <div className={styles.pdfPagePlaceholder} style={placeholderStyle}>
+                                                <div className={styles.pdfPagePlaceholder}>
                                                     Loading page {pageNumber}…
                                                 </div>
                                             }
@@ -848,7 +853,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                                             renderAnnotationLayer={false}
                                             onLoadSuccess={handlePageLoadSuccess}
                                             loading={
-                                                <div className={styles.pdfPagePlaceholder} style={placeholderStyle}>
+                                                <div className={styles.pdfPagePlaceholder}>
                                                     Page {pageNumber}
                                                 </div>
                                             }
@@ -940,7 +945,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                                     id="exchange-document-preview-expand"
                                     appearance="transparent"
                                     shape={"circular"}
-                                    style={hideEnlarge ? {display: 'none'} : undefined}
+                                    className={hideEnlarge ? styles.hiddenControl : undefined}
                                     icon={<ExpandIcon/>}/>
                             </Tooltip>
 

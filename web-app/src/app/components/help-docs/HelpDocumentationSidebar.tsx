@@ -50,6 +50,8 @@ const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOp
     const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
     const [searchQuery, setSearchQuery] = useState('');
     const dragStartRef = useRef<{ startX: number; startWidth: number } | null>(null);
+    const spacerRef = useRef<HTMLDivElement | null>(null);
+    const panelRef = useRef<HTMLElement | null>(null);
 
     React.useEffect(() =>
     {
@@ -129,19 +131,30 @@ const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOp
         };
     }, [stopResize]);
 
+    useEffect(() =>
+    {
+        const width = `${panelWidth}px`;
+        spacerRef.current?.style.setProperty("--help-doc-panel-width", width);
+        panelRef.current?.style.setProperty("--help-doc-panel-width", width);
+    }, [panelWidth]);
+
     if (!isOpen) return null;
 
     return (
         <>
             {/* In-place flex spacer — reserves the same width in the layout so content is pushed left */}
-            <div className={styles.spacer} style={{width: `${panelWidth}px`}} aria-hidden/>
+            <div
+                ref={spacerRef}
+                className={styles.spacer}
+                aria-hidden
+            />
 
             {/* Portal renders the actual panel above any dialog overlay */}
             <Portal>
-        <aside className={styles.panel}
+        <aside ref={panelRef}
+               className={styles.panel}
                role="dialog"
-               aria-label="Help documentation"
-               style={{width: `${panelWidth}px`}}>
+               aria-label="Help documentation">
 
             <div className={styles.resizeHandle}
                  onPointerDown={onResizePointerDown}

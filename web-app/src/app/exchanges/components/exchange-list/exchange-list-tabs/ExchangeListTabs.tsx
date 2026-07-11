@@ -5,10 +5,10 @@ import {
     Archive20Regular,
     MailInbox20Regular,
     MailInbox20Filled,
-    Share20Regular,
-    Share20Filled,
-    Folder20Regular, Live20Filled, Live20Regular, LiveFilled, LiveRegular,
+    Live20Filled,
+    Live20Regular,
 } from "@fluentui/react-icons";
+import {useExchangeListTabsStyles} from "./ExchangeListTabsStyles.tsx";
 
 export type ExchangeListTab = 'inbox' | 'active' | 'archive';
 
@@ -22,10 +22,9 @@ interface ExchangeListTabsProps
 
 const ExchangeListTabs: React.FC<ExchangeListTabsProps> = ({activeTab, inboxCount, onTabChange, collapsed = false}) =>
 {
-    const collapsedIconStyle = collapsed ? {fontSize: 40, lineHeight: 1} : undefined;
-    const tabContentStyle = collapsed
-        ? {display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%'} as const
-        : {display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalSNudge} as const;
+    const styles = useExchangeListTabsStyles();
+    const tabContentClassName = collapsed ? styles.tabContentCollapsed : styles.tabContent;
+    const collapsedIconClassName = collapsed ? styles.collapsedIcon : undefined;
 
     return (
         <TabList
@@ -34,14 +33,14 @@ const ExchangeListTabs: React.FC<ExchangeListTabsProps> = ({activeTab, inboxCoun
             onTabSelect={(_, data) => onTabChange(data.value as ExchangeListTab)}
             size="small"
             vertical={collapsed}
-            style={{padding: collapsed ? '8px 4px' : '0 8px', width: '100%'}}>
+            className={collapsed ? styles.tabListCollapsed : styles.tabList}>
             <Tab id="exchange-list-tab-requests" value="inbox">
-                <span style={tabContentStyle}>
+                <span className={tabContentClassName}>
                     {collapsed ? (
-                        <span style={{position: 'relative', display: 'inline-flex'}}>
+                        <span className={styles.collapsedIconWrapper}>
                             {activeTab === 'inbox'
-                                ? <MailInbox20Filled style={collapsedIconStyle} primaryFill={tokens.colorBrandForeground1}/>
-                                : <MailInbox20Regular style={collapsedIconStyle}/>
+                                ? <MailInbox20Filled className={collapsedIconClassName} primaryFill={tokens.colorBrandForeground1}/>
+                                : <MailInbox20Regular className={collapsedIconClassName}/>
                             }
                             {inboxCount > 0 && (
                                 <CounterBadge
@@ -49,7 +48,7 @@ const ExchangeListTabs: React.FC<ExchangeListTabsProps> = ({activeTab, inboxCoun
                                     size="medium"
                                     appearance="filled"
                                     color="danger"
-                                    style={{position: 'absolute', top: '2px', right: '2px'}}
+                                    className={styles.collapsedBadge}
                                 />
                             )}
                         </span>
@@ -73,19 +72,19 @@ const ExchangeListTabs: React.FC<ExchangeListTabsProps> = ({activeTab, inboxCoun
                 </span>
             </Tab>
             <Tab id="exchange-list-tab-active" value="active">
-                <span style={tabContentStyle}>
+                <span className={tabContentClassName}>
                     {activeTab === 'active'
-                        ? <Live20Filled style={collapsedIconStyle} primaryFill={tokens.colorBrandForeground1}/>
-                        : <Live20Regular style={collapsedIconStyle}/>
+                        ? <Live20Filled className={collapsedIconClassName} primaryFill={tokens.colorBrandForeground1}/>
+                        : <Live20Regular className={collapsedIconClassName}/>
                     }
                     {!collapsed && 'Active'}
                 </span>
             </Tab>
             <Tab id="exchange-list-tab-archive" value="archive">
-                <span style={tabContentStyle}>
+                <span className={tabContentClassName}>
                     {activeTab === 'archive'
-                        ? <Archive20Filled style={collapsedIconStyle} primaryFill={tokens.colorBrandForeground1}/>
-                        : <Archive20Regular style={collapsedIconStyle}/>
+                        ? <Archive20Filled className={collapsedIconClassName} primaryFill={tokens.colorBrandForeground1}/>
+                        : <Archive20Regular className={collapsedIconClassName}/>
                     }
                     {!collapsed && 'Archive'}
                 </span>

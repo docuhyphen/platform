@@ -10,10 +10,10 @@ import {
     Text,
     Textarea,
     Tooltip,
-    tokens,
 } from '@fluentui/react-components';
 import {DismissRegular} from '@fluentui/react-icons';
 import {AvailableVariablesDto, SequenceDefinitionDto, SystemVariableDto, VariableDefinitionDto} from '../../app/models/models';
+import {useVariableTokenInputStyles} from "./VariableTokenInputStyles.tsx";
 
 export interface VariableTokenInputProps
 {
@@ -64,6 +64,7 @@ interface TokenChipProps
 
 const TokenChip: React.FC<TokenChipProps> = ({token, available, resolved, onRemove, disabled}) =>
 {
+    const styles = useVariableTokenInputStyles();
     const isSystem = available.system.some(s => s.token === token);
     const isSeq = token.startsWith('SEQ:');
     const isOrg = available.org.some(v => v.key === token);
@@ -80,16 +81,17 @@ const TokenChip: React.FC<TokenChipProps> = ({token, available, resolved, onRemo
             <Badge
                 appearance="tint"
                 color={color}
-                style={{cursor: 'default', display: 'inline-flex', alignItems: 'center', gap: tokens.spacingHorizontalXXS, margin: `0 ${tokens.spacingHorizontalXXS}`}}
+                className={styles.tokenChip}
             >
                 {token}
                 {!disabled && (
                     <Button
                         size="small"
                         appearance="transparent"
-                        icon={<DismissRegular style={{fontSize: '10px'}}/>}
+                        shape="circular"
+                        icon={<DismissRegular className={styles.removeIcon}/>}
                         onClick={onRemove}
-                        style={{minWidth: 0, padding: `0 ${tokens.spacingHorizontalXXS}`, height: '16px'}}
+                        className={styles.removeButton}
                         aria-label={`Remove ${token}`}
                     />
                 )}
@@ -111,19 +113,21 @@ interface PickerGroupProps<T>
 
 function PickerGroup<T>({label, items, getKey, getLabel, getBadge, badgeColor, onSelect}: PickerGroupProps<T>)
 {
+    const styles = useVariableTokenInputStyles();
     if (items.length === 0) return null;
     return (
-        <div style={{marginBottom: tokens.spacingVerticalS}}>
-            <Text size={100} weight="semibold" style={{color: tokens.colorNeutralForeground3, display: 'block', marginBottom: tokens.spacingVerticalXS, textTransform: 'uppercase', letterSpacing: '0.5px'}}>
+        <div className={styles.pickerGroup}>
+            <Text size={100} weight="semibold" className={styles.pickerGroupLabel}>
                 {label}
             </Text>
-            <div style={{display: 'flex', flexDirection: 'column', gap: tokens.spacingHorizontalXXS}}>
+            <div className={styles.pickerGroupList}>
                 {items.map(item => (
                     <Button
                         key={getKey(item)}
                         appearance="subtle"
                         size="small"
-                        style={{justifyContent: 'flex-start', gap: tokens.spacingHorizontalS, padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalSNudge}`}}
+                        shape="circular"
+                        className={styles.pickerGroupButton}
                         onClick={() => onSelect(getKey(item))}
                     >
                         <Badge appearance="tint" color={badgeColor} size="small">{getBadge(item)}</Badge>
@@ -146,6 +150,7 @@ const VariableTokenInput: React.FC<VariableTokenInputProps> = ({
     disabled = false,
 }) =>
 {
+    const styles = useVariableTokenInputStyles();
     const [pickerOpen, setPickerOpen] = useState(false);
     const [pickerSearch, setPickerSearch] = useState('');
     const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
@@ -211,14 +216,14 @@ const VariableTokenInput: React.FC<VariableTokenInputProps> = ({
             <PopoverTrigger disableButtonEnhancement>
                 <span/>
             </PopoverTrigger>
-            <PopoverSurface style={{padding: tokens.spacingHorizontalM, minWidth: '260px', maxWidth: '320px', maxHeight: '400px', overflowY: 'auto'}}>
-                <Text weight="semibold" size={300} block style={{marginBottom: tokens.spacingVerticalS}}>Insert Variable</Text>
+            <PopoverSurface className={styles.pickerSurface}>
+                <Text weight="semibold" size={300} block className={styles.pickerTitle}>Insert Variable</Text>
                 <Input
                     size="small"
                     placeholder="Search variables…"
                     value={pickerSearch}
                     onChange={(_, d) => setPickerSearch(d.value)}
-                    style={{marginBottom: tokens.spacingVerticalS, width: '100%'}}
+                    className={styles.pickerSearch}
                 />
                 <PickerGroup<SystemVariableDto>
                     label="System"
@@ -261,9 +266,9 @@ const VariableTokenInput: React.FC<VariableTokenInputProps> = ({
     );
 
     return (
-        <div style={{display: 'flex', flexDirection: 'column', gap: tokens.spacingHorizontalXS}}>
+        <div className={styles.root}>
             {label && <Label>{label}</Label>}
-            <div style={{position: 'relative'}}>
+            <div className={styles.inputWrapper}>
                 {multiline ? (
                     <Textarea
                         ref={inputRef as React.Ref<HTMLTextAreaElement>}
@@ -272,7 +277,7 @@ const VariableTokenInput: React.FC<VariableTokenInputProps> = ({
                         onSelect={e => { cursorRef.current = (e.target as HTMLTextAreaElement).selectionStart ?? value.length; }}
                         placeholder={placeholder}
                         disabled={disabled}
-                        style={{width: '100%'}}
+                        className={styles.fullWidth}
                     />
                 ) : (
                     <Input
@@ -282,15 +287,16 @@ const VariableTokenInput: React.FC<VariableTokenInputProps> = ({
                         onSelect={e => { cursorRef.current = (e.target as HTMLInputElement).selectionStart ?? value.length; }}
                         placeholder={placeholder}
                         disabled={disabled}
-                        style={{width: '100%'}}
+                        className={styles.fullWidth}
                         contentAfter={
                             <Button
                                 size="small"
                                 appearance="transparent"
+                                shape="circular"
                                 onClick={() => setPickerOpen(true)}
                                 disabled={disabled}
                                 title="Insert variable"
-                                style={{fontSize: '11px', padding: `0 ${tokens.spacingHorizontalXS}`, minWidth: 0}}
+                                className={styles.insertButton}
                             >
                                 {'{ }'}
                             </Button>
@@ -300,14 +306,7 @@ const VariableTokenInput: React.FC<VariableTokenInputProps> = ({
                 {picker}
             </div>
             {vTokens.length > 0 && (
-                <div style={{
-                    padding: `${tokens.spacingVerticalSNudge} ${tokens.spacingHorizontalS}`,
-                    background: tokens.colorNeutralBackground2,
-                    borderRadius: tokens.borderRadiusMedium,
-                    fontSize: '12px',
-                    lineHeight: '1.8',
-                    wordBreak: 'break-word',
-                }}>
+                <div className={styles.preview}>
                     {renderPreview()}
                 </div>
             )}

@@ -39,6 +39,12 @@ export const useWorkflowInstanceDetailStyles = makeStyles({
     metaText: {
         color: tokens.colorNeutralForeground3,
     },
+    decisionApproveText: {
+        color: tokens.colorStatusSuccessForeground1,
+    },
+    decisionRejectText: {
+        color: tokens.colorStatusDangerForeground1,
+    },
 
     slaWarning: {
         color: tokens.colorStatusWarningForeground1,

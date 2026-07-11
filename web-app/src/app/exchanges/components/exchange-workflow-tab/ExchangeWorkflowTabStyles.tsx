@@ -192,6 +192,32 @@ export const useExchangeWorkflowTabStyles = makeStyles({
     metaText: {
         color: tokens.colorNeutralForeground3,
     },
+    stepIconSuccess: {
+        color: tokens.colorStatusSuccessForeground1,
+        flexShrink: 0,
+    },
+    stepIconDanger: {
+        color: tokens.colorStatusDangerForeground1,
+        flexShrink: 0,
+    },
+    stepIconWarning: {
+        color: tokens.colorStatusWarningForeground1,
+        flexShrink: 0,
+    },
+    stepIconNeutral: {
+        color: tokens.colorNeutralForeground3,
+        flexShrink: 0,
+    },
+    stepIconBrand: {
+        color: tokens.colorBrandBackground,
+        flexShrink: 0,
+    },
+    decisionApproveText: {
+        color: tokens.colorStatusSuccessForeground1,
+    },
+    decisionRejectText: {
+        color: tokens.colorStatusDangerForeground1,
+    },
     emptyCard: {
         padding: tokens.spacingHorizontalM,
         color: tokens.colorNeutralForeground3,

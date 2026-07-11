@@ -4,11 +4,13 @@ export const useHelpDocumentationSidebarStyles = makeStyles({
     spacer: {
         flexShrink: 0,
         height: "100%",
+        width: "var(--help-doc-panel-width, 400px)",
     },
     panel: {
         position: "fixed",
         top: "0",
         right: "0",
+        width: "var(--help-doc-panel-width, 400px)",
         height: "100vh",
         zIndex: 1000010,
         backgroundColor: tokens.colorNeutralBackground1,

@@ -1,4 +1,5 @@
 import {BaseEdge, EdgeLabelRenderer, getSmoothStepPath} from "@xyflow/react";
+import {useEffect, useRef} from "react";
 import {useWorkflowGraphEdgeStyles} from "./WorkflowGraphEdgeStyles.tsx";
 import {WorkflowRFEdgeProps} from "./workflowGraphRfTypes.ts";
 
@@ -16,9 +17,10 @@ export function WorkflowGraphEdge(props: WorkflowRFEdgeProps)
 {
     const {
         id, sourceX, sourceY, targetX, targetY,
-        sourcePosition, targetPosition, style, markerEnd, label, data,
+        sourcePosition, targetPosition, markerEnd, label, data,
     } = props;
     const styles = useWorkflowGraphEdgeStyles();
+    const labelRef = useRef<HTMLDivElement | null>(null);
 
     const [edgePath, labelX, labelY] = getSmoothStepPath({
         sourceX,
@@ -45,17 +47,22 @@ export function WorkflowGraphEdge(props: WorkflowRFEdgeProps)
         offset: 40,
     });
 
+    useEffect(() =>
+    {
+        labelRef.current?.style.setProperty("--workflow-edge-label-x", `${labelX}px`);
+        labelRef.current?.style.setProperty("--workflow-edge-label-y", `${labelY}px`);
+    }, [labelX, labelY]);
+
     return (
         <>
             <BaseEdge id={id}
                       path={edgePath}
-                      style={style}
                       markerEnd={markerEnd} />
             {label ? (
                 <EdgeLabelRenderer>
                     <div id={`workflow-graph-edge-label-${id}`}
-                         className={styles.label}
-                         style={{transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`}}>
+                         ref={labelRef}
+                         className={styles.label}>
                         {label}
                     </div>
                 </EdgeLabelRenderer>

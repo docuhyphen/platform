@@ -10,6 +10,7 @@ import {makeStyles, tokens} from "@fluentui/react-components";
 export const useWorkflowGraphEdgeStyles = makeStyles({
     label: {
         position: "absolute",
+        transform: "translate(-50%, -50%) translate(var(--workflow-edge-label-x, 0px), var(--workflow-edge-label-y, 0px))",
         boxSizing: "border-box",
         display: "inline-flex",
         alignItems: "center",

@@ -13,7 +13,6 @@ import {
     Tab,
     TabList,
     Text,
-    tokens,
 } from '@fluentui/react-components';
 import {SearchRegular} from '@fluentui/react-icons';
 import {CommunicationSummaryDto} from '../../models/models';
@@ -125,16 +124,7 @@ const CommunicationPickerDialog: React.FC<Props> = ({open, onClose, onSelect, se
                                         <div
                                             key={t.id}
                                             onClick={() => setPending(t)}
-                                            style={{
-                                                border: `2px solid ${isSelected ? tokens.colorBrandStroke1 : tokens.colorNeutralStroke1}`,
-                                                borderRadius: tokens.borderRadiusXLarge,
-                                                padding: `${tokens.spacingVerticalMNudge} ${tokens.spacingHorizontalM}`,
-                                                cursor: 'pointer',
-                                                background: isSelected ? tokens.colorBrandBackground2 : 'transparent',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                gap: tokens.spacingHorizontalXS,
-                                            }}
+                                            className={`${styles.itemCard} ${isSelected ? styles.itemCardSelected : ''}`}
                                         >
                                             <div className={styles.itemHeader}>
                                                 <Text weight="semibold" size={300}>{t.name}</Text>

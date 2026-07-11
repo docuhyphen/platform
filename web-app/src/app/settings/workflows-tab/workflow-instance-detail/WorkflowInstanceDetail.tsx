@@ -6,7 +6,7 @@ import {
     DrawerHeaderTitle,
     OverlayDrawer,
     Spinner,
-    Text, tokens,
+    Text,
 } from "@fluentui/react-components";
 import {WorkflowInstanceDetailDto, WorkflowStepInstanceDto} from "../../../models/models.tsx";
 import {getWorkflowInstanceDetail} from "../../../../services/workflowService.ts";
@@ -20,11 +20,6 @@ const STEP_STATUS_COLORS: Record<string, "success" | "warning" | "danger" | "inf
     REJECTED: "danger",
     ESCALATED: "warning",
     SKIPPED: "subtle",
-};
-
-const DECISION_COLORS: Record<string, string> = {
-    APPROVE: tokens.colorStatusSuccessForeground1,
-    REJECT: tokens.colorStatusDangerForeground1,
 };
 
 const formatDateTime = (iso?: string) =>
@@ -41,6 +36,13 @@ interface StepTimelineItemProps
 const StepTimelineItem = ({step, isCurrent}: StepTimelineItemProps) =>
 {
     const styles = useWorkflowInstanceDetailStyles();
+    const decisionClassName = (decision: string) =>
+    {
+        if (decision === "APPROVE") return styles.decisionApproveText;
+        if (decision === "REJECT") return styles.decisionRejectText;
+        return undefined;
+    };
+
     return (
         <div className={`${styles.stepCard} ${isCurrent ? styles.currentStepHighlight : ""}`}>
             <div className={styles.stepHeader}>
@@ -73,7 +75,8 @@ const StepTimelineItem = ({step, isCurrent}: StepTimelineItemProps) =>
                 <div className={styles.decisionList}>
                     {step.decisions.map((d, i) => (
                         <div key={i} className={styles.decisionRow}>
-                            <Text size={200} style={{color: DECISION_COLORS[d.decision] ?? "inherit"}}
+                            <Text size={200}
+                                  className={decisionClassName(d.decision)}
                                   weight="semibold">
                                 {DECISION_LABELS[d.decision] ?? d.decision}
                             </Text>

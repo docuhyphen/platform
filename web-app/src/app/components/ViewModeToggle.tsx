@@ -1,7 +1,8 @@
 import React from 'react';
-import {tokens, ToggleButton, Tooltip} from '@fluentui/react-components';
+import {ToggleButton, Tooltip} from '@fluentui/react-components';
 import {ViewCardsIcon, ViewTableIcon} from './IconBundles.tsx';
 import {ViewMode} from '../models/models.tsx';
+import {useViewModeToggleStyles} from "./ViewModeToggleStyles.tsx";
 
 interface Props
 {
@@ -9,8 +10,12 @@ interface Props
     onChange: (mode: ViewMode) => void;
 }
 
-const ViewModeToggle: React.FC<Props> = ({value, onChange}) => (
-    <div style={{display: 'flex', gap: tokens.spacingHorizontalXXS}}>
+const ViewModeToggle: React.FC<Props> = ({value, onChange}) =>
+{
+    const styles = useViewModeToggleStyles();
+
+    return (
+    <div className={styles.root}>
         <Tooltip content="Cards view" relationship="description">
             <ToggleButton
                 icon={<ViewCardsIcon/>}
@@ -32,6 +37,7 @@ const ViewModeToggle: React.FC<Props> = ({value, onChange}) => (
             />
         </Tooltip>
     </div>
-);
+    );
+};
 
 export default ViewModeToggle;

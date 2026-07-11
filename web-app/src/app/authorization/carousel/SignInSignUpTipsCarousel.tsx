@@ -47,9 +47,12 @@ const SignInSignUpTipsCarousel: React.FC<CarouselProps> = ({slides}) =>
             onMouseEnter={stopAutoPlay}
             onMouseLeave={startAutoPlay}
         >
-            <div className={styles.carouselInner} style={{transform: `translateX(-${currentIndex * 100}%)`}}>
+            <div className={styles.carouselInner}>
                 {slides.map((slide, index) => (
-                    <div className={styles.carouselItem} key={index}>
+                    <div
+                        className={`${styles.carouselItem} ${currentIndex === index ? styles.carouselItemActive : ''}`}
+                        key={index}
+                    >
                         <Text size={500}>{slide.title}</Text>
                         <p>{slide.description}</p>
                     </div>

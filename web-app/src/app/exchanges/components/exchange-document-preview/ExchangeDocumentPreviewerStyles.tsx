@@ -298,6 +298,8 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
     },
 
     pdfPagePlaceholder: {
+        width: "var(--pdf-page-placeholder-width, 612px)",
+        height: "var(--pdf-page-placeholder-height, 792px)",
         boxSizing: "border-box",
         backgroundColor: tokens.colorNeutralBackground3,
         border: `1px solid ${tokens.colorNeutralStroke2}`,
@@ -495,5 +497,8 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
 
     pdfRelativeWrapper: {
         position: "relative",
+    },
+    hiddenControl: {
+        display: "none",
     },
 });

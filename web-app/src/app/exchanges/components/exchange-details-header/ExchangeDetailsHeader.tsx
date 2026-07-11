@@ -95,17 +95,20 @@ const ExchangeDetailsHeader: React.FC<ExchangeDetailsHeaderProps> = (
         return `${styles.container} ${styles[`containerStatus${exchangeDetails?.status || ''}` as keyof typeof styles]}`;
     };
 
+    const getAnimatedSectionClass = (large = false) =>
+    {
+        const expandedClass = large
+            ? styles.headerAnimatedSectionExpandedLarge
+            : styles.headerAnimatedSectionExpanded;
+        return `${styles.headerAnimatedSection} ${isExpanded ? expandedClass : ''}`;
+    };
+
     return (
         <section className={getExchangeHeadContainerClass()}>
             {exchangeDetails && (
                 <div className={styles.header}>
                     <div
-                        className={styles.headerAnimatedSection}
-                        style={{
-                            maxHeight: isExpanded ? 64 : 0,
-                            opacity: isExpanded ? 1 : 0,
-                            marginTop: isExpanded ? 4 : 0,
-                        }}>
+                        className={getAnimatedSectionClass()}>
                         <div className={styles.headerLine1}>
                             <div className={styles.headerLine1_2} id={"exchange-details-header-l1-1"}>
                                 <Caption2>
@@ -325,12 +328,7 @@ const ExchangeDetailsHeader: React.FC<ExchangeDetailsHeaderProps> = (
                         </div>
                     </div>
                     <div
-                        className={styles.headerAnimatedSection}
-                        style={{
-                            maxHeight: isExpanded ? 96 : 0,
-                            opacity: isExpanded ? 1 : 0,
-                            marginTop: isExpanded ? 4 : 0,
-                        }}>
+                        className={getAnimatedSectionClass(true)}>
                         <div className={styles.headerLine3}>
                             <Body1>{exchangeDetails.description}</Body1>
                         </div>

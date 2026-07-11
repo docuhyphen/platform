@@ -1,4 +1,4 @@
-import {tokens,  AccordionHeader, AccordionItem, AccordionPanel, Badge, Text } from "@fluentui/react-components";
+import {AccordionHeader, AccordionItem, AccordionPanel, Badge, Text } from "@fluentui/react-components";
 import {
     ArrowForwardFilled,
     CheckmarkCircleFilled,
@@ -24,11 +24,6 @@ const STEP_STATUS_COLORS: Record<string, "success" | "warning" | "danger" | "inf
     SKIPPED: "subtle",
 };
 
-const DECISION_COLORS: Record<string, string> = {
-    APPROVE: tokens.colorStatusSuccessForeground1,
-    REJECT: tokens.colorStatusDangerForeground1,
-};
-
 const formatDateTime = (iso?: string) =>
     iso ? new Date(iso).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" }) : "";
 
@@ -43,18 +38,19 @@ const formatEpoch = (ms: number) =>
 
 const StepIcon = ({ step, isActivePending }: { step: WorkflowStepInstanceDto; isActivePending: boolean }) =>
 {
+    const styles = useExchangeWorkflowTabStyles();
     if (step.status === "COMPLETED" || step.status === "APPROVED")
-        return <CheckmarkCircleFilled style={{ color: tokens.colorStatusSuccessForeground1, flexShrink: 0 }} />;
+        return <CheckmarkCircleFilled className={styles.stepIconSuccess} />;
     if (step.status === "REJECTED")
-        return <DismissCircleFilled style={{ color: tokens.colorStatusDangerForeground1, flexShrink: 0 }} />;
+        return <DismissCircleFilled className={styles.stepIconDanger} />;
     if (step.status === "ESCALATED")
-        return <WarningFilled style={{ color: tokens.colorStatusWarningForeground1, flexShrink: 0 }} />;
+        return <WarningFilled className={styles.stepIconWarning} />;
     if (step.status === "SKIPPED")
-        return <ArrowForwardFilled style={{ color: tokens.colorNeutralForeground3, flexShrink: 0 }} />;
+        return <ArrowForwardFilled className={styles.stepIconNeutral} />;
     if (step.status === "PENDING" && isActivePending)
-        return <RecordFilled style={{ color: tokens.colorBrandBackground, flexShrink: 0 }} />;
+        return <RecordFilled className={styles.stepIconBrand} />;
     // PENDING future step
-    return <CircleRegular style={{ color: tokens.colorNeutralForeground3, flexShrink: 0 }} />;
+    return <CircleRegular className={styles.stepIconNeutral} />;
 };
 
 const principalLabel = (displayName?: string, email?: string, fallback?: string): string =>
@@ -93,6 +89,12 @@ const WorkflowTimelineItem = ({ step, isActivePending }: Props) =>
 {
     const styles = useExchangeWorkflowTabStyles();
     const collapsedSummary = collapsedSummaryText(step, isActivePending);
+    const decisionClassName = (decision: string) =>
+    {
+        if (decision === "APPROVE") return styles.decisionApproveText;
+        if (decision === "REJECT") return styles.decisionRejectText;
+        return undefined;
+    };
 
     return (
         <AccordionItem value={step.id}>
@@ -152,7 +154,7 @@ const WorkflowTimelineItem = ({ step, isActivePending }: Props) =>
                                     <Text
                                         size={200}
                                         weight="semibold"
-                                        style={{ color: DECISION_COLORS[d.decision] ?? "inherit" }}
+                                        className={decisionClassName(d.decision)}
                                     >
                                         {DECISION_LABELS[d.decision] ?? d.decision}
                                     </Text>

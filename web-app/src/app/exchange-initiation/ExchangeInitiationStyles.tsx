@@ -387,6 +387,22 @@ export const useExchangeInitiationStyles = makeStyles({
         gap: tokens.spacingHorizontalS,
         overflowY: "auto",
     },
+    docPickerEntry: {
+        border: `1px solid ${tokens.colorNeutralStroke1}`,
+        borderRadius: tokens.borderRadiusXLarge,
+        padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL}`,
+        display: "flex",
+        flexDirection: "column",
+        gap: tokens.spacingHorizontalSNudge,
+        cursor: "pointer",
+    },
+    docPickerEntrySelected: {
+        borderTopColor: tokens.colorBrandStroke1,
+        borderRightColor: tokens.colorBrandStroke1,
+        borderBottomColor: tokens.colorBrandStroke1,
+        borderLeftColor: tokens.colorBrandStroke1,
+        backgroundColor: tokens.colorBrandBackground2,
+    },
     docPickerEntryHeader: {
         display: "flex",
         justifyContent: "space-between",

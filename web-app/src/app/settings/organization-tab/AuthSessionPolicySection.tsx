@@ -6,8 +6,8 @@ import {
     Input,
     Spinner,
     Text,
-    tokens,
 } from "@fluentui/react-components";
+import {useAuthSessionPolicySectionStyles} from "./AuthSessionPolicySectionStyles.tsx";
 import {
     getOrgAuthSessionPolicy,
     updateOrgIdpAuthSessionPolicy,
@@ -66,6 +66,7 @@ const buildDraft = (row: OrgAuthSessionPolicyIdp): DraftRow => ({
 
 export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySectionProps) =>
 {
+    const styles = useAuthSessionPolicySectionStyles();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [settings, setSettings] = useState<OrgAuthSessionPolicySettings | null>(null);
@@ -192,18 +193,18 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
 
     return (
         <>
-            <Divider alignContent="start" appearance="brand" style={{marginTop: tokens.spacingVerticalXL, marginBottom: tokens.spacingVerticalM}}>
+            <Divider alignContent="start" appearance="brand" className={styles.divider}>
                 Auth Session Policy
             </Divider>
 
             {loading && (
-                <div style={{padding: tokens.spacingHorizontalS}}>
+                <div className={styles.loadingWrapper}>
                     <Spinner size="tiny" label="Loading policy"/>
                 </div>
             )}
 
             {error && (
-                <div style={{color: tokens.colorStatusDangerForeground1, marginBottom: tokens.spacingVerticalS}}>{error}</div>
+                <div className={styles.error}>{error}</div>
             )}
 
             {settings && !loading && (
@@ -214,18 +215,7 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                         Short refresh and idle windows are intentional for sensitive-document workloads.
                     </Text>
 
-                    <div
-                        style={{
-                            display: "grid",
-                            gridTemplateColumns: "auto auto auto",
-                            columnGap: tokens.spacingHorizontalL,
-                            rowGap: tokens.spacingVerticalXS,
-                            marginBottom: tokens.spacingVerticalL,
-                            padding: tokens.spacingHorizontalS,
-                            background: tokens.colorNeutralBackground2,
-                            borderRadius: tokens.borderRadiusMedium,
-                        }}
-                    >
+                    <div className={styles.effectiveGrid}>
                         <Text weight="semibold">Effective access token</Text>
                         <Text>{settings.effective.accessTokenExpiryMinutes} min</Text>
                         <Text size={200}>
@@ -256,7 +246,7 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                     </div>
 
                     {settings.idpConfigs.length === 0 && (
-                        <Text size={300} style={{color: tokens.colorNeutralForeground3}}>
+                        <Text size={300} className={styles.noIdpText}>
                             No Identity Provider configurations exist yet.
                         </Text>
                     )}
@@ -270,14 +260,9 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                         return (
                             <div
                                 key={row.configId}
-                                style={{
-                                    border: `1px solid ${tokens.colorNeutralStroke2}`,
-                                    borderRadius: tokens.borderRadiusMedium,
-                                    padding: tokens.spacingHorizontalM,
-                                    marginBottom: tokens.spacingVerticalM,
-                                }}
+                                className={styles.idpCard}
                             >
-                                <div style={{display: "flex", alignItems: "center", gap: tokens.spacingHorizontalS, marginBottom: tokens.spacingVerticalS}}>
+                                <div className={styles.idpCardHeader}>
                                     <Text weight="semibold">{row.provider}</Text>
                                     <Badge
                                         appearance="outline"
@@ -288,14 +273,9 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                                 </div>
 
                                 <div
-                                    style={{
-                                        display: "grid",
-                                        gridTemplateColumns: "1fr 1fr 1fr 1fr",
-                                        gap: tokens.spacingHorizontalM,
-                                        marginBottom: tokens.spacingVerticalS,
-                                    }}
+                                    className={styles.inputsGrid}
                                 >
-                                    <label style={{display: "flex", flexDirection: "column", gap: tokens.spacingHorizontalXS}}>
+                                    <label className={styles.inputLabel}>
                                         <Text size={200}>Access token expiry (minutes)</Text>
                                         <Input
                                             value={draft.accessTokenExpiryMinutes}
@@ -309,7 +289,7 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                                             }
                                         />
                                     </label>
-                                    <label style={{display: "flex", flexDirection: "column", gap: tokens.spacingHorizontalXS}}>
+                                    <label className={styles.inputLabel}>
                                         <Text size={200}>Refresh token expiry (minutes)</Text>
                                         <Input
                                             value={draft.refreshTokenExpiryMinutes}
@@ -323,7 +303,7 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                                             }
                                         />
                                     </label>
-                                    <label style={{display: "flex", flexDirection: "column", gap: tokens.spacingHorizontalXS}}>
+                                    <label className={styles.inputLabel}>
                                         <Text size={200}>Max session duration (hours)</Text>
                                         <Input
                                             value={draft.maxSessionDurationHours}
@@ -337,7 +317,7 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                                             }
                                         />
                                     </label>
-                                    <label style={{display: "flex", flexDirection: "column", gap: tokens.spacingHorizontalXS}}>
+                                    <label className={styles.inputLabel}>
                                         <Text size={200}>Idle timeout (minutes)</Text>
                                         <Input
                                             value={draft.idleTimeoutMinutes}
@@ -355,18 +335,16 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
 
                                 {draft.error && (
                                     <div
-                                        style={{
-                                            color: tokens.colorStatusDangerForeground1,
-                                            marginBottom: tokens.spacingVerticalS,
-                                        }}
+                                        className={styles.draftError}
                                     >
                                         {draft.error}
                                     </div>
                                 )}
 
-                                <div style={{display: "flex", gap: tokens.spacingHorizontalS}}>
+                                <div className={styles.actionRow}>
                                     <Button
                                         appearance="primary"
+                                        shape="circular"
                                         size="small"
                                         disabled={disabled}
                                         onClick={() => onSave(row.configId)}
@@ -374,7 +352,8 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                                         {draft.saving ? "Saving…" : "Save"}
                                     </Button>
                                     <Button
-                                        appearance="subtle"
+                                        appearance="secondary"
+                                        shape="circular"
                                         size="small"
                                         disabled={disabled}
                                         onClick={() => onReset(row.configId)}

@@ -186,4 +186,7 @@ export const useDocumentsTabStyles = makeStyles({
     selectedFileText: {
         color: tokens.colorNeutralForeground2,
     },
+    hiddenFileInput: {
+        display: "none",
+    },
 });
