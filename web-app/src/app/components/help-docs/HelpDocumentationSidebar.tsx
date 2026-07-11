@@ -142,7 +142,7 @@ const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOp
 
     return (
         <>
-            {/* In-place flex spacer — reserves the same width in the layout so content is pushed left */}
+            {/* In-place flex spacer  -  reserves the same width in the layout so content is pushed left */}
             <div
                 ref={spacerRef}
                 className={styles.spacer}

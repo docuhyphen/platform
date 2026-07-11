@@ -1,4 +1,4 @@
-﻿import apiClient, {addBearerToHeaderToken} from './apiClient';
+import apiClient, {addBearerToHeaderToken} from './apiClient';
 import {
     OAuthLinkConfirmRequest,
     OrgMemberCapacityResponse,
@@ -25,7 +25,7 @@ export const lookupSignInMethod = async (request: SignInLookupRequest) =>
         const response = await apiClient.post(`/auth/sign-in/lookup`, request);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -38,7 +38,7 @@ export const refreshTokens = async () =>
         const response = await apiClient.post(`/auth/token/refresh`);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -51,7 +51,7 @@ export const confirmOAuthLink = async (request: OAuthLinkConfirmRequest) =>
         const response = await apiClient.post(`/auth/oauth/link-confirm`, request);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -66,7 +66,7 @@ export const getIdentityProviders = async () =>
         const response = await apiClient.get(`/auth/identity-providers`);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -79,7 +79,7 @@ export const initiateLinkProvider = async (provider: string) =>
         const response = await apiClient.post(`/auth/identity-providers/link/initiate`, {provider});
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -92,7 +92,7 @@ export const unlinkProvider = async (provider: string) =>
         const response = await apiClient.delete(`/auth/identity-providers/${provider}`);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -105,7 +105,7 @@ export const setupPassword = async (request: SetupPasswordRequest) =>
         const response = await apiClient.post(`/auth/identity-providers/internal/setup-password`, request);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -118,7 +118,7 @@ export const initiateSignUp = async (request: SignUpInitiationRequest) =>
         const response = await apiClient.post(`/auth/sign-up/initiation`, request);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -131,7 +131,7 @@ export const completeSignUp = async (request: SignUpCompletionRequest) =>
         const response = await apiClient.post(`/auth/sign-up/completion`, request);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -149,7 +149,7 @@ export const checkSignUpEmailConfirmToken = async (token: string): Promise<SignU
         const response = await apiClient.get(`/auth/sign-up/email-confirm/${encodeURIComponent(token)}`);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -166,7 +166,7 @@ export const confirmSignUpEmail = async (request: SignUpEmailConfirmRequest): Pr
         const response = await apiClient.post(`/auth/sign-up/email-confirm`, request);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -179,7 +179,7 @@ export const initiatePasswordReset = async (request: PasswordResetInitiationRequ
         const response = await apiClient.post(`/auth/password-reset/initiation`, request);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -192,7 +192,7 @@ export const completePasswordReset = async (request: PasswordResetCompletionRequ
         const response = await apiClient.post(`/auth/password-reset/completion`, request);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -205,7 +205,7 @@ export const regenerateSignUpOtp = async (request: SignUpOtpRegenerationRequest)
         const response = await apiClient.post(`/auth/sign-up/otp-regeneration`, request);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -218,7 +218,7 @@ export const regeneratePasswordResetOtp = async (request: SignUpOtpRegenerationR
         const response = await apiClient.post(`/auth/sign-up/otp-regeneration`, request);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -231,7 +231,7 @@ export const regenerateSignInOtp = async (request: SignInOtpRegenerationRequest)
         const response = await apiClient.post(`/auth/sign-in/otp-regeneration`, request);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -244,7 +244,7 @@ export const initiateSignIn = async (request: SignInInitiationRequest) =>
         const response = await apiClient.post(`/auth/sign-in/initiate`, request);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -257,7 +257,7 @@ export const completeSignIn = async (request: SignInCompletionRequest) =>
         const response = await apiClient.post(`/auth/sign-in/completion`, request);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -274,7 +274,7 @@ export const signOut = async (outOfAllDevices: boolean, token: string) =>
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -289,7 +289,7 @@ export const listUserSessions = async (): Promise<UserSessionListResponse> =>
         const response = await apiClient.get(`/auth/sessions`);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -301,7 +301,7 @@ export const revokeUserSession = async (sessionId: string): Promise<void> =>
     {
         await apiClient.delete(`/auth/sessions/${sessionId}`);
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -313,7 +313,7 @@ export const deleteUserSessionRecord = async (sessionId: string): Promise<void> 
     {
         await apiClient.delete(`/auth/sessions/${sessionId}/record`);
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -328,7 +328,7 @@ export const getOrgMemberCapacity = async (orgId: string): Promise<OrgMemberCapa
         const response = await apiClient.get(`/auth/organizations/${orgId}/member-capacity`);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -444,7 +444,7 @@ export const getOrgAuthSessionPolicy = async (orgId: string): Promise<OrgAuthSes
         const response = await apiClient.get(`/organizations/${orgId}/auth/session-policy`);
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -464,7 +464,7 @@ export const updateOrgIdpAuthSessionPolicy = async (
         );
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }

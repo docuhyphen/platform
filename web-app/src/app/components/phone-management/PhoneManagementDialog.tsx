@@ -67,10 +67,11 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
         setVerificationCode(e.target.value);
     }
 
-    const extractErrorMessage = (e: any, fallback: string): string =>
+    const extractErrorMessage = (e: unknown, fallback: string): string =>
     {
         if (typeof e === "string") return e;
-        const msg = e?.errorMessage || e?.message || e?.response?.data?.errorMessage || e?.response?.data?.message;
+        const error = e as { errorMessage?: string; message?: string; response?: { data?: { errorMessage?: string; message?: string } } };
+        const msg = error.errorMessage || error.message || error.response?.data?.errorMessage || error.response?.data?.message;
         if (msg) return msg;
         return "Something went wrong. Please try again in a moment.";
     }
@@ -104,7 +105,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
             await initiatePhoneAddition(contactDetails.id, phoneNumber!, token);
             setAddOrEditInitiated(true);
         }
-        catch (e: any)
+        catch (e: unknown)
         {
             setError(extractErrorMessage(e, "Failed to initiate phone number addition"));
             console.error("Failed to initiate phone number addition:", e);
@@ -152,7 +153,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
 
             onDismiss();
         }
-        catch (e: any)
+        catch (e: unknown)
         {
             setError(extractErrorMessage(e, "Failed to complete phone number addition"));
             console.error("Failed to complete phone number addition:", e);
@@ -182,7 +183,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
             await initiatePhoneUpdate(contactDetails.id, phoneNumber!, token);
             setAddOrEditInitiated(true);
         }
-        catch (e: any)
+        catch (e: unknown)
         {
             setError(extractErrorMessage(e, "Failed to initiate phone number update"));
             console.error("Failed to initiate phone number update:", e);
@@ -230,7 +231,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
 
             onDismiss();
         }
-        catch (e: any)
+        catch (e: unknown)
         {
             setError(extractErrorMessage(e, "Failed to complete phone number update"));
             console.error("Failed to complete phone number update:", e);

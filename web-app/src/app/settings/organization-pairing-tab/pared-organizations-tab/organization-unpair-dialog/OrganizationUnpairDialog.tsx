@@ -1,4 +1,4 @@
-﻿import React, {useState} from "react";
+import React, {useState} from "react";
 import {
     Button,
     Dialog,
@@ -50,7 +50,7 @@ const OrganizationUnpairDialog: React.FC<UnpairOrganizationDialogProps> = (
             await deleteOrganizationLink(orgPair!.id, token);
             onUnpaired(orgPair!);
         }
-        catch (error: ResponseError | any)
+        catch (error: unknown)
         {
             const errorMessage = ((error as ResponseError)?.errorMessage) || "An unknown error occurred attempting to unpair";
             setDialogErrorMessage(errorMessage);

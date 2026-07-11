@@ -55,6 +55,4 @@ export function getHelpDocArticleById(articleId: string): HelpDocArticle | undef
     return HELP_DOC_ARTICLES.find((article) => article.id === articleId);
 }
 export function getHelpDocSections()
-{
-    return helpDocSections;
-}
+{ return helpDocSections; }

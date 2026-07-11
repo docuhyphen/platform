@@ -463,7 +463,14 @@ const WorkflowsListView = ({activeTab, onActiveTabChange, onEdit, onNew}: Props)
                                         ) : (
                                             <Menu>
                                             <MenuTrigger disableButtonEnhancement>
-                                                <Button size="small" appearance="subtle" shape="circular" icon={<MoreVerticalRegular/>} aria-label="More actions"/>
+                                                <Button
+                                                    id={`workflows-table-more-actions-btn-${def.id}`}
+                                                    size="small"
+                                                    appearance="subtle"
+                                                    shape="circular"
+                                                    icon={<MoreVerticalRegular/>}
+                                                    aria-label="More actions"
+                                                />
                                             </MenuTrigger>
                                             <MenuPopover>
                                                 <MenuList>

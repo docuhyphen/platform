@@ -339,7 +339,7 @@ class RealtimeService
 
     private dispatch(msg: RealtimeMessage): void
     {
-        // Built-in auth-event handling: any device-level revocation triggers the existing
+        // Built-in auth-event handling: every device-level revocation triggers the existing
         // auth-session-expired event. AuthContext already wires this to a redirect.
         if (msg.type === 'EXCHANGE_REVOKED' || msg.type === 'PASSWORD_CHANGED')
         {

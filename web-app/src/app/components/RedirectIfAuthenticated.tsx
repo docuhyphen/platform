@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {Navigate} from 'react-router-dom';
 import {useAuth} from '../../context/AuthContext';
 import AuthBootstrapSplash from "./AuthBootstrapSplash.tsx";
@@ -15,11 +15,11 @@ import AuthBootstrapSplash from "./AuthBootstrapSplash.tsx";
  * redirecting, and we redirect to the *correct* landing page directly.
  *
  * State table:
- *   bootstrapping            → splash (cookie refresh probe still in flight)
- *   no token                 → render the wrapped element (e.g. SignIn)
- *   token, no appUser yet    → render the wrapped element (still mid-load)
- *   token + appUser, no person → /onboarding/individual
- *   token + appUser + person → /exchanges
+ *   bootstrapping             to  splash (cookie refresh probe still in flight)
+ *   no token                  to  render the wrapped element (e.g. SignIn)
+ *   token, no appUser yet     to  render the wrapped element (still mid-load)
+ *   token + appUser, no person  to  /onboarding/individual
+ *   token + appUser + person  to  /exchanges
  */
 const RedirectIfAuthenticated: React.FC<{ element: React.ReactElement }> = ({element}) =>
 {
@@ -32,20 +32,20 @@ const RedirectIfAuthenticated: React.FC<{ element: React.ReactElement }> = ({ele
         return <AuthBootstrapSplash/>;
     }
 
-    // Not authenticated → show the public page.
+    // Not authenticated  to  show the public page.
     if (!token)
     {
         return element;
     }
 
-    // Authenticated but AppUser hasn't loaded yet → keep the page rendered
+    // Authenticated but AppUser hasn't loaded yet  to  keep the page rendered
     // so the in-flight sign-in flow can finish without a bounce.
     if (!appUser)
     {
         return element;
     }
 
-    // Authenticated and we know the onboarding state → redirect to the
+    // Authenticated and we know the onboarding state  to  redirect to the
     // correct landing page in a single navigation (no intermediate menu render).
     if (!appUser.person)
     {

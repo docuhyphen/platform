@@ -80,7 +80,7 @@ const AppUserDeactivateDialog: React.FC<AppUserDeactivateDialogProps> = (
         {
             setCanBeDeleted(false);
 
-            if ((error as any).response?.status === 409)
+            if ((error as { response?: { status?: number } }).response?.status === 409)
             {
                 setAppUserDeletionMessage(
                     "This app user cannot be deleted because they are associated with existing data. Please deactivate instead."
@@ -109,7 +109,7 @@ const AppUserDeactivateDialog: React.FC<AppUserDeactivateDialogProps> = (
             await deleteOrganizationAppUser(organizationId, appUser.id!, token!);
             onDeleted(appUser.id!);
         }
-        catch (error: ResponseError | any)
+        catch (error: unknown)
         {
             const errorMessage = ((error as ResponseError)?.errorMessage);
 
@@ -152,7 +152,7 @@ const AppUserDeactivateDialog: React.FC<AppUserDeactivateDialogProps> = (
 
             onDeactivated(appUser.id!);
         }
-        catch (err: any)
+        catch (err: unknown)
         {
             console.error("Failed to deactivate user:", err);
         }

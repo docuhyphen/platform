@@ -12,7 +12,7 @@ export const fetchAppUser = async (token: string | null) =>
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -35,7 +35,7 @@ export const fetchAppUserPersonOrganization = async (appUserId?: string, personI
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error;
     }
@@ -52,7 +52,7 @@ export const registerIndividual = async (request: PersonRegistrationRequest, tok
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -69,7 +69,7 @@ export const registerOrganization = async (request: OrganizationRegistrationRequ
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -86,7 +86,7 @@ export const updateAppUserSettings = async (request: AppUserSettingsDto, token: 
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -107,7 +107,7 @@ export const initiateAppUserEmailUpdate = async (email: string, token: string | 
         );
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -128,7 +128,7 @@ export const confirmOldAppUserEmailForUpdate = async (verificationCode: string, 
         );
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -149,7 +149,7 @@ export const completeAppUserEmailUpdate = async (email: string, verificationCode
         );
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }

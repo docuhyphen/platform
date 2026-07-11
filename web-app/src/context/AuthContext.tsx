@@ -1,4 +1,4 @@
-﻿import React, {createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState} from 'react';
+import React, {createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {fetchAppUser, fetchAppUserPersonOrganization, fetchCurrentSession} from '../services/appUserApi.ts';
 import {AppUserDetailedDto, Capability, CurrentSessionDto, OrganizationDetailedDto, SessionOrganizationOptionDto} from "../app/models/models.tsx";
 import {getTokenSecondsToExpiry, isTokenExpired} from "../utils/helpers.ts";
@@ -463,7 +463,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
                     {
                         setAppUserPersonOrganization(await fetchAppUserPersonOrganization(appUser?.id, appUser?.person?.id, accessToken));
                     }
-                    catch (error: any)
+                    catch (error: unknown)
                     {
                         if (error.response?.status === 404)
                         {
@@ -481,13 +481,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
                     setCurrentSession(session);
                     applyOrgResolution(session);
                 }
-                catch (error: any)
+                catch (error: unknown)
                 {
                     console.error("Failed to fetch current session:", error);
                 }
             }
         }
-        catch (error: any)
+        catch (error: unknown)
         {
             console.error("Failed to fetch user data:", error);
             setAccessToken(null);
@@ -520,7 +520,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
             setCurrentSession(session);
             applyOrgResolution(session);
         }
-        catch (error: any)
+        catch (error: unknown)
         {
             console.error("Failed to refresh session after org switch:", error);
         }

@@ -436,6 +436,7 @@ const DocumentLibraryTab = () =>
                                 ))}
                             </TagGroup>
                             <Button
+                                id="doc-clear-tags-btn"
                                 size="small"
                                 appearance="outline"
                                 shape={"circular"}

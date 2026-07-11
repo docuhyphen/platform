@@ -105,7 +105,7 @@ const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
         return data;
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -191,7 +191,7 @@ export const getExchangeSchema = async (
         return status === 204 ? null : data;
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }

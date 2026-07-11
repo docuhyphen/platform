@@ -381,8 +381,10 @@ const BlueprintsTab = () =>
                                 ))}
                             </TagGroup>
                             <Button
+                                id="blueprint-clear-tags-btn"
                                 size="small"
                                 appearance="subtle"
+                                shape="circular"
                                 onClick={() => { setSelectedTags(new Set()); setCurrentPage(0); }}
                             >
                                 Clear all
@@ -546,7 +548,14 @@ const BlueprintsTab = () =>
                                         {activeTab === 'APP' && !canManageItem(bp) && (
                                             <Menu>
                                                 <MenuTrigger disableButtonEnhancement>
-                                                    <Button size="small" appearance="subtle" shape="circular" icon={<MoreVerticalRegular/>} aria-label="More actions"/>
+                                                    <Button
+                                                        id={`button-blueprint-more-table-readonly-${bp.id}`}
+                                                        size="small"
+                                                        appearance="subtle"
+                                                        shape="circular"
+                                                        icon={<MoreVerticalRegular/>}
+                                                        aria-label="More actions"
+                                                    />
                                                 </MenuTrigger>
                                                 <MenuPopover>
                                                     <MenuList>
@@ -561,7 +570,14 @@ const BlueprintsTab = () =>
                                         {canManageItem(bp) && (
                                             <Menu>
                                                 <MenuTrigger disableButtonEnhancement>
-                                                    <Button size="small" appearance="subtle" shape="circular" icon={<MoreVerticalRegular/>} aria-label="More actions"/>
+                                                    <Button
+                                                        id={`button-blueprint-more-table-${bp.id}`}
+                                                        size="small"
+                                                        appearance="subtle"
+                                                        shape="circular"
+                                                        icon={<MoreVerticalRegular/>}
+                                                        aria-label="More actions"
+                                                    />
                                                 </MenuTrigger>
                                                 <MenuPopover>
                                                     <MenuList>

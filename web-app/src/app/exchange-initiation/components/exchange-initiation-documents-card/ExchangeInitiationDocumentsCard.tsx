@@ -110,7 +110,14 @@ const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
                             value={document.restrictedType ?? ''}
                             size="small"
                             placeholder="Select allowed upload type"
-                            onOptionSelect={(_e, data) => onDocumentTypeChange(index, data.optionValue as any)}
+                            onOptionSelect={(_e, data) =>
+                            {
+                                const selectedType = data.optionValue as DocumentType | ImageType | undefined;
+                                if (selectedType)
+                                {
+                                    onDocumentTypeChange(index, selectedType);
+                                }
+                            }}
                         >
                             <OptionGroup label="Documents">
                                 {Object.values(DocumentType).map((option) => (

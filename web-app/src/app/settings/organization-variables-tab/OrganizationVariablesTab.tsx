@@ -254,7 +254,13 @@ const OrganizationVariablesTab = forwardRef<OrganizationVariablesTabHandle, Orga
                                         <td className={styles.td}>
                                             <Menu>
                                                 <MenuTrigger disableButtonEnhancement>
-                                                    <Button size="small" appearance="subtle" shape="circular" icon={<MoreVerticalRegular/>}/>
+                                                    <Button
+                                                        id={`button-org-var-menu-table-${v.id}`}
+                                                        size="small"
+                                                        appearance="subtle"
+                                                        shape="circular"
+                                                        icon={<MoreVerticalRegular/>}
+                                                    />
                                                 </MenuTrigger>
                                                 <MenuPopover>
                                                     <MenuList>

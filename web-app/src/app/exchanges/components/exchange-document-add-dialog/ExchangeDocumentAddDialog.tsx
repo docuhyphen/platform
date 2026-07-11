@@ -1,4 +1,4 @@
-﻿import {DocumentDetailedDto, DocumentType, ImageType} from "../../../models/models.tsx";
+import {DocumentDetailedDto, DocumentType, ImageType} from "../../../models/models.tsx";
 import React, {useState} from "react";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {
@@ -95,7 +95,7 @@ const AddDocumentDialog: React.FC<AddDocumentDialogProps> = (
             resetState();
             onDismiss();
         }
-        catch (error: any)
+        catch (error: unknown)
         {
             setDialogErrorMessage("Error adding document");
             console.error(error);

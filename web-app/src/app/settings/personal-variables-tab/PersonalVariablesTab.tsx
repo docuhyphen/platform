@@ -244,7 +244,13 @@ const PersonalVariablesTab = forwardRef<PersonalVariablesTabHandle, PersonalVari
                                     <td className={styles.td}>
                                         <Menu>
                                             <MenuTrigger disableButtonEnhancement>
-                                                <Button size="small" appearance="subtle" shape="circular" icon={<MoreVerticalRegular/>}/>
+                                                <Button
+                                                    id={`button-personal-var-menu-table-${v.id}`}
+                                                    size="small"
+                                                    appearance="subtle"
+                                                    shape="circular"
+                                                    icon={<MoreVerticalRegular/>}
+                                                />
                                             </MenuTrigger>
                                             <MenuPopover>
                                                 <MenuList>

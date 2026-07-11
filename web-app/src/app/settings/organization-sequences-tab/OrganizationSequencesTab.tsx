@@ -315,7 +315,13 @@ const OrganizationSequencesTab = () =>
                                         <td className={styles.td}>
                                             <Menu>
                                                 <MenuTrigger disableButtonEnhancement>
-                                                    <Button size="small" appearance="subtle" shape="circular" icon={<MoreVerticalRegular/>}/>
+                                                    <Button
+                                                        id={`button-seq-menu-table-${seq.id}`}
+                                                        size="small"
+                                                        appearance="subtle"
+                                                        shape="circular"
+                                                        icon={<MoreVerticalRegular/>}
+                                                    />
                                                 </MenuTrigger>
                                                 <MenuPopover>
                                                     <MenuList>
@@ -371,7 +377,7 @@ const OrganizationSequencesTab = () =>
                     </Field>
                     <Field
                         label="Pad Width"
-                        hint="0 = no padding, 3 → 007"
+                        hint="0 = no padding, 3  to  007"
                     >
                         <Input
                             id={"input-seq-pad-width"}

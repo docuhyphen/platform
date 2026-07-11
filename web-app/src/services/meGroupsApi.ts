@@ -16,7 +16,7 @@ const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
         const {data} = await fn();
         return data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }

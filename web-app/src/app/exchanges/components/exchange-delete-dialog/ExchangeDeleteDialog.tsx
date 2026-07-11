@@ -128,7 +128,8 @@ const ExchangeDeleteDialog: React.FC<ExchangeDeleteDialogProps> = (
                     </DialogContent>
                     <DialogActions>
                         {deleteStarted ? (
-                            <Button appearance="primary"
+                            <Button id="exchange-delete-countdown-cancel-btn"
+                                    appearance="primary"
                                     className={globalStyles.buttonWithLoading}
                                     shape={"circular"}
                                     onClick={onCancel}>
@@ -136,7 +137,8 @@ const ExchangeDeleteDialog: React.FC<ExchangeDeleteDialogProps> = (
                             </Button>
                         ) : (
                             <>
-                                <Button appearance="primary"
+                                <Button id="exchange-delete-confirm-btn"
+                                        appearance="primary"
                                         className={globalStyles.buttonWithLoading}
                                         shape={"circular"}
                                         onClick={onDelete}>
@@ -144,7 +146,8 @@ const ExchangeDeleteDialog: React.FC<ExchangeDeleteDialogProps> = (
                                     Yes, Delete
                                 </Button>
                                 <DialogTrigger disableButtonEnhancement>
-                                    <Button appearance="secondary"
+                                    <Button id="exchange-delete-cancel-btn"
+                                            appearance="secondary"
                                             shape={"circular"}
                                             disabled={deletingExchange}
                                             onClick={onDismiss}>

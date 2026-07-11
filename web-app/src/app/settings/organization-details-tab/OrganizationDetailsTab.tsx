@@ -56,7 +56,7 @@ const OrganizationDetailsTab = () =>
             setOrganization(organization);
             setOrganizationSettings(organization.settings);
         }
-        catch (err: any)
+        catch (err: unknown)
         {
             if (err instanceof AxiosError)
             {
@@ -100,7 +100,7 @@ const OrganizationDetailsTab = () =>
                 settings: updatedSettings
             });
         }
-        catch (err: any)
+        catch (err: unknown)
         {
             setError(err.message || "Failed to update organization settings");
             console.error("Failed to update organization settings:", err);

@@ -94,10 +94,11 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
         }
     }, [isOpen]);
 
-    const extractErrorMessage = (e: any): string =>
+    const extractErrorMessage = (e: unknown): string =>
     {
         if (typeof e === "string") return mapServerErrorMessage(e);
-        const msg = e?.errorMessage || e?.message || e?.response?.data?.errorMessage || e?.response?.data?.message;
+        const error = e as { errorMessage?: string; message?: string; response?: { data?: { errorMessage?: string; message?: string } } };
+        const msg = error.errorMessage || error.message || error.response?.data?.errorMessage || error.response?.data?.message;
         return mapServerErrorMessage(msg);
     }
 
@@ -138,7 +139,7 @@ const AddAppUserDialog: React.FC<AddUserDialogProps> = (
             resetForm();
             onComplete();
         }
-        catch (err: any)
+        catch (err: unknown)
         {
             setError(extractErrorMessage(err));
             console.error("Failed to add user:", err);

@@ -132,6 +132,7 @@ const ExchangeDocumentDeleteDialog: React.FC<DeleteDocumentDialogProps> = (
                     <DialogActions>
                         {deleteStarted ? (
                             <Button
+                                id="document-delete-countdown-cancel-btn"
                                 appearance="primary"
                                 shape="circular"
                                 onClick={onCancel}>
@@ -140,6 +141,7 @@ const ExchangeDocumentDeleteDialog: React.FC<DeleteDocumentDialogProps> = (
                         ) : (
                             <>
                                 <Button
+                                    id="document-delete-confirm-btn"
                                     appearance="primary"
                                     className={globalStyles.buttonWithLoading}
                                     shape="circular"
@@ -149,6 +151,7 @@ const ExchangeDocumentDeleteDialog: React.FC<DeleteDocumentDialogProps> = (
                                 </Button>
                                 <DialogTrigger disableButtonEnhancement>
                                     <Button
+                                        id="document-delete-cancel-btn"
                                         appearance="secondary"
                                         shape="circular"
                                         disabled={deletingDocument}

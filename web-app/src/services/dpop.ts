@@ -136,12 +136,27 @@ export const dpopProofFor = async (httpMethod: string, requestUrl: string): Prom
     return `${signingInput}.${sigB64}`;
 };
 
+type DpopHeaderBag = {
+    [key: string]: unknown;
+    set?: (name: string, value: string) => void;
+};
+
 /** Wire into the axios request interceptor by adding a DPoP header to every request. */
-export const attachDpopToAxiosConfig = async (config: {method?: string; url?: string; baseURL?: string; headers: Record<string, unknown>}): Promise<void> =>
+export const attachDpopToAxiosConfig = async (config: {method?: string; url?: string; baseURL?: string; headers?: DpopHeaderBag}): Promise<void> =>
 {
     if (!isEnabled()) return;
     const method = config.method ?? 'GET';
     const url = (config.baseURL ?? '') + (config.url ?? '');
     const proof = await dpopProofFor(method, url);
-    if (proof) config.headers['DPoP'] = proof;
+    if (proof && config.headers)
+    {
+        if (typeof config.headers.set === 'function')
+        {
+            config.headers.set('DPoP', proof);
+        }
+        else
+        {
+            config.headers['DPoP'] = proof;
+        }
+    }
 };

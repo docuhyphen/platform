@@ -16,7 +16,7 @@ export const addBearerToHeaderToken = (token: string | null): string =>
 
 let authToken: string | null = null;
 let activeOrganizationId: string | null = null;
-let refreshPromise: Promise<any> | null = null;
+let refreshPromise: Promise<{data: {accessToken?: string}}> | null = null;
 
 export const setApiClientAuthToken = (token: string | null) =>
 {
@@ -45,7 +45,7 @@ apiClient.interceptors.request.use(async (config) =>
         }
 
         // DPoP: attach a fresh per-request proof when enabled. No-op when disabled.
-        await attachDpopToAxiosConfig(config as any);
+        await attachDpopToAxiosConfig(config);
 
         return config;
     },
@@ -107,7 +107,7 @@ apiClient.interceptors.response.use(
             }
         }
 
-        // 401 with STEP_UP_REQUIRED → drive the global step-up modal, then retry the original request.
+        // 401 with STEP_UP_REQUIRED  to  drive the global step-up modal, then retry the original request.
         if (
             error.response?.status === 401 &&
             error.response?.data?.reasonCode === 'STEP_UP_REQUIRED' &&
@@ -126,11 +126,11 @@ apiClient.interceptors.response.use(
             }
             catch (cancelErr)
             {
-                return Promise.reject(error);
+                return Promise.reject(cancelErr);
             }
         }
 
-        // 403 with a deprovisioning or security reason code → treat as forced session end
+        // 403 with a deprovisioning or security reason code  to  treat as forced session end
         if (error.response?.status === 403)
         {
             const reasonCode: string = error.response?.data?.reasonCode ?? '';

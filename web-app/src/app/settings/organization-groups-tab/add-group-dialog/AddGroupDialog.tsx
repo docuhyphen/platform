@@ -96,7 +96,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
             const fetched = await fetchMyOrganizationUsers(token || undefined);
             setUsers(fetched.filter(u => u.isActive));
         }
-        catch (err: any)
+        catch (err: unknown)
         {
             setError(err.message || "Failed to load users");
             console.error("Failed to load users:", err);
@@ -134,7 +134,7 @@ const AddGroupDialog: React.FC<AddGroupDialogProps> = (
             resetForm();
             onComplete();
         }
-        catch (err: any)
+        catch (err: unknown)
         {
             setError(err.message || "Failed to create group");
             console.error("Failed to create group:", err);

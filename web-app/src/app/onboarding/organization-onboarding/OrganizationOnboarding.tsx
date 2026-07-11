@@ -1,4 +1,4 @@
-﻿import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {useOnboardingStyles} from '../OnboardingStyles.tsx';
 import AppLogo from "../../components/app-logo/AppLogo.tsx";
 import {
@@ -37,7 +37,7 @@ const OrganizationOnboarding: React.FC = () =>
                 setAppUserPersonOrganization(await fetchAppUserPersonOrganization(appUser?.id, appUser?.person?.id, token!!));
                 navigate('/exchanges');
             }
-            catch (error: any)
+            catch (error: unknown)
             {
                 if (error.response?.status === 404)
                 {

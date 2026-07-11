@@ -12,7 +12,10 @@ export const handleCheckboxChange = (setter: (value: boolean) => void) => (ev: C
     setter(ev.target.checked);
 };
 
-export const handleDocumentChange = (documents: ExchangeRequestDocumentRequest[], setDocuments: (docs: ExchangeRequestDocumentRequest[]) => void) => (index: number, key: keyof ExchangeRequestDocumentRequest, value: any) =>
+export const handleDocumentChange = <K extends keyof ExchangeRequestDocumentRequest>(
+    documents: ExchangeRequestDocumentRequest[],
+    setDocuments: (docs: ExchangeRequestDocumentRequest[]) => void
+) => (index: number, key: K, value: ExchangeRequestDocumentRequest[K]) =>
 {
     const updatedDocuments = [...documents];
     updatedDocuments[index][key] = value;

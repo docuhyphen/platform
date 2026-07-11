@@ -56,10 +56,11 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
     const [newEmailCode, setNewEmailCode] = useState("");
     const [error, setError] = useState<string | null>(null);
 
-    const extractErrorMessage = (e: any): string =>
+    const extractErrorMessage = (e: unknown): string =>
     {
         if (typeof e === "string") return e;
-        const msg = e?.errorMessage || e?.message || e?.response?.data?.errorMessage || e?.response?.data?.message;
+        const error = e as { errorMessage?: string; message?: string; response?: { data?: { errorMessage?: string; message?: string } } };
+        const msg = error.errorMessage || error.message || error.response?.data?.errorMessage || error.response?.data?.message;
         if (msg) return msg;
         return "Something went wrong. Please try again in a moment.";
     }
@@ -97,7 +98,7 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
             await initiateAppUserEmailUpdate(trimmed, token);
             setStage(UpdateStage.CONFIRM_OLD);
         }
-        catch (e: any)
+        catch (e: unknown)
         {
             setError(extractErrorMessage(e));
             console.error("Failed to initiate email update:", e);
@@ -126,7 +127,7 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
             await confirmOldAppUserEmailForUpdate(oldEmailCode.trim(), token);
             setStage(UpdateStage.CONFIRM_NEW);
         }
-        catch (e: any)
+        catch (e: unknown)
         {
             setError(extractErrorMessage(e));
             console.error("Failed to confirm old email:", e);
@@ -161,7 +162,7 @@ const AppUserEmailUpdateDialog: React.FC<AppUserEmailUpdateDialogProps> = (
                 }
             });
         }
-        catch (e: any)
+        catch (e: unknown)
         {
             setError(extractErrorMessage(e));
             console.error("Failed to complete email update:", e);

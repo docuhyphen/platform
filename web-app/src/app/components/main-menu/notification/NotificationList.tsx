@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {useNavigate} from 'react-router-dom';
 import {
     Button,
@@ -32,7 +32,7 @@ const NotificationList: React.FC = () =>
     {
         markAsRead(notification.id);
 
-        // Workflow step assigned → navigate to session if available
+        // Workflow step assigned  to  navigate to session if available
         if (WORKFLOW_NOTIFICATION_TYPES.includes(notification.type as string))
         {
             const sid = notification.exchangeId || notification.data?.exchangeId;

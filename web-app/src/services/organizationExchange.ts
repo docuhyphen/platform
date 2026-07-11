@@ -1,4 +1,4 @@
-﻿import apiClient, {addBearerToHeaderToken} from './apiClient';
+import apiClient, {addBearerToHeaderToken} from './apiClient';
 import {OrganizationBasicDto, OrganizationExchangeLinkBasicDto, ResponseError} from "../app/models/models.tsx";
 
 const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
@@ -8,7 +8,7 @@ const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
         const {data} = await fn();
         return data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }

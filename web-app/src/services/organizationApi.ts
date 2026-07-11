@@ -1,4 +1,4 @@
-﻿import apiClient, {addBearerToHeaderToken} from './apiClient';
+import apiClient, {addBearerToHeaderToken} from './apiClient';
 import {
     AppUserPublicDto,
     Organization,
@@ -17,7 +17,7 @@ export const fetchOrganization = async (organizationId: string, token?: string) 
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -35,7 +35,7 @@ export const updateOrganization = async (organizationId: string, data: {
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -50,7 +50,7 @@ export const updateOrganizationSettings = async (organizationId: string, setting
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -62,7 +62,10 @@ export interface OrganizationGroupBasicDto
     name: string;
     description?: string;
     organizationId: string;
-    members: any;
+    members: Array<{
+        user?: AppUserPublicDto;
+        groupRole?: PrincipalGroupRoleName;
+    }>;
 }
 
 export const fetchOrganizationGroups = async (organizationId: string, token?: string) =>
@@ -74,7 +77,7 @@ export const fetchOrganizationGroups = async (organizationId: string, token?: st
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -100,7 +103,7 @@ export const addOrganizationGroup = async (
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -128,7 +131,7 @@ export const updateOrganizationGroup = async (
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -147,7 +150,7 @@ export const deleteOrganizationGroup = async (
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -174,7 +177,7 @@ export const uploadOrganizationGroupIcon = async (
         );
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -194,7 +197,7 @@ export const deleteOrganizationGroupIcon = async (
         );
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -209,7 +212,7 @@ export const fetchOrganizationUsers = async (organizationId: string, token?: str
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -228,7 +231,7 @@ export const addOrganizationUser = async (
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -254,7 +257,7 @@ export const updateOrganizationUser = async (
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -269,7 +272,7 @@ export const deactivateOrganizationUser = async (organizationId: string, appUser
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -284,7 +287,7 @@ export const checkAppUserIsDeletable = async (organizationId: string, appUserId:
         });
         return true;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         if (error.response?.status === 409)
         {
@@ -303,7 +306,7 @@ export const deleteOrganizationAppUser = async (organizationId: string, appUserI
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -318,13 +321,13 @@ export const fetchPairedOrganizations = async (token?: string): Promise<Organiza
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
 };
 
-export const fetchPairedOrganizationUsers = async (orgId?: string, token?: string): Promise<any[]> =>
+export const fetchPairedOrganizationUsers = async (orgId?: string, token?: string): Promise<AppUserPublicDto[]> =>
 {
     try
     {
@@ -333,7 +336,7 @@ export const fetchPairedOrganizationUsers = async (orgId?: string, token?: strin
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -348,7 +351,7 @@ export const fetchPairedOrganizationGroups  = async (orgId?: string, token?: str
         });
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -361,7 +364,7 @@ export const fetchMyOrganizationUsers = async (token?: string): Promise<AppUserP
         const currentOrg = await fetchCurrentUserOrganization(token);
         return fetchOrganizationUsers(currentOrg.id!, token);
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -374,7 +377,7 @@ export const fetchMyOrganizationGroups = async (token?: string) =>
         const currentOrg = await fetchCurrentUserOrganization(token);
         return fetchOrganizationGroups(currentOrg.id!, token);
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -394,7 +397,7 @@ const fetchCurrentUserOrganization = async (token?: string): Promise<Organizatio
 
         return response.data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }

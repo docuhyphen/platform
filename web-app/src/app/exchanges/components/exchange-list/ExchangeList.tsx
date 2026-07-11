@@ -1,4 +1,4 @@
-﻿import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {searchExchanges} from "../../../../services/exchangeApi.ts";
 import {Button, CounterBadge, List, Tab, TabList, Text} from "@fluentui/react-components";
 import {ExchangeBasicDto, ExchangeStatus} from "../../../models/models.tsx";
@@ -529,7 +529,7 @@ const ExchangeList: React.FC<ExchangeListProps> = (
 
     // Debounced re-fetch on search / initiator-filter changes only. Tab and inbox-role changes
     // are already handled immediately by the navigation effect above; they remain in this
-    // effect's deps solely so it can detect them, resync, and skip — otherwise a second
+    // effect's deps solely so it can detect them, resync, and skip  -  otherwise a second
     // debounced fetch would flash the empty state. This effect must NOT share the navigation
     // effect's first-render ref (the navigation effect flips it before this one reads it).
     useEffect(() =>

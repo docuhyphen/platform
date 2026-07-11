@@ -29,6 +29,7 @@ import {
 import {
     AvailableVariablesDto,
     BlueprintConfig,
+    BlueprintDefinitionDto,
     BlueprintDefinitionSummaryDto,
     BlueprintDocumentConfig,
     BlueprintFieldDefaultConfig,
@@ -108,7 +109,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
         {
             setName(blueprint.name);
             setSummary(blueprint.summary ?? '');
-            setDescription((blueprint as any).description ?? '');
+            setDescription((blueprint as BlueprintDefinitionDto).description ?? '');
             setTags(blueprint.generalTags);
             try { setConfig(JSON.parse(blueprint.configJson)); }
             catch { setConfig(emptyConfig()); }
@@ -195,7 +196,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
             }
             onSaved();
         }
-        catch (e: any)
+        catch (e: unknown)
         {
             setError(typeof e === 'string' ? e : 'Failed to save blueprint');
         }

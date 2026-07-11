@@ -58,11 +58,12 @@ interface TokenChipProps
     token: string;
     available: AvailableVariablesDto;
     resolved?: Record<string, string>;
+    removeButtonId: string;
     onRemove: () => void;
     disabled?: boolean;
 }
 
-const TokenChip: React.FC<TokenChipProps> = ({token, available, resolved, onRemove, disabled}) =>
+const TokenChip: React.FC<TokenChipProps> = ({token, available, resolved, removeButtonId, onRemove, disabled}) =>
 {
     const styles = useVariableTokenInputStyles();
     const isSystem = available.system.some(s => s.token === token);
@@ -77,7 +78,7 @@ const TokenChip: React.FC<TokenChipProps> = ({token, available, resolved, onRemo
     const preview = getPreviewLabel(token, available, resolved);
 
     return (
-        <Tooltip content={`{{${token}}} → ${preview}`} relationship="description">
+        <Tooltip content={`{{${token}}} resolves to ${preview}`} relationship="description">
             <Badge
                 appearance="tint"
                 color={color}
@@ -86,6 +87,7 @@ const TokenChip: React.FC<TokenChipProps> = ({token, available, resolved, onRemo
                 {token}
                 {!disabled && (
                     <Button
+                        id={removeButtonId}
                         size="small"
                         appearance="transparent"
                         shape="circular"
@@ -123,6 +125,7 @@ function PickerGroup<T>({label, items, getKey, getLabel, getBadge, badgeColor, o
             <div className={styles.pickerGroupList}>
                 {items.map(item => (
                     <Button
+                        id={`variable-token-picker-${label.toLowerCase().replace(/\s+/g, "-")}-${getKey(item)}`}
                         key={getKey(item)}
                         appearance="subtle"
                         size="small"
@@ -200,6 +203,7 @@ const VariableTokenInput: React.FC<VariableTokenInputProps> = ({
                     token={token}
                     available={availableVariables}
                     resolved={resolvedPreview}
+                    removeButtonId={`variable-token-remove-${i}`}
                     onRemove={() => removeToken(start, end)}
                     disabled={disabled}
                 />
@@ -290,6 +294,7 @@ const VariableTokenInput: React.FC<VariableTokenInputProps> = ({
                         className={styles.fullWidth}
                         contentAfter={
                             <Button
+                                id="variable-token-insert-btn"
                                 size="small"
                                 appearance="transparent"
                                 shape="circular"

@@ -228,7 +228,7 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
                                                                 {STEP_TYPE_LABELS[step.type] ?? step.type}
                                                                 {step.assignees.length > 0 && (
                                                                     <span className={styles.mutedSpan}>
-                                                                        {" — "}{step.assignees.length} assignee{step.assignees.length !== 1 ? "s" : ""}
+                                                                        {"  -  "}{step.assignees.length} assignee{step.assignees.length !== 1 ? "s" : ""}
                                                                     </span>
                                                                 )}
                                                             </Text>

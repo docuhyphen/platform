@@ -203,7 +203,7 @@ const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
                 <div className={styles.uploadButtonRow}>
                     <Button
                         id={"exchange-document-version-upload-btn"}
-                        appearance="secondary\"
+                        appearance="secondary"
                         shape="circular"
                         size="small"
                         icon={<ArrowUploadRegular/>}
@@ -233,6 +233,7 @@ const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
             >
                 <DialogSurface className={styles.previewDialogSurface}>
                     <Button
+                        id="version-preview-close-btn"
                         appearance="subtle"
                         shape="circular"
                         size="small"

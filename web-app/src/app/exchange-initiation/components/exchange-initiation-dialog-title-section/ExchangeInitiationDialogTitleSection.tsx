@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import {Button, Tab, TabList, TabValue, Text, Tooltip} from "@fluentui/react-components";
+import {Button, SelectTabData, SelectTabEvent, Tab, TabList, TabValue, Text, Tooltip} from "@fluentui/react-components";
 import {useExchangeInitiationStyles} from "../../ExchangeInitiationStyles.tsx";
 import {
     BlueprintAddIcon,
@@ -19,7 +19,7 @@ interface DialogTitleSectionProps
     selectedBlueprintName?: string | null;
     selectedTab: TabValue;
     showFieldsTab?: boolean;
-    onTabSelect: (event: any, data: any) => void;
+    onTabSelect: (event: SelectTabEvent, data: SelectTabData) => void;
     onSaveAsBlueprint?: () => void;
 }
 
@@ -88,7 +88,8 @@ const ExchangeInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = 
                     </Text>
                 }
                 {(!choosingBlueprint && !exchangeInitiatedSuccessfully && onSaveAsBlueprint) &&
-                    <Button appearance={"subtle"}
+                    <Button id={"exchange-initiation-save-blueprint-btn"}
+                            appearance={"subtle"}
                             shape={"circular"}
                             size={"small"}
                             icon={<BlueprintAddIcon/>}

@@ -130,6 +130,7 @@ const ExchangeDocumentZipDownloadDialog: React.FC<DownloadDocumentDialogProps> =
                     </DialogContent>
                     <DialogActions>
                         <Button
+                            id="zip-download-confirm-btn"
                             appearance="primary"
                             className={globalStyles.buttonWithLoading}
                             shape={"circular"}
@@ -141,6 +142,7 @@ const ExchangeDocumentZipDownloadDialog: React.FC<DownloadDocumentDialogProps> =
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
                             <Button
+                                id="zip-download-close-btn"
                                 appearance="secondary"
                                 shape={"circular"}
                                 disabled={downloadingDocumentsZip}

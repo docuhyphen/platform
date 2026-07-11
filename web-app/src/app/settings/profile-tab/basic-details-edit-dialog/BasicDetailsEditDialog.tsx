@@ -84,7 +84,7 @@ const BasicDetailsEditDialog: React.FC<BasicDetailsEditDialogProps> = (
 
             onClose();
         }
-        catch (e: any)
+        catch (e: unknown)
         {
             console.error("Failed to update profile:", e);
             const serverMsg = e?.response?.data?.message || e?.response?.data?.errorMessage;

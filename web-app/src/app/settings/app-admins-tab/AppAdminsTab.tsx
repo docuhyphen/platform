@@ -190,6 +190,7 @@ const AppAdminsTab: React.FC = () =>
                                                         id={`btn-revoke-admin-${admin.assignmentId}`}
                                                         size="small"
                                                         appearance="subtle"
+                                                        shape="circular"
                                                         icon={<DeleteRegular/>}
                                                         disabled={busy}
                                                         onClick={() => handleRevoke(admin.assignmentId)}

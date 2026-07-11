@@ -343,6 +343,7 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
 
                                 <div className={styles.actionRow}>
                                     <Button
+                                        id={`auth-session-policy-save-${row.configId}`}
                                         appearance="primary"
                                         shape="circular"
                                         size="small"
@@ -352,6 +353,7 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
                                         {draft.saving ? "Saving…" : "Save"}
                                     </Button>
                                     <Button
+                                        id={`auth-session-policy-reset-${row.configId}`}
                                         appearance="secondary"
                                         shape="circular"
                                         size="small"

@@ -1,4 +1,4 @@
-﻿import React, {useState, useEffect, useRef} from "react";
+import React, {useState, useEffect, useRef} from "react";
 import {
     Button,
     Combobox,
@@ -46,10 +46,11 @@ const ParingRequestDialog: React.FC<ExchangeDeleteDialogProps> = (
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
-    const extractErrorMessage = (e: any): string =>
+    const extractErrorMessage = (e: unknown): string =>
     {
         if (typeof e === "string") return e;
-        const msg = e?.errorMessage || e?.message || e?.response?.data?.errorMessage || e?.response?.data?.message;
+        const error = e as { errorMessage?: string; message?: string; response?: { data?: { errorMessage?: string; message?: string } } };
+        const msg = error.errorMessage || error.message || error.response?.data?.errorMessage || error.response?.data?.message;
         if (msg) return msg;
         return "Something went wrong. Please try again in a moment.";
     }

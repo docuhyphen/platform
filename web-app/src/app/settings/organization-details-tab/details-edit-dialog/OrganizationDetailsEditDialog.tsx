@@ -42,10 +42,11 @@ const OrganizationDetailsEditDialog: React.FC<OrganizationDetailsEditDialogProps
     const [savingData, setSavingData] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const extractErrorMessage = (e: any): string =>
+    const extractErrorMessage = (e: unknown): string =>
     {
         if (typeof e === "string") return e;
-        const msg = e?.errorMessage || e?.message || e?.response?.data?.errorMessage || e?.response?.data?.message;
+        const error = e as { errorMessage?: string; message?: string; response?: { data?: { errorMessage?: string; message?: string } } };
+        const msg = error.errorMessage || error.message || error.response?.data?.errorMessage || error.response?.data?.message;
         if (msg) return msg;
         return "Something went wrong. Please try again in a moment.";
     }
@@ -89,7 +90,7 @@ const OrganizationDetailsEditDialog: React.FC<OrganizationDetailsEditDialogProps
             onComplete(updatedOrganization);
             onClose();
         }
-        catch (err: any)
+        catch (err: unknown)
         {
             setError(extractErrorMessage(err));
             console.error("Failed to update organization details:", err);

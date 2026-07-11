@@ -1,4 +1,4 @@
-﻿import React, {useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import {
     Button,
     MessageBar,
@@ -68,7 +68,7 @@ const OrganizationPairingTab = () =>
                 setOrgPairRequests(pairRequests)
             }
         }
-        catch (error: ResponseError | any)
+        catch (error: unknown)
         {
             const errorMessage = ((error as ResponseError)?.errorMessage) || "An unknown error occurred attempting to fetch pairs";
             setTabErrorMessage(errorMessage)

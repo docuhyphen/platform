@@ -1,4 +1,4 @@
-﻿import React, {useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import useToken from "../../../../../context/useToken.tsx";
 import {useGlobalStyles} from "../../../../../GlobalStyles.tsx";
 import {
@@ -57,7 +57,7 @@ const ParingRequestRejectDialog: React.FC<ParingRequestDeleteDialogProps> = (
             await acceptOrRejectOrganizationLink(orgPair.id, LinkStatus.REJECTED, token!)
             onRejected(orgPair!);
         }
-        catch (error: ResponseError | any)
+        catch (error: unknown)
         {
             const errorMessage = ((error as ResponseError)?.errorMessage) || "An unknown error occurred attempting to accept";
 

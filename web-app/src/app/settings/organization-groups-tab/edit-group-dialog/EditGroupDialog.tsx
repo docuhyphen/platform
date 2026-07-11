@@ -1,4 +1,4 @@
-﻿import {
+import {
     Button,
     Dialog,
     DialogActions,
@@ -90,7 +90,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
                 const newMembers = new Set<string>();
                 const rolesMap = new Map<string, PrincipalGroupRoleName>();
 
-                group.members?.forEach((member: any) =>
+                group.members?.forEach((member) =>
                 {
                     const uid = member.user?.id;
                     if (!uid) return;
@@ -116,7 +116,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
             setUsers(active);
             return active;
         }
-        catch (err: any)
+        catch (err: unknown)
         {
             setError(err.message || "Failed to load users");
             console.error("Failed to load users:", err);
@@ -163,9 +163,10 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
 
             onClose(true);
         }
-        catch (err: any)
+        catch (err: unknown)
         {
-            const status = (err as any)?.status ?? (err as any)?.response?.status;
+            const error = err as { status?: number; response?: { status?: number }; message?: string };
+            const status = error.status ?? error.response?.status;
             if (status === 403)
             {
                 setPermissionDenied(true);
@@ -173,7 +174,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = (
             }
             else
             {
-                setError(err.message || "Failed to update group");
+                setError(error.message || "Failed to update group");
             }
             console.error("Failed to update group:", err);
         }

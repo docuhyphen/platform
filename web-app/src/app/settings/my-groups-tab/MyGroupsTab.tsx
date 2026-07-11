@@ -105,7 +105,7 @@ const MyGroupsTab: React.FC = () =>
             // Keep managingGroup in sync with refreshed data
             setManagingGroup(prev => prev ? (data.find(g => g.id === prev.id) ?? null) : null);
         }
-        catch (err: any)
+        catch (err: unknown)
         {
             setError(err?.errorMessage || err?.message || 'Failed to load groups');
         }
@@ -149,7 +149,7 @@ const MyGroupsTab: React.FC = () =>
             resetMemberPicker();
             await loadGroups();
         }
-        catch (err: any)
+        catch (err: unknown)
         {
             setError(err?.errorMessage || err?.message || 'Failed to create group');
         }
@@ -186,7 +186,7 @@ const MyGroupsTab: React.FC = () =>
             });
             await loadGroups();
         }
-        catch (err: any)
+        catch (err: unknown)
         {
             setError(err?.errorMessage || err?.message || 'Failed to update group');
         }
@@ -212,7 +212,7 @@ const MyGroupsTab: React.FC = () =>
             await loadGroups();
             resetMemberPicker();
         }
-        catch (err: any)
+        catch (err: unknown)
         {
             setError(err?.errorMessage || err?.message || 'Failed to add member(s)');
         }
@@ -231,7 +231,7 @@ const MyGroupsTab: React.FC = () =>
             setConfirmRemove(null);
             await loadGroups();
         }
-        catch (err: any)
+        catch (err: unknown)
         {
             setError(err?.errorMessage || err?.message || 'Failed to remove member');
         }
@@ -246,7 +246,7 @@ const MyGroupsTab: React.FC = () =>
             setConfirmDeleteGroupId(null);
             await loadGroups();
         }
-        catch (err: any)
+        catch (err: unknown)
         {
             setError(err?.errorMessage || err?.message || 'Failed to delete group');
         }

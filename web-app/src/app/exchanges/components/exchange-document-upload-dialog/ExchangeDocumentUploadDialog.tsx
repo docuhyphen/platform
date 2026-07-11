@@ -296,6 +296,7 @@ const ExchangeDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
                     </DialogContent>
                     <DialogActions>
                         <Button
+                            id="upload-document-submit-btn"
                             appearance="primary"
                             className={globalStyles.buttonWithLoading}
                             onClick={onUploadDocument}
@@ -306,6 +307,7 @@ const ExchangeDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
                             <Button
+                                id="upload-document-close-btn"
                                 appearance="secondary"
                                 onClick={onDismissDialog}
                                 disabled={uploading}

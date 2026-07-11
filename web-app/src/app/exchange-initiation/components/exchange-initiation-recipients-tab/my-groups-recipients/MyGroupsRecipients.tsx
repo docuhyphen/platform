@@ -1,4 +1,4 @@
-﻿import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {Combobox, Field, Option, Spinner, Text} from '@fluentui/react-components';
 import {fetchPersonalGroups} from '../../../../../services/meGroupsApi';
 import {PrincipalGroupDto} from '../../../../../services/types/dtos';
@@ -73,7 +73,7 @@ const MyGroupsRecipients: React.FC<MyGroupsRecipientsProps> = ({recipientOrgGrou
     {
         return (
             <Text size={200} italic>
-                No personal groups yet. Create one in <strong>Settings → My Groups</strong> and then come back here.
+                No personal groups yet. Create one in <strong>Settings  to  My Groups</strong> and then come back here.
             </Text>
         );
     }

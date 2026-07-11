@@ -260,7 +260,12 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
                             </MessageBar>
                         </DialogContent>
                         <DialogActions>
-                            <Button appearance="secondary" shape={"circular"} onClick={onDismiss}>
+                            <Button
+                                id="access-mgmt-empty-close-btn"
+                                appearance="secondary"
+                                shape={"circular"}
+                                onClick={onDismiss}
+                            >
                                 Close
                             </Button>
                         </DialogActions>

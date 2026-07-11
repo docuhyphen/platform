@@ -1,4 +1,4 @@
-﻿import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
     Accordion,
     AccordionHeader,
@@ -27,7 +27,7 @@ import {PendingWorkflowStep} from '../../../../services/types/dtos';
 import {realtimeService} from '../../../../services/NotificationService';
 
 /**
- * Pending approvals popover — surfaces workflow.step_assigned items so an assignee can
+ * Pending approvals popover  -  surfaces workflow.step_assigned items so an assignee can
  * approve/reject directly from the top bar. Items are shown as a single-open accordion
  * to keep the list compact when there are many pending steps.
  */
@@ -130,7 +130,7 @@ const PendingApprovals: React.FC = () =>
                 setItems((prev) => prev.filter((p) => p.stepInstanceId !== step.stepInstanceId));
                 setOpenItemId((prev) => prev === step.stepInstanceId ? null : prev);
             }
-            catch (err: any)
+            catch (err: unknown)
             {
                 console.error('Decision failed', err);
                 setDecisionError(err?.errorMessage || err?.message || 'Failed to record decision');

@@ -268,8 +268,10 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
                             ))}
                         </TagGroup>
                         <Button
+                            id="blueprint-picker-clear-tags-btn"
                             size="small"
                             appearance="subtle"
+                            shape="circular"
                             onClick={() => { setSelectedTags(new Set()); setCurrentPage(0); }}
                         >
                             Clear all

@@ -140,7 +140,7 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
             }
             onSaved();
         }
-        catch (e: any)
+        catch (e: unknown)
         {
             setError(typeof e === 'string' ? e : 'Failed to save communication');
         }
@@ -167,7 +167,7 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
             const result = await previewCommunication(communication.id, {sampleVariables});
             setPreviewResult(result);
         }
-        catch (e: any)
+        catch (e: unknown)
         {
             setPreviewError(typeof e === 'string' ? e : 'Preview failed');
         }

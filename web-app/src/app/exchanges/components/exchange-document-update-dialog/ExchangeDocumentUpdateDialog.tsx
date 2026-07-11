@@ -121,7 +121,7 @@ const ExchangeDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
             resetState();
             onDismiss();
         }
-        catch (error: any)
+        catch (error: unknown)
         {
             console.error("Error updating document", error);
             setDialogErrorMessage("Error updating document");
@@ -198,6 +198,7 @@ const ExchangeDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
                     </DialogContent>
                     <DialogActions>
                         <Button
+                            id="update-document-submit-btn"
                             appearance="primary"
                             className={globalStyles.buttonWithLoading}
                             shape="circular"
@@ -207,6 +208,7 @@ const ExchangeDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
                             <Button
+                                id="update-document-close-btn"
                                 appearance="secondary"
                                 onClick={handleDismiss}
                                 shape="circular"

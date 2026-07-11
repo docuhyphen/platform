@@ -1,4 +1,4 @@
-﻿import apiClient, {addBearerToHeaderToken} from './apiClient';
+import apiClient, {addBearerToHeaderToken} from './apiClient';
 import {
     DocumentDetailedDto,
     DownloadDocumentsZipRequest,
@@ -12,7 +12,7 @@ import {
     UpdateExchangeRequest,
     WorkflowInstanceSummaryDto,
 } from "../app/models/models.tsx";
-import {AxiosRequestConfig} from "axios";
+import {AxiosProgressEvent, AxiosRequestConfig} from "axios";
 import {
     GrantExchangeShareRequest,
     ExchangeAccessEntryDto,
@@ -26,7 +26,7 @@ const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
         const {data} = await fn();
         return data;
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
@@ -79,7 +79,7 @@ export const checkSignedInAppUserHasExchanges = async (token: string | null): Pr
         // For other non-2xx statuses, throw an error
         throw new Error(`Request failed with status: ${response.status}`);
     }
-    catch (error: any)
+    catch (error: unknown)
     {
         // Log and rethrow,  callers decide how to surface the failure. Service-
         // layer alert() popups blocked the UI and double-fired (caller also alerted).
@@ -147,7 +147,7 @@ export const uploadExchangeDocument = (
     documentId?: string,
     formData?: FormData,
     token?: string | null,
-    onUploadProgress?: (progressEvent: any) => void
+    onUploadProgress?: (progressEvent: AxiosProgressEvent) => void
 ) =>
     executeRequest(() =>
         apiClient.post(`/exchanges/${exchangeId}/documents/${documentId}/file`, formData, {
@@ -160,7 +160,7 @@ export const uploadNoAuthExchangeDocument = (
     exchangeId: string,
     documentId?: string,
     formData?: FormData,
-    onUploadProgress?: (progressEvent: any) => void): Promise<DocumentDetailedDto> =>
+    onUploadProgress?: (progressEvent: AxiosProgressEvent) => void): Promise<DocumentDetailedDto> =>
 {
     return executeRequest(() =>
         apiClient.post(`no-auth/exchanges/${exchangeId}/documents/${documentId}/file`, formData, {
@@ -243,7 +243,7 @@ export const uploadDocumentVersion = (
     documentId: string,
     formData?: FormData,
     token?: string | null,
-    onUploadProgress?: (progressEvent: any) => void
+    onUploadProgress?: (progressEvent: AxiosProgressEvent) => void
 ) =>
     executeRequest(() =>
         apiClient.post(`/exchanges/${exchangeId}/documents/${documentId}/versions`, formData, {

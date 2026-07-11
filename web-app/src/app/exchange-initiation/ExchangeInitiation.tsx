@@ -45,6 +45,7 @@ import {
     BlueprintConfig,
     BlueprintDefinitionSummaryDto,
     BlueprintDocumentConfig,
+    DocumentType,
     DocumentLibraryEntrySummaryDto,
     ExchangeInitiationRequest, ExchangeParticipantRole, ExchangeParticipantType,
     ExchangeRequestDocumentRequest,
@@ -254,7 +255,7 @@ const ExchangeInitiation: React.FC = () =>
             {
                 const docs: ExchangeRequestDocumentRequest[] = blueprint.exchangeDocuments.map(d => ({
                     title: d.title,
-                    restrictedType: d.restrictedType as any,
+                    restrictedType: d.restrictedType as ExchangeRequestDocumentRequest["restrictedType"],
                     restrictType: d.restrictType ?? false,
                     required: d.required ?? false,
                     libraryDocumentId: d.libraryDocumentId,
@@ -647,9 +648,9 @@ const ExchangeInitiation: React.FC = () =>
         setMessageGroupMessages([]);
         setDocuments([...documents, {
             title: '',
-            restrictedType: 'PDF',
+            restrictedType: DocumentType.PDF,
             restrictType: false
-        } as any]);
+        }]);
     };
 
     const addLibraryDocument = (entry: DocumentLibraryEntrySummaryDto) =>
