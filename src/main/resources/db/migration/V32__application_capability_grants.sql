@@ -1,4 +1,4 @@
--- Phase 5: Application capability grants.
+-- Application capability grants.
 -- owner_organization_id: the single organization this application is authorized to act for.
 -- granted_capabilities:  JSON array of Capability enum names explicitly granted to this application.
 --                        Resolved server-side; never trusted from the token claim.

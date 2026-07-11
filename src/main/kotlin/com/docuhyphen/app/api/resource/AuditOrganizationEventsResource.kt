@@ -31,7 +31,7 @@ import java.util.UUID
  * class that also serves under "/organizations/{organizationId}/..." - RESTEasy Reactive's
  * routing has been observed to silently drop a route when two different resource classes
  * declare method-level paths with the same leading param position but different literal
- * suffixes (see AUDIT-ARCHITECTURE-IMPLEMENTATION.md handoff notes for the reproduction).
+ * suffixes, which avoids conflicts with nested Exchange resource routes.
  */
 @Path("/organizations/{organizationId}/audit-events")
 @Produces(MediaType.APPLICATION_JSON)

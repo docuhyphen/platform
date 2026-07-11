@@ -4,7 +4,7 @@ package com.docuhyphen.app.api.service.audit.archive
  * Abstraction over the asymmetric key pair used to sign archive segment manifests. Kept
  * deliberately narrow (sign + expose the public key + a stable key id) so the key material can
  * later move from Secrets Manager to KMS/HSM (a deferred, separately-approved hardening item,
- * see `AUDIT-ARCHITECTURE-IMPLEMENTATION.md` Phase 4 "Deferred hardening") without changing any
+ * without changing any
  * caller of this interface or the archived manifest format.
  */
 interface AuditArchiveSigningKeyProvider

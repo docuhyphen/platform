@@ -7,6 +7,9 @@ import com.docuhyphen.app.api.model.entity.AuthToken
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.repository.ExchangeRepository
+import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
+import com.docuhyphen.app.api.model.entity.WorkflowInstance
+import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
 import com.docuhyphen.app.api.resource.model.UpdateExchangeRequest
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.UserContactService
@@ -29,6 +32,8 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
 import java.util.UUID
 
 /**
@@ -107,6 +112,8 @@ class ExchangeAuthorizationTest
         authSvc: AuthorizationService = makeAuthService(),
         factory: AuthorizationContextFactory = makeFactory(),
         exchangeRepo: ExchangeRepository = mock(),
+        workflowInstanceRepo: WorkflowInstanceRepository = mock(),
+        workflowEngine: WorkflowEngineService = mock(),
     ): ExchangeUpdateService = ExchangeUpdateService(
         exchangeRepository = exchangeRepo,
         emailService = mock(),
@@ -119,9 +126,9 @@ class ExchangeAuthorizationTest
         principalGroupRepository = mock(),
         shareRepository = mock(),
         appUserService = mock(),
-        workflowInstanceRepository = mock(),
+        workflowInstanceRepository = workflowInstanceRepo,
         workflowStepRepository = mock(),
-        workflowEngineService = mock(),
+        workflowEngineService = workflowEngine,
         authTokenContext = makeTokenContext(makeUser()),
         authorizationService = authSvc,
         authorizationContextFactory = factory,
@@ -166,6 +173,35 @@ class ExchangeAuthorizationTest
         assertThrows<ForbiddenException> {
             svc.updateExchange(exchangeId.toString(), UpdateExchangeRequest(status = ExchangeStatus.ENDED))
         }
+    }
+
+    @Test
+    fun `updateExchange - repeated ENDED request reuses the active ending workflow`()
+    {
+        val exchange = makeExchange(ExchangeStatus.ACCEPTED_STARTED)
+        val exchangeRepo = mock<ExchangeRepository>()
+        val instanceRepo = mock<WorkflowInstanceRepository>()
+        val workflowEngine = mock<WorkflowEngineService>()
+        val active = WorkflowInstance().apply {
+            status = WorkflowInstanceStatus.RUNNING
+            triggerEventSnapshot = "exchange.ending"
+        }
+        whenever(exchangeRepo.findById(exchangeId)).thenReturn(exchange)
+        whenever(exchangeRepo.findByIdForUpdate(exchangeId)).thenReturn(exchange)
+        whenever(instanceRepo.findActiveForSubjectAndTrigger(exchangeId, "exchange.ending")).thenReturn(active)
+
+        val svc = makeService(
+            authSvc = makeAuthService(Action.EXCHANGE_VIEW, Action.EXCHANGE_EDIT),
+            exchangeRepo = exchangeRepo,
+            workflowInstanceRepo = instanceRepo,
+            workflowEngine = workflowEngine,
+        )
+
+        assertThrows<com.docuhyphen.app.api.exception.WorkflowConflictException> {
+            svc.updateExchange(exchangeId.toString(), UpdateExchangeRequest(status = ExchangeStatus.ENDED))
+        }
+
+        verify(workflowEngine, never()).trigger(any())
     }
 
     @Test

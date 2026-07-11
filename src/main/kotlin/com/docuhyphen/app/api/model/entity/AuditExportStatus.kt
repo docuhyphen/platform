@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.model.entity
 
 /**
- * State machine for [AuditExport] (Phase 6 of `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`).
+ * State machine for [AuditExport].
  *
  * `REQUESTED` -> (`APPROVAL_PENDING` if dual control is required) -> `BUILDING` -> `READY`, with
  * `FAILED`/`EXPIRED`/`REVOKED` as terminal off-ramps. `READY` is itself terminal for evidence

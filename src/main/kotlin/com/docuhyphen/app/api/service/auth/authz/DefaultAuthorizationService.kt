@@ -138,7 +138,7 @@ class DefaultAuthorizationService @Inject constructor(
         }
 
         // 1a) APPLICATION principal role grants. The APPLICATION role maps to emptySet() by
-        // default; all resource-level capabilities come from explicit Share grants or Phase 5
+        // default; all resource-level capabilities come from explicit Share grants or
         // capability grants. Collecting the role grant here routes APPLICATION principals through
         // the same centralized path rather than relying solely on token scope and endpoint prefix.
         if (principal.kind == PrincipalKind.APPLICATION)

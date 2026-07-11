@@ -5,8 +5,7 @@ import jakarta.inject.Inject
 import org.eclipse.microprofile.config.inject.ConfigProperty
 
 /**
- * Configuration for Phase 6 (Verifiable Evidence Exports) of
- * `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`. Kept as its own bean (mirrors
+ * Configuration for verifiable evidence exports. Kept as its own bean (mirrors
  * [AuditArchiveConfigService]'s reasoning about `@ConfigProperty` constructor bytecode size).
  *
  * Dual control defaults to required: an export only reaches `BUILDING` once

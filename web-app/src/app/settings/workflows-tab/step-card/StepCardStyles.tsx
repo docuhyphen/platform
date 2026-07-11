@@ -107,53 +107,7 @@ export const useStepCardStyles = makeStyles({
         color: tokens.colorNeutralForeground3,
     },
 
-    conditionHint: {
-        color: tokens.colorNeutralForeground3,
-    },
-
-    conditionRow: {
-        display: "flex",
-        gap: tokens.spacingHorizontalS,
-        flexWrap: "wrap",
-        alignItems: "center",
-    },
-
-    conditionFieldCombobox: {
-        flex: "1 1 10rem",
-        minWidth: "0",
-    },
-
-    conditionOperatorSelect: {
-        flex: "1 1 10rem",
-        minWidth: 0,
-    },
-
-    conditionValueSelect: {
-        flex: "1 1 8rem",
-        minWidth: 0,
-    },
-
-    conditionValueInput: {
-        flex: "1 1 8rem",
-        minWidth: 0,
-    },
-
-    entityPickerCombobox: {
-        flex: "1 1 8rem",
-        minWidth: "0",
-    },
-
-    sublabel: {
-        color: tokens.colorNeutralForeground3,
-        marginLeft: tokens.spacingHorizontalS,
-        fontSize: "0.8em",
-    },
-
     waitDescription: {
-        color: tokens.colorNeutralForeground3,
-    },
-
-    conditionPreview: {
         color: tokens.colorNeutralForeground3,
     },
 });

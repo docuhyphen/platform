@@ -3,6 +3,7 @@ import {WorkflowStepSpecDraft} from "../../../../models/models.tsx";
 import {AddIcon, BackIcon} from "../../../../components/IconBundles.tsx";
 import StepSummaryCard from "./step-summary-card/StepSummaryCard.tsx";
 import {useWorkflowStepsSectionStyles} from "./WorkflowStepsSectionStyles.tsx";
+import {findStepsWithInvalidRoutes} from "../stepMutations.ts";
 
 type TransitionDirection = "forward" | "back" | null;
 
@@ -26,6 +27,7 @@ const WorkflowStepListPage = ({
 }: Props) =>
 {
     const styles = useWorkflowStepsSectionStyles();
+    const invalidRouteSteps = findStepsWithInvalidRoutes(steps);
 
     return (
         <div
@@ -69,6 +71,7 @@ const WorkflowStepListPage = ({
                     index={index}
                     step={step}
                     isNew={newStepIndex === index}
+                    hasRouteWarning={invalidRouteSteps.has(index)}
                     onClick={() => onOpenStep(index)}
                 />
             ))}

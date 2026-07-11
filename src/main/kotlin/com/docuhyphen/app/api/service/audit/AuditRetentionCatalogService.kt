@@ -15,16 +15,15 @@ data class RetentionPolicySpec(
 )
 
 /**
- * Platform-default retention catalog by [AuditCategory] (Phase 8 task 1 of
- * `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`).
+ * Platform-default retention catalog by [AuditCategory].
  *
  * The "Retention / legal-hold / residency / replication / destruction rules" and "Online search
  * window vs archive-only history" prerequisite decisions are still unanswered by compliance/legal
- * (see the plan's "Prerequisite Decisions" checklist), so the numbers below are conservative,
+ * are not yet finalized, so the numbers below are conservative,
  * documented placeholders, not confirmed policy: [DEFAULT_LEDGER_RETENTION_DAYS] mirrors a
  * roughly 13-month searchable-projection window, and [DEFAULT_ARCHIVE_RETENTION_DAYS] matches the
  * existing `AuditArchiveRetentionDays` CloudFormation parameter default (2555 days / ~7 years)
- * already governing the Phase 4 S3 Object Lock bucket, so the two never silently disagree. Every
+ * already governing the S3 Object Lock bucket, so the two never silently disagree. Every
  * category defaults to legal-hold eligible and fully readable identity fields until an
  * organization or a future compliance decision narrows it.
  */

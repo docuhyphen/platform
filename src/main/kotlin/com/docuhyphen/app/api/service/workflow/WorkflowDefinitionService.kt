@@ -80,6 +80,7 @@ class WorkflowDefinitionService @Inject constructor(
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val userRoleService: UserRoleService,
     private val applicabilityEvaluator: WorkflowApplicabilityEvaluator,
+    private val workflowSpecValidator: WorkflowSpecValidator,
     private val auditRecorder: AuditRecorder,
 )
 {
@@ -138,8 +139,16 @@ class WorkflowDefinitionService @Inject constructor(
         val isOrgAdmin = activeOrgId != null && userRoleService.isOrgAdminIn(principal.id, activeOrgId)
         val isAppAdmin = userRoleService.isAppAdmin(principal.id)
 
-        validateStepsJson(request.stepsJson)
         val resolvedScope = resolveScope(request.scope, activeOrgId, isOrgAdmin, isAppAdmin)
+        validateStepsJson(
+            request.stepsJson,
+            request.triggerEvent,
+            WorkflowDefinitionScope(
+                scope = resolvedScope,
+                organizationId = if (resolvedScope == WorkflowScope.ORG) activeOrgId else null,
+                createdByAppUserId = principal.id,
+            ),
+        )
         val def = WorkflowDefinition().apply {
             name = request.name.trim()
             summary = request.summary?.trim()
@@ -175,7 +184,15 @@ class WorkflowDefinitionService @Inject constructor(
         request.name?.trim()?.let { if (it.isNotBlank()) def.name = it }
         request.summary?.let { def.summary = it.trim().ifBlank { null } }
         request.stepsJson?.let {
-            validateStepsJson(it)
+            validateStepsJson(
+                it,
+                def.triggerEvent,
+                WorkflowDefinitionScope(
+                    scope = def.scope,
+                    organizationId = def.organizationId,
+                    createdByAppUserId = def.createdByAppUserId,
+                ),
+            )
             def.stepsJson = it
         }
         request.generalTags?.let { def.generalTags = encodeTags(it) }
@@ -260,7 +277,10 @@ class WorkflowDefinitionService @Inject constructor(
         }
 
         val scrubbedStepsJson = scrubPrincipalUuids(source.stepsJson)
-        validateStepsJson(scrubbedStepsJson)
+        // A clone lands in the caller's PERSONAL space; referenced communications keep their own
+        // scope, so scope-visibility is not enforced here (structure, existence, and active state
+        // still are). The caller re-points any out-of-scope references before activating the copy.
+        validateStepsJson(scrubbedStepsJson, source.triggerEvent, null)
         val baseName = newName?.trim()?.ifBlank { null } ?: "${source.name} (copy)"
         val clone = WorkflowDefinition().apply {
             name = uniqueCloneName(baseName, principal.id)
@@ -357,7 +377,7 @@ class WorkflowDefinitionService @Inject constructor(
         val statuses = instances.map { it.status }
         return when
         {
-            statuses.any { it == WorkflowInstanceStatus.RUNNING || it == WorkflowInstanceStatus.ESCALATED } -> PartyClearanceDto("RUNNING")
+            statuses.any { it.isActive } -> PartyClearanceDto("RUNNING")
             statuses.any { it == WorkflowInstanceStatus.REJECTED || it == WorkflowInstanceStatus.CANCELLED } -> PartyClearanceDto("BLOCKED")
             statuses.all { it == WorkflowInstanceStatus.COMPLETED } -> PartyClearanceDto("CLEARED")
             else -> PartyClearanceDto("NONE")
@@ -545,8 +565,7 @@ class WorkflowDefinitionService @Inject constructor(
         authorizationContextFactory.currentContext()
 
     /**
-     * Phase 3 task 4 (breadth): captures workflow definition lifecycle mutations onto the
-     * ledger. Follows the catch-and-log pattern established across Phase 3 so a plumbing
+     * Captures workflow definition lifecycle mutations onto the ledger. Uses catch-and-log so an audit
      * failure never blocks the underlying definition write.
      */
     private fun recordDefinitionEvent(
@@ -647,7 +666,7 @@ class WorkflowDefinitionService @Inject constructor(
     )
 
     private fun findBlockingInstances(definitionId: UUID): List<WorkflowInstance> =
-        instanceRepository.findRunningForDefinition(definitionId)
+        instanceRepository.findActiveForDefinition(definitionId)
             .filterNot(::isDeletedExchangeInstance)
 
     private fun isDeletedExchangeInstance(instance: WorkflowInstance): Boolean
@@ -748,6 +767,7 @@ class WorkflowDefinitionService @Inject constructor(
                 outcome = it.outcome.name,
             )
         },
+        failureCode = failureCode,
         createdAt = createdAt,
         completedAt = completedAt,
     )
@@ -829,11 +849,16 @@ class WorkflowDefinitionService @Inject constructor(
     // Validation
     // -------------------------------------------------------------------------
 
-    private fun validateStepsJson(stepsJson: String)
+    private fun validateStepsJson(
+        stepsJson: String,
+        triggerEvent: String,
+        definitionScope: WorkflowDefinitionScope?,
+    )
     {
         val spec = runCatching { WorkflowSpecJson.decode(stepsJson) }
             .getOrElse { throw IllegalArgumentException("Invalid stepsJson: ${it.message}") }
         applicabilityEvaluator.validate(spec.applicability)
+        workflowSpecValidator.validate(spec, triggerEvent, definitionScope)
     }
 }
 

@@ -15,7 +15,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Phase 8 gate for [AuditAnalyticsProjector]: projecting the same ledger event twice never
+ * Verifies [AuditAnalyticsProjector]: projecting the same ledger event twice never
  * produces a second fact row (idempotent under retry/concurrent ticks), and the projected fact
  * carries only denormalized dimensions - never [AuditLedgerEvent.payloadJson] - so a prohibited
  * payload field can never reach the projection.

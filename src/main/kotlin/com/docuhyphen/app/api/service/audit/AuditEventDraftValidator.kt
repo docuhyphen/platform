@@ -15,12 +15,12 @@ sealed class AuditDraftValidationResult
 /**
  * Validates [AuditEventDraft] instances before they are allowed to become a durable audit intent.
  *
- * Two rejection classes, per Phase 0 of `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`:
+ * Two rejection classes:
  *  - The draft references an [AuditEventType.key] that is not in the catalog.
  *  - The draft's payload contains a prohibited key (passwords, OTPs, tokens, secrets, keys, raw
  *    content, or unrestricted Field Values).
  *
- * This is a pure, stateless validator (no persistence, no capture). Phase 1 wires it into
+ * This is a pure, stateless validator (no persistence, no capture). The recorder uses it before
  * `AuditRecorder` before anything is written to the outbox.
  */
 object AuditEventDraftValidator

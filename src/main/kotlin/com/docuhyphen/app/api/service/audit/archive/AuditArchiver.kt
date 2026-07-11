@@ -70,8 +70,7 @@ data class ArchivedLedgerEventRecord(
 data class SegmentCloseResult(val closed: Int, val skipped: Int, val failed: Int)
 
 /**
- * Closes `audit_ledger_event` ranges into signed, archived segments (Phase 4 tasks 1-2 of
- * `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`), replacing [com.docuhyphen.app.api.service.auth.AuthAuditWormSink]'s
+ * Closes `audit_ledger_event` ranges into signed, archived segments, replacing [com.docuhyphen.app.api.service.auth.AuthAuditWormSink]'s
  * local-JSONL-only approach with segments that carry a Merkle root, a segment-to-segment digest
  * chain (`prevSegmentDigest`), event count, schema versions, and a signing key id, all archived
  * to [AuditArchiveStorage] alongside a manifest signed by [AuditArchiveSigningKeyProvider].

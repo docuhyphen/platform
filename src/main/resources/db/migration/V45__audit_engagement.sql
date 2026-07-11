@@ -1,5 +1,4 @@
--- Phase 5 (Auditor Capabilities, Engagements, Search Projection) of
--- AUDIT-ARCHITECTURE-IMPLEMENTATION.md.
+-- Stores auditor engagements and the authorization data used to search audit records.
 --
 -- audit_engagement grants a named auditor principal or approved principal group a time-bound,
 -- explicitly scoped ability to read a subset of immutable audit evidence without inheriting

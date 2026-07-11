@@ -51,7 +51,7 @@ private class InMemoryStorage : AuditArchiveStorage
 }
 
 /**
- * Phase 6 gate for [AuditExportBuilder] ("A range does not verify merely because inner events
+ * Verifies [AuditExportBuilder] ("A range does not verify merely because inner events
  * link; boundary checkpoints are required"):
  *  - a genuinely archived, unbroken stream produces a `READY` export whose bundle round-trips
  *    (manifest hash, detached signature, per-stream integrity report all present and consistent).

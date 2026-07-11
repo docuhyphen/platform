@@ -11,8 +11,7 @@ import java.util.UUID
 /**
  * Durable, immutable audit intent written by
  * [com.docuhyphen.app.api.service.audit.AuditRecorder] in the same transaction as the business
- * change it records (transactional-outbox pattern; Phase 1 of
- * `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`).
+ * change it records using the transactional-outbox pattern.
  *
  * Denormalized IDs/labels only, following the [AccessAuditLog] pattern - never the
  * [DocumentAuditLog] anti-pattern of a non-null `@ManyToOne` FK to a mutable business entity.
@@ -20,7 +19,7 @@ import java.util.UUID
  * into or orphaning this row.
  *
  * Append-only: migration `V41__audit_outbox.sql` installs a trigger that unconditionally denies
- * `UPDATE`/`DELETE` on this table. Phase 2's ledger processor must not mutate outbox rows; it
+ * `UPDATE`/`DELETE` on this table. The ledger processor must not mutate outbox rows; it
  * reads them and derives ledger state elsewhere.
  */
 @Entity
@@ -59,7 +58,7 @@ class AuditOutboxEntry
 
     /**
      * Explicit actor classification (`HUMAN`/`APP`/`PUBLIC_LINK`/`WORKFLOW`/`SYSTEM`), added in
-     * `V43__audit_outbox_actor_kind.sql`. Null for call sites written before Phase 3 task 1;
+     * `V43__audit_outbox_actor_kind.sql`. Null for legacy call sites;
      * [com.docuhyphen.app.api.service.audit.LedgerProcessor.resolveActorKind] prefers this value
      * when present and only falls back to guessing from [actorId] presence when it is null.
      */
@@ -106,7 +105,7 @@ class AuditOutboxEntry
     @Column(name = "business_transaction_id", length = 128)
     var businessTransactionId: String? = null
 
-    /** PENDING at insert time in Phase 1; Phase 2 defines how draining is tracked. */
+    /** New entries are pending until the ledger processor records their outcome. */
     @Column(name = "status", nullable = false, length = 32)
     var status: String = "PENDING"
 

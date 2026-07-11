@@ -53,7 +53,7 @@ sealed class ScopeReference
  *
  * [type] uses [ResourceKind] rather than the runtime [com.docuhyphen.app.api.model.entity.ResourceType]
  * so that the Fields engine can name resource kinds without depending on the Share model's
- * type enum. The two are kept in sync during Phase 4 when the resource type registry is
+ * type enum. The two are kept in sync when the resource type registry is
  * expanded to cover every governed resource.
  */
 data class ResourceReference(

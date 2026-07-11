@@ -9,11 +9,15 @@ import org.slf4j.LoggerFactory
  * (`domainEventPublisher.publish(event)`). The publisher is responsible for getting the
  * event onto whatever transport the deployment is configured for.
  *
- * Iteration 3 ships the **in-process** implementation: the publisher calls
- * [EventRouter] synchronously on the same thread/transaction. A Kafka-backed
- * implementation (using SmallRye Reactive Messaging `Emitter<DomainEvent>` on topic
- * `docuhyphen.events.v1`) is the planned drop-in replacement; it will be wired behind a
- * feature flag in a later iteration so existing transactional semantics aren't disrupted.
+ * Two implementations exist:
+ *   * [InProcessDomainEventPublisher] (the CDI default): routes the event synchronously through
+ *     [EventRouter] on the calling thread and swallows router failures so notifications can never
+ *     break the calling business transaction. Used by every non-workflow service.
+ *   * [com.docuhyphen.app.api.service.workflow.WorkflowEventOutboxPublisher] (selected by the
+ *     [WorkflowEventSink] qualifier): enqueues the event into a transactional outbox row that
+ *     commits atomically with the workflow state mutation, and a background dispatcher routes it
+ *     after commit. Used by the workflow engine so required lifecycle and terminal events are never
+ *     lost by a crash between the state commit and routing.
  */
 interface DomainEventPublisher
 {

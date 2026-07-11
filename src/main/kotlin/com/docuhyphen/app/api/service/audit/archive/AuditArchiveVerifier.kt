@@ -17,8 +17,7 @@ data class SegmentVerificationResult(val valid: Boolean, val note: String)
 data class StreamChainVerificationResult(val valid: Boolean, val note: String, val segmentsChecked: Int)
 
 /**
- * Real `verifyDay`-equivalent verifier for Phase 4 task 4 of
- * `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`, replacing the prior no-op verification: recomputes the
+ * Verifies archived segments by recomputing the
  * Merkle root and segment digest from re-downloaded [AuditArchiveStorage] content, checks the
  * detached manifest signature, and walks each stream's `prevSegmentDigest` chain so a deleted,
  * inserted, reordered, or truncated segment range is detected even if an individual segment's own

@@ -10,7 +10,7 @@ import org.mockito.kotlin.whenever
 import java.time.Instant
 import java.util.UUID
 
-/** Phase 8 gate: legal hold always overrides retention-driven disposal eligibility. */
+/** Verifies that legal hold always overrides retention-driven disposal eligibility. */
 class AuditDisposalEligibilityServiceTest
 {
     @Test

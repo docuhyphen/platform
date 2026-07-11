@@ -3,7 +3,7 @@
  * terminal paths, invalid targets, and ambiguous transitions.
  *
  * All checks are informational. None introduce new save-blocking behaviour
- * beyond what the backend already validates. (Decision 11 / Phase 1 rules.)
+ * beyond what the backend already validates.
  */
 
 import { WorkflowGraph } from "./workflowGraphModels.ts";

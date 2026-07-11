@@ -14,7 +14,7 @@ import jakarta.inject.Inject
 import java.util.UUID
 
 /**
- * Read-side over the unified [Share] model: powers the "manage access" view (v2 plan §6.2).
+ * Read-side over the unified [Share] model that powers the "manage access" view.
  * Additive, it does not change existing authorization; it surfaces the access list the new
  * model already maintains via dual-write, so the redesigned access-management UX can be built
  * before the legacy read paths are retired at cutover.

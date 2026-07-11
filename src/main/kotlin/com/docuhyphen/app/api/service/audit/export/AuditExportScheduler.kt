@@ -10,8 +10,7 @@ import org.slf4j.LoggerFactory
 
 /**
  * Periodically builds queued `BUILDING` [com.docuhyphen.app.api.model.entity.AuditExport] rows
- * ([AuditExportBuilder]) and expires `READY` exports past their download window (Phase 6 of
- * `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`). Building happens off the approval request/response so
+ * ([AuditExportBuilder]) and expires `READY` exports past their download window. Building happens off the approval request/response so
  * an approver's HTTP call never blocks on ledger verification + archive I/O.
  *
  * [ActivateRequestContext] opens a request context for the duration of each tick, exactly like

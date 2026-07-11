@@ -11,7 +11,7 @@ import {
 import {WorkflowInstanceDetailDto, WorkflowStepInstanceDto} from "../../../models/models.tsx";
 import {getWorkflowInstanceDetail} from "../../../../services/workflowService.ts";
 import {useWorkflowInstanceDetailStyles} from "./WorkflowInstanceDetailStyles.tsx";
-import {DECISION_LABELS, INSTANCE_STATUS_LABELS, PRINCIPAL_KIND_LABELS, STEP_STATUS_LABELS, STEP_TYPE_LABELS} from "../workflowUtils.ts";
+import {DECISION_LABELS, INSTANCE_FAILURE_MESSAGES, INSTANCE_STATUS_LABELS, PRINCIPAL_KIND_LABELS, STEP_STATUS_LABELS, STEP_TYPE_LABELS} from "../workflowUtils.ts";
 
 const STEP_STATUS_COLORS: Record<string, "success" | "warning" | "danger" | "informative" | "subtle"> = {
     APPROVED: "success",
@@ -142,6 +142,16 @@ const WorkflowInstanceDetail = ({instanceId, onDismiss}: Props) =>
                         >
                             Status: {INSTANCE_STATUS_LABELS[detail.status] ?? detail.status}
                         </Text>
+                        {detail.status === "FAILED" && detail.failureCode && (
+                            <Text
+                                id="workflow-instance-failure-message"
+                                size={200}
+                                block
+                                className={styles.failureMessage}
+                            >
+                                {INSTANCE_FAILURE_MESSAGES[detail.failureCode] ?? detail.failureCode}
+                            </Text>
+                        )}
                         <div className={styles.stepTimeline}>
                             {detail.steps.map(step => (
                                 <StepTimelineItem

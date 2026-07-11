@@ -22,6 +22,18 @@ export const INSTANCE_STATUS_LABELS: Record<string, string> = {
     REJECTED: "Rejected",
     CANCELLED: "Cancelled",
     ESCALATED: "Escalated",
+    FAILED: "Failed",
+};
+
+/**
+ * Safe, administrator-facing explanations for a failed instance's failureCode. Falls back to the
+ * raw code when unknown. These describe the failure without exposing internal detail.
+ */
+export const INSTANCE_FAILURE_MESSAGES: Record<string, string> = {
+    SNAPSHOT_MISSING: "This workflow could not continue because its saved execution snapshot is missing. The Exchange was left unchanged for manual review.",
+    SNAPSHOT_CORRUPT: "This workflow could not continue because its saved execution snapshot could not be read. The Exchange was left unchanged for manual review.",
+    ROUTE_INVALID: "This workflow could not continue because a step pointed to a route that no longer resolves to a real step. The Exchange was left unchanged for manual review.",
+    QUORUM_UNSATISFIABLE: "This workflow could not continue because an approval step required more approvals than it had assignees. The Exchange was left unchanged for manual review.",
 };
 
 export const STEP_TYPE_LABELS: Record<string, string> = {

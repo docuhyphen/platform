@@ -19,6 +19,9 @@ import java.util.*
  * - `REJECT`   : rejection or action failure (`onReject`, terminal).
  * - `TRUE`     : condition predicate true (`onTrue`).
  * - `FALSE`    : condition predicate false (`onFalse`).
+ * - `FAILED`   : the source step could not be executed safely (missing or corrupt execution
+ *                snapshot); recorded as a terminal edge so the graph shows where execution
+ *                stopped without fabricating a successful continuation.
  */
 enum class WorkflowTransitionOutcome
 {
@@ -27,6 +30,7 @@ enum class WorkflowTransitionOutcome
     REJECT,
     TRUE,
     FALSE,
+    FAILED,
 }
 
 /**

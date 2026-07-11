@@ -56,4 +56,12 @@ export const useStyles = makeStyles({
         flexWrap: "wrap",
         gap: tokens.spacingHorizontalXS,
     },
+    warningList: {
+        marginTop: tokens.spacingVerticalXS,
+        marginBottom: 0,
+        paddingLeft: tokens.spacingHorizontalL,
+        display: "flex",
+        flexDirection: "column",
+        gap: tokens.spacingVerticalXXS,
+    },
 });

@@ -9,7 +9,7 @@ import ProfileSectionCard from "../profile-section-card/ProfileSectionCard.tsx";
 import {useProfileSecurityEventsStyles} from "./ProfileSecurityEventsStyles.tsx";
 
 /**
- * Personal "Security Activity" card (Phase 7): the signed-in user's own authentication/security
+ * Personal "Security Activity" card: the signed-in user's own authentication and security
  * events from `GET /users/me/security-events`, using the shared audit table/detail components.
  */
 const ProfileSecurityEvents = () =>

@@ -54,10 +54,10 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
     }
 
     /**
-     * Phase 3 compatibility projection: one query for every ledger event whose [targetType]
+     * Retrieves every ledger event whose [targetType]
      * matches and whose [targetId] is one of [targetIds], newest first. Used to back the Exchange
      * "Audit" tab with a single request across all of an Exchange's documents instead of one
-     * request per document (the pre-Phase-3 pattern).
+     * request per document.
      */
     fun findByTargetTypeAndTargetIds(targetType: String, targetIds: List<String>): List<AuditLedgerEvent>
     {
@@ -257,7 +257,7 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
     /**
      * Full, unpaginated ledger event range for export bundle construction, ordered by
      * `(streamId, streamSequence)` so the same range always serializes identically regardless of
-     * query plan. Callers must bound the range (Phase 6's `maxRangeDays` config); this method
+     * query plan. Callers must bound the range using `maxRangeDays`; this method
      * itself performs no pagination since an export bundle is materialized in one pass.
      */
     fun findForExport(

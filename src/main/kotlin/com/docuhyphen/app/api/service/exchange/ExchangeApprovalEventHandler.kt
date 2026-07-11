@@ -23,8 +23,12 @@ import java.util.UUID
  * New lifecycle events: `exchange.activated`, `exchange.draft_approved`,
  * `exchange.ending`, `exchange.ended_confirmed`.
  *
- * Invoked synchronously by [com.docuhyphen.app.api.service.notification.EventRouter], inside the
- * same transaction as the decision, so share state and workflow state commit atomically.
+ * Invoked by [com.docuhyphen.app.api.service.notification.EventRouter]. For workflow-originated
+ * lifecycle events this runs from the transactional event outbox dispatcher, after the workflow
+ * decision has committed, not in the decision's own transaction. Delivery is at-least-once and may
+ * be retried after an ambiguous failure, so this handler is idempotent by business key: every
+ * mutation is guarded on the Exchange's current status, so re-applying a completed transition is a
+ * no-op rather than a repeated side-effect.
  */
 @ApplicationScoped
 class ExchangeApprovalEventHandler @Inject constructor(
@@ -51,7 +55,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
         const val EVENT_ENDING = "exchange.ending"
         const val EVENT_ENDED_CONFIRMED = "exchange.ended_confirmed"
 
-        // Recipient-side lifecycle events (Phase 2)
+        // Recipient-side lifecycle events
         const val EVENT_RECEIVED = "exchange.received"
         const val EVENT_RECEIVED_ACTIVATED = "exchange.received_activated"
         const val EVENT_RECEIVED_ENDING = "exchange.received_ending"

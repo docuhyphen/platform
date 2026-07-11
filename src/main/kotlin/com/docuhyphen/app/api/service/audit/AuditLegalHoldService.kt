@@ -15,7 +15,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Places and releases holds on a denormalized resource reference (Phase 8 task 1). A hold never
+ * Places and releases holds on a denormalized resource reference. A hold never
  * touches the WORM ledger/archive - it only records the fact that disposal of anything
  * referencing that resource must not proceed while [isUnderHold] is true. Legal hold overrides
  * disposal: callers of any future retention-purge job must consult this before disposing.

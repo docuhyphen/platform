@@ -28,8 +28,7 @@ import jakarta.ws.rs.core.Response
 import java.util.UUID
 
 /**
- * Thin REST adapter for the platform-scope half of Phase 8 (Retention, Legal Hold, Analytics
- * Projection, Assurance) of `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`. All business logic lives in
+ * Thin REST adapter for platform-scope retention, legal hold, analytics, and assurance operations. All business logic lives in
  * [AuditRetentionPolicyService]/[AuditLegalHoldService]/[AuditAnalyticsReconciliationService];
  * this class only validates input, authorizes, and maps results. The organization-scope routes
  * live in [AuditOrganizationRetentionPolicyResource]/[AuditOrganizationLegalHoldResource]/

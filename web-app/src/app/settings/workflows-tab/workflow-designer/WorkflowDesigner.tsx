@@ -1,4 +1,4 @@
-import {lazy, Suspense, useCallback, useEffect, useRef, useState} from "react";
+import {lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {
     Button,
     Dialog,
@@ -36,6 +36,9 @@ import {
     WorkflowStepsIcon,
 } from "../../../components/IconBundles.tsx";
 import {formatTriggerName} from "../workflowUtils.ts";
+import {appendStep, deleteStepAndRemap, replaceStep} from "./stepMutations.ts";
+import {buildDefinitionGraph} from "../workflow-graph/workflowDefinitionGraphAdapter.ts";
+import {validateWorkflowGraph} from "../workflow-graph/workflowGraphValidation.ts";
 
 const WorkflowDefinitionPreview = lazy(
     () => import("./workflow-definition-preview/WorkflowDefinitionPreview.tsx"),
@@ -144,10 +147,15 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
     useEffect(() => { load(); }, [load]);
 
     const updateStep = (index: number, step: WorkflowStepSpecDraft) =>
-        patch({steps: state.steps.map((s, i) => (i === index ? step : s))});
+        patch({steps: replaceStep(state.steps, index, step)});
 
     const removeStep = (index: number) =>
-        patch({steps: state.steps.filter((_, i) => i !== index)});
+        patch({steps: deleteStepAndRemap(state.steps, index)});
+
+    const graphWarnings = useMemo(
+        () => validateWorkflowGraph(buildDefinitionGraph(state)).warnings,
+        [state],
+    );
 
     const requestSave = () =>
     {
@@ -274,7 +282,7 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
                 steps={state.steps}
                 triggers={triggers}
                 subjectFields={subjectFields}
-                onAdd={() => patch({steps: [...state.steps, defaultStep()]})}
+                onAdd={() => patch({steps: appendStep(state.steps, defaultStep())})}
                 onUpdate={updateStep}
                 onRemove={removeStep}
                 onBack={() => navigateFormPage("overview")}
@@ -370,6 +378,7 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
                 isEdit={!!definitionId}
                 state={state}
                 triggers={triggers}
+                warnings={graphWarnings}
             />
 
             <Dialog open={showDiscardDialog}

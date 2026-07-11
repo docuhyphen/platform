@@ -10,6 +10,20 @@ import java.util.UUID
 class WorkflowStepInstanceRepository :
     BaseRepository<WorkflowStepInstance>(WorkflowStepInstance::class.java)
 {
+    /**
+     * Returns just the parent instance id for a step, without loading the managed step entity.
+     * Used by decision recording to discover which instance to lock first, preserving a consistent
+     * instance-before-step lock order that avoids deadlocks with escalation and cancellation.
+     */
+    fun findInstanceIdById(stepInstanceId: UUID): UUID? =
+        entityManager.createQuery(
+            "SELECT s.instanceId FROM WorkflowStepInstance s WHERE s.id = :id",
+            UUID::class.java,
+        )
+            .setParameter("id", stepInstanceId)
+            .resultList
+            .firstOrNull()
+
     fun findByInstance(instanceId: UUID): List<WorkflowStepInstance> =
         entityManager.createQuery(
             """SELECT s FROM WorkflowStepInstance s
@@ -98,7 +112,8 @@ class WorkflowStepInstanceRepository :
                WHERE s.instanceId = i.id
                  AND s.status = :status
                  AND i.subjectResourceType = :rt
-                 AND i.subjectResourceId = :rid""",
+                 AND i.subjectResourceId = :rid
+               ORDER BY i.id ASC""",
             WorkflowStepInstance::class.java,
         )
             .setParameter("status", WorkflowStepStatus.AWAITING_COUNTERPARTY)

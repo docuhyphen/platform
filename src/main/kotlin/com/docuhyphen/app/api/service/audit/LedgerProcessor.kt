@@ -25,7 +25,7 @@ data class LedgerDrainResult(val appended: Int, val alreadyLedgered: Int, val fa
 
 /**
  * Turns committed `audit_outbox` intents into an ordered, hash-chained, per-stream ledger
- * (Phase 2 of `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`).
+ * from durable outbox rows.
  *
  * `@ApplicationScoped`: unlike [AuditRecorder], this has no per-request context to derive - it
  * only reads already-durable outbox rows and appends ledger rows, so it can run from a scheduled
@@ -34,7 +34,7 @@ data class LedgerDrainResult(val appended: Int, val alreadyLedgered: Int, val fa
  * `audit_outbox` rows are never mutated (the append-only trigger from `V41__audit_outbox.sql`
  * denies it unconditionally), so "already drained" is tracked by existence in
  * `audit_ledger_event` ([AuditLedgerEventRepository.existsByEventId]), not by an outbox status
- * flag - see the Phase 1 handoff note in `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`.
+ * flag because the outbox is append-only.
  */
 @ApplicationScoped
 class LedgerProcessor @Inject constructor(
@@ -52,9 +52,8 @@ class LedgerProcessor @Inject constructor(
 
         /**
          * Stream = owner scope + time partition. This exact partitioning is one of the
-         * "Prerequisite Decisions" still unanswered by compliance/legal
-         * (`AUDIT-ARCHITECTURE-IMPLEMENTATION.md` "Ordered-stream partition + segment-closing
-         * policy"); `<organizationId-or-"platform">:<UTC yyyy-MM>` is a documented placeholder
+         * compliance and legal teams have not yet finalized stream partitioning and segment-closing
+         * policy. `<organizationId-or-"platform">:<UTC yyyy-MM>` is a documented placeholder
          * default, not a final policy, chosen so streams stay small enough to append to quickly
          * without being reconsidered per event.
          */
@@ -66,7 +65,7 @@ class LedgerProcessor @Inject constructor(
         }
 
         /**
-         * Actor-kind resolution. Phase 3 task 1 of `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`: prefer
+         * Actor-kind resolution. Prefer
          * the explicit [AuditOutboxEntry.actorKind] set by call sites migrated onto
          * [com.docuhyphen.app.api.service.audit.catalog.AuditActorKind]; only fall back to the
          * coarse `HUMAN`/`SYSTEM` guess (by [AuditOutboxEntry.actorId] presence) for older/

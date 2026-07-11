@@ -32,7 +32,7 @@ Parameters:
     Type: Number
     Description: >-
       Object Lock (Governance mode) retention period, in days, applied to every
-      object written to the audit archive bucket. Phase 4 audit/evidence platform.
+      object written to the audit archive bucket.
     Default: 2555
 
 Conditions:
@@ -182,7 +182,7 @@ Resources:
           "password": "${DBPassword}"
         }
 
-  # Phase 4 audit/evidence platform: WORM archive manifest signing key.
+  # WORM archive manifest signing key.
   # CloudFormation cannot generate an RSA keypair, so this secret is created
   # with a placeholder value and must be populated post-deploy (one time,
   # out of band) with the real JSON shape expected by
@@ -194,7 +194,7 @@ Resources:
     Properties:
       Name: !Sub ${AppName}/audit-archive-signing-key
       Description: >-
-        RSA signing keypair for audit archive segment manifests (Phase 4).
+        RSA signing keypair for audit archive segment manifests.
         Populate manually; CloudFormation only reserves the secret slot.
       SecretString: |
         {
@@ -203,7 +203,7 @@ Resources:
           "publicKeyPem": "unset"
         }
 
-  # Phase 8 audit/evidence platform: crypto-shredding master key. A single
+  # Crypto-shredding master key. A single
   # base64 AES-256 key, not per-subject - per-subject data keys live wrapped
   # in the audit_identity_vault_key table, so this is the only identity-vault
   # secret ever created. Placeholder value, populate manually post-deploy.
@@ -214,7 +214,7 @@ Resources:
       Name: !Sub ${AppName}/audit-identity-vault-master-key
       Description: >-
         Base64 AES-256 master key wrapping per-subject audit crypto-shredding
-        data keys (Phase 8). Populate manually; CloudFormation only reserves
+        data keys. Populate manually; CloudFormation only reserves
         the secret slot.
       SecretString: unset
 
@@ -341,7 +341,7 @@ Resources:
                 Resource:
                   - !Sub arn:aws:s3:::${AppName}-documents-prod
                   - !Sub arn:aws:s3:::${AppName}-documents-prod/*
-        # Phase 4 audit/evidence platform: WORM archive access. Deliberately
+        # WORM archive access. Deliberately
         # excludes s3:DeleteObject, s3:PutObjectRetention and any legal-hold
         # or retention-bypass actions - the app may only write once and read
         # back segments/manifests it already wrote. Object Lock (Governance)
@@ -653,7 +653,7 @@ Resources:
             AbortIncompleteMultipartUpload:
               DaysAfterInitiation: 1
 
-  # ─── AUDIT ARCHIVE BUCKET (Phase 4 audit/evidence platform) ────────────────
+  # ─── AUDIT ARCHIVE BUCKET ──────────────────────────────────────────────────
   # WORM store for signed audit ledger segments. Versioning + Object Lock in
   # Governance mode make objects immutable for AuditArchiveRetentionDays even
   # to the app's own IAM role, which is granted PutObject/GetObject only (see
@@ -808,6 +808,6 @@ Outputs:
     Value: !Ref DocumentsBucket
 
   AuditArchiveBucketName:
-    Description: S3 bucket for signed audit archive segments (Phase 4 audit/evidence platform)
+    Description: S3 bucket for signed audit archive segments
     Value: !Ref AuditArchiveBucket
 

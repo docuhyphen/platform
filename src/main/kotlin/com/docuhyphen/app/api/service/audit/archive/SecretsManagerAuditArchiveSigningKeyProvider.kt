@@ -16,9 +16,9 @@ import java.util.Base64
 import java.util.concurrent.locks.ReentrantLock
 
 /**
- * Secrets-Manager-backed [AuditArchiveSigningKeyProvider] (Phase 4 task 2): the private key
+ * Secrets-Manager-backed [AuditArchiveSigningKeyProvider]: the private key
  * material lives as a JSON secret (`{"keyId","privateKeyPem","publicKeyPem"}`) in the existing
- * AWS Secrets Manager - no KMS CMK, no HSM, per the Phase 4 cost constraint. The public key is
+ * AWS Secrets Manager rather than KMS or an HSM. The public key is
  * what ships with the offline verifier tool ([activePublicKeyPem]).
  */
 @ApplicationScoped

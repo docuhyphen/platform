@@ -1,4 +1,4 @@
--- Frozen instance graph contract (React Flow workflow preview, Phase 4).
+-- Stores the graph snapshot used by the React Flow workflow preview.
 --
 -- 1. definition_snapshot_json: the exact raw steps_json used when the instance
 --    started. The Exchange diagram reproduces the same topology and labels the

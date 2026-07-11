@@ -9,8 +9,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * One dual-control approval of an [AuditExport] (Phase 6 of
- * `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`). Append-style: rows are only ever inserted, never
+ * One dual-control approval of an [AuditExport]. Append-style: rows are only ever inserted, never
  * updated, so the identity and count of distinct approvers is directly queryable. [exportId] is a
  * denormalized reference (no FK), same rule as every other audit table.
  */

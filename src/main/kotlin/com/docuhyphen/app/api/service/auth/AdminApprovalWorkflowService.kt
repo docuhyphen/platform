@@ -60,6 +60,11 @@ class AdminApprovalWorkflowService @Inject constructor(
                 this.currentStepIndex = 0
                 this.initiatedByAppUserId = requesterId
                 this.subjectDataJson = buildSubjectJson(action, reason)
+                // This subsystem closes the instance here and never routes it through the shared
+                // engine, but the frozen execution fields are still populated so no instance row
+                // is left without a snapshot or trigger to satisfy the shared instance contract.
+                this.definitionSnapshotJson = definition.stepsJson
+                this.triggerEventSnapshot = definition.triggerEvent
                 this.createdAt = Timestamp.from(now)
             }
         )
@@ -91,6 +96,9 @@ class AdminApprovalWorkflowService @Inject constructor(
         val instance = workflowInstanceRepository.findById(approvalId)
             ?: throw IllegalArgumentException("Approval request not found")
 
+        // Admin-action approvals are a self-contained single-step subsystem: they are opened and
+        // closed here and never routed through the shared engine's SLA escalation, so a pending
+        // one is only ever RUNNING. ESCALATED is deliberately not accepted as pending here.
         if (instance.status != WorkflowInstanceStatus.RUNNING)
         {
             throw IllegalArgumentException("Approval request is not pending")

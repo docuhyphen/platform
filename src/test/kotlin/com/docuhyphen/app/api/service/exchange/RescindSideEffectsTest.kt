@@ -101,7 +101,7 @@ class RescindSideEffectsTest
         exchangeRepo: ExchangeRepository = mock(),
         shareService: ShareService = mock(),
         workflowInstanceRepo: WorkflowInstanceRepository = mock<WorkflowInstanceRepository>().also {
-            whenever(it.findAllRunningForSubject(any(), any())).thenReturn(emptyList())
+            whenever(it.findAllActiveForSubject(any(), any())).thenReturn(emptyList())
         },
         workflowEngineService: WorkflowEngineService = mock(),
         auditRecorder: AuditRecorder = mock<AuditRecorder>().also {
@@ -163,7 +163,7 @@ class RescindSideEffectsTest
         whenever(repo.findById(exchangeId)).thenReturn(exchange, exchange)
 
         val workflowInstanceRepo = mock<WorkflowInstanceRepository>()
-        whenever(workflowInstanceRepo.findAllRunningForSubject(any(), any())).thenReturn(listOf(instance))
+        whenever(workflowInstanceRepo.findAllActiveForSubject(any(), any())).thenReturn(listOf(instance))
 
         val workflowEngineService = mock<WorkflowEngineService>()
 
@@ -261,7 +261,7 @@ class RescindSideEffectsTest
         whenever(repo.findById(exchangeId)).thenReturn(exchange, exchange)
 
         val workflowInstanceRepo = mock<WorkflowInstanceRepository>()
-        whenever(workflowInstanceRepo.findAllRunningForSubject(any(), any())).thenReturn(listOf(instance))
+        whenever(workflowInstanceRepo.findAllActiveForSubject(any(), any())).thenReturn(listOf(instance))
 
         val workflowEngineService = mock<WorkflowEngineService>()
         val shareService = mock<ShareService>()

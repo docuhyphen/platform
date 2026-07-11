@@ -9,7 +9,7 @@ package com.docuhyphen.app.api.service.audit.catalog
  * / [DocumentAuditLogAction] so existing capture sites can be mapped onto the catalog without
  * guessing, but the [key] is what gets persisted and read going forward.
  *
- * This is Phase 0 of the Audit and Evidence Platform: it only seeds event types that are already
+ * This catalog seeds event types that are already
  * emittable in the current codebase (auth actions recorded via `AuthAuditService.emit`, plus the
  * existing [DocumentAuditLogAction] values). It intentionally does not add new capture calls or
  * invent event types for coverage gaps described in `AUDIT-ARCHITECTURE.md`; those are added in
@@ -106,13 +106,13 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     SHARE_REVOKE("authorization.share.revoke", AuditCategory.AUTHORIZATION),
     AUTHORIZATION_DENIED("authorization.decision.denied", AuditCategory.AUTHORIZATION),
 
-    // Phase 3 task 4: additional Exchange lifecycle transitions beyond EXCHANGE_RESCINDED.
+    // Additional Exchange lifecycle transitions beyond EXCHANGE_RESCINDED.
     EXCHANGE_ACCEPTED("exchange.lifecycle.accepted", AuditCategory.EXCHANGE),
     EXCHANGE_REJECTED("exchange.lifecycle.rejected", AuditCategory.EXCHANGE),
     EXCHANGE_ENDED("exchange.lifecycle.ended", AuditCategory.EXCHANGE),
     EXCHANGE_DELETED("exchange.lifecycle.deleted", AuditCategory.EXCHANGE),
 
-    // Phase 3 task 4: workflow definition breadth (highest-risk mutations: create/update/
+    // Workflow definition mutations with the highest audit value: create, update, and
     // delete/publish; instance start/step decisions already flow through
     // WorkflowEngineService.recordDecision's own concerns and are deferred, see handoff).
     WORKFLOW_DEFINITION_CREATE("workflow.definition.create", AuditCategory.WORKFLOW),
@@ -120,14 +120,14 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     WORKFLOW_DEFINITION_DELETE("workflow.definition.delete", AuditCategory.WORKFLOW),
     WORKFLOW_DEFINITION_PUBLISH("workflow.definition.publish", AuditCategory.WORKFLOW),
 
-    // Phase 3 task 4: Field/Schema breadth.
+    // Field and schema mutations.
     FIELD_DEFINITION_CREATE("field_schema.field_definition.create", AuditCategory.FIELD_SCHEMA),
     FIELD_DEFINITION_RETIRE("field_schema.field_definition.retire", AuditCategory.FIELD_SCHEMA),
     SCHEMA_DEFINITION_CREATE("field_schema.schema_definition.create", AuditCategory.FIELD_SCHEMA),
     SCHEMA_DEFINITION_PUBLISH("field_schema.schema_definition.publish", AuditCategory.FIELD_SCHEMA),
     SCHEMA_DEFINITION_RETIRE("field_schema.schema_definition.retire", AuditCategory.FIELD_SCHEMA),
 
-    // Phase 3 task 4: organization membership/role breadth.
+    // Organization membership and role changes.
     ORG_MEMBERSHIP_ROLE_ASSIGN("organization.membership.role_assign", AuditCategory.ORGANIZATION),
     ORG_MEMBERSHIP_ROLE_REMOVE("organization.membership.role_remove", AuditCategory.ORGANIZATION),
     ORG_MEMBERSHIP_REMOVE("organization.membership.remove", AuditCategory.ORGANIZATION),

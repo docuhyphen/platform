@@ -397,7 +397,7 @@ class DocumentLibraryService @Inject constructor(
     )
 
     /**
-     * Phase 3 task 2: document library download had zero capture before this phase. Failures are
+     * Records document library downloads. Failures are
      * caught and logged, never propagated, so audit plumbing can never break an actual file
      * download response.
      */

@@ -14,8 +14,7 @@ import java.sql.Timestamp
 import java.time.Instant
 
 /**
- * Single trust-boundary entry point for durable audit capture (Phase 1 of
- * `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`).
+ * Single trust-boundary entry point for durable audit capture.
  *
  * `@RequestScoped` (not `@ApplicationScoped`) because it derives actor/session/trace/correlation
  * context from the per-request [AuthTokenContext], matching the existing `@RequestScoped`

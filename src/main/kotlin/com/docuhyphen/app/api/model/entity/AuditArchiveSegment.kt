@@ -10,7 +10,7 @@ import java.util.UUID
 
 /**
  * Operational lifecycle record for one closed, signed, archived range of `audit_ledger_event`
- * rows for a single [streamId] (Phase 4 of `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`).
+ * rows for a single [streamId].
  *
  * Not itself the WORM evidence - the evidence is the segment content object plus its signed
  * manifest object, uploaded via `AuditArchiveStorage` to [segmentObjectKey]/[manifestObjectKey].

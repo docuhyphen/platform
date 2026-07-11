@@ -12,7 +12,7 @@ import org.mockito.kotlin.whenever
 import java.util.UUID
 
 /**
- * Phase 8 gate: reconciliation reports a match when the ledger and analytics-fact counts agree
+ * Verifies that reconciliation reports a match when the ledger and analytics-fact counts agree
  * for the requested scope, and reports the discrepancy (with a bounded sample of missing ids)
  * when they do not.
  */

@@ -170,11 +170,11 @@ class AuthAuditService @Inject constructor(
             )
         }
 
-        // Phase 3 (AUDIT-ARCHITECTURE-IMPLEMENTATION.md): route auth events through the canonical
+        // Route authentication events through the canonical
         // AuditRecorder in addition to the legacy auth_audit_event table above, so they also land
         // in audit_outbox/audit_ledger_event. The legacy table/WORM sink are kept as-is (dual
         // write) because AuthAuditResource's UI still reads from auth_audit_event directly;
-        // migrating that read path is left to Phase 7 (Auditor Portal) alongside the rest of the
+        // the legacy read path remains available for compatibility with existing clients.
         // ledger-backed UI work. An event type not yet in the catalog is a call-site bug worth
         // fixing, but must never break the auth flow it documents, so it is logged and skipped
         // here rather than thrown.
@@ -241,7 +241,7 @@ class AuthAuditService @Inject constructor(
         previousEventHash: String?,
     ): String
     {
-        // Phase 3 fix: eventId, actorRole, targetType, and targetId previously were not covered by
+        // eventId, actorRole, targetType, and targetId are included in the hash to prevent undetected changes.
         // the hash, so tampering with them would not have broken chain verification. They are now
         // included so the full identity of the recorded event participates in the chain.
         val payload = listOf(

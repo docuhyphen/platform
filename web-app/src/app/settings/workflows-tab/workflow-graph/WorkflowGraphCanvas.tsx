@@ -42,7 +42,7 @@ const READ_ONLY_ARIA_LABEL_CONFIG = {
 } as const;
 
 /**
- * Practical rendering threshold (Phase 6 / Decision on performance). Beyond this
+ * Practical rendering threshold. Beyond this
  * the diagram still renders, but the Timeline view is recommended for smoother
  * interaction rather than hiding any workflow data.
  */

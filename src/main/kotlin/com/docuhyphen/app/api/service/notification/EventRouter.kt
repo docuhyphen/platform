@@ -2,6 +2,7 @@
 
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
+import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 
 /**
@@ -39,6 +40,32 @@ class EventRouter
             }
         }
 
+        fanOutNotifications(event)
+    }
+
+    /**
+     * Routing entry point for durably-enqueued events delivered from the transactional outbox. The
+     * lifecycle business side-effect (e.g. flipping Share state, advancing the Exchange) is a
+     * required outcome for these events, so its failure is propagated to the caller: the dispatcher
+     * leaves the outbox row pending and retries it, rather than marking a required lifecycle event
+     * delivered when its side-effect never applied. Handlers must therefore be idempotent by
+     * business key so a retry after an ambiguous failure does not repeat the side-effect (the
+     * lifecycle handler guards every mutation on current status). Notification fan-out remains
+     * best-effort: a delivery failure there must not force the whole event to be redelivered.
+     */
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    open fun routeDurable(event: DomainEvent)
+    {
+        if (sessionApprovalEventHandler.handles(event.type))
+        {
+            sessionApprovalEventHandler.handle(event)
+        }
+
+        fanOutNotifications(event)
+    }
+
+    private fun fanOutNotifications(event: DomainEvent)
+    {
         val tasks = ruleEngine.resolveDeliveries(event)
         if (tasks.isEmpty())
         {

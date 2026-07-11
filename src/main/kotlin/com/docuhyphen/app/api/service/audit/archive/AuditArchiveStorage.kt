@@ -4,7 +4,7 @@ package com.docuhyphen.app.api.service.audit.archive
  * Write/read abstraction over wherever WORM-archived segment/manifest objects live. Two
  * implementations: [LocalAuditArchiveStorage] (default; a local directory, used in dev/CI and as
  * the degraded fallback) and [S3AuditArchiveStorage] (an existing-service S3 bucket with
- * versioning + Object Lock Governance mode - see `AUDIT-ARCHITECTURE-IMPLEMENTATION.md` Phase 4).
+ * versioning and Object Lock Governance mode).
  *
  * Deliberately has no delete/overwrite method: the application only ever needs to
  * `PutObject`/`GetObject` archived evidence, matching the IAM constraint that the app task role

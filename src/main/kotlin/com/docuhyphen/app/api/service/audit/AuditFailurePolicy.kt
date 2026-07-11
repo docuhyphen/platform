@@ -11,7 +11,7 @@ package com.docuhyphen.app.api.service.audit
  *   swallowed; the caller's business mutation commits without a durable audit record. Use only
  *   for event classes explicitly classified as low-risk.
  *
- * See `AUDIT-ARCHITECTURE-IMPLEMENTATION.md` "Prerequisite Decisions": until compliance/legal
+ * Until compliance and legal teams define event-specific requirements,
  * confirms the per-event-class failure policy, [AuditFailurePolicyResolver] defaults every
  * [com.docuhyphen.app.api.service.audit.catalog.AuditCategory] to [DEGRADED].
  */

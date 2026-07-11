@@ -24,11 +24,10 @@ import java.util.UUID
  * every retry so [com.docuhyphen.app.api.service.audit.AuditRecorder] persists at most one
  * outbox row for the occurrence. [idempotencyKey] defaults to [eventId] when not supplied.
  *
- * [actorKind] is the explicit actor classification (Phase 3 task 1 of
- * `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`): pass it whenever the call site actually knows whether
+ * [actorKind] is the explicit actor classification: pass it whenever the call site knows whether
  * the actor is a human, an application credential, a public-link recipient, or the workflow
  * engine. Left `null`, [LedgerProcessor.resolveActorKind] falls back to guessing `HUMAN`/`SYSTEM`
- * from [actorId] presence, which is the pre-Phase-3 behavior for call sites not yet migrated.
+ * from [actorId] presence for legacy call sites.
  *
  * [targetLabel]/[organizationLabel] are the human-readable counterparts to [targetId]/
  * [organizationId] - a document name, an Exchange name, a workflow definition name, a person's

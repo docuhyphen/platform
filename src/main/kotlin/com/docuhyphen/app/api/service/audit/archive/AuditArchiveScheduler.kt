@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory
  * continuously re-verifies previously archived segments ([AuditArchiveVerifier]), recording every
  * verification result (success or failure) as its own immutable audit event - the architecture's
  * "continuous verification job emits its result as an immutable audit event and alerts on failure
- * via CloudWatch" requirement (Phase 4 task 4). CloudWatch alerting is achieved by logging
+ * via CloudWatch. CloudWatch alerting is achieved by logging
  * failures at ERROR with a distinctive, greppable message that a CloudWatch Logs metric filter +
  * alarm can match (see `infra/cloudformation.yml`), reusing the CloudWatch Logs group already in
  * the stack rather than adding a new AWS service.

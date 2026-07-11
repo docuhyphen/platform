@@ -12,7 +12,7 @@ SET owner_user_id = (SELECT id FROM app_user WHERE is_active = true ORDER BY cre
 WHERE owner_organization_id IS NULL
   AND owner_user_id IS NULL;
 
--- Phase 3: enforce that every Exchange has exactly one owner context.
+-- Enforce that every Exchange has exactly one owner context.
 -- An Exchange is either owned by an organization or by a user directly; never both, never neither.
 ALTER TABLE exchange
     ADD CONSTRAINT exchange_owner_exactly_one CHECK (

@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /**
- * Phase 0 gate: the catalog rejects unknown event types and prohibited payload keys, and accepts
+ * Verifies that the catalog rejects unknown event types and prohibited payload keys, and accepts
  * known event types with a clean payload.
  */
 class AuditEventDraftValidatorTest

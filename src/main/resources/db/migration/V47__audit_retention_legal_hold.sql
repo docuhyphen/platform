@@ -1,5 +1,4 @@
--- Phase 8 (Retention, Legal Hold, Analytics Projection, Assurance) of
--- AUDIT-ARCHITECTURE-IMPLEMENTATION.md.
+-- Stores retention policies, legal holds, and audit analytics projections.
 --
 -- Four new tables, all following the same denormalized-ID rule as the rest of the audit
 -- platform: no foreign key from any of these tables to a mutable business entity.

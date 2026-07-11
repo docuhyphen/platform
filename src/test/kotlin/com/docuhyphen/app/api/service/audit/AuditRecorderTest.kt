@@ -20,7 +20,7 @@ import org.mockito.kotlin.whenever
 import java.util.UUID
 
 /**
- * Phase 1 gate for [AuditRecorder]:
+ * Verifies [AuditRecorder]:
  *  - a valid draft is validated, derives context, and writes exactly one outbox row.
  *  - an invalid draft (unknown event type) always throws, regardless of failure policy.
  *  - a retried capture attempt (same idempotency key) does not insert a duplicate row.

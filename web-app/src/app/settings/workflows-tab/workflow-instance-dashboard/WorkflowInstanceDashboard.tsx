@@ -15,6 +15,7 @@ const STATUS_COLORS: Record<string, "success" | "warning" | "danger" | "informat
     REJECTED: "danger",
     CANCELLED: "subtle",
     ESCALATED: "warning",
+    FAILED: "danger",
 };
 
 interface Props
@@ -88,6 +89,7 @@ const WorkflowInstanceDashboard = ({onSelectInstance}: Props) =>
                         <option value="REJECTED">Rejected</option>
                         <option value="CANCELLED">Cancelled</option>
                         <option value="ESCALATED">Escalated</option>
+                        <option value="FAILED">Failed</option>
                     </Select>
                     <Button
                         id="workflow-instance-refresh-btn"

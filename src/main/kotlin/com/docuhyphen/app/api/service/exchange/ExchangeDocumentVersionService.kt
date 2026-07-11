@@ -187,7 +187,7 @@ class ExchangeDocumentVersionService @Inject constructor(
     }
 
     /**
-     * Phase 3 task 2: historical-version download had zero capture before this phase. Failures
+     * Records historical-version downloads. Failures
      * are caught and logged, never propagated, so audit plumbing can never break an actual
      * version-file download - same catch-and-log style as
      * [ExchangeDocumentAuditService.recordOnRecorder].

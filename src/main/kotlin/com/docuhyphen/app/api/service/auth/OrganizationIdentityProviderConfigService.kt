@@ -173,7 +173,7 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
      * provider/secret/issuer/claim configuration untouched. Enforces platform
      * guardrails server-side before persistence and emits an immutable audit
      * event with before/after snapshots. Step-up is intentionally deferred per
-     * the current hardening roadmap.
+     * the current security requirements.
      */
     @EnforceAdminAction("ORG_AUTH_EXCHANGE_POLICY_UPDATE", requireStepUp = false)
     @Transactional

@@ -113,7 +113,7 @@ class ShareService @Inject constructor(
      * with many members that would be audit noise unrelated to a distinct human decision. The
      * triggering [grant]/[activate] call already records one event with
      * `principal_kind=PRINCIPAL_GROUP` in its payload, which is enough to discover that
-     * inheritance was (re)materialised; see the Phase 3 handoff for this scoping decision.
+     * inheritance was re-materialized; this preserves the scope of the original grant.
      */
     private fun materialiseGroupInheritance(parentShare: Share)
     {
@@ -374,7 +374,7 @@ class ShareService @Inject constructor(
     }
 
     /**
-     * Phase 3 task 3: the single choke point for every revoke variant (direct [revoke],
+     * The single choke point for every revoke variant (direct [revoke],
      * [revokePendingForResource], [revokeAllForResource]) so SHARE_REVOKE is captured exactly
      * once per share regardless of which caller triggered it. The `status == REVOKED` guard
      * above (unchanged) also prevents a duplicate event for an already-revoked share.
@@ -397,7 +397,7 @@ class ShareService @Inject constructor(
     }
 
     /**
-     * Phase 3 task 3 (AUDIT-ARCHITECTURE-IMPLEMENTATION.md): captures Share
+     * Captures Share
      * grant/activation/role-constraint-change/revocation through [AuditRecorder]. `AccessAuditLog`
      * is superseded as the write path (its table/repository are left untouched, out of scope to
      * remove). Target is the resource being shared (denormalized `resourceType.name`/
@@ -406,7 +406,7 @@ class ShareService @Inject constructor(
      * human-initiated grant/role-change/revoke); grants/activations with no acting app user id
      * (e.g. system/workflow-driven activation after an approval step completes) are recorded as
      * SYSTEM, since ShareService has no per-request context of its own to distinguish a workflow
-     * actor from another background process (see Phase 3 handoff for this scoping decision).
+     * actor from another background process, so background operations are attributed to the system.
      * Failures are caught and logged, never propagated, so audit plumbing can never break a
      * Share mutation.
      */

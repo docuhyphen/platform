@@ -20,7 +20,7 @@ import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 /**
- * Crypto-shredding primitive for Phase 8 task 1 of `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`.
+ * Crypto-shredding primitive for identity data.
  *
  * Every subject (e.g. a deleted user/org identity) gets a random 256-bit data key, wrapped
  * (AES-GCM) with the single application-wide master key from
@@ -30,7 +30,7 @@ import javax.crypto.spec.SecretKeySpec
  *
  * No call site in this codebase encrypts an audit field with [unwrapDataKey] yet - wiring
  * per-field pseudonymization into ledger capture is a larger change than this phase's scope (see
- * the Phase 8 handoff notes). This service only provides the primitive: issue, retrieve, shred.
+ * retention and legal-hold decisions. This service only provides the primitive: issue, retrieve, shred.
  */
 @ApplicationScoped
 class AuditIdentityVaultService @Inject constructor(

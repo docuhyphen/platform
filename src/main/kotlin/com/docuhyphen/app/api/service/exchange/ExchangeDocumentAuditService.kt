@@ -100,8 +100,8 @@ class ExchangeDocumentAuditService @Inject constructor(
     }
 
     /**
-     * Phase 3 compatibility projection (task 5): backs the Exchange "Audit" tab with a single
-     * ledger query across every document in the Exchange, instead of the pre-Phase-3 pattern of
+     * Backs the Exchange "Audit" tab with a single
+     * ledger query across every document in the Exchange, instead of a separate
      * one `/documents/{documentId}/audit` request per document. Reads
      * [AuditLedgerEventRepository.findByTargetTypeAndTargetIds] rather than the legacy
      * [DocumentAuditRepository] table, so results reflect the recorder-backed dual write in
@@ -145,7 +145,7 @@ class ExchangeDocumentAuditService @Inject constructor(
     }
 
     /**
-     * Phase 3 (AUDIT-ARCHITECTURE-IMPLEMENTATION.md): dual write onto [AuditRecorder] alongside
+     * Writes events to [AuditRecorder] alongside
      * the legacy [DocumentAuditLog] row above, so document actions also land in
      * `audit_outbox`/`audit_ledger_event`. The legacy `audit_log` table is kept for now because
      * `ExchangeDocumentAuditResource`/the exchange document sidebar UI still read it directly; the

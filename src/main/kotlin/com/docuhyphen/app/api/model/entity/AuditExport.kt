@@ -11,11 +11,10 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * One requested/built/downloaded verifiable evidence export (Phase 6 of
- * `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`). A normal mutable lifecycle row - like
+ * One requested, built, and downloaded verifiable evidence export. A normal mutable lifecycle row - like
  * [AuditEngagement], never the WORM evidence itself. The evidence is the signed bundle object
  * ([bundleObjectKey]) archived via `AuditArchiveStorage`, reusing the same archive
- * bucket/local directory as Phase 4's WORM archive (no new AWS service).
+ * bucket or local directory as the WORM archive.
  *
  * Denormalized IDs only, no FK to any mutable business entity - same rule as every other audit
  * table.

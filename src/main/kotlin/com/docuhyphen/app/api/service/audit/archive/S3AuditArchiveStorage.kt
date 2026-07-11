@@ -14,9 +14,9 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import java.io.ByteArrayOutputStream
 
 /**
- * S3-backed [AuditArchiveStorage] (Phase 4 task 3): one bucket, reused from the existing S3
+ * S3-backed [AuditArchiveStorage]: one bucket, reused from the existing S3
  * service already declared in `infra/cloudformation.yml` (versioning + Object Lock Governance
- * mode; no new AWS service type - see the Phase 4 cost constraint). The app task's IAM role may
+ * mode; no new AWS service type). The application task's IAM role may
  * `PutObject`/`GetObject` only; it has no `DeleteObject`, retention-bypass, or legal-hold-admin
  * permission, so this class deliberately never calls those APIs.
  */

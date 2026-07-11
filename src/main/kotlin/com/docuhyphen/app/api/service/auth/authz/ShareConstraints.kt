@@ -34,7 +34,7 @@ import java.net.UnknownHostException
  *
  * `max_views` has been removed from the supported contract. Server-side transactional view
  * counting is not implemented; the field is rejected at write time to prevent silent
- * no-enforcement. See Phase 7 of the pre-fields authorization hardening plan.
+ * no-enforcement. The constraints remain available for future enforcement.
  */
 @Serializable
 data class ShareConstraints(

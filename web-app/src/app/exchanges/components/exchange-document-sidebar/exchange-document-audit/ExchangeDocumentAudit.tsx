@@ -14,7 +14,7 @@ interface ExchangeDocumentAuditProps
 }
 
 /**
- * Ledger-backed document audit view (Phase 7), paginated over
+ * Ledger-backed document audit view, paginated over
  * `GET /exchanges/{exchangeId}/documents/{documentId}/audit-events` via the shared audit
  * card-list/detail components instead of the legacy single-page audit log list.
  */

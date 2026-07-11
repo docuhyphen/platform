@@ -30,12 +30,11 @@ class AuditExportNotFoundException(message: String) : RuntimeException(message)
 class AuditExportAccessException(message: String) : RuntimeException(message)
 
 /**
- * State-machine + lifecycle-audit service for [AuditExport] (Phase 6 of
- * `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`): `REQUESTED` -> (`APPROVAL_PENDING` if dual control is
+ * State-machine and lifecycle-audit service for [AuditExport]: `REQUESTED` -> (`APPROVAL_PENDING` if dual control is
  * required) -> `BUILDING` -> `READY`, with `FAILED`/`EXPIRED`/`REVOKED` off-ramps. The actual
  * bundle construction is [AuditExportBuilder]'s concern; this service only owns the request/
  * approve/build-transition/download/revoke/expire lifecycle and its own audit trail - every
- * lifecycle transition is itself an audit event (task 4).
+ * lifecycle transition is itself an audit event.
  */
 @ApplicationScoped
 class AuditExportService @Inject constructor(

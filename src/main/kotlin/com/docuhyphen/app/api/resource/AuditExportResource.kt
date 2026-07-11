@@ -28,8 +28,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Thin REST adapter for the platform-scope half of Phase 6 (Verifiable Evidence Exports) of
- * `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`. All business logic, state-machine transitions, and
+ * Thin REST adapter for platform-scope verifiable evidence exports. All business logic, state-machine transitions, and
  * bundle construction live in [AuditExportService]/
  * [com.docuhyphen.app.api.service.audit.export.AuditExportBuilder]; this class only validates
  * input, authorizes, and maps results. The organization-scope routes live in

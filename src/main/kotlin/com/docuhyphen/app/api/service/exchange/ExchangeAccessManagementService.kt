@@ -41,7 +41,7 @@ import java.util.UUID
 
 /**
  * Manage-access write API over the unified [com.docuhyphen.app.api.model.entity.Share] model
- * (v2 plan §6.2): grant / change-role / revoke access on a exchange.
+ * Grants, changes, and revokes access to an Exchange.
  *
  * Guarding: for now only the session **initiator** (owner) may change access. This is the
  * pragmatic guard until [com.docuhyphen.app.api.service.auth.authz.AuthorizationService] is
@@ -354,7 +354,7 @@ class ExchangeAccessManagementService @Inject constructor(
     }
 
     /**
-     * Phase 3 task 3 (small, targeted deny capture): denying `EXCHANGE_MANAGE_ACCESS` is a
+     * Records denied `EXCHANGE_MANAGE_ACCESS` authorization as a
      * genuinely sensitive authorization decision (someone tried to view or change who has access
      * to an exchange without permission), so it gets its own AUTHORIZATION_DENIED ledger row.
      * Failures are caught and logged, never propagated.

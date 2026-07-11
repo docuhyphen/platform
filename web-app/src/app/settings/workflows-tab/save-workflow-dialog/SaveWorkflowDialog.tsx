@@ -36,11 +36,12 @@ interface Props {
     isEdit: boolean;
     state: WorkflowDesignerState;
     triggers: WorkflowTriggerEventDto[];
+    warnings?: string[];
 }
 
 const WORKFLOW_SAVE_ACTION = "WORKFLOW_DEFINITION_SAVE";
 
-const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}: Props) => {
+const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers, warnings = []}: Props) => {
     const styles = useStyles();
 
     const [phase, setPhase] = useState<Phase>('review');
@@ -155,6 +156,21 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers}:
                             {phase === 'review' && error && (
                                 <MessageBar intent="error">
                                     <MessageBarBody>{error}</MessageBarBody>
+                                </MessageBar>
+                            )}
+
+                            {phase === 'review' && warnings.length > 0 && (
+                                <MessageBar intent="warning" id="workflow-save-warnings">
+                                    <MessageBarBody>
+                                        <Text weight="semibold" block>
+                                            Review these routing warnings before saving:
+                                        </Text>
+                                        <ul className={styles.warningList}>
+                                            {warnings.map((warning, i) => (
+                                                <li key={i} id={`workflow-save-warning-${i}`}>{warning}</li>
+                                            ))}
+                                        </ul>
+                                    </MessageBarBody>
                                 </MessageBar>
                             )}
 

@@ -16,8 +16,8 @@ import java.util.UUID
 data class AnalyticsProjectionResult(val projected: Int, val alreadyProjected: Int, val failed: Int)
 
 /**
- * Idempotent dimensional projector from the immutable ledger to `audit_analytics_fact` (Phase 8
- * task 2). Keyed by `ledger_event_id` (unique constraint), so draining the same ledger event twice
+ * Idempotent dimensional projector from the immutable ledger to `audit_analytics_fact`.
+ * It is keyed by `ledger_event_id` (unique constraint), so draining the same ledger event twice
  * - whether by retry or a concurrent tick - never produces a second fact row. Copies only
  * denormalized dimensions, never [AuditLedgerEvent.payloadJson], so a prohibited payload field can
  * never reach the projection even if one somehow slipped past

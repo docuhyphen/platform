@@ -48,8 +48,7 @@ class AuthAuditEventRepository : BaseRepository<AuthAuditEvent>(AuthAuditEvent::
      * `audit_ledger_event.event_id = auth_audit_event.id`, the same identity
      * [com.docuhyphen.app.api.service.auth.AuthAuditService.recordOnRecorder]'s ongoing dual
      * write already uses). Only rows created before that dual write went live ever match this -
-     * see [com.docuhyphen.app.api.service.audit.archive.LegacyAuditImportService] (Phase 4 task
-     * 5 of `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`).
+     * see [com.docuhyphen.app.api.service.audit.archive.LegacyAuditImportService].
      */
     fun findLegacyUnimported(limit: Int): List<AuthAuditEvent>
     {

@@ -5,8 +5,7 @@ import jakarta.inject.Inject
 import org.eclipse.microprofile.config.inject.ConfigProperty
 
 /**
- * Configuration for Phase 4 (Immutable WORM Archive + Signed Segments + Verification) of
- * `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`. Kept as its own bean (not folded into
+ * Configuration for immutable WORM archive storage, segment signing, and verification. Kept as its own bean (not folded into
  * [OAuthConfigService]) per that class's own doc comment about keeping each `@ConfigProperty`
  * constructor well under the JVM 64 KB bytecode limit.
  *
@@ -15,7 +14,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty
  * `file.storage.service`/[AuthAuditWormSink]-style local-first defaults elsewhere in this
  * codebase); set the `*.type`/`*.provider` properties to `aws` to use S3 + Secrets Manager in an
  * environment that has them configured. No new AWS service type is introduced either way - see
- * the Phase 4 cost constraint in `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`.
+ * the archive's cost constraints.
  */
 @ApplicationScoped
 class AuditArchiveConfigService @Inject constructor(

@@ -13,7 +13,7 @@ interface ExchangeAuditTabProps
 }
 
 /**
- * Ledger-backed Exchange "Audit" tab (Phase 7): every document event plus Exchange-level events,
+ * Ledger-backed Exchange "Audit" tab: every document event plus Exchange-level events,
  * paginated over `GET /exchanges/{exchangeId}/audit-events`, using the shared audit table/detail
  * components instead of a bespoke table.
  */

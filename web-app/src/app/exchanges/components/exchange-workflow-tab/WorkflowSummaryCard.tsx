@@ -13,6 +13,7 @@ const INSTANCE_STATUS_COLORS: Record<string, "informative" | "success" | "danger
     REJECTED: "danger",
     CANCELLED: "subtle",
     ESCALATED: "warning",
+    FAILED: "danger",
 };
 
 const formatDateTime = (iso?: string) =>

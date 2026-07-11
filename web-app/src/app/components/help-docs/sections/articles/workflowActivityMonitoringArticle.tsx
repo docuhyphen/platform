@@ -4,8 +4,8 @@ export const workflowActivityMonitoringArticle = (
     <>
         <p>
             The Activity tab in the Workflows section gives Organization Admins a
-            real-time view of all running, completed, rejected, and cancelled
-            workflow instances across the organization's Exchanges.
+            real-time view of all running, completed, rejected, cancelled, and
+            failed workflow instances across the organization's Exchanges.
         </p>
 
         <h3>Opening the activity dashboard</h3>
@@ -31,21 +31,18 @@ export const workflowActivityMonitoringArticle = (
             </li>
             <li>
                 <b>Status badge</b> - the instance status: In Progress, Completed,
-                Rejected, Cancelled, or Escalated.
+                Rejected, Cancelled, Escalated, or Failed.
             </li>
         </ul>
 
         <h3>Filtering instances</h3>
         <p>
             Use the <b>Filter by status</b> dropdown to narrow the list. Options
-            are: All, In Progress, Completed, Rejected, Cancelled, and Escalated.
+            are: All, In Progress, Completed, Rejected, Cancelled, Escalated, and
+            Failed.
             For example, select <b>In Progress</b> to see all instances currently
             waiting for human decisions. Use the <b>Refresh</b> button to reload
             the list after filtering.
-        </p>
-        <p>
-            The Activity list footer shows the visible instance range on the left
-            and page navigation actions on the right.
         </p>
 
         <h3>Viewing the step timeline</h3>
@@ -85,7 +82,9 @@ export const workflowActivityMonitoringArticle = (
         <ul>
             <li>
                 <b>In Progress</b> - at least one step is still waiting for a
-                decision. The workflow has not yet reached a terminal state.
+                decision. The workflow has not yet reached a terminal state and
+                runs against the structure frozen when the instance started, so
+                later definition edits never affect it.
             </li>
             <li>
                 <b>Completed</b> - all steps finished on the approval/true path.
@@ -102,8 +101,17 @@ export const workflowActivityMonitoringArticle = (
                 definition was deactivated.
             </li>
             <li>
-                <b>Escalated</b> - an SLA breach triggered the Escalate action
-                and the instance has been flagged for administrative review.
+                <b>Escalated</b> - an SLA breach triggered the Escalate action and
+                the step was reassigned to the escalation targets. The instance is
+                still active and pending: reminders continue, it keeps blocking the
+                Exchange decision it gates, its definition cannot be edited or
+                deleted, and cancelling or rescinding the Exchange still cancels it.
+            </li>
+            <li>
+                <b>Failed</b> - the engine could not run the instance safely (for
+                example its saved execution snapshot is missing or unreadable). The
+                Exchange is left unchanged for manual review, and the detail drawer
+                shows a short reason.
             </li>
         </ul>
 

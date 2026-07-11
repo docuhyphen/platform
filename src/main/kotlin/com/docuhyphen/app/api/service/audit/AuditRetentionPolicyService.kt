@@ -18,7 +18,7 @@ import java.util.UUID
 
 /**
  * Organization-override layer over [AuditRetentionCatalogService]'s platform-default catalog
- * (Phase 8 task 1). An organization row narrows or widens the default for exactly one
+ * An organization row narrows or widens the default for exactly one
  * [AuditCategory]; with no row, [getEffectivePolicy] returns the platform default unchanged.
  */
 @ApplicationScoped

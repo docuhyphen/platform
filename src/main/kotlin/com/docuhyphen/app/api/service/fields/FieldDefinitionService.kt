@@ -229,7 +229,7 @@ class FieldDefinitionService @Inject constructor(
         authorizationContextFactory.currentContext()
 
     /**
-     * Phase 3 task 4 (breadth): captures Field Definition lifecycle mutations onto the ledger.
+     * Captures Field Definition lifecycle mutations onto the ledger.
      * targetType uses the literal "FIELD_DEFINITION" (no dedicated ResourceType entry exists
      * for this resource today) per the no-business-FK / denormalized-string rule.
      */

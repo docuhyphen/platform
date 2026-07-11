@@ -100,7 +100,7 @@ const ExchangeInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = 
             </div>
             {choosingBlueprint && (
                 <Text size={300} className={styles.choosingBlueprintSubtext}>
-                    Select a blueprint to pre-fill the exchange form
+                    Select a blueprint to pre-fill the Exchange form
                 </Text>
             )}
             {(!choosingBlueprint && !exchangeInitiatedSuccessfully) &&

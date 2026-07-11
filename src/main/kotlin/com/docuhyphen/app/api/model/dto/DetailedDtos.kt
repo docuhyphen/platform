@@ -149,7 +149,7 @@ data class DocumentAuditDetailedDto(
     val action: String?,
     val performedBy: AppUserPublicDto?,
     val performedByEmail: String?,
-    // Populated only by the Phase 3 ledger-backed exchange-level projection
+    // Populated only by the ledger-backed Exchange-level projection
     // (ExchangeDocumentAuditService.getExchangeAuditEvents); null for the legacy per-document
     // audit_log-backed endpoint, which already scopes to one document.
     val documentId: String? = null,

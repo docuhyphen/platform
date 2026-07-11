@@ -10,7 +10,7 @@ import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
  * at startup via `Instance<WorkflowActionHandler>`.
  *
  * Implementations should be side-effect-safe to retry (best-effort; the engine does not
- * retry automatically in Phase 2 but the design must allow it later).
+ * retry automatically, but the design must allow it later).
  */
 interface WorkflowActionHandler
 {

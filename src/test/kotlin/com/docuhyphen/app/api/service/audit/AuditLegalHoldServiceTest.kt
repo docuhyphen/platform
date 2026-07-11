@@ -14,7 +14,7 @@ import org.mockito.kotlin.whenever
 import java.util.UUID
 
 /**
- * Phase 8 gate: placing a hold makes [AuditLegalHoldService.isUnderHold] true for that resource;
+ * Verifies that placing a hold makes [AuditLegalHoldService.isUnderHold] true for that resource;
  * releasing it makes it false again; only an ACTIVE hold can be released.
  */
 class AuditLegalHoldServiceTest

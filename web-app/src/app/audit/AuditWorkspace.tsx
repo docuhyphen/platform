@@ -15,7 +15,7 @@ const tabIds = {
 };
 
 /**
- * Auditor Portal (Phase 7 of AUDIT-ARCHITECTURE-IMPLEMENTATION.md). Rendered inside the Settings
+ * Auditor workspace rendered inside the Settings
  * "Audit" tab rather than a standalone top-level route, since the audit workspace is an
  * admin/compliance surface gated the same way as the other Settings administration tabs.
  */

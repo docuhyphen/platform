@@ -1004,7 +1004,7 @@ export interface WorkflowInstanceSummaryDto
     subjectResourceType?: string;
     subjectResourceId?: string;
     exchangeName?: string;
-    status: 'RUNNING' | 'COMPLETED' | 'REJECTED' | 'CANCELLED' | 'ESCALATED';
+    status: 'RUNNING' | 'COMPLETED' | 'REJECTED' | 'CANCELLED' | 'ESCALATED' | 'FAILED';
     currentStepIndex: number;
     createdAt: string;
     completedAt?: string;
@@ -1023,6 +1023,11 @@ export interface WorkflowInstanceDetailDto extends WorkflowInstanceSummaryDto
     definitionSnapshotJson: string;
     /** Explicitly traversed edges, oldest first. The only source of edge traversal for the diagram. */
     transitions: WorkflowStepTransitionDto[];
+    /**
+     * Safe machine failure code when status is FAILED (e.g. 'SNAPSHOT_MISSING', 'SNAPSHOT_CORRUPT');
+     * absent otherwise. Never carries raw JSON or stack detail.
+     */
+    failureCode?: string;
 }
 
 /**
@@ -1033,7 +1038,7 @@ export interface WorkflowStepTransitionDto
 {
     fromStepIndex: number | null;
     toStepIndex: number | null;
-    outcome: 'DEFAULT' | 'APPROVE' | 'REJECT' | 'TRUE' | 'FALSE';
+    outcome: 'DEFAULT' | 'APPROVE' | 'REJECT' | 'TRUE' | 'FALSE' | 'FAILED';
 }
 
 export interface WorkflowStepInstanceDto
@@ -1725,7 +1730,7 @@ export interface SchemaAssignmentDto
     fields: FieldValueDto[];
 }
 
-// ── Audit projection, exports, and integrity (Phase 7) ────────────────────────
+// ── Audit projection, exports, and integrity ──────────────────────────────────
 // Mirrors com.docuhyphen.app.api.model.dto.AuditProjectionDtos / AuditExportDtos exactly.
 
 export interface AuditEventCursorDto

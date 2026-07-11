@@ -78,7 +78,7 @@ data class WorkflowStepSpec(
     val escalation: EscalationSpec? = null,
     val onApprove: StepOutcomeSpec? = null,
     val onReject: StepOutcomeSpec? = null,
-    /** For ACTION steps: key of the registered WorkflowActionHandler bean to invoke (see Phase 2). */
+    /** For ACTION steps: key of the registered WorkflowActionHandler bean to invoke. */
     val actionHandlerKey: String? = null,
     /** For ACTION steps using the WEBHOOK_DELIVER handler: ID of the WorkflowWebhookEndpoint to call. */
     val webhookEndpointId: String? = null,
@@ -88,7 +88,8 @@ data class WorkflowStepSpec(
     val communicationId: String? = null,
     /**
      * For CONDITION steps: simple predicate evaluated against `subjectDataJson` fields.
-     * Syntax: `"$subject.<key> <op> '<value>'"` where op is one of ==, !=, contains, startsWith.
+     * Syntax: `"$subject.<key> <op> <value>"`. Text values are single-quoted and numeric and boolean
+     * values are unquoted. Operators are constrained by the selected trigger field type.
      */
     val predicateExpression: String? = null,
     /** For CONDITION steps: outcome when [predicateExpression] evaluates to true. */

@@ -14,7 +14,7 @@ import org.mockito.kotlin.whenever
 import java.security.SecureRandom
 
 /**
- * Phase 8 gate for the crypto-shredding primitive: a subject's data key round-trips through
+ * Verifies the crypto-shredding primitive: a subject's data key round-trips through
  * wrap/unwrap, and [AuditIdentityVaultService.shred] permanently makes it unrecoverable (twice,
  * idempotently) without deleting the row itself.
  */

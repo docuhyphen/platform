@@ -2,7 +2,7 @@
  * Transforms a `WorkflowDesignerState` into a `WorkflowGraph` for the
  * definition-preview mode.
  *
- * Rules (per plan Phase 1 Definition Adapter Rules):
+ * Rules:
  * - One Start node and one End node always present.
  * - Empty workflow: Start connected directly to End.
  * - Step render IDs namespaced as `def:{definitionId}:step:{index}`.

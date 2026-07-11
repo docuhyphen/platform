@@ -17,12 +17,12 @@ data class AuditHealthReport(
 )
 
 /**
- * Computes the small set of health signals Phase 8 task 3 asks for that are not already covered
+ * Computes health signals that are not already covered
  * by [com.docuhyphen.app.api.service.audit.archive.AuditArchiveScheduler]'s own
  * `AUDIT_ARCHIVE_VERIFICATION_FAILED` marker: outbox backlog age/depth and analytics projection
  * lag. Ledger latency/duplicates/gaps and denied-access anomalies are left for a later pass (see
- * the Phase 8 handoff notes) - this is a deliberately narrow first cut, not full coverage of the
- * plan's monitoring list.
+ * configured archival verification. The service currently focuses on signals that can be derived
+ * from persisted audit data.
  */
 @ApplicationScoped
 class AuditHealthMonitorService @Inject constructor(

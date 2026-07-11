@@ -9,7 +9,7 @@ import java.util.Base64
 import java.util.concurrent.locks.ReentrantLock
 
 /**
- * Secrets-Manager-backed master key provider (Phase 8): a single base64 AES-256 key stored as one
+ * Secrets-Manager-backed master key provider: a single base64 AES-256 key stored as one
  * JSON-free plain-text secret in the existing AWS Secrets Manager - no KMS, no per-subject secret.
  * The secret value must be provisioned out-of-band, same as `AuditArchiveSigningSecret`.
  */

@@ -56,7 +56,7 @@ CREATE TABLE audit_ledger_event
     prev_hash          VARCHAR(128),
     event_hash         VARCHAR(128) NOT NULL,
 
-    -- Populated starting Phase 4 (WORM archive signing); nullable until then.
+    -- Populated when an archived segment is signed; nullable for ledger-only events.
     signing_key_id     VARCHAR(64),
     checkpoint_ref     VARCHAR(128),
 

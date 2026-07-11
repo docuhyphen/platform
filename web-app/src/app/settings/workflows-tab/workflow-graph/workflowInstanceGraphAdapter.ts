@@ -1,8 +1,8 @@
 /**
- * Transforms a `WorkflowInstanceDetailDto` (Phase 4 frozen instance contract)
+ * Transforms a `WorkflowInstanceDetailDto` with its frozen graph snapshot
  * into a `WorkflowGraph` for the instance-view mode.
  *
- * Rules (per plan Phase 5 Runtime Adapter Rules):
+ * Rules:
  * - Topology and labels come from the frozen `definitionSnapshotJson`, decoded
  *   into the same `{steps}` DSL the builder serializes, then routed through the
  *   SHARED `buildBaseGraph` so equal builder and instance topology receive equal

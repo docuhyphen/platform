@@ -37,8 +37,7 @@ data class OrganizationIntegrityReport(
 /**
  * Read-only integrity report over every stream belonging to an organization (or the platform),
  * combining [AuditArchiveVerifier]'s segment-chain boundary checkpoint with a full re-verification
- * of every archived segment for that stream. Phase 6 task 5 of
- * `AUDIT-ARCHITECTURE-IMPLEMENTATION.md` ("Offline verifier tool + `GET
+ * of every archived segment for that stream. The `GET
  * /organizations/{organizationId}/audit-integrity`"); this is the online counterpart the endpoint
  * serves, while [AuditExportBuilder] embeds the same verification logic plus a public-key/README
  * so an export bundle can be checked without calling this endpoint at all ("offline").

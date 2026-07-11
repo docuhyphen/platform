@@ -89,13 +89,18 @@ class WorkflowInstanceGraphRecordingTest
             stepsJson = WorkflowSpecJson.encode(WorkflowSpec(steps = steps.toList()))
         }
 
-    private fun runningInstance(): WorkflowInstance =
+    private fun runningInstance(vararg steps: WorkflowStepSpec): WorkflowInstance =
         WorkflowInstance().apply {
             id = instanceId
             definitionId = this@WorkflowInstanceGraphRecordingTest.definitionId
             definitionVersion = 3
             status = WorkflowInstanceStatus.RUNNING
             currentStepIndex = 0
+            triggerEventSnapshot = "test.event"
+            // The engine advances from the frozen execution snapshot, so an instance must carry one.
+            definitionSnapshotJson = WorkflowSpecJson.encode(
+                WorkflowSpec(steps = if (steps.isEmpty()) listOf(approvalStep("END")) else steps.toList()),
+            )
         }
 
     private fun stepInstance(index: Int, spec: WorkflowStepSpec): WorkflowStepInstance =
@@ -158,8 +163,9 @@ class WorkflowInstanceGraphRecordingTest
         val step = stepInstance(0, spec)
         val decider = PrincipalRef(PrincipalKind.USER, UUID.randomUUID())
 
-        whenever(stepRepository.findById(step.id)).thenReturn(step)
-        whenever(instanceRepository.findById(instanceId)).thenReturn(runningInstance())
+        whenever(stepRepository.findInstanceIdById(step.id)).thenReturn(instanceId)
+        whenever(instanceRepository.findByIdForUpdate(instanceId)).thenReturn(runningInstance())
+        whenever(stepRepository.findByIdForUpdate(step.id)).thenReturn(step)
         whenever(assigneeRepository.findAllByStepInstanceId(step.id)).thenReturn(listOf(assigneeFor(decider)))
         whenever(decisionRepository.findByStepAndPrincipal(any(), any(), any())).thenReturn(null)
         whenever(decisionRepository.findAllByStepInstanceId(step.id)).thenReturn(listOf(approveDecision()))
@@ -185,8 +191,9 @@ class WorkflowInstanceGraphRecordingTest
         val step = stepInstance(0, spec)
         val decider = PrincipalRef(PrincipalKind.USER, UUID.randomUUID())
 
-        whenever(stepRepository.findById(step.id)).thenReturn(step)
-        whenever(instanceRepository.findById(instanceId)).thenReturn(runningInstance())
+        whenever(stepRepository.findInstanceIdById(step.id)).thenReturn(instanceId)
+        whenever(instanceRepository.findByIdForUpdate(instanceId)).thenReturn(runningInstance())
+        whenever(stepRepository.findByIdForUpdate(step.id)).thenReturn(step)
         whenever(assigneeRepository.findAllByStepInstanceId(step.id)).thenReturn(listOf(assigneeFor(decider)))
         whenever(decisionRepository.findByStepAndPrincipal(any(), any(), any())).thenReturn(null)
         whenever(decisionRepository.findAllByStepInstanceId(step.id)).thenReturn(emptyList())
@@ -212,13 +219,13 @@ class WorkflowInstanceGraphRecordingTest
         val step0 = stepInstance(0, step0Spec)
         val decider = PrincipalRef(PrincipalKind.USER, UUID.randomUUID())
 
-        whenever(stepRepository.findById(step0.id)).thenReturn(step0)
-        whenever(instanceRepository.findById(instanceId)).thenReturn(runningInstance())
+        whenever(stepRepository.findInstanceIdById(step0.id)).thenReturn(instanceId)
+        whenever(instanceRepository.findByIdForUpdate(instanceId)).thenReturn(runningInstance(step0Spec, step1Spec))
+        whenever(stepRepository.findByIdForUpdate(step0.id)).thenReturn(step0)
         whenever(assigneeRepository.findAllByStepInstanceId(step0.id)).thenReturn(listOf(assigneeFor(decider)))
         whenever(decisionRepository.findByStepAndPrincipal(any(), any(), any())).thenReturn(null)
         whenever(decisionRepository.findAllByStepInstanceId(step0.id)).thenReturn(listOf(approveDecision()))
         whenever(transitionRepository.existsByFromStepInstanceId(step0.id)).thenReturn(false)
-        whenever(definitionRepository.findById(definitionId)).thenReturn(definitionWith(step0Spec, step1Spec))
         whenever(assigneeResolver.resolveAll(any(), any())).thenReturn(emptyList())
 
         newEngine().recordDecision(step0.id, decider, Decision.APPROVE, null)
@@ -240,8 +247,9 @@ class WorkflowInstanceGraphRecordingTest
         val step = stepInstance(0, spec)
         val decider = PrincipalRef(PrincipalKind.USER, UUID.randomUUID())
 
-        whenever(stepRepository.findById(step.id)).thenReturn(step)
-        whenever(instanceRepository.findById(instanceId)).thenReturn(runningInstance())
+        whenever(stepRepository.findInstanceIdById(step.id)).thenReturn(instanceId)
+        whenever(instanceRepository.findByIdForUpdate(instanceId)).thenReturn(runningInstance())
+        whenever(stepRepository.findByIdForUpdate(step.id)).thenReturn(step)
         whenever(assigneeRepository.findAllByStepInstanceId(step.id)).thenReturn(listOf(assigneeFor(decider)))
         whenever(decisionRepository.findByStepAndPrincipal(any(), any(), any())).thenReturn(null)
         whenever(decisionRepository.findAllByStepInstanceId(step.id)).thenReturn(listOf(approveDecision()))

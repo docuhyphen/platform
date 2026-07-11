@@ -11,7 +11,7 @@ import java.util.UUID
 /**
  * One ordered, hash-chained ledger row, appended by
  * [com.docuhyphen.app.api.service.audit.LedgerProcessor] from a committed `audit_outbox` row
- * (Phase 2 of `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`).
+ * and its integrity metadata.
  *
  * Denormalized IDs/labels only, same rule as [AuditOutboxEntry]/[AccessAuditLog] - never the
  * [DocumentAuditLog] anti-pattern of a non-null `@ManyToOne` FK to a mutable business entity.
@@ -116,7 +116,7 @@ class AuditLedgerEvent
     @Column(name = "event_hash", nullable = false, length = 128)
     lateinit var eventHash: String
 
-    /** Populated starting Phase 4 (WORM archive signing); null until then. */
+    /** Identifies the key used to sign the archived segment; null before archival. */
     @Column(name = "signing_key_id", length = 64)
     var signingKeyId: String? = null
 

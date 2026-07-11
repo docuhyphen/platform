@@ -1,10 +1,10 @@
--- Phase 6 (Verifiable Evidence Exports) of AUDIT-ARCHITECTURE-IMPLEMENTATION.md.
+-- Stores verifiable evidence export requests and their lifecycle state.
 --
 -- audit_export is a normal mutable lifecycle table (request -> approve -> build -> ready ->
 -- download/expire/revoke), the same pattern as audit_engagement: it tracks the state machine and
 -- denormalized scope/reference fields, never the WORM evidence itself. The evidence is the signed
 -- bundle object (manifest.json/events.jsonl/events.csv/integrity.json/signature/README, zipped)
--- uploaded via AuditArchiveStorage, reusing the same archive bucket/local directory as Phase 4 -
+-- uploaded through AuditArchiveStorage, reusing the archive bucket or local directory -
 -- no new AWS service.
 --
 -- audit_export_approval is a separate append-style table (rows are never updated, only inserted)

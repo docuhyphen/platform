@@ -165,7 +165,7 @@ class ExchangeUpdateService @Inject constructor(
             if (newStatus == ExchangeStatus.ACCEPTED_STARTED || newStatus == ExchangeStatus.REJECTED)
             {
                 val runningAcceptance = workflowInstanceRepository
-                    .findRunningForSubjectAndTrigger(sessionUUID, "exchange.acceptance_pending")
+                    .findActiveForSubjectAndTrigger(sessionUUID, "exchange.acceptance_pending")
                 if (runningAcceptance != null)
                 {
                     val currentStep = workflowStepRepository
@@ -209,7 +209,23 @@ class ExchangeUpdateService @Inject constructor(
             // via the exchange.ended_confirmed event when its steps complete.
             if (newStatus == ExchangeStatus.ENDED)
             {
-                val exchange = exchangeRepository.findById(sessionUUID)!!
+                // Serialize ending requests on the Exchange row. A client retry or a concurrent
+                // request must observe and reuse the workflow created by the first transaction.
+                val exchange = exchangeRepository.findByIdForUpdate(sessionUUID)
+                    ?: throw ExchangeNotFoundException("Exchange not found")
+                val runningEnding = workflowInstanceRepository
+                    .findActiveForSubjectAndTrigger(sessionUUID, "exchange.ending")
+                if (runningEnding != null)
+                {
+                    logger.info(
+                        "Exchange {}: ending workflow {} is already active; holding ENDED write",
+                        sessionUUID,
+                        runningEnding.id,
+                    )
+                    throw WorkflowConflictException(
+                        "A completion workflow is already active. The exchange will be closed when it completes."
+                    )
+                }
                 val orgId = exchange.ownerOrganizationId
                 val triggerResult = workflowEngineService.trigger(
                     TriggerRequest(
@@ -401,7 +417,7 @@ class ExchangeUpdateService @Inject constructor(
         exchangeRepository.updateEndDate(exchangeUuid, rescindedAt)
         exchangeRepository.updateLastActivity(exchangeUuid, rescindedAt)
 
-        // Reference implementation for Phase 1 of AUDIT-ARCHITECTURE-IMPLEMENTATION.md: the
+        // Records a lifecycle event while allowing Exchange rescission to complete if audit capture fails: the
         // durable audit intent is written in this same transaction, so it commits/rolls back
         // atomically with the status transition above. idempotencyKey is deterministic per
         // exchange so a retried rescind call writes at most one outbox row for this occurrence.
@@ -423,7 +439,7 @@ class ExchangeUpdateService @Inject constructor(
             )
         )
 
-        workflowInstanceRepository.findAllRunningForSubject(ResourceType.EXCHANGE.name, exchangeUuid)
+        workflowInstanceRepository.findAllActiveForSubject(ResourceType.EXCHANGE.name, exchangeUuid)
             .forEach { instance ->
                 workflowEngineService.cancel(instance.id, "Exchange rescinded")
             }
@@ -468,7 +484,7 @@ class ExchangeUpdateService @Inject constructor(
 
         exchangeRepository.update(session)
 
-        workflowInstanceRepository.findAllRunningForSubject(ResourceType.EXCHANGE.name, sessionUUID)
+        workflowInstanceRepository.findAllActiveForSubject(ResourceType.EXCHANGE.name, sessionUUID)
             .forEach { instance ->
                 workflowEngineService.cancel(instance.id, "Exchange deleted")
             }
@@ -481,9 +497,9 @@ class ExchangeUpdateService @Inject constructor(
     }
 
     /**
-     * Phase 3 task 4 (breadth): captures ACCEPTED_STARTED / REJECTED / ENDED transitions from
+     * Captures ACCEPTED_STARTED, REJECTED, and ENDED transitions from
      * [updateExchange] onto the ledger, mirroring the [rescindExchange] reference pattern but
-     * using the catch-and-log style established for the new Phase 3 call sites so a plumbing
+     * using catch-and-log so an audit
      * failure here never blocks the underlying status transition. Statuses without a mapped
      * event (e.g. INITIATED, RESCINDED - the latter has its own dedicated capture in
      * [rescindExchange]) are silently skipped.
@@ -532,7 +548,7 @@ class ExchangeUpdateService @Inject constructor(
         }
     }
 
-    /** Phase 3 task 4 (breadth): captures exchange deletion onto the ledger. */
+    /** Captures Exchange deletion onto the ledger. */
     private fun recordExchangeDeleted(exchangeId: UUID, exchangeName: String?, organizationId: UUID?)
     {
         try
@@ -638,7 +654,7 @@ class ExchangeUpdateService @Inject constructor(
         if (requestedStatus == ExchangeStatus.ACCEPTED_STARTED || requestedStatus == ExchangeStatus.REJECTED)
         {
             val runningAcceptance = workflowInstanceRepository
-                .findRunningForSubjectAndTrigger(sessionUUID, "exchange.acceptance_pending")
+                .findActiveForSubjectAndTrigger(sessionUUID, "exchange.acceptance_pending")
             if (runningAcceptance != null)
             {
                 val recipientUserId = shareService.primaryRecipientUserId(sessionUUID)

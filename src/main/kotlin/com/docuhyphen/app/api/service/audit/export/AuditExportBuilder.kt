@@ -94,8 +94,7 @@ data class AuditExportBundleResult(
 )
 
 /**
- * Builds the signed, independently verifiable evidence bundle for one [AuditExport] (Phase 6
- * tasks 2 and 5 of `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`). Fail-closed: verifies every touched
+ * Builds the signed, independently verifiable evidence bundle for one [AuditExport]. Fail-closed: verifies every touched
  * stream's segment-chain boundary checkpoint (not just that inner events link, which the
  * architecture explicitly calls out as insufficient - see [AuditArchiveVerifier.verifyStreamChain])
  * and every archived segment's own content/signature before a single bundle byte is written; any
@@ -105,7 +104,7 @@ data class AuditExportBundleResult(
  * `events.csv` (with an explicit fidelity note - CSV cannot represent the nested payload as
  * faithfully as JSON), `integrity.json`, `signature.json` (detached manifest signature plus the
  * PEM public key needed to verify it), a `verify.py` reference offline-verification script, and a
- * `README.txt`. Storage reuses the Phase 4 [AuditArchiveStorage] (same S3 bucket/local directory,
+ * `README.txt`. Storage reuses [AuditArchiveStorage] (same S3 bucket/local directory,
  * different key prefix) - no new AWS service.
  */
 @ApplicationScoped

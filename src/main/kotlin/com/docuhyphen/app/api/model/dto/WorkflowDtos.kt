@@ -126,6 +126,11 @@ data class WorkflowInstanceDetailResponseDto(
     val definitionSnapshotJson: String,
     /** Explicitly traversed edges, oldest first. The only source of edge traversal for the diagram. */
     val transitions: List<WorkflowStepTransitionResponseDto>,
+    /**
+     * Safe machine failure code when [status] is FAILED (e.g. `SNAPSHOT_MISSING`,
+     * `SNAPSHOT_CORRUPT`); null otherwise. Never carries raw JSON or stack detail.
+     */
+    val failureCode: String? = null,
     @Serializable(with = TimestampSerializer::class)
     val createdAt: Timestamp,
     @Serializable(with = TimestampSerializer::class)

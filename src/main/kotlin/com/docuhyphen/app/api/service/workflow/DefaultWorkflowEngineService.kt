@@ -11,6 +11,7 @@ import com.docuhyphen.app.api.model.entity.WorkflowTransitionOutcome
 import com.docuhyphen.app.api.repository.WorkflowDefinitionRepository
 import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
 import com.docuhyphen.app.api.repository.WorkflowStepInstanceRepository
+import com.docuhyphen.app.api.repository.WorkflowTriggerEventRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.communication.AppNotificationService
 import com.docuhyphen.app.api.service.communication.EmailService
@@ -26,7 +27,11 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.inject.Instance
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
+import jakarta.transaction.Status
+import jakarta.transaction.Synchronization
+import jakarta.transaction.TransactionSynchronizationRegistry
 import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
@@ -36,7 +41,7 @@ import java.util.UUID
 /**
  * Default [WorkflowEngineService] implementation.
  *
- * Phase 2 additions over the original iteration-2 stub:
+ * Runtime step behavior:
  *   * NOTIFICATION steps send in-app and email notifications to each resolved assignee,
  *     then auto-complete.
  *   * CONDITION steps evaluate a `predicateExpression` against `subjectDataJson` fields
@@ -58,7 +63,9 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     @Inject private lateinit var assigneeRepository: com.docuhyphen.app.api.repository.WorkflowStepAssigneeRepository
     @Inject private lateinit var decisionRepository: com.docuhyphen.app.api.repository.WorkflowStepDecisionRepository
     @Inject private lateinit var assigneeResolver: WorkflowAssigneeResolver
-    @Inject private lateinit var eventPublisher: DomainEventPublisher
+    @Inject
+    @field:com.docuhyphen.app.api.service.notification.WorkflowEventSink
+    private lateinit var eventPublisher: DomainEventPublisher
     @Inject private lateinit var principalGroupMemberRepository: com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
     @Inject private lateinit var principalGroupRepository: com.docuhyphen.app.api.repository.PrincipalGroupRepository
     @Inject private lateinit var exchangeRepository: com.docuhyphen.app.api.repository.ExchangeRepository
@@ -70,6 +77,10 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     @Inject private lateinit var markdownRenderer: MarkdownRenderer
     @Inject private lateinit var emailTemplateRenderer: EmailTemplateRenderer
     @Inject private lateinit var applicabilityEvaluator: WorkflowApplicabilityEvaluator
+    @Inject private lateinit var conditionPredicateService: ConditionPredicateService
+    @Inject private lateinit var triggerEventRepository: WorkflowTriggerEventRepository
+    @Inject private lateinit var transactionSynchronizationRegistry: TransactionSynchronizationRegistry
+    @Inject private lateinit var self: DefaultWorkflowEngineService
 
     @ConfigProperty(name = "app.url", defaultValue = "https://app.docuhyphen.com")
     private lateinit var appUrl: String
@@ -149,6 +160,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             currentStepIndex = 0
             subjectDataJson = encodeStringMap(request.subjectData)
             definitionSnapshotJson = definition.stepsJson
+            triggerEventSnapshot = definition.triggerEvent
             initiatedByAppUserId = request.initiatedByAppUserId
         }
         instanceRepository.save(instance)
@@ -163,6 +175,25 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         // Record the START edge (entry into step 0) before the step can auto-advance,
         // so traversed edges are explicit rather than inferred from step order.
         recordStartTransition(instance, stepInstance.stepIndex)
+
+        if (quorumUnsatisfiable(firstSpec, resolved.size))
+        {
+            // The dynamically resolved assignees cannot satisfy the configured N_OF_M quorum, so the
+            // first step could never complete. Fail closed at instance start.
+            failInstance(
+                instance,
+                stepInstance,
+                code = FAILURE_QUORUM_UNSATISFIABLE,
+                detail = "trigger: N_OF_M quorum exceeds the ${resolved.size} resolved assignee(s)",
+            )
+            instanceRepository.update(instance)
+            return TriggerResult(
+                instanceId = instance.id,
+                definitionId = definition.id,
+                firstStepInstanceId = stepInstance.id,
+                firstStepAssignees = resolved,
+            )
+        }
 
         // Activate the step: APPROVAL steps wait for human decisions; all other types
         // execute immediately and may advance through subsequent steps in the same call.
@@ -195,20 +226,36 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         reason: String?,
     ): DecisionResult
     {
-        val step = stepRepository.findById(stepInstanceId)
+        // Discover the parent without loading the managed step, then take the row locks in a
+        // fixed instance-before-step order (matching escalation and cancellation) so concurrent
+        // decisions, an approval racing an SLA action, and cancellation cannot interleave.
+        val parentInstanceId = stepRepository.findInstanceIdById(stepInstanceId)
             ?: throw IllegalArgumentException("Step instance $stepInstanceId not found")
-        if (step.status != WorkflowStepStatus.PENDING)
-        {
-            throw IllegalStateException("Step $stepInstanceId is not PENDING (status=${step.status})")
-        }
-        val instance = instanceRepository.findById(step.instanceId)
-            ?: throw IllegalStateException("Workflow instance ${step.instanceId} missing")
+        val instance = instanceRepository.findByIdForUpdate(parentInstanceId)
+            ?: throw IllegalStateException("Workflow instance $parentInstanceId missing")
+        val step = stepRepository.findByIdForUpdate(stepInstanceId)
+            ?: throw IllegalArgumentException("Step instance $stepInstanceId not found")
 
         // Authorise: decider must be one of the snapshotted assignees.
         val assignees = assigneeRepository.findAllByStepInstanceId(step.id)
         if (assignees.none { it.principalKind == decider.kind && it.principalId == decider.id })
         {
             throw IllegalStateException("Decider ${decider.kind}/${decider.id} is not an assignee of step $stepInstanceId")
+        }
+
+        // Re-read under the locks: a racing approval, auto-decision, escalation, or cancellation may
+        // have already resolved this step or ended the instance while this caller waited for the
+        // lock. The first committer wins; an authorised caller receives the recorded outcome with
+        // no further side effects.
+        if (step.status != WorkflowStepStatus.PENDING || !instance.status.isActive)
+        {
+            return DecisionResult(
+                instanceId = instance.id,
+                stepInstanceId = step.id,
+                stepStatus = step.status,
+                instanceStatus = instance.status,
+                emittedEvents = emptyList(),
+            )
         }
 
         val now = Timestamp.from(Instant.now())
@@ -263,8 +310,9 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         stepRepository.update(step)
         instanceRepository.update(instance)
 
-        // Fire all events outside the data-mutation block so a publisher failure
-        // never rolls back the decision.
+        // Enqueue outcome events into the transactional outbox after the state mutation. The outbox
+        // row commits atomically with this decision, so the event intent can never be lost; a
+        // background dispatcher routes it after commit.
         emitted.forEach { publishOutcomeEvent(instance, it) }
 
         return DecisionResult(
@@ -284,15 +332,18 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     override fun escalateOverdue(now: Timestamp): Int
     {
         // Process addons (reminders) for every pending step before handling SLA escalation.
-        stepRepository.findAllPending().forEach { step ->
-            val instance = instanceRepository.findById(step.instanceId)
-            if (instance != null && instance.status == WorkflowInstanceStatus.RUNNING)
+        // Each candidate is re-read under the instance and step write locks so competing scheduler
+        // replicas serialize on the row: the read-modify-write of the addon fire state cannot
+        // double-send a reminder, and a step a concurrent decision just completed is skipped.
+        stepRepository.findAllPending().forEach { candidate ->
+            val instance = instanceRepository.findByIdForUpdate(candidate.instanceId) ?: return@forEach
+            if (!instance.status.isActive) return@forEach
+            val step = stepRepository.findByIdForUpdate(candidate.id) ?: return@forEach
+            if (step.status != WorkflowStepStatus.PENDING) return@forEach
+            val spec = WorkflowSpecJson.decodeStep(step.specSnapshotJson)
+            if (spec.addons.isNotEmpty())
             {
-                val spec = WorkflowSpecJson.decodeStep(step.specSnapshotJson)
-                if (spec.addons.isNotEmpty())
-                {
-                    processAddons(step, spec, now, instance)
-                }
+                processAddons(step, spec, now, instance)
             }
         }
 
@@ -300,10 +351,16 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         if (overdue.isEmpty()) return 0
 
         var escalated = 0
-        for (step in overdue)
+        for (candidate in overdue)
         {
+            // Lock the parent instance then the step (fixed order) and re-read: another replica may
+            // have already escalated this step this cycle, or a decision may have completed it, in
+            // which case this transaction observes the committed state and skips harmlessly.
+            val instance = instanceRepository.findByIdForUpdate(candidate.instanceId) ?: continue
+            if (!instance.status.isActive) continue
+            val step = stepRepository.findByIdForUpdate(candidate.id) ?: continue
+            if (step.status != WorkflowStepStatus.PENDING) continue
             if (step.escalatedAt != null) continue   // already escalated this cycle
-            val instance = instanceRepository.findById(step.instanceId) ?: continue
 
             val spec = WorkflowSpecJson.decodeStep(step.specSnapshotJson)
             val escalation = spec.escalation
@@ -354,19 +411,27 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     @Transactional
     override fun cancel(instanceId: UUID, reason: String?)
     {
-        val instance = instanceRepository.findById(instanceId) ?: return
-        if (instance.status != WorkflowInstanceStatus.RUNNING) return
+        // Lock the instance first: this serializes with decision recording and SLA escalation, which
+        // also take the instance write lock. A racing advancement either commits its new pending step
+        // before this lock is granted (so the step is visible below and gets SKIPPED), or blocks until
+        // after cancellation commits and then re-reads the instance as non-active and no-ops. Either
+        // way no actionable step is left under a cancelled instance.
+        val instance = instanceRepository.findByIdForUpdate(instanceId) ?: return
+        if (!instance.status.isActive) return
         instance.status = WorkflowInstanceStatus.CANCELLED
         instance.completedAt = Timestamp.from(Instant.now())
         instanceRepository.update(instance)
 
-        // Mark any pending step instance(s) as SKIPPED so they stop being assignable.
+        // Mark any pending step instance(s) as SKIPPED so they stop being assignable. Each is re-read
+        // under its write lock so a step being materialised by another transaction is not missed.
         stepRepository.findByInstance(instanceId)
             .filter { it.status == WorkflowStepStatus.PENDING }
-            .forEach {
-                it.status = WorkflowStepStatus.SKIPPED
-                it.completedAt = instance.completedAt
-                stepRepository.update(it)
+            .forEach { candidate ->
+                val step = stepRepository.findByIdForUpdate(candidate.id) ?: return@forEach
+                if (step.status != WorkflowStepStatus.PENDING) return@forEach
+                step.status = WorkflowStepStatus.SKIPPED
+                step.completedAt = instance.completedAt
+                stepRepository.update(step)
             }
         if (reason != null)
         {
@@ -552,8 +617,8 @@ class DefaultWorkflowEngineService : WorkflowEngineService
      * Evaluates [WorkflowStepSpec.predicateExpression] against the instance's subject data,
      * follows the `onTrue` or `onFalse` outcome, and marks the step COMPLETED.
      *
-     * Supported operators: `==`, `!=`, `contains`, `startsWith`.
-     * Syntax: `"$subject.<key> <op> '<value>'"`.
+     * Operators and operands are validated against the trigger's subject-field type registry.
+     * Invalid expressions and missing subject values select the false branch.
      */
     private fun executeConditionStep(
         instance: WorkflowInstance,
@@ -563,8 +628,12 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     {
         val now = Timestamp.from(Instant.now())
         val subjectData = decodeSubjectData(instance.subjectDataJson)
-        val result = evaluatePredicate(spec.predicateExpression, subjectData)
-        logger.debug("CONDITION step {} predicate='{}' evaluated to {}", step.id, spec.predicateExpression, result)
+        val fields = instance.triggerEventSnapshot
+            ?.let { triggerEvent -> workflowSubjectFields(triggerEvent) }
+            .orEmpty()
+        val evaluation = conditionPredicateService.evaluate(spec.predicateExpression, fields, subjectData)
+        val result = (evaluation as? PredicateResult.Valid)?.matches == true
+        logger.debug("CONDITION step {} evaluated to {} with result category {}", step.id, result, evaluation::class.simpleName)
 
         step.status = WorkflowStepStatus.COMPLETED
         step.completedAt = now
@@ -669,8 +738,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         val myOrgId = instance.organizationId
 
         val counterpartyRunning = if (myOrgId != null)
-            instanceRepository.findForSubjectExcludingOrg(rt, rid, myOrgId)
-                .any { it.status == WorkflowInstanceStatus.RUNNING || it.status == WorkflowInstanceStatus.ESCALATED }
+            hasBlockingCounterparty(rt, rid, myOrgId)
         else
             false
 
@@ -697,21 +765,24 @@ class DefaultWorkflowEngineService : WorkflowEngineService
      *
      * Called by [emitDefinitionTerminalEvent] so the sweep happens on every terminal transition.
      */
-    @Transactional
-    fun unblockWaitingCounterpartySteps(resourceType: String, resourceId: java.util.UUID)
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    open fun unblockWaitingCounterpartySteps(resourceType: String, resourceId: java.util.UUID)
     {
         val waiting = stepRepository.findAwaitingCounterpartyForSubject(resourceType, resourceId)
         if (waiting.isEmpty()) return
 
-        for (step in waiting)
+        for (candidate in waiting)
         {
-            val parentInstance = instanceRepository.findById(step.instanceId) ?: continue
-            if (parentInstance.status != WorkflowInstanceStatus.RUNNING) continue
+            // Lock the parent instance then the step and re-read: a concurrent sweep or cancellation
+            // may have already advanced or skipped this step, so only the first committer proceeds.
+            val parentInstance = instanceRepository.findByIdForUpdate(candidate.instanceId) ?: continue
+            if (!parentInstance.status.isActive) continue
+            val step = stepRepository.findByIdForUpdate(candidate.id) ?: continue
+            if (step.status != WorkflowStepStatus.AWAITING_COUNTERPARTY) continue
 
             val myOrgId = parentInstance.organizationId
             val counterpartyRunning = if (myOrgId != null)
-                instanceRepository.findForSubjectExcludingOrg(resourceType, resourceId, myOrgId)
-                    .any { it.status == WorkflowInstanceStatus.RUNNING || it.status == WorkflowInstanceStatus.ESCALATED }
+                hasBlockingCounterparty(resourceType, resourceId, myOrgId)
             else
                 false
 
@@ -732,6 +803,19 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             }
         }
     }
+
+    /**
+     * A counterparty that has reached its own clearance wait has completed all work that this
+     * organization is waiting on. Treating that parked step as cleared prevents two symmetric
+     * workflows from waiting on each other forever.
+     */
+    private fun hasBlockingCounterparty(resourceType: String, resourceId: UUID, organizationId: UUID): Boolean =
+        instanceRepository.findForSubjectExcludingOrg(resourceType, resourceId, organizationId)
+            .any { counterparty ->
+                if (!counterparty.status.isActive) return@any false
+                val current = stepRepository.findCurrent(counterparty.id, counterparty.currentStepIndex)
+                current?.status != WorkflowStepStatus.AWAITING_COUNTERPARTY
+            }
 
     // -------------------------------------------------------------------------
     // Addon processing (reminders)
@@ -859,11 +943,14 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             val nextIndex = nextRef.toIntOrNull()
             if (nextIndex == null)
             {
-                logger.warn("Step {} has invalid nextStep='{}'; completing instance", fromStep.id, nextRef)
-                recordTransition(instance, fromStep, toStepIndex = null, outcome)
-                instance.status = WorkflowInstanceStatus.COMPLETED
-                instance.completedAt = now
-                emitDefinitionTerminalEvent(instance, success = true)
+                // A non-numeric, non-END route can never resolve to a real step. Fail closed rather
+                // than fabricating a successful terminal edge that would fire a lifecycle event.
+                failInstance(
+                    instance,
+                    fromStep,
+                    code = FAILURE_ROUTE_INVALID,
+                    detail = "advanceOrComplete: route target '$nextRef' is neither END nor a step index",
+                )
             }
             else
             {
@@ -879,17 +966,29 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         outcome: WorkflowTransitionOutcome,
     )
     {
-        val definition = definitionRepository.findById(instance.definitionId)
-            ?: throw IllegalStateException("Definition ${instance.definitionId} missing")
-        val spec = WorkflowSpecJson.decode(definition.stepsJson)
+        // Topology comes from the snapshot frozen at instance start, never the live definition,
+        // so an edit made after this instance started cannot redirect it.
+        val spec = instanceExecutionSpec(instance)
+        if (spec == null)
+        {
+            failInstance(
+                instance,
+                fromStep,
+                code = snapshotFailureCode(instance),
+                detail = "advanceToStep(index=$nextIndex): execution snapshot is ${snapshotFailureCode(instance)}",
+            )
+            return
+        }
         if (nextIndex !in spec.steps.indices)
         {
-            recordTransition(instance, fromStep, toStepIndex = null, outcome)
-            instance.status = WorkflowInstanceStatus.COMPLETED
-            instance.completedAt = Timestamp.from(Instant.now())
-            val event = spec.onComplete?.takeIf { it.isNotBlank() }
-                ?: defaultTerminalEvent(definition.triggerEvent, success = true)
-            event?.let { publishOutcomeEvent(instance, it) }
+            // An out-of-range target cannot address a real step in the frozen topology. Fail closed
+            // instead of completing the instance and firing a lifecycle event it never earned.
+            failInstance(
+                instance,
+                fromStep,
+                code = FAILURE_ROUTE_INVALID,
+                detail = "advanceToStep: target index $nextIndex is outside 0..${spec.steps.size - 1}",
+            )
             return
         }
         // Record the traversed edge before materialising (and possibly auto-advancing) the
@@ -902,6 +1001,19 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         stepRepository.save(newStep)
         replaceAssignees(newStep.id, resolved)
 
+        if (quorumUnsatisfiable(nextSpec, resolved.size))
+        {
+            // The resolved assignee count cannot satisfy the configured N_OF_M quorum, so the step
+            // could never complete. Fail closed rather than parking a permanently stuck step.
+            failInstance(
+                instance,
+                newStep,
+                code = FAILURE_QUORUM_UNSATISFIABLE,
+                detail = "advanceToStep: N_OF_M quorum exceeds the ${resolved.size} resolved assignee(s)",
+            )
+            return
+        }
+
         val autoEvents = activateStep(instance, newStep, nextSpec, resolved)
         if (newStep.status != WorkflowStepStatus.PENDING)
         {
@@ -911,7 +1023,55 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     }
 
     // -------------------------------------------------------------------------
-    // Traversal recording (frozen instance graph, Phase 4)
+    // Frozen execution snapshot and controlled failure
+    // -------------------------------------------------------------------------
+
+    /**
+     * Decodes the instance's frozen [WorkflowInstance.definitionSnapshotJson] into a [WorkflowSpec].
+     * Returns null when the snapshot is absent (a legacy row that could not be backfilled) or
+     * unreadable, so callers making execution decisions can fail closed rather than fall back to
+     * the mutable live definition.
+     */
+    private fun instanceExecutionSpec(instance: WorkflowInstance): WorkflowSpec?
+    {
+        val snapshot = instance.definitionSnapshotJson
+        if (snapshot.isNullOrBlank()) return null
+        return runCatching { WorkflowSpecJson.decode(snapshot) }.getOrNull()
+    }
+
+    /** Distinguishes an absent snapshot from a present-but-unreadable one for the failure code. */
+    private fun snapshotFailureCode(instance: WorkflowInstance): String =
+        if (instance.definitionSnapshotJson.isNullOrBlank()) FAILURE_SNAPSHOT_MISSING else FAILURE_SNAPSHOT_CORRUPT
+
+    /**
+     * Marks [instance] terminally FAILED without fabricating a successful edge or firing any
+     * lifecycle terminal event, so the subject Exchange is left untouched for manual recovery.
+     * Records the source step's transition as a FAILED terminal edge, stores a safe [code] and an
+     * internal [detail], writes an operational error log, and publishes a `workflow.failed` audit
+     * event through the existing router.
+     */
+    private fun failInstance(
+        instance: WorkflowInstance,
+        fromStep: WorkflowStepInstance,
+        code: String,
+        detail: String,
+    )
+    {
+        val now = Timestamp.from(Instant.now())
+        recordTransition(instance, fromStep, toStepIndex = null, WorkflowTransitionOutcome.FAILED)
+        instance.status = WorkflowInstanceStatus.FAILED
+        instance.failureCode = code
+        instance.failureDetail = detail
+        instance.completedAt = now
+        logger.error(
+            "Workflow instance {} FAILED ({}) at step index {}: {}",
+            instance.id, code, fromStep.stepIndex, detail,
+        )
+        publishFailed(instance, code)
+    }
+
+    // -------------------------------------------------------------------------
+    // Traversal recording for the frozen instance graph
     // -------------------------------------------------------------------------
 
     /**
@@ -973,38 +1133,56 @@ class DefaultWorkflowEngineService : WorkflowEngineService
      */
     private fun emitDefinitionTerminalEvent(instance: WorkflowInstance, success: Boolean)
     {
-        val definition = definitionRepository.findById(instance.definitionId)
-        if (definition != null)
-        {
-            // An explicit onComplete/onReject wins; otherwise fall back to the trigger's
-            // canonical terminal event so lifecycle workflows activate/reject the exchange
-            // without the author having to wire up emit events. triggerEvent is read from the
-            // definition column (not the JSON), so the default still applies even if stepsJson
-            // fails to decode.
-            val explicit = runCatching { WorkflowSpecJson.decode(definition.stepsJson) }
-                .onFailure { e ->
-                    logger.error(
-                        "Failed to decode definition {} while emitting terminal event (success={}); " +
-                            "falling back to trigger-derived default: {}",
-                        instance.definitionId, success, e.message, e,
-                    )
-                }
-                .getOrNull()
-                ?.let { if (success) it.onComplete else it.onReject }
-                ?.takeIf { it.isNotBlank() }
+        // The explicit onComplete/onReject comes from the frozen execution snapshot, never the
+        // live definition, so an edit made after this instance started cannot change how it ends.
+        // When no explicit event is set (or the snapshot is unreadable) the frozen trigger yields
+        // the canonical lifecycle default so a lifecycle workflow still activates/rejects its
+        // exchange without the author having to wire up emit events. triggerEventSnapshot is a
+        // plain frozen string, so the default still applies even if the snapshot JSON is corrupt.
+        val explicit = instanceExecutionSpec(instance)
+            ?.let { if (success) it.onComplete else it.onReject }
+            ?.takeIf { it.isNotBlank() }
 
-            val event = explicit ?: defaultTerminalEvent(definition.triggerEvent, success)
-            event?.let { publishOutcomeEvent(instance, it) }
-        }
+        val event = explicit ?: defaultTerminalEvent(instance.triggerEventSnapshot, success)
+        event?.let { publishOutcomeEvent(instance, it) }
 
         // Re-evaluate any AWAITING_COUNTERPARTY steps for the same exchange subject.
         val rt = instance.subjectResourceType
         val rid = instance.subjectResourceId
-        if (rt != null && rid != null)
+        if (rt != null && rid != null) scheduleCounterpartySweep(rt, rid)
+    }
+
+    /**
+     * Runs clearance checks only after the terminal transition commits. The new transaction starts
+     * without holding the completed instance lock, avoiding cross-instance lock inversion when two
+     * counterparties complete concurrently.
+     */
+    private fun scheduleCounterpartySweep(resourceType: String, resourceId: UUID)
+    {
+        if (!::transactionSynchronizationRegistry.isInitialized || !::self.isInitialized)
         {
-            runCatching { unblockWaitingCounterpartySteps(rt, rid) }
-                .onFailure { e -> logger.warn("Counterparty unblock sweep failed for subject {}/{}: {}", rt, rid, e.message) }
+            unblockWaitingCounterpartySteps(resourceType, resourceId)
+            return
         }
+
+        transactionSynchronizationRegistry.registerInterposedSynchronization(object : Synchronization
+        {
+            override fun beforeCompletion() = Unit
+
+            override fun afterCompletion(status: Int)
+            {
+                if (status != Status.STATUS_COMMITTED) return
+                runCatching { self.unblockWaitingCounterpartySteps(resourceType, resourceId) }
+                    .onFailure { e ->
+                        logger.warn(
+                            "Counterparty unblock sweep failed for subject {}/{}: {}",
+                            resourceType,
+                            resourceId,
+                            e.message,
+                        )
+                    }
+            }
+        })
     }
 
     /**
@@ -1038,32 +1216,12 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         catch (_: Exception) { emptyMap() }
     }
 
-    private fun evaluatePredicate(expression: String?, subjectData: Map<String, String>): Boolean
-    {
-        if (expression.isNullOrBlank()) return true
-        val trimmed = expression.trim()
-        val operators = listOf("startsWith", "contains", "!=", "==")
-        for (op in operators)
-        {
-            val delimiter = " $op "
-            val idx = trimmed.indexOf(delimiter)
-            if (idx < 0) continue
-            val fieldRef = trimmed.substring(0, idx).trim()
-            val expected = trimmed.substring(idx + delimiter.length).trim().removeSurrounding("'")
-            val fieldName = fieldRef.removePrefix("\$subject.").trim()
-            val actual = subjectData[fieldName] ?: ""
-            return when (op)
-            {
-                "==" -> actual == expected
-                "!=" -> actual != expected
-                "contains" -> actual.contains(expected)
-                "startsWith" -> actual.startsWith(expected)
-                else -> false
-            }
-        }
-        logger.warn("Could not parse predicate expression '{}'; defaulting to true", trimmed)
-        return true
-    }
+    private fun workflowSubjectFields(triggerEvent: String): List<WorkflowSubjectField> =
+        triggerEventRepository.findByEventName(triggerEvent)?.subjectFieldsJson?.let { fieldsJson ->
+            runCatching {
+                json.decodeFromString(ListSerializer(WorkflowSubjectField.serializer()), fieldsJson)
+            }.getOrDefault(emptyList())
+        }.orEmpty()
 
     private fun createStepInstance(
         instance: WorkflowInstance,
@@ -1100,6 +1258,18 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                 }
             )
         }
+    }
+
+    /**
+     * True when an APPROVAL step's N_OF_M quorum requires more approvals than the number of
+     * assignees resolved for it. Such a step can never reach quorum, so the engine fails the
+     * instance rather than leaving a permanently stuck pending step.
+     */
+    private fun quorumUnsatisfiable(spec: WorkflowStepSpec, resolvedCount: Int): Boolean
+    {
+        if (spec.type != WorkflowStepType.APPROVAL) return false
+        val quorum = spec.quorum
+        return quorum is QuorumSpec.NOfM && quorum.n > resolvedCount
     }
 
     private fun quorumMet(
@@ -1232,7 +1402,47 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         )
     }
 
+    /**
+     * Publishes the `workflow.failed` audit event for a terminally failed instance. Carries only
+     * the safe failure code and identifiers, never the internal failure detail, and is not a
+     * lifecycle event, so no Exchange transition is triggered.
+     */
+    private fun publishFailed(instance: WorkflowInstance, code: String)
+    {
+        val payload = mutableMapOf(
+            "instanceId" to instance.id.toString(),
+            "failureCode" to code,
+        )
+        eventPublisher.publish(
+            DomainEvent(
+                type = "workflow.failed",
+                organizationId = instance.organizationId?.toString(),
+                subject = instance.subjectResourceType?.let { type ->
+                    instance.subjectResourceId?.let { id ->
+                        DomainEvent.SubjectRef(type, id.toString())
+                    }
+                },
+                payload = payload,
+            )
+        )
+    }
+
     @Suppress("unused")
     private val keepPrincipalKindReferenced: PrincipalKind = PrincipalKind.USER
+
+    private companion object
+    {
+        /** Instance has no execution snapshot at all (a legacy row that could not be backfilled). */
+        const val FAILURE_SNAPSHOT_MISSING = "SNAPSHOT_MISSING"
+
+        /** Instance has an execution snapshot that cannot be decoded. */
+        const val FAILURE_SNAPSHOT_CORRUPT = "SNAPSHOT_CORRUPT"
+
+        /** A route target could not resolve to END or a real step in the frozen topology. */
+        const val FAILURE_ROUTE_INVALID = "ROUTE_INVALID"
+
+        /** An N_OF_M quorum required more approvals than the resolved assignees could ever give. */
+        const val FAILURE_QUORUM_UNSATISFIABLE = "QUORUM_UNSATISFIABLE"
+    }
 }
 

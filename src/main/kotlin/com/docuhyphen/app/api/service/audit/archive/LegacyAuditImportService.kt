@@ -14,8 +14,7 @@ import org.slf4j.LoggerFactory
 data class LegacyImportResult(val imported: Int, val skipped: Int, val failed: Int)
 
 /**
- * Phase 4 task 5 of `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`: one-time/idempotent import of
- * pre-recorder `auth_audit_event` rows onto the ledger, so history predating Phase 3's dual
+ * One-time, idempotent import of pre-recorder `auth_audit_event` rows onto the ledger, so history predating the dual
  * write is not silently absent from the archive/verification pipeline this phase builds.
  *
  * Every imported row is captured as [AuditEventType.LEGACY_AUDIT_EVENT_IMPORTED] - never
@@ -32,7 +31,7 @@ data class LegacyImportResult(val imported: Int, val skipped: Int, val failed: I
  * [com.docuhyphen.app.api.service.auth.AuthAuditService] legacy table) is imported here. Legacy
  * `document_audit_log` rows are not imported by this session - unlike `auth_audit_event`,
  * `ExchangeDocumentAuditService`'s dual write does not reuse the original row's id as the ledger
- * `eventId` (see `AUDIT-ARCHITECTURE-IMPLEMENTATION.md`'s Phase 3 handoff), so there is no cheap,
+ * `eventId`, so there is no cheap,
  * reliable identity to match "already imported" against without a deeper investigation; left as a
  * genuine gap for a future session rather than risking duplicate ledger events.
  */

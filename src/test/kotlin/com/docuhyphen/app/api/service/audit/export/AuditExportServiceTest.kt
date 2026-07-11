@@ -26,7 +26,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Phase 6 gate for [AuditExportService]:
+ * Verifies [AuditExportService]:
  *  - a request goes to `APPROVAL_PENDING` when dual control is required, or straight to
  *    `BUILDING` when it is not.
  *  - the requester can never approve their own export (dual control cannot be bypassed by a

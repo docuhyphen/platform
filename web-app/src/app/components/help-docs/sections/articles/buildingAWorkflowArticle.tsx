@@ -32,17 +32,14 @@ export const buildingAWorkflowArticle = (
                 <b>Edit</b> on an existing workflow row to modify it.
             </li>
         </ol><p>
-            The info button (i) in the top-right of the title bar opens this help
-            article at any time.
+            The info button (i) in the top-right of the title bar opens this help article at any time.
         </p>
         <h3>Form and Diagram</h3>
         <p>
-            The designer always keeps the live read-only Diagram on the left and
-            the editable Form on the right. The Diagram uses about 60% of the
-            width and stays fixed while the Form pane scrolls. On narrow screens,
-            the panes stack so both remain available. The bottom-right orientation
-            icon switches the Diagram between vertical and horizontal layouts; it
-            starts in the vertical state to fit the split layout. See{" "}
+            The designer keeps the live read-only Diagram on the left and the
+            editable Form on the right; the panes stack on narrow screens. The
+            bottom-right orientation icon switches the Diagram between vertical
+            and horizontal layouts. See{" "}
             <a href="#" data-help-article="workflow-diagram-preview">Workflow diagrams and preview</a>.
         </p>
         <h3>Step 2: fill in the header fields</h3><p>Open the <b>Workflow configuration</b> card.</p>
@@ -86,9 +83,9 @@ export const buildingAWorkflowArticle = (
                 <ul>
                     <li>
                         For <b>CONDITION</b> steps, use the visual condition
-                        builder to select a field, an operator, and a value. User
-                        and group fields include a searchable picker. A plain-language
-                        summary confirms your selection.
+                        builder to select a field, an operator, and a value. Text
+                        fields support equality, contains, and starts with; number
+                        fields support comparisons. Invalid conditions cannot be saved.
                     </li>
                     <li>
                         For <b>APPROVAL</b> steps, configure assignees, quorum,
@@ -109,20 +106,20 @@ export const buildingAWorkflowArticle = (
             <li>
                 Set the <b>outcome connectors</b> (On Approve / On Reject, or On
                 True / On False for CONDITION steps) to point to the next step
-                index or to END.
+                index or to END. Deleting a step lists every route that points at
+                it, rewrites those to END on confirmation, and shifts later routes
+                automatically so none is left dangling.
             </li>
             <li>Repeat for each step in the workflow.</li>
-            <li>
-                Use the fixed header's arrow button to return to the step cards.
-                The header keeps the section title beside the arrow and its main
-                action, such as <b>Add Step</b> or delete, on the right.
-            </li>
+            <li>Use the fixed header's arrow button to return to the step cards.</li>
         </ol>
-        <h3>Step 4: review portability warnings</h3>
+        <h3>Step 4: review warnings</h3>
         <p>
-            Before saving, the designer flags any step that uses a hardcoded
-            principal UUID in an assignee entry. Such UUIDs work in your org but
-            cannot be reused if the workflow is cloned, so replace them with{" "}
+            The step list flags any step whose routes point at a step that no
+            longer exists, and the save dialog repeats the routing warnings before
+            you confirm. The designer also flags a hardcoded principal UUID in an
+            assignee entry, which cannot be reused if the workflow is cloned, so
+            replace them with{" "}
             <a href="#" data-help-article="assignees-and-portability">role-based or group-role-based assignees</a>.
         </p><h3>Step 5: set applicability (optional)</h3>
         <p>
@@ -133,6 +130,9 @@ export const buildingAWorkflowArticle = (
             (PUT) immediately. If the Active toggle is on, the engine will use it
             the next time the trigger event fires for an Exchange in your organization.
         </p>
+        <p>
+            Saving is rejected when the definition would fail at runtime (no steps, an APPROVAL step with no assignees, a required approval count above its assignees, a step routing to itself or a missing step, a step that cannot reach END, or escalation without an SLA or targets). The message names the affected step.
+        </p>
         <h3>Editing a live workflow</h3>
         <p>
             You cannot edit a workflow while it is still in progress for one or
@@ -142,8 +142,7 @@ export const buildingAWorkflowArticle = (
         <h3>Deleting a workflow</h3>
         <p>
             Delete deactivates the workflow (soft delete). It cannot be deleted
-            while in-progress workflow runs still use it. Completed history is
-            preserved for audit purposes.
+            while in-progress runs still use it; completed history is preserved.
         </p>
     </>
 );

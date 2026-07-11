@@ -16,7 +16,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Phase 8 gate for [AuditRetentionPolicyService]: an organization with no override row gets the
+ * Verifies [AuditRetentionPolicyService]: an organization with no override row gets the
  * platform-default catalog unchanged; an override narrows/widens exactly one category; and
  * validation rejects non-positive retention windows.
  */

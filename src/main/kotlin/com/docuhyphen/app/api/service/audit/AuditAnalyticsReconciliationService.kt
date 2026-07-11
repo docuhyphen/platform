@@ -21,7 +21,7 @@ data class AnalyticsReconciliationReport(
 
 /**
  * Read-only reconciliation of `audit_analytics_fact` against the authoritative
- * `audit_ledger_event` count (Phase 8 task 2's "reconcile analytical measures against
+ * `audit_ledger_event` count to reconcile analytical measures against
  * authoritative event counts" gate). Never mutates anything; a caller who wants to fix a mismatch
  * calls [AuditAnalyticsProjector.rebuild] separately.
  */

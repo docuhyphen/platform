@@ -11,7 +11,7 @@ import org.mockito.kotlin.whenever
 import java.util.UUID
 
 /**
- * Phase 0 gate: the correlation filter always produces a non-null server trace ID even with no
+ * Verifies that the correlation filter always produces a non-null server trace ID even with no
  * client-supplied header, and treats `X-Request-Id` as an untrusted hint only.
  */
 class CorrelationContextFilterTest

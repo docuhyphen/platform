@@ -793,7 +793,7 @@ class ExchangeDocumentService @Inject constructor(
     }
 
     /**
-     * Phase 3 task 2 (AUDIT-ARCHITECTURE-IMPLEMENTATION.md): dual write onto [AuditRecorder] for
+     * Writes document download events to [AuditRecorder] as well as the legacy audit log for
      * document-access events that had zero capture at all before this phase (view/preview/
      * current-version download/no-auth download). Failures are caught and logged, never
      * propagated, so audit plumbing can never break an actual file download/preview response -
@@ -881,7 +881,7 @@ class ExchangeDocumentService @Inject constructor(
     }
 
     /**
-     * Phase 3 task 3 (small, targeted deny capture): a denied DOCUMENT_DOWNLOAD authorization
+     * Records denied DOCUMENT_DOWNLOAD authorization
      * decision is a genuinely sensitive event worth its own ledger row, distinct from the
      * DOCUMENT_DOWNLOAD success event recorded on the happy path above.
      */

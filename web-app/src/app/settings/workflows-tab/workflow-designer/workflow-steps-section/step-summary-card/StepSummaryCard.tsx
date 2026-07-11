@@ -16,6 +16,7 @@ interface Props
     index: number;
     step: WorkflowStepSpecDraft;
     isNew: boolean;
+    hasRouteWarning?: boolean;
     onClick: () => void;
 }
 
@@ -38,7 +39,7 @@ const getStepDetail = (step: WorkflowStepSpecDraft): string =>
     return "Waits for the other party's workflows";
 };
 
-const StepSummaryCard = ({index, step, isNew, onClick}: Props) =>
+const StepSummaryCard = ({index, step, isNew, hasRouteWarning = false, onClick}: Props) =>
 {
     const styles = useStepSummaryCardStyles();
     const StepIcon = stepKindIcon(step.type);
@@ -86,6 +87,17 @@ const StepSummaryCard = ({index, step, isNew, onClick}: Props) =>
                 >
                     {STEP_TYPE_LABELS[step.type]}
                 </Badge>
+                {hasRouteWarning && (
+                    <Badge
+                        id={`workflow-step-summary-route-warning-${index}`}
+                        appearance="filled"
+                        size={"small"}
+                        color="warning"
+                        aria-label={`Step ${index + 1} routes to a step that no longer exists`}
+                    >
+                        Invalid route
+                    </Badge>
+                )}
             </div>
             <Text
                 id={`workflow-step-summary-name-${index}`}

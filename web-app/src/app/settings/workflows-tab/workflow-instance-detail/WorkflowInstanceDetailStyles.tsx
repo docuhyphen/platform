@@ -65,5 +65,10 @@ export const useWorkflowInstanceDetailStyles = makeStyles({
         marginBottom: tokens.spacingVerticalM,
         color: tokens.colorNeutralForeground3,
     },
+
+    failureMessage: {
+        marginBottom: tokens.spacingVerticalM,
+        color: tokens.colorStatusDangerForeground1,
+    },
 });
 

@@ -1,4 +1,4 @@
--- Phase 3: enforce ownership invariants on every governed resource.
+-- Enforce ownership invariants on every governed resource.
 -- Each constraint ensures the ownership columns are consistent with the declared scope.
 -- NOT VALID skips the check against pre-existing rows so the migration succeeds on an
 -- existing dev database.  New rows are still fully enforced.  Run
