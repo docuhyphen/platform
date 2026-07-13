@@ -142,8 +142,8 @@ const useStyles = makeStyles({
     hero: {
         display: "flex",
         flexDirection: "column",
-        alignItems: "center",
-        textAlign: "center",
+        alignItems: "flex-start",
+        textAlign: "left",
         gap: SPACE_SM,
         paddingBottom: SPACE_LG,
     },
@@ -337,7 +337,7 @@ export function PricingPage()
         <PageShell>
             <section className={styles.hero}>
                 <Title1 className={styles.heroTitle}>Pricing</Title1>
-                <Text size={500} className={styles.heroSubtitle} align={"center"}>
+                <Text size={500} className={styles.heroSubtitle}>
                     Choose the best tier for your business on monthly billing, cancel anytime.
                 </Text>
             </section>

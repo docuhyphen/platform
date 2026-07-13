@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const outputDir = path.resolve(process.cwd(), "public", "demo-pdfs");
+const pdfOutputDir = path.resolve(process.cwd(), "public", "demo-pdfs");
+const previewOutputDir = path.resolve(process.cwd(), "public", "demo-previews");
 
 const PAGE = { width: 595, height: 842 };
 
@@ -223,7 +224,8 @@ const industries = [
 ];
 
 function ensureOutputDir() {
-  fs.mkdirSync(outputDir, { recursive: true });
+  fs.mkdirSync(pdfOutputDir, { recursive: true });
+  fs.mkdirSync(previewOutputDir, { recursive: true });
 }
 
 function toRgb01(hex) {
@@ -466,8 +468,166 @@ function createPdfBuffer(contentStream) {
   return Buffer.from(pdf, "utf8");
 }
 
+function escapeXml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function svgRect(parts, x, y, width, height, fill, stroke = "none", strokeWidth = 0) {
+  parts.push(
+    `<rect x="${x}" y="${y}" width="${width}" height="${height}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"/>`,
+  );
+}
+
+function svgLine(parts, x1, y1, x2, y2, stroke, strokeWidth = 1) {
+  parts.push(
+    `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${strokeWidth}"/>`,
+  );
+}
+
+function svgText(parts, value, x, y, size, color, weight = 400) {
+  parts.push(
+    `<text x="${x}" y="${y}" fill="${color}" font-family="Arial, Helvetica, sans-serif" font-size="${size}" font-weight="${weight}">${escapeXml(value)}</text>`,
+  );
+}
+
+function drawSvgKpiCards(parts, cards, accentColor) {
+  const startX = 30;
+  const top = 102;
+  const cardWidth = 124;
+  const cardHeight = 58;
+  const gap = 12;
+  const stripeColor = shadeHex(accentColor, -0.1);
+  const cardColor = shadeHex(accentColor, 0.9);
+
+  cards.forEach((card, index) => {
+    const x = startX + index * (cardWidth + gap);
+    const cardFill = index === 1 ? popPalette.softYellow : index === 3 ? popPalette.lightGreen : cardColor;
+    const stripeFill = index === 2 ? popPalette.smallRed : stripeColor;
+    svgRect(parts, x, top, cardWidth, cardHeight, cardFill, palette.border, 1);
+    svgRect(parts, x, top, cardWidth, 6, stripeFill);
+    svgText(parts, card.label, x + 8, top + 26, 9, palette.muted);
+    svgText(parts, card.value, x + 8, top + 48, 14, shadeHex(accentColor, -0.22), 700);
+  });
+}
+
+function drawSvgBarChart(parts, chart) {
+  const x = 30;
+  const top = 196;
+  const width = 256;
+  const {labels, values, color} = chart;
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const usableWidth = 204;
+  const barGap = 8;
+  const barWidth = (usableWidth - barGap * (labels.length - 1)) / labels.length;
+
+  svgRect(parts, x, top + 20, width, 150, shadeHex(color, 0.9), shadeHex(color, 0.38), 1);
+  svgLine(parts, x + 20, top + 24, x + 20, top + 138, shadeHex(color, 0.45));
+  svgLine(parts, x + 20, top + 138, x + 238, top + 138, shadeHex(color, 0.45));
+
+  values.forEach((value, index) => {
+    const barHeight = (value / max) * 95;
+    const barX = x + 28 + index * (barWidth + barGap);
+    const barTop = top + 138 - barHeight;
+    let barColor = index % 2 === 0 ? shadeHex(color, 0.08) : shadeHex(color, -0.1);
+    if (index === values.length - 1) barColor = popPalette.lightGreen;
+    if (index === 1) barColor = popPalette.softYellow;
+    if (value === min) barColor = popPalette.smallRed;
+
+    svgRect(parts, barX, barTop, barWidth, barHeight, barColor);
+    svgText(parts, value, barX, barTop - 5, 8, palette.text);
+    svgText(parts, labels[index], barX, top + 154, 8, palette.muted);
+  });
+}
+
+function drawSvgLineChart(parts, chart) {
+  const x = 306;
+  const top = 196;
+  const width = 259;
+  const {labels, values, color, ySuffix} = chart;
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const range = Math.max(1, max - min);
+  const points = values.map((value, index) => ({
+    x: x + 20 + (index * 216) / (values.length - 1),
+    y: top + 138 - ((value - min) / range) * 95,
+    value,
+    label: labels[index],
+  }));
+
+  svgRect(parts, x, top + 20, width, 150, shadeHex(color, 0.92), shadeHex(color, 0.42), 1);
+  svgLine(parts, x + 16, top + 24, x + 16, top + 138, shadeHex(color, 0.45));
+  svgLine(parts, x + 16, top + 138, x + 240, top + 138, shadeHex(color, 0.45));
+  parts.push(
+    `<polygon points="${x + 20},${top + 138} ${points.map((point) => `${point.x},${point.y}`).join(" ")} ${points.at(-1).x},${top + 138}" fill="${shadeHex(color, 0.72)}"/>`,
+  );
+  parts.push(
+    `<polyline points="${points.map((point) => `${point.x},${point.y}`).join(" ")}" fill="none" stroke="${color}" stroke-width="2.2"/>`,
+  );
+
+  points.forEach((point) => {
+    const pointColor = point.value === min ? popPalette.smallRed : shadeHex(color, -0.04);
+    svgRect(parts, point.x - 2.5, point.y - 2.5, 5, 5, pointColor);
+    svgText(parts, `${point.value}${ySuffix}`, point.x - 11, point.y - 7, 8, palette.text);
+    svgText(parts, point.label, point.x - 10, top + 154, 8, palette.muted);
+  });
+}
+
+function drawSvgTable(parts, columns, rows, accentColor) {
+  const x = 30;
+  const top = 390;
+  const width = 535;
+  const rowHeight = 26;
+  const columnWidth = width / columns.length;
+
+  svgRect(parts, x, top, width, rowHeight * (rows.length + 1), "none", shadeHex(accentColor, 0.56), 1);
+  svgRect(parts, x, top, width, rowHeight, shadeHex(accentColor, 0.86));
+  columns.forEach((column, index) => {
+    svgText(parts, column, x + index * columnWidth + 7, top + 18, 9, palette.primary, 700);
+  });
+  rows.forEach((row, rowIndex) => {
+    const rowTop = top + rowHeight * (rowIndex + 1);
+    if (rowIndex % 2 === 0) svgRect(parts, x, rowTop, width, rowHeight, shadeHex(accentColor, 0.93));
+    row.forEach((cell, columnIndex) => {
+      svgText(parts, cell, x + columnIndex * columnWidth + 7, rowTop + 18, 9, palette.text);
+    });
+    svgLine(parts, x, rowTop + rowHeight, x + width, rowTop + rowHeight, shadeHex(accentColor, 0.6));
+  });
+  for (let index = 1; index < columns.length; index += 1) {
+    const lineX = x + index * columnWidth;
+    svgLine(parts, lineX, top, lineX, top + rowHeight * (rows.length + 1), shadeHex(accentColor, 0.6));
+  }
+}
+
+function buildIndustryPreview(industry) {
+  const filePath = path.join(previewOutputDir, `${industry.slug}.svg`);
+  const accentColor = industry.lineGraph.color;
+  const parts = [
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${PAGE.width} ${PAGE.height}" role="img" aria-label="${escapeXml(industry.subtitle)}">`,
+  ];
+
+  svgRect(parts, 0, 0, PAGE.width, PAGE.height, industry.pageColor || "#f7f9fc");
+  svgRect(parts, 0, 0, PAGE.width, 8, shadeHex(accentColor, -0.08));
+  splitText(industry.summary, 108).forEach((line, index) => {
+    svgText(parts, line, 30, 42 + index * 15, 10, palette.text);
+  });
+  drawSvgKpiCards(parts, industry.kpis, accentColor);
+  drawSvgBarChart(parts, industry.barChart);
+  drawSvgLineChart(parts, industry.lineGraph);
+  drawSvgTable(parts, industry.tableColumns, industry.tableRows, accentColor);
+  parts.push("</svg>");
+
+  fs.writeFileSync(filePath, parts.join("\n"));
+  return filePath;
+}
+
 function buildIndustryPdf(industry) {
-  const filePath = path.join(outputDir, `${industry.slug}.pdf`);
+  const filePath = path.join(pdfOutputDir, `${industry.slug}.pdf`);
   const parts = [];
   const accentColor = industry.lineGraph.color;
 
@@ -491,7 +651,10 @@ function buildIndustryPdf(industry) {
 function main() {
   ensureOutputDir();
 
-  const generatedFiles = industries.map((industry) => buildIndustryPdf(industry));
+  const generatedFiles = industries.flatMap((industry) => [
+    buildIndustryPdf(industry),
+    buildIndustryPreview(industry),
+  ]);
 
   generatedFiles.forEach((file) => {
     const stat = fs.statSync(file);

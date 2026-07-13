@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "buildWTsc": "tsc -b && vite build",
-    "build": "tsc -b && vite build",
+    "buildWTsc": "npm run generate:industry-assets && tsc -b && vite build",
+    "build": "npm run generate:industry-assets && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "generate:industry-pdfs": "node scripts/generate-industry-demo-pdfs.mjs"
+    "generate:industry-assets": "node scripts/generate-industry-demo-pdfs.mjs",
+    "generate:industry-pdfs": "npm run generate:industry-assets"
   },
   "dependencies": {
     "@fluentui/react-components": "^9.72.9",

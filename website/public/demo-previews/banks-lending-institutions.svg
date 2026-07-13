@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 595 842" role="img" aria-label="Credit Risk Assessment: Meridian Trust Bank">
+<rect x="0" y="0" width="595" height="842" fill="#f3f6fb" stroke="none" stroke-width="0"/>
+<rect x="0" y="0" width="595" height="8" fill="#213a5b" stroke="none" stroke-width="0"/>
+<text x="30" y="42" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="400">Application MTB-CLA-2026-0417 for Daniel M. Kessler was evaluated with annual income of R 128,000, credit</text>
+<text x="30" y="57" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="400">score 722, requested loan amount of R 285,000, and moderate-low risk profile.</text>
+<rect x="30" y="102" width="124" height="58" fill="#e9ecef" stroke="#d7e0ea" stroke-width="1"/>
+<rect x="30" y="102" width="124" height="6" fill="#203959" stroke="none" stroke-width="0"/>
+<text x="38" y="128" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">Credit Score</text>
+<text x="38" y="150" fill="#1c314d" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700">722</text>
+<rect x="166" y="102" width="124" height="58" fill="#fff3bf" stroke="#d7e0ea" stroke-width="1"/>
+<rect x="166" y="102" width="124" height="6" fill="#203959" stroke="none" stroke-width="0"/>
+<text x="174" y="128" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">DTI</text>
+<text x="174" y="150" fill="#1c314d" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700">27.4%</text>
+<rect x="302" y="102" width="124" height="58" fill="#e9ecef" stroke="#d7e0ea" stroke-width="1"/>
+<rect x="302" y="102" width="124" height="6" fill="#f8cdcd" stroke="none" stroke-width="0"/>
+<text x="310" y="128" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">LTV</text>
+<text x="310" y="150" fill="#1c314d" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700">76.0%</text>
+<rect x="438" y="102" width="124" height="58" fill="#d9f4de" stroke="#d7e0ea" stroke-width="1"/>
+<rect x="438" y="102" width="124" height="6" fill="#203959" stroke="none" stroke-width="0"/>
+<text x="446" y="128" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">Decision</text>
+<text x="446" y="150" fill="#1c314d" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700">Approved</text>
+<rect x="30" y="216" width="256" height="150" fill="#ecf0f6" stroke="#88a3c5" stroke-width="1"/>
+<line x1="50" y1="220" x2="50" y2="334" stroke="#95aecb" stroke-width="1"/>
+<line x1="50" y1="334" x2="268" y2="334" stroke="#95aecb" stroke-width="1"/>
+<rect x="58" y="295.9181034482759" width="27.333333333333332" height="38.081896551724135" fill="#4e77a9" stroke="none" stroke-width="0"/>
+<text x="58" y="290.9181034482759" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">465</text>
+<text x="58" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">Jan</text>
+<rect x="93.33333333333333" y="316.80172413793105" width="27.333333333333332" height="17.198275862068964" fill="#fff3bf" stroke="none" stroke-width="0"/>
+<text x="93.33333333333333" y="311.80172413793105" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">210</text>
+<text x="93.33333333333333" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">Feb</text>
+<rect x="128.66666666666666" y="302.0603448275862" width="27.333333333333332" height="31.939655172413794" fill="#4e77a9" stroke="none" stroke-width="0"/>
+<text x="128.66666666666666" y="297.0603448275862" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">390</text>
+<text x="128.66666666666666" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">Mar</text>
+<rect x="164" y="326.2198275862069" width="27.333333333333332" height="7.780172413793103" fill="#f8cdcd" stroke="none" stroke-width="0"/>
+<text x="164" y="321.2198275862069" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">95</text>
+<text x="164" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">Apr</text>
+<rect x="199.33333333333331" y="271.7586206896552" width="27.333333333333332" height="62.241379310344826" fill="#4e77a9" stroke="none" stroke-width="0"/>
+<text x="199.33333333333331" y="266.7586206896552" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">760</text>
+<text x="199.33333333333331" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">May</text>
+<rect x="234.66666666666663" y="239" width="27.333333333333332" height="95" fill="#d9f4de" stroke="none" stroke-width="0"/>
+<text x="234.66666666666663" y="234" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">1160</text>
+<text x="234.66666666666663" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">Jun</text>
+<rect x="306" y="216" width="259" height="150" fill="#edf0f3" stroke="#8090a5" stroke-width="1"/>
+<line x1="322" y1="220" x2="322" y2="334" stroke="#8795a9" stroke-width="1"/>
+<line x1="322" y1="334" x2="546" y2="334" stroke="#8795a9" stroke-width="1"/>
+<polygon points="326,334 326,239 369.2,260.1111111111111 412.4,281.22222222222223 455.6,291.77777777777777 498.8,312.8888888888889 542,334 542,334" fill="#c2c9d3"/>
+<polyline points="326,239 369.2,260.1111111111111 412.4,281.22222222222223 455.6,291.77777777777777 498.8,312.8888888888889 542,334" fill="none" stroke="#243f63" stroke-width="2.2"/>
+<rect x="323.5" y="236.5" width="5" height="5" fill="#233c5f" stroke="none" stroke-width="0"/>
+<text x="315" y="232" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">64</text>
+<text x="316" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">Week 1</text>
+<rect x="366.7" y="257.6111111111111" width="5" height="5" fill="#233c5f" stroke="none" stroke-width="0"/>
+<text x="358.2" y="253.1111111111111" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">62</text>
+<text x="359.2" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">2</text>
+<rect x="409.9" y="278.72222222222223" width="5" height="5" fill="#233c5f" stroke="none" stroke-width="0"/>
+<text x="401.4" y="274.22222222222223" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">60</text>
+<text x="402.4" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">3</text>
+<rect x="453.1" y="289.27777777777777" width="5" height="5" fill="#233c5f" stroke="none" stroke-width="0"/>
+<text x="444.6" y="284.77777777777777" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">59</text>
+<text x="445.6" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">4</text>
+<rect x="496.3" y="310.3888888888889" width="5" height="5" fill="#233c5f" stroke="none" stroke-width="0"/>
+<text x="487.8" y="305.8888888888889" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">57</text>
+<text x="488.8" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">5</text>
+<rect x="539.5" y="331.5" width="5" height="5" fill="#f8cdcd" stroke="none" stroke-width="0"/>
+<text x="531" y="327" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">55</text>
+<text x="532" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">6</text>
+<rect x="30" y="390" width="535" height="156" fill="none" stroke="#9fabba" stroke-width="1"/>
+<rect x="30" y="390" width="535" height="26" fill="#e0e4e9" stroke="none" stroke-width="0"/>
+<text x="37" y="408" fill="#20344d" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700">Creditor</text>
+<text x="215.33333333333334" y="408" fill="#20344d" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700">Balance</text>
+<text x="393.6666666666667" y="408" fill="#20344d" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700">Monthly Payment</text>
+<rect x="30" y="416" width="535" height="26" fill="#f0f2f4" stroke="none" stroke-width="0"/>
+<text x="37" y="434" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">Horizon Auto Finance</text>
+<text x="215.33333333333334" y="434" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">R 18,400</text>
+<text x="393.6666666666667" y="434" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">R 465</text>
+<line x1="30" y1="442" x2="565" y2="442" stroke="#a7b2c1" stroke-width="1"/>
+<text x="37" y="460" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">Summit Card Services</text>
+<text x="215.33333333333334" y="460" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">R 6,950</text>
+<text x="393.6666666666667" y="460" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">R 210</text>
+<line x1="30" y1="468" x2="565" y2="468" stroke="#a7b2c1" stroke-width="1"/>
+<rect x="30" y="468" width="535" height="26" fill="#f0f2f4" stroke="none" stroke-width="0"/>
+<text x="37" y="486" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">Collegiate Lending Corp</text>
+<text x="215.33333333333334" y="486" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">R 24,700</text>
+<text x="393.6666666666667" y="486" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">R 390</text>
+<line x1="30" y1="494" x2="565" y2="494" stroke="#a7b2c1" stroke-width="1"/>
+<text x="37" y="512" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">Metro Home Furnishings</text>
+<text x="215.33333333333334" y="512" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">R 2,180</text>
+<text x="393.6666666666667" y="512" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">R 95</text>
+<line x1="30" y1="520" x2="565" y2="520" stroke="#a7b2c1" stroke-width="1"/>
+<rect x="30" y="520" width="535" height="26" fill="#f0f2f4" stroke="none" stroke-width="0"/>
+<text x="37" y="538" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">Total Revolving + Installment</text>
+<text x="215.33333333333334" y="538" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">R 52,230</text>
+<text x="393.6666666666667" y="538" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">R 1,160</text>
+<line x1="30" y1="546" x2="565" y2="546" stroke="#a7b2c1" stroke-width="1"/>
+<line x1="208.33333333333334" y1="390" x2="208.33333333333334" y2="546" stroke="#a7b2c1" stroke-width="1"/>
+<line x1="386.6666666666667" y1="390" x2="386.6666666666667" y2="546" stroke="#a7b2c1" stroke-width="1"/>
+</svg>

@@ -2,7 +2,7 @@ import {Button, Tab, TabList, Text, Title2} from "@fluentui/react-components";
 import {Open20Regular} from "@fluentui/react-icons";
 import {useEffect, useState} from "react";
 import {industryExperiences} from "./featureContent.ts";
-import {IndustryScreenshot} from "./IndustryScreenshot.tsx";
+import {IndustryProductDemo} from "./industry-product-demo/IndustryProductDemo.tsx";
 import {useIndustryExperienceStyles} from "./IndustryExperienceStyles.tsx";
 
 interface IndustryExperienceProps
@@ -49,7 +49,7 @@ export function IndustryExperience({initialIndustrySlug}: IndustryExperienceProp
                     id="industry-product-experience-description"
                     className={styles.description}
                 >
-                    Explore how the platform supports the document-driven processes, controls, and collaboration needs of your industry.
+                    Explore how the platform supports document-driven processes, controls, and collaboration needs of your industry.
                 </Text>
             </div>
 
@@ -84,25 +84,31 @@ export function IndustryExperience({initialIndustrySlug}: IndustryExperienceProp
                 aria-live="polite"
             >
                 <div
-                    id="industry-product-experience-copy"
-                    className={styles.copy}
+                    id="industry-product-experience-summary"
+                    className={styles.summary}
                 >
-                    <Text
-                        id="industry-product-experience-name"
-                        className={styles.industryName}
+                    <div
+                        id="industry-product-experience-copy"
+                        className={styles.copy}
                     >
-                        {activeIndustry.title}
-                    </Text>
-                    <Text
-                        id="industry-product-experience-outcome"
-                        className={styles.outcome}
-                    >
-                        {activeIndustry.outcome}
-                    </Text>
+                        <Text
+                            id="industry-product-experience-name"
+                            className={styles.industryName}
+                        >
+                            {activeIndustry.title}
+                        </Text>
+                        <Text
+                            id="industry-product-experience-outcome"
+                            className={styles.outcome}
+                        >
+                            {activeIndustry.outcome}
+                        </Text>
+                    </div>
                     <Button
                         id="industry-product-experience-action"
-                        appearance="secondary"
+                        appearance="primary"
                         as="a"
+                        size={"small"}
                         className={styles.action}
                         href={`/industries/${activeIndustry.slug}`}
                         icon={<Open20Regular aria-hidden="true"/>}
@@ -113,7 +119,7 @@ export function IndustryExperience({initialIndustrySlug}: IndustryExperienceProp
                     </Button>
                 </div>
 
-                <IndustryScreenshot industry={activeIndustry}/>
+                <IndustryProductDemo industry={activeIndustry}/>
             </article>
         </section>
     );

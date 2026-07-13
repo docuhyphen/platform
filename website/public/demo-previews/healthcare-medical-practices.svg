@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 595 842" role="img" aria-label="Patient Referral Summary: Cedar Grove Family Medicine">
+<rect x="0" y="0" width="595" height="842" fill="#f3fbfb" stroke="none" stroke-width="0"/>
+<rect x="0" y="0" width="595" height="8" fill="#49a59b" stroke="none" stroke-width="0"/>
+<text x="30" y="42" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="400">Referring physician Dr. Amelia R. Nolan, MD has referred Sofia Lynn Hart for specialist gastroenterology</text>
+<text x="30" y="57" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="400">evaluation due to persistent upper abdominal symptoms, mild anemia, and positive occult blood screening.</text>
+<rect x="30" y="102" width="124" height="58" fill="#edf7f6" stroke="#d7e0ea" stroke-width="1"/>
+<rect x="30" y="102" width="124" height="6" fill="#47a197" stroke="none" stroke-width="0"/>
+<text x="38" y="128" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">Patient Age</text>
+<text x="38" y="150" fill="#3e8c83" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700">47</text>
+<rect x="166" y="102" width="124" height="58" fill="#fff3bf" stroke="#d7e0ea" stroke-width="1"/>
+<rect x="166" y="102" width="124" height="6" fill="#47a197" stroke="none" stroke-width="0"/>
+<text x="174" y="128" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">Weight Change</text>
+<text x="174" y="150" fill="#3e8c83" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700">-3.2 kg</text>
+<rect x="302" y="102" width="124" height="58" fill="#edf7f6" stroke="#d7e0ea" stroke-width="1"/>
+<rect x="302" y="102" width="124" height="6" fill="#f8cdcd" stroke="none" stroke-width="0"/>
+<text x="310" y="128" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">FOBT</text>
+<text x="310" y="150" fill="#3e8c83" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700">Positive (1/3)</text>
+<rect x="438" y="102" width="124" height="58" fill="#d9f4de" stroke="#d7e0ea" stroke-width="1"/>
+<rect x="438" y="102" width="124" height="6" fill="#47a197" stroke="none" stroke-width="0"/>
+<text x="446" y="128" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">Priority</text>
+<text x="446" y="150" fill="#3e8c83" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700">Expedited Ref</text>
+<rect x="30" y="216" width="256" height="150" fill="#ecf3f4" stroke="#88b2bb" stroke-width="1"/>
+<line x1="50" y1="220" x2="50" y2="334" stroke="#95bbc3" stroke-width="1"/>
+<line x1="50" y1="334" x2="268" y2="334" stroke="#95bbc3" stroke-width="1"/>
+<rect x="58" y="239" width="27.333333333333332" height="95" fill="#4e8d9a" stroke="none" stroke-width="0"/>
+<text x="58" y="234" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">8</text>
+<text x="58" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">W1</text>
+<rect x="93.33333333333333" y="239" width="27.333333333333332" height="95" fill="#fff3bf" stroke="none" stroke-width="0"/>
+<text x="93.33333333333333" y="234" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">8</text>
+<text x="93.33333333333333" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">W2</text>
+<rect x="128.66666666666666" y="250.875" width="27.333333333333332" height="83.125" fill="#4e8d9a" stroke="none" stroke-width="0"/>
+<text x="128.66666666666666" y="245.875" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">7</text>
+<text x="128.66666666666666" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">W3</text>
+<rect x="164" y="250.875" width="27.333333333333332" height="83.125" fill="#397683" stroke="none" stroke-width="0"/>
+<text x="164" y="245.875" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">7</text>
+<text x="164" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">W4</text>
+<rect x="199.33333333333331" y="262.75" width="27.333333333333332" height="71.25" fill="#f8cdcd" stroke="none" stroke-width="0"/>
+<text x="199.33333333333331" y="257.75" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">6</text>
+<text x="199.33333333333331" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">W5</text>
+<rect x="234.66666666666663" y="262.75" width="27.333333333333332" height="71.25" fill="#f8cdcd" stroke="none" stroke-width="0"/>
+<text x="234.66666666666663" y="257.75" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">6</text>
+<text x="234.66666666666663" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">W6</text>
+<rect x="306" y="216" width="259" height="150" fill="#f1f9f8" stroke="#99d3cd" stroke-width="1"/>
+<line x1="322" y1="220" x2="322" y2="334" stroke="#9ed5cf" stroke-width="1"/>
+<line x1="322" y1="334" x2="546" y2="334" stroke="#9ed5cf" stroke-width="1"/>
+<polygon points="326,334 326,239 369.2,258 412.4,277 455.6,296 498.8,315 542,334 542,334" fill="#ceeae7"/>
+<polyline points="326,239 369.2,258 412.4,277 455.6,296 498.8,315 542,334" fill="none" stroke="#4fb3a8" stroke-width="2.2"/>
+<rect x="323.5" y="236.5" width="5" height="5" fill="#4caca1" stroke="none" stroke-width="0"/>
+<text x="315" y="232" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">18d</text>
+<text x="316" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">W1</text>
+<rect x="366.7" y="255.5" width="5" height="5" fill="#4caca1" stroke="none" stroke-width="0"/>
+<text x="358.2" y="251" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">16d</text>
+<text x="359.2" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">W2</text>
+<rect x="409.9" y="274.5" width="5" height="5" fill="#4caca1" stroke="none" stroke-width="0"/>
+<text x="401.4" y="270" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">14d</text>
+<text x="402.4" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">W3</text>
+<rect x="453.1" y="293.5" width="5" height="5" fill="#4caca1" stroke="none" stroke-width="0"/>
+<text x="444.6" y="289" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">12d</text>
+<text x="445.6" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">W4</text>
+<rect x="496.3" y="312.5" width="5" height="5" fill="#4caca1" stroke="none" stroke-width="0"/>
+<text x="487.8" y="308" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">10d</text>
+<text x="488.8" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">W5</text>
+<rect x="539.5" y="331.5" width="5" height="5" fill="#f8cdcd" stroke="none" stroke-width="0"/>
+<text x="531" y="327" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">8d</text>
+<text x="532" y="350" fill="#667488" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="400">W6</text>
+<rect x="30" y="390" width="535" height="156" fill="none" stroke="#b2ded9" stroke-width="1"/>
+<rect x="30" y="390" width="535" height="26" fill="#e6f4f3" stroke="none" stroke-width="0"/>
+<text x="37" y="408" fill="#20344d" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700">Test</text>
+<text x="170.75" y="408" fill="#20344d" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700">Date</text>
+<text x="304.5" y="408" fill="#20344d" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700">Result</text>
+<text x="438.25" y="408" fill="#20344d" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700">Notes</text>
+<rect x="30" y="416" width="535" height="26" fill="#f3faf9" stroke="none" stroke-width="0"/>
+<text x="37" y="434" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">CBC</text>
+<text x="170.75" y="434" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">11 Mar 2026</text>
+<text x="304.5" y="434" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">Mild microcytic anemia</text>
+<text x="438.25" y="434" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">Hgb 11.1 g/dL</text>
+<line x1="30" y1="442" x2="565" y2="442" stroke="#b9e1dc" stroke-width="1"/>
+<text x="37" y="460" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">CMP</text>
+<text x="170.75" y="460" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">11 Mar 2026</text>
+<text x="304.5" y="460" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">Within normal limits</text>
+<text x="438.25" y="460" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">No liver concerns</text>
+<line x1="30" y1="468" x2="565" y2="468" stroke="#b9e1dc" stroke-width="1"/>
+<rect x="30" y="468" width="535" height="26" fill="#f3faf9" stroke="none" stroke-width="0"/>
+<text x="37" y="486" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">H. pylori Breath</text>
+<text x="170.75" y="486" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">12 Mar 2026</text>
+<text x="304.5" y="486" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">Negative</text>
+<text x="438.25" y="486" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">PPI held 2 weeks</text>
+<line x1="30" y1="494" x2="565" y2="494" stroke="#b9e1dc" stroke-width="1"/>
+<text x="37" y="512" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">FOBT</text>
+<text x="170.75" y="512" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">13 Mar 2026</text>
+<text x="304.5" y="512" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">Positive</text>
+<text x="438.25" y="512" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">1 of 3 cards</text>
+<line x1="30" y1="520" x2="565" y2="520" stroke="#b9e1dc" stroke-width="1"/>
+<rect x="30" y="520" width="535" height="26" fill="#f3faf9" stroke="none" stroke-width="0"/>
+<text x="37" y="538" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">Abdominal Ultrasound</text>
+<text x="170.75" y="538" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">14 Mar 2026</text>
+<text x="304.5" y="538" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">No acute findings</text>
+<text x="438.25" y="538" fill="#223244" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400">Post-cholecystectomy</text>
+<line x1="30" y1="546" x2="565" y2="546" stroke="#b9e1dc" stroke-width="1"/>
+<line x1="163.75" y1="390" x2="163.75" y2="546" stroke="#b9e1dc" stroke-width="1"/>
+<line x1="297.5" y1="390" x2="297.5" y2="546" stroke="#b9e1dc" stroke-width="1"/>
+<line x1="431.25" y1="390" x2="431.25" y2="546" stroke="#b9e1dc" stroke-width="1"/>
+</svg>

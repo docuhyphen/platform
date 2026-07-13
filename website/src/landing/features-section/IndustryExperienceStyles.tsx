@@ -7,8 +7,12 @@ export const useIndustryExperienceStyles = makeStyles({
         flexDirection: "column",
         gap: tokens.spacingVerticalXL,
         width: "100%",
-        maxWidth: WIDTH_CONTENT,
+        maxWidth: `min(92rem, calc(100vw - ${tokens.spacingHorizontalXXXL}))`,
         margin: "0 auto",
+
+        [BREAKPOINT_MOBILE]: {
+            maxWidth: WIDTH_CONTENT,
+        },
     },
 
     introduction: {
@@ -57,15 +61,30 @@ export const useIndustryExperienceStyles = makeStyles({
 
     experience: {
         display: "grid",
-        gridTemplateColumns: "minmax(14rem, 0.38fr) minmax(0, 1fr)",
-        overflow: "hidden",
-        border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
-        borderRadius: tokens.borderRadiusXLarge,
-        backgroundColor: tokens.colorNeutralBackground1,
-        boxShadow: tokens.shadow16,
+        gridTemplateColumns: "minmax(12rem, 15rem) minmax(0, 1fr)",
+        alignItems: "stretch",
+        gap: tokens.spacingHorizontalL,
 
         [BREAKPOINT_MOBILE]: {
             gridTemplateColumns: "minmax(0, 1fr)",
+            gap: tokens.spacingVerticalL,
+        },
+    },
+
+    summary: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        justifyContent: "center",
+        gap: tokens.spacingVerticalL,
+        padding: `${tokens.spacingVerticalL} ${tokens.spacingHorizontalXL}`,
+        border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
+        borderRadius: tokens.borderRadiusXLarge,
+        backgroundImage: `linear-gradient(145deg, ${tokens.colorBrandBackground2} 0%, ${tokens.colorNeutralBackground1} 100%)`,
+
+        [BREAKPOINT_MOBILE]: {
+            gap: tokens.spacingVerticalM,
+            padding: tokens.spacingVerticalL,
         },
     },
 
@@ -73,14 +92,8 @@ export const useIndustryExperienceStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-start",
-        justifyContent: "center",
-        gap: tokens.spacingVerticalM,
-        padding: tokens.spacingVerticalXXXL,
-        backgroundImage: `linear-gradient(145deg, ${tokens.colorBrandBackground2} 0%, ${tokens.colorNeutralBackground1} 100%)`,
-
-        [BREAKPOINT_MOBILE]: {
-            padding: tokens.spacingVerticalXL,
-        },
+        gap: tokens.spacingVerticalXS,
+        minWidth: 0,
     },
 
     industryName: {
@@ -96,58 +109,6 @@ export const useIndustryExperienceStyles = makeStyles({
     },
 
     action: {
-        marginTop: tokens.spacingVerticalS,
-    },
-
-    browser: {
-        minWidth: 0,
-        padding: tokens.spacingVerticalL,
-        backgroundColor: tokens.colorNeutralBackground2,
-
-        [BREAKPOINT_MOBILE]: {
-            padding: tokens.spacingVerticalM,
-        },
-    },
-
-    browserFrame: {
-        overflow: "hidden",
-        border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,
-        borderRadius: tokens.borderRadiusLarge,
-        backgroundColor: tokens.colorNeutralBackground1,
-        boxShadow: tokens.shadow8,
-    },
-
-    browserBar: {
-        display: "flex",
-        alignItems: "center",
-        gap: tokens.spacingHorizontalXS,
-        minHeight: "2.25rem",
-        paddingLeft: tokens.spacingHorizontalM,
-        paddingRight: tokens.spacingHorizontalM,
-        borderBottom: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
-        backgroundColor: tokens.colorNeutralBackground3,
-    },
-
-    browserDot: {
-        width: "0.5rem",
-        height: "0.5rem",
-        borderRadius: tokens.borderRadiusCircular,
-        backgroundColor: tokens.colorNeutralStroke1,
-    },
-
-    browserDotBrand: {
-        backgroundColor: tokens.colorBrandBackground,
-    },
-
-    browserDotSuccess: {
-        backgroundColor: tokens.colorStatusSuccessBackground3,
-    },
-
-    image: {
-        display: "block",
-        width: "100%",
-        aspectRatio: "1300 / 700",
-        objectFit: "contain",
-        backgroundColor: tokens.colorNeutralBackground1,
+        flexShrink: 0,
     },
 });

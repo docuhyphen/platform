@@ -41,7 +41,6 @@ export function HeroSection()
                             id="home-hero-start-free"
                             appearance="primary"
                             as="a"
-                            size="large"
                             className={mergeClasses(styles.buttonBase, styles.primaryCta)}
                             shape="circular"
                             target="_blank"
