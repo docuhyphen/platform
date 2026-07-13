@@ -1,6 +1,4 @@
 import {Button, Text, Tooltip} from "@fluentui/react-components";
-import {CopyIcon} from "../../../components/IconBundles.tsx";
-import {copyText} from "../../../utils/copyText.ts";
 import {useAuditEventDetailStyles} from "./AuditEventDetailStyles.tsx";
 import {useCopyableFieldLabelStyles} from "./CopyableFieldLabelStyles.tsx";
 
@@ -30,17 +28,6 @@ const CopyableFieldLabel = (
 
     return (
         <div className={styles.row}>
-            <Tooltip content={"Copy name and id"} relationship={"label"}>
-                <Button
-                    id={id}
-                    appearance={"subtle"}
-                    shape={"circular"}
-                    size={"small"}
-                    className={styles.copyButton}
-                    icon={<CopyIcon/>}
-                    onClick={() => void copyText(copyValue)}
-                />
-            </Tooltip>
             <Text size={200} className={detailStyles.fieldLabel}>{label}</Text>
         </div>
     );
