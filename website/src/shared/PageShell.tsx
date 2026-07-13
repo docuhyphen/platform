@@ -1,6 +1,6 @@
 import type {ReactNode} from "react";
 import {makeStyles, tokens} from "@fluentui/react-components";
-import {LandingHeader} from "../landing/LandingHeader.tsx";
+import {LandingHeader} from "../landing/landing-header/LandingHeader.tsx";
 import {Footer} from "./Footer.tsx";
 import {
     BREAKPOINT_MOBILE,

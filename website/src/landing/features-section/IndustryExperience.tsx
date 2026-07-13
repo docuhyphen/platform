@@ -1,0 +1,120 @@
+import {Button, Tab, TabList, Text, Title2} from "@fluentui/react-components";
+import {Open20Regular} from "@fluentui/react-icons";
+import {useEffect, useState} from "react";
+import {industryExperiences} from "./featureContent.ts";
+import {IndustryScreenshot} from "./IndustryScreenshot.tsx";
+import {useIndustryExperienceStyles} from "./IndustryExperienceStyles.tsx";
+
+interface IndustryExperienceProps
+{
+    initialIndustrySlug?: string;
+}
+
+function getInitialIndustrySlug(initialIndustrySlug?: string): string
+{
+    return industryExperiences.some((industry) => industry.slug === initialIndustrySlug)
+        ? initialIndustrySlug ?? industryExperiences[0].slug
+        : industryExperiences[0].slug;
+}
+
+export function IndustryExperience({initialIndustrySlug}: IndustryExperienceProps)
+{
+    const styles = useIndustryExperienceStyles();
+    const [activeIndustrySlug, setActiveIndustrySlug] = useState(() => getInitialIndustrySlug(initialIndustrySlug));
+    const activeIndustry = industryExperiences.find((industry) => industry.slug === activeIndustrySlug)
+        ?? industryExperiences[0];
+
+    useEffect(() =>
+    {
+        setActiveIndustrySlug(getInitialIndustrySlug(initialIndustrySlug));
+    }, [initialIndustrySlug]);
+
+    return (
+        <section
+            id="industry-product-experience"
+            className={styles.section}
+            aria-labelledby="industry-product-experience-heading"
+        >
+            <div
+                id="industry-product-experience-introduction"
+                className={styles.introduction}
+            >
+                <Title2
+                    id="industry-product-experience-heading"
+                    className={styles.heading}
+                >
+                    See DocuHyphen in your industry
+                </Title2>
+                <Text
+                    id="industry-product-experience-description"
+                    className={styles.description}
+                >
+                    Explore how the platform supports the document-driven processes, controls, and collaboration needs of your industry.
+                </Text>
+            </div>
+
+            <div
+                id="industry-product-experience-tab-viewport"
+                className={styles.tabViewport}
+            >
+                <TabList
+                    id="industry-product-experience-tabs"
+                    className={styles.tabs}
+                    selectedValue={activeIndustrySlug}
+                    onTabSelect={(_, data) =>
+                    {
+                        if (typeof data.value === "string") setActiveIndustrySlug(data.value);
+                    }}
+                >
+                    {industryExperiences.map((industry) => (
+                        <Tab
+                            id={`industry-product-experience-tab-${industry.slug}`}
+                            key={industry.slug}
+                            value={industry.slug}
+                        >
+                            {industry.title}
+                        </Tab>
+                    ))}
+                </TabList>
+            </div>
+
+            <article
+                id="industry-product-experience-selected"
+                className={styles.experience}
+                aria-live="polite"
+            >
+                <div
+                    id="industry-product-experience-copy"
+                    className={styles.copy}
+                >
+                    <Text
+                        id="industry-product-experience-name"
+                        className={styles.industryName}
+                    >
+                        {activeIndustry.title}
+                    </Text>
+                    <Text
+                        id="industry-product-experience-outcome"
+                        className={styles.outcome}
+                    >
+                        {activeIndustry.outcome}
+                    </Text>
+                    <Button
+                        id="industry-product-experience-action"
+                        appearance="secondary"
+                        as="a"
+                        className={styles.action}
+                        href={`/industries/${activeIndustry.slug}`}
+                        icon={<Open20Regular aria-hidden="true"/>}
+                        iconPosition="after"
+                        shape="circular"
+                    >
+                        Explore this solution
+                    </Button>
+                </div>
+
+                <IndustryScreenshot industry={activeIndustry}/>
+            </article>
+        </section>
+    );
+}

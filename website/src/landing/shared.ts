@@ -19,7 +19,7 @@ export const SECTION6_RADIUS_DESKTOP = "2rem";
 export const SECTION6_RADIUS_MOBILE = "1rem";
 export const TITLE_MIN_HEIGHT = "3em";
 export const BUTTON_MIN_WIDTH = "8.125rem";
-export const LAW_SECTION_GRADIENT = "linear-gradient(135deg, #20344d 0%, #385980 55%, #7ea6d6 100%)";
+export const LAW_SECTION_GRADIENT = "linear-gradient(135deg, #3E496C 0%, #4B6496 55%, #5EA1E7 100%)";
 
 export const SIGN_IN_URL = "https://app.docuhyphen.com/sign-in";
 export const SIGN_UP_URL = "https://app.docuhyphen.com/sign-up";

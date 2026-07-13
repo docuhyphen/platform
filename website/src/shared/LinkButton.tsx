@@ -3,6 +3,7 @@ import {useNavigate} from "react-router-dom";
 import type {ReactElement, ReactNode} from "react";
 
 type LinkButtonProps = {
+    id?: string;
     to: string;
     children?: ReactNode;
     appearance?: "primary" | "outline" | "subtle" | "secondary" | "transparent";

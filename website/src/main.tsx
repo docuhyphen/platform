@@ -1,4 +1,5 @@
 import {createRoot} from 'react-dom/client'
+import '@fontsource-variable/manrope/index.css'
 import './index.css'
 import App from './App.tsx'
 import type {BrandVariants, Theme} from '@fluentui/react-components';
@@ -24,12 +25,16 @@ const mainTheme: BrandVariants = {
     160: "#BFDBF5"
 };
 
+const fontFamily = "'Manrope Variable', 'Segoe UI', Arial, sans-serif";
+
 const lightTheme: Theme = {
     ...createLightTheme(mainTheme),
+    fontFamilyBase: fontFamily,
 };
 
 const darkTheme: Theme = {
     ...createDarkTheme(mainTheme),
+    fontFamilyBase: fontFamily,
 };
 
 darkTheme.colorBrandForeground1 = mainTheme[110];

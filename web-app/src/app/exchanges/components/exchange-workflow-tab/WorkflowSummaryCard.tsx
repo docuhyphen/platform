@@ -3,9 +3,9 @@ import { WorkflowInstanceDetailDto } from "../../../models/models.tsx";
 import { useExchangeWorkflowTabStyles } from "./ExchangeWorkflowTabStyles.tsx";
 import {
     INSTANCE_STATUS_LABELS,
-    PRINCIPAL_KIND_LABELS,
     STEP_TYPE_LABELS,
 } from "../../../settings/workflows-tab/workflowUtils.ts";
+import {formatWorkflowOverdueDuration} from "./workflowOverdueLabel.ts";
 
 const INSTANCE_STATUS_COLORS: Record<string, "informative" | "success" | "danger" | "subtle" | "warning"> = {
     RUNNING: "informative",
@@ -18,9 +18,6 @@ const INSTANCE_STATUS_COLORS: Record<string, "informative" | "success" | "danger
 
 const formatDateTime = (iso?: string) =>
     iso ? new Date(iso).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" }) : "";
-
-const daysBetween = (a: Date, b: Date) =>
-    Math.floor((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24));
 
 interface Props
 {
@@ -55,9 +52,9 @@ const WorkflowSummaryCard = ({ instance }: Props) =>
         activeStep?.dueAt &&
         new Date(activeStep.dueAt) < now &&
         activeStep.status === "PENDING";
-    const overdueDays = isOverdue
-        ? daysBetween(new Date(activeStep!.dueAt!), now)
-        : 0;
+    const overdueDuration = isOverdue
+        ? formatWorkflowOverdueDuration(new Date(activeStep!.dueAt!), now)
+        : "";
 
     return (
         <Card className={styles.summaryCard}>
@@ -105,15 +102,23 @@ const WorkflowSummaryCard = ({ instance }: Props) =>
 
             {isOverdue && (
                 <div className={styles.slaRow}>
-                    <Badge color="warning" appearance="outline" size="small">
-                        Approval overdue by {overdueDays} {overdueDays === 1 ? "day" : "days"}
+                    <Badge
+                        color="warning"
+                        appearance="outline"
+                        size="small"
+                    >
+                        Approval overdue by {overdueDuration}
                     </Badge>
                 </div>
             )}
 
             {!isOverdue && activeStep?.escalatedAt && (
                 <div className={styles.slaRow}>
-                    <Badge color="warning" appearance="outline" size="small">
+                    <Badge
+                        color="warning"
+                        appearance="outline"
+                        size="small"
+                    >
                         Escalated · {formatDateTime(activeStep.escalatedAt)}
                     </Badge>
                 </div>

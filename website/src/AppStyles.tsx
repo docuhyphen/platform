@@ -1,4 +1,4 @@
-import {makeStyles} from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const appStyles = makeStyles({
     page: {
@@ -6,37 +6,32 @@ export const appStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         width: "100%",
-        overflow: "hidden",
-        backgroundColor: "#f8faff",
-
-        "::before": {
-            content: '""',
-            position: "absolute",
-            inset: "-25%",
-            background: `
-                radial-gradient(circle at -1% 20%, rgb(94, 161, 231) 0%, transparent 40%),
-                radial-gradient(circle at 70% 40%, rgb(84, 130, 193) 0%, transparent 16%),
-                radial-gradient(circle at 50% 80%, rgb(75, 100, 150) 0%, transparent 17%)
-            `,
-            filter: "blur(8.75rem) saturate(110%)",
-            opacity: 0.35,
-            zIndex: 0,
-        },
-
-        "> *": {
-            position: "relative",
-            zIndex: 1,
-        },
+        overflowX: "clip",
+        backgroundColor: tokens.colorNeutralBackground1,
     },
 
     mainContent: {
         display: "flex",
         flexDirection: "column",
-        gap: "2.75rem",
+        paddingTop: "4.5rem",
+        backgroundColor: tokens.colorNeutralBackground1,
+    },
 
-        "@media (max-width: 48em)": {
-            gap: "2rem",
+    featuresSurface: {
+        backgroundImage: `linear-gradient(180deg, ${tokens.colorNeutralBackground1} 0%, ${tokens.colorBrandBackground2} 48%, ${tokens.colorNeutralBackground1} 100%)`,
+    },
+
+    risksSurface: {
+        backgroundImage: `linear-gradient(180deg, ${tokens.colorNeutralBackground1} 0%, ${tokens.colorNeutralBackground2} 18%, ${tokens.colorBrandBackground2} 100%)`,
+
+        "& > section": {
+            backgroundColor: "transparent",
+            backgroundImage: "none",
         },
+    },
+
+    audienceSurface: {
+        backgroundImage: `linear-gradient(180deg, ${tokens.colorBrandBackground2} 0%, ${tokens.colorNeutralBackground1} 32%, ${tokens.colorNeutralBackground1} 100%)`,
     },
 });
 

@@ -1,11 +1,11 @@
 import {Routes, Route} from "react-router-dom";
 import {useState} from "react";
-import {LandingHeader} from "./landing/LandingHeader.tsx";
-import {HeroSection} from "./landing/HeroSection.tsx";
+import {LandingHeader} from "./landing/landing-header/LandingHeader.tsx";
+import {HeroSection} from "./landing/hero-section/HeroSection.tsx";
 import {RisksSection} from "./landing/RisksSection.tsx";
-import {FeaturesSection} from "./landing/FeaturesSection.tsx";
+import {FeaturesSection} from "./landing/features-section/FeaturesSection.tsx";
 import {AudienceSection} from "./landing/AudienceSection.tsx";
-import {FooterCtaSection} from "./landing/FooterCtaSection.tsx";
+import {FooterCtaSection} from "./landing/footer-cta-section/FooterCtaSection.tsx";
 import {IndustryPickerDialog, getStoredIndustry} from "./landing/IndustryPickerDialog.tsx";
 import type {IndustrySlug} from "./landing/IndustryPickerDialog.tsx";
 import {Footer} from "./shared/Footer.tsx";
@@ -15,7 +15,7 @@ import {PricingPage} from "./pages/PricingPage.tsx";
 import {IndustriesPage} from "./pages/IndustriesPage.tsx";
 import {ResourcesPage} from "./pages/ResourcesPage.tsx";
 import {SecurityPage} from "./pages/SecurityPage.tsx";
-import {AboutPage} from "./pages/AboutPage.tsx";
+import {AboutPage} from "./pages/about-page/AboutPage.tsx";
 import {ContactPage} from "./pages/ContactPage.tsx";
 import {NotFoundPage} from "./pages/NotFoundPage.tsx";
 
@@ -25,12 +25,30 @@ function LandingPage({industrySlug}: {industrySlug: IndustrySlug | null})
 
     return (
         <div className={styles.page}>
-            <LandingHeader/>
-            <main>
+            <LandingHeader fixed/>
+            <main
+                id="home-main-content"
+                className={styles.mainContent}
+            >
                 <HeroSection/>
-                <FeaturesSection initialIndustrySlug={industrySlug ?? undefined}/>
-                <RisksSection/>
-                <AudienceSection/>
+                <div
+                    id="home-features-surface"
+                    className={styles.featuresSurface}
+                >
+                    <FeaturesSection initialIndustrySlug={industrySlug ?? undefined}/>
+                </div>
+                <div
+                    id="home-risks-surface"
+                    className={styles.risksSurface}
+                >
+                    <RisksSection/>
+                </div>
+                <div
+                    id="home-audience-surface"
+                    className={styles.audienceSurface}
+                >
+                    <AudienceSection/>
+                </div>
                 {/*<PricingTeaserSection/>*/}
             </main>
             <FooterCtaSection/>
