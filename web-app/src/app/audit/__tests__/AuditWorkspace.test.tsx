@@ -1,16 +1,16 @@
 /** @vitest-environment jsdom */
 import {describe, expect, it, vi, afterEach} from "vitest";
-import {render, screen, cleanup, waitFor} from "@testing-library/react";
+import {render, screen, cleanup, fireEvent, waitFor} from "@testing-library/react";
 import AuditWorkspace from "../AuditWorkspace.tsx";
-import {Capability, OrganizationDetailedDto} from "../../models/models.tsx";
+import {Capability} from "../../models/models.tsx";
 
 const mockHasCapability = vi.fn();
-const mockAppUserPersonOrganization = vi.fn<[], OrganizationDetailedDto | null>();
+const mockCurrentSession = vi.fn();
 
 vi.mock("../../../context/AuthContext.tsx", () => ({
     useAuth: () => ({
         hasCapability: mockHasCapability,
-        appUserPersonOrganization: mockAppUserPersonOrganization(),
+        currentSession: mockCurrentSession(),
     }),
 }));
 
@@ -26,19 +26,16 @@ vi.mock("../../../services/auditService.ts", () => ({
     listPlatformAuditExports: vi.fn().mockResolvedValue([]),
 }));
 
-const organization: OrganizationDetailedDto = {
-    id: "org-1",
-    name: "Acme",
-    registrationNumber: "12345",
-    isActive: true,
-    contactDetails: {},
+const organizationSession = {
+    userId: "user-1",
+    activeOrganizationId: "org-1",
 };
 
 afterEach(() =>
 {
     cleanup();
     mockHasCapability.mockReset();
-    mockAppUserPersonOrganization.mockReset();
+    mockCurrentSession.mockReset();
     fetchOrganizationAuditEvents.mockClear();
     fetchPlatformAuditEvents.mockClear();
 });
@@ -48,7 +45,7 @@ describe("AuditWorkspace", () =>
     it("renders the not-authorized state when the user lacks both audit capabilities", () =>
     {
         mockHasCapability.mockReturnValue(false);
-        mockAppUserPersonOrganization.mockReturnValue(null);
+        mockCurrentSession.mockReturnValue(null);
 
         render(<AuditWorkspace/>);
 
@@ -59,7 +56,7 @@ describe("AuditWorkspace", () =>
     it("never calls the audit event fetchers when not authorized", async () =>
     {
         mockHasCapability.mockReturnValue(false);
-        mockAppUserPersonOrganization.mockReturnValue(null);
+        mockCurrentSession.mockReturnValue(null);
 
         render(<AuditWorkspace/>);
 
@@ -72,7 +69,7 @@ describe("AuditWorkspace", () =>
     it("renders the events section by default when the user has ORG_AUDIT_READ", async () =>
     {
         mockHasCapability.mockImplementation((cap: Capability) => cap === Capability.ORG_AUDIT_READ);
-        mockAppUserPersonOrganization.mockReturnValue(organization);
+        mockCurrentSession.mockReturnValue(organizationSession);
 
         render(<AuditWorkspace/>);
 
@@ -82,5 +79,37 @@ describe("AuditWorkspace", () =>
 
         expect(fetchOrganizationAuditEvents).toHaveBeenCalled();
         expect(screen.getByText("Events")).toBeTruthy();
+    });
+
+    it("does not show a scope selector when the user only has one of the two audit capabilities", async () =>
+    {
+        mockHasCapability.mockImplementation((cap: Capability) => cap === Capability.ORG_AUDIT_READ);
+        mockCurrentSession.mockReturnValue(organizationSession);
+
+        render(<AuditWorkspace/>);
+
+        await waitFor(() => expect(document.getElementById("audit-events-section")).toBeTruthy());
+
+        expect(document.getElementById("audit-workspace-scope-selector")).toBeFalsy();
+    });
+
+    it("shows a scope selector defaulting to organization when the user holds both audit capabilities, and switching it fetches platform-scoped events", async () =>
+    {
+        mockHasCapability.mockReturnValue(true);
+        mockCurrentSession.mockReturnValue(organizationSession);
+
+        render(<AuditWorkspace/>);
+
+        await waitFor(() => expect(fetchOrganizationAuditEvents).toHaveBeenCalled());
+        expect(fetchPlatformAuditEvents).not.toHaveBeenCalled();
+
+        const selector = document.getElementById("audit-workspace-scope-selector") as HTMLElement;
+        expect(selector).toBeTruthy();
+
+        fireEvent.click(selector);
+        const platformOption = await screen.findByText("Platform");
+        fireEvent.click(platformOption);
+
+        await waitFor(() => expect(fetchPlatformAuditEvents).toHaveBeenCalled());
     });
 });

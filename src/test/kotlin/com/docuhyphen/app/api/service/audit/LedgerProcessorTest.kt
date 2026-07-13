@@ -23,13 +23,11 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Phase 2 gate for [LedgerProcessor]:
+ * Verifies the append and recovery guarantees provided by [LedgerProcessor]:
  *  - every committed outbox row yields exactly one ledger event (idempotent by event id).
  *  - a stream's appended events form a contiguous sequence with a single unbroken hash chain
- *    (approximating the concurrency gate: no real Postgres/@QuarkusTest harness exists in this
- *    repo yet, per the Phase 1 handoff note, so this asserts the same invariant a concurrent
- *    test would - the chain cannot fork or reorder - via the row-lock-then-read-then-write
- *    sequencing that [StreamHeadRepository.lockOrCreate] enforces in production).
+ *    by using the row-lock-then-read-then-write sequencing that
+ *    [StreamHeadRepository.lockOrCreate] enforces in production.
  *  - mutating any canonical field, the sequence, or the previous hash breaks recomputed-hash
  *    verification (tamper evidence).
  *  - a per-row append failure is caught, counted, and does not abort the rest of the batch.

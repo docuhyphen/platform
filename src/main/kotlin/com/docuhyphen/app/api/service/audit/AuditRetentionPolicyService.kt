@@ -116,7 +116,7 @@ class AuditRetentionPolicyService @Inject constructor(
                     actorId = actorId,
                     actorKind = AuditActorKind.HUMAN,
                     actorRole = "AUDIT_GOVERNANCE",
-                    organizationId = organizationId,
+                    owner = AuditOwnerScope.Organization(organizationId),
                     targetType = "AUDIT_RETENTION_POLICY",
                     targetId = targetId,
                     payload = payload,

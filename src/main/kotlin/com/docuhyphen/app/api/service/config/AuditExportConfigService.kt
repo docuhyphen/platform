@@ -35,6 +35,9 @@ class AuditExportConfigService @Inject constructor(
 
     @ConfigProperty(name = "app.audit.export.expire-every", defaultValue = "15m")
     private val expireEveryConfig: String,
+
+    @ConfigProperty(name = "app.audit.export.build-lease-minutes", defaultValue = "10")
+    private val buildLeaseMinutesConfig: Int,
 )
 {
     fun isDualControlRequired(): Boolean = dualControlRequiredConfig
@@ -44,4 +47,7 @@ class AuditExportConfigService @Inject constructor(
     fun getDefaultDownloadLimit(): Int = if (defaultDownloadLimitConfig > 0) defaultDownloadLimitConfig else 5
     fun getBuildEvery(): String = buildEveryConfig
     fun getExpireEvery(): String = expireEveryConfig
+
+    /** How long a node's build-claim lease ([AuditExportService.claimForBuilding]) stays valid before another node may reclaim it. */
+    fun getBuildLeaseMinutes(): Int = if (buildLeaseMinutesConfig > 0) buildLeaseMinutesConfig else 10
 }

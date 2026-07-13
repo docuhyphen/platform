@@ -24,6 +24,7 @@ import java.util.UUID
 class AuditLegalHoldService @Inject constructor(
     private val auditLegalHoldRepository: AuditLegalHoldRepository,
     private val auditRecorder: AuditRecorder,
+    private val auditDeniedAttemptService: AuditDeniedAttemptService,
 )
 {
     companion object
@@ -64,9 +65,13 @@ class AuditLegalHoldService @Inject constructor(
     }
 
     @Transactional
-    fun releaseHold(holdId: UUID, releasedByUserId: UUID): AuditLegalHold
+    fun releaseHold(holdId: UUID, expectedOrganizationId: UUID?, releasedByUserId: UUID): AuditLegalHold
     {
-        val hold = auditLegalHoldRepository.findById(holdId) ?: throw IllegalArgumentException("Legal hold not found")
+        val hold = auditLegalHoldRepository.findById(holdId) ?: throw AuditLegalHoldNotFoundException()
+        if (hold.organizationId != expectedOrganizationId)
+        {
+            throw AuditLegalHoldNotFoundException()
+        }
         require(hold.status == AuditLegalHoldStatus.ACTIVE) { "Only an ACTIVE legal hold can be released" }
 
         val now = Timestamp.from(Instant.now())
@@ -85,6 +90,17 @@ class AuditLegalHoldService @Inject constructor(
     fun listActiveHolds(organizationId: UUID?): List<AuditLegalHold> =
         auditLegalHoldRepository.findActiveForOrganization(organizationId)
 
+    fun recordDeniedAttempt(actorId: UUID, organizationId: UUID, reasonCode: String)
+    {
+        auditDeniedAttemptService.record(
+            actorId,
+            organizationId,
+            "AUDIT_LEGAL_HOLD",
+            organizationId.toString(),
+            reasonCode,
+        )
+    }
+
     private fun recordEvent(eventType: AuditEventType, actorId: UUID, hold: AuditLegalHold)
     {
         try
@@ -96,7 +112,7 @@ class AuditLegalHoldService @Inject constructor(
                     actorId = actorId,
                     actorKind = AuditActorKind.HUMAN,
                     actorRole = "AUDIT_GOVERNANCE",
-                    organizationId = hold.organizationId,
+                    owner = hold.organizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
                     targetType = "AUDIT_LEGAL_HOLD",
                     targetId = hold.id.toString(),
                     targetLabel = hold.caseReference?.let { "${hold.reason} ($it)" } ?: hold.reason,
@@ -119,3 +135,5 @@ class AuditLegalHoldService @Inject constructor(
         }
     }
 }
+
+class AuditLegalHoldNotFoundException : IllegalArgumentException("Legal hold not found")

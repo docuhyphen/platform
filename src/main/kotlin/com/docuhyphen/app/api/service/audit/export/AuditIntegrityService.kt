@@ -5,8 +5,10 @@ import com.docuhyphen.app.api.repository.AuditLedgerEventRepository
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
 import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.archive.AuditArchiveVerifier
+import com.docuhyphen.app.api.service.audit.archive.StreamCoverageReport
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
@@ -72,6 +74,9 @@ class AuditIntegrityService @Inject constructor(
     {
         val chain = auditArchiveVerifier.verifyStreamChain(streamId)
         val segments = auditArchiveSegmentRepository.findByStreamOrderBySequence(streamId)
+        val ledgerHeadSequence = auditLedgerEventRepository.findLatestByStream(streamId)?.streamSequence
+        val archiveCoversLedgerHead = ledgerHeadSequence != null &&
+            segments.lastOrNull()?.lastSequence == ledgerHeadSequence
         val failureNotes = mutableListOf<String>()
         var validCount = 0
         for (segment in segments)
@@ -82,13 +87,29 @@ class AuditIntegrityService @Inject constructor(
 
         return StreamIntegrityReport(
             streamId = streamId,
-            chainValid = chain.valid,
-            chainNote = chain.note,
+            chainValid = chain.valid && archiveCoversLedgerHead,
+            chainNote = if (chain.valid && !archiveCoversLedgerHead)
+            {
+                "archive ends at ${segments.lastOrNull()?.lastSequence ?: 0}, ledger ends at ${ledgerHeadSequence ?: 0}"
+            }
+            else
+            {
+                chain.note
+            },
             segmentsChecked = segments.size,
             segmentsValid = validCount,
             segmentFailureNotes = failureNotes,
         )
     }
+
+    /**
+     * Whether every ledger event in [streamId] between [fromSequence] and [toSequence] (both
+     * inclusive) is covered by a contiguous run of independently-verified archive segments. Used
+     * by [AuditExportBuilder] to require complete verified coverage of the requested range before
+     * a full-fidelity export bundle is built.
+     */
+    fun checkCoverage(streamId: String, fromSequence: Long, toSequence: Long): StreamCoverageReport =
+        auditArchiveVerifier.checkRangeCoverage(streamId, fromSequence, toSequence)
 
     private fun recordCheck(
         organizationId: UUID?,
@@ -106,7 +127,7 @@ class AuditIntegrityService @Inject constructor(
                     outcome = if (allValid) AuditOutcome.SUCCESS else AuditOutcome.FAILURE,
                     actorId = requestedByUserId,
                     actorKind = if (requestedByUserId == null) AuditActorKind.SYSTEM else AuditActorKind.HUMAN,
-                    organizationId = organizationId,
+                    owner = organizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
                     targetType = if (platformOnly) "PLATFORM" else "ORGANIZATION",
                     targetId = organizationId?.toString() ?: "platform",
                     payload = mapOf(

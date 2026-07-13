@@ -88,12 +88,14 @@ const AuditEventDetail = (
                                 icon={<Person24Regular/>}
                                 label={"Actor"}
                                 value={actorValue}
+                                copyValue={actorCopyValue}
                             />
                             <AuditEventDetailCard
                                 id={"audit-event-detail-target"}
                                 icon={<Box24Regular/>}
                                 label={"Target"}
                                 value={targetValue}
+                                copyValue={targetCopyValue}
                             />
                             {event.reason && (
                                 <AuditEventDetailCard

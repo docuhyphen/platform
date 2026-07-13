@@ -132,11 +132,6 @@ export const deleteExchangeDocument = (exchangeId: string, documentId: string) =
         apiClient.delete(`/exchanges/${exchangeId}/documents/${documentId}`)
     );
 
-export const fetchExchangeDocumentAuditLogs = (exchangeId: string, documentId: string) =>
-    executeRequest(() =>
-        apiClient.get(`/exchanges/${exchangeId}/documents/${documentId}/audit`)
-    );
-
 export const fetchExchangeAuditEvents = (exchangeId: string) =>
     executeRequest(() =>
         apiClient.get(`/exchanges/${exchangeId}/audit-events`)

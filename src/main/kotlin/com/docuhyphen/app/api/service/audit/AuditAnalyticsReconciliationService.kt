@@ -74,7 +74,7 @@ class AuditAnalyticsReconciliationService @Inject constructor(
                     actorId = requestedByUserId,
                     actorKind = if (requestedByUserId == null) AuditActorKind.SYSTEM else AuditActorKind.HUMAN,
                     actorRole = if (requestedByUserId == null) "SYSTEM" else "AUDIT_GOVERNANCE",
-                    organizationId = report.organizationId,
+                    owner = report.organizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
                     targetType = "AUDIT_ANALYTICS_PROJECTION",
                     payload = mapOf(
                         "ledger_event_count" to report.ledgerEventCount.toString(),

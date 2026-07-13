@@ -414,4 +414,20 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
             .resultList
             .firstOrNull()
     }
+
+    fun findByDocumentId(documentId: UUID): Exchange?
+    {
+        return entityManager.createQuery(
+            """
+                SELECT s
+                FROM Exchange s
+                JOIN s.documents d
+                WHERE d.id = :documentId
+            """.trimIndent(),
+            Exchange::class.java,
+        )
+            .setParameter("documentId", documentId)
+            .resultList
+            .firstOrNull()
+    }
 }

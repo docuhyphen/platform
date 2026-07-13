@@ -11,6 +11,9 @@ import com.docuhyphen.app.api.repository.ShareRepository
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
 import com.docuhyphen.app.api.service.audit.AuditCaptureResult
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.service.auth.authz.OwnerContext
+import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
@@ -24,8 +27,7 @@ import org.mockito.kotlin.whenever
 import java.util.UUID
 
 /**
- * Phase 3 gate (AUDIT-ARCHITECTURE-IMPLEMENTATION.md, "... and a Share revoke each produce
- * exactly one ledger event with correct actor kind"): [ShareService.revoke] must call
+ * Verifies that [ShareService.revoke] calls
  * [AuditRecorder.record] exactly once with SHARE_REVOKE/EXCHANGE/HUMAN (when an acting app user
  * id is known), targeting the resource being shared rather than the Share row itself, and must
  * never let an [AuditRecorder] failure break the actual revoke.
@@ -51,11 +53,35 @@ class ShareServiceAuditTest
     private fun service(
         auditRecorder: AuditRecorder,
         shareRepository: ShareRepository,
+        contextProvider: ExchangeAuthorizationContextProvider = mock(),
     ): ShareService = ShareService(
         shareRepository = shareRepository,
         groupMemberRepository = mock<PrincipalGroupMemberRepository>(),
         auditRecorder = auditRecorder,
+        exchangeAuthorizationContextProvider = contextProvider,
     )
+
+    @Test
+    fun `revoke records the owning Exchange organization`()
+    {
+        val organizationId = UUID.randomUUID()
+        val auditRecorder = mock<AuditRecorder>()
+        whenever(auditRecorder.record(any())).thenReturn(AuditCaptureResult.Captured(UUID.randomUUID(), UUID.randomUUID()))
+        val shareRepository = mock<ShareRepository>()
+        whenever(shareRepository.findById(shareId)).thenReturn(share())
+        whenever(shareRepository.findBySourceShareId(shareId)).thenReturn(emptyList())
+        whenever(shareRepository.update(any())).thenAnswer { it.getArgument(0) }
+        val contextProvider = mock<ExchangeAuthorizationContextProvider>()
+        whenever(contextProvider.resolve(exchangeId)).thenReturn(
+            ResourceAuthorizationContext(OwnerContext.Organization(organizationId))
+        )
+
+        service(auditRecorder, shareRepository, contextProvider).revoke(shareId, revokedByAppUserId)
+
+        val captor = argumentCaptor<AuditEventDraft>()
+        verify(auditRecorder).record(captor.capture())
+        assertEquals(AuditOwnerScope.Organization(organizationId), captor.firstValue.owner)
+    }
 
     @Test
     fun `revoke records exactly one SHARE_REVOKE event targeting the shared resource with HUMAN actor kind`()

@@ -12,7 +12,6 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         alignItems: "center",
         justifyContent: "space-between",
         gap: tokens.spacingHorizontalM,
-        paddingBottom: tokens.spacingVerticalS,
         borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
         backgroundColor: tokens.colorNeutralBackground1,
         flexShrink: 0,
@@ -27,7 +26,6 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: tokens.spacingVerticalL,
-        paddingTop: tokens.spacingVerticalM,
     },
     instanceSection: {
         display: "flex",

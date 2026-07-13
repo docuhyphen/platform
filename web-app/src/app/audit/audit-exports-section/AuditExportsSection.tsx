@@ -22,9 +22,15 @@ const AuditExportsSection = (
 ) =>
 {
     const styles = useAuditExportsSectionStyles();
-    const {hasCapability} = useAuth();
+    const {hasCapability, currentSession} = useAuth();
     const [dialogOpen, setDialogOpen] = useState<boolean>(false);
     const canApprove = hasCapability(Capability.AUDIT_EXPORT_APPROVE);
+    const canExport = hasCapability(
+        scope.kind === "organization" ? Capability.ORG_AUDIT_EXPORT : Capability.APP_AUDIT_EXPORT
+    );
+    const canDownloadAsCustodian = hasCapability(
+        scope.kind === "organization" ? Capability.ORG_POLICY_MANAGE : Capability.APP_ADMIN
+    );
 
     const {
         exports,
@@ -48,17 +54,25 @@ const AuditExportsSection = (
 
     return (
         <div id={"audit-exports-section"} className={styles.container}>
-            <div className={styles.header}>
-                <Text weight={"semibold"}>Evidence exports</Text>
-                <Button
-                    id={"button-audit-export-request-open"}
-                    appearance={"primary"}
-                    shape={"circular"}
-                    icon={<AddIcon/>}
-                    onClick={() => setDialogOpen(true)}
-                >
-                    Request export
-                </Button>
+            <div
+                id={"audit-exports-header"}
+                className={styles.header}
+            >
+                <Text
+                    id={"audit-exports-title"}
+                    weight={"semibold"}
+                >Evidence exports</Text>
+                {canExport && (
+                    <Button
+                        id={"button-audit-export-request-open"}
+                        appearance={"primary"}
+                        shape={"circular"}
+                        icon={<AddIcon/>}
+                        onClick={() => setDialogOpen(true)}
+                    >
+                        Request export
+                    </Button>
+                )}
             </div>
 
             {loading && <Spinner size={"small"} label={"Loading exports..."} labelPosition={"after"}/>}
@@ -71,7 +85,10 @@ const AuditExportsSection = (
                 <AuditExportCard
                     key={exportItem.exportId}
                     exportItem={exportItem}
-                    canApprove={canApprove}
+                    canApprove={canApprove && exportItem.requestedByUserId !== currentSession?.userId}
+                    canDownload={canExport && (
+                        exportItem.requestedByUserId === currentSession?.userId || canDownloadAsCustodian
+                    )}
                     onApprove={approveExport}
                     onDownload={downloadExport}
                 />

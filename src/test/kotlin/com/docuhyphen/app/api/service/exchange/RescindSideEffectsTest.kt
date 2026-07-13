@@ -41,7 +41,7 @@ import java.util.UUID
 /**
  * Rescind side effects and document-parent path validation.
  *
- * Rules verified (Phase 10 required matrix):
+ * Rules verified:
  *  - An authorized rescind invokes shareService.revokeAllForResource (shares revoked after auth).
  *  - An authorized rescind with running workflow instances invokes workflowEngineService.cancel
  *    for each instance (workflows cancelled after auth).
@@ -247,9 +247,7 @@ class RescindSideEffectsTest
         verify(shareService, never()).revokeAllForResource(any(), any(), anyOrNull(), anyOrNull())
     }
 
-    // -------------------------------------------------------------------------
-    // Phase 1 audit capture: fail-closed propagates, degraded does not (AUDIT-ARCHITECTURE)
-    // -------------------------------------------------------------------------
+    // Audit capture failure behavior during rescind operations.
 
     @Test
     fun `rescindExchange - audit capture fails closed - propagates and does not revoke shares or cancel workflows`()

@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.model.dto.AuditGovernanceDtoMapper
 import com.docuhyphen.app.api.model.dto.AuditLegalHoldCreateRequestDto
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.audit.AuditLegalHoldService
+import com.docuhyphen.app.api.service.audit.AuditLegalHoldNotFoundException
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
@@ -51,17 +52,8 @@ class AuditOrganizationLegalHoldResource @Inject constructor(
         @PathParam("organizationId") organizationId: String,
         @PathParam("holdId") holdId: String,
     ): Response = withAuthorizedOrg(organizationId, Action.AUDIT_LEGAL_HOLD_MANAGE) { principal, orgId ->
-        val hold = auditLegalHoldService.releaseHold(parseUuid(holdId), principal)
-        requireOrgMatch(hold.organizationId, orgId)
+        val hold = auditLegalHoldService.releaseHold(parseUuid(holdId), orgId, principal)
         Response.ok(AuditGovernanceDtoMapper.toDto(hold)).build()
-    }
-
-    private fun requireOrgMatch(holdOrganizationId: UUID?, expectedOrganizationId: UUID?)
-    {
-        if (holdOrganizationId != expectedOrganizationId)
-        {
-            throw IllegalArgumentException("Legal hold not found")
-        }
     }
 
     private fun withAuthorizedOrg(
@@ -77,6 +69,7 @@ class AuditOrganizationLegalHoldResource @Inject constructor(
         val decision = authorizationService.authorize(principal, action, ResourceRef.organization(orgId), context)
         if (decision is Decision.Deny)
         {
+            auditLegalHoldService.recordDeniedAttempt(principal.id, orgId, decision.reasonCode)
             return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges")).build()
         }
         return runGuarded { block(principal.id, orgId) }
@@ -90,7 +83,8 @@ class AuditOrganizationLegalHoldResource @Inject constructor(
         }
         catch (e: IllegalArgumentException)
         {
-            Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(e.message)).build()
+            val status = if (e is AuditLegalHoldNotFoundException) Response.Status.NOT_FOUND else Response.Status.BAD_REQUEST
+            Response.status(status).entity(ResponseError(e.message)).build()
         }
     }
 

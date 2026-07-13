@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.dto.NotificationDto
 import com.docuhyphen.app.api.model.dto.NotificationType
-import com.docuhyphen.app.api.model.entity.DocumentAuditLogAction
+import com.docuhyphen.app.api.model.entity.DocumentAuditAction
 import com.docuhyphen.app.api.model.entity.ExchangeDocumentComment
 import com.docuhyphen.app.api.repository.DocumentCommentRepository
 import com.docuhyphen.app.api.repository.ExchangeDocumentRepository
@@ -73,7 +73,7 @@ class ExchangeDocumentCommentsService @Inject constructor(
         documentCommentRepository.save(comment)
 
         exchangeDocumentAuditService.logAction(
-            document, DocumentAuditLogAction.COMMENT, user
+            document, DocumentAuditAction.COMMENT, user
         )
 
         if (!isInternal)

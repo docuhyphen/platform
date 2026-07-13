@@ -198,22 +198,6 @@ class DetailedEntityToDtoTransformer
             }
         }
 
-        fun toDto(documentAuditLog: DocumentAuditLog?): DocumentAuditDetailedDto?
-        {
-            return documentAuditLog?.let {
-                with(documentAuditLog)
-                {
-                    DocumentAuditDetailedDto(
-                        id,
-                        timestamp,
-                        action.toString(),
-                        toPublicDto(performedBy),
-                        performedByEmail
-                    )
-                }
-            }
-        }
-
         fun toDto(comment: ExchangeDocumentComment?): DocumentCommentDetailedDto?
         {
             return comment?.let {

@@ -15,7 +15,8 @@ import {
 } from "../../services/exchangeApi.ts";
 import useToken from "../../context/useToken.tsx";
 import ExchangePreLoader from "./components/exchange-pre-loader/ExchangePreLoader.tsx";
-import {DocumentDetailedDto,
+import {Capability,
+    DocumentDetailedDto,
     DocumentType,
     ExchangeBasicDto,
     ExchangeDetailedDto,
@@ -85,7 +86,8 @@ const Exchanges: React.FC = () =>
         useState<ExchangePaneNavigationDirection>(null);
     const [preparingExchanges, setPreparingExchanges] = useState<boolean>(true);
     const token = useToken();
-    const {appUser} = useAuth();
+    const {appUser, hasCapability} = useAuth();
+    const canViewExchangeAudit = hasCapability(Capability.ORG_AUDIT_READ);
     const [isDocumentSidebarOpen, setIsDocumentSidebarOpen] = React.useState(false);
     const [isDocumentAddDialogOpen, setIsDocumentAddDialogOpen] = React.useState(false);
     const [isUploadDocumentDialogOpen, setIsUploadDocumentDialogOpen] = React.useState(false);
@@ -858,6 +860,7 @@ const Exchanges: React.FC = () =>
                         <ExchangeTabsHeader activeTab={detailsActiveTab}
                                             documents={exchangeDetails?.documents || []}
                                             canDownloadZip={!!permissions?.canDownloadDocumentsZip}
+                                            canViewAudit={canViewExchangeAudit}
                                             onTabChange={setDetailsActiveTab}
                                             onDownloadZip={() => setIsDocumentZipDialogOpen(true)}/>
 
@@ -927,7 +930,7 @@ const Exchanges: React.FC = () =>
                             </div>
                         )}
 
-                        {detailsActiveTab === 'audit' && (
+                        {detailsActiveTab === 'audit' && canViewExchangeAudit && (
                             <div className={styles.documentsSectionContainer}>
                                 <div className={`${styles.documentsSection} ${styles.scrollableTabContent}`}>
                                     <ExchangeAuditTab exchange={exchangeDetails}/>

@@ -19,7 +19,7 @@ import java.util.concurrent.locks.ReentrantLock
  * Secrets-Manager-backed [AuditArchiveSigningKeyProvider]: the private key
  * material lives as a JSON secret (`{"keyId","privateKeyPem","publicKeyPem"}`) in the existing
  * AWS Secrets Manager rather than KMS or an HSM. The public key is
- * what ships with the offline verifier tool ([activePublicKeyPem]).
+ * the public key exposed for independent signature verification ([activePublicKeyPem]).
  */
 @ApplicationScoped
 @Aws
@@ -36,7 +36,12 @@ class SecretsManagerAuditArchiveSigningKeyProvider @Inject constructor(
     }
 
     @Serializable
-    private data class SigningSecret(val keyId: String, val privateKeyPem: String, val publicKeyPem: String)
+    private data class SigningSecret(
+        val keyId: String,
+        val privateKeyPem: String,
+        val publicKeyPem: String,
+        val historicalPublicKeys: Map<String, String> = emptyMap(),
+    )
 
     private val lock = ReentrantLock()
 
@@ -56,9 +61,17 @@ class SecretsManagerAuditArchiveSigningKeyProvider @Inject constructor(
     override fun verify(data: ByteArray, signature: ByteArray, keyId: String): Boolean
     {
         val (secret, keyPair) = loadOrFetch()
-        if (keyId != secret.keyId) return false
+        val publicKey = if (keyId == secret.keyId)
+        {
+            keyPair.public
+        }
+        else
+        {
+            val pem = secret.historicalPublicKeys[keyId] ?: return false
+            KeyFactory.getInstance(ALGORITHM).generatePublic(X509EncodedKeySpec(decodePem(pem)))
+        }
         val verifier = Signature.getInstance(SIGNATURE_ALGORITHM)
-        verifier.initVerify(keyPair.public)
+        verifier.initVerify(publicKey)
         verifier.update(data)
         return verifier.verify(signature)
     }

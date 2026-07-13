@@ -27,6 +27,7 @@ import com.docuhyphen.app.api.service.UserContactService
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
 import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
@@ -429,7 +430,7 @@ class ExchangeUpdateService @Inject constructor(
                 targetType = ResourceType.EXCHANGE.name,
                 targetId = exchangeUuid.toString(),
                 targetLabel = exchange.name,
-                organizationId = exchange.ownerOrganizationId,
+                owner = exchange.ownerOrganizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
                 payload = mapOf(
                     "previousStatus" to previousStatus.name,
                     "newStatus" to ExchangeStatus.RESCINDED.name,
@@ -530,7 +531,7 @@ class ExchangeUpdateService @Inject constructor(
                     targetType = ResourceType.EXCHANGE.name,
                     targetId = exchangeId.toString(),
                     targetLabel = exchangeName,
-                    organizationId = organizationId,
+                    owner = organizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
                     payload = mapOf(
                         "previousStatus" to previousStatus.name,
                         "newStatus" to newStatus.name,
@@ -562,7 +563,7 @@ class ExchangeUpdateService @Inject constructor(
                     targetType = ResourceType.EXCHANGE.name,
                     targetId = exchangeId.toString(),
                     targetLabel = exchangeName,
-                    organizationId = organizationId,
+                    owner = organizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
                 )
             )
         }

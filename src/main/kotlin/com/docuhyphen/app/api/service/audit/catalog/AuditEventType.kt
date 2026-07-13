@@ -5,15 +5,12 @@ package com.docuhyphen.app.api.service.audit.catalog
  *
  * Every entry has a stable, namespaced [key] (e.g. `auth.sign_in.completion`,
  * `document.download`) that is safe to persist, index, and rely on across releases. The enum
- * constant name mirrors the legacy free-text action string emitted today by [AuthAuditService]
- * / [DocumentAuditLogAction] so existing capture sites can be mapped onto the catalog without
+ * constant name mirrors the authentication action string emitted by [AuthAuditService]
+ * or [DocumentAuditAction] so capture sites can be mapped onto the catalog without
  * guessing, but the [key] is what gets persisted and read going forward.
  *
- * This catalog seeds event types that are already
- * emittable in the current codebase (auth actions recorded via `AuthAuditService.emit`, plus the
- * existing [DocumentAuditLogAction] values). It intentionally does not add new capture calls or
- * invent event types for coverage gaps described in `AUDIT-ARCHITECTURE.md`; those are added in
- * later phases as the owning services are migrated onto the recorder.
+ * This catalog contains the event types emitted by authentication, document, administration,
+ * Exchange, and governance services. Owning services use these stable keys when recording events.
  */
 enum class AuditEventType(val key: String, val category: AuditCategory)
 {
@@ -136,7 +133,6 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     ARCHIVE_INTEGRITY_VERIFIED("archive.integrity.verified", AuditCategory.ARCHIVE),
     ARCHIVE_INTEGRITY_FAILED("archive.integrity.failed", AuditCategory.ARCHIVE),
 
-    LEGACY_AUDIT_EVENT_IMPORTED("archive.legacy_event.imported", AuditCategory.ARCHIVE),
 
     AUDIT_ENGAGEMENT_REQUESTED("audit.engagement.requested", AuditCategory.AUDIT_GOVERNANCE),
     AUDIT_ENGAGEMENT_APPROVED("audit.engagement.approved", AuditCategory.AUDIT_GOVERNANCE),
@@ -152,6 +148,7 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     AUDIT_EXPORT_READY("audit.export.ready", AuditCategory.AUDIT_GOVERNANCE),
     AUDIT_EXPORT_FAILED("audit.export.failed", AuditCategory.AUDIT_GOVERNANCE),
     AUDIT_EXPORT_DOWNLOADED("audit.export.downloaded", AuditCategory.AUDIT_GOVERNANCE),
+    AUDIT_EXPORT_DOWNLOAD_INTEGRITY_FAILED("audit.export.download_integrity_failed", AuditCategory.AUDIT_GOVERNANCE),
     AUDIT_EXPORT_EXPIRED("audit.export.expired", AuditCategory.AUDIT_GOVERNANCE),
     AUDIT_EXPORT_REVOKED("audit.export.revoked", AuditCategory.AUDIT_GOVERNANCE),
     AUDIT_INTEGRITY_CHECK_PERFORMED("audit.integrity.check_performed", AuditCategory.AUDIT_GOVERNANCE),

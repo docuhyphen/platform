@@ -59,10 +59,6 @@ class Document
     @Column(name = "required", nullable = false)
     var required: Boolean = false
 
-    @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.EAGER)
-    @JoinColumn(name = "document_id")
-    var auditLogs: MutableList<DocumentAuditLog> = mutableListOf()
-
     @Transient
     var documentContent: ByteArray? = null
 

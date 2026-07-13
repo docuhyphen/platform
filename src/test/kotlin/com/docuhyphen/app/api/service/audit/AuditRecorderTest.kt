@@ -51,6 +51,7 @@ class AuditRecorderTest
     }
 
     private fun validDraft(idempotencyKey: String? = null): AuditEventDraft = AuditEventDraft(
+        owner = AuditOwnerScope.Platform,
         eventTypeKey = AuditEventType.EXCHANGE_RESCINDED.key,
         outcome = AuditOutcome.SUCCESS,
         actorId = userId,
@@ -76,12 +77,53 @@ class AuditRecorderTest
     }
 
     @Test
+    fun `organization owner is used even when active organization context is different`()
+    {
+        val ownerOrganizationId = UUID.randomUUID()
+        val context = makeTokenContext().apply { activeOrganizationId = UUID.randomUUID() }
+        val repo = mock<AuditOutboxRepository>()
+        whenever(repo.findByIdempotencyKey(any())).thenReturn(null)
+        whenever(repo.insert(any())).thenAnswer { invocation ->
+            invocation.getArgument<AuditOutboxEntry>(0).also { it.id = UUID.randomUUID() }
+        }
+        val recorder = AuditRecorder(repo, context, makeResolver(AuditFailurePolicy.DEGRADED))
+
+        recorder.record(validDraft().copy(owner = AuditOwnerScope.Organization(ownerOrganizationId)))
+
+        val entry = org.mockito.kotlin.argumentCaptor<AuditOutboxEntry>()
+        verify(repo).insert(entry.capture())
+        assertEquals(ownerOrganizationId, entry.firstValue.organizationId)
+    }
+
+    @Test
+    fun `platform owner stays platform scoped when active organization context is present`()
+    {
+        val context = makeTokenContext().apply { activeOrganizationId = UUID.randomUUID() }
+        val repo = mock<AuditOutboxRepository>()
+        whenever(repo.findByIdempotencyKey(any())).thenReturn(null)
+        whenever(repo.insert(any())).thenAnswer { invocation ->
+            invocation.getArgument<AuditOutboxEntry>(0).also { it.id = UUID.randomUUID() }
+        }
+        val recorder = AuditRecorder(repo, context, makeResolver(AuditFailurePolicy.DEGRADED))
+
+        recorder.record(validDraft().copy(owner = AuditOwnerScope.Platform))
+
+        val entry = org.mockito.kotlin.argumentCaptor<AuditOutboxEntry>()
+        verify(repo).insert(entry.capture())
+        assertEquals(null, entry.firstValue.organizationId)
+    }
+
+    @Test
     fun `unknown event type throws AuditDraftInvalidException and never inserts`()
     {
         val repo = mock<AuditOutboxRepository>()
         val recorder = AuditRecorder(repo, makeTokenContext(), makeResolver(AuditFailurePolicy.FAIL_CLOSED))
 
-        val draft = AuditEventDraft(eventTypeKey = "does.not.exist", outcome = AuditOutcome.SUCCESS)
+        val draft = AuditEventDraft(
+            owner = AuditOwnerScope.Platform,
+            eventTypeKey = "does.not.exist",
+            outcome = AuditOutcome.SUCCESS,
+        )
 
         assertThrows<AuditDraftInvalidException> { recorder.record(draft) }
         verify(repo, never()).insert(any())

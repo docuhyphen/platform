@@ -29,5 +29,20 @@ class AuditExportApprovalRepository : BaseRepository<AuditExportApproval>(AuditE
         return count > 0
     }
 
+    /**
+     * The authoritative distinct-approver count for an export, read from this append-only table
+     * rather than a mutable counter on the export row, so concurrent approvals cannot lose an
+     * increment to a lost-update race.
+     */
+    fun countByExport(exportId: UUID): Long
+    {
+        return entityManager.createQuery(
+            "SELECT COUNT(a) FROM AuditExportApproval a WHERE a.exportId = :exportId",
+            Long::class.javaObjectType,
+        )
+            .setParameter("exportId", exportId)
+            .singleResult
+    }
+
     fun insert(approval: AuditExportApproval): AuditExportApproval = save(approval)
 }

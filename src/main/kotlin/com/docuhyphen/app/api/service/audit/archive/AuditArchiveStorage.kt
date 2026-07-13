@@ -18,6 +18,14 @@ interface AuditArchiveStorage
     fun getObject(key: String): ByteArray
 
     fun objectExists(key: String): Boolean
+
+    /**
+     * Every object key currently stored under [prefix]. Used to reconcile what has actually been
+     * archived against the mutable `audit_archive_segment` rows, so a deleted segment row alone
+     * cannot make a covered-but-hidden range look unarchived (or make a genuinely tampered range
+     * look clean because its row was removed).
+     */
+    fun listKeysWithPrefix(prefix: String): List<String>
 }
 
 class AuditArchiveObjectAlreadyExistsException(key: String) :

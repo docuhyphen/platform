@@ -27,11 +27,13 @@ data class AuditArchiveManifestEnvelope(
     val prevSegmentDigest: String?,
     val schemaVersions: String,
     val signingKeyId: String,
+    val contentObjectKey: String,
+    val contentSha256: String,
+    val contentLength: Long,
     val createdAt: String,
-    val legacyImport: Boolean,
 )
 
-/** The object actually uploaded to [AuditArchiveStorage] alongside the segment content: the exact signed JSON string plus its detached signature, so the offline verifier never has to re-serialize (and risk a byte mismatch) to check the signature. */
+/** The object uploaded alongside segment content: the exact signed JSON plus its detached signature, avoiding re-serialization and byte mismatches during independent verification. */
 @Serializable
 data class SignedAuditArchiveManifest(
     val manifestJson: String,
@@ -54,13 +56,16 @@ data class ArchivedLedgerEventRecord(
     val actorKind: String,
     val actorId: String?,
     val actorRole: String?,
+    val actorLabel: String?,
     val sessionId: String?,
     val serverTraceId: String?,
     val correlationId: String?,
     val causationId: String?,
     val organizationId: String?,
+    val organizationLabel: String?,
     val targetType: String?,
     val targetId: String?,
+    val targetLabel: String?,
     val reason: String?,
     val payloadJson: String,
     val prevHash: String?,
@@ -70,7 +75,7 @@ data class ArchivedLedgerEventRecord(
 data class SegmentCloseResult(val closed: Int, val skipped: Int, val failed: Int)
 
 /**
- * Closes `audit_ledger_event` ranges into signed, archived segments, replacing [com.docuhyphen.app.api.service.auth.AuthAuditWormSink]'s
+ * Closes `audit_ledger_event` ranges into signed, archived segments with
  * local-JSONL-only approach with segments that carry a Merkle root, a segment-to-segment digest
  * chain (`prevSegmentDigest`), event count, schema versions, and a signing key id, all archived
  * to [AuditArchiveStorage] alongside a manifest signed by [AuditArchiveSigningKeyProvider].
@@ -176,8 +181,11 @@ class AuditArchiver @Inject constructor(
             Json.encodeToString(ArchivedLedgerEventRecord.serializer(), toRecord(event))
         }
 
+        val segmentBytes = segmentContent.toByteArray(StandardCharsets.UTF_8)
+        val segmentObjectKey = "archive/$streamId/$firstSequence-$lastSequence.jsonl"
+        val manifestObjectKey = "archive/$streamId/$firstSequence-$lastSequence.manifest.json"
         val manifestEnvelope = AuditArchiveManifestEnvelope(
-            formatVersion = 1,
+            formatVersion = AuditArchiveSegment.CURRENT_FORMAT_VERSION,
             streamId = streamId,
             firstSequence = firstSequence,
             lastSequence = lastSequence,
@@ -187,8 +195,10 @@ class AuditArchiver @Inject constructor(
             prevSegmentDigest = prevSegmentDigest,
             schemaVersions = schemaVersions,
             signingKeyId = signingKeyId,
+            contentObjectKey = segmentObjectKey,
+            contentSha256 = MerkleTree.sha256Hex(segmentBytes),
+            contentLength = segmentBytes.size.toLong(),
             createdAt = createdAt,
-            legacyImport = false,
         )
         val manifestJson = Json.encodeToString(AuditArchiveManifestEnvelope.serializer(), manifestEnvelope)
         val signatureBytes = signingKeyProvider.sign(manifestJson.toByteArray(StandardCharsets.UTF_8))
@@ -199,10 +209,7 @@ class AuditArchiver @Inject constructor(
         )
         val signedManifestJson = Json.encodeToString(SignedAuditArchiveManifest.serializer(), signedManifest)
 
-        val segmentObjectKey = "archive/$streamId/$firstSequence-$lastSequence.jsonl"
-        val manifestObjectKey = "archive/$streamId/$firstSequence-$lastSequence.manifest.json"
-
-        archiveStorage.putObject(segmentObjectKey, segmentContent.toByteArray(StandardCharsets.UTF_8))
+        archiveStorage.putObject(segmentObjectKey, segmentBytes)
         archiveStorage.putObject(manifestObjectKey, signedManifestJson.toByteArray(StandardCharsets.UTF_8))
 
         val segment = AuditArchiveSegment().apply {
@@ -210,6 +217,7 @@ class AuditArchiver @Inject constructor(
             this.firstSequence = firstSequence
             this.lastSequence = lastSequence
             this.eventCount = events.size
+            this.formatVersion = AuditArchiveSegment.CURRENT_FORMAT_VERSION
             this.merkleRoot = merkleRoot
             this.segmentDigest = segmentDigest
             this.prevSegmentDigest = prevSegmentDigest
@@ -219,7 +227,7 @@ class AuditArchiver @Inject constructor(
             this.segmentObjectKey = segmentObjectKey
             this.manifestObjectKey = manifestObjectKey
             this.status = "CLOSED"
-            this.legacyImport = false
+            this.createdAt = java.sql.Timestamp.from(Instant.parse(createdAt))
         }
         auditArchiveSegmentRepository.insert(segment)
 
@@ -242,13 +250,16 @@ class AuditArchiver @Inject constructor(
         actorKind = event.actorKind,
         actorId = event.actorId?.toString(),
         actorRole = event.actorRole,
+        actorLabel = event.actorLabel,
         sessionId = event.sessionId,
         serverTraceId = event.serverTraceId,
         correlationId = event.correlationId,
         causationId = event.causationId,
         organizationId = event.organizationId?.toString(),
+        organizationLabel = event.organizationLabel,
         targetType = event.targetType,
         targetId = event.targetId,
+        targetLabel = event.targetLabel,
         reason = event.reason,
         payloadJson = event.payloadJson,
         prevHash = event.prevHash,

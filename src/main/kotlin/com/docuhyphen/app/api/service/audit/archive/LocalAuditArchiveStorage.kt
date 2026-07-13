@@ -10,7 +10,7 @@ import java.nio.file.StandardOpenOption
 
 /**
  * Local-filesystem [AuditArchiveStorage], the default in dev/CI and the fallback when Secrets
- * Manager/S3 are not configured. Mirrors [com.docuhyphen.app.api.service.auth.AuthAuditWormSink]'s
+ * Manager/S3 are not configured. Uses the same
  * local-directory approach so this phase's archive/verify round trip is fully exercisable without
  * AWS credentials.
  */
@@ -43,6 +43,22 @@ class LocalAuditArchiveStorage @Inject constructor(
     }
 
     override fun objectExists(key: String): Boolean = Files.exists(resolve(key))
+
+    override fun listKeysWithPrefix(prefix: String): List<String>
+    {
+        val root = Path.of(configService.getLocalDirectory())
+        val prefixPath = resolve(prefix)
+        if (!Files.isDirectory(prefixPath))
+        {
+            return emptyList()
+        }
+        Files.walk(prefixPath).use { paths ->
+            return paths
+                .filter { Files.isRegularFile(it) }
+                .map { root.relativize(it).toString().replace('\\', '/') }
+                .toList()
+        }
+    }
 
     private fun resolve(key: String): Path = Path.of(configService.getLocalDirectory()).resolve(key)
 }

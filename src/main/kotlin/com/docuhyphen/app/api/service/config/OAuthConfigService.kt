@@ -70,16 +70,6 @@ class OAuthConfigService @Inject constructor(
     @ConfigProperty(name = "app.auth.application.allowed-endpoint-prefixes")
     private val applicationTokenAllowedEndpointPrefixesConfig: String,
 
-    // --- Audit ---
-    @ConfigProperty(name = "app.audit.immutable.enabled", defaultValue = "true")
-    private val auditImmutableEnabledConfig: Boolean,
-
-    @ConfigProperty(name = "app.audit.worm.enabled", defaultValue = "true")
-    private val auditWormSinkEnabledConfig: Boolean,
-
-    @ConfigProperty(name = "app.audit.worm.directory", defaultValue = "logs/audit-worm")
-    private val auditWormDirectoryConfig: String,
-
     // --- SCIM / Directory ---
     @ConfigProperty(name = "app.scim.bearer-token")
     private val scimBearerTokenConfig: Optional<String>,
@@ -118,9 +108,6 @@ class OAuthConfigService @Inject constructor(
         .map { if (it.startsWith('/')) it.lowercase() else "/${it.lowercase()}" }
         .toSet()
 
-    fun isAuditImmutableEnabled(): Boolean = auditImmutableEnabledConfig
-    fun isAuditWormSinkEnabled(): Boolean = auditWormSinkEnabledConfig
-    fun getAuditWormDirectory(): String = auditWormDirectoryConfig
 
     fun getScimBearerToken(): String = scimBearerTokenConfig.orElse("")
     fun getDirectoryLookupMaxResults(): Int = directoryLookupMaxResultsConfig

@@ -1,5 +1,7 @@
 package com.docuhyphen.app.api.resource
 
+import com.docuhyphen.app.api.model.dto.AuditEngagementCreateRequestDto
+import com.docuhyphen.app.api.model.dto.AuditEngagementDtoMapper
 import com.docuhyphen.app.api.model.dto.AuditGovernanceDtoMapper
 import com.docuhyphen.app.api.model.dto.AuditLegalHoldCreateRequestDto
 import com.docuhyphen.app.api.model.dto.AuditRetentionPolicyUpdateRequestDto
@@ -7,7 +9,10 @@ import com.docuhyphen.app.api.model.entity.AuditIdentityTreatment
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.audit.AuditAnalyticsReconciliationService
+import com.docuhyphen.app.api.service.audit.AuditEngagementNotFoundException
+import com.docuhyphen.app.api.service.audit.AuditEngagementService
 import com.docuhyphen.app.api.service.audit.AuditLegalHoldService
+import com.docuhyphen.app.api.service.audit.AuditLegalHoldNotFoundException
 import com.docuhyphen.app.api.service.audit.AuditRetentionPolicyService
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
 import com.docuhyphen.app.api.service.auth.authz.Action
@@ -45,6 +50,7 @@ class AuditGovernanceResource @Inject constructor(
     private val auditRetentionPolicyService: AuditRetentionPolicyService,
     private val auditLegalHoldService: AuditLegalHoldService,
     private val auditAnalyticsReconciliationService: AuditAnalyticsReconciliationService,
+    private val auditEngagementService: AuditEngagementService,
 )
 {
     @GET
@@ -89,8 +95,7 @@ class AuditGovernanceResource @Inject constructor(
     @Path("/platform/audit-legal-holds/{holdId}/release")
     fun releasePlatformLegalHold(@PathParam("holdId") holdId: String): Response =
         withAuthorizedPlatform(Action.AUDIT_LEGAL_HOLD_MANAGE) { principal ->
-            val hold = auditLegalHoldService.releaseHold(parseUuid(holdId), principal)
-            requireOrgMatch(hold.organizationId, null)
+            val hold = auditLegalHoldService.releaseHold(parseUuid(holdId), null, principal)
             Response.ok(AuditGovernanceDtoMapper.toDto(hold)).build()
         }
 
@@ -101,20 +106,45 @@ class AuditGovernanceResource @Inject constructor(
         Response.ok(AuditGovernanceDtoMapper.toDto(report)).build()
     }
 
+    @POST
+    @Path("/platform/audit-engagements")
+    fun requestPlatformEngagement(body: AuditEngagementCreateRequestDto): Response =
+        withAuthorizedPlatform(Action.AUDIT_ENGAGEMENT_MANAGE) { principal ->
+            val engagement = auditEngagementService.requestEngagement(
+                request = AuditEngagementDtoMapper.toRequest(null, body),
+                requestedByUserId = principal,
+            )
+            Response.ok(AuditEngagementDtoMapper.toDto(engagement)).build()
+        }
+
+    @GET
+    @Path("/platform/audit-engagements")
+    fun listPlatformEngagements(): Response = withAuthorizedPlatform(Action.APP_READ_AUDIT) { _ ->
+        Response.ok(auditEngagementService.listForOrganization(null).map(AuditEngagementDtoMapper::toDto)).build()
+    }
+
+    @POST
+    @Path("/platform/audit-engagements/{engagementId}/approve")
+    fun approvePlatformEngagement(@PathParam("engagementId") engagementId: String): Response =
+        withAuthorizedPlatform(Action.AUDIT_ENGAGEMENT_MANAGE) { principal ->
+            val engagement = auditEngagementService.approveEngagement(parseUuid(engagementId), null, principal)
+            Response.ok(AuditEngagementDtoMapper.toDto(engagement)).build()
+        }
+
+    @POST
+    @Path("/platform/audit-engagements/{engagementId}/revoke")
+    fun revokePlatformEngagement(@PathParam("engagementId") engagementId: String): Response =
+        withAuthorizedPlatform(Action.AUDIT_ENGAGEMENT_MANAGE) { principal ->
+            val engagement = auditEngagementService.revokeEngagement(parseUuid(engagementId), null, principal)
+            Response.ok(AuditEngagementDtoMapper.toDto(engagement)).build()
+        }
+
     private fun parseCategory(raw: String): AuditCategory = runCatching { AuditCategory.valueOf(raw.uppercase()) }
         .getOrElse { throw IllegalArgumentException("Unknown audit category: $raw") }
 
     private fun parseIdentityTreatment(raw: String): AuditIdentityTreatment =
         runCatching { AuditIdentityTreatment.valueOf(raw.uppercase()) }
             .getOrElse { throw IllegalArgumentException("Unknown identity treatment: $raw") }
-
-    private fun requireOrgMatch(holdOrganizationId: UUID?, expectedOrganizationId: UUID?)
-    {
-        if (holdOrganizationId != expectedOrganizationId)
-        {
-            throw IllegalArgumentException("Legal hold not found")
-        }
-    }
 
     private fun withAuthorizedPlatform(action: Action, block: (UUID) -> Response): Response
     {
@@ -137,7 +167,15 @@ class AuditGovernanceResource @Inject constructor(
         }
         catch (e: IllegalArgumentException)
         {
-            Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(e.message)).build()
+            val status = if (e is AuditLegalHoldNotFoundException || e is AuditEngagementNotFoundException)
+            {
+                Response.Status.NOT_FOUND
+            }
+            else
+            {
+                Response.Status.BAD_REQUEST
+            }
+            Response.status(status).entity(ResponseError(e.message)).build()
         }
     }
 

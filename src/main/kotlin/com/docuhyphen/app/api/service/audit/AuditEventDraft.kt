@@ -27,7 +27,7 @@ import java.util.UUID
  * [actorKind] is the explicit actor classification: pass it whenever the call site knows whether
  * the actor is a human, an application credential, a public-link recipient, or the workflow
  * engine. Left `null`, [LedgerProcessor.resolveActorKind] falls back to guessing `HUMAN`/`SYSTEM`
- * from [actorId] presence for legacy call sites.
+ * from [actorId] presence when a caller does not provide an explicit classification.
  *
  * [targetLabel]/[organizationLabel] are the human-readable counterparts to [targetId]/
  * [organizationId] - a document name, an Exchange name, a workflow definition name, a person's
@@ -42,7 +42,14 @@ import java.util.UUID
  * only set it explicitly for a non-standard actor the recorder cannot see (for example a
  * no-auth/public-link caller identified by something other than an `AppUser` row).
  */
+sealed interface AuditOwnerScope
+{
+    data object Platform : AuditOwnerScope
+    data class Organization(val organizationId: UUID) : AuditOwnerScope
+}
+
 data class AuditEventDraft(
+    val owner: AuditOwnerScope,
     val eventTypeKey: String,
     val outcome: AuditOutcome,
     val actorId: UUID? = null,
@@ -52,7 +59,6 @@ data class AuditEventDraft(
     val targetType: String? = null,
     val targetId: String? = null,
     val targetLabel: String? = null,
-    val organizationId: UUID? = null,
     val organizationLabel: String? = null,
     val sessionId: String? = null,
     val reason: String? = null,

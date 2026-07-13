@@ -3,7 +3,7 @@
 import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.DocumentAuditLogAction
+import com.docuhyphen.app.api.model.entity.DocumentAuditAction
 import com.docuhyphen.app.api.model.entity.DocumentType
 import com.docuhyphen.app.api.model.entity.DocumentVersion
 import com.docuhyphen.app.api.model.entity.Exchange
@@ -15,6 +15,7 @@ import com.docuhyphen.app.api.repository.ExchangeRepository
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
 import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
@@ -103,7 +104,7 @@ class ExchangeDocumentVersionService @Inject constructor(
         // Log the action
         documentAuditService.logAction(
             document,
-            DocumentAuditLogAction.VERSION_CREATED,
+            DocumentAuditAction.VERSION_CREATED,
             currentUserEmail ?: "System"
         )
 
@@ -207,7 +208,7 @@ class ExchangeDocumentVersionService @Inject constructor(
                     targetType = ResourceType.DOCUMENT.name,
                     targetId = documentId.toString(),
                     targetLabel = documentTitle,
-                    organizationId = exchange.ownerOrganizationId,
+                    owner = exchange.ownerOrganizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
                     payload = mapOf(
                         "version_id" to versionId.toString(),
                         "exchange_id" to exchange.id.toString(),

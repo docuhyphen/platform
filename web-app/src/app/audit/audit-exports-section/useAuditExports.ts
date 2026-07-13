@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {AuditExportCreateRequestDto, AuditExportDto} from "../../models/models.tsx";
 import {
     approveOrganizationAuditExport,
@@ -11,6 +11,7 @@ import {
     requestPlatformAuditExport,
 } from "../../../services/auditService.ts";
 import {AuditScope} from "../auditScope.ts";
+import {normalizeApiError} from "../../../utils/apiErrorUtils.ts";
 
 const saveBlob = (blob: Blob, filename: string) =>
 {
@@ -33,9 +34,16 @@ export const useAuditExports = (scope: AuditScope) =>
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState<boolean>(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const scopeKey = scope.kind === "organization" ? `organization:${scope.organizationId}` : "platform";
+    const activeScopeKeyRef = useRef(scopeKey);
+    activeScopeKeyRef.current = scopeKey;
+    // Bumped on every load() call so a response from a superseded scope switch can detect it is
+    // stale and discard itself instead of overwriting state a newer request already populated.
+    const requestGenerationRef = useRef(0);
 
     const load = useCallback(async () =>
     {
+        const generation = ++requestGenerationRef.current;
         setLoading(true);
         setError(null);
 
@@ -44,16 +52,26 @@ export const useAuditExports = (scope: AuditScope) =>
             const result = scope.kind === "organization"
                 ? await listOrganizationAuditExports(scope.organizationId)
                 : await listPlatformAuditExports();
+            if (generation !== requestGenerationRef.current)
+            {
+                return;
+            }
             setExports(result);
         }
         catch (err: unknown)
         {
-            const message = err instanceof Error ? err.message : "Failed to load audit exports.";
-            setError(message);
+            if (generation !== requestGenerationRef.current)
+            {
+                return;
+            }
+            setError(normalizeApiError(err, "Failed to load audit exports.").message);
         }
         finally
         {
-            setLoading(false);
+            if (generation === requestGenerationRef.current)
+            {
+                setLoading(false);
+            }
         }
     }, [scope]);
 
@@ -64,6 +82,7 @@ export const useAuditExports = (scope: AuditScope) =>
 
     const requestExport = async (request: AuditExportCreateRequestDto) =>
     {
+        const mutationScopeKey = scopeKey;
         setSubmitting(true);
         setSubmitError(null);
 
@@ -77,40 +96,83 @@ export const useAuditExports = (scope: AuditScope) =>
             {
                 await requestPlatformAuditExport(request);
             }
+            if (activeScopeKeyRef.current !== mutationScopeKey)
+            {
+                return false;
+            }
             await load();
             return true;
         }
         catch (err: unknown)
         {
-            const message = err instanceof Error ? err.message : "Failed to request audit export.";
-            setSubmitError(message);
+            if (activeScopeKeyRef.current === mutationScopeKey)
+            {
+                setSubmitError(normalizeApiError(err, "Failed to request audit export.").message);
+            }
             return false;
         }
         finally
         {
-            setSubmitting(false);
+            if (activeScopeKeyRef.current === mutationScopeKey)
+            {
+                setSubmitting(false);
+            }
         }
     };
 
     const approveExport = async (exportId: string) =>
     {
-        if (scope.kind === "organization")
+        const mutationScopeKey = scopeKey;
+        setError(null);
+        try
         {
-            await approveOrganizationAuditExport(scope.organizationId, exportId);
+            if (scope.kind === "organization")
+            {
+                await approveOrganizationAuditExport(scope.organizationId, exportId);
+            }
+            else
+            {
+                await approvePlatformAuditExport(exportId);
+            }
+            if (activeScopeKeyRef.current !== mutationScopeKey)
+            {
+                return false;
+            }
+            if (activeScopeKeyRef.current === mutationScopeKey)
+            {
+                await load();
+            }
         }
-        else
+        catch (err: unknown)
         {
-            await approvePlatformAuditExport(exportId);
+            if (activeScopeKeyRef.current === mutationScopeKey)
+            {
+                setError(normalizeApiError(err, "Failed to approve audit export.").message);
+            }
         }
-        await load();
     };
 
     const downloadExport = async (exportItem: AuditExportDto) =>
     {
-        const blob = scope.kind === "organization"
-            ? await downloadOrganizationAuditExport(scope.organizationId, exportItem.exportId)
-            : await downloadPlatformAuditExport(exportItem.exportId);
-        saveBlob(blob, `audit-export-${exportItem.exportId}.zip`);
+        const mutationScopeKey = scopeKey;
+        setError(null);
+        try
+        {
+            const blob = scope.kind === "organization"
+                ? await downloadOrganizationAuditExport(scope.organizationId, exportItem.exportId)
+                : await downloadPlatformAuditExport(exportItem.exportId);
+            if (activeScopeKeyRef.current === mutationScopeKey)
+            {
+                saveBlob(blob, `audit-export-${exportItem.exportId}.zip`);
+            }
+        }
+        catch (err: unknown)
+        {
+            if (activeScopeKeyRef.current === mutationScopeKey)
+            {
+                setError(normalizeApiError(err, "Failed to download audit export.").message);
+            }
+        }
     };
 
     return {

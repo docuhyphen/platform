@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from "react";
 import {AuditEventCursorDto, AuditEventDto, AuditEventPageDto} from "../../../models/models.tsx";
 import {AuditCursorParams} from "../../../../services/auditService.ts";
+import {normalizeApiError} from "../../../../utils/apiErrorUtils.ts";
 
 export interface UseAuditEventPageResult
 {
@@ -27,26 +28,41 @@ export const useAuditEventPage = (
     const [error, setError] = useState<string | null>(null);
     const fetchFnRef = useRef(fetchFn);
     fetchFnRef.current = fetchFn;
+    // Bumped by every fetchPage call so a response from a superseded request (an older filter,
+    // scope, or loadMore call that is still in flight) can detect it is stale and discard itself
+    // instead of overwriting state a newer request already populated.
+    const requestGenerationRef = useRef(0);
 
     const fetchPage = useCallback(async (params: AuditCursorParams | undefined, append: boolean) =>
     {
+        const generation = ++requestGenerationRef.current;
         setLoading(true);
         setError(null);
 
         try
         {
             const page = await fetchFnRef.current(params);
+            if (generation !== requestGenerationRef.current)
+            {
+                return;
+            }
             setItems((previous) => append ? [...previous, ...page.items] : page.items);
             setCursor(page.nextCursor);
         }
         catch (err: unknown)
         {
-            const message = err instanceof Error ? err.message : "Failed to load audit events.";
-            setError(message);
+            if (generation !== requestGenerationRef.current)
+            {
+                return;
+            }
+            setError(normalizeApiError(err, "Failed to load audit events.").message);
         }
         finally
         {
-            setLoading(false);
+            if (generation === requestGenerationRef.current)
+            {
+                setLoading(false);
+            }
         }
     }, []);
 

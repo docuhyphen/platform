@@ -14,6 +14,7 @@ import com.docuhyphen.app.api.repository.DocumentLibraryRepository
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
 import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
@@ -159,7 +160,7 @@ class DocumentLibraryService @Inject constructor(
         val path = entry.storagePath
             ?: throw IllegalArgumentException("No file uploaded for document library entry $id")
 
-        recordLibraryDownloadEvent(entry, principal.id, context.activeOrgId)
+        recordLibraryDownloadEvent(entry, principal.id)
 
         return fileStorageService.downloadDocument(path)
     }
@@ -401,7 +402,7 @@ class DocumentLibraryService @Inject constructor(
      * caught and logged, never propagated, so audit plumbing can never break an actual file
      * download response.
      */
-    private fun recordLibraryDownloadEvent(entry: DocumentLibraryEntry, actorId: UUID, organizationId: UUID?)
+    private fun recordLibraryDownloadEvent(entry: DocumentLibraryEntry, actorId: UUID)
     {
         try
         {
@@ -414,7 +415,14 @@ class DocumentLibraryService @Inject constructor(
                     targetType = ResourceType.DOC_LIBRARY.name,
                     targetId = entry.id.toString(),
                     targetLabel = entry.title,
-                    organizationId = organizationId ?: entry.organizationId,
+                    owner = if (entry.scope == BlueprintScope.ORG)
+                    {
+                        AuditOwnerScope.Organization(requireNotNull(entry.organizationId))
+                    }
+                    else
+                    {
+                        AuditOwnerScope.Platform
+                    },
                     payload = mapOf("title" to entry.title, "scope" to entry.scope.name),
                 )
             )

@@ -13,8 +13,7 @@ import java.util.UUID
  * [com.docuhyphen.app.api.service.audit.AuditRecorder] in the same transaction as the business
  * change it records using the transactional-outbox pattern.
  *
- * Denormalized IDs/labels only, following the [AccessAuditLog] pattern - never the
- * [DocumentAuditLog] anti-pattern of a non-null `@ManyToOne` FK to a mutable business entity.
+ * Denormalized IDs and labels only, with no foreign key to a mutable business entity.
  * A business entity (Exchange, document, user, ...) can be deleted or changed without cascading
  * into or orphaning this row.
  *
@@ -58,7 +57,7 @@ class AuditOutboxEntry
 
     /**
      * Explicit actor classification (`HUMAN`/`APP`/`PUBLIC_LINK`/`WORKFLOW`/`SYSTEM`), added in
-     * `V43__audit_outbox_actor_kind.sql`. Null for legacy call sites;
+     * `V43__audit_outbox_actor_kind.sql`. Null when a caller omits explicit classification;
      * [com.docuhyphen.app.api.service.audit.LedgerProcessor.resolveActorKind] prefers this value
      * when present and only falls back to guessing from [actorId] presence when it is null.
      */

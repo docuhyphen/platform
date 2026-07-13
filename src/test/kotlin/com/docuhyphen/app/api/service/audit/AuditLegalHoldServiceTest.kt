@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.util.UUID
 
@@ -20,7 +22,7 @@ import java.util.UUID
 class AuditLegalHoldServiceTest
 {
     private fun service(repo: AuditLegalHoldRepository = mock()): AuditLegalHoldService =
-        AuditLegalHoldService(repo, mock())
+        AuditLegalHoldService(repo, mock(), mock())
 
     @Test
     fun `placing a hold marks the resource as under hold`()
@@ -54,7 +56,7 @@ class AuditLegalHoldServiceTest
         whenever(repo.findActiveForResource(any(), any(), any())).thenReturn(emptyList())
 
         val svc = service(repo)
-        val released = svc.releaseHold(hold.id, UUID.randomUUID())
+        val released = svc.releaseHold(hold.id, null, UUID.randomUUID())
 
         assertEquals(AuditLegalHoldStatus.RELEASED, released.status)
         assertFalse(svc.isUnderHold(null, "EXCHANGE", "abc"))
@@ -71,6 +73,26 @@ class AuditLegalHoldServiceTest
         whenever(repo.findById(hold.id)).thenReturn(hold)
 
         val svc = service(repo)
-        assertThrows(IllegalArgumentException::class.java) { svc.releaseHold(hold.id, UUID.randomUUID()) }
+        assertThrows(IllegalArgumentException::class.java) { svc.releaseHold(hold.id, null, UUID.randomUUID()) }
+    }
+
+    @Test
+    fun `a hold outside the expected organization cannot be released or mutated`()
+    {
+        val repo = mock<AuditLegalHoldRepository>()
+        val hold = AuditLegalHold().apply {
+            id = UUID.randomUUID()
+            organizationId = UUID.randomUUID()
+            status = AuditLegalHoldStatus.ACTIVE
+        }
+        whenever(repo.findById(hold.id)).thenReturn(hold)
+
+        val originalStatus = hold.status
+        assertThrows(IllegalArgumentException::class.java) {
+            service(repo).releaseHold(hold.id, UUID.randomUUID(), UUID.randomUUID())
+        }
+
+        assertEquals(originalStatus, hold.status)
+        verify(repo, never()).update(any())
     }
 }

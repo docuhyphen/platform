@@ -35,7 +35,7 @@ class LocalAuditArchiveSigningKeyProvider @Inject constructor(
     {
         private const val ALGORITHM = "RSA"
         private const val SIGNATURE_ALGORITHM = "SHA256withRSA"
-        private const val KEY_ID = "local-dev-key-1"
+        private const val DEFAULT_KEY_ID = "local-dev-key-1"
     }
 
     private val lock = ReentrantLock()
@@ -43,7 +43,7 @@ class LocalAuditArchiveSigningKeyProvider @Inject constructor(
     @Volatile
     private var cachedKeyPair: KeyPair? = null
 
-    override fun keyId(): String = KEY_ID
+    override fun keyId(): String = activeKeyId()
 
     override fun sign(data: ByteArray): ByteArray
     {
@@ -55,9 +55,18 @@ class LocalAuditArchiveSigningKeyProvider @Inject constructor(
 
     override fun verify(data: ByteArray, signature: ByteArray, keyId: String): Boolean
     {
-        if (keyId != KEY_ID) return false
+        val publicKey = if (keyId == activeKeyId())
+        {
+            loadOrCreateKeyPair().public
+        }
+        else
+        {
+            val publicPath = Path.of(configService.getLocalSigningDirectory()).resolve("$keyId.public.pem")
+            if (!Files.exists(publicPath)) return false
+            readPublicKey(Files.readString(publicPath))
+        }
         val verifier = Signature.getInstance(SIGNATURE_ALGORITHM)
-        verifier.initVerify(loadOrCreateKeyPair().public)
+        verifier.initVerify(publicKey)
         verifier.update(data)
         return verifier.verify(signature)
     }
@@ -75,8 +84,9 @@ class LocalAuditArchiveSigningKeyProvider @Inject constructor(
 
             val dir = Path.of(configService.getLocalSigningDirectory())
             Files.createDirectories(dir)
-            val privatePath = dir.resolve("$KEY_ID.private.pem")
-            val publicPath = dir.resolve("$KEY_ID.public.pem")
+            val keyId = activeKeyId()
+            val privatePath = dir.resolve("$keyId.private.pem")
+            val publicPath = dir.resolve("$keyId.public.pem")
 
             val keyPair = if (Files.exists(privatePath) && Files.exists(publicPath))
             {
@@ -102,6 +112,12 @@ class LocalAuditArchiveSigningKeyProvider @Inject constructor(
             lock.unlock()
         }
     }
+
+    private fun activeKeyId(): String = runCatching { configService.getSigningKeyId() }
+        .getOrNull()
+        ?.trim()
+        ?.takeIf { it.isNotBlank() }
+        ?: DEFAULT_KEY_ID
 
     private fun readPrivateKey(pem: String): PrivateKey
     {

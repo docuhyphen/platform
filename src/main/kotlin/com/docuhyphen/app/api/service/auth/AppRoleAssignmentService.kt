@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.extension.maskEmailForLogs
 import com.docuhyphen.app.api.exception.AppUserNotFoundException
 import com.docuhyphen.app.api.exception.LastAppAdminException
 import com.docuhyphen.app.api.model.entity.AppRoleAssignment
@@ -130,11 +131,11 @@ class AppRoleAssignmentService @Inject constructor(
         val user = appUserService.findByEmail(email)
         if (user == null)
         {
-            logger.warn("App Admin bootstrap: no user found for configured email '{}', skipping", email)
+            logger.warn("App Admin bootstrap: no user found for configured email '{}', skipping", email.maskEmailForLogs())
             return
         }
         grantAppRole(user.id, AppRoleName.APP_ADMIN, actorId = null)
-        logger.info("App Admin bootstrap: granted APP_ADMIN to '{}'", email)
+        logger.info("App Admin bootstrap: granted APP_ADMIN to '{}'", email.maskEmailForLogs())
     }
 
     private fun emitAudit(action: String, actorId: UUID?, targetUserId: UUID?, role: AppRoleName?, reason: String)

@@ -27,6 +27,7 @@ import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
 import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
@@ -160,7 +161,7 @@ class ExchangeAccessManagementService @Inject constructor(
         )
         if (decision is Decision.Deny)
         {
-            recordAuthorizationDenied(exchangeId, principal.id, Action.EXCHANGE_MANAGE_ACCESS.name, session.name)
+            recordAuthorizationDenied(exchangeId, principal.id, Action.EXCHANGE_MANAGE_ACCESS.name, session.ownerOrganizationId, session.name)
             throw ExchangeNotFoundException("Exchange not found")
         }
         return shareQueryService.getSessionAccessView(exchangeId)
@@ -237,7 +238,7 @@ class ExchangeAccessManagementService @Inject constructor(
         )
         if (decision is Decision.Deny)
         {
-            recordAuthorizationDenied(exchangeId, principal.id, Action.EXCHANGE_MANAGE_ACCESS.name, session.name)
+            recordAuthorizationDenied(exchangeId, principal.id, Action.EXCHANGE_MANAGE_ACCESS.name, session.ownerOrganizationId, session.name)
             throw ForbiddenException("Not authorized to manage access on this session")
         }
     }
@@ -257,7 +258,7 @@ class ExchangeAccessManagementService @Inject constructor(
         )
         if (decision is Decision.Deny)
         {
-            recordAuthorizationDenied(exchangeId, principal.id, Action.EXCHANGE_MANAGE_ACCESS.name, session.name)
+            recordAuthorizationDenied(exchangeId, principal.id, Action.EXCHANGE_MANAGE_ACCESS.name, session.ownerOrganizationId, session.name)
             throw ForbiddenException("Not authorized to manage access on this session")
         }
         return session
@@ -359,12 +360,19 @@ class ExchangeAccessManagementService @Inject constructor(
      * to an exchange without permission), so it gets its own AUTHORIZATION_DENIED ledger row.
      * Failures are caught and logged, never propagated.
      */
-    private fun recordAuthorizationDenied(exchangeId: UUID, actorId: UUID, action: String, exchangeName: String? = null)
+    private fun recordAuthorizationDenied(
+        exchangeId: UUID,
+        actorId: UUID,
+        action: String,
+        ownerOrganizationId: UUID?,
+        exchangeName: String? = null,
+    )
     {
         try
         {
             auditRecorder.record(
                 AuditEventDraft(
+                    owner = ownerOrganizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
                     eventTypeKey = AuditEventType.AUTHORIZATION_DENIED.key,
                     outcome = AuditOutcome.DENIED,
                     actorId = actorId,

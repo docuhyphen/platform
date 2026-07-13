@@ -12,6 +12,7 @@ import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
 import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
@@ -94,8 +95,8 @@ class ExchangeDocumentService @Inject constructor(
 
         val savedDocument = exchange.documents.last()
         authTokenContext.authToken.appUser
-            ?.let { auditService.logAction(savedDocument, DocumentAuditLogAction.CREATED, it) }
-            ?: auditService.logAction(savedDocument, DocumentAuditLogAction.CREATED, actorEmail())
+            ?.let { auditService.logAction(savedDocument, DocumentAuditAction.CREATED, it) }
+            ?: auditService.logAction(savedDocument, DocumentAuditAction.CREATED, actorEmail())
 
         broadcastDocumentEvent(exchange.id, RealtimeMessageType.EXCHANGE_DOCUMENT_ADDED, savedDocument.id)
 
@@ -120,8 +121,8 @@ class ExchangeDocumentService @Inject constructor(
         sessionRepo.update(exchange)
 
         authTokenContext.authToken.appUser
-            ?.let { auditService.logAction(document, DocumentAuditLogAction.DELETE, it) }
-            ?: auditService.logAction(document, DocumentAuditLogAction.DELETE, actorEmail())
+            ?.let { auditService.logAction(document, DocumentAuditAction.DELETE, it) }
+            ?: auditService.logAction(document, DocumentAuditAction.DELETE, actorEmail())
 
         broadcastDocumentEvent(exchange.id, RealtimeMessageType.EXCHANGE_DOCUMENT_REMOVED, document.id)
     }
@@ -154,8 +155,8 @@ class ExchangeDocumentService @Inject constructor(
         sessionRepo.update(exchange)
 
         authTokenContext.authToken.appUser
-            ?.let { auditService.logAction(document, DocumentAuditLogAction.UPDATE, it) }
-            ?: auditService.logAction(document, DocumentAuditLogAction.UPDATE, actorEmail())
+            ?.let { auditService.logAction(document, DocumentAuditAction.UPDATE, it) }
+            ?: auditService.logAction(document, DocumentAuditAction.UPDATE, actorEmail())
 
         broadcastDocumentEvent(exchange.id, RealtimeMessageType.EXCHANGE_DOCUMENT_UPDATED, document.id)
 
@@ -178,8 +179,8 @@ class ExchangeDocumentService @Inject constructor(
 
         sessionRepo.update(exchange)
         authTokenContext.authToken.appUser
-            ?.let { auditService.logAction(document, DocumentAuditLogAction.UPDATE, it) }
-            ?: auditService.logAction(document, DocumentAuditLogAction.UPDATE, actorEmail())
+            ?.let { auditService.logAction(document, DocumentAuditAction.UPDATE, it) }
+            ?: auditService.logAction(document, DocumentAuditAction.UPDATE, actorEmail())
         return document
     }
 
@@ -219,8 +220,8 @@ class ExchangeDocumentService @Inject constructor(
         updateDocument(exchangeId, document)
 
         appUser
-            ?.let { auditService.logAction(document, DocumentAuditLogAction.UPLOAD, it) }
-            ?: auditService.logAction(document, DocumentAuditLogAction.UPLOAD, actorEmail())
+            ?.let { auditService.logAction(document, DocumentAuditAction.UPLOAD, it) }
+            ?: auditService.logAction(document, DocumentAuditAction.UPLOAD, actorEmail())
 
         if (appUser != null) sendUploadNotification(exchange, appUser, document)
 
@@ -286,7 +287,7 @@ class ExchangeDocumentService @Inject constructor(
         sessionRepo.update(exchange)
 
         fileStorageService.uploadDocument(file!!, "${document.id}$extension")
-        resolveRecipientEmail(exchange.id)?.let { auditService.logAction(document, DocumentAuditLogAction.UPLOAD, it) }
+        resolveRecipientEmail(exchange.id)?.let { auditService.logAction(document, DocumentAuditAction.UPLOAD, it) }
 //        sendUploadNotification(exchange, appUser, document.title)
 
         broadcastDocumentEvent(exchange.id, RealtimeMessageType.EXCHANGE_DOCUMENT_UPDATED, document.id)
@@ -793,11 +794,9 @@ class ExchangeDocumentService @Inject constructor(
     }
 
     /**
-     * Writes document download events to [AuditRecorder] as well as the legacy audit log for
-     * document-access events that had zero capture at all before this phase (view/preview/
-     * current-version download/no-auth download). Failures are caught and logged, never
-     * propagated, so audit plumbing can never break an actual file download/preview response -
-     * same catch-and-log style as [ExchangeDocumentAuditService.recordOnRecorder].
+     * Writes document download events to [AuditRecorder] for view, preview, current-version
+     * download, and no-auth download paths. Failures are caught and logged so audit plumbing does
+     * not break an actual file download or preview response.
      */
     private fun recordDocumentAccessEvent(
         eventType: AuditEventType,
@@ -820,7 +819,7 @@ class ExchangeDocumentService @Inject constructor(
                     targetType = ResourceType.DOCUMENT.name,
                     targetId = document.id.toString(),
                     targetLabel = document.title,
-                    organizationId = exchange.ownerOrganizationId,
+                    owner = exchange.ownerOrganizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
                     payload = buildMap {
                         put("document_title", document.title ?: "")
                         put("exchange_id", exchange.id.toString())
@@ -859,7 +858,7 @@ class ExchangeDocumentService @Inject constructor(
                     targetType = ResourceType.EXCHANGE.name,
                     targetId = exchange.id.toString(),
                     targetLabel = exchange.name,
-                    organizationId = exchange.ownerOrganizationId,
+                    owner = exchange.ownerOrganizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
                     payload = mapOf(
                         "document_count" to documents.size.toString(),
                         "document_ids" to documents.joinToString(",") { it.id.toString() },
@@ -898,7 +897,7 @@ class ExchangeDocumentService @Inject constructor(
                     targetType = ResourceType.EXCHANGE.name,
                     targetId = exchange.id.toString(),
                     targetLabel = exchange.name,
-                    organizationId = exchange.ownerOrganizationId,
+                    owner = exchange.ownerOrganizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
                     payload = mapOf("action" to action),
                 )
             )

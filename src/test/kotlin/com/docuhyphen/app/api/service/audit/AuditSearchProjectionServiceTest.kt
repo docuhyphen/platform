@@ -12,14 +12,18 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.isNull
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.sql.Timestamp
 import java.time.Instant
+import java.time.Duration
 import java.util.UUID
 
 class AuditSearchProjectionServiceTest
@@ -66,6 +70,159 @@ class AuditSearchProjectionServiceTest
     }
 
     @Test
+    fun `engagement constrained search rejects a partial date range before querying evidence`()
+    {
+        val organizationId = UUID.randomUUID()
+        val actor = actor(Capability.APP_AUDIT_READ, Capability.ORG_AUDIT_READ)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            service().listOrganizationEvents(
+                actor = actor,
+                organizationId = organizationId,
+                categories = emptySet(),
+                cursor = null,
+                limit = 50,
+                occurredAfter = Instant.parse("2026-07-01T00:00:00Z"),
+                occurredBefore = null,
+            )
+        }
+
+        verify(ledgerRepository, never()).search(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+    }
+
+    @Test
+    fun `engagement constrained search rejects a reversed date range before querying evidence`()
+    {
+        val organizationId = UUID.randomUUID()
+        val actor = actor(Capability.APP_AUDIT_READ, Capability.ORG_AUDIT_READ)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            service().listOrganizationEvents(
+                actor = actor,
+                organizationId = organizationId,
+                categories = emptySet(),
+                cursor = null,
+                limit = 50,
+                occurredAfter = Instant.parse("2026-07-02T00:00:00Z"),
+                occurredBefore = Instant.parse("2026-07-01T00:00:00Z"),
+            )
+        }
+
+        verify(ledgerRepository, never()).search(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+    }
+
+    @Test
+    fun `engagement constrained search rejects a zero-length date range before querying evidence`()
+    {
+        val organizationId = UUID.randomUUID()
+        val actor = actor(Capability.APP_AUDIT_READ, Capability.ORG_AUDIT_READ)
+        val sameInstant = Instant.parse("2026-07-01T00:00:00Z")
+
+        assertThrows(IllegalArgumentException::class.java) {
+            service().listOrganizationEvents(
+                actor = actor,
+                organizationId = organizationId,
+                categories = emptySet(),
+                cursor = null,
+                limit = 50,
+                occurredAfter = sameInstant,
+                occurredBefore = sameInstant,
+            )
+        }
+
+        verify(ledgerRepository, never()).search(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+    }
+
+    @Test
+    fun `engagement constrained search uses a thirty day range when boundaries are omitted`()
+    {
+        val organizationId = UUID.randomUUID()
+        val actor = actor(Capability.APP_AUDIT_READ, Capability.ORG_AUDIT_READ)
+        val event = organizationEvent(organizationId)
+        whenever(ledgerRepository.search(eq(organizationId), eq(false), any(), any(), any(), any(), any(), isNull(), isNull(), isNull(), eq(50)))
+            .thenReturn(listOf(event))
+        whenever(engagementService.resolveAccess(any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(
+                AuditEngagementService.EngagementAccess(
+                    engagementId = UUID.randomUUID(),
+                    sensitivityLevel = com.docuhyphen.app.api.model.entity.AuditEngagementSensitivity.STANDARD,
+                    exportPermitted = false,
+                    maxQueryRangeDays = 30,
+                    downloadLimit = null,
+                )
+            )
+        whenever(auditRecorder.record(any())).thenReturn(AuditCaptureResult.Captured(UUID.randomUUID(), UUID.randomUUID()))
+
+        service().listOrganizationEvents(actor, organizationId, emptySet(), null, 50)
+
+        val afterCaptor = argumentCaptor<Timestamp>()
+        val beforeCaptor = argumentCaptor<Timestamp>()
+        verify(ledgerRepository).search(
+            eq(organizationId),
+            eq(false),
+            any(),
+            any(),
+            any(),
+            isNull(),
+            afterCaptor.capture(),
+            beforeCaptor.capture(),
+            isNull(),
+            isNull(),
+            eq(50),
+        )
+        assertEquals(Duration.ofDays(30), Duration.between(afterCaptor.firstValue.toInstant(), beforeCaptor.firstValue.toInstant()))
+    }
+
+    @Test
+    fun `listPlatformEvents passes an explicit occurred range through to the ledger search`()
+    {
+        val actor = actor(Capability.APP_AUDIT_READ)
+        whenever(
+            ledgerRepository.search(
+                isNull(), eq(true), any(), any(), any(), isNull(), any(), any(), isNull(), isNull(), eq(50),
+            )
+        ).thenReturn(emptyList())
+        whenever(auditRecorder.record(any())).thenReturn(AuditCaptureResult.Captured(UUID.randomUUID(), UUID.randomUUID()))
+
+        service().listPlatformEvents(
+            actor = actor,
+            categories = emptySet(),
+            cursor = null,
+            limit = 50,
+            occurredAfter = Instant.parse("2026-07-01T00:00:00Z"),
+            occurredBefore = Instant.parse("2026-07-02T00:00:00Z"),
+        )
+
+        val afterCaptor = argumentCaptor<Timestamp>()
+        val beforeCaptor = argumentCaptor<Timestamp>()
+        verify(ledgerRepository).search(
+            isNull(), eq(true), any(), any(), any(), isNull(),
+            afterCaptor.capture(), beforeCaptor.capture(), isNull(), isNull(), eq(50),
+        )
+        assertEquals(Instant.parse("2026-07-01T00:00:00Z"), afterCaptor.firstValue.toInstant())
+        assertEquals(Instant.parse("2026-07-02T00:00:00Z"), beforeCaptor.firstValue.toInstant())
+    }
+
+    @Test
+    fun `listPlatformEvents rejects a reversed occurred range before querying evidence`()
+    {
+        val actor = actor(Capability.APP_AUDIT_READ)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            service().listPlatformEvents(
+                actor = actor,
+                categories = emptySet(),
+                cursor = null,
+                limit = 50,
+                occurredAfter = Instant.parse("2026-07-02T00:00:00Z"),
+                occurredBefore = Instant.parse("2026-07-01T00:00:00Z"),
+            )
+        }
+
+        verify(ledgerRepository, never()).search(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+    }
+
+    @Test
     fun `platform auditor cannot read customer content without a separate engagement grant`()
     {
         val organizationId = UUID.randomUUID()
@@ -82,7 +239,6 @@ class AuditSearchProjectionServiceTest
                 resourceId = eq(event.targetId),
                 category = eq(AuditCategory.DOCUMENT),
                 requireSensitive = eq(false),
-                at = any(),
                 recentStepUpSatisfied = eq(true),
                 requestedRange = isNull(),
             )
@@ -94,6 +250,96 @@ class AuditSearchProjectionServiceTest
         val drafts = argumentCaptor<AuditEventDraft>()
         verify(auditRecorder).record(drafts.capture())
         assertEquals("audit.search.performed", drafts.firstValue.eventTypeKey)
+    }
+
+    @Test
+    fun `pagination fills the visible page when hidden rows precede authorized rows`()
+    {
+        val organizationId = UUID.randomUUID()
+        val actor = actor(Capability.APP_AUDIT_READ, Capability.ORG_AUDIT_READ)
+        val hiddenOne = organizationEvent(organizationId, targetId = "hidden-1")
+        val visibleOne = organizationEvent(organizationId, targetId = "visible-1")
+        val hiddenTwo = organizationEvent(organizationId, targetId = "hidden-2")
+        val visibleTwo = organizationEvent(organizationId, targetId = "visible-2")
+        whenever(
+            ledgerRepository.search(
+                eq(organizationId), eq(false), any(), any(), any(), isNull(), any(), any(),
+                isNull(), isNull(), eq(2),
+            )
+        ).thenReturn(listOf(hiddenOne, visibleOne))
+        whenever(
+            ledgerRepository.search(
+                eq(organizationId), eq(false), any(), any(), any(), isNull(), any(), any(),
+                eq(visibleOne.occurredAt), eq(visibleOne.eventId), eq(2),
+            )
+        ).thenReturn(listOf(hiddenTwo, visibleTwo))
+        whenever(
+            engagementService.resolveAccess(
+                any(), eq(organizationId), any(), eq("hidden-1"), any(), any(), any(), any(),
+            )
+        ).thenReturn(null)
+        whenever(
+            engagementService.resolveAccess(
+                any(), eq(organizationId), any(), eq("hidden-2"), any(), any(), any(), any(),
+            )
+        ).thenReturn(null)
+        whenever(
+            engagementService.resolveAccess(
+                any(), eq(organizationId), any(), eq("visible-1"), any(), any(), any(), any(),
+            )
+        ).thenReturn(
+            AuditEngagementService.EngagementAccess(
+                UUID.randomUUID(),
+                com.docuhyphen.app.api.model.entity.AuditEngagementSensitivity.STANDARD,
+                false,
+                30,
+                null,
+            )
+        )
+        whenever(
+            engagementService.resolveAccess(
+                any(), eq(organizationId), any(), eq("visible-2"), any(), any(), any(), any(),
+            )
+        ).thenReturn(
+            AuditEngagementService.EngagementAccess(
+                UUID.randomUUID(),
+                com.docuhyphen.app.api.model.entity.AuditEngagementSensitivity.STANDARD,
+                false,
+                30,
+                null,
+            )
+        )
+        whenever(auditRecorder.record(any())).thenReturn(AuditCaptureResult.Captured(UUID.randomUUID(), UUID.randomUUID()))
+
+        val page = service().listOrganizationEvents(actor, organizationId, emptySet(), null, 2)
+
+        assertEquals(listOf("visible-1", "visible-2"), page.items.map { it.targetId })
+        assertEquals(visibleTwo.eventId, page.nextCursor?.eventId)
+        verify(ledgerRepository, times(2)).search(any(), any(), any(), any(), any(), anyOrNull(), any(), any(), anyOrNull(), anyOrNull(), eq(2))
+    }
+
+    @Test
+    fun `pagination continues past twenty hidden pages until the repository is exhausted`()
+    {
+        val organizationId = UUID.randomUUID()
+        val hidden = organizationEvent(organizationId, targetId = "hidden")
+        var searchCalls = 0
+        whenever(ledgerRepository.search(any(), any(), any(), any(), any(), anyOrNull(), any(), any(), anyOrNull(), anyOrNull(), eq(1)))
+            .thenAnswer { if (searchCalls++ < 20) listOf(hidden) else emptyList<AuditLedgerEvent>() }
+        whenever(engagementService.resolveAccess(any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(null)
+
+        val page = service().listOrganizationEvents(
+            actor(Capability.APP_AUDIT_READ, Capability.ORG_AUDIT_READ),
+            organizationId,
+            emptySet(),
+            null,
+            1,
+        )
+
+        assertTrue(page.items.isEmpty())
+        verify(ledgerRepository, times(21)).search(
+            any(), any(), any(), any(), any(), anyOrNull(), any(), any(), anyOrNull(), anyOrNull(), eq(1),
+        )
     }
 
     @Test
@@ -112,7 +358,6 @@ class AuditSearchProjectionServiceTest
                 resourceId = eq(event.targetId),
                 category = eq(AuditCategory.DOCUMENT),
                 requireSensitive = eq(false),
-                at = any(),
                 recentStepUpSatisfied = eq(true),
                 requestedRange = isNull(),
             )
@@ -158,6 +403,24 @@ class AuditSearchProjectionServiceTest
             isNull(),
             eq(25),
         )
+    }
+
+    @Test
+    fun `contextual document search rejects a document from another Exchange before querying evidence`()
+    {
+        val organizationId = UUID.randomUUID()
+        val exchangeId = UUID.randomUUID()
+        val foreignDocumentId = UUID.randomUUID()
+        val actor = actor(Capability.ORG_AUDIT_READ)
+        whenever(exchangeRetrievalService.hasDocumentInExchange(exchangeId, foreignDocumentId)).thenReturn(false)
+        whenever(auditRecorder.record(any())).thenReturn(AuditCaptureResult.Captured(UUID.randomUUID(), UUID.randomUUID()))
+
+        assertThrows(AuditProjectionNotFoundException::class.java) {
+            service().listExchangeDocumentEvents(actor, organizationId, exchangeId, foreignDocumentId, null, 25)
+        }
+
+        verify(exchangeRetrievalService).hasDocumentInExchange(exchangeId, foreignDocumentId)
+        verify(ledgerRepository, never()).search(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
     }
 
     @Test

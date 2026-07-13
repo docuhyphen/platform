@@ -131,7 +131,11 @@ class AuditRecorder @Inject constructor(
             targetType = draft.targetType
             targetId = draft.targetId
             targetLabel = draft.targetLabel
-            organizationId = draft.organizationId ?: authTokenContext.activeOrganizationId
+            organizationId = when (val owner = draft.owner)
+            {
+                AuditOwnerScope.Platform -> null
+                is AuditOwnerScope.Organization -> owner.organizationId
+            }
             organizationLabel = draft.organizationLabel
             sessionId = draft.sessionId
             reason = draft.reason

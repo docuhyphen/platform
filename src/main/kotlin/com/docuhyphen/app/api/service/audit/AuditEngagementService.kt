@@ -12,6 +12,7 @@ import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import com.docuhyphen.app.api.service.auth.StepUpAuthService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
+import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import com.docuhyphen.app.api.service.organization.PrincipalGroupService
 import jakarta.enterprise.context.ApplicationScoped
@@ -29,6 +30,7 @@ class AuditEngagementService @Inject constructor(
     private val organizationService: OrganizationService,
     private val appUserService: AppUserService,
     private val organizationGroupService: OrganizationGroupService,
+    private val organizationMembershipService: OrganizationMembershipService,
     private val principalGroupService: PrincipalGroupService,
     private val stepUpAuthService: StepUpAuthService,
     private val auditRecorder: AuditRecorder,
@@ -76,11 +78,22 @@ class AuditEngagementService @Inject constructor(
         requireRecentStepUpIfSensitive(request.sensitivityLevel, request.exportPermitted, recentStepUpSatisfied)
         appUserService.getById(requestedByUserId) ?: throw IllegalArgumentException("Requester not found")
         request.organizationId?.let { organizationService.getOrganizationById(it) }
-        request.auditorUserId?.let {
-            appUserService.getById(it) ?: throw IllegalArgumentException("Auditor user not found")
+        request.auditorUserId?.let { auditorUserId ->
+            appUserService.getById(auditorUserId) ?: throw IllegalArgumentException("Auditor user not found")
+            request.organizationId?.let { organizationId ->
+                require(organizationMembershipService.isMember(auditorUserId, organizationId)) {
+                    "Auditor user does not belong to the engagement organization"
+                }
+            }
         }
-        request.principalGroupId?.let {
-            organizationGroupService.getById(it.toString()) ?: throw IllegalArgumentException("Principal group not found")
+        request.principalGroupId?.let { principalGroupId ->
+            val group = organizationGroupService.getById(principalGroupId.toString())
+                ?: throw IllegalArgumentException("Principal group not found")
+            request.organizationId?.let { organizationId ->
+                require(group.ownerOrganizationId == organizationId) {
+                    "Principal group does not belong to the engagement organization"
+                }
+            }
         }
 
         val now = Timestamp.from(Instant.now())
@@ -119,11 +132,12 @@ class AuditEngagementService @Inject constructor(
     @Transactional
     fun approveEngagement(
         engagementId: UUID,
+        expectedOrganizationId: UUID?,
         approvedByUserId: UUID,
         recentStepUpSatisfied: Boolean? = null,
     ): AuditEngagement
     {
-        val engagement = requireEngagement(engagementId)
+        val engagement = requireEngagement(engagementId, expectedOrganizationId)
         appUserService.getById(approvedByUserId) ?: throw IllegalArgumentException("Approver not found")
         require(engagement.status == AuditEngagementStatus.REQUESTED) {
             "Only REQUESTED engagements can be approved"
@@ -148,11 +162,12 @@ class AuditEngagementService @Inject constructor(
     @Transactional
     fun revokeEngagement(
         engagementId: UUID,
+        expectedOrganizationId: UUID?,
         revokedByUserId: UUID,
         recentStepUpSatisfied: Boolean? = null,
     ): AuditEngagement
     {
-        val engagement = requireEngagement(engagementId)
+        val engagement = requireEngagement(engagementId, expectedOrganizationId)
         appUserService.getById(revokedByUserId) ?: throw IllegalArgumentException("Revoker not found")
         require(engagement.status == AuditEngagementStatus.ACTIVE || engagement.status == AuditEngagementStatus.REQUESTED) {
             "Only REQUESTED or ACTIVE engagements can be revoked"
@@ -177,7 +192,7 @@ class AuditEngagementService @Inject constructor(
     @Transactional
     fun expireDue(now: Instant = Instant.now()): Int
     {
-        val expiring = auditEngagementRepository.findDueForExpiry(Timestamp.from(now))
+        val expiring = auditEngagementRepository.findDueForExpiryForUpdate(Timestamp.from(now))
         expiring.forEach { engagement ->
             engagement.status = AuditEngagementStatus.EXPIRED
             engagement.updatedAt = Timestamp.from(now)
@@ -199,11 +214,11 @@ class AuditEngagementService @Inject constructor(
         resourceId: String?,
         category: AuditCategory,
         requireSensitive: Boolean,
-        at: Instant,
         recentStepUpSatisfied: Boolean? = null,
         requestedRange: Duration? = null,
     ): EngagementAccess?
     {
+        val now = Instant.now()
         val groupIds = principalGroupService.getActiveGroupIdsForPrincipal(PrincipalKind.USER, principalUserId)
         val matches = auditEngagementRepository.findActiveForPrincipal(
             organizationId = organizationId,
@@ -211,20 +226,25 @@ class AuditEngagementService @Inject constructor(
             resourceId = resourceId,
             auditorUserId = principalUserId,
             principalGroupIds = groupIds,
-            now = Timestamp.from(at),
+            now = Timestamp.from(now),
         )
 
+        val stepUpSatisfied = recentStepUpSatisfied
+            ?: runCatching { stepUpAuthService.isFresh() }.getOrDefault(false)
         val access = matches
+            .filter { it.status == AuditEngagementStatus.ACTIVE }
+            .filter { !it.startsAt.toInstant().isAfter(now) && it.expiresAt.toInstant().isAfter(now) }
+            .filter { matchesRequestedResource(it, resourceType, resourceId) }
             .filter { category in parseCategories(it.categoriesCsv) }
             .filter { !requireSensitive || it.sensitivityLevel == AuditEngagementSensitivity.SENSITIVE }
-            .filter { requestedRange == null || it.maxQueryRangeDays == null || requestedRange.toDays() <= it.maxQueryRangeDays!!.toLong() }
+            .filter { it.sensitivityLevel != AuditEngagementSensitivity.SENSITIVE || stepUpSatisfied }
+            .filter {
+                requestedRange == null ||
+                    it.maxQueryRangeDays == null ||
+                    requestedRange <= Duration.ofDays(it.maxQueryRangeDays!!.toLong())
+            }
             .maxByOrNull { sensitivityRank(it.sensitivityLevel) }
             ?: return null
-
-        if (requireSensitive)
-        {
-            requireRecentStepUpIfSensitive(access.sensitivityLevel, access.exportPermitted, recentStepUpSatisfied)
-        }
 
         return EngagementAccess(
             engagementId = access.id,
@@ -235,9 +255,19 @@ class AuditEngagementService @Inject constructor(
         )
     }
 
-    private fun requireEngagement(engagementId: UUID): AuditEngagement =
-        auditEngagementRepository.findById(engagementId)
-            ?: throw IllegalArgumentException("Audit engagement not found")
+    fun listForOrganization(organizationId: UUID?): List<AuditEngagement> =
+        auditEngagementRepository.findByOrganization(organizationId)
+
+    private fun requireEngagement(engagementId: UUID, expectedOrganizationId: UUID?): AuditEngagement
+    {
+        val engagement = auditEngagementRepository.findById(engagementId)
+            ?: throw AuditEngagementNotFoundException()
+        if (engagement.organizationId != expectedOrganizationId)
+        {
+            throw AuditEngagementNotFoundException()
+        }
+        return engagement
+    }
 
     private fun validateRequest(request: AuditEngagementRequest)
     {
@@ -269,6 +299,17 @@ class AuditEngagementService @Inject constructor(
         }
     }
 
+    private fun matchesRequestedResource(
+        engagement: AuditEngagement,
+        resourceType: String?,
+        resourceId: String?,
+    ): Boolean
+    {
+        val engagementResourceType = engagement.resourceType ?: return true
+        return resourceType != null && resourceId != null &&
+            engagementResourceType == resourceType && engagement.resourceId == resourceId
+    }
+
     private fun parseCategories(csv: String): Set<AuditCategory> =
         csv.split(",")
             .mapNotNull { raw -> raw.trim().takeIf { it.isNotBlank() }?.let(AuditCategory::valueOf) }
@@ -297,7 +338,7 @@ class AuditEngagementService @Inject constructor(
                     actorId = actorId,
                     actorKind = if (actorId == null) AuditActorKind.SYSTEM else AuditActorKind.HUMAN,
                     actorRole = if (actorId == null) "SYSTEM" else "AUDIT_GOVERNANCE",
-                    organizationId = engagement.organizationId,
+                    owner = engagement.organizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
                     targetType = "AUDIT_ENGAGEMENT",
                     targetId = engagement.id.toString(),
                     targetLabel = engagement.caseReference?.let { "${engagement.purpose} ($it)" } ?: engagement.purpose,
@@ -325,3 +366,5 @@ class AuditEngagementService @Inject constructor(
         }
     }
 }
+
+class AuditEngagementNotFoundException : IllegalArgumentException("Audit engagement not found")

@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.extension.maskEmailForLogs
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.IdentityProviderLink
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
@@ -50,7 +51,7 @@ class OAuthUserLinkingService @Inject constructor(
 
         if (existingLink != null)
         {
-            logger.info("Found existing IDP link for provider={} sub={}", provider, userInfo.subjectId)
+            logger.info("Found existing IDP link for provider={}", provider)
             return LinkOrCreateResult(appUser = existingLink.appUser!!, isNewUser = false)
         }
 
@@ -70,7 +71,7 @@ class OAuthUserLinkingService @Inject constructor(
             }
 
             // User exists but no link for this provider,  needs password confirmation to link
-            logger.info("AppUser exists for email={}, requesting link confirmation", userInfo.email)
+            logger.info("AppUser exists for email={}, requesting link confirmation", userInfo.email.maskEmailForLogs())
 
             val linkToken = authenticationService.generateLinkToken(
                 email = userInfo.email,
@@ -87,7 +88,7 @@ class OAuthUserLinkingService @Inject constructor(
         }
 
         // No user exists,  create new AppUser
-        logger.info("Creating new AppUser for OAuth email={}", userInfo.email)
+        logger.info("Creating new AppUser for OAuth email={}", userInfo.email.maskEmailForLogs())
 
         // Enforce platform-managed organization user caps for JIT provisioning.
         organizationIdentityPolicyService.enforceUserCapForEmail(userInfo.email)
@@ -141,7 +142,7 @@ class OAuthUserLinkingService @Inject constructor(
         val existingLink = identityProviderLinkRepository.findByProviderAndExternalSubjectId(provider, externalSubjectId)
         if (existingLink != null)
         {
-            logger.warn("IDP link already exists for provider={} sub={}", provider, externalSubjectId)
+            logger.warn("IDP link already exists for provider={}", provider)
             return
         }
 

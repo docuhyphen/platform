@@ -14,6 +14,9 @@ export const useAuditWorkspaceStyles = makeStyles({
     scopeNote: {
         color: tokens.colorNeutralForeground3,
     },
+    scopeSelector: {
+        maxWidth: "220px",
+    },
     tabPanel: {
         display: "flex",
         flexDirection: "column",

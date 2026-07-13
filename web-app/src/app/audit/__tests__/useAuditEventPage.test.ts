@@ -121,4 +121,88 @@ describe("useAuditEventPage", () =>
         expect(result.current.error).toBe("boom");
         expect(result.current.items).toEqual([]);
     });
+
+    it("extracts the backend errorMessage when the fetch rejects with a ResponseError-shaped body, not an Error instance", async () =>
+    {
+        const fetchFn = vi.fn().mockRejectedValue({errorMessage: "Insufficient privileges", reasonCode: "FORBIDDEN"});
+
+        const {result} = renderHook(() => useAuditEventPage(fetchFn));
+
+        await waitFor(() => expect(result.current.loading).toBe(false));
+
+        expect(result.current.error).toBe("Insufficient privileges");
+    });
+
+    it("does not let a stale in-flight request overwrite a newer reset's results", async () =>
+    {
+        let resolveStale: (page: AuditEventPageDto) => void = () => {};
+        const stalePending = new Promise<AuditEventPageDto>((resolve) =>
+        {
+            resolveStale = resolve;
+        });
+        const freshPage: AuditEventPageDto = {items: [makeEvent("fresh")], nextCursor: null};
+        const fetchFn = vi.fn()
+            .mockReturnValueOnce(stalePending)
+            .mockResolvedValueOnce(freshPage);
+
+        const {result} = renderHook(() => useAuditEventPage(fetchFn));
+
+        act(() =>
+        {
+            result.current.reset();
+        });
+
+        await waitFor(() => expect(result.current.items).toEqual([makeEvent("fresh")]));
+
+        await act(async () =>
+        {
+            resolveStale({items: [makeEvent("stale")], nextCursor: null});
+            await Promise.resolve();
+        });
+
+        expect(result.current.items).toEqual([makeEvent("fresh")]);
+        expect(result.current.loading).toBe(false);
+    });
+
+    it("does not let a stale in-flight request overwrite a newer loadMore's results", async () =>
+    {
+        const firstPage: AuditEventPageDto = {
+            items: [makeEvent("e1")],
+            nextCursor: {occurredAt: "2024-01-01T00:00:00Z", eventId: "e1"},
+        };
+        let resolveStaleMore: (page: AuditEventPageDto) => void = () => {};
+        const staleMorePending = new Promise<AuditEventPageDto>((resolve) =>
+        {
+            resolveStaleMore = resolve;
+        });
+        const freshResetPage: AuditEventPageDto = {items: [makeEvent("reset-1")], nextCursor: null};
+        const fetchFn = vi.fn()
+            .mockResolvedValueOnce(firstPage)
+            .mockReturnValueOnce(staleMorePending)
+            .mockResolvedValueOnce(freshResetPage);
+
+        const {result} = renderHook(() => useAuditEventPage(fetchFn));
+
+        await waitFor(() => expect(result.current.loading).toBe(false));
+
+        act(() =>
+        {
+            result.current.loadMore();
+        });
+
+        act(() =>
+        {
+            result.current.reset();
+        });
+
+        await waitFor(() => expect(result.current.items).toEqual([makeEvent("reset-1")]));
+
+        await act(async () =>
+        {
+            resolveStaleMore({items: [makeEvent("e1"), makeEvent("stale-more")], nextCursor: null});
+            await Promise.resolve();
+        });
+
+        expect(result.current.items).toEqual([makeEvent("reset-1")]);
+    });
 });

@@ -6,6 +6,7 @@ import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import jakarta.persistence.Version
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
@@ -108,4 +109,17 @@ class AuditExport
 
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Timestamp = Timestamp.from(Instant.now())
+
+    /** Identifies the application node currently holding the build-claim lease. Meaningful only while [status] is `BUILDING`. */
+    @Column(name = "build_worker_id", length = 128)
+    var buildWorkerId: String? = null
+
+    /** Expiry of the current build-claim lease. A null or past value means the export is unclaimed and eligible to be claimed. */
+    @Column(name = "build_lease_expires_at")
+    var buildLeaseExpiresAt: Timestamp? = null
+
+    /** JPA optimistic-lock version: bumped on every update, so a transaction holding a stale read fails to commit over a newer state. */
+    @Version
+    @Column(name = "version", nullable = false)
+    var version: Int = 0
 }

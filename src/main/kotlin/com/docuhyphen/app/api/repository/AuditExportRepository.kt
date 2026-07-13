@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.repository
 import com.docuhyphen.app.api.model.entity.AuditExport
 import com.docuhyphen.app.api.model.entity.AuditExportStatus
 import jakarta.enterprise.context.RequestScoped
+import jakarta.persistence.LockModeType
 import java.sql.Timestamp
 import java.util.UUID
 
@@ -27,19 +28,26 @@ class AuditExportRepository : BaseRepository<AuditExport>(AuditExport::class.jav
         return query.resultList
     }
 
-    /** Exports awaiting build, oldest first, so a backlog is worked in request order. */
-    fun findByStatus(status: AuditExportStatus, limit: Int = 50): List<AuditExport>
+    /**
+     * `BUILDING` exports eligible to be claimed for an archive build, oldest first: those with no
+     * build-claim lease yet, or whose lease has expired (a node died mid-build). Does not itself
+     * lock or claim anything - the caller must lock and re-check each candidate before acting on it.
+     */
+    fun findDueForBuilding(now: Timestamp, limit: Int = 50): List<AuditExport>
     {
         return entityManager.createQuery(
-            "SELECT e FROM AuditExport e WHERE e.status = :status ORDER BY e.updatedAt ASC",
+            """SELECT e FROM AuditExport e
+               WHERE e.status = :status AND (e.buildLeaseExpiresAt IS NULL OR e.buildLeaseExpiresAt <= :now)
+               ORDER BY e.updatedAt ASC""",
             AuditExport::class.java,
         )
-            .setParameter("status", status)
+            .setParameter("status", AuditExportStatus.BUILDING)
+            .setParameter("now", now)
             .setMaxResults(limit)
             .resultList
     }
 
-    fun findDueForExpiry(now: Timestamp, limit: Int = 100): List<AuditExport>
+    fun findDueForExpiryForUpdate(now: Timestamp, limit: Int = 100): List<AuditExport>
     {
         return entityManager.createQuery(
             """SELECT e FROM AuditExport e
@@ -48,6 +56,7 @@ class AuditExportRepository : BaseRepository<AuditExport>(AuditExport::class.jav
         )
             .setParameter("status", AuditExportStatus.READY)
             .setParameter("now", now)
+            .setLockMode(LockModeType.PESSIMISTIC_WRITE)
             .setMaxResults(limit)
             .resultList
     }

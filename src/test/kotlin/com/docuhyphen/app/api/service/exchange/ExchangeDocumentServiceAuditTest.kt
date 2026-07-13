@@ -35,8 +35,7 @@ import java.io.File
 import java.util.UUID
 
 /**
- * Phase 3 gate (AUDIT-ARCHITECTURE-IMPLEMENTATION.md, "a document download ... produce[s]
- * exactly one ledger event with correct actor kind"): [ExchangeDocumentService.downloadDocument]
+ * Verifies that [ExchangeDocumentService.downloadDocument]
  * must call [AuditRecorder.record] exactly once with DOCUMENT_DOWNLOAD/EXCHANGE/HUMAN, and must
  * never let an [AuditRecorder] failure break the actual file download response.
  */

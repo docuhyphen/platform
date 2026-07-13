@@ -174,6 +174,55 @@ class ApplicationCapabilityGrantTest
     }
 
     @Test
+    fun `organization audit grant is limited to the application owning organization`()
+    {
+        val foreignOrganizationId = UUID.randomUUID()
+        val application = acmeClm(grantedCapabilitiesJson = """["ORG_AUDIT_READ"]""")
+        `when`(applicationService.findActive(clmAppId)).thenReturn(application)
+        val principal = PrincipalRef.application(clmAppId)
+        val context = AuthorizationContext(applicationId = clmAppId)
+
+        val ownOrganizationDecision = service.authorize(
+            principal,
+            Action.ORG_READ_AUDIT,
+            ResourceRef.organization(acmeOrgId),
+            context,
+        )
+        val foreignOrganizationDecision = service.authorize(
+            principal,
+            Action.ORG_READ_AUDIT,
+            ResourceRef.organization(foreignOrganizationId),
+            context,
+        )
+
+        assertTrue(ownOrganizationDecision.isAllowed)
+        assertFalse(foreignOrganizationDecision.isAllowed) {
+            "An application capability grant must not cross its owning organization boundary"
+        }
+    }
+
+    @Test
+    fun `organization-owned application cannot use a platform audit grant`()
+    {
+        val application = acmeClm(grantedCapabilitiesJson = """["APP_AUDIT_READ"]""")
+        `when`(applicationService.findActive(clmAppId)).thenReturn(application)
+        val principal = PrincipalRef.application(clmAppId)
+        val context = AuthorizationContext(applicationId = clmAppId)
+        val platformAuditResource = ResourceRef(ResourceType.APPLICATION, UUID(0, 0))
+
+        val decision = service.authorize(
+            principal,
+            Action.APP_READ_AUDIT,
+            platformAuditResource,
+            context,
+        )
+
+        assertFalse(decision.isAllowed) {
+            "An organization-owned application must not gain platform audit access"
+        }
+    }
+
+    @Test
     fun `inactive application receives no capabilities`()
     {
         `when`(applicationService.findActive(clmAppId)).thenReturn(null)

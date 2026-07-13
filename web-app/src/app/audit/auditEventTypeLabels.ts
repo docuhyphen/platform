@@ -127,7 +127,6 @@ const auditEventTypeLabels: Record<string, string> = {
     "archive.segment.closed": "Audit archive segment closed",
     "archive.integrity.verified": "Audit archive integrity verified",
     "archive.integrity.failed": "Audit archive integrity check failed",
-    "archive.legacy_event.imported": "Historical audit record imported",
 
     // Audit governance: engagements, search, exports, integrity, retention/legal hold.
     "audit.engagement.requested": "Audit engagement requested",

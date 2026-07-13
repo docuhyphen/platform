@@ -80,32 +80,90 @@ class LedgerProcessor @Inject constructor(
          * separately per the architecture's `eventHash = sha256(canonicalEvent || sequence ||
          * prevHash)` formula).
          */
-        fun canonicalize(entry: AuditOutboxEntry, streamId: String, actorKind: String): String
+        fun canonicalize(entry: AuditOutboxEntry, streamId: String, actorKind: String): String = canonicalEnvelopeJson(
+            eventId = entry.eventId.toString(),
+            eventTypeKey = entry.eventTypeKey,
+            category = entry.category,
+            outcome = entry.outcome,
+            schemaVersion = entry.catalogVersion,
+            occurredAt = entry.occurredAt.toInstant().toString(),
+            recordedAt = entry.recordedAt.toInstant().toString(),
+            streamId = streamId,
+            actorKind = actorKind,
+            actorId = entry.actorId?.toString(),
+            actorRole = entry.actorRole,
+            actorLabel = entry.actorLabel,
+            sessionId = entry.sessionId,
+            serverTraceId = entry.serverTraceId,
+            correlationId = entry.correlationId,
+            causationId = entry.causationId,
+            organizationId = entry.organizationId?.toString(),
+            organizationLabel = entry.organizationLabel,
+            targetType = entry.targetType,
+            targetId = entry.targetId,
+            targetLabel = entry.targetLabel,
+            reason = entry.reason,
+            payloadJson = entry.payloadJson,
+        )
+
+        /**
+         * Builds the same canonical envelope JSON as [canonicalize], but from raw field values
+         * rather than an [AuditOutboxEntry]. This is the one canonical serializer shared by
+         * ledger append ([canonicalize]) and archive verification
+         * ([com.docuhyphen.app.api.service.audit.archive.AuditArchiveVerifier]), so a re-downloaded
+         * archived record can have its [computeHash] independently recomputed and compared against
+         * the hash it was archived with, instead of that hash being trusted at face value.
+         */
+        fun canonicalEnvelopeJson(
+            eventId: String,
+            eventTypeKey: String,
+            category: String,
+            outcome: String,
+            schemaVersion: Int,
+            occurredAt: String,
+            recordedAt: String,
+            streamId: String,
+            actorKind: String,
+            actorId: String?,
+            actorRole: String?,
+            actorLabel: String?,
+            sessionId: String?,
+            serverTraceId: String?,
+            correlationId: String?,
+            causationId: String?,
+            organizationId: String?,
+            organizationLabel: String?,
+            targetType: String?,
+            targetId: String?,
+            targetLabel: String?,
+            reason: String?,
+            payloadJson: String,
+        ): String
         {
             val envelope = CanonicalLedgerEnvelope(
-                eventId = entry.eventId.toString(),
-                eventTypeKey = entry.eventTypeKey,
-                category = entry.category,
-                outcome = entry.outcome,
-                schemaVersion = entry.catalogVersion,
-                occurredAt = entry.occurredAt.toInstant().toString(),
-                recordedAt = entry.recordedAt.toInstant().toString(),
+                eventId = eventId,
+                eventTypeKey = eventTypeKey,
+                category = category,
+                outcome = outcome,
+                schemaVersion = schemaVersion,
+                occurredAt = occurredAt,
+                recordedAt = recordedAt,
                 streamId = streamId,
                 actorKind = actorKind,
-                actorId = entry.actorId?.toString(),
-                actorRole = entry.actorRole,
-                actorLabel = entry.actorLabel,
-                sessionId = entry.sessionId,
-                serverTraceId = entry.serverTraceId,
-                correlationId = entry.correlationId,
-                causationId = entry.causationId,
-                organizationId = entry.organizationId?.toString(),
-                organizationLabel = entry.organizationLabel,
-                targetType = entry.targetType,
-                targetId = entry.targetId,
-                targetLabel = entry.targetLabel,
-                reason = entry.reason,
-                payloadJson = entry.payloadJson,
+                actorId = actorId,
+                actorRole = actorRole,
+                actorLabel = actorLabel,
+                sessionId = sessionId,
+                serverTraceId = serverTraceId,
+                correlationId = correlationId,
+                causationId = causationId,
+                organizationId = organizationId,
+                organizationLabel = organizationLabel,
+                targetType = targetType,
+                targetId = targetId,
+                targetLabel = targetLabel,
+                reason = reason,
+                payloadJson = payloadJson,
             )
             return Json.encodeToString(CanonicalLedgerEnvelope.serializer(), envelope)
         }
@@ -174,15 +232,15 @@ class LedgerProcessor @Inject constructor(
     @Transactional
     open fun appendOne(entry: AuditOutboxEntry): Boolean
     {
-        // Re-check inside the transaction: the drain()-level check above is a fast pre-filter,
-        // this is the authoritative guard (backed by the event_id unique constraint).
+        val streamId = resolveStreamId(entry)
+        val streamHead = streamHeadRepository.lockOrCreate(streamId)
+
+        // The stream-head lock serializes duplicate checks with concurrent appenders for this
+        // stream, while the event_id unique constraint remains the final database guard.
         if (auditLedgerEventRepository.existsByEventId(entry.eventId))
         {
             return false
         }
-
-        val streamId = resolveStreamId(entry)
-        val streamHead = streamHeadRepository.lockOrCreate(streamId)
 
         val nextSequence = streamHead.lastSequence + 1
         val actorKind = resolveActorKind(entry)

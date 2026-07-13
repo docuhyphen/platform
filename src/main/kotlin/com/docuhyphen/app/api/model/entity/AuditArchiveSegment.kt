@@ -22,6 +22,11 @@ import java.util.UUID
 @Table(name = "audit_archive_segment")
 class AuditArchiveSegment
 {
+    companion object
+    {
+        const val CURRENT_FORMAT_VERSION = 2
+    }
+
     @Id
     var id: UUID = UUID.randomUUID()
 
@@ -36,6 +41,9 @@ class AuditArchiveSegment
 
     @Column(name = "event_count", nullable = false)
     var eventCount: Int = 0
+
+    @Column(name = "format_version", nullable = false)
+    var formatVersion: Int = CURRENT_FORMAT_VERSION
 
     @Column(name = "merkle_root", nullable = false, length = 128)
     lateinit var merkleRoot: String
@@ -70,10 +78,6 @@ class AuditArchiveSegment
 
     @Column(name = "last_verification_note", length = 2048)
     var lastVerificationNote: String? = null
-
-    /** True only for segments produced by the one-time legacy-row importer; see migration header. */
-    @Column(name = "legacy_import", nullable = false)
-    var legacyImport: Boolean = false
 
     @Column(name = "created_at", nullable = false)
     var createdAt: Timestamp = Timestamp.from(Instant.now())

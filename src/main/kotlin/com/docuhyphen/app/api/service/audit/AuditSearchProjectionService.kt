@@ -78,9 +78,9 @@ class AuditSearchProjectionService @Inject constructor(
     companion object
     {
         private val logger = LoggerFactory.getLogger(AuditSearchProjectionService::class.java)
+        private val defaultEngagementQueryRange = Duration.ofDays(30)
         private val payloadSerializer = MapSerializer(String.serializer(), String.serializer())
         private val safePayloadKeys = setOf(
-            "legacyoutcome",
             "reasoncode",
             "documenttitle",
             "workflowname",
@@ -268,6 +268,8 @@ class AuditSearchProjectionService @Inject constructor(
         categories: Set<AuditCategory>,
         cursor: AuditProjectionCursor?,
         limit: Int,
+        occurredAfter: Instant? = null,
+        occurredBefore: Instant? = null,
     ): AuditProjectionPage = searchEvents(
         actor = actor,
         organizationId = null,
@@ -278,8 +280,8 @@ class AuditSearchProjectionService @Inject constructor(
         actorIdFilter = null,
         cursor = cursor,
         limit = limit,
-        occurredAfter = null,
-        occurredBefore = null,
+        occurredAfter = occurredAfter,
+        occurredBefore = occurredBefore,
         auditTargetType = "PLATFORM",
         auditTargetId = "platform",
     )
@@ -365,33 +367,69 @@ class AuditSearchProjectionService @Inject constructor(
         requireEngagement: Boolean = shouldRequireEngagement(actor, organizationId, platformOnly),
     ): AuditProjectionPage
     {
-        val requestedRange = if (occurredAfter != null && occurredBefore != null) Duration.between(occurredAfter, occurredBefore) else null
-        val events = auditLedgerEventRepository.search(
-            organizationId = organizationId,
-            platformOnly = platformOnly,
-            categories = categories.map { it.name }.toSet(),
-            targetTypes = targetTypes,
-            targetIds = targetIds,
-            actorId = actorIdFilter,
-            occurredAfter = occurredAfter?.let(Timestamp::from),
-            occurredBefore = occurredBefore?.let(Timestamp::from),
-            cursorOccurredAt = cursor?.occurredAt?.let(Timestamp::from),
-            cursorEventId = cursor?.eventId,
-            limit = limit,
-        )
+        if (requireEngagement)
+        {
+            require((occurredAfter == null) == (occurredBefore == null)) {
+                "Both occurredAfter and occurredBefore are required for an engagement-constrained search"
+            }
+        }
+        if (occurredAfter != null && occurredBefore != null)
+        {
+            require(occurredBefore.isAfter(occurredAfter)) {
+                "occurredBefore must be later than occurredAfter"
+            }
+        }
 
-        val visible = events.mapNotNull { event ->
-            resolveVisibleEvent(
-                actor = actor,
+        val defaultRangeEnd = if (requireEngagement && occurredAfter == null) Instant.now() else null
+        val effectiveOccurredAfter = occurredAfter ?: defaultRangeEnd?.minus(defaultEngagementQueryRange)
+        val effectiveOccurredBefore = occurredBefore ?: defaultRangeEnd
+        val requestedRange = if (effectiveOccurredAfter != null && effectiveOccurredBefore != null)
+        {
+            Duration.between(effectiveOccurredAfter, effectiveOccurredBefore)
+        }
+        else
+        {
+            null
+        }
+        val visible = mutableListOf<AuditProjectionEvent>()
+        var rawCursor = cursor
+        var lastRawEvent: AuditLedgerEvent? = null
+        var rawResultsExhausted = false
+        while (visible.size < limit && !rawResultsExhausted)
+        {
+            val events = auditLedgerEventRepository.search(
                 organizationId = organizationId,
                 platformOnly = platformOnly,
-                event = event,
-                auditTargetType = auditTargetType,
-                auditTargetId = auditTargetId,
-                requestedRange = requestedRange,
-                requireEngagement = requireEngagement,
-                recordView = false,
+                categories = categories.map { it.name }.toSet(),
+                targetTypes = targetTypes,
+                targetIds = targetIds,
+                actorId = actorIdFilter,
+                occurredAfter = effectiveOccurredAfter?.let(Timestamp::from),
+                occurredBefore = effectiveOccurredBefore?.let(Timestamp::from),
+                cursorOccurredAt = rawCursor?.occurredAt?.let(Timestamp::from),
+                cursorEventId = rawCursor?.eventId,
+                limit = limit,
             )
+            rawResultsExhausted = events.size < limit
+
+            for (event in events)
+            {
+                lastRawEvent = event
+                resolveVisibleEvent(
+                    actor = actor,
+                    organizationId = organizationId,
+                    platformOnly = platformOnly,
+                    event = event,
+                    auditTargetType = auditTargetType,
+                    auditTargetId = auditTargetId,
+                    requestedRange = requestedRange,
+                    requireEngagement = requireEngagement,
+                    recordView = false,
+                )?.let(visible::add)
+                if (visible.size == limit) break
+            }
+
+            rawCursor = lastRawEvent?.let { AuditProjectionCursor(it.occurredAt.toInstant(), it.eventId) }
         }
 
         recordAuditActivity(
@@ -409,16 +447,16 @@ class AuditSearchProjectionService @Inject constructor(
             reason = "Searched the audit trail",
         )
 
-        val nextCursor = visible.lastOrNull()?.let {
+        val nextCursor = lastRawEvent?.let {
             AuditProjectionCursor(
-                occurredAt = it.occurredAt,
+                occurredAt = it.occurredAt.toInstant(),
                 eventId = it.eventId,
             )
         }
 
         return AuditProjectionPage(
             items = visible,
-            nextCursor = if (visible.size == limit) nextCursor else null,
+            nextCursor = if (visible.size == limit || !rawResultsExhausted) nextCursor else null,
         )
     }
 
@@ -444,7 +482,6 @@ class AuditSearchProjectionService @Inject constructor(
                 resourceId = event.targetId,
                 category = category,
                 requireSensitive = false,
-                at = event.occurredAt.toInstant(),
                 recentStepUpSatisfied = actor.context.mfaSatisfied,
                 requestedRange = requestedRange,
             )
@@ -481,15 +518,15 @@ class AuditSearchProjectionService @Inject constructor(
             streamId = event.streamId,
             streamSequence = event.streamSequence,
             actorKind = event.actorKind,
-            actorId = event.actorId,
-            actorRole = event.actorRole,
-            actorLabel = event.actorLabel,
+            actorId = event.actorId.takeIf { canViewSensitive },
+            actorRole = event.actorRole.takeIf { canViewSensitive },
+            actorLabel = event.actorLabel.takeIf { canViewSensitive },
             organizationId = event.organizationId,
             organizationLabel = event.organizationLabel,
             targetType = event.targetType,
             targetId = event.targetId,
-            targetLabel = event.targetLabel,
-            reason = event.reason,
+            targetLabel = event.targetLabel.takeIf { canViewSensitive },
+            reason = event.reason.takeIf { canViewSensitive },
             payload = redactPayload(parsePayload(event.payloadJson), canViewSensitive),
             eventHash = event.eventHash,
             prevHash = event.prevHash,
@@ -517,18 +554,7 @@ class AuditSearchProjectionService @Inject constructor(
         actor: AuditAccessActor,
         organizationId: UUID?,
         platformOnly: Boolean,
-    ): Boolean
-    {
-        if (platformOnly || organizationId == null)
-        {
-            return false
-        }
-        if (Capability.APP_ADMIN in actor.capabilities)
-        {
-            return false
-        }
-        return Capability.ORG_POLICY_MANAGE !in actor.capabilities
-    }
+    ): Boolean = requiresEngagementAccess(actor.capabilities, organizationId, platformOnly)
 
     private fun canViewSensitive(
         actor: AuditAccessActor,
@@ -582,7 +608,7 @@ class AuditSearchProjectionService @Inject constructor(
                     actorId = actor.principal.id,
                     actorKind = AuditActorKind.HUMAN,
                     actorRole = "AUDIT_READER",
-                    organizationId = organizationId,
+                    owner = organizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
                     targetType = targetType,
                     targetId = targetId,
                     targetLabel = targetLabel,

@@ -158,6 +158,50 @@ describe("AuditEventDetail", () =>
         await waitFor(() => expect(writeText).toHaveBeenCalledWith("User - Member, user-1"));
     });
 
+    it("copies the target type and id, comma-separated, when the target copy button is clicked", async () =>
+    {
+        const writeText = vi.fn().mockResolvedValue(undefined);
+        Object.assign(navigator, {clipboard: {writeText}});
+
+        render(
+            <AuditEventDetail
+                event={{
+                    ...event,
+                    targetType: "USER",
+                    targetId: "user-2",
+                }}
+                open={true}
+                onDismiss={vi.fn()}
+            />
+        );
+
+        const copyButton = document.getElementById("button-audit-event-detail-target-copy") as HTMLButtonElement;
+        fireEvent.click(copyButton);
+
+        await waitFor(() => expect(writeText).toHaveBeenCalledWith("User, user-2"));
+    });
+
+    it("falls back to the execCommand copy path without throwing when the Clipboard API rejects", async () =>
+    {
+        const writeText = vi.fn().mockRejectedValue(new Error("denied"));
+        Object.assign(navigator, {clipboard: {writeText}});
+        const execCommand = vi.fn().mockReturnValue(true);
+        Object.assign(document, {execCommand});
+
+        render(
+            <AuditEventDetail
+                event={event}
+                open={true}
+                onDismiss={vi.fn()}
+            />
+        );
+
+        const copyButton = document.getElementById("button-audit-event-detail-actor-copy") as HTMLButtonElement;
+        fireEvent.click(copyButton);
+
+        await waitFor(() => expect(execCommand).toHaveBeenCalledWith("copy"));
+    });
+
     it("never renders the raw actor or target id as visible text", () =>
     {
         render(

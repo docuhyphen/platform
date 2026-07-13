@@ -18,6 +18,6 @@ interface AuditArchiveSigningKeyProvider
     /** Verifies [signature] over [data] against the key identified by [keyId] (may differ from the currently-active key for older segments). */
     fun verify(data: ByteArray, signature: ByteArray, keyId: String): Boolean
 
-    /** PEM-encoded public key for the currently active key, for the offline verifier tool. */
+    /** PEM-encoded public key for the currently active key, used for independent signature verification. */
     fun activePublicKeyPem(): String
 }

@@ -14,11 +14,11 @@ import org.slf4j.LoggerFactory
  * synchronously from tests or an admin action without waiting for the next tick.
  */
 @ApplicationScoped
-class LedgerProcessorScheduler
+class LedgerProcessorScheduler @Inject constructor(
+    private val ledgerProcessor: LedgerProcessor,
+)
 {
     private val logger = LoggerFactory.getLogger(LedgerProcessorScheduler::class.java)
-
-    @Inject private lateinit var ledgerProcessor: LedgerProcessor
 
     @Scheduled(
         every = "\${app.audit.ledger.drain-every:15s}",

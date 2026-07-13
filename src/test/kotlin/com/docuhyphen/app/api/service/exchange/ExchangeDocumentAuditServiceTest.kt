@@ -3,17 +3,15 @@ package com.docuhyphen.app.api.service.exchange
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AuditLedgerEvent
 import com.docuhyphen.app.api.model.entity.Document
-import com.docuhyphen.app.api.model.entity.DocumentAuditLogAction
+import com.docuhyphen.app.api.model.entity.DocumentAuditAction
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.repository.AuditLedgerEventRepository
-import com.docuhyphen.app.api.repository.DocumentAuditRepository
-import com.docuhyphen.app.api.repository.ExchangeDocumentRepository
 import com.docuhyphen.app.api.repository.ExchangeRepository
 import com.docuhyphen.app.api.service.audit.AuditCaptureResult
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
-import jakarta.persistence.EntityManager
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
@@ -25,11 +23,9 @@ import java.sql.Timestamp
 import java.util.UUID
 
 /**
- * Phase 3 gate (AUDIT-ARCHITECTURE-IMPLEMENTATION.md, "Replace DocumentAuditLog writes with
- * recorder capture" and "compatibility projection"): [ExchangeDocumentAuditService.logAction]
- * dual-writes onto [AuditRecorder] alongside the legacy `audit_log` table, and
+ * [ExchangeDocumentAuditService.logAction] writes onto [AuditRecorder], and
  * [ExchangeDocumentAuditService.getExchangeAuditEvents] backs the Exchange audit tab with one
- * ledger query across every document instead of one legacy-table query per document.
+ * ledger query across every document.
  */
 class ExchangeDocumentAuditServiceTest
 {
@@ -39,34 +35,48 @@ class ExchangeDocumentAuditServiceTest
         exchangeRepository: ExchangeRepository = mock(),
     ): ExchangeDocumentAuditService
     {
-        val entityManager = mock<EntityManager>()
-        whenever(entityManager.merge(any<AppUser>())).thenAnswer { it.getArgument(0) }
-
         return ExchangeDocumentAuditService(
             exchangeRepository,
-            mock<ExchangeDocumentRepository>(),
-            mock<DocumentAuditRepository>(),
-            entityManager,
             auditRecorder,
             auditLedgerEventRepository,
         )
     }
 
     @Test
-    fun `logAction dual-writes onto AuditRecorder with the mapped event type`()
+    fun `logAction writes onto AuditRecorder with the mapped event type`()
     {
         val auditRecorder = mock<AuditRecorder>()
         whenever(auditRecorder.record(any())).thenReturn(AuditCaptureResult.Captured(UUID.randomUUID(), UUID.randomUUID()))
         val service = service(auditRecorder = auditRecorder)
 
         val document = Document().apply { title = "Contract.pdf" }
-        service.logAction(document, DocumentAuditLogAction.UPLOAD, "recipient@example.com")
+        service.logAction(document, DocumentAuditAction.UPLOAD, "recipient@example.com")
 
         val captor = argumentCaptor<AuditEventDraft>()
         verify(auditRecorder).record(captor.capture())
         assertEquals(AuditEventType.DOCUMENT_UPLOAD.key, captor.firstValue.eventTypeKey)
         assertEquals(document.id.toString(), captor.firstValue.targetId)
         assertEquals("Contract.pdf", captor.firstValue.payload["document_title"])
+    }
+
+    @Test
+    fun `logAction uses the owning Exchange organization without request organization context`()
+    {
+        val organizationId = UUID.randomUUID()
+        val document = Document().apply { title = "Contract.pdf" }
+        val exchangeRepository = mock<ExchangeRepository>()
+        whenever(exchangeRepository.findByDocumentId(document.id)).thenReturn(
+            Exchange().apply { ownerOrganizationId = organizationId }
+        )
+        val auditRecorder = mock<AuditRecorder>()
+        whenever(auditRecorder.record(any())).thenReturn(AuditCaptureResult.Captured(UUID.randomUUID(), UUID.randomUUID()))
+
+        service(auditRecorder = auditRecorder, exchangeRepository = exchangeRepository)
+            .logAction(document, DocumentAuditAction.VIEW, "recipient@example.com")
+
+        val captor = argumentCaptor<AuditEventDraft>()
+        verify(auditRecorder).record(captor.capture())
+        assertEquals(AuditOwnerScope.Organization(organizationId), captor.firstValue.owner)
     }
 
     @Test

@@ -224,9 +224,6 @@ class ConfigurationService @Inject constructor(
     fun getApplicationTokenServiceScope(): String = oauthConfig.getApplicationTokenServiceScope()
     fun getApplicationTokenAllowedEndpointPrefixes(): Set<String> = oauthConfig.getApplicationTokenAllowedEndpointPrefixes()
 
-    fun isAuditImmutableEnabled(): Boolean = oauthConfig.isAuditImmutableEnabled()
-    fun isAuditWormSinkEnabled(): Boolean = oauthConfig.isAuditWormSinkEnabled()
-    fun getAuditWormDirectory(): String = oauthConfig.getAuditWormDirectory()
 
     fun getScimBearerToken(): String = oauthConfig.getScimBearerToken()
     fun getDirectoryLookupMaxResults(): Int = oauthConfig.getDirectoryLookupMaxResults()

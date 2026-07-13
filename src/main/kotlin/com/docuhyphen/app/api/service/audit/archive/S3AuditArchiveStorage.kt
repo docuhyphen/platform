@@ -9,6 +9,7 @@ import software.amazon.awssdk.core.sync.ResponseTransformer
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import java.io.ByteArrayOutputStream
@@ -89,6 +90,28 @@ class S3AuditArchiveStorage @Inject constructor(
             {
                 if (e.statusCode() == 404) false else throw e
             }
+        }
+    }
+
+    override fun listKeysWithPrefix(prefix: String): List<String>
+    {
+        return withClient { client ->
+            val keys = mutableListOf<String>()
+            var continuationToken: String? = null
+            do
+            {
+                val response = client.listObjectsV2(
+                    ListObjectsV2Request.builder()
+                        .bucket(configService.getBucket())
+                        .prefix(prefix)
+                        .continuationToken(continuationToken)
+                        .build(),
+                )
+                keys += response.contents().map { it.key() }
+                continuationToken = if (response.isTruncated) response.nextContinuationToken() else null
+            }
+            while (continuationToken != null)
+            keys
         }
     }
 

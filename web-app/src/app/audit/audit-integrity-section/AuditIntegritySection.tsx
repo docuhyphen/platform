@@ -1,9 +1,10 @@
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {Badge, Button, Spinner, Text} from "@fluentui/react-components";
 import {ArrowClockwiseRegular} from "@fluentui/react-icons";
 import {AuditOrganizationIntegrityDto} from "../../models/models.tsx";
 import {getOrganizationAuditIntegrity, getPlatformAuditIntegrity} from "../../../services/auditService.ts";
 import {AuditScope} from "../auditScope.ts";
+import {normalizeApiError} from "../../../utils/apiErrorUtils.ts";
 import {useAuditIntegritySectionStyles} from "./AuditIntegritySectionStyles.tsx";
 
 interface AuditIntegritySectionProps
@@ -22,9 +23,13 @@ const AuditIntegritySection = (
     const [report, setReport] = useState<AuditOrganizationIntegrityDto | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    // Bumped on every load() call so a response from a superseded scope switch can detect it is
+    // stale and discard itself instead of overwriting state a newer request already populated.
+    const requestGenerationRef = useRef(0);
 
     const load = useCallback(async () =>
     {
+        const generation = ++requestGenerationRef.current;
         setLoading(true);
         setError(null);
 
@@ -33,16 +38,26 @@ const AuditIntegritySection = (
             const result = scope.kind === "organization"
                 ? await getOrganizationAuditIntegrity(scope.organizationId)
                 : await getPlatformAuditIntegrity();
+            if (generation !== requestGenerationRef.current)
+            {
+                return;
+            }
             setReport(result);
         }
         catch (err: unknown)
         {
-            const message = err instanceof Error ? err.message : "Failed to load integrity report.";
-            setError(message);
+            if (generation !== requestGenerationRef.current)
+            {
+                return;
+            }
+            setError(normalizeApiError(err, "Failed to load integrity report.").message);
         }
         finally
         {
-            setLoading(false);
+            if (generation === requestGenerationRef.current)
+            {
+                setLoading(false);
+            }
         }
     }, [scope]);
 

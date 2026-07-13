@@ -114,6 +114,7 @@ class AuditIdentityVaultService @Inject constructor(
         {
             auditRecorder.record(
                 AuditEventDraft(
+                    owner = AuditOwnerScope.Platform,
                     eventTypeKey = AuditEventType.AUDIT_IDENTITY_KEY_SHREDDED.key,
                     outcome = AuditOutcome.SUCCESS,
                     actorId = actorId,

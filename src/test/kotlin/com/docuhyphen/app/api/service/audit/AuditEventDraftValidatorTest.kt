@@ -16,6 +16,7 @@ class AuditEventDraftValidatorTest
     fun `accepts a draft with a known event type and clean payload`()
     {
         val draft = AuditEventDraft(
+            owner = AuditOwnerScope.Platform,
             eventTypeKey = AuditEventType.DOCUMENT_DOWNLOAD.key,
             outcome = AuditOutcome.SUCCESS,
             payload = mapOf("documentId" to "abc-123", "versionLabel" to "v3"),
@@ -31,6 +32,7 @@ class AuditEventDraftValidatorTest
     fun `rejects a draft referencing an unknown event type key`()
     {
         val draft = AuditEventDraft(
+            owner = AuditOwnerScope.Platform,
             eventTypeKey = "does.not.exist",
             outcome = AuditOutcome.SUCCESS,
         )
@@ -46,6 +48,7 @@ class AuditEventDraftValidatorTest
     fun `rejects a draft whose payload contains a prohibited key`()
     {
         val draft = AuditEventDraft(
+            owner = AuditOwnerScope.Platform,
             eventTypeKey = AuditEventType.SIGN_IN_COMPLETION.key,
             outcome = AuditOutcome.SUCCESS,
             payload = mapOf("password" to "hunter2"),
@@ -62,6 +65,7 @@ class AuditEventDraftValidatorTest
     fun `rejects a draft whose payload contains a prohibited key regardless of casing or separators`()
     {
         val draft = AuditEventDraft(
+            owner = AuditOwnerScope.Platform,
             eventTypeKey = AuditEventType.OAUTH_CALLBACK.key,
             outcome = AuditOutcome.SUCCESS,
             payload = mapOf("Access-Token" to "abc.def.ghi"),

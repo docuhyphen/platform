@@ -93,7 +93,7 @@ class GoogleIdentityProvider @Inject constructor(
 
         if (response.statusCode() != 200)
         {
-            logger.error("Google token exchange failed: ${response.body()}")
+            logger.error("Google token exchange failed with status={}", response.statusCode())
             throw RuntimeException("Failed to exchange code with Google")
         }
 

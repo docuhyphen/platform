@@ -7,6 +7,7 @@ interface AuditExportCardProps
 {
     exportItem: AuditExportDto;
     canApprove: boolean;
+    canDownload: boolean;
     onApprove: (exportId: string) => void;
     onDownload: (exportItem: AuditExportDto) => void;
 }
@@ -16,6 +17,7 @@ const AuditExportCard = (
     {
         exportItem,
         canApprove,
+        canDownload,
         onApprove,
         onDownload,
     }: AuditExportCardProps
@@ -46,7 +48,7 @@ const AuditExportCard = (
                         Approve
                     </Button>
                 )}
-                {exportItem.status === "READY" && (
+                {canDownload && exportItem.status === "READY" && (
                     <Button
                         id={`button-audit-export-download-${exportItem.exportId}`}
                         appearance={"secondary"}

@@ -1,18 +1,10 @@
 import {Button, Spinner, Text} from "@fluentui/react-components";
 import {AuditEventCursorDto, AuditEventDto} from "../../../models/models.tsx";
 import {formatDateTime} from "../../../helpers.ts";
-import {ArrowDownIcon, ArrowRightIcon} from "../../../components/IconBundles.tsx";
 import {formatAuditActor, formatAuditEventType} from "../../auditDisplayFormatters.ts";
 import AuditCategoryBadge from "../audit-category-badge/AuditCategoryBadge.tsx";
 import {useAuditEventCardListStyles} from "./AuditEventCardListStyles.tsx";
-import {
-    Clock16Regular,
-    Clock20Regular, Person16Regular,
-    Tag16Filled,
-    Tag16Regular,
-    Tag20Regular,
-    Tag24Regular, Target16Regular
-} from "@fluentui/react-icons";
+import {Person16Regular, Tag16Regular} from "@fluentui/react-icons";
 
 interface AuditEventCardListProps
 {
@@ -22,19 +14,6 @@ interface AuditEventCardListProps
     onEventClick: (event: AuditEventDto) => void;
     loading: boolean;
 }
-
-const outcomeStyleKey = (outcome: string): "outcomeSuccess" | "outcomeFailure" | "outcomeNeutral" =>
-{
-    if (outcome === "SUCCESS")
-    {
-        return "outcomeSuccess";
-    }
-    if (outcome === "DENIED" || outcome === "FAILURE")
-    {
-        return "outcomeFailure";
-    }
-    return "outcomeNeutral";
-};
 
 /** Shared, paginated card-list rendering of ledger-backed audit events (list variant of AuditEventTable). */
 const AuditEventCardList = (

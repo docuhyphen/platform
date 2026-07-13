@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.model.dto.AuditExportApprovalRequestDto
 import com.docuhyphen.app.api.model.dto.AuditExportCreateRequestDto
 import com.docuhyphen.app.api.model.dto.AuditExportDtoMapper
 import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.service.audit.AuditSearchProjectionService.AuditAccessActor
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
 import com.docuhyphen.app.api.service.audit.export.AuditExportAccessException
 import com.docuhyphen.app.api.service.audit.export.AuditExportNotFoundException
@@ -39,8 +40,8 @@ class AuditOrganizationExportsResource @Inject constructor(
     fun requestOrganizationExport(
         @PathParam("organizationId") organizationId: String,
         body: AuditExportCreateRequestDto,
-    ): Response = withAuthorizedOrg(organizationId, Action.ORG_REQUEST_AUDIT_EXPORT) { principal, orgId ->
-        val export = auditExportService.requestExport(toRequest(orgId, body), principal)
+    ): Response = withAuthorizedOrg(organizationId, Action.ORG_REQUEST_AUDIT_EXPORT) { actor, orgId ->
+        val export = auditExportService.requestExport(toRequest(orgId, body), actor)
         Response.ok(AuditExportDtoMapper.toDto(export)).build()
     }
 
@@ -68,10 +69,10 @@ class AuditOrganizationExportsResource @Inject constructor(
         @PathParam("organizationId") organizationId: String,
         @PathParam("exportId") exportId: String,
         body: AuditExportApprovalRequestDto?,
-    ): Response = withAuthorizedOrg(organizationId, Action.AUDIT_EXPORT_APPROVE) { principal, orgId ->
+    ): Response = withAuthorizedOrg(organizationId, Action.AUDIT_EXPORT_APPROVE) { actor, orgId ->
         val id = parseUuid(exportId)
         requireOrgMatch(auditExportService.getExport(id).organizationId, orgId)
-        val export = auditExportService.approveExport(id, principal, body?.note)
+        val export = auditExportService.approveExport(id, actor.principal.id, body?.note)
         Response.ok(AuditExportDtoMapper.toDto(export)).build()
     }
 
@@ -92,10 +93,10 @@ class AuditOrganizationExportsResource @Inject constructor(
     fun downloadOrganizationExport(
         @PathParam("organizationId") organizationId: String,
         @PathParam("exportId") exportId: String,
-    ): Response = withAuthorizedOrg(organizationId, Action.ORG_REQUEST_AUDIT_EXPORT) { principal, orgId ->
+    ): Response = withAuthorizedOrg(organizationId, Action.ORG_REQUEST_AUDIT_EXPORT) { actor, orgId ->
         val id = parseUuid(exportId)
         requireOrgMatch(auditExportService.getExport(id).organizationId, orgId)
-        val bytes = auditExportService.downloadBundle(id, principal)
+        val bytes = auditExportService.downloadBundle(id, actor)
         Response.ok(bytes)
             .header("Content-Disposition", "attachment; filename=\"audit-export-$exportId.zip\"")
             .header("Content-Length", bytes.size)
@@ -106,8 +107,8 @@ class AuditOrganizationExportsResource @Inject constructor(
         AuditExportService.ExportRequest(
             organizationId = organizationId,
             categories = body.categories.map { AuditCategory.valueOf(it.uppercase()) }.toSet(),
-            occurredAfter = Instant.parse(body.occurredAfter),
-            occurredBefore = Instant.parse(body.occurredBefore),
+            occurredAfter = parseAuditInstant(body.occurredAfter, "occurredAfter"),
+            occurredBefore = parseAuditInstant(body.occurredBefore, "occurredBefore"),
             purpose = body.purpose,
             caseReference = body.caseReference,
             legalBasis = body.legalBasis,
@@ -125,7 +126,7 @@ class AuditOrganizationExportsResource @Inject constructor(
     private fun withAuthorizedOrg(
         organizationId: String,
         action: Action,
-        block: (UUID, UUID) -> Response,
+        block: (AuditAccessActor, UUID) -> Response,
     ): Response
     {
         val principal = authorizationContextFactory.currentPrincipal()
@@ -136,9 +137,12 @@ class AuditOrganizationExportsResource @Inject constructor(
         val decision = authorizationService.authorize(principal, action, resource, context)
         if (decision is Decision.Deny)
         {
+            auditExportService.recordDeniedAttempt(principal.id, orgId, orgId.toString(), decision.reasonCode)
             return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges")).build()
         }
-        return runGuarded { block(principal.id, orgId) }
+        val capabilities = authorizationService.capabilities(principal, resource, context)
+        val actor = AuditAccessActor(principal, context, capabilities)
+        return runGuarded { block(actor, orgId) }
     }
 
     private fun runGuarded(block: () -> Response): Response

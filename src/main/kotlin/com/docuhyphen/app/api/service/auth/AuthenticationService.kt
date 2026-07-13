@@ -209,7 +209,7 @@ class AuthenticationService @Inject constructor(
         }
         catch (e: Exception)
         {
-            logger.warn("Invalid access token: ${e.message}")
+            logger.warn("Invalid access token")
             null
         }
     }
@@ -226,7 +226,7 @@ class AuthenticationService @Inject constructor(
         }
         catch (e: Exception)
         {
-            logger.warn("Invalid token: ${e.message}")
+            logger.warn("Invalid token")
             null
         }
     }

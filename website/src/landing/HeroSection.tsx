@@ -165,21 +165,23 @@ const useStyles = makeStyles({
             maxWidth: "8rem",
             minWidth: "0",
             minHeight: "2rem",
-            fontSize: tokens.fontSizeBase400,
-            lineHeight: tokens.lineHeightBase400,
+            fontSize: tokens.fontSizeBase300,
+            lineHeight: tokens.lineHeightBase300,
         },
     },
 
     secondaryCta: {
         minWidth: "12rem",
         minHeight: "2.5rem",
-        fontSize: tokens.fontSizeBase300,
-        lineHeight: tokens.lineHeightBase300,
+        fontSize: tokens.fontSizeBase400,
+        lineHeight: tokens.lineHeightBase400,
 
         [BREAKPOINT_MOBILE]: {
             width: "100%",
             maxWidth: "8rem",
             minWidth: "0",
+            fontSize: tokens.fontSizeBase300,
+            lineHeight: tokens.lineHeightBase300,
         },
     },
 });
@@ -193,10 +195,11 @@ export function HeroSection()
             <FloatingDocuments/>
             <section className={styles.container}>
                 <LargeTitle className={styles.title}>
-                    Streamline your document exchange process
+                    One Secure Workspace for Every Document-Driven Process
                 </LargeTitle>
                 <Text className={styles.supportingText}>
-                    Exchange documents, automate approvals, and streamline collaboration across teams and organizations.
+                    Securely exchange documents, automate workflows, and collaborate seamlessly with clients, teams,
+                    and partners using configurable workflows built for your business.
                 </Text>
 
                 <div className={styles.actions}>

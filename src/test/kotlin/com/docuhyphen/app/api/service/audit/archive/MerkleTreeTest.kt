@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test
 
 /**
- * Phase 4 gate for [MerkleTree]: deterministic, order-sensitive, and sensitive to any leaf
+ * Verifies that [MerkleTree] is deterministic, order-sensitive, and sensitive to any leaf
  * change - the property [AuditArchiver]/[AuditArchiveVerifier] rely on to detect a tampered or
  * truncated segment via [com.docuhyphen.app.api.model.entity.AuditArchiveSegment.merkleRoot].
  */

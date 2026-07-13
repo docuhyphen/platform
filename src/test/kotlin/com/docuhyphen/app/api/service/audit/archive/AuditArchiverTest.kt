@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.service.audit.archive
 import com.docuhyphen.app.api.model.entity.AuditLedgerEvent
 import com.docuhyphen.app.api.repository.AuditArchiveSegmentRepository
 import com.docuhyphen.app.api.repository.AuditLedgerEventRepository
+import com.docuhyphen.app.api.service.audit.LedgerProcessor
 import com.docuhyphen.app.api.service.config.AuditArchiveConfigService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -32,10 +33,12 @@ class InMemoryAuditArchiveStorage : AuditArchiveStorage
     override fun getObject(key: String): ByteArray = objects[key] ?: throw AuditArchiveObjectNotFoundException(key)
 
     override fun objectExists(key: String): Boolean = objects.containsKey(key)
+
+    override fun listKeysWithPrefix(prefix: String): List<String> = objects.keys.filter { it.startsWith(prefix) }
 }
 
 /**
- * Phase 4 gate for [AuditArchiver]:
+ * Verifies the segment closure and chaining guarantees provided by [AuditArchiver]:
  *  - a stream with fewer events than the configured segment size is left open (not closed).
  *  - closing a segment uploads a segment content object and a signed manifest object, and
  *    persists an [com.docuhyphen.app.api.model.entity.AuditArchiveSegment] row whose
@@ -45,20 +48,61 @@ class InMemoryAuditArchiveStorage : AuditArchiveStorage
  */
 class AuditArchiverTest
 {
-    private fun ledgerEvent(streamId: String, sequence: Long, eventHash: String = "hash-$sequence"): AuditLedgerEvent =
-        AuditLedgerEvent().apply {
-            eventId = UUID.randomUUID()
-            eventTypeKey = "exchange.lifecycle.rescinded"
-            category = "EXCHANGE"
-            outcome = "SUCCESS"
-            schemaVersion = 4
-            occurredAt = Timestamp.from(Instant.parse("2026-01-15T10:00:00Z"))
-            recordedAt = Timestamp.from(Instant.parse("2026-01-15T10:00:00Z"))
-            this.streamId = streamId
-            streamSequence = sequence
-            actorKind = "HUMAN"
-            this.eventHash = MerkleTree.sha256Hex(eventHash.toByteArray())
+    /**
+     * Builds [sequences] as a real, hash-chained run of ledger events, using the same canonical
+     * serializer production code uses ([LedgerProcessor.canonicalEnvelopeJson] /
+     * [LedgerProcessor.computeHash]) instead of an arbitrary placeholder hash string, so a segment
+     * built from these events is accepted by [AuditArchiveVerifier]'s per-record hash
+     * recomputation exactly as a genuinely-appended ledger event would be.
+     */
+    private fun ledgerEvents(streamId: String, sequences: LongRange, firstPrevHash: String? = null): List<AuditLedgerEvent>
+    {
+        var prevHash = firstPrevHash
+        return sequences.map { sequence ->
+            val event = AuditLedgerEvent().apply {
+                eventId = UUID.randomUUID()
+                eventTypeKey = "exchange.lifecycle.rescinded"
+                category = "EXCHANGE"
+                outcome = "SUCCESS"
+                schemaVersion = 4
+                occurredAt = Timestamp.from(Instant.parse("2026-01-15T10:00:00Z"))
+                recordedAt = Timestamp.from(Instant.parse("2026-01-15T10:00:00Z"))
+                this.streamId = streamId
+                streamSequence = sequence
+                actorKind = "HUMAN"
+                payloadJson = """{"field":"value-$sequence"}"""
+                this.prevHash = prevHash
+            }
+            val canonicalJson = LedgerProcessor.canonicalEnvelopeJson(
+                eventId = event.eventId.toString(),
+                eventTypeKey = event.eventTypeKey,
+                category = event.category,
+                outcome = event.outcome,
+                schemaVersion = event.schemaVersion,
+                occurredAt = event.occurredAt.toInstant().toString(),
+                recordedAt = event.recordedAt.toInstant().toString(),
+                streamId = event.streamId,
+                actorKind = event.actorKind,
+                actorId = event.actorId?.toString(),
+                actorRole = event.actorRole,
+                actorLabel = event.actorLabel,
+                sessionId = event.sessionId,
+                serverTraceId = event.serverTraceId,
+                correlationId = event.correlationId,
+                causationId = event.causationId,
+                organizationId = event.organizationId?.toString(),
+                organizationLabel = event.organizationLabel,
+                targetType = event.targetType,
+                targetId = event.targetId,
+                targetLabel = event.targetLabel,
+                reason = event.reason,
+                payloadJson = event.payloadJson,
+            )
+            event.eventHash = LedgerProcessor.computeHash(canonicalJson, sequence, prevHash)
+            prevHash = event.eventHash
+            event
         }
+    }
 
     private fun configService(segmentSize: Int, tempDir: Path): AuditArchiveConfigService
     {
@@ -73,7 +117,7 @@ class AuditArchiverTest
     {
         val streamId = "org-1:2026-01"
         val ledgerRepo = mock<AuditLedgerEventRepository>()
-        whenever(ledgerRepo.findByStreamOrderBySequence(streamId)).thenReturn(listOf(ledgerEvent(streamId, 1)))
+        whenever(ledgerRepo.findByStreamOrderBySequence(streamId)).thenReturn(ledgerEvents(streamId, 1L..1L))
 
         val segmentRepo = mock<AuditArchiveSegmentRepository>()
         whenever(segmentRepo.findLatestByStream(streamId)).thenReturn(null)
@@ -90,7 +134,7 @@ class AuditArchiverTest
     fun `closing a segment uploads a signed manifest that AuditArchiveVerifier accepts`(@TempDir tempDir: Path)
     {
         val streamId = "org-1:2026-01"
-        val events = (1L..3L).map { ledgerEvent(streamId, it) }
+        val events = ledgerEvents(streamId, 1L..3L)
 
         val ledgerRepo = mock<AuditLedgerEventRepository>()
         whenever(ledgerRepo.findByStreamOrderBySequence(streamId)).thenReturn(events)
@@ -126,8 +170,8 @@ class AuditArchiverTest
     fun `closing a second segment links prevSegmentDigest to the first segment's segmentDigest`(@TempDir tempDir: Path)
     {
         val streamId = "org-1:2026-01"
-        val firstBatch = (1L..2L).map { ledgerEvent(streamId, it) }
-        val secondBatch = (3L..4L).map { ledgerEvent(streamId, it) }
+        val firstBatch = ledgerEvents(streamId, 1L..2L)
+        val secondBatch = ledgerEvents(streamId, 3L..4L, firstPrevHash = firstBatch.last().eventHash)
 
         val ledgerRepo = mock<AuditLedgerEventRepository>()
         val segmentRepo = mock<AuditArchiveSegmentRepository>()

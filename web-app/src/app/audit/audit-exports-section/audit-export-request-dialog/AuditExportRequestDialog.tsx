@@ -1,19 +1,14 @@
 import {useState} from "react";
 import {
-    Button,
     Dialog,
-    DialogActions,
     DialogBody,
-    DialogContent,
     DialogSurface,
     DialogTitle,
-    Field,
-    Input,
-    Text,
-    Textarea,
 } from "@fluentui/react-components";
 import {AuditExportCreateRequestDto} from "../../../models/models.tsx";
-import {useAuditExportRequestDialogStyles} from "./AuditExportRequestDialogStyles.tsx";
+import {dateOnlyToRangeEndInstant, dateOnlyToRangeStartInstant} from "../../auditDateRange.ts";
+import AuditExportRequestActions from "./audit-export-request-actions/AuditExportRequestActions.tsx";
+import AuditExportRequestFields from "./audit-export-request-fields/AuditExportRequestFields.tsx";
 
 interface AuditExportRequestDialogProps
 {
@@ -35,21 +30,22 @@ const AuditExportRequestDialog = (
     }: AuditExportRequestDialogProps
 ) =>
 {
-    const styles = useAuditExportRequestDialogStyles();
     const [occurredAfter, setOccurredAfter] = useState<string>("");
     const [occurredBefore, setOccurredBefore] = useState<string>("");
+    const [categories, setCategories] = useState<string[]>([]);
     const [purpose, setPurpose] = useState<string>("");
     const [caseReference, setCaseReference] = useState<string>("");
     const [legalBasis, setLegalBasis] = useState<string>("");
 
-    const canSubmit = occurredAfter !== "" && occurredBefore !== "" && purpose.trim() !== "";
+    const canSubmit = categories.length > 0 && occurredAfter !== "" &&
+        occurredBefore !== "" && purpose.trim() !== "";
 
     const submit = () =>
     {
         onSubmit({
-            categories: [],
-            occurredAfter: new Date(occurredAfter).toISOString(),
-            occurredBefore: new Date(occurredBefore).toISOString(),
+            categories,
+            occurredAfter: dateOnlyToRangeStartInstant(occurredAfter),
+            occurredBefore: dateOnlyToRangeEndInstant(occurredBefore),
             purpose,
             caseReference: caseReference || undefined,
             legalBasis: legalBasis || undefined,
@@ -68,73 +64,28 @@ const AuditExportRequestDialog = (
             }}
         >
             <DialogSurface id={"audit-export-request-surface"}>
-                <DialogBody>
-                    <DialogTitle>Request audit export</DialogTitle>
-                    <DialogContent id={"audit-export-request-content"} className={styles.body}>
-                        <div className={styles.row}>
-                            <Field className={styles.formField} label={"Occurred after"} required>
-                                <Input
-                                    id={"audit-export-occurred-after"}
-                                    type={"date"}
-                                    value={occurredAfter}
-                                    onChange={(_event, data) => setOccurredAfter(data.value)}
-                                />
-                            </Field>
-                            <Field className={styles.formField} label={"Occurred before"} required>
-                                <Input
-                                    id={"audit-export-occurred-before"}
-                                    type={"date"}
-                                    value={occurredBefore}
-                                    onChange={(_event, data) => setOccurredBefore(data.value)}
-                                />
-                            </Field>
-                        </div>
-
-                        <Field className={styles.formField} label={"Purpose"} required>
-                            <Textarea
-                                id={"audit-export-purpose"}
-                                value={purpose}
-                                onChange={(_event, data) => setPurpose(data.value)}
-                            />
-                        </Field>
-
-                        <Field className={styles.formField} label={"Case reference"}>
-                            <Input
-                                id={"audit-export-case-reference"}
-                                value={caseReference}
-                                onChange={(_event, data) => setCaseReference(data.value)}
-                            />
-                        </Field>
-
-                        <Field className={styles.formField} label={"Legal basis"}>
-                            <Input
-                                id={"audit-export-legal-basis"}
-                                value={legalBasis}
-                                onChange={(_event, data) => setLegalBasis(data.value)}
-                            />
-                        </Field>
-
-                        {error && <Text className={styles.errorText}>{error}</Text>}
-                    </DialogContent>
-                    <DialogActions>
-                        <Button
-                            id={"button-audit-export-request-submit"}
-                            appearance={"primary"}
-                            shape={"circular"}
-                            disabled={!canSubmit || submitting}
-                            onClick={submit}
-                        >
-                            Request export
-                        </Button>
-                        <Button
-                            id={"button-audit-export-request-cancel"}
-                            appearance={"secondary"}
-                            shape={"circular"}
-                            onClick={onDismiss}
-                        >
-                            Cancel
-                        </Button>
-                    </DialogActions>
+                <DialogBody id={"audit-export-request-body"}>
+                    <DialogTitle id={"audit-export-request-title"}>Request audit export</DialogTitle>
+                    <AuditExportRequestFields
+                        categories={categories}
+                        occurredAfter={occurredAfter}
+                        occurredBefore={occurredBefore}
+                        purpose={purpose}
+                        caseReference={caseReference}
+                        legalBasis={legalBasis}
+                        error={error}
+                        onCategoriesChange={setCategories}
+                        onOccurredAfterChange={setOccurredAfter}
+                        onOccurredBeforeChange={setOccurredBefore}
+                        onPurposeChange={setPurpose}
+                        onCaseReferenceChange={setCaseReference}
+                        onLegalBasisChange={setLegalBasis}
+                    />
+                    <AuditExportRequestActions
+                        disabled={!canSubmit || submitting}
+                        onSubmit={submit}
+                        onDismiss={onDismiss}
+                    />
                 </DialogBody>
             </DialogSurface>
         </Dialog>

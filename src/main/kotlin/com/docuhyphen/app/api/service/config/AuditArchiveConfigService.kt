@@ -11,7 +11,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty
  *
  * Storage and signing each default to a local-filesystem provider so the archiver/verifier/
  * scheduler work out of the box in dev/CI without AWS credentials (mirrors the existing
- * `file.storage.service`/[AuthAuditWormSink]-style local-first defaults elsewhere in this
+ * local-first storage defaults elsewhere in this
  * codebase); set the `*.type`/`*.provider` properties to `aws` to use S3 + Secrets Manager in an
  * environment that has them configured. No new AWS service type is introduced either way - see
  * the archive's cost constraints.
@@ -46,6 +46,9 @@ class AuditArchiveConfigService @Inject constructor(
     @ConfigProperty(name = "app.audit.archive.signing.region", defaultValue = "us-east-1")
     private val signingRegionConfig: String,
 
+    @ConfigProperty(name = "app.audit.archive.signing.key-id", defaultValue = "local-dev-key-1")
+    private val signingKeyIdConfig: String,
+
     @ConfigProperty(name = "app.audit.archive.segment-size", defaultValue = "500")
     private val segmentSizeConfig: Int,
 
@@ -68,6 +71,7 @@ class AuditArchiveConfigService @Inject constructor(
     fun getRegion(): String = regionConfig
     fun getSigningSecretId(): String = signingSecretIdConfig
     fun getSigningRegion(): String = signingRegionConfig
+    fun getSigningKeyId(): String = signingKeyIdConfig.trim().ifBlank { "local-dev-key-1" }
     fun getSegmentSize(): Int = if (segmentSizeConfig > 0) segmentSizeConfig else 500
     fun getArchiveEvery(): String = archiveEveryConfig
     fun getVerifyEvery(): String = verifyEveryConfig

@@ -1,4 +1,5 @@
 import apiClient from './apiClient';
+import axios from "axios";
 import {
     AuditEventDto,
     AuditEventPageDto,
@@ -17,7 +18,15 @@ const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        if (axios.isAxiosError(error))
+        {
+            throw error.response?.data ?? error.message;
+        }
+        if (error instanceof Error)
+        {
+            throw error.message;
+        }
+        throw error;
     }
 };
 
@@ -106,6 +115,8 @@ export const fetchPlatformAuditEvents = (params?: AuditEventSearchParams): Promi
                 categories: toCategoriesParam(params?.categories),
                 cursorOccurredAt: params?.cursorOccurredAt,
                 cursorEventId: params?.cursorEventId,
+                occurredAfter: params?.occurredAfter,
+                occurredBefore: params?.occurredBefore,
                 limit: params?.limit,
             },
         })
@@ -135,7 +146,7 @@ export const approveOrganizationAuditExport = (
     organizationId: string,
     exportId: string,
     note?: string,
-): Promise<AuditExportApprovalDto> =>
+): Promise<AuditExportDto> =>
     executeRequest(() =>
         apiClient.post(`/organizations/${organizationId}/audit-exports/${exportId}/approvals`, {note})
     );
@@ -175,7 +186,7 @@ export const getPlatformAuditExport = (exportId: string): Promise<AuditExportDto
         apiClient.get(`/platform/audit-exports/${exportId}`)
     );
 
-export const approvePlatformAuditExport = (exportId: string, note?: string): Promise<AuditExportApprovalDto> =>
+export const approvePlatformAuditExport = (exportId: string, note?: string): Promise<AuditExportDto> =>
     executeRequest(() =>
         apiClient.post(`/platform/audit-exports/${exportId}/approvals`, {note})
     );

@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.exception.*
+import com.docuhyphen.app.api.extension.maskEmailForLogs
 import com.docuhyphen.app.api.model.entity.MfaRecord
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationStatus
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType
@@ -44,7 +45,7 @@ class PasswordResetService @Inject constructor(
 
         val appUser = appUserRepository.findByEmail(email!!)
             ?: throw EmailNotFoundException().also {
-                logger.warn("Password reset request failed. User not found for email: $email")
+                logger.warn("Password reset request failed. User not found for {}", email!!.maskEmailForLogs())
             }
 
         if (!appUser.isActive || appUser.deprovisionedAt != null)
@@ -52,7 +53,7 @@ class PasswordResetService @Inject constructor(
             // Don't reveal account state on the public initiate endpoint,  surface the
             // same neutral outcome the resource layer maps EmailNotFoundException to.
             throw EmailNotFoundException().also {
-                logger.warn("Password reset blocked: inactive/deprovisioned account for email: $email")
+                logger.warn("Password reset blocked: inactive/deprovisioned account for {}", email!!.maskEmailForLogs())
             }
         }
 
@@ -83,7 +84,7 @@ class PasswordResetService @Inject constructor(
             useHtml = true,
         )
 
-        logger.info("Password reset OTP sent to email: $email")
+        logger.info("Password reset OTP sent to {}", email!!.maskEmailForLogs())
     }
 
     fun completePasswordReset(email: String?, otp: String?, newPassword: String?, confirmPassword: String?)
@@ -94,25 +95,25 @@ class PasswordResetService @Inject constructor(
 
         val mfaRecord = mfaService.getMfaRecordByTokenAndType(otp!!, MultifactorAuthenticationType.PASSWORD_RESET)
             ?: throw InvalidOtpException().also {
-                logger.warn("Password reset failed. Invalid OTP: $otp")
+                logger.warn("Password reset failed. Invalid OTP supplied")
             }
 
         if (mfaRecord.expiryDateTime?.before(Timestamp.from(Instant.now())) == true)
         {
             throw OTPExpiredException("Your verification code has expired.").also {
-                logger.warn("Password reset failed. OTP expired for email: $email")
+                logger.warn("Password reset failed. OTP expired for {}", email!!.maskEmailForLogs())
             }
         }
 
         val appUser = appUserRepository.findByEmail(email!!)
             ?: throw EmailNotFoundException().also {
-                logger.error("Password reset failed. App user not found for email: $email after OTP verification")
+                logger.error("Password reset failed. App user not found for {} after OTP verification", email!!.maskEmailForLogs())
             }
 
         if (!appUser.isActive || appUser.deprovisionedAt != null)
         {
             throw EmailNotFoundException().also {
-                logger.warn("Password reset completion blocked: inactive/deprovisioned account for email: $email")
+                logger.warn("Password reset completion blocked: inactive/deprovisioned account for {}", email!!.maskEmailForLogs())
             }
         }
 
@@ -144,7 +145,7 @@ class PasswordResetService @Inject constructor(
         }
         catch (e: Exception)
         {
-            logger.error("Failed to send password-changed confirmation to {}", appUser.email, e)
+            logger.error("Failed to send password-changed confirmation to {}", appUser.email.maskEmailForLogs(), e)
         }
 
         // Revoke every active session + refresh token for this user. Any other browser that
@@ -155,7 +156,7 @@ class PasswordResetService @Inject constructor(
         }.onFailure { e ->
             logger.error("Password reset succeeded but session revocation failed for user={}", appUser.id, e)
         }
-        logger.info("Password reset successfully for email: $email")
+        logger.info("Password reset successfully for {}", email!!.maskEmailForLogs())
     }
 
     private fun validateEmail(email: String?)
@@ -170,7 +171,7 @@ class PasswordResetService @Inject constructor(
         if (authenticationService.isEmailInvalid(email))
         {
             throw InvalidEmailException().also {
-                logger.warn("Password reset request failed. Email format is invalid: $email")
+                logger.warn("Password reset request failed. Email format is invalid")
             }
         }
     }

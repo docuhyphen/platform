@@ -598,24 +598,6 @@ data class PlatformOrganizationSubscriptionPolicyListResponse(
 )
 
 @Serializable
-data class AuthAuditEventResponse(
-    val id: String,
-    val actorId: String? = null,
-    val action: String,
-    val outcome: String,
-    val reasonCode: String? = null,
-    val sessionId: String? = null,
-    val organizationId: String? = null,
-    val requestId: String? = null,
-    val actionReason: String? = null,
-    val beforeSnapshot: String? = null,
-    val afterSnapshot: String? = null,
-    val eventHash: String,
-    val prevEventHash: String? = null,
-    val createdDate: String,
-)
-
-@Serializable
 data class SecurityIncidentResponse(
     val id: String,
     val incidentType: String,

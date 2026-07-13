@@ -13,8 +13,8 @@ import java.util.UUID
  * [com.docuhyphen.app.api.service.audit.LedgerProcessor] from a committed `audit_outbox` row
  * and its integrity metadata.
  *
- * Denormalized IDs/labels only, same rule as [AuditOutboxEntry]/[AccessAuditLog] - never the
- * [DocumentAuditLog] anti-pattern of a non-null `@ManyToOne` FK to a mutable business entity.
+ * Denormalized IDs and labels only, following the same rule as [AuditOutboxEntry], with no foreign
+ * key to a mutable business entity.
  *
  * Append-only: migration `V42__audit_ledger.sql` installs a trigger that unconditionally denies
  * `UPDATE`/`DELETE` on this table.

@@ -58,8 +58,8 @@ class AuditOrganizationEventsResource @Inject constructor(
             categories = parseCategories(categories),
             cursor = parseCursor(cursorOccurredAt, cursorEventId),
             limit = limit.coerceIn(1, 200),
-            occurredAfter = occurredAfter?.let(Instant::parse),
-            occurredBefore = occurredBefore?.let(Instant::parse),
+            occurredAfter = occurredAfter?.let { parseAuditInstant(it, "occurredAfter") },
+            occurredBefore = occurredBefore?.let { parseAuditInstant(it, "occurredBefore") },
         )
         Response.ok(AuditProjectionDtoMapper.toPageDto(page)).build()
     }
@@ -139,7 +139,7 @@ class AuditOrganizationEventsResource @Inject constructor(
             return null
         }
         return AuditProjectionCursor(
-            occurredAt = Instant.parse(cursorOccurredAt),
+            occurredAt = parseAuditInstant(cursorOccurredAt, "cursorOccurredAt"),
             eventId = parseUuid(cursorEventId),
         )
     }

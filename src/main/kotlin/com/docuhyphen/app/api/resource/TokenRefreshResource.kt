@@ -144,7 +144,7 @@ class TokenRefreshResource @Inject constructor(
                 ?: run {
 
                     authenticationService.deleteRefreshTokenByJti(jti)
-                    logger.warn("Refresh token jti={} has no sessionId,  pre-session token, forcing re-auth", jti)
+                    logger.warn("Refresh token has no session association; forcing re-authentication")
                     return Response.status(Response.Status.UNAUTHORIZED)
                         .entity(ResponseError("EXCHANGE_EXPIRED"))
                         .build()
@@ -290,14 +290,14 @@ class TokenRefreshResource @Inject constructor(
                     severity = SecurityIncidentSeverity.CRITICAL,
                     actorId = appUser.id,
                     requestId = requestId,
-                    details = "sessionId=$sessionId;familyId=${rotation.familyId}",
+                    details = "Refresh token replay detected for an active session",
                 )
                 rotation.familyId?.let {
                     authenticationService.revokeRefreshFamily(it, RevocationReasonCode.REFRESH_REUSE_DETECTED)
                 }
                 authenticationService.deleteAllRefreshTokensForUser(appUser.id)
                 userSessionService.revokeSession(sessionId, RevocationReasonCode.REFRESH_REUSE_DETECTED)
-                logger.warn("Refresh token replay detected for user={} family={}", appUser.id, rotation.familyId)
+                logger.warn("Refresh token replay detected for user={}", appUser.id)
                 authAuditService.emit(
                     action = "TOKEN_REFRESH",
                     outcome = "DENY",

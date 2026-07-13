@@ -180,7 +180,7 @@ class RedisRefreshTokenStore @Inject constructor(
                 .arg(expirySeconds.toString())
         ).await().indefinitely()
 
-        logger.debug("Saved refresh token jti={} familyId={} for userId={}", jti, familyId, userId)
+        logger.debug("Saved refresh token for userId={}", userId)
     }
 
     override fun rotate(
@@ -304,7 +304,7 @@ class RedisRefreshTokenStore @Inject constructor(
             ).await().indefinitely()
         }
 
-        logger.debug("Deleted refresh token jti={}", jti)
+        logger.debug("Deleted refresh token record")
     }
 
     override fun deleteAllByUserId(userId: UUID)
@@ -364,7 +364,7 @@ class RedisRefreshTokenStore @Inject constructor(
                 .arg(reasonCode.name)
         ).await().indefinitely()
 
-        logger.warn("Revoked refresh token familyId={} reasonCode={}", familyId, reasonCode)
+        logger.warn("Revoked refresh token family reasonCode={}", reasonCode)
     }
 }
 

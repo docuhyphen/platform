@@ -139,7 +139,7 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
         }
         if (occurredBefore != null)
         {
-            where += "l.occurredAt <= :occurredBefore"
+            where += "l.occurredAt < :occurredBefore"
         }
         if (cursorOccurredAt != null && cursorEventId != null)
         {
@@ -207,7 +207,7 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
         occurredBefore: Timestamp,
     ): List<String>
     {
-        val where = mutableListOf("l.occurredAt >= :occurredAfter", "l.occurredAt <= :occurredBefore")
+        val where = mutableListOf("l.occurredAt >= :occurredAfter", "l.occurredAt < :occurredBefore")
         if (platformOnly)
         {
             where += "l.organizationId IS NULL"
@@ -268,7 +268,7 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
         occurredBefore: Timestamp,
     ): List<AuditLedgerEvent>
     {
-        val where = mutableListOf("l.occurredAt >= :occurredAfter", "l.occurredAt <= :occurredBefore")
+        val where = mutableListOf("l.occurredAt >= :occurredAfter", "l.occurredAt < :occurredBefore")
         if (platformOnly)
         {
             where += "l.organizationId IS NULL"

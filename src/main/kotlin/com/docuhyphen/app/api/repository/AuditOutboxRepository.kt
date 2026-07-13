@@ -45,8 +45,7 @@ class AuditOutboxRepository : BaseRepository<AuditOutboxEntry>(AuditOutboxEntry:
      * `audit_ledger_event` directly in this query rather than by an outbox status flag.
      *
      * This exclusion is load-bearing, not an optimization: without it, a batch of already-ledgered
-     * rows sitting at the head of the queue (for example a bulk legacy import whose outbox rows
-     * were also mirrored straight into the ledger by a separate path) would permanently occupy
+     * rows sitting at the head of the queue would permanently occupy
      * every drain pass's fixed-size batch, starving every newer row behind them forever, since nothing
      * ever advances a cursor/offset - each pass re-fetches the same unconditional "oldest N" rows.
      * [com.docuhyphen.app.api.service.audit.LedgerProcessor.appendOne]'s own

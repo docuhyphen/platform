@@ -100,7 +100,7 @@ class MicrosoftIdentityProvider @Inject constructor(
 
         if (response.statusCode() != 200)
         {
-            logger.error("Microsoft token exchange failed: ${response.body()}")
+            logger.error("Microsoft token exchange failed with status={}", response.statusCode())
             throw RuntimeException("Failed to exchange code with Microsoft")
         }
 

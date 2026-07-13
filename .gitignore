@@ -50,3 +50,6 @@ document-uploads
 document-versions
 
 /web-app/node_modules
+
+./.claude
+./.agents

@@ -36,9 +36,9 @@ export const adminOperationsSection: HelpDocSectionInput = {
                     <ul>
                         <li><b>Owner:</b> Organization policy, users, billing, audit, and group administration.</li>
                         <li><b>Admin:</b> Organization policy, users, audit, and group administration.</li>
-                        <li><b>Billing Admin:</b> Billing management and organization audit access.</li>
+                        <li><b>Billing Admin:</b> Billing management.</li>
                         <li><b>User Manager:</b> Organization member management and group visibility.</li>
-                        <li><b>Auditor:</b> Read-only audit, Exchange, document, and group visibility.</li>
+                        <li><b>Auditor:</b> Organization audit review and evidence export.</li>
                         <li><b>Member:</b> Standard organization membership and group visibility.</li>
                         <li><b>Guest:</b> No organization-wide capabilities by default.</li>
                     </ul>
@@ -49,6 +49,7 @@ export const adminOperationsSection: HelpDocSectionInput = {
                         <li>A group Manager role applies only to that group, not to the organization or an Exchange.</li>
                         <li>An Exchange role applies only to the relevant Exchange and its documents.</li>
                         <li>The Owner label in a group is separate from the Owner label on an Exchange.</li>
+                        <li>Capabilities granted to a registered application remain limited to resources owned by that application's organization. Organization-owned applications cannot use platform audit capabilities.</li>
                     </ul>
 
                     <h3>Assignment best practices</h3>

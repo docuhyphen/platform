@@ -11,16 +11,15 @@ import org.mockito.kotlin.whenever
 import java.nio.file.Path
 
 /**
- * Phase 4 gate for [LocalAuditArchiveSigningKeyProvider]: signs are verifiable with the same
- * provider, a tampered payload fails verification, and the key persists across a fresh instance
- * pointed at the same directory (bootstrap-once semantics, not a new key every restart).
+ * Verifies active signing, tamper rejection, key persistence, and historical-key lookup.
  */
 class LocalAuditArchiveSigningKeyProviderTest
 {
-    private fun provider(tempDir: Path): LocalAuditArchiveSigningKeyProvider
+    private fun provider(tempDir: Path, keyId: String = "local-dev-key-1"): LocalAuditArchiveSigningKeyProvider
     {
         val config = mock<AuditArchiveConfigService>()
         whenever(config.getLocalSigningDirectory()).thenReturn(tempDir.resolve("keys").toString())
+        whenever(config.getSigningKeyId()).thenReturn(keyId)
         return LocalAuditArchiveSigningKeyProvider(config)
     }
 
@@ -63,5 +62,19 @@ class LocalAuditArchiveSigningKeyProviderTest
         val second = provider(tempDir)
         assertTrue(second.verify(data, signature, second.keyId()))
         assertEquals(first.activePublicKeyPem(), second.activePublicKeyPem())
+    }
+
+    @Test
+    fun `a rotated provider verifies a signature made by a historical key`(@TempDir tempDir: Path)
+    {
+        val original = provider(tempDir, "audit-key-1")
+        val data = "historical-signature".toByteArray()
+        val signature = original.sign(data)
+
+        val rotated = provider(tempDir, "audit-key-2")
+        rotated.sign("initialize-active-key".toByteArray())
+
+        assertTrue(rotated.verify(data, signature, "audit-key-1"))
+        assertEquals("audit-key-2", rotated.keyId())
     }
 }

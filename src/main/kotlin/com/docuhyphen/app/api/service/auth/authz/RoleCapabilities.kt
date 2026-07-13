@@ -18,6 +18,8 @@ object RoleCapabilities
             Capability.AUDIT_INTEGRITY_VERIFY,
             Capability.AUDIT_RETENTION_MANAGE,
             Capability.AUDIT_LEGAL_HOLD_MANAGE,
+            Capability.AUDIT_ENGAGEMENT_MANAGE,
+            Capability.AUDIT_EXPORT_APPROVE,
         ),
         AppRoleName.APP_AUDITOR to setOf(
             Capability.APP_AUDIT_READ,
@@ -99,6 +101,7 @@ object RoleCapabilities
         Capability.AUDIT_RETENTION_MANAGE,
         Capability.AUDIT_LEGAL_HOLD_MANAGE,
         Capability.AUDIT_INTEGRITY_VERIFY,
+        Capability.AUDIT_ENGAGEMENT_MANAGE,
         Capability.FIELD_SCHEMA_READ,
         Capability.FIELD_SCHEMA_WRITE,
         Capability.FIELD_SCHEMA_PUBLISH,

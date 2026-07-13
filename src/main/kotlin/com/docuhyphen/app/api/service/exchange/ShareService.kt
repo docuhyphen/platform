@@ -11,6 +11,7 @@ import com.docuhyphen.app.api.repository.ShareRepository
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
 import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
@@ -36,6 +37,7 @@ class ShareService @Inject constructor(
     private val shareRepository: ShareRepository,
     private val groupMemberRepository: PrincipalGroupMemberRepository,
     private val auditRecorder: AuditRecorder,
+    private val exchangeAuthorizationContextProvider: ExchangeAuthorizationContextProvider,
 )
 {
     companion object
@@ -398,7 +400,7 @@ class ShareService @Inject constructor(
 
     /**
      * Captures Share
-     * grant/activation/role-constraint-change/revocation through [AuditRecorder]. `AccessAuditLog`
+     * grant/activation/role-constraint-change/revocation through [AuditRecorder].
      * is superseded as the write path (its table/repository are left untouched, out of scope to
      * remove). Target is the resource being shared (denormalized `resourceType.name`/
      * `resourceId`), not the Share row itself, so the event is discoverable alongside every other
@@ -422,6 +424,7 @@ class ShareService @Inject constructor(
         {
             auditRecorder.record(
                 AuditEventDraft(
+                    owner = resolveOwnerScope(share),
                     eventTypeKey = eventType.key,
                     outcome = AuditOutcome.SUCCESS,
                     actorId = actorId,
@@ -443,6 +446,18 @@ class ShareService @Inject constructor(
         catch (e: AuditCaptureFailedException)
         {
             logger.error("ShareService: AuditRecorder capture failed (fail-closed) for eventType={}: {}", eventType.key, e.message, e)
+        }
+    }
+
+    private fun resolveOwnerScope(share: Share): AuditOwnerScope
+    {
+        if (share.resourceType != ResourceType.EXCHANGE) return AuditOwnerScope.Platform
+
+        return when (val owner = exchangeAuthorizationContextProvider.resolve(share.resourceId)?.ownerContext)
+        {
+            is com.docuhyphen.app.api.service.auth.authz.OwnerContext.Organization ->
+                AuditOwnerScope.Organization(owner.organizationId)
+            else -> AuditOwnerScope.Platform
         }
     }
 }

@@ -69,6 +69,8 @@ class AuditProjectionResource @Inject constructor(
         @QueryParam("categories") categories: String?,
         @QueryParam("cursorOccurredAt") cursorOccurredAt: String?,
         @QueryParam("cursorEventId") cursorEventId: String?,
+        @QueryParam("occurredAfter") occurredAfter: String?,
+        @QueryParam("occurredBefore") occurredBefore: String?,
         @QueryParam("limit") @DefaultValue("50") limit: Int,
     ): Response = withAuthorizedPlatformAudit { actor ->
         val page = auditSearchProjectionService.listPlatformEvents(
@@ -76,6 +78,8 @@ class AuditProjectionResource @Inject constructor(
             categories = parseCategories(categories),
             cursor = parseCursor(cursorOccurredAt, cursorEventId),
             limit = limit.coerceIn(1, 200),
+            occurredAfter = occurredAfter?.let { parseAuditInstant(it, "occurredAfter") },
+            occurredBefore = occurredBefore?.let { parseAuditInstant(it, "occurredBefore") },
         )
         Response.ok(AuditProjectionDtoMapper.toPageDto(page)).build()
     }
@@ -138,7 +142,7 @@ class AuditProjectionResource @Inject constructor(
             return null
         }
         return AuditProjectionCursor(
-            occurredAt = Instant.parse(cursorOccurredAt),
+            occurredAt = parseAuditInstant(cursorOccurredAt, "cursorOccurredAt"),
             eventId = parseUuid(cursorEventId),
         )
     }

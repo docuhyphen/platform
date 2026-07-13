@@ -1,5 +1,5 @@
 import {useState} from "react";
-import {Tab, TabList, TabValue, Text} from "@fluentui/react-components";
+import {Dropdown, Option, OptionOnSelectData, SelectionEvents, Tab, TabList, TabValue, Text} from "@fluentui/react-components";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {Capability} from "../models/models.tsx";
 import AuditEventsSection from "./audit-events-section/AuditEventsSection.tsx";
@@ -7,6 +7,8 @@ import AuditIntegritySection from "./audit-integrity-section/AuditIntegritySecti
 import AuditExportsSection from "./audit-exports-section/AuditExportsSection.tsx";
 import {useAuditWorkspaceStyles} from "./AuditWorkspaceStyles.tsx";
 import {AuditScope} from "./auditScope.ts";
+
+type ScopeSelection = "organization" | "platform";
 
 const tabIds = {
     events: "AuditEventsTab",
@@ -21,19 +23,29 @@ const tabIds = {
  */
 const AuditWorkspace = () =>
 {
-    const {hasCapability, appUserPersonOrganization} = useAuth();
+    const {hasCapability, currentSession} = useAuth();
     const styles = useAuditWorkspaceStyles();
     const [selectedTab, setSelectedTab] = useState<TabValue>(tabIds.events);
+    const [scopeSelection, setScopeSelection] = useState<ScopeSelection>("organization");
 
     const hasOrgAudit = hasCapability(Capability.ORG_AUDIT_READ);
     const hasPlatformAudit = hasCapability(Capability.APP_AUDIT_READ);
     const isAuthorized = hasOrgAudit || hasPlatformAudit;
-    const organizationId = appUserPersonOrganization?.id ?? null;
-    // Prefer organization scope when both are available; platform auditors without an org
-    // membership fall back to the platform-wide surfaces.
-    const scope: AuditScope = hasOrgAudit && organizationId
+    const organizationId = currentSession?.activeOrganizationId ?? null;
+    const canSelectScope = hasOrgAudit && hasPlatformAudit && organizationId !== null;
+    // A user holding only one of the two capabilities has no scope to choose - fall back to
+    // whichever surface their capability actually grants, ignoring the (stale-by-default) toggle.
+    const scope: AuditScope = hasOrgAudit && organizationId && (!hasPlatformAudit || scopeSelection === "organization")
         ? {kind: "organization", organizationId}
         : {kind: "platform"};
+
+    const onScopeSelect = (_event: SelectionEvents, data: OptionOnSelectData) =>
+    {
+        if (data.optionValue === "organization" || data.optionValue === "platform")
+        {
+            setScopeSelection(data.optionValue);
+        }
+    };
 
     if (!isAuthorized)
     {
@@ -53,6 +65,24 @@ const AuditWorkspace = () =>
                 Showing {scope.kind === "organization" ? "organization" : "platform"}-scoped audit
                 evidence. Sensitive fields are shown only when your access includes them.
             </Text>
+
+            {canSelectScope && (
+                <Dropdown
+                    id={"audit-workspace-scope-selector"}
+                    className={styles.scopeSelector}
+                    appearance={"outline"}
+                    selectedOptions={[scopeSelection]}
+                    value={scopeSelection === "organization" ? "Organization" : "Platform"}
+                    onOptionSelect={onScopeSelect}
+                >
+                    <Option id={"audit-workspace-scope-option-organization"} value={"organization"}>
+                        Organization
+                    </Option>
+                    <Option id={"audit-workspace-scope-option-platform"} value={"platform"}>
+                        Platform
+                    </Option>
+                </Dropdown>
+            )}
 
             <TabList
                 id={"audit-workspace-tabs"}

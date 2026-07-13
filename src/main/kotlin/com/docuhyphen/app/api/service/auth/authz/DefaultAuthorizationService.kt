@@ -16,6 +16,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
 import java.time.Instant
+import java.util.UUID
 
 /**
  * Default implementation of [AuthorizationService].
@@ -143,7 +144,7 @@ class DefaultAuthorizationService @Inject constructor(
         // the same centralized path rather than relying solely on token scope and endpoint prefix.
         if (principal.kind == PrincipalKind.APPLICATION)
         {
-            grants += collectApplicationRoleGrants(principal, context)
+            grants += collectApplicationRoleGrants(principal, resource, context)
         }
 
         // 1b) Organization membership role grants. The relevant organization is the one that
@@ -260,6 +261,7 @@ class DefaultAuthorizationService @Inject constructor(
      */
     private fun collectApplicationRoleGrants(
         principal: PrincipalRef,
+        resource: ResourceRef,
         context: AuthorizationContext,
     ): List<Grant>
     {
@@ -267,6 +269,10 @@ class DefaultAuthorizationService @Inject constructor(
         if (appId != principal.id) return emptyList()
 
         val application = applicationService.findActive(appId) ?: return emptyList()
+        if (!applicationGrantMatchesOwner(application.ownerOrganizationId, resource))
+        {
+            return emptyList()
+        }
         val roleCaps = RoleCapabilities.forApplicationRole(application.roleName)
         val grantedCaps = parseApplicationCapabilities(application.grantedCapabilitiesJson)
         val allCaps = roleCaps + grantedCaps
@@ -280,6 +286,22 @@ class DefaultAuthorizationService @Inject constructor(
                 expiresAtEpochMillis = null,
             )
         )
+    }
+
+    private fun applicationGrantMatchesOwner(applicationOrganizationId: UUID?, resource: ResourceRef): Boolean
+    {
+        val owner = when
+        {
+            resource.type == ResourceType.ORGANIZATION -> OwnerContext.Organization(resource.id)
+            resource.type == ResourceType.APPLICATION && resource.id == UUID(0, 0) -> OwnerContext.Platform
+            else -> resourceContextRegistry.resolve(resource)?.ownerContext ?: return false
+        }
+        return when (owner)
+        {
+            OwnerContext.Platform -> applicationOrganizationId == null
+            is OwnerContext.Organization -> applicationOrganizationId == owner.organizationId
+            is OwnerContext.Personal -> false
+        }
     }
 
     private fun parseApplicationCapabilities(json: String): Set<Capability>
