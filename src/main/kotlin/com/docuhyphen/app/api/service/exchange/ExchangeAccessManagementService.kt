@@ -12,6 +12,7 @@ import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareSource
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.repository.ExternalParticipantRepository
+import com.docuhyphen.app.api.repository.PrincipalGroupRepository
 import com.docuhyphen.app.api.repository.ShareRepository
 import com.docuhyphen.app.api.repository.ExchangeRepository
 import com.docuhyphen.app.api.service.AppUserService
@@ -24,6 +25,7 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
+import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
 import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
@@ -58,9 +60,11 @@ class ExchangeAccessManagementService @Inject constructor(
     private val shareQueryService: ShareQueryService,
     private val appUserService: AppUserService,
     private val externalParticipantRepository: ExternalParticipantRepository,
+    private val principalGroupRepository: PrincipalGroupRepository,
     private val authTokenContext: AuthTokenContext,
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
+    private val organizationExchangePolicyService: OrganizationExchangePolicyService,
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
     private val configurationService: ConfigurationService,
@@ -85,7 +89,7 @@ class ExchangeAccessManagementService @Inject constructor(
         val session = requireSessionOwnerAndReturn(exchangeId)
 
         val requestedKind = parsePrincipalKind(principalKind)
-        val role = roleName
+        requireAssignableRole(roleName)
 
         // Prevent the caller from granting themselves a share (they already have OWNER).
         val callerAppUserId = authTokenContext.authToken.appUser?.id
@@ -105,6 +109,9 @@ class ExchangeAccessManagementService @Inject constructor(
         }
 
         val (kind, principalUuid) = resolvePrincipal(requestedKind, principalId)
+        val actorId = callerAppUserId
+            ?: throw ForbiddenException("A user account is required to manage access")
+        enforceSharingPolicy(actorId, kind, principalUuid)
         // Reject malformed/contradictory constraints up front and store a canonical form.
         val normalizedConstraints = ShareConstraints.normalizeForStorage(constraintsJson)
 
@@ -113,7 +120,7 @@ class ExchangeAccessManagementService @Inject constructor(
             resourceId = exchangeId,
             principalKind = kind,
             principalId = principalUuid,
-            roleName = role,
+            roleName = roleName,
             grantedByAppUserId = callerAppUserId,
             constraintsJson = normalizedConstraints,
             expiresAt = expiresAtEpochMillis?.let { Timestamp(it) },
@@ -128,6 +135,7 @@ class ExchangeAccessManagementService @Inject constructor(
     fun changeRole(exchangeId: UUID, shareId: UUID, roleName: ExchangeShareRoleName, constraintsJson: String? = null)
     {
         val session = requireSessionOwnerAndReturn(exchangeId)
+        requireAssignableRole(roleName)
         requireMutableAccessShare(exchangeId, shareId)
         val hasConstraintsPayload = constraintsJson != null
         val normalizedConstraints = if (hasConstraintsPayload) ShareConstraints.normalizeForStorage(constraintsJson) else null
@@ -165,6 +173,11 @@ class ExchangeAccessManagementService @Inject constructor(
             throw ExchangeNotFoundException("Exchange not found")
         }
         return shareQueryService.getSessionAccessView(exchangeId)
+    }
+
+    fun assertCanManageAccess(exchangeId: UUID)
+    {
+        requireSessionOwner(exchangeId)
     }
 
     // -------------------------------------------------------------------------
@@ -316,6 +329,12 @@ class ExchangeAccessManagementService @Inject constructor(
             }
         }
             .getOrElse { throw IllegalArgumentException("Invalid principal kind: $value") }
+            .also {
+                if (it !in setOf(PrincipalKind.USER, PrincipalKind.PARTICIPANT, PrincipalKind.PRINCIPAL_GROUP))
+                {
+                    throw IllegalArgumentException("Principal kind is not supported for Exchange access")
+                }
+            }
 
     private fun parseUuid(value: String, field: String): UUID =
         runCatching { UUID.fromString(value.trim()) }
@@ -332,7 +351,10 @@ class ExchangeAccessManagementService @Inject constructor(
         val trimmed = value.trim()
         if (kind == PrincipalKind.USER)
         {
-            runCatching { UUID.fromString(trimmed) }.getOrNull()?.let { return kind to it }
+            runCatching { UUID.fromString(trimmed) }.getOrNull()?.let { userId ->
+                if (appUserService.getById(userId) == null) throw IllegalArgumentException("User not found")
+                return kind to userId
+            }
             val normalizedEmail = trimmed.normalizeEmailOrNull()
                 ?: throw IllegalArgumentException("Invalid principalId")
             appUserService.getAppUserByEmail(normalizedEmail)?.let { return kind to it.id }
@@ -340,7 +362,47 @@ class ExchangeAccessManagementService @Inject constructor(
             val participantId = findOrCreateExternalParticipant(normalizedEmail).id
             return PrincipalKind.PARTICIPANT to participantId
         }
-        return kind to parseUuid(trimmed, "principalId")
+        val principalId = parseUuid(trimmed, "principalId")
+        when (kind)
+        {
+            PrincipalKind.PARTICIPANT -> if (externalParticipantRepository.findById(principalId) == null)
+            {
+                throw IllegalArgumentException("Participant not found")
+            }
+
+            PrincipalKind.PRINCIPAL_GROUP -> if (principalGroupRepository.findById(principalId) == null)
+            {
+                throw IllegalArgumentException("Group not found")
+            }
+
+            else -> Unit
+        }
+        return kind to principalId
+    }
+
+    private fun requireAssignableRole(roleName: ExchangeShareRoleName)
+    {
+        if (roleName == ExchangeShareRoleName.OWNER)
+        {
+            throw IllegalArgumentException("The owner role is reserved for the Exchange initiator")
+        }
+    }
+
+    private fun enforceSharingPolicy(actorId: UUID, kind: PrincipalKind, principalId: UUID)
+    {
+        when (kind)
+        {
+            PrincipalKind.USER -> organizationExchangePolicyService.assertCanShareWithUser(actorId, principalId)
+            PrincipalKind.PARTICIPANT -> organizationExchangePolicyService.assertCanShareWithUser(actorId, null)
+            PrincipalKind.PRINCIPAL_GROUP ->
+            {
+                val group = principalGroupRepository.findById(principalId)
+                    ?: throw IllegalArgumentException("Group not found")
+                organizationExchangePolicyService.assertCanShareWithGroup(actorId, group)
+            }
+
+            else -> throw IllegalArgumentException("Principal kind is not supported for Exchange access")
+        }
     }
 
     private fun findOrCreateExternalParticipant(email: String): ExternalParticipant

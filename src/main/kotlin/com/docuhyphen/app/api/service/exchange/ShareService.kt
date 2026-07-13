@@ -120,32 +120,69 @@ class ShareService @Inject constructor(
     private fun materialiseGroupInheritance(parentShare: Share)
     {
         val members = groupMemberRepository.findActiveMembers(parentShare.principalId)
-        val alreadyInherited = shareRepository.findBySourceShareId(parentShare.id)
-            .associateBy { it.principalKind to it.principalId }
-
         for (member in members)
         {
             if (member.principalKind != PrincipalKind.USER && member.principalKind != PrincipalKind.PARTICIPANT)
             {
                 continue
             }
-            val key = member.principalKind to member.principalId
-            if (key in alreadyInherited) continue
+            synchronizeInheritedShare(parentShare, member.principalKind, member.principalId, true)
+        }
+    }
 
-            val inherited = Share().apply {
-                this.resourceType = parentShare.resourceType
-                this.resourceId = parentShare.resourceId
-                this.principalKind = member.principalKind
-                this.principalId = member.principalId
-                this.roleName = parentShare.roleName
-                this.source = ShareSource.INHERITED_FROM_GROUP
-                this.sourceShareId = parentShare.id
-                this.status = ShareStatus.ACTIVE
-                this.grantedByAppUserId = parentShare.grantedByAppUserId
-                this.constraintsJson = parentShare.constraintsJson
-                this.expiresAt = parentShare.expiresAt
-            }
-            shareRepository.save(inherited)
+    fun synchronizeGroupMemberAccess(
+        groupId: UUID,
+        principalKind: PrincipalKind,
+        principalId: UUID,
+        active: Boolean,
+    )
+    {
+        shareRepository.findActiveForPrincipal(PrincipalKind.PRINCIPAL_GROUP, groupId)
+            .filter { it.source == ShareSource.DIRECT }
+            .forEach { synchronizeInheritedShare(it, principalKind, principalId, active) }
+    }
+
+    fun revokeGroupAccess(groupId: UUID)
+    {
+        shareRepository.findAllForPrincipal(PrincipalKind.PRINCIPAL_GROUP, groupId)
+            .filter { it.source == ShareSource.DIRECT && it.status != ShareStatus.REVOKED }
+            .forEach { revoke(it.id) }
+    }
+
+    private fun synchronizeInheritedShare(
+        parentShare: Share,
+        principalKind: PrincipalKind,
+        principalId: UUID,
+        active: Boolean,
+    )
+    {
+        val existing = shareRepository.findBySourceShareId(parentShare.id)
+            .filter { it.principalKind == principalKind && it.principalId == principalId }
+        if (!active)
+        {
+            val now = Timestamp.from(Instant.now())
+            existing.forEach { markRevoked(it, null, now) }
+            return
+        }
+
+        val inherited = (existing.firstOrNull() ?: Share()).apply {
+            resourceType = parentShare.resourceType
+            resourceId = parentShare.resourceId
+            this.principalKind = principalKind
+            this.principalId = principalId
+            roleName = parentShare.roleName
+            source = ShareSource.INHERITED_FROM_GROUP
+            sourceShareId = parentShare.id
+            status = ShareStatus.ACTIVE
+            grantedByAppUserId = parentShare.grantedByAppUserId
+            constraintsJson = parentShare.constraintsJson
+            expiresAt = parentShare.expiresAt
+            revokedAt = null
+            revokedByAppUserId = null
+        }
+        if (existing.isEmpty()) shareRepository.save(inherited) else shareRepository.update(inherited)
+        existing.drop(1).forEach { duplicate ->
+            markRevoked(duplicate, null, Timestamp.from(Instant.now()))
         }
     }
 

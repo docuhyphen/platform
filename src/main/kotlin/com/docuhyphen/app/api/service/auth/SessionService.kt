@@ -23,6 +23,7 @@ import jakarta.inject.Inject
 class SessionService @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val userRoleService: UserRoleService,
+    private val authSessionPolicyService: AuthSessionPolicyService,
     private val organizationMembershipRepository: OrganizationMembershipRepository,
     private val organizationRepository: OrganizationRepository,
 )
@@ -65,6 +66,7 @@ class SessionService @Inject constructor(
             organizationRoles = orgRoles.map { it.name },
             capabilities = capabilities.map { it.name }.sorted(),
             availableOrganizations = availableOrganizations,
+            idleTimeoutMinutes = authSessionPolicyService.resolveForAppUser(user).idleTimeoutMinutes,
         )
     }
 }

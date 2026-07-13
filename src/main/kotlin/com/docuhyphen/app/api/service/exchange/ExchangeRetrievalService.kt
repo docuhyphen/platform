@@ -41,6 +41,7 @@ class ExchangeRetrievalService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val shareService: ShareService,
+    private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
 )
 {
     @PersistenceContext
@@ -114,6 +115,7 @@ class ExchangeRetrievalService @Inject constructor(
 
         return (participatingSessions)
             .distinctBy { it.id }
+            .filter(::canCurrentPrincipalView)
             .sortedByDescending { it.createdDate }
             .filter { !it.isDeleted }
             .map { session ->
@@ -131,14 +133,23 @@ class ExchangeRetrievalService @Inject constructor(
         // principal as "no sessions" rather than crashing,  the filter already
         // rejects truly unauthenticated calls upstream, so reaching here with a
         // null appUser is a soft anomaly, not a security boundary.
-        val appUserId = authTokenContext.authToken.appUser?.id ?: return false
-        return exchangeRepository.userHasExchanges(appUserId)
+        if (authTokenContext.authToken.appUser?.id == null) return false
+        return getAllSessionsForSignedInAppUser().isNotEmpty()
     }
 
-    fun getNoAuthExchange(exchangeId: String): NoAuthExchangeBasicDto
+    fun getNoAuthExchange(
+        exchangeId: String,
+        noAuthAccessToken: String? = null,
+        shareLinkTokenValidated: Boolean = false,
+    ): NoAuthExchangeBasicDto
     {
         val session = exchangeRepository.findByIdWithDocumentsOrderedByTitle(UUID.fromString(exchangeId))
             ?: throw ExchangeNotFoundException("Exchange not found")
+
+        if (!shareLinkTokenValidated)
+        {
+            noAuthExchangeAccessTokenService.requireValid(session, noAuthAccessToken)
+        }
 
         session.documents = session.documents.filter { it.isDeleted == false } as MutableList<Document>
 
@@ -187,33 +198,43 @@ class ExchangeRetrievalService @Inject constructor(
             catch (e: IllegalArgumentException) { null }
         }?.takeIf { it.isNotEmpty() }
 
-        val sessions = exchangeRepository.searchSessions(
+        val safePage = page.coerceAtLeast(0)
+        val safeSize = size.coerceIn(1, 100)
+        val authorizedSessions = exchangeRepository.searchSessions(
             appUserId,
             query,
             parsedStatuses,
             initiatedBy,
-            page,
-            size,
+            0,
+            Int.MAX_VALUE,
             sortBy,
             sortDirection
-        )
+        ).filter(::canCurrentPrincipalView)
 
-        val totalElements = exchangeRepository.countSearchResults(
-            appUserId,
-            query,
-            parsedStatuses,
-            initiatedBy
-        )
-
-        val totalPages = if (size > 0) (totalElements + size - 1) / size else 0
+        val totalElements = authorizedSessions.size.toLong()
+        val totalPages = (totalElements + safeSize - 1) / safeSize
+        val fromIndex = (safePage.toLong() * safeSize).coerceAtMost(totalElements).toInt()
+        val toIndex = (fromIndex + safeSize).coerceAtMost(authorizedSessions.size)
+        val sessions = authorizedSessions.subList(fromIndex, toIndex)
 
         return SearchResult(
             content = sessions.map { BasicEntityToDtoTransformer.toDto(it) }.toTypedArray(),
             totalElements = totalElements,
             totalPages = totalPages.toInt(),
-            currentPage = page,
-            pageSize = size
+            currentPage = safePage,
+            pageSize = safeSize
         )
+    }
+
+    private fun canCurrentPrincipalView(exchange: Exchange): Boolean
+    {
+        val principal = authorizationContextFactory.currentPrincipal() ?: return false
+        return authorizationService.authorize(
+            principal = principal,
+            action = Action.EXCHANGE_VIEW,
+            resource = ResourceRef.exchange(exchange.id),
+            context = authorizationContextFactory.currentContext(),
+        ) is Decision.Allow
     }
 
     fun getExchangesLinkedToAppUserId(appUserId: UUID): List<Exchange>

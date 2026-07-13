@@ -9,6 +9,7 @@ import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.PrincipalGroupRepository
 import com.docuhyphen.app.api.repository.UserContactRepository
+import com.docuhyphen.app.api.service.exchange.ShareService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -32,6 +33,7 @@ class PrincipalGroupService @Inject constructor(
     private val groupRepository: PrincipalGroupRepository,
     private val memberRepository: PrincipalGroupMemberRepository,
     private val userContactRepository: UserContactRepository,
+    private val shareService: ShareService,
 )
 {
     fun getActiveGroupIdsForPrincipal(principalKind: PrincipalKind, principalId: UUID): Set<UUID> =
@@ -100,6 +102,7 @@ class PrincipalGroupService @Inject constructor(
             {
                 member.isActive = false
                 memberRepository.update(member)
+                shareService.synchronizeGroupMemberAccess(groupId, member.principalKind, member.principalId, false)
             }
         }
 
@@ -127,12 +130,14 @@ class PrincipalGroupService @Inject constructor(
                 current.addedByAppUserId = addedByAppUserId
                 memberRepository.update(current)
             }
+            shareService.synchronizeGroupMemberAccess(groupId, spec.principalKind, spec.principalId, true)
         }
     }
 
     /** Soft-delete: deactivate the group (kept when it is still linked to live sessions). */
     fun deactivateGroup(groupId: UUID)
     {
+        shareService.revokeGroupAccess(groupId)
         groupRepository.findById(groupId)?.let {
             it.isActive = false
             groupRepository.update(it)
@@ -142,6 +147,7 @@ class PrincipalGroupService @Inject constructor(
     /** Hard-delete: remove the group and all its member rows. */
     fun deleteGroup(groupId: UUID)
     {
+        shareService.revokeGroupAccess(groupId)
         memberRepository.findActiveMembers(groupId).forEach { memberRepository.delete(it) }
         groupRepository.findById(groupId)?.let { groupRepository.delete(it) }
     }
@@ -248,6 +254,7 @@ class PrincipalGroupService @Inject constructor(
                 existing.addedByAppUserId = actorId
                 memberRepository.update(existing)
             }
+            shareService.synchronizeGroupMemberAccess(groupId, spec.principalKind, spec.principalId, true)
         }
     }
 
@@ -259,6 +266,7 @@ class PrincipalGroupService @Inject constructor(
         require(member.groupRole != PrincipalGroupRoleName.OWNER) { "Cannot remove the group owner" }
         member.isActive = false
         memberRepository.update(member)
+        shareService.synchronizeGroupMemberAccess(groupId, principalKind, principalId, false)
     }
 
     /** Soft-delete a personal group and deactivate all its members. */
@@ -271,9 +279,19 @@ class PrincipalGroupService @Inject constructor(
         require(group.scope == PrincipalGroupScope.PERSONAL) { "Group $groupId is not a PERSONAL group" }
         group.isActive = false
         groupRepository.update(group)
+        shareService.revokeGroupAccess(groupId)
         memberRepository.findActiveMembers(groupId).forEach {
             it.isActive = false
             memberRepository.update(it)
         }
+    }
+
+    fun deactivateMember(groupId: UUID, principalKind: PrincipalKind, principalId: UUID)
+    {
+        memberRepository.findMembership(groupId, principalKind, principalId)?.let {
+            it.isActive = false
+            memberRepository.update(it)
+        }
+        shareService.synchronizeGroupMemberAccess(groupId, principalKind, principalId, false)
     }
 }

@@ -7,9 +7,13 @@ import com.docuhyphen.app.api.model.dto.NotificationType
 import com.docuhyphen.app.api.model.entity.DocumentAuditAction
 import com.docuhyphen.app.api.model.entity.ExchangeDocumentComment
 import com.docuhyphen.app.api.repository.DocumentCommentRepository
-import com.docuhyphen.app.api.repository.ExchangeDocumentRepository
 import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.repository.ExchangeRepository
+import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.Decision
+import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import jakarta.ws.rs.BadRequestException
 import jakarta.ws.rs.ForbiddenException
@@ -24,13 +28,14 @@ import java.util.*
 @ApplicationScoped
 class ExchangeDocumentCommentsService @Inject constructor(
     private val exchangeRepository: ExchangeRepository,
-    private val exchangeDocumentRepository: ExchangeDocumentRepository,
     private val realtimeEventService: RealtimeEventService,
     private val exchangeDocumentAuditService: ExchangeDocumentAuditService,
     private val authTokenContext: AuthTokenContext,
     private val documentCommentRepository: DocumentCommentRepository,
     private val organizationMembershipService: OrganizationMembershipService,
     private val shareService: ShareService,
+    private val authorizationService: AuthorizationService,
+    private val authorizationContextFactory: AuthorizationContextFactory,
 )
 {
     companion object
@@ -47,8 +52,7 @@ class ExchangeDocumentCommentsService @Inject constructor(
     ): ExchangeDocumentComment
     {
         //ToDo: link comment to document version
-        val document = exchangeDocumentRepository.findById(UUID.fromString(documentId))
-            ?: throw ExchangeNotFoundException("Document not found")
+        val document = requireDocumentAccess(exchangeId, documentId, Action.DOCUMENT_COMMENT)
 
         val user = authTokenContext.authToken.appUser
             ?: throw ForbiddenException("A user account is required to add a document note")
@@ -122,8 +126,7 @@ class ExchangeDocumentCommentsService @Inject constructor(
 
     fun getDocumentComments(exchangeId: String, documentId: String): List<ExchangeDocumentComment>
     {
-        exchangeRepository.findById(UUID.fromString(exchangeId))
-            ?: throw ExchangeNotFoundException("Exchange not found")
+        requireDocumentAccess(exchangeId, documentId, Action.DOCUMENT_VIEW)
 
         val user = authTokenContext.authToken.appUser
             ?: throw ForbiddenException("A user account is required to view document notes")
@@ -133,4 +136,23 @@ class ExchangeDocumentCommentsService @Inject constructor(
             comment.internalOrganizationId == null || comment.internalOrganizationId in visibleOrganizationIds
         }
     }
+
+    private fun requireDocumentAccess(exchangeId: String, documentId: String, action: Action) =
+        exchangeRepository.findDocumentBySessionIdAndDocumentId(
+            UUID.fromString(exchangeId),
+            UUID.fromString(documentId),
+        )?.also {
+            val principal = authorizationContextFactory.currentPrincipal()
+                ?: throw ForbiddenException("Authentication is required")
+            val decision = authorizationService.authorize(
+                principal = principal,
+                action = action,
+                resource = ResourceRef.exchange(UUID.fromString(exchangeId)),
+                context = authorizationContextFactory.currentContext(),
+            )
+            if (decision is Decision.Deny)
+            {
+                throw ForbiddenException("Permission to access document notes was not granted")
+            }
+        } ?: throw ExchangeNotFoundException("Document not found")
 }

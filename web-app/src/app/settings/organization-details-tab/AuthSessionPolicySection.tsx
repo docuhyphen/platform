@@ -12,6 +12,7 @@ import {
     getOrgAuthSessionPolicy,
     updateOrgIdpAuthSessionPolicy,
 } from "../../../services/authApi.ts";
+import AuthSessionPolicySummary from "../components/auth-session-policy-summary/AuthSessionPolicySummary.tsx";
 import type {
     OrgAuthSessionPolicyGuardrails,
     OrgAuthSessionPolicyIdp,
@@ -216,41 +217,9 @@ export const AuthSessionPolicySection = ({organizationId}: AuthSessionPolicySect
 
             {settings && !loading && (
                 <>
-                    <Text size={200}>
-                        Effective policy is the minimum across active Identity Provider configurations
-                        (including the built-in INTERNAL provider) and is clamped to platform guardrails.
-                        Short refresh and idle windows are intentional for sensitive-document workloads.
-                    </Text>
-
-                    <div className={styles.effectiveGrid}>
-                        <Text weight="semibold">Effective access token</Text>
-                        <Text>{settings.effective.accessTokenExpiryMinutes} min</Text>
-                        <Text size={200}>
-                            (range {settings.guardrails.minAccessTokenExpiryMinutes}–
-                            {settings.guardrails.maxAccessTokenExpiryMinutes} min)
-                        </Text>
-
-                        <Text weight="semibold">Effective refresh token</Text>
-                        <Text>{settings.effective.refreshTokenExpiryMinutes} min</Text>
-                        <Text size={200}>
-                            (range {settings.guardrails.minRefreshTokenExpiryMinutes}–
-                            {settings.guardrails.maxRefreshTokenExpiryMinutes} min)
-                        </Text>
-
-                        <Text weight="semibold">Effective max session</Text>
-                        <Text>{settings.effective.maxSessionDurationHours} hours</Text>
-                        <Text size={200}>
-                            (range {settings.guardrails.minSessionMaxDurationHours}–
-                            {settings.guardrails.maxSessionMaxDurationHours} hrs)
-                        </Text>
-
-                        <Text weight="semibold">Effective idle timeout</Text>
-                        <Text>{settings.effective.idleTimeoutMinutes} min</Text>
-                        <Text size={200}>
-                            (range {settings.guardrails.minIdleTimeoutMinutes}–
-                            {settings.guardrails.maxIdleTimeoutMinutes} min)
-                        </Text>
-                    </div>
+                    <AuthSessionPolicySummary
+                        effective={settings.effective}
+                        guardrails={settings.guardrails}/>
 
                     {settings.idpConfigs.length === 0 && (
                         <Text

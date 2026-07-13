@@ -1,13 +1,10 @@
 ﻿package com.docuhyphen.app.api.service.exchange
 
-import com.docuhyphen.app.api.exception.AppUserNotFoundException
-import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.repository.AppUserRepository
+import com.docuhyphen.app.api.model.entity.ShareSource
 import com.docuhyphen.app.api.repository.ShareRepository
-import com.docuhyphen.app.api.repository.ExchangeRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -22,9 +19,7 @@ import java.util.*
  */
 @ApplicationScoped
 class ExchangeParticipantService @Inject constructor(
-    private val exchangeRepository: ExchangeRepository,
-    private val appUserRepository: AppUserRepository,
-    private val shareService: ShareService,
+    private val exchangeAccessManagementService: ExchangeAccessManagementService,
     private val shareRepository: ShareRepository,
 )
 {
@@ -37,17 +32,10 @@ class ExchangeParticipantService @Inject constructor(
     fun addExchangeParticipant(exchangeId: String, participantId: String)
     {
         val sessionUuid = UUID.fromString(exchangeId)
-        exchangeRepository.findById(sessionUuid)
-            ?: throw ExchangeNotFoundException("Exchange not found")
-
-        val participant = appUserRepository.findById(UUID.fromString(participantId))
-            ?: throw AppUserNotFoundException("Participant not found")
-
-        shareService.grant(
-            resourceType = ResourceType.EXCHANGE,
-            resourceId = sessionUuid,
-            principalKind = PrincipalKind.USER,
-            principalId = participant.id,
+        exchangeAccessManagementService.grantAccess(
+            exchangeId = sessionUuid,
+            principalKind = PrincipalKind.USER.name,
+            principalId = participantId,
             roleName = ExchangeShareRoleName.PARTICIPANT,
         )
         logger.info("Participant $participantId added to exchange $exchangeId")
@@ -57,15 +45,17 @@ class ExchangeParticipantService @Inject constructor(
     fun removeExchangeParticipant(exchangeId: String, participantId: String)
     {
         val sessionUuid = UUID.fromString(exchangeId)
-        exchangeRepository.findById(sessionUuid)
-            ?: throw ExchangeNotFoundException("Exchange not found")
-
-        val participant = appUserRepository.findById(UUID.fromString(participantId))
-            ?: throw AppUserNotFoundException("Participant not found")
+        val participantUuid = UUID.fromString(participantId)
+        exchangeAccessManagementService.assertCanManageAccess(sessionUuid)
 
         shareRepository.findActiveForPrincipalOnResource(
-            PrincipalKind.USER, participant.id, ResourceType.EXCHANGE, sessionUuid,
-        ).forEach { shareService.revoke(it.id) }
+            PrincipalKind.USER, participantUuid, ResourceType.EXCHANGE, sessionUuid,
+        )
+            .filter {
+                it.roleName == ExchangeShareRoleName.PARTICIPANT &&
+                    it.source == ShareSource.DIRECT
+            }
+            .forEach { exchangeAccessManagementService.revokeAccess(sessionUuid, it.id) }
 
         logger.info("Participant $participantId removed from exchange $exchangeId")
     }

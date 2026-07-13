@@ -29,6 +29,7 @@ data class CurrentSessionDto(
     val organizationRoles: List<String>,
     val capabilities: List<String>,
     val availableOrganizations: List<SessionOrganizationOptionDto>,
+    val idleTimeoutMinutes: Long,
 )
 
 /**

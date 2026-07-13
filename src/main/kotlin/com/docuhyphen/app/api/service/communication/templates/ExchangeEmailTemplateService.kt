@@ -122,10 +122,11 @@ class ExchangeEmailTemplateService @Inject constructor(
         sessionMessage: String?,
         documents: List<String>,
         otp: String,
+        accessToken: String,
         expiryLabel: String,
     ): RenderedEmailTemplate
     {
-        val exchangeLink = "${configurationService.baseUrl}/nas?s=$exchangeId"
+        val exchangeLink = "${configurationService.baseUrl}/nas?s=$exchangeId&t=$accessToken"
         val model = mutableMapOf<String, Any>(
             "appName" to configurationService.emailSubjectTitle,
             "name" to name,
@@ -148,11 +149,12 @@ class ExchangeEmailTemplateService @Inject constructor(
         exchangeId: String,
         name: String,
         otp: String,
+        accessToken: String,
         expiryMinutes: Long,
         initiatorName: String? = null,
     ): RenderedEmailTemplate
     {
-        val exchangeLink = "${configurationService.baseUrl}/nas?s=$exchangeId"
+        val exchangeLink = "${configurationService.baseUrl}/nas?s=$exchangeId&t=$accessToken"
         val model = mutableMapOf<String, Any>(
             "appName" to configurationService.emailSubjectTitle,
             "name" to name,

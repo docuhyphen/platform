@@ -294,10 +294,7 @@ class OrganizationGroupService @Inject constructor(
     fun removeUserFromOrganizationGroups(organizationId: UUID, appUserId: UUID)
     {
         principalGroupRepository.findByOwnerOrg(organizationId).forEach { group ->
-            principalGroupMemberRepository.findMembership(group.id, PrincipalKind.USER, appUserId)?.let {
-                it.isActive = false
-                principalGroupMemberRepository.update(it)
-            }
+            principalGroupService.deactivateMember(group.id, PrincipalKind.USER, appUserId)
         }
     }
 

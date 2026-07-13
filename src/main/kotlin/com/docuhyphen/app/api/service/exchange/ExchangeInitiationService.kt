@@ -64,6 +64,7 @@ class ExchangeInitiationService @Inject constructor(
     private val documentLibraryService: DocumentLibraryService,
     private val fileStorageService: FileStorageService,
     private val schemaAssignmentService: com.docuhyphen.app.api.service.fields.SchemaAssignmentService,
+    private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
 )
 {
     @PersistenceContext
@@ -784,6 +785,7 @@ class ExchangeInitiationService @Inject constructor(
                     try
                     {
                         val otp = otpService.generateEmailOtp()
+                        val accessToken = noAuthExchangeAccessTokenService.issue(exchange)
                         val validityDays = exchange.noAuthAccessValidityDays.toLong()
                         // Set OTP on managed entity — Hibernate dirty-check flushes at commit.
                         // The code is valid for the full noAuthAccessValidityDays window so recipients
@@ -802,6 +804,7 @@ class ExchangeInitiationService @Inject constructor(
                             sessionMessage = exchange.initialShareMessage,
                             documents = documentTitles,
                             otp = otp,
+                            accessToken = accessToken,
                             expiryLabel = expiryLabel,
                         )
                         emailService.sendEmail(

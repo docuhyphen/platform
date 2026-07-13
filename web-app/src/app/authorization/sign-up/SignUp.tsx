@@ -25,6 +25,7 @@ import {useAuthorizationStyles} from "../AuthorizationStyles.tsx";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 import {ResponseError} from "../../models/models.tsx";
 import validator from 'validator';
+import {getApiBaseUrl} from "../../../services/apiBaseUrl.ts";
 
 interface SignUpFormData
 {
@@ -354,7 +355,7 @@ const SignUp: React.FC = () =>
                             <Button
                                 id={"sign-up-microsoft-btn"}
                                 onClick={() => {
-                                    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+                                    const apiBaseUrl = getApiBaseUrl();
                                     window.location.href = `${apiBaseUrl}/auth/oauth/MICROSOFT/authorize?flow=signup`;
                                 }}
                                 appearance={"secondary"}
@@ -365,7 +366,7 @@ const SignUp: React.FC = () =>
                             <Button
                                 id={"sign-up-google-btn"}
                                 onClick={() => {
-                                    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+                                    const apiBaseUrl = getApiBaseUrl();
                                     window.location.href = `${apiBaseUrl}/auth/oauth/GOOGLE/authorize?flow=signup`;
                                 }}
                                 appearance={"secondary"}

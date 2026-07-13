@@ -56,6 +56,7 @@ class NoAuthExchangeResource @Inject constructor(
     fun getNoAuthExchange(
         @PathParam("exchangeId") exchangeId: String,
         @HeaderParam("X-Share-Link-Token") shareLinkToken: String?,
+        @HeaderParam("X-No-Auth-Access-Token") noAuthAccessToken: String?,
     ): Response
     {
         return try
@@ -78,7 +79,11 @@ class NoAuthExchangeResource @Inject constructor(
                 )
             }
 
-            val exchange = exchangeRetrievalService.getNoAuthExchange(exchangeId)
+            val exchange = exchangeRetrievalService.getNoAuthExchange(
+                exchangeId,
+                noAuthAccessToken,
+                shareLinkTokenValidated = !shareLinkToken.isNullOrBlank(),
+            )
 
             Response.ok(exchange).build()
         }
@@ -136,12 +141,13 @@ class NoAuthExchangeResource @Inject constructor(
     @POST
     @Path("/{exchangeId}/otp")
     fun issueNoAuthExchangeOtp(
-        @PathParam("exchangeId") exchangeId: String
+        @PathParam("exchangeId") exchangeId: String,
+        @HeaderParam("X-No-Auth-Access-Token") noAuthAccessToken: String?,
     ): Response
     {
         return ResourceEndpointDelayHelper.withFixedFloor(1000) { try
         {
-            exchangeUpdateService.issueRecipientOtp(exchangeId)
+            exchangeUpdateService.issueRecipientOtp(exchangeId, noAuthAccessToken)
             Response.status(Response.Status.NO_CONTENT).build()
         }
         catch (exception: Exception)
@@ -207,12 +213,13 @@ class NoAuthExchangeResource @Inject constructor(
     @Path("/{exchangeId}/verify-access-code")
     fun verifyNoAuthAccessCode(
         @PathParam("exchangeId") exchangeId: String,
+        @HeaderParam("X-No-Auth-Access-Token") noAuthAccessToken: String?,
         request: UpdateNoAuthExchange,
     ): Response
     {
         return try
         {
-            val updatedSession = exchangeUpdateService.verifyNoAuthAccessCode(exchangeId, request.otp)
+            val updatedSession = exchangeUpdateService.verifyNoAuthAccessCode(exchangeId, request.otp, noAuthAccessToken)
             Response.ok(updatedSession).build()
         }
         catch (exception: Exception)
@@ -280,6 +287,7 @@ class NoAuthExchangeResource @Inject constructor(
     @Path("/{exchangeId}")
     fun updateNoAuthExchange(
         @PathParam("exchangeId") exchangeId: String,
+        @HeaderParam("X-No-Auth-Access-Token") noAuthAccessToken: String?,
         request: UpdateNoAuthExchange
     ): Response
     {
@@ -291,6 +299,7 @@ class NoAuthExchangeResource @Inject constructor(
                     status,
                     otp,
                     rejectReason ?: rejectionReason,
+                    noAuthAccessToken,
                 )
             }
 
@@ -385,7 +394,8 @@ class NoAuthExchangeResource @Inject constructor(
         @RestForm("extension") extension: String?,
         @RestForm("encryptionMode") encryptionMode: DocumentEncryptionMode?,
         @PathParam("exchangeId") exchangeId: String?,
-        @PathParam("documentId") documentId: String?
+        @PathParam("documentId") documentId: String?,
+        @HeaderParam("X-No-Auth-Access-Token") noAuthAccessToken: String?,
     ): Response
     {
         return try
@@ -396,6 +406,7 @@ class NoAuthExchangeResource @Inject constructor(
                 exchangeId,
                 documentId,
                 encryptionMode,
+                noAuthAccessToken,
             )
 
             val dto = DetailedEntityToDtoTransformer.toDto(document)
@@ -435,12 +446,13 @@ class NoAuthExchangeResource @Inject constructor(
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
     fun downloadDocument(
         @PathParam("exchangeId") exchangeId: String,
-        @PathParam("documentId") documentId: String
+        @PathParam("documentId") documentId: String,
+        @HeaderParam("X-No-Auth-Access-Token") noAuthAccessToken: String?,
     ): Response
     {
         return try
         {
-            val file = exchangeDocumentService.downloadNoAuthSessionDocument(exchangeId, documentId)
+            val file = exchangeDocumentService.downloadNoAuthSessionDocument(exchangeId, documentId, noAuthAccessToken)
             Response.ok(file.inputStream())
                 .header("Content-Disposition", "attachment; filename=\"${file.name}\"")
                 .header("Content-Length", file.length())

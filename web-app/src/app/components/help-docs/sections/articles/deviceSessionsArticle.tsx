@@ -20,6 +20,14 @@ export const deviceSessionsArticle = (
             <li>Use <b>Sign out of all devices</b> to revoke every active session at once.</li>
         </ul>
 
+        <h3>Inactivity warning</h3>
+        <ul>
+            <li>A warning dialog appears one minute before your session reaches its inactivity limit.</li>
+            <li>Select <b>Continue session</b> to remain signed in and restart the inactivity timer.</li>
+            <li>Select <b>Sign out</b> to end the session immediately.</li>
+            <li>If the countdown reaches zero, you are signed out automatically and must sign in again.</li>
+        </ul>
+
         <h3>Deleting old records</h3>
         <ul>
             <li>Use <b>Delete</b> on an ended session if you no longer want to keep that row in your history.</li>

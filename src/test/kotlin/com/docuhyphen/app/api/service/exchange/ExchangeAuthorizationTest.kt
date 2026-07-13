@@ -133,6 +133,7 @@ class ExchangeAuthorizationTest
         authorizationService = authSvc,
         authorizationContextFactory = factory,
         auditRecorder = mock(),
+        noAuthExchangeAccessTokenService = mock(),
     )
 
     // -------------------------------------------------------------------------

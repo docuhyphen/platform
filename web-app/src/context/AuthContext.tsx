@@ -6,6 +6,7 @@ import {useLocation, useNavigate} from "react-router-dom";
 import {setApiClientAuthToken, setApiClientActiveOrganizationId} from "../services/apiClient.ts";
 import {refreshTokens as refreshTokensApi} from "../services/authApi.ts";
 import OrganizationPickerDialog from "../app/components/organization-picker/OrganizationPickerDialog.tsx";
+import SessionInactivityGuard from "../app/components/session-expiry-warning/SessionInactivityGuard.tsx";
 
 const AUTH_EVENT_STORAGE_KEY = 'docuhyphen:auth:event';
 const AUTH_USER_STORAGE_KEY = 'docuhyphen:auth:user-id';
@@ -173,19 +174,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
     // Try to refresh tokens on app load (cookie-based)
     const refreshTokens = useCallback(async () =>
     {
-        try
+        const data = await refreshTokensApi();
+        if (data?.accessToken)
         {
-            const data = await refreshTokensApi();
-            if (data?.accessToken)
-            {
-                setAccessToken(data.accessToken);
-                if (data.idToken) setIdToken(data.idToken);
-            }
-        }
-        catch
-        {
-            // No valid refresh token,  user is not logged in
-            console.log("No active session (refresh token unavailable)");
+            setAccessToken(data.accessToken);
+            if (data.idToken) setIdToken(data.idToken);
         }
     }, [setAccessToken, setIdToken]);
 
@@ -231,6 +224,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
                 {
                     setApiClientAuthToken(accessToken);
                 }
+            }
+            catch
+            {
+                console.log("No active session (refresh token unavailable)");
             }
             finally
             {
@@ -578,6 +575,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
             <OrganizationPickerDialog isOpen={orgPickerOptions !== null}
                                       organizations={orgPickerOptions ?? []}
                                       onSelect={onOrgPickerSelect}/>
+            <SessionInactivityGuard
+                token={token}
+                currentSession={currentSession}
+                setToken={setToken}/>
         </AuthContext.Provider>
     );
 };

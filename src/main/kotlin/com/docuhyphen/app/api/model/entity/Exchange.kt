@@ -95,6 +95,9 @@ class Exchange
     @Serializable(with = TimestampSerializer::class)
     var noAuthAccessVerifiedAt: Timestamp? = null
 
+    @Column(name = "no_auth_access_token_hash", nullable = true, length = 64)
+    var noAuthAccessTokenHash: String? = null
+
     @Column(name = "no_auth_access_validity_days", nullable = false)
     var noAuthAccessValidityDays: Int = 7
 

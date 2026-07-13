@@ -79,6 +79,7 @@ class ExchangeUpdateService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val auditRecorder: AuditRecorder,
+    private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
 )
 {
     @PersistenceContext
@@ -581,13 +582,15 @@ class ExchangeUpdateService @Inject constructor(
         exchangeId: String,
         sessionStatus: ExchangeStatus?,
         otp: String?,
-        rejectReason: String?
+        rejectReason: String?,
+        noAuthAccessToken: String?,
     ): NoAuthExchangeBasicDto
     {
         val sessionUUID = UUID.fromString(exchangeId)
 
         val session = exchangeRepository.findById(sessionUUID)
             ?: throw ExchangeNotFoundException("Exchange not found")
+        noAuthExchangeAccessTokenService.requireValid(session, noAuthAccessToken)
 
         if (session.requireRecipientSignIn)
         {
@@ -744,11 +747,16 @@ class ExchangeUpdateService @Inject constructor(
     }
 
     @Transactional
-    fun verifyNoAuthAccessCode(exchangeId: String, otp: String?): NoAuthExchangeBasicDto
+    fun verifyNoAuthAccessCode(
+        exchangeId: String,
+        otp: String?,
+        noAuthAccessToken: String?,
+    ): NoAuthExchangeBasicDto
     {
         val sessionUUID = UUID.fromString(exchangeId)
         val session = exchangeRepository.findById(sessionUUID)
             ?: throw ExchangeNotFoundException("Exchange not found")
+        noAuthExchangeAccessTokenService.requireValid(session, noAuthAccessToken)
 
         if (session.requireRecipientSignIn)
         {
@@ -774,12 +782,32 @@ class ExchangeUpdateService @Inject constructor(
     }
 
     @Transactional
-    fun issueRecipientOtp(exchangeId: String): Exchange
+    fun issueRecipientOtp(exchangeId: String, noAuthAccessToken: String? = null): Exchange
     {
         val sessionUUID = UUID.fromString(exchangeId)
 
         val session = exchangeRepository.findById(sessionUUID)
             ?: throw ExchangeNotFoundException("Exchange not found")
+
+        if (noAuthAccessToken != null)
+        {
+            noAuthExchangeAccessTokenService.requireValid(session, noAuthAccessToken)
+        }
+        else
+        {
+            val principal = authorizationContextFactory.currentPrincipal()
+                ?: throw ForbiddenException("Exchange not found")
+            if (authorizationService.authorize(
+                    principal,
+                    Action.EXCHANGE_MANAGE_ACCESS,
+                    ResourceRef.exchange(sessionUUID),
+                    authorizationContextFactory.currentContext(),
+                ) is AuthDecision.Deny
+            )
+            {
+                throw ForbiddenException("Exchange not found")
+            }
+        }
 
         if (session.requireRecipientSignIn)
         {
@@ -818,6 +846,7 @@ class ExchangeUpdateService @Inject constructor(
             ?: throw IllegalArgumentException("Exchange has no recipient email")
 
         val otp = otpService.generateEmailOtp()
+        val accessToken = noAuthExchangeAccessTokenService.issue(session)
         session.recipientOtpHash = otpService.hashOtp(otp)
         session.recipientOtpExpiry = Timestamp.from(Instant.now().plusSeconds(OTP_VALIDITY_SECONDS))
         exchangeRepository.update(session)
@@ -828,6 +857,7 @@ class ExchangeUpdateService @Inject constructor(
             exchangeId = sessionUUID.toString(),
             name = session.name.orEmpty(),
             otp = otp,
+            accessToken = accessToken,
             expiryMinutes = OTP_VALIDITY_SECONDS / 60,
             initiatorName = session.initiator?.person?.let { "${it.firstName ?: ""} ${it.lastName ?: ""}".trim() }
                 ?.takeIf { it.isNotBlank() }

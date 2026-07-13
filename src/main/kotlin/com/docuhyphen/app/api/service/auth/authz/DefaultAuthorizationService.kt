@@ -67,14 +67,60 @@ class DefaultAuthorizationService @Inject constructor(
             return Decision.Deny(Decision.REASON_NO_GRANT, "No grants for ${principal.kind}/${principal.id} on $resource")
         }
 
-        val union = grants.flatMap { it.capabilities }.toSet()
-        if (action.required !in union)
+        val capableGrants = grants.filter { action.required in it.capabilities }
+        if (capableGrants.isEmpty())
         {
             return Decision.Deny(Decision.REASON_NO_GRANT, "Missing capability ${action.required} for $action")
         }
 
-        // Step 6: resource-state denies. Archived and suspended resources block non-admin
-        // writes. Admin-capable callers (EXCHANGE_ADMIN) bypass this check.
+        val shareSources = setOf(
+            Grant.SourceKind.DIRECT_SHARE,
+            Grant.SourceKind.INHERITED_GROUP_SHARE,
+            Grant.SourceKind.INHERITED_ORG_SHARE,
+            Grant.SourceKind.SHARE_LINK,
+        )
+        val now = Timestamp.from(Instant.now())
+        val capableShareIds = capableGrants
+            .filter { it.sourceKind in shareSources }
+            .map { it.sourceId }
+            .toSet()
+        val candidateShares = mutableListOf<Share>()
+        candidateShares += shareRepository.findActiveForPrincipalOnResource(
+            principal.kind, principal.id, resource.type, resource.id,
+        )
+        if (principal.kind == PrincipalKind.USER || principal.kind == PrincipalKind.PARTICIPANT)
+        {
+            principalGroupMemberRepository.findGroupsForPrincipal(principal.kind, principal.id).forEach { membership ->
+                candidateShares += shareRepository.findActiveForPrincipalOnResource(
+                    PrincipalKind.PRINCIPAL_GROUP,
+                    membership.principalGroupId,
+                    resource.type,
+                    resource.id,
+                )
+            }
+        }
+        val capableShares = candidateShares
+            .filter { it.id in capableShareIds }
+            .distinctBy { it.id }
+            .toMutableList()
+        capableShareIds
+            .filter { shareId -> capableShares.none { it.id == shareId } }
+            .mapNotNullTo(capableShares) { shareRepository.findById(it) }
+        val validCapableShares = capableShares.filter { evaluateShareConstraints(it, context, now) == null }
+        val independentlyCapable = capableGrants.any { it.sourceKind !in shareSources }
+        if (!independentlyCapable && validCapableShares.isEmpty())
+        {
+            return capableShares.asSequence()
+                .mapNotNull { evaluateShareConstraints(it, context, now) }
+                .firstOrNull()
+                ?: Decision.Deny(Decision.REASON_NO_GRANT, "No effective grant for $action")
+        }
+
+        val effectiveGrants = grants.filter { grant ->
+            grant.sourceKind !in shareSources || validCapableShares.any { it.id == grant.sourceId }
+        }
+        val union = effectiveGrants.flatMap { it.capabilities }.toSet()
+
         val resourceCtx = resourceContextRegistry.resolve(resource)
         if (resourceCtx != null && !union.contains(Capability.EXCHANGE_ADMIN))
         {
@@ -88,32 +134,7 @@ class DefaultAuthorizationService @Inject constructor(
             }
         }
 
-        // Constraint denies are evaluated against the *shares* (not role assignments).
-        // A user holding a role that grants the capability still needs to satisfy any
-        // share-level MFA/IP constraint that applies, if their access comes via that share.
-        val now = Timestamp.from(Instant.now())
-        val activeShares = shareRepository.findActiveForPrincipalOnResource(
-            principal.kind, principal.id, resource.type, resource.id,
-        )
-        for (share in activeShares)
-        {
-            val deny = evaluateShareConstraints(share, context, now)
-            if (deny != null)
-            {
-                // Only block if *all* grants to this principal come via shares (no role
-                // assignment is independently sufficient).
-                val viaRoleAssignment = grants.any {
-                    it.sourceKind == Grant.SourceKind.ROLE_ASSIGNMENT &&
-                        action.required in it.capabilities
-                }
-                if (!viaRoleAssignment)
-                {
-                    return deny
-                }
-            }
-        }
-
-        return Decision.Allow(computeObligations(activeShares, now))
+        return Decision.Allow(computeObligations(validCapableShares, now))
     }
 
     override fun capabilities(
@@ -171,6 +192,19 @@ class DefaultAuthorizationService @Inject constructor(
         for (share in directShares)
         {
             if (!isShareCurrentlyEffective(share, now)) continue
+            if (share.source == com.docuhyphen.app.api.model.entity.ShareSource.INHERITED_FROM_GROUP)
+            {
+                val parent = share.sourceShareId?.let(shareRepository::findById) ?: continue
+                val membership = principalGroupMemberRepository.findMembership(
+                    parent.principalId,
+                    principal.kind,
+                    principal.id,
+                )
+                if (parent.principalKind != PrincipalKind.PRINCIPAL_GROUP || membership?.isActive != true)
+                {
+                    continue
+                }
+            }
             grants += share.toGrant(
                 if (share.sourceShareId == null) Grant.SourceKind.DIRECT_SHARE
                 else Grant.SourceKind.INHERITED_GROUP_SHARE

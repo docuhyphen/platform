@@ -41,6 +41,17 @@ const getAuthHeaders = (token: string | null, extraHeaders: Record<string, strin
     ...extraHeaders,
 });
 
+const noAuthAccessTokenKey = (exchangeId: string) => `no-auth-exchange-access:${exchangeId}`;
+
+export const storeNoAuthExchangeAccessToken = (exchangeId: string, token: string): void =>
+{
+    window.sessionStorage.setItem(noAuthAccessTokenKey(exchangeId), token);
+};
+
+const getNoAuthAccessHeaders = (exchangeId: string): Record<string, string> => ({
+    'X-No-Auth-Access-Token': window.sessionStorage.getItem(noAuthAccessTokenKey(exchangeId)) ?? '',
+});
+
 export const initiateExchange = (request: ExchangeInitiationRequest) =>
     executeRequest(() =>
         apiClient.post(`/exchanges/`, request)
@@ -94,12 +105,16 @@ export const checkSignedInAppUserHasExchanges = async (token: string | null): Pr
 
 export const fetchNoAuthExchange = (exchangeId: string | null): Promise<NoAuthExchangeBasicDto | ResponseError> =>
     executeRequest(() =>
-        apiClient.get(`no-auth/exchanges/${exchangeId}`)
+        apiClient.get(`no-auth/exchanges/${exchangeId}`, {
+            headers: exchangeId ? getNoAuthAccessHeaders(exchangeId) : {},
+        })
     );
 
 export const updateNoAuthExchange = (exchangeId: string, request: UpdateNoAuthExchangeRequest) =>
     executeRequest(() =>
-        apiClient.put(`no-auth/exchanges/${exchangeId}`, request)
+        apiClient.put(`no-auth/exchanges/${exchangeId}`, request, {
+            headers: getNoAuthAccessHeaders(exchangeId),
+        })
     );
 
 export const updateExchange = (exchangeId: string, request: UpdateExchangeRequest) =>
@@ -159,14 +174,20 @@ export const uploadNoAuthExchangeDocument = (
 {
     return executeRequest(() =>
         apiClient.post(`no-auth/exchanges/${exchangeId}/documents/${documentId}/file`, formData, {
-            headers: {'Content-Type': 'multipart/form-data'},
+            headers: {
+                ...getNoAuthAccessHeaders(exchangeId),
+                'Content-Type': 'multipart/form-data',
+            },
             onUploadProgress
         })
     );
 }
 
 export const downloadNoAuthExchangeDocument = (exchangeId: string, documentId?: string) =>
-    executeRequest(() => apiClient.get(`no-auth/exchanges/${exchangeId}/documents/${documentId}/file`, blobRequest));
+    executeRequest(() => apiClient.get(`no-auth/exchanges/${exchangeId}/documents/${documentId}/file`, {
+        ...blobRequest,
+        headers: getNoAuthAccessHeaders(exchangeId),
+    }));
 
 export const downloadExchangeDocument = (exchangeId: string, documentId?: string) =>
     executeRequest(() => apiClient.get(`/exchanges/${exchangeId}/documents/${documentId}/file`, blobRequest));
@@ -178,10 +199,14 @@ export const downloadPreviewPDFExchangeDocument = (exchangeId: string, documentI
     executeRequest(() => apiClient.get(`/exchanges/${exchangeId}/documents/${documentId}/preview`, blobRequest));
 
 export const requestNoAuthExchangeOtp = (exchangeId: string) =>
-    executeRequest(() => apiClient.post(`no-auth/exchanges/${exchangeId}/otp`));
+    executeRequest(() => apiClient.post(`no-auth/exchanges/${exchangeId}/otp`, undefined, {
+        headers: getNoAuthAccessHeaders(exchangeId),
+    }));
 
 export const verifyNoAuthExchangeAccessCode = (exchangeId: string, otp: string) =>
-    executeRequest(() => apiClient.post(`no-auth/exchanges/${exchangeId}/verify-access-code`, {otp}));
+    executeRequest(() => apiClient.post(`no-auth/exchanges/${exchangeId}/verify-access-code`, {otp}, {
+        headers: getNoAuthAccessHeaders(exchangeId),
+    }));
 
 export const requestExchangeRecipientOtp = (exchangeId: string) =>
     executeRequest(() => apiClient.post(`/exchanges/${exchangeId}/recipient-otp`));

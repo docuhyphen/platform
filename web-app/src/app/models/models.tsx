@@ -627,6 +627,7 @@ export interface CurrentSessionDto
     organizationRoles: string[]
     capabilities: Capability[]
     availableOrganizations: SessionOrganizationOptionDto[]
+    idleTimeoutMinutes: number
 }
 
 // ── OAuth / Multi-IDP Types ──

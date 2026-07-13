@@ -14,6 +14,7 @@ const REASON_MESSAGES: Record<string, string> = {
     ORG_MEMBERSHIP_INACTIVE: "Your organization membership is no longer active.",
     EXCHANGE_VERSION_MISMATCH: "Your session was invalidated because you signed out from all devices.",
     REFRESH_REUSE_DETECTED: "A suspicious sign-in attempt was detected and your session was terminated for your protection.",
+    INACTIVITY_TIMEOUT: "You were signed out because your session was inactive.",
 };
 
 const AppSessionExpired: React.FC = () =>

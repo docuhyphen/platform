@@ -71,6 +71,19 @@ export const identitySection: HelpDocSectionInput = {
                         <li>Save configuration in DocuHyphen and run a test login.</li>
                     </ol>
 
+                    <h3>Session policy</h3>
+                    <p>
+                        Open <b>Settings</b>, <b>Organization</b>, <b>Administration</b>,
+                        then <b>Authentication</b> to review the effective session policy.
+                        The strictest value from the active Identity Provider configurations applies.
+                    </p>
+                    <ul>
+                        <li><b>Access token lifetime</b> controls short-lived API access.</li>
+                        <li><b>Session renewal window</b> controls how long an active session can renew access.</li>
+                        <li><b>Maximum session lifetime</b> is the absolute limit after sign-in.</li>
+                        <li><b>Inactivity timeout</b> ends a session after no user activity.</li>
+                    </ul>
+
                     <h3>Troubleshooting checklist</h3>
                     <ul>
                         <li>Redirect URI mismatch between provider and DocuHyphen.</li>

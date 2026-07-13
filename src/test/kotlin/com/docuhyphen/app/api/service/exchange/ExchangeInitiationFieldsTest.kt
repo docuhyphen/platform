@@ -67,6 +67,7 @@ class ExchangeInitiationFieldsTest
             documentLibraryService = mock(),
             fileStorageService = mock(),
             schemaAssignmentService = schemaAssignmentService,
+            noAuthExchangeAccessTokenService = mock(),
         )
 
     private fun entry(): FieldValueEntry =

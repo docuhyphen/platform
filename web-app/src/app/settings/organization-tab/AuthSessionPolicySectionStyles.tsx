@@ -12,16 +12,6 @@ export const useAuthSessionPolicySectionStyles = makeStyles({
         color: tokens.colorStatusDangerForeground1,
         marginBottom: tokens.spacingVerticalS,
     },
-    effectiveGrid: {
-        display: "grid",
-        gridTemplateColumns: "auto auto auto",
-        columnGap: tokens.spacingHorizontalL,
-        rowGap: tokens.spacingVerticalXS,
-        marginBottom: tokens.spacingVerticalL,
-        padding: tokens.spacingHorizontalS,
-        background: tokens.colorNeutralBackground2,
-        borderRadius: tokens.borderRadiusMedium,
-    },
     noIdpText: {
         color: tokens.colorNeutralForeground3,
     },

@@ -99,8 +99,9 @@ export const manageAccessArticle = (
         <ul>
             <li>
                 <strong>Require recipient sign in</strong> - When enabled, the recipient must sign in with
-                their account to access the exchange. When disabled, the recipient can use a one-time email
-                access code (OTP) instead, which is useful for external parties without an account.
+                their account to access the exchange. When disabled, the recipient must open the secure
+                email link and enter its one-time access code, which is useful for external parties without
+                an account. The link credential is required on every no-sign-in request.
             </li>
             <li>
                 <strong>Send access code</strong> - When sign-in is not required, a one-time access code can
@@ -108,7 +109,8 @@ export const manageAccessArticle = (
             </li>
             <li>
                 <strong>No-auth access validity</strong> - Sets how many days the one-time access code
-                remains valid (1–30 days). After expiry, a new code must be sent.
+                verification remains valid (1 to 30 days). After expiry, a new code and secure link must
+                be sent.
             </li>
         </ul>
 

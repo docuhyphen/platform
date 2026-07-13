@@ -5,7 +5,7 @@ import NoAuthExchangeHeader from "./components/header/NoAuthExchangeHeader.tsx";
 import {useNoAuthExchangeStyles} from "./NoAuthExchangeStyles.tsx";
 import NoAuthExchangeUserDecision from "./components/exchange-use-decision/NoAuthExchangeUserDecision.tsx";
 import {FluentProvider, Spinner} from "@fluentui/react-components";
-import {fetchNoAuthExchange} from "../../services/exchangeApi.ts";
+import {fetchNoAuthExchange, storeNoAuthExchangeAccessToken} from "../../services/exchangeApi.ts";
 import NoAuthExchangeWorkspace from "./components/exchange-workspace/NoAuthExchangeWorkspace.tsx";
 import {lightTheme} from "../../context/theme.ts";
 
@@ -23,6 +23,7 @@ const NoAuthExchange: React.FC = () =>
     {
         const queryParams = new URLSearchParams(window.location.search);
         const exchangeIdParam = queryParams.get('s');
+        const accessTokenParam = queryParams.get('t');
 
         if (!exchangeIdParam)
         {
@@ -30,6 +31,17 @@ const NoAuthExchange: React.FC = () =>
         }
         else
         {
+            if (accessTokenParam)
+            {
+                storeNoAuthExchangeAccessToken(exchangeIdParam, accessTokenParam);
+                queryParams.delete('t');
+                const remainingQuery = queryParams.toString();
+                window.history.replaceState(
+                    null,
+                    '',
+                    `${window.location.pathname}${remainingQuery ? `?${remainingQuery}` : ''}`,
+                );
+            }
             setExchangeId(exchangeIdParam);
         }
     }, [navigate]);

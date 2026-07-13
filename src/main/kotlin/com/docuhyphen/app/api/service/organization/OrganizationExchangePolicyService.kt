@@ -1,6 +1,8 @@
 ﻿package com.docuhyphen.app.api.service.organization
 
 import com.docuhyphen.app.api.model.entity.LinkStatus
+import com.docuhyphen.app.api.model.entity.PrincipalGroup
+import com.docuhyphen.app.api.model.entity.PrincipalGroupScope
 import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.repository.OrganizationExchangeLinkRepository
 import com.docuhyphen.app.api.service.auth.AuthAuditService
@@ -81,6 +83,45 @@ class OrganizationExchangePolicyService @Inject constructor(
         throw IllegalArgumentException(
             "Your organization only permits sharing with members of your organization or a paired organization."
         )
+    }
+
+    fun assertCanShareWithGroup(initiatorAppUserId: UUID, group: PrincipalGroup)
+    {
+        if (!group.isActive) throw IllegalArgumentException("The selected group is inactive")
+
+        when (group.scope)
+        {
+            PrincipalGroupScope.PERSONAL ->
+            {
+                if (group.ownerAppUserId != initiatorAppUserId)
+                {
+                    throw IllegalArgumentException("You can only share with a personal group that you own")
+                }
+            }
+
+            PrincipalGroupScope.ORG ->
+            {
+                val initiatorOrgId = organizationMembershipService.primaryOrganizationId(initiatorAppUserId)
+                    ?: throw IllegalArgumentException("An organization is required to share with an organization group")
+                val recipientOrgId = group.ownerOrganizationId
+                    ?: throw IllegalArgumentException("The selected group has no owning organization")
+                if (recipientOrgId == initiatorOrgId) return
+                if (!group.externallyPublished)
+                {
+                    throw IllegalArgumentException("The selected group is not available for external sharing")
+                }
+
+                val organization = organizationRepository.findById(initiatorOrgId)
+                val allowShareWithoutPairing = organization?.settings?.allowShareWithoutPairing ?: false
+                if (!allowShareWithoutPairing && !arePaired(initiatorOrgId, recipientOrgId))
+                {
+                    throw IllegalArgumentException("Your organization only permits sharing with groups from a paired organization")
+                }
+            }
+
+            PrincipalGroupScope.SHARED_PROJECT ->
+                throw IllegalArgumentException("Shared project groups cannot be used as Exchange access principals")
+        }
     }
 
     private fun auditExternalCustomerShare(initiatorAppUserId: UUID, initiatorOrgId: UUID, recipientAppUserId: UUID?)

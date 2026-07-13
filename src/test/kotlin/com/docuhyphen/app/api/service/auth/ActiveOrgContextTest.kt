@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.util.UUID
@@ -96,6 +97,20 @@ class ActiveOrgContextTest
         this.status = OrganizationMembershipStatus.ACTIVE
     }
 
+    private fun makeAuthSessionPolicyService(): AuthSessionPolicyService
+    {
+        val service = mock<AuthSessionPolicyService>()
+        whenever(service.resolveForAppUser(any())).thenReturn(
+            AuthSessionPolicy(
+                accessTokenExpiryMinutes = 15,
+                refreshTokenExpiryMinutes = 60,
+                maxSessionDurationHours = 8,
+                idleTimeoutMinutes = 30,
+            )
+        )
+        return service
+    }
+
     private fun makeSessionService(
         ctx: AuthTokenContext,
         userRoleService: UserRoleService,
@@ -113,7 +128,7 @@ class ActiveOrgContextTest
             }
             whenever(orgRepo.findById(m.organizationId)).thenReturn(org)
         }
-        return SessionService(ctx, userRoleService, membershipRepo, orgRepo)
+        return SessionService(ctx, userRoleService, makeAuthSessionPolicyService(), membershipRepo, orgRepo)
     }
 
     // -----------------------------------------------------------------------
@@ -130,6 +145,7 @@ class ActiveOrgContextTest
 
         assertNull(session.activeOrganizationId)
         assertTrue(session.organizationRoles.isEmpty())
+        assertEquals(30, session.idleTimeoutMinutes)
     }
 
     @Test
@@ -463,6 +479,7 @@ class ActiveOrgContextTest
         val svc = SessionService(
             ctx,
             makeUserRoleService(appRoles = setOf(AppRoleName.APP_USER)),
+            makeAuthSessionPolicyService(),
             membershipRepo,
             orgRepo,
         )

@@ -57,6 +57,7 @@ class ExchangeDocumentService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val auditRecorder: AuditRecorder,
+    private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
 )
 {
     private enum class DocumentAction
@@ -190,7 +191,7 @@ class ExchangeDocumentService @Inject constructor(
         extension: String?,
         exchangeId: String?,
         documentId: String?,
-        encryptionMode: DocumentEncryptionMode?
+        encryptionMode: DocumentEncryptionMode?,
     ): Document
     {
         if (exchangeId == null) throw IllegalArgumentException("Session ID cannot be null")
@@ -234,13 +235,15 @@ class ExchangeDocumentService @Inject constructor(
         extension: String?,
         exchangeId: String?,
         documentId: String?,
-        encryptionMode: DocumentEncryptionMode?
+        encryptionMode: DocumentEncryptionMode?,
+        noAuthAccessToken: String?,
     ): Document
     {
         if (exchangeId == null) throw IllegalArgumentException("Session ID cannot be null")
         if (documentId == null) throw IllegalArgumentException("Document ID cannot be null")
 
         val exchange = getExchange(exchangeId)
+        noAuthExchangeAccessTokenService.requireValid(exchange, noAuthAccessToken)
         val document = getDocument(exchange, documentId)
 
         if (exchange.requireRecipientSignIn)
@@ -330,12 +333,17 @@ class ExchangeDocumentService @Inject constructor(
     }
 
     @Transactional
-    fun downloadNoAuthSessionDocument(exchangeId: String?, documentId: String?): File
+    fun downloadNoAuthSessionDocument(
+        exchangeId: String?,
+        documentId: String?,
+        noAuthAccessToken: String?,
+    ): File
     {
         if (exchangeId == null) throw IllegalArgumentException("Session ID cannot be null")
         if (documentId == null) throw IllegalArgumentException("Document ID cannot be null")
 
         val exchange = getExchange(exchangeId)
+        noAuthExchangeAccessTokenService.requireValid(exchange, noAuthAccessToken)
         val document = getDocument(exchange, documentId)
 
         if (exchange.requireRecipientSignIn)
@@ -637,6 +645,23 @@ class ExchangeDocumentService @Inject constructor(
         }
     }
 
+    private fun validateViewPermission(exchange: Exchange)
+    {
+        val appUser = authTokenContext.authToken.appUser
+            ?: throw io.quarkus.security.ForbiddenException("Permission to preview document not granted")
+        val decision = authorizationService.authorize(
+            principal = PrincipalRef.user(appUser.id),
+            action = Action.DOCUMENT_VIEW,
+            resource = ResourceRef.exchange(exchange.id),
+            context = authorizationContextFactory.currentContext(),
+        )
+        if (decision is Decision.Deny)
+        {
+            recordAuthorizationDenied(exchange, appUser.id, Action.DOCUMENT_VIEW.name)
+            throw io.quarkus.security.ForbiddenException("Permission to preview document not granted")
+        }
+    }
+
     /**
      * Blocks the original-file download when the document's type is not in the
      * share's `allowed_download_formats` list. Null list means no restriction.
@@ -708,6 +733,7 @@ class ExchangeDocumentService @Inject constructor(
     fun getDocumentFilePreviewAsPdf(exchangeId: String, documentId: String): File
     {
         val exchange = getExchange(exchangeId)
+        validateViewPermission(exchange)
         val document = getDocument(exchange, documentId)
 
         val fileKey = "${document.id}${DocumentType.toFileExtension(document.type!!)}"

@@ -25,7 +25,8 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
         private const val ACCESSIBLE =
             "(s.initiator.id = :appUserId OR EXISTS (" +
                 "SELECT sh FROM Share sh WHERE sh.resourceType = :srt AND sh.resourceId = s.id " +
-                "AND sh.principalKind = :upk AND sh.principalId = :appUserId AND sh.status = :ass))"
+                "AND sh.principalKind = :upk AND sh.principalId = :appUserId AND sh.status = :ass " +
+                "AND (sh.expiresAt IS NULL OR sh.expiresAt > CURRENT_TIMESTAMP)))"
 
         /**
          * Visibility predicate for INITIATED (draft) exchanges in [searchSessions] /
@@ -45,6 +46,7 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
             "(s.status <> :initiatedStatus OR s.initiator.id = :appUserId OR EXISTS (" +
                 "SELECT sh2 FROM Share sh2 WHERE sh2.resourceType = :srt AND sh2.resourceId = s.id " +
                 "AND sh2.principalKind = :upk AND sh2.principalId = :appUserId AND sh2.status = :ass " +
+                "AND (sh2.expiresAt IS NULL OR sh2.expiresAt > CURRENT_TIMESTAMP) " +
                 "AND sh2.roleName <> PARTICIPANT))"
 
         /**

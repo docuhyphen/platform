@@ -315,8 +315,8 @@ const NoAuthExchangeDocumentList: React.FC<NoAuthExchangeDocumentListProps> = ({
     return (
         <section className={styles.container}>
             <Text size={200} className={styles.accessWindowHint}>
-                Your verified access works across browsers and devices for {accessWindowDays} day{accessWindowDays === 1 ? '' : 's'}.
-                After that, ask the requester to resend a new access code.
+                This secure email link works for {accessWindowDays} day{accessWindowDays === 1 ? '' : 's'} after verification.
+                After that, ask the requester to resend a new access code and link.
             </Text>
             {accessVerificationRequired && (
                 <section className={styles.verificationPanel}>

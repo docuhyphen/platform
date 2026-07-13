@@ -1,5 +1,6 @@
 ﻿import {jwtDecode} from "jwt-decode";
 import {NotificationDto} from '../app/models/models';
+import {getApiBaseUrl} from './apiBaseUrl.ts';
 
 /**
  * Realtime client for the per-userSession WebSocket at /realtime/{userSessionId}.
@@ -203,7 +204,7 @@ class RealtimeService
 
     private openSocket(token: string, userSessionId: string): void
     {
-        const apiBase = import.meta.env.VITE_API_BASE_URL as string | undefined;
+        const apiBase = getApiBaseUrl();
         // If env var is set, derive ws/wss from its scheme; otherwise default to localhost dev.
         const wsBase = apiBase
             ? apiBase.replace(/^https:\/\//, 'wss://').replace(/^http:\/\//, 'ws://')

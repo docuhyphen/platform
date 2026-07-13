@@ -59,6 +59,16 @@ class ShareRepository : BaseRepository<Share>(Share::class.java)
             .setParameter("status", ShareStatus.ACTIVE)
             .resultList
 
+    fun findAllForPrincipal(kind: PrincipalKind, principalId: UUID): List<Share> =
+        entityManager.createQuery(
+            """SELECT s FROM Share s
+               WHERE s.principalKind = :pk AND s.principalId = :pid""",
+            Share::class.java,
+        )
+            .setParameter("pk", kind)
+            .setParameter("pid", principalId)
+            .resultList
+
     fun findActiveForPrincipalOnResource(
         kind: PrincipalKind,
         principalId: UUID,

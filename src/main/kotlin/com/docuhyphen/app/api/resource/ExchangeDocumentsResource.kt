@@ -259,6 +259,14 @@ class ExchangeDocumentsResource @Inject constructor(
                     Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
                 }
 
+                is ForbiddenException ->
+                {
+                    logger.warn("Document preview access denied: {}", exception.message)
+                    Response.status(Response.Status.FORBIDDEN)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
                 is IllegalArgumentException ->
                 {
                     logger.error("Error uploading exchange document", exception)

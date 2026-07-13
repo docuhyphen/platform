@@ -87,9 +87,10 @@ class AuditMigrationUpgradeContractTest
                 assertTrue(columnExists(connection, "audit_export", "build_lease_expires_at"))
                 assertTrue(columnExists(connection, "audit_export", "version"))
                 assertTrue(columnExists(connection, "audit_archive_segment", "format_version"))
+                assertTrue(columnExists(connection, "exchange", "no_auth_access_token_hash"))
             }
 
-            assertEquals("54", currentFlyway.info().current().version.toString())
+            assertEquals("55", currentFlyway.info().current().version.toString())
         }
         finally
         {
