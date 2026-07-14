@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.exception.*
+import com.docuhyphen.app.api.model.SignInResponseMapper
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.repository.IdentityProviderLinkRepository
 import com.docuhyphen.app.api.resource.model.*
@@ -23,6 +24,7 @@ import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.HeaderParam
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.Path
+import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.Context
 import jakarta.ws.rs.core.MediaType
@@ -311,7 +313,7 @@ class SignInResource @Inject constructor(
                 signInService.initiateSignIn(email, password, clientIp)
             }
 
-            val signInResponse = SignInResponse("", mfaSession.id.toString())
+            val signInResponse = SignInResponseMapper.toResponse(mfaSession)
             Response.ok(signInResponse).build()
                 .also {
                     authAuditService.emit(
@@ -571,6 +573,38 @@ class SignInResource @Inject constructor(
             }
         }
         }
+    }
+
+    @POST
+    @Path("/mfa-sessions/{sessionId}/email-challenges")
+    fun createEmailFallbackChallenge(
+        @PathParam("sessionId") sessionId: String,
+        payload: EmailFallbackChallengeRequest,
+    ): Response
+    {
+        return ResourceEndpointDelayHelper.withFixedFloor(1200) { try
+        {
+            val mfaSession = signInService.createEmailFallbackChallenge(payload.email, sessionId)
+            Response.status(Response.Status.CREATED)
+                .entity(SignInResponseMapper.toResponse(mfaSession))
+                .build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is TooManyRequestsException -> Response.status(429).entity(ResponseError(exception.message)).build()
+                is InvalidSignInCredentialsException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+                else ->
+                {
+                    logger.error("Error creating email fallback challenge", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Could not create an email fallback challenge."))
+                        .build()
+                }
+            }
+        } }
     }
 
     private fun getClientIpAddress(request: io.vertx.core.http.HttpServerRequest): String

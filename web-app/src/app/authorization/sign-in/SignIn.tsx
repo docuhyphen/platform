@@ -1,5 +1,11 @@
 ﻿import React, {useEffect, useRef, useState} from 'react';
-import {completeSignIn, initiateSignIn, lookupSignInMethod, regenerateSignInOtp} from '../../../services/authApi.ts';
+import {
+    completeSignIn,
+    createSignInEmailFallbackChallenge,
+    initiateSignIn,
+    lookupSignInMethod,
+    regenerateSignInOtp
+} from '../../../services/authApi.ts';
 import {fetchAppUser, fetchAppUserPersonOrganization,} from '../../../services/appUserApi.ts';
 import {useAuth} from '../../../context/AuthContext.tsx';
 import {useNavigate} from 'react-router-dom';
@@ -20,7 +26,7 @@ import {
     Subtitle1,
     Text,
 } from "@fluentui/react-components";
-import {AppUserDetailedDto, ResponseError, SignInLookupOrganizationOption} from "../../models/models.tsx";
+import {AppUserDetailedDto, MfaMethod, ResponseError, SignInLookupOrganizationOption} from "../../models/models.tsx";
 import {setApiClientAuthToken} from '../../../services/apiClient.ts';
 import {ArrowLeftRegular, DismissRegular} from "@fluentui/react-icons";
 import AppLogo from "../../components/app-logo/AppLogo.tsx";
@@ -30,6 +36,7 @@ import {useAuthorizationStyles} from "../AuthorizationStyles.tsx";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 import validator from 'validator';
 import {getOtpFriendlyMessage, normalizeApiError} from "../../../utils/apiErrorUtils.ts";
+import SignInMfaStep from "./mfa-step/SignInMfaStep.tsx";
 
 const SIGN_IN_EXCHANGE_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 const RESEND_COOLDOWN_SECONDS = 30;
@@ -42,6 +49,8 @@ const SignIn: React.FC = () =>
     const [email, setEmail] = useState<string>('');
     const [otp, setOtp] = useState<string>('');
     const [mfaSessionId, setMfaSessionId] = useState<string>('');
+    const [mfaMethod, setMfaMethod] = useState<MfaMethod>('EMAIL');
+    const [emailFallbackEnabled, setEmailFallbackEnabled] = useState(false);
     const [password, setPassword] = useState<string>('');
     const [orgOptions, setOrgOptions] = useState<SignInLookupOrganizationOption[]>([]);
     const [lookingUp, setLookingUp] = useState<boolean>(false);
@@ -131,6 +140,8 @@ const SignIn: React.FC = () =>
             const response = await initiateSignIn(signInInitiateRequest);
 
             setMfaSessionId(response?.mfaSessionId);
+            setMfaMethod(response?.mfaType || 'EMAIL');
+            setEmailFallbackEnabled(response?.emailFallbackEnabled === true);
             setSignInInitiationSuccessfulMsg(response?.message);
             setStep('MFA_ENTRY');
             startSessionTimer();
@@ -255,6 +266,30 @@ const SignIn: React.FC = () =>
         }
     };
 
+    const onUseEmailFallback = async () =>
+    {
+        if (resendingOtp || sessionExpired) return;
+        setResponseErrorMessage(undefined);
+        setResendingOtp(true);
+        try
+        {
+            const response = await createSignInEmailFallbackChallenge(email, mfaSessionId);
+            setMfaMethod('EMAIL');
+            setOtp('');
+            setSignInInitiationSuccessfulMsg('');
+            setResetOtpResponseMessage(response.message || 'A verification code has been sent to your email.');
+            startResendCooldown();
+        }
+        catch (error)
+        {
+            setResponseErrorMessage(getOtpFriendlyMessage(normalizeApiError(error, "Could not send an email verification code.")));
+        }
+        finally
+        {
+            setResendingOtp(false);
+        }
+    };
+
     const startSessionTimer = () =>
     {
         if (sessionTimerRef.current)
@@ -359,6 +394,8 @@ const SignIn: React.FC = () =>
         setEmail('');
         setOtp('');
         setMfaSessionId('');
+        setMfaMethod('EMAIL');
+        setEmailFallbackEnabled(false);
         setPassword('');
         setSignInInitiating(false);
         setSignInCompleting(false);
@@ -489,70 +526,24 @@ const SignIn: React.FC = () =>
                             )}
 
                             {step === 'MFA_ENTRY' && (
-                                <>
-                                    <span>{signInInitiationSuccessfulMsg}</span>
-
-                                    {sessionExpired && (
-                                        <MessageBar intent="warning">
-                                            <MessageBarBody>
-                                                Your sign-in session has expired. Please sign in again.
-                                            </MessageBarBody>
-                                        </MessageBar>
-                                    )}
-
-                                    <Field label={"Verification code"}
-                                           validationState={resetOtpResponseMessage ? "success" : "none"}
-                                           validationMessage={resetOtpResponseMessage}
-                                           hint={resetOtpResponseMessage ? undefined : "A verification code has been sent to your email"}>
-                                        <Input
-                                               id={"sign-in-otp-input"}
-                                               value={otp}
-                                               maxLength={6}
-                                               autoComplete="false"
-                                               disabled={resendingOtp || signInCompleting || sessionExpired}
-                                               onChange={onOtpChange}
-                                               onKeyDown={(e) => handleKeyDown(e, onCompleteSignIn)}/>
-                                    </Field>
-
-                                    <Button
-                                        id={"sign-in-resend-otp-btn"}
-                                        appearance="transparent"
-                                        size={"small"}
-                                        disabled={resendingOtp || signInCompleting || sessionExpired || resendCooldownRemaining > 0}
-                                        shape={"circular"}
-                                        onClick={onResendOtp}
-                                        className={globalStyles.buttonWithLoading}>
-                                        <>
-                                            {resendingOtp && <Spinner size={"tiny"}/>}
-                                            {resendCooldownRemaining > 0
-                                                ? `Resend verification code (${resendCooldownRemaining}s)`
-                                                : "Resend verification code"}
-                                        </>
-                                    </Button>
-
-                                    {!sessionExpired && (
-                                        <Button
-                                            id={"sign-in-verify-code-btn"}
-                                            onClick={onCompleteSignIn}
-                                            disabled={resendingOtp}
-                                            appearance="primary"
-                                            className={globalStyles.buttonWithLoading}
-                                            shape={"circular"}>
-                                            {signInCompleting && <><Spinner size={"tiny"}/> Verifying Code</>}
-                                            {!signInCompleting && "Verify Code"}
-                                        </Button>
-                                    )}
-
-                                    {sessionExpired && (
-                                        <Button
-                                            id={"sign-in-start-over-btn"}
-                                            onClick={onResetSignIn}
-                                            appearance="primary"
-                                            shape={"circular"}>
-                                            Start over
-                                        </Button>
-                                    )}
-                                </>
+                                <SignInMfaStep
+                                    message={signInInitiationSuccessfulMsg}
+                                    method={mfaMethod}
+                                    emailFallbackEnabled={emailFallbackEnabled}
+                                    code={otp}
+                                    successMessage={resetOtpResponseMessage}
+                                    sessionExpired={sessionExpired}
+                                    busy={signInCompleting}
+                                    resending={resendingOtp}
+                                    resendCooldownRemaining={resendCooldownRemaining}
+                                    buttonWithLoadingClassName={globalStyles.buttonWithLoading}
+                                    onCodeChange={onOtpChange}
+                                    onCodeKeyDown={(event) => handleKeyDown(event, onCompleteSignIn)}
+                                    onResend={onResendOtp}
+                                    onUseEmailFallback={onUseEmailFallback}
+                                    onVerify={onCompleteSignIn}
+                                    onStartOver={onResetSignIn}
+                                />
                             )}
 
                             <div className={signInStyles.authNoAccount}>

@@ -88,9 +88,19 @@ class AuditMigrationUpgradeContractTest
                 assertTrue(columnExists(connection, "audit_export", "version"))
                 assertTrue(columnExists(connection, "audit_archive_segment", "format_version"))
                 assertTrue(columnExists(connection, "exchange", "no_auth_access_token_hash"))
+                assertTrue(columnExists(connection, "app_user", "authenticator_secret_encrypted"))
+                assertTrue(columnExists(connection, "app_user", "email_mfa_fallback_enabled"))
+                assertTrue(tableExists(connection, "authenticator_enrollment"))
+                val mfaRecordConstraint = checkConstraintDefinition(
+                    connection,
+                    "mfa_record",
+                    "mfa_record_mfa_type_check",
+                )
+                assertTrue(mfaRecordConstraint?.contains("GOOGLE_AUTHENTICATOR") == true)
+                assertTrue(mfaRecordConstraint?.contains("MICROSOFT_AUTHENTICATOR") == true)
             }
 
-            assertEquals("55", currentFlyway.info().current().version.toString())
+            assertEquals("57", currentFlyway.info().current().version.toString())
         }
         finally
         {
@@ -136,4 +146,26 @@ class AuditMigrationUpgradeContractTest
                 result.getBoolean(1)
             }
         }
+
+    private fun checkConstraintDefinition(
+        connection: Connection,
+        tableName: String,
+        constraintName: String,
+    ): String? = connection.prepareStatement(
+        """
+        SELECT pg_get_constraintdef(constraint_row.oid)
+        FROM pg_constraint constraint_row
+        JOIN pg_class table_row ON table_row.oid = constraint_row.conrelid
+        JOIN pg_namespace schema_row ON schema_row.oid = table_row.relnamespace
+        WHERE schema_row.nspname = 'public'
+          AND table_row.relname = ?
+          AND constraint_row.conname = ?
+        """.trimIndent(),
+    ).use { statement ->
+        statement.setString(1, tableName)
+        statement.setString(2, constraintName)
+        statement.executeQuery().use { result ->
+            if (result.next()) result.getString(1) else null
+        }
+    }
 }

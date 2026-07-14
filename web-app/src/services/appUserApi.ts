@@ -1,5 +1,13 @@
 import apiClient, {addBearerToHeaderToken} from './apiClient';
-import {AppUserSettingsDto, CurrentSessionDto, OrganizationRegistrationRequest, PersonRegistrationRequest} from "../app/models/models.tsx";
+import {
+    AppUserSettingsDto,
+    AuthenticatorEnrollment,
+    CurrentSessionDto,
+    MfaConfiguration,
+    MfaMethod,
+    OrganizationRegistrationRequest,
+    PersonRegistrationRequest
+} from "../app/models/models.tsx";
 
 export const fetchAppUser = async (token: string | null) =>
 {
@@ -91,6 +99,45 @@ export const updateAppUserSettings = async (request: AppUserSettingsDto, token: 
         throw error.response?.data || error.message;
     }
 }
+
+export const getMfaConfiguration = async (): Promise<MfaConfiguration> =>
+{
+    const response = await apiClient.get('/app-users/current/mfa-configurations');
+    return response.data;
+};
+
+export const startAuthenticatorEnrollment = async (
+    provider: Exclude<MfaMethod, 'EMAIL'>,
+): Promise<AuthenticatorEnrollment> =>
+{
+    const response = await apiClient.post('/app-users/current/authenticator-enrollments', {provider});
+    return response.data;
+};
+
+export const verifyAuthenticatorEnrollment = async (
+    enrollmentId: string,
+    code: string,
+    emailFallbackEnabled: boolean,
+): Promise<MfaConfiguration> =>
+{
+    const response = await apiClient.post(
+        `/app-users/current/authenticator-enrollments/${enrollmentId}/verifications`,
+        {code, emailFallbackEnabled},
+    );
+    return response.data;
+};
+
+export const updateMfaConfiguration = async (emailFallbackEnabled: boolean): Promise<MfaConfiguration> =>
+{
+    const response = await apiClient.patch('/app-users/current/mfa-configurations', {emailFallbackEnabled});
+    return response.data;
+};
+
+export const removeAuthenticatorEnrollment = async (): Promise<MfaConfiguration> =>
+{
+    const response = await apiClient.delete('/app-users/current/authenticator-enrollments');
+    return response.data;
+};
 
 export const initiateAppUserEmailUpdate = async (email: string, token: string | null) =>
 {

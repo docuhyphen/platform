@@ -39,9 +39,8 @@ class MfaService(
 
         val sessionId = UUID.randomUUID().toString()
 
-        // Generate and save OTP
-        val otp = otpService.generateEmailOtp()
-        val hashedOtp = otpService.hashOtp(otp)
+        val otp = if (mfaType.isAuthenticator()) null else otpService.generateEmailOtp()
+        val hashedOtp = otp?.let { otpService.hashOtp(it) }
         val expirationTime = Timestamp.from(
             Instant.now().plusMillis(MINUTES.toMillis(configurationService.getSignInEmailOtpMFAExpiryMins()))
         )
@@ -64,6 +63,8 @@ class MfaService(
             this.id = UUID.fromString(sessionId)
             this.mfaToken = otp
             this.mfaTokenHashed = hashedOtp
+            this.mfaType = mfaType.name
+            this.emailFallbackEnabled = user.emailMfaFallbackEnabled
         }
     }
 

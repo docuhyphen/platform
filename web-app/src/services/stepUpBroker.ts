@@ -24,6 +24,7 @@ export interface StepUpPrompt
     provider?: string | null;
     authorizeUrl?: string | null;
     mfaSessionId?: string | null;
+    mfaType?: 'EMAIL' | 'GOOGLE_AUTHENTICATOR' | 'MICROSOFT_AUTHENTICATOR';
     submitOtp?: (otp: string) => Promise<boolean>;
     resendOtp?: () => Promise<string>;
     continueExternal?: () => Promise<void>;
@@ -81,6 +82,7 @@ export const requestStepUp = (opts: { action?: string | null; message?: string |
                     action: opts.action ?? null,
                     message: initiation.message ?? opts.message ?? null,
                     mfaSessionId,
+                    mfaType: initiation.mfaType,
                     submitOtp: async (otp: string): Promise<boolean> =>
                     {
                         const result = await completeStepUpWithOtp(mfaSessionId, otp);
@@ -91,11 +93,13 @@ export const requestStepUp = (opts: { action?: string | null; message?: string |
                         }
                         return false;
                     },
-                    resendOtp: async (): Promise<string> =>
-                    {
-                        const result = await regenerateStepUpOtp(mfaSessionId);
-                        return result?.message || 'A new verification code has been sent.';
-                    },
+                    resendOtp: initiation.mfaType === 'EMAIL' || initiation.emailFallbackEnabled
+                        ? async (): Promise<string> =>
+                        {
+                            const result = await regenerateStepUpOtp(mfaSessionId);
+                            return result?.message || 'A new verification code has been sent.';
+                        }
+                        : undefined,
                     cancel: () =>
                     {
                         currentResolver = null;

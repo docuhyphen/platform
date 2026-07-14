@@ -128,7 +128,9 @@ class DetailedEntityToDtoTransformer
                         appRoles.map { it.name }.sorted(),
                         organizationRoles.map { it.name }.sorted(),
                         toDto(person),
-                        toDto(settings)
+                        toDto(settings),
+                        mfaType.name,
+                        emailMfaFallbackEnabled,
                     )
                 }
             }

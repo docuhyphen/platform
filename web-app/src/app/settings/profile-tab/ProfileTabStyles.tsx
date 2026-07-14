@@ -43,6 +43,7 @@ export const useProfileTabStyles = makeStyles({
         flexDirection: "column",
         gap: tokens.spacingHorizontalSNudge,
         minWidth: 0,
+        flex: 1
     },
 
     helperText: {
@@ -58,7 +59,7 @@ export const useProfileTabStyles = makeStyles({
     securityPanel: {
         display: "flex",
         justifyContent: "space-between",
-        gap: tokens.spacingHorizontalL,
+        gap: tokens.spacingHorizontalS,
         alignItems: "center",
         flexWrap: "wrap",
     },

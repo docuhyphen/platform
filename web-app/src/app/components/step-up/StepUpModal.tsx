@@ -1,25 +1,16 @@
 import React, {useEffect, useState} from "react";
 import {
-    Button,
     Dialog,
-    DialogActions,
     DialogBody,
     DialogContent,
     DialogSurface,
     DialogTitle,
-    Spinner,
 } from "@fluentui/react-components";
 import {StepUpPrompt, subscribeStepUp} from "../../../services/stepUpBroker";
 import {getOtpFriendlyMessage, normalizeApiError} from "../../../utils/apiErrorUtils";
 import StepUpVerification, {STEP_UP_DIALOG_TITLE} from "./StepUpVerification.tsx";
-
-const friendlyActionLabel = (action?: string | null): string =>
-{
-    if (!action) return "this action";
-    const cleaned = action.replace(/^ORG_/, "").replace(/_/g, " ").toLowerCase();
-    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-};
-
+import StepUpDialogActions from "./StepUpDialogActions.tsx";
+import {friendlyStepUpActionLabel} from "./stepUpLabels.ts";
 const StepUpModal: React.FC = () =>
 {
     const [prompt, setPrompt] = useState<StepUpPrompt | null>(null);
@@ -28,7 +19,6 @@ const StepUpModal: React.FC = () =>
     const [resending, setResending] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [info, setInfo] = useState<string | null>(null);
-
     useEffect(() =>
     {
         return subscribeStepUp((p) =>
@@ -44,7 +34,6 @@ const StepUpModal: React.FC = () =>
             }
         });
     }, []);
-
     const onSubmitOtp = async () =>
     {
         if (!prompt?.submitOtp || submitting) return;
@@ -74,7 +63,6 @@ const StepUpModal: React.FC = () =>
             setSubmitting(false);
         }
     };
-
     const onResendOtp = async () =>
     {
         if (!prompt?.resendOtp || resending) return;
@@ -94,7 +82,6 @@ const StepUpModal: React.FC = () =>
             setResending(false);
         }
     };
-
     const onContinueExternal = async () =>
     {
         if (!prompt?.continueExternal || submitting) return;
@@ -110,25 +97,25 @@ const StepUpModal: React.FC = () =>
             setSubmitting(false);
         }
     };
-
     const onCancel = () =>
     {
         if (submitting) return;
         prompt?.cancel();
     };
-
     const isOtpFlow = prompt?.method === 'INTERNAL_EMAIL_OTP';
-
     return (
-        <Dialog modalType="alert" open={!!prompt}>
-            <DialogSurface>
-                <DialogBody>
-                    <DialogTitle>{STEP_UP_DIALOG_TITLE}</DialogTitle>
-                    <DialogContent>
+        <Dialog
+            modalType={"alert"}
+            open={Boolean(prompt)}>
+            <DialogSurface id={"step-up-dialog-surface"}>
+                <DialogBody id={"step-up-dialog-body"}>
+                    <DialogTitle id={"step-up-dialog-title"}>{STEP_UP_DIALOG_TITLE}</DialogTitle>
+                    <DialogContent id={"step-up-dialog-content"}>
                         <StepUpVerification
                             method={isOtpFlow ? "INTERNAL_EMAIL_OTP" : "EXTERNAL_RELOGIN"}
-                            actionLabel={<>continue with <b>{friendlyActionLabel(prompt?.action)}</b></>}
+                            actionLabel={<>continue with <b>{friendlyStepUpActionLabel(prompt?.action)}</b></>}
                             provider={prompt?.provider}
+                            message={prompt?.message}
                             error={error}
                             otp={otp}
                             onOtpChange={setOtp}
@@ -140,43 +127,18 @@ const StepUpModal: React.FC = () =>
                             resendDisabled={submitting}
                             otpInputId="step-up-otp-input"
                             resendButtonId="step-up-resend-btn"
+                            resendLabel={prompt?.mfaType === 'EMAIL' ? 'Resend code' : 'Use email fallback'}
                         />
                     </DialogContent>
                 </DialogBody>
-                <DialogActions>
-                    {isOtpFlow ? (
-                        <Button
-                            id={"step-up-verify-btn"}
-                            appearance="primary"
-                            shape="circular"
-                            disabled={submitting}
-                            onClick={onSubmitOtp}
-                        >
-                            {submitting && <Spinner size="tiny"/>}
-                            Verify & continue
-                        </Button>
-                    ) : (
-                        <Button
-                            id={"step-up-continue-external-btn"}
-                            appearance="primary"
-                            shape="circular"
-                            disabled={submitting}
-                            onClick={onContinueExternal}
-                        >
-                            {submitting && <Spinner size="tiny"/>}
-                            Continue to {prompt?.provider || "provider"}
-                        </Button>
-                    )}
-                    <Button
-                        id={"step-up-cancel-btn"}
-                        appearance="secondary"
-                        shape="circular"
-                        disabled={submitting}
-                        onClick={onCancel}
-                    >
-                        Cancel
-                    </Button>
-                </DialogActions>
+                <StepUpDialogActions
+                    otpFlow={isOtpFlow}
+                    submitting={submitting}
+                    provider={prompt?.provider}
+                    onSubmitOtp={onSubmitOtp}
+                    onContinueExternal={onContinueExternal}
+                    onCancel={onCancel}
+                />
             </DialogSurface>
         </Dialog>
     );

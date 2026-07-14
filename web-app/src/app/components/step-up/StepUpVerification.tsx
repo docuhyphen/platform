@@ -14,8 +14,9 @@ interface StepUpVerificationProps
     actionLabel: React.ReactNode;
     provider?: string | null;
     error?: string | null;
+    message?: string | null;
 
-    // INTERNAL_EMAIL_OTP fields only
+    // Internal verification-code fields only
     otp?: string;
     onOtpChange?: (value: string) => void;
     onSubmitOtp?: () => void;
@@ -26,6 +27,7 @@ interface StepUpVerificationProps
     resendDisabled?: boolean;
     otpInputId?: string;
     resendButtonId?: string;
+    resendLabel?: string;
 }
 
 /**
@@ -40,6 +42,7 @@ const StepUpVerification: React.FC<StepUpVerificationProps> = (
         actionLabel,
         provider,
         error,
+        message,
         otp = "",
         onOtpChange,
         onSubmitOtp,
@@ -50,6 +53,7 @@ const StepUpVerification: React.FC<StepUpVerificationProps> = (
         resendDisabled = false,
         otpInputId = "step-up-otp-input",
         resendButtonId = "step-up-resend-btn",
+        resendLabel = "Resend code",
     }) =>
 {
     const styles = useStepUpVerificationStyles();
@@ -57,26 +61,39 @@ const StepUpVerification: React.FC<StepUpVerificationProps> = (
     if (method !== "INTERNAL_EMAIL_OTP")
     {
         return (
-            <div className={styles.container}>
-                <Text>
+            <div
+                id={"step-up-external-verification"}
+                className={styles.container}>
+                <Text id={"step-up-external-instructions"}>
                     To {actionLabel}, you must re-authenticate with {provider || "your identity provider"}.
                     Silent SSO is disabled for this step.
                 </Text>
-                {error && <Text className={styles.errorText}>{error}</Text>}
+                {error && <Text
+                    id={"step-up-external-error"}
+                    className={styles.errorText}>
+                    {error}
+                </Text>}
             </div>
         );
     }
 
     return (
-        <div className={styles.container}>
-            <div>
-                <Text>
-                    For your security, enter the verification code sent to your email to
+        <div
+            id={"step-up-code-verification"}
+            className={styles.container}>
+            <div id={"step-up-code-instructions"}>
+                <Text id={"step-up-code-instructions-copy"}>
+                    {message || "For your security, enter your verification code."} To
                 </Text>
-                <Text weight={"semibold"}> {actionLabel}. </Text>
+                <Text
+                    id={"step-up-code-action"}
+                    weight={"semibold"}>
+                    {actionLabel}.
+                </Text>
             </div>
             <Field
-                label="Verification code"
+                id={"step-up-code-field"}
+                label={"Verification code"}
                 validationState={error ? "error" : "none"}
                 validationMessage={error ?? undefined}
             >
@@ -90,8 +107,14 @@ const StepUpVerification: React.FC<StepUpVerificationProps> = (
                     onKeyDown={(e) => { if (e.key === "Enter") onSubmitOtp?.(); }}
                 />
             </Field>
-            {info && <Text className={styles.infoText}>{info}</Text>}
-            <div className={styles.resendRow}>
+            {info && <Text
+                id={"step-up-code-info"}
+                className={styles.infoText}>
+                {info}
+            </Text>}
+            {onResend && <div
+                id={"step-up-resend-row"}
+                className={styles.resendRow}>
                 <Button
                     id={resendButtonId}
                     appearance="secondary"
@@ -100,10 +123,13 @@ const StepUpVerification: React.FC<StepUpVerificationProps> = (
                     disabled={resendDisabled || resending}
                     onClick={onResend}
                 >
-                    {resending && <Spinner size="tiny"/>}
-                    Resend code
+                    {resending && <Spinner
+                        id={"step-up-resend-spinner"}
+                        size={"tiny"}
+                    />}
+                    {resendLabel}
                 </Button>
-            </div>
+            </div>}
         </div>
     );
 };

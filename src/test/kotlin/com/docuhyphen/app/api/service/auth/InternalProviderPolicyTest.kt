@@ -33,6 +33,7 @@ class InternalProviderPolicyTest
             mock<EmailService>(),
             mock<EmailTemplateService>(),
             identityPolicyService,
+            mock<AuthenticatorMfaService>(),
         )
 
         assertThrows<IdentityProviderNotAllowedException> {

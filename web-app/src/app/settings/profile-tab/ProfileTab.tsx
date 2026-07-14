@@ -12,6 +12,7 @@ import ProfileOverviewCard from "./profile-overview-card/ProfileOverviewCard.tsx
 import ProfileSecurityCard from "./profile-security-card/ProfileSecurityCard.tsx";
 import ProfileNotificationsCard from "./profile-notifications-card/ProfileNotificationsCard.tsx";
 import ProfileSecurityEvents from "./profile-security-events/ProfileSecurityEvents.tsx";
+import MfaSettingsDialog from "./mfa-settings-dialog/MfaSettingsDialog.tsx";
 
 const ProfileTab = () =>
 {
@@ -22,6 +23,7 @@ const ProfileTab = () =>
     const [phoneManagementMode, setPhoneManagementMode] = useState(PhoneManagementMode.ADD);
     const [isContactDetailsEditDialogOpen, setIsContactDetailsEditDialogOpen] = useState(false);
     const [isEmailUpdateDialogOpen, setIsEmailUpdateDialogOpen] = useState(false);
+    const [isMfaDialogOpen, setIsMfaDialogOpen] = useState(false);
 
     const notifyLoginChange = async (_, data) =>
     {
@@ -76,6 +78,9 @@ const ProfileTab = () =>
             <div id={"profile-tab-card-grid"} className={styles.cardGrid}>
                 <ProfileSecurityCard
                     onChangePassword={() => setIsPasswordResetDialogOpen(true)}
+                    mfaMethod={appUser?.mfaMethod || 'EMAIL'}
+                    emailFallbackEnabled={appUser?.emailMfaFallbackEnabled || false}
+                    onConfigureMfa={() => setIsMfaDialogOpen(true)}
                 />
 
                 <ProfileNotificationsCard
@@ -118,6 +123,20 @@ const ProfileTab = () =>
         <PasswordResetDialog
             isOpen={isPasswordResetDialogOpen}
             onDismiss={() => setIsPasswordResetDialogOpen(false)}
+        />
+
+        <MfaSettingsDialog
+            open={isMfaDialogOpen}
+            onOpenChange={setIsMfaDialogOpen}
+            onUpdated={(configuration) =>
+            {
+                if (!appUser) return;
+                setAppUser({
+                    ...appUser,
+                    mfaMethod: configuration.method,
+                    emailMfaFallbackEnabled: configuration.emailFallbackEnabled,
+                });
+            }}
         />
     </>;
 };

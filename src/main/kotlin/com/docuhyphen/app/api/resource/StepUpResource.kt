@@ -1,9 +1,13 @@
 ﻿package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.exception.InvalidOtpException
+import com.docuhyphen.app.api.exception.MaxAttemptsOTPExceededException
+import com.docuhyphen.app.api.exception.OTPExpiredException
+import com.docuhyphen.app.api.exception.TooManyRequestsException
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
-import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationStatus
-import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType.EMAIL
+import com.docuhyphen.app.api.service.auth.StepUpMfaChallengeService
+import com.docuhyphen.app.api.service.auth.StepUpMfaRateLimitedException
 import com.docuhyphen.app.api.repository.IdentityProviderLinkRepository
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.AuthAuditService
@@ -15,8 +19,6 @@ import com.docuhyphen.app.api.service.auth.OrganizationIdpRuntimeCredentialServi
 import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.auth.StepUpAuthService
 import com.docuhyphen.app.api.service.auth.idp.IdentityProviderRegistry
-import com.docuhyphen.app.api.service.communication.MfaService
-import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
@@ -24,8 +26,6 @@ import jakarta.ws.rs.core.Context
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import kotlinx.serialization.Serializable
-import java.sql.Timestamp
-import java.time.Instant
 
 @Serializable
 data class StepUpInitiateRequest(val returnTo: String? = null, val action: String? = null)
@@ -37,6 +37,8 @@ data class StepUpInitiateResponse(
     val mfaSessionId: String? = null,
     val provider: String? = null,
     val authorizeUrl: String? = null,
+    val mfaType: String? = null,
+    val emailFallbackEnabled: Boolean = false,
 )
 
 @Serializable
@@ -63,8 +65,7 @@ class StepUpResource @Inject constructor(
     private val authRateLimitService: AuthRateLimitService,
     private val configurationService: ConfigurationService,
     private val authAuditService: AuthAuditService,
-    private val mfaService: MfaService,
-    private val otpService: OtpService,
+    private val stepUpMfaChallengeService: StepUpMfaChallengeService,
     private val identityProviderLinkRepository: IdentityProviderLinkRepository,
     private val identityProviderRegistry: IdentityProviderRegistry,
     private val oauthStateService: OAuthStateService,
@@ -104,31 +105,27 @@ class StepUpResource @Inject constructor(
         val hasInternalCredential = !appUser.password.isNullOrBlank()
         val internalLink = links.any { it.provider == IdentityProviderType.INTERNAL }
 
-        // Prefer internal step-up (email OTP) when an internal credential exists.
+        // Prefer the account's configured MFA method when an internal credential exists.
         if (hasInternalCredential || internalLink)
         {
             val actionDescription = payload.action?.trim()?.takeIf { it.isNotBlank() }
-            val mfaSession = mfaService.createMfaSession(
-                user = appUser,
-                mfaType = EMAIL,
-                ipAddress = ip,
-                actionDescription = actionDescription,
-            )
-            mfaService.doEmailMFA(appUser, mfaSession.mfaToken!!, actionDescription)
+            val challenge = stepUpMfaChallengeService.initiate(appUser, ip, actionDescription)
 
             authAuditService.emit(
                 action = "STEP_UP_INITIATE",
                 outcome = "SUCCESS",
                 actorId = appUser.id,
                 requestId = requestId,
-                reason = "Issued email OTP for step-up",
+                reason = "Issued ${challenge.mfaType} challenge for step-up",
             )
 
             return Response.ok(
                 StepUpInitiateResponse(
                     method = METHOD_INTERNAL_EMAIL_OTP,
-                    message = "A verification code was sent to your email.",
-                    mfaSessionId = mfaSession.id?.toString(),
+                    message = challenge.message,
+                    mfaSessionId = challenge.sessionId,
+                    mfaType = challenge.mfaType,
+                    emailFallbackEnabled = challenge.emailFallbackEnabled,
                 )
             ).build()
         }
@@ -236,52 +233,20 @@ class StepUpResource @Inject constructor(
                 .build()
         }
 
-        val mfaRecord = mfaService.getMfaRecordByEmailAndSessionId(appUser.email, mfaSessionId)
-            ?: return Response.status(Response.Status.UNAUTHORIZED)
-                .entity(ResponseError("Invalid verification code."))
-                .build()
-
-        if (mfaRecord.mfaType != EMAIL)
+        return try
         {
-            return Response.status(Response.Status.BAD_REQUEST)
-                .entity(ResponseError("Unsupported step-up verification method."))
-                .build()
+            stepUpMfaChallengeService.complete(appUser, mfaSessionId, otp)
+            stepUpAuthService.markFresh()
+            authAuditService.emit(
+                action = "STEP_UP_COMPLETE",
+                outcome = "SUCCESS",
+                actorId = appUser.id,
+                requestId = requestId,
+            )
+            Response.ok(StepUpResponse(fresh = true, message = "Authentication refreshed.")).build()
         }
-
-        if (mfaRecord.status == MultifactorAuthenticationStatus.COMPLETED)
+        catch (exception: Exception)
         {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                .entity(ResponseError("Verification code already used."))
-                .build()
-        }
-
-        if (mfaRecord.status == MultifactorAuthenticationStatus.LOCKED)
-        {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                .entity(ResponseError("Too many invalid attempts."))
-                .build()
-        }
-
-        if (mfaRecord.expiryDateTime?.before(Timestamp.from(Instant.now())) == true)
-        {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                .entity(ResponseError("Verification code expired."))
-                .build()
-        }
-
-        mfaRecord.attemptCount++
-        if (mfaRecord.attemptCount > configurationService.getMaxSignInAttempts())
-        {
-            mfaRecord.status = MultifactorAuthenticationStatus.LOCKED
-            mfaService.updateRecord(mfaRecord)
-            return Response.status(Response.Status.UNAUTHORIZED)
-                .entity(ResponseError("Too many invalid attempts."))
-                .build()
-        }
-
-        if (!otpService.verifyEmailOtp(otp, mfaRecord.mfaToken!!))
-        {
-            mfaService.updateRecord(mfaRecord)
             authAuditService.emit(
                 action = "STEP_UP_COMPLETE",
                 outcome = "DENY",
@@ -290,23 +255,19 @@ class StepUpResource @Inject constructor(
                 requestId = requestId,
                 reason = "Step-up OTP verification failed",
             )
-            return Response.status(Response.Status.UNAUTHORIZED)
-                .entity(ResponseError("Invalid verification code."))
-                .build()
+            when (exception)
+            {
+                is InvalidOtpException,
+                is MaxAttemptsOTPExceededException,
+                is OTPExpiredException -> Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ResponseError(exception.message))
+                    .build()
+                is IllegalArgumentException -> Response.status(Response.Status.BAD_REQUEST)
+                    .entity(ResponseError(exception.message))
+                    .build()
+                else -> throw exception
+            }
         }
-
-        mfaRecord.status = MultifactorAuthenticationStatus.COMPLETED
-        mfaService.updateRecord(mfaRecord)
-        mfaService.removeMfaRecord(mfaRecord)
-
-        stepUpAuthService.markFresh()
-        authAuditService.emit(
-            action = "STEP_UP_COMPLETE",
-            outcome = "SUCCESS",
-            actorId = appUser.id,
-            requestId = requestId,
-        )
-        return Response.ok(StepUpResponse(fresh = true, message = "Authentication refreshed.")).build()
     }
 
     @POST
@@ -339,51 +300,41 @@ class StepUpResource @Inject constructor(
                 .build()
         }
 
-        val mfaRecord = mfaService.getMfaRecordByEmailAndSessionId(appUser.email, mfaSessionId)
-            ?: return Response.status(Response.Status.UNAUTHORIZED)
-                .entity(ResponseError("Invalid step-up session."))
-                .build()
-
-        if (mfaRecord.status == MultifactorAuthenticationStatus.COMPLETED)
+        return try
         {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                .entity(ResponseError("Step-up already completed."))
-                .build()
+            val message = stepUpMfaChallengeService.regenerateOrFallback(appUser, mfaSessionId, ip)
+            authAuditService.emit(
+                action = "STEP_UP_REGENERATE_OTP",
+                outcome = "SUCCESS",
+                actorId = appUser.id,
+                requestId = requestId,
+            )
+            Response.ok(StepUpResponse(fresh = false, message = message)).build()
         }
-
-        if (mfaRecord.status == MultifactorAuthenticationStatus.LOCKED)
+        catch (exception: Exception)
         {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                .entity(ResponseError("Too many invalid attempts."))
-                .build()
+            when (exception)
+            {
+                is StepUpMfaRateLimitedException -> Response.status(429)
+                    .entity(ResponseError(
+                        errorMessage = exception.message,
+                        reasonCode = "OTP_RATE_LIMITED",
+                        retryAfterSeconds = exception.retryAfterSeconds,
+                    ))
+                    .build()
+                is TooManyRequestsException -> Response.status(429)
+                    .entity(ResponseError(exception.message))
+                    .build()
+                is InvalidOtpException,
+                is MaxAttemptsOTPExceededException -> Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ResponseError(exception.message))
+                    .build()
+                is IllegalArgumentException -> Response.status(Response.Status.BAD_REQUEST)
+                    .entity(ResponseError(exception.message))
+                    .build()
+                else -> throw exception
+            }
         }
-
-        val resendCooldownSeconds = configurationService.getSignInResendCooldownSeconds()
-        val cooldownUntil = mfaRecord.createdDate.toInstant().plusSeconds(resendCooldownSeconds)
-        if (Instant.now().isBefore(cooldownUntil))
-        {
-            val remainingSeconds = cooldownUntil.epochSecond - Instant.now().epochSecond
-            return Response.status(429)
-                .entity(ResponseError(
-                    errorMessage = "Please wait before requesting another verification code.",
-                    reasonCode = "OTP_RATE_LIMITED",
-                    retryAfterSeconds = remainingSeconds,
-                ))
-                .build()
-        }
-
-        mfaService.enforceRateLimits(appUser.email, mfaRecord.ipAddress ?: ip)
-        val newOtp = mfaService.regenerateOtp(mfaRecord)
-        mfaService.doEmailMFA(appUser, newOtp, mfaRecord.actionDescription)
-
-        authAuditService.emit(
-            action = "STEP_UP_REGENERATE_OTP",
-            outcome = "SUCCESS",
-            actorId = appUser.id,
-            requestId = requestId,
-        )
-
-        return Response.ok(StepUpResponse(fresh = false, message = "A new verification code has been sent.")).build()
     }
 
     private fun normalizeReturnTo(returnTo: String?): String

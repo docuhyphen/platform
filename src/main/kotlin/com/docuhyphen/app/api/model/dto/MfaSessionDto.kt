@@ -14,5 +14,9 @@ class MfaSessionDto {
 
     var mfaToken: String? = null
 
+    var mfaType: String? = null
+
+    var emailFallbackEnabled: Boolean = false
+
     constructor()
 }

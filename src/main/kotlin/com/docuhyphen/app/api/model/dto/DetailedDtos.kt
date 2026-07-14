@@ -137,6 +137,8 @@ data class AppUserDetailedDto(
     val organizationRoles: List<String> = emptyList(),
     val person: PersonDetailedDto?,
     val settings: AppUserSettingsDto,
+    val mfaMethod: String = "EMAIL",
+    val emailMfaFallbackEnabled: Boolean = false,
     val avatarUrl: String? = null,
 )
 

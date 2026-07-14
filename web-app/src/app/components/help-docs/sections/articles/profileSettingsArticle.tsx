@@ -19,9 +19,30 @@ export const profileSettingsArticle = (
             <li>When a phone number already exists, use the inline phone icon beside it to update the value.</li>
         </ul>
 
-        <h3>Security and sign-in alerts</h3>
+        <h3>Multi-factor authentication</h3>
+        <ol>
+            <li>Open <b>Settings</b>, select <b>Profile</b>, then find <b>Security</b>.</li>
+            <li>Select <b>Configure MFA</b>.</li>
+            <li>Choose Google Authenticator or Microsoft Authenticator.</li>
+            <li>Scan the QR code with the selected app and enter its current 6-digit code.</li>
+            <li>Select <b>Verify and enable</b>.</li>
+        </ol>
         <ul>
-            <li>The Security section links password recovery guidance.</li>
+            <li>Email verification is the default MFA method after sign-up.</li>
+            <li>
+                Email fallback is disabled when you set up an authenticator app unless you explicitly
+                enable <b>Allow email as a fallback</b>.
+            </li>
+            <li>You can return to <b>Configure MFA</b> to change fallback or switch back to email MFA.</li>
+            <li>
+                When email fallback is enabled, select <b>Use another method</b> while signing in and
+                choose <b>Email verification code</b>.
+            </li>
+        </ul>
+
+        <h3>Password and sign-in alerts</h3>
+        <ul>
+            <li>The Security section includes password recovery guidance.</li>
             <li>Use the left navigation to open <b>Linked Accounts</b> or <b>Device Sessions</b> for deeper access management.</li>
             <li>Use the <b>Email me every time I sign in</b> switch to control sign-in alert emails.</li>
         </ul>

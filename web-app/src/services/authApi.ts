@@ -308,6 +308,22 @@ export const revokeUserSession = async (sessionId: string): Promise<void> =>
     }
 };
 
+export const createSignInEmailFallbackChallenge = async (email: string, mfaSessionId: string) =>
+{
+    try
+    {
+        const response = await apiClient.post(
+            `/auth/sign-in/mfa-sessions/${mfaSessionId}/email-challenges`,
+            {email},
+        );
+        return response.data;
+    }
+    catch (error: unknown)
+    {
+        throw error.response?.data || error.message;
+    }
+};
+
 export const exchangeOAuthTokenHandoff = async (code: string): Promise<OAuthTokenExchangeResponse> =>
 {
     try
@@ -356,6 +372,8 @@ export interface StepUpInitiateResponse
     mfaSessionId?: string;
     provider?: string;
     authorizeUrl?: string;
+    mfaType?: 'EMAIL' | 'GOOGLE_AUTHENTICATOR' | 'MICROSOFT_AUTHENTICATOR';
+    emailFallbackEnabled?: boolean;
 }
 
 export interface StepUpResult { fresh: boolean; message: string; }

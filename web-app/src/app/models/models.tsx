@@ -466,6 +466,8 @@ export interface AppUserDetailedDto
     organizationRoles: string[]
     person: PersonDetailedDto
     settings: AppUserSettingsDto
+    mfaMethod: MfaMethod
+    emailMfaFallbackEnabled: boolean
     identityProviders?: IdentityProviderLinkDto[]
     avatarUrl?: string | null
 }
@@ -628,6 +630,24 @@ export interface CurrentSessionDto
     capabilities: Capability[]
     availableOrganizations: SessionOrganizationOptionDto[]
     idleTimeoutMinutes: number
+}
+
+export type MfaMethod = 'EMAIL' | 'GOOGLE_AUTHENTICATOR' | 'MICROSOFT_AUTHENTICATOR';
+
+export interface MfaConfiguration
+{
+    method: MfaMethod;
+    authenticatorConfigured: boolean;
+    emailFallbackEnabled: boolean;
+}
+
+export interface AuthenticatorEnrollment
+{
+    id: string;
+    provider: Exclude<MfaMethod, 'EMAIL'>;
+    secret: string;
+    otpauthUri: string;
+    expiresAt: string;
 }
 
 // ── OAuth / Multi-IDP Types ──

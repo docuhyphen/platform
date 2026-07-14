@@ -262,17 +262,21 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers, 
                                     method={phase === 'verify-otp' ? "INTERNAL_EMAIL_OTP" : "EXTERNAL_RELOGIN"}
                                     actionLabel={<>{isEdit ? "update" : "save"} this workflow</>}
                                     provider={stepUpSession?.provider}
+                                    message={stepUpSession?.message}
                                     error={error}
                                     otp={otp}
                                     onOtpChange={setOtp}
                                     onSubmitOtp={handleSubmitOtp}
                                     submitting={submitting}
                                     info={info}
-                                    onResend={handleResendOtp}
+                                    onResend={stepUpSession?.mfaType === 'EMAIL' || stepUpSession?.emailFallbackEnabled
+                                        ? handleResendOtp
+                                        : undefined}
                                     resending={resending}
                                     resendDisabled={isBusy}
                                     otpInputId="input-workflow-otp"
                                     resendButtonId="button-workflow-resend-code"
+                                    resendLabel={stepUpSession?.mfaType === 'EMAIL' ? 'Resend code' : 'Use email fallback'}
                                 />
                             )}
                         </div>

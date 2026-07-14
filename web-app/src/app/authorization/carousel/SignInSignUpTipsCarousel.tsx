@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Text} from "@fluentui/react-components";
+import {mergeClasses, Text} from "@fluentui/react-components";
 import {useCarouselStyles} from './CarouselStyles';
 
 interface Slide
@@ -43,28 +43,44 @@ const SignInSignUpTipsCarousel: React.FC<CarouselProps> = ({slides}) =>
 
     return (
         <div
+            id={"authorization-tips-carousel"}
             className={styles.carousel}
             onMouseEnter={stopAutoPlay}
-            onMouseLeave={startAutoPlay}
-        >
-            <div className={styles.carouselInner}>
+            onMouseLeave={startAutoPlay}>
+            <div
+                id={"authorization-tips-carousel-slides"}
+                className={styles.carouselInner}>
                 {slides.map((slide, index) => (
                     <div
-                        className={`${styles.carouselItem} ${currentIndex === index ? styles.carouselItemActive : ''}`}
+                        id={`authorization-tip-slide-${index}`}
+                        className={mergeClasses(
+                            styles.carouselItem,
+                            currentIndex === index && styles.carouselItemActive,
+                        )}
                         key={index}
                     >
-                        <Text size={500}>{slide.title}</Text>
-                        <p>{slide.description}</p>
+                        <Text
+                            id={`authorization-tip-title-${index}`}
+                            size={500}>
+                            {slide.title}
+                        </Text>
+                        <p id={`authorization-tip-description-${index}`}>{slide.description}</p>
                     </div>
                 ))}
             </div>
-            <div className={styles.carouselDots}>
+            <div
+                id={"authorization-tips-carousel-dots"}
+                className={styles.carouselDots}>
                 {slides.map((_, index) => (
                     <span
+                        id={`authorization-tip-dot-${index}`}
                         key={index}
-                        className={`${styles.dot} ${currentIndex === index ? styles.dotActive : ''}`}
-                        onClick={() => setCurrentIndex(index)}
-                    ></span>
+                        className={mergeClasses(
+                            styles.dot,
+                            currentIndex === index && styles.dotActive,
+                        )}
+                        onClick={() => setCurrentIndex(index)}>
+                    </span>
                 ))}
             </div>
         </div>

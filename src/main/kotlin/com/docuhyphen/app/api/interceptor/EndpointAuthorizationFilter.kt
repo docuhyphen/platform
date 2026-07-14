@@ -130,6 +130,7 @@ class EndpointVerificationFilter @Inject constructor(
         "/auth/sign-in/otp-regeneration",
         "/auth/sign-in/completion",
         "/auth/sign-in/lookup",
+        "/auth/sign-in/mfa-sessions/",
         "/auth/password-reset/initiation",
         "/auth/password-reset/completion",
         "/auth/token/refresh",

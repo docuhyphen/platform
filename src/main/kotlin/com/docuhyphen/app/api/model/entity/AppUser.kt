@@ -63,6 +63,13 @@ class AppUser
     @Enumerated(STRING)
     var mfaType: MultifactorAuthenticationType = EMAIL
 
+    @Column(name = "authenticator_secret_encrypted", nullable = true, length = 512)
+    @JsonIgnore
+    var authenticatorSecretEncrypted: String? = null
+
+    @Column(name = "email_mfa_fallback_enabled", nullable = false)
+    var emailMfaFallbackEnabled: Boolean = false
+
     @OneToOne(cascade = [ALL], fetch = LAZY)
     @JoinColumn(name = "person_id")
     var person: Person? = null

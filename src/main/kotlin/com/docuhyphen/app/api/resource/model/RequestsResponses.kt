@@ -34,7 +34,9 @@ data class ResendOtpResponse(
 @Serializable
 data class SignInResponse(
     var message: String,
-    var mfaSessionId: String? = null
+    var mfaSessionId: String? = null,
+    var mfaType: String? = null,
+    var emailFallbackEnabled: Boolean = false,
 )
 
 @Serializable

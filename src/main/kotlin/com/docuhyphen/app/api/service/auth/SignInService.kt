@@ -21,7 +21,7 @@ import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.MfaService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
-import jakarta.enterprise.context.RequestScoped
+import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
@@ -29,7 +29,7 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 
-@RequestScoped
+@ApplicationScoped
 class SignInService @Inject constructor(
     private val authenticationService: AuthenticationService,
     private val tokenIssuanceService: TokenIssuanceService,
@@ -40,6 +40,7 @@ class SignInService @Inject constructor(
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
     private val organizationIdentityPolicyService: OrganizationIdentityPolicyService,
+    private val authenticatorMfaService: AuthenticatorMfaService,
 )
 {
 
@@ -125,6 +126,8 @@ class SignInService @Inject constructor(
         when (appUser.mfaType)
         {
             EMAIL -> mfaService.doEmailMFA(appUser, mfaSession.mfaToken!!)
+            MultifactorAuthenticationType.GOOGLE_AUTHENTICATOR,
+            MultifactorAuthenticationType.MICROSOFT_AUTHENTICATOR -> Unit
             MultifactorAuthenticationType.SMS -> TODO("Implement SMS OTP sending")
             MultifactorAuthenticationType.PASSKEY -> TODO("Implement passkey OTP sending")
             else ->
@@ -139,7 +142,7 @@ class SignInService @Inject constructor(
         return mfaSession
     }
 
-    @Transactional
+    @Transactional(dontRollbackOn = [InvalidOtpException::class, MaxAttemptsOTPExceededException::class])
     fun completeSignIn(email: String?, otp: String?, sessionId: String?, userAgent: String? = null, ipAddress: String? = null): TokenTriple
     {
         if (email.isNullOrBlank() || otp.isNullOrBlank() || sessionId.isNullOrBlank())
@@ -203,7 +206,27 @@ class SignInService @Inject constructor(
 
                 if (!otpService.verifyEmailOtp(sanitizedOTP, mfaRecord.mfaToken!!))
                 {
+                    mfaService.updateRecord(mfaRecord)
                     logger.warn("Sign in completion failed: Invalid OTP for {}", sanitizedEmail.maskEmailForLogs())
+                    throw InvalidOtpException("Invalid verification code")
+                }
+            }
+
+            MultifactorAuthenticationType.GOOGLE_AUTHENTICATOR,
+            MultifactorAuthenticationType.MICROSOFT_AUTHENTICATOR ->
+            {
+                if (mfaRecord.status == MultifactorAuthenticationStatus.COMPLETED)
+                {
+                    throw InvalidOtpException("Invalid verification code")
+                }
+                if (mfaRecord.status == MultifactorAuthenticationStatus.LOCKED)
+                {
+                    throw MaxAttemptsOTPExceededException("Too many invalid attempts.")
+                }
+                if (!authenticatorMfaService.verifyUserCode(mfaRecord.appUser!!, sanitizedOTP))
+                {
+                    mfaService.updateRecord(mfaRecord)
+                    logger.warn("Sign in completion failed: Invalid authenticator code for {}", sanitizedEmail.maskEmailForLogs())
                     throw InvalidOtpException("Invalid verification code")
                 }
             }
@@ -334,6 +357,39 @@ class SignInService @Inject constructor(
             this.id = UUID.fromString(mfaRecord.sessionId)
             // Don't include plaintext OTP in response for security
             this.mfaTokenHashed = mfaRecord.mfaToken
+            this.mfaType = mfaRecord.mfaType?.name
+        }
+    }
+
+    @Transactional
+    fun createEmailFallbackChallenge(email: String?, sessionId: String?): MfaSessionDto
+    {
+        if (email.isNullOrBlank() || sessionId.isNullOrBlank())
+        {
+            throw InvalidSignInCredentialsException()
+        }
+        val sanitizedEmail = email.normalizeEmailOrNull() ?: throw InvalidSignInCredentialsException()
+        val mfaRecord = mfaService.getMfaRecordByEmailAndSessionId(sanitizedEmail, sessionId)
+            ?: throw InvalidSignInCredentialsException()
+        val appUser = mfaRecord.appUser ?: throw InvalidSignInCredentialsException()
+        if (!mfaRecord.mfaType!!.isAuthenticator() || !appUser.emailMfaFallbackEnabled)
+        {
+            throw InvalidSignInCredentialsException()
+        }
+        if (mfaRecord.expiryDateTime!!.before(Timestamp.from(Instant.now())) ||
+            mfaRecord.status != MultifactorAuthenticationStatus.PENDING)
+        {
+            throw InvalidSignInCredentialsException()
+        }
+
+        mfaService.enforceRateLimits(sanitizedEmail, mfaRecord.ipAddress ?: "0.0.0.0")
+        mfaRecord.mfaType = EMAIL
+        val otp = mfaService.regenerateOtp(mfaRecord)
+        mfaService.doEmailMFA(appUser, otp)
+        return MfaSessionDto().apply {
+            id = UUID.fromString(mfaRecord.sessionId)
+            mfaType = EMAIL.name
+            emailFallbackEnabled = true
         }
     }
 
