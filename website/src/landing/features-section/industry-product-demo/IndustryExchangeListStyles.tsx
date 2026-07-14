@@ -1,60 +1,41 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
-import {BREAKPOINT_MOBILE} from "../../shared.ts";
 
 export const useIndustryExchangeListStyles = makeStyles({
     sidebar: {
         display: "flex",
         flexDirection: "column",
         width: "25%",
-        minWidth: "15.5rem",
+        minWidth: "20rem",
         borderRight: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
         backgroundColor: tokens.colorNeutralBackground1,
-
-        [BREAKPOINT_MOBILE]: {
-            display: "none",
-        },
     },
 
     filters: {
         display: "flex",
         flexDirection: "column",
-        gap: tokens.spacingVerticalS,
-        padding: tokens.spacingVerticalS,
+        gap: tokens.spacingVerticalSNudge,
+        paddingTop: tokens.spacingVerticalS,
+        paddingRight: tokens.spacingHorizontalS,
+        paddingBottom: tokens.spacingVerticalS,
+        paddingLeft: tokens.spacingHorizontalS,
         borderBottom: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
     },
 
     statuses: {
-        display: "flex",
-        alignItems: "center",
-        gap: tokens.spacingHorizontalM,
-        minHeight: "1.5rem",
+        width: "100%",
+        paddingRight: 0,
+        paddingLeft: 0,
     },
 
-    status: {
-        display: "inline-flex",
+    tabContent: {
+        display: "flex",
         alignItems: "center",
-        gap: tokens.spacingHorizontalXXS,
-        color: tokens.colorNeutralForeground2,
-        fontSize: tokens.fontSizeBase100,
+        gap: tokens.spacingHorizontalSNudge,
         whiteSpace: "nowrap",
     },
 
-    activeStatus: {
+    activeTabContent: {
         color: tokens.colorBrandForeground1,
-        fontWeight: tokens.fontWeightSemibold,
-    },
-
-    requestCount: {
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        minWidth: "1rem",
-        height: "1rem",
-        borderRadius: tokens.borderRadiusCircular,
-        color: tokens.colorNeutralForegroundInverted,
-        backgroundColor: tokens.colorStatusDangerBackground3,
-        fontSize: tokens.fontSizeBase100,
-        fontWeight: tokens.fontWeightSemibold,
     },
 
     searchRow: {

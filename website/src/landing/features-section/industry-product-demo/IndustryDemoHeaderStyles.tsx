@@ -1,5 +1,4 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
-import {BREAKPOINT_MOBILE} from "../../shared.ts";
 
 export const useIndustryDemoHeaderStyles = makeStyles({
     header: {
@@ -14,11 +13,6 @@ export const useIndustryDemoHeaderStyles = makeStyles({
         paddingLeft: tokens.spacingHorizontalL,
         borderBottom: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
         backgroundColor: tokens.colorNeutralBackground1,
-
-        [BREAKPOINT_MOBILE]: {
-            paddingRight: tokens.spacingHorizontalS,
-            paddingLeft: tokens.spacingHorizontalS,
-        },
     },
 
     brand: {
@@ -40,10 +34,6 @@ export const useIndustryDemoHeaderStyles = makeStyles({
         color: tokens.colorNeutralForeground1,
         fontSize: tokens.fontSizeBase100,
         opacity: 0.3,
-
-        [BREAKPOINT_MOBILE]: {
-            display: "none",
-        },
     },
 
     actions: {
@@ -55,12 +45,6 @@ export const useIndustryDemoHeaderStyles = makeStyles({
 
     startButton: {
         whiteSpace: "nowrap",
-    },
-
-    startButtonLabel: {
-        [BREAKPOINT_MOBILE]: {
-            display: "none",
-        },
     },
 
     iconButton: {
@@ -88,18 +72,5 @@ export const useIndustryDemoHeaderStyles = makeStyles({
         minWidth: 0,
         paddingRight: tokens.spacingHorizontalXS,
         paddingLeft: tokens.spacingHorizontalXS,
-
-        [BREAKPOINT_MOBILE]: {
-            paddingRight: tokens.spacingHorizontalXXS,
-            paddingLeft: tokens.spacingHorizontalXXS,
-
-            "& .fui-Persona__primaryText, & .fui-Persona__secondaryText, & .fui-Persona__tertiaryText, & .fui-Persona__quaternaryText": {
-                display: "none",
-            },
-
-            "& .fui-Persona": {
-                gap: 0,
-            },
-        },
     },
 });

@@ -1,5 +1,4 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
-import {BREAKPOINT_MOBILE} from "../../shared.ts";
 
 export const useIndustryExchangeDetailHeaderStyles = makeStyles({
     header: {
@@ -16,11 +15,6 @@ export const useIndustryExchangeDetailHeaderStyles = makeStyles({
         borderRadius: tokens.borderRadiusMedium,
         backgroundColor: tokens.colorNeutralBackground1,
         boxShadow: tokens.shadow4,
-
-        [BREAKPOINT_MOBILE]: {
-            gap: tokens.spacingHorizontalXS,
-            padding: `${tokens.spacingVerticalSNudge} ${tokens.spacingHorizontalS}`,
-        },
     },
 
     title: {
@@ -33,16 +27,6 @@ export const useIndustryExchangeDetailHeaderStyles = makeStyles({
         fontWeight: tokens.fontWeightRegular,
         textOverflow: "ellipsis",
         whiteSpace: "nowrap",
-
-        [BREAKPOINT_MOBILE]: {
-            fontSize: tokens.fontSizeBase400,
-            lineHeight: tokens.lineHeightBase400,
-        },
-
-        "@media (max-width: 30em)": {
-            fontSize: tokens.fontSizeBase300,
-            lineHeight: tokens.lineHeightBase300,
-        },
     },
 
     actions: {
@@ -50,10 +34,6 @@ export const useIndustryExchangeDetailHeaderStyles = makeStyles({
         alignItems: "center",
         gap: tokens.spacingHorizontalS,
         flexShrink: 0,
-
-        [BREAKPOINT_MOBILE]: {
-            gap: tokens.spacingHorizontalXXS,
-        },
     },
 
     actionButton: {
@@ -62,9 +42,5 @@ export const useIndustryExchangeDetailHeaderStyles = makeStyles({
 
     wideActionButton: {
         flexShrink: 0,
-
-        "@media (max-width: 64em)": {
-            display: "none",
-        },
     },
 });

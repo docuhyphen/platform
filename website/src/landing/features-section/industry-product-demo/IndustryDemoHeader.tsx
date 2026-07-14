@@ -69,7 +69,6 @@ export function IndustryDemoHeader({persona}: IndustryDemoHeaderProps)
                 >
                     <span
                         id="industry-demo-start-exchange-label"
-                        className={styles.startButtonLabel}
                     >
                         Start Exchange
                     </span>

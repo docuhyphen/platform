@@ -1,5 +1,4 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
-import {BREAKPOINT_MOBILE} from "../../shared.ts";
 
 export const useIndustryDocumentViewStyles = makeStyles({
     detail: {
@@ -26,10 +25,6 @@ export const useIndustryDocumentViewStyles = makeStyles({
         gap: tokens.spacingHorizontalS,
         minWidth: 0,
         flexShrink: 0,
-
-        [BREAKPOINT_MOBILE]: {
-            flexShrink: 1,
-        },
     },
 
     search: {
@@ -45,11 +40,6 @@ export const useIndustryDocumentViewStyles = makeStyles({
         borderRadius: tokens.borderRadiusMedium,
         color: tokens.colorNeutralForeground3,
         fontSize: tokens.fontSizeBase100,
-
-        [BREAKPOINT_MOBILE]: {
-            width: "100%",
-            minWidth: 0,
-        },
     },
 
     progressSummary: {
@@ -58,10 +48,6 @@ export const useIndustryDocumentViewStyles = makeStyles({
         justifyContent: "flex-end",
         gap: tokens.spacingHorizontalS,
         flexShrink: 0,
-
-        [BREAKPOINT_MOBILE]: {
-            display: "none",
-        },
     },
 
     progressText: {

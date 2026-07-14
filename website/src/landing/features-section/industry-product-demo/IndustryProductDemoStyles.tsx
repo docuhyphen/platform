@@ -1,12 +1,18 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
 import {BREAKPOINT_MOBILE} from "../../shared.ts";
 
+export const INDUSTRY_DEMO_CANVAS_WIDTH_REM = 90;
+export const INDUSTRY_DEMO_CANVAS_HEIGHT_REM = 45.75;
+export const INDUSTRY_DEMO_DEFAULT_SCALE = 1;
+
 export const useIndustryProductDemoStyles = makeStyles({
     shell: {
         position: "relative",
+        isolation: "isolate",
         width: "100%",
+        maxWidth: "100%",
         minWidth: 0,
-        height: "39rem",
+        height: `calc(${INDUSTRY_DEMO_CANVAS_HEIGHT_REM}rem * var(--industry-demo-scale, ${INDUSTRY_DEMO_DEFAULT_SCALE}))`,
         overflow: "hidden",
         border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,
         borderRadius: tokens.borderRadiusLarge,
@@ -14,7 +20,11 @@ export const useIndustryProductDemoStyles = makeStyles({
         boxShadow: tokens.shadow16,
 
         [BREAKPOINT_MOBILE]: {
-            height: "auto",
+            width: "100vw",
+            maxWidth: "100vw",
+            marginLeft: "calc(50% - 50vw)",
+            marginRight: "calc(50% - 50vw)",
+            borderRadius: 0,
         },
 
         ":before": {
@@ -23,7 +33,7 @@ export const useIndustryProductDemoStyles = makeStyles({
             right: 0,
             bottom: 0,
             width: "6rem",
-            zIndex: 1,
+            zIndex: 2,
             pointerEvents: "none",
             backgroundImage: `linear-gradient(to right, transparent 0%, ${tokens.colorNeutralBackground1} 100%)`,
             content: '""',
@@ -35,7 +45,7 @@ export const useIndustryProductDemoStyles = makeStyles({
             bottom: 0,
             left: 0,
             height: "6rem",
-            zIndex: 2,
+            zIndex: 3,
             pointerEvents: "none",
             backgroundImage: `linear-gradient(to bottom, transparent 0%, ${tokens.colorNeutralBackground1} 100%)`,
             content: '""',
@@ -43,22 +53,16 @@ export const useIndustryProductDemoStyles = makeStyles({
     },
 
     scaledViewport: {
-        width: "116.28%",
-        transform: "scale(0.86)",
+        position: "relative",
+        zIndex: 0,
+        width: `${INDUSTRY_DEMO_CANVAS_WIDTH_REM}rem`,
+        height: `${INDUSTRY_DEMO_CANVAS_HEIGHT_REM}rem`,
+        transform: `scale(var(--industry-demo-scale, ${INDUSTRY_DEMO_DEFAULT_SCALE}))`,
         transformOrigin: "top left",
-
-        [BREAKPOINT_MOBILE]: {
-            width: "100%",
-            transform: "none",
-        },
     },
 
     body: {
         display: "flex",
         minHeight: "42rem",
-
-        [BREAKPOINT_MOBILE]: {
-            minHeight: "32rem",
-        },
     },
 });

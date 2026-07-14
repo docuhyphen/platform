@@ -1,5 +1,4 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
-import {BREAKPOINT_MOBILE} from "../../shared.ts";
 
 export const useIndustryDocumentToolbarStyles = makeStyles({
     toolbar: {
@@ -24,12 +23,6 @@ export const useIndustryDocumentToolbarStyles = makeStyles({
         gap: tokens.spacingHorizontalXS,
         maxWidth: "100%",
         minWidth: 0,
-
-        [BREAKPOINT_MOBILE]: {
-            flexDirection: "row",
-            justifyContent: "center",
-            rowGap: tokens.spacingVerticalXS,
-        },
     },
 
     pagesInputContainer: {
@@ -44,12 +37,6 @@ export const useIndustryDocumentToolbarStyles = makeStyles({
             width: "50px",
             textAlign: "right",
         },
-
-        [BREAKPOINT_MOBILE]: {
-            "& input": {
-                width: "36px",
-            },
-        },
     },
 
     pagesInputAfter: {
@@ -59,9 +46,5 @@ export const useIndustryDocumentToolbarStyles = makeStyles({
 
     dividerFullHeight: {
         height: "100%",
-
-        [BREAKPOINT_MOBILE]: {
-            display: "none",
-        },
     },
 });

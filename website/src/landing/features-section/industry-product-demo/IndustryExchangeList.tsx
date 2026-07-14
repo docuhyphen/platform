@@ -1,8 +1,10 @@
-import {mergeClasses} from "@fluentui/react-components";
+import {CounterBadge, mergeClasses, Tab, TabList, tokens} from "@fluentui/react-components";
 import {
-    Archive16Regular,
+    Archive20Regular,
     ArrowSort16Regular,
     Filter16Regular,
+    Live20Filled,
+    MailInbox20Regular,
     Person16Regular,
     Search16Regular,
 } from "@fluentui/react-icons";
@@ -28,39 +30,53 @@ export function IndustryExchangeList({exchanges}: IndustryExchangeListProps)
                 id="industry-demo-exchange-filters"
                 className={styles.filters}
             >
-                <div
+                <TabList
                     id="industry-demo-exchange-statuses"
                     className={styles.statuses}
+                    selectedValue="active"
+                    size="small"
                 >
-                    <span
+                    <Tab
                         id="industry-demo-requests-status"
-                        className={styles.status}
+                        value="requests"
                     >
-                        Requests
-                        <span
-                            id="industry-demo-request-count"
-                            className={styles.requestCount}
-                        >
-                            3
+                        <span className={styles.tabContent}>
+                            <MailInbox20Regular aria-hidden="true"/>
+                            Requests
+                            <CounterBadge
+                                id="industry-demo-request-count"
+                                count={3}
+                                size="small"
+                                appearance="filled"
+                                color="danger"
+                            />
                         </span>
-                    </span>
-                    <span
+                    </Tab>
+                    <Tab
                         id="industry-demo-active-status"
-                        className={mergeClasses(styles.status, styles.activeStatus)}
+                        value="active"
                     >
-                        Active
-                    </span>
-                    <span
+                        <span className={mergeClasses(styles.tabContent, styles.activeTabContent)}>
+                            <Live20Filled
+                                aria-hidden="true"
+                                primaryFill={tokens.colorBrandForeground1}
+                            />
+                            Active
+                        </span>
+                    </Tab>
+                    <Tab
                         id="industry-demo-archive-status"
-                        className={styles.status}
+                        value="archive"
                     >
-                        <Archive16Regular
-                            id="industry-demo-archive-status-icon"
-                            aria-hidden="true"
-                        />
-                        Archive
-                    </span>
-                </div>
+                        <span className={styles.tabContent}>
+                            <Archive20Regular
+                                id="industry-demo-archive-status-icon"
+                                aria-hidden="true"
+                            />
+                            Archive
+                        </span>
+                    </Tab>
+                </TabList>
                 <div
                     id="industry-demo-exchange-search-row"
                     className={styles.searchRow}
