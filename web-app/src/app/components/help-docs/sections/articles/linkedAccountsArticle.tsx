@@ -23,7 +23,10 @@ export const linkedAccountsArticle = (
         <ul>
             <li>The summary strip shows how many sign-in methods are currently connected.</li>
             <li>Each provider card shows its connection status and a short description.</li>
-            <li>You can sign in using any provider that is marked <b>Connected</b>.</li>
+            <li>
+                You can sign in using a connected provider when it is also enabled by your
+                organization&apos;s sign-in policy.
+            </li>
         </ul>
     </>
 );

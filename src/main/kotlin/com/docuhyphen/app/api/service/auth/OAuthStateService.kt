@@ -26,6 +26,7 @@ data class VerifiedOAuthState(
     val stepUpAppUserId: UUID? = null,
     val stepUpExpectedSubjectId: String? = null,
     val stepUpReturnTo: String? = null,
+    val linkAppUserId: UUID? = null,
 )
 
 data class SignedOAuthState(
@@ -57,6 +58,7 @@ class OAuthStateService @Inject constructor(
         stepUpAppUserId: UUID? = null,
         stepUpExpectedSubjectId: String? = null,
         stepUpReturnTo: String? = null,
+        linkAppUserId: UUID? = null,
     ): SignedOAuthState
     {
         val normalizedFlow = flow.ifBlank { "signin" }
@@ -93,6 +95,7 @@ class OAuthStateService @Inject constructor(
             .claim("stepUpAppUserId", stepUpAppUserId?.toString())
             .claim("stepUpExpectedSubjectId", stepUpExpectedSubjectId)
             .claim("stepUpReturnTo", stepUpReturnTo)
+            .claim("linkAppUserId", linkAppUserId?.toString())
             .issuedAt(Date())
             .expiration(expiration)
             .signWith(stateSigningKey)
@@ -147,6 +150,9 @@ class OAuthStateService @Inject constructor(
             ?.takeIf { it.isNotBlank() }
         val stepUpReturnTo = (claims["stepUpReturnTo"] as? String)
             ?.takeIf { it.isNotBlank() }
+        val linkAppUserId = (claims["linkAppUserId"] as? String)
+            ?.takeIf { it.isNotBlank() }
+            ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
 
         return VerifiedOAuthState(
             flow = flow,
@@ -158,6 +164,7 @@ class OAuthStateService @Inject constructor(
             stepUpAppUserId = stepUpAppUserId,
             stepUpExpectedSubjectId = stepUpExpectedSubjectId,
             stepUpReturnTo = stepUpReturnTo,
+            linkAppUserId = linkAppUserId,
         )
     }
 

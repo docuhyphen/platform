@@ -35,11 +35,11 @@ class OrganizationIdpRuntimeCredentialService @Inject constructor(
         }
 
         val config = organizationIdentityProviderConfigRepository.findById(orgIdpConfigId)
-            ?: return null
+            ?: throw IllegalArgumentException("Organization IdP configuration was not found")
 
         if (!config.isActive || !config.provider.equals(provider.name, ignoreCase = true))
         {
-            return null
+            throw IllegalArgumentException("Organization IdP configuration is inactive or does not match the provider")
         }
 
         // INTERNAL auth does not use external OAuth client credentials.

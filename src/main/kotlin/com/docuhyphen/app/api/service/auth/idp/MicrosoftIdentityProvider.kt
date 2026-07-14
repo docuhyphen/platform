@@ -154,6 +154,8 @@ class MicrosoftIdentityProvider @Inject constructor(
         validateRequiredClaims(claims, runtimeCredentials)
 
         val issuer = claims["iss"] as? String ?: throw RuntimeException("Missing iss in Microsoft ID token")
+        val tokenTenantId = claims["tid"] as? String ?: throw RuntimeException("Missing tid in Microsoft ID token")
+        val tokenObjectId = claims["oid"] as? String ?: throw RuntimeException("Missing oid in Microsoft ID token")
         val expectedIssuer = runtimeCredentials?.oidcIssuer?.takeIf { it.isNotBlank() }
         if (expectedIssuer != null)
         {
@@ -162,7 +164,7 @@ class MicrosoftIdentityProvider @Inject constructor(
                 throw RuntimeException("Invalid Microsoft issuer")
             }
         }
-        else if (!issuer.contains("login.microsoftonline.com"))
+        else if (issuer != "https://login.microsoftonline.com/$tokenTenantId/v2.0")
         {
             throw RuntimeException("Invalid Microsoft issuer")
         }
@@ -204,8 +206,7 @@ class MicrosoftIdentityProvider @Inject constructor(
         val configuredTenantId = runtimeCredentials?.tenantId?.takeIf { it.isNotBlank() } ?: configurationService.microsoftOAuthTenantId
         if (!configuredTenantId.isNullOrBlank() && configuredTenantId !in setOf("common", "organizations", "consumers"))
         {
-            val tokenTid = claims["tid"] as? String
-            if (tokenTid.isNullOrBlank() || tokenTid != configuredTenantId)
+            if (tokenTenantId != configuredTenantId)
             {
                 throw RuntimeException("Microsoft tid claim does not match configured tenant")
             }
@@ -215,11 +216,10 @@ class MicrosoftIdentityProvider @Inject constructor(
             email = (claims[EMAIL.claimName] as? String)
                 ?: (claims[PREFERRED_USERNAME.claimName] as? String)
                 ?: throw RuntimeException("No email claim in Microsoft ID token"),
-            subjectId = (claims[SUB.claimName] as? String)
-                ?: (claims[OID.claimName] as? String)
-                ?: throw RuntimeException("No sub/oid claim in Microsoft ID token"),
+            subjectId = "$tokenTenantId:$tokenObjectId",
             firstName = claims[GIVEN_NAME.claimName] as? String,
             lastName = claims[FAMILY_NAME.claimName] as? String,
+            legacySubjectId = claims[SUB.claimName] as? String,
         )
     }
 

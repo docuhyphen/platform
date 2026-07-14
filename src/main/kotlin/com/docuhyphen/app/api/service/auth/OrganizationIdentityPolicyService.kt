@@ -10,6 +10,8 @@ import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import java.util.UUID
 
+class IdentityProviderNotAllowedException(message: String) : RuntimeException(message)
+
 @RequestScoped
 class OrganizationIdentityPolicyService @Inject constructor(
     private val organizationRepository: OrganizationRepository,
@@ -79,7 +81,49 @@ class OrganizationIdentityPolicyService @Inject constructor(
 
         if (activeConfig == null)
         {
-            throw IllegalArgumentException("Provider is not enabled for this organization")
+            throw IdentityProviderNotAllowedException("Provider is not enabled for this organization")
+        }
+    }
+
+    fun resolveTrustedOrganizationForOAuth(
+        email: String,
+        provider: IdentityProviderType,
+        orgIdpConfigId: UUID?,
+    ): Organization?
+    {
+        val organization = resolveOrganizationForEmail(email) ?: return null
+        val activeConfigs = organizationIdentityProviderConfigRepository.findActiveByOrganizationId(organization.id)
+        if (activeConfigs.isEmpty())
+        {
+            return null
+        }
+
+        val matchingConfig = activeConfigs.firstOrNull {
+            it.provider.equals(provider.name, ignoreCase = true)
+        } ?: throw IdentityProviderNotAllowedException("Provider is not enabled for this organization")
+
+        if (orgIdpConfigId == null || matchingConfig.id != orgIdpConfigId)
+        {
+            throw IdentityProviderNotAllowedException("OAuth sign-in did not use this organization's IdP configuration")
+        }
+
+        return organization
+    }
+
+    fun enforceUserCapForOrganization(organization: Organization)
+    {
+        val policy = organizationSubscriptionPolicyRepository.findByOrganizationId(organization.id)
+        val tierCode = policy?.tierCode ?: PlatformOrganizationSubscriptionPolicyService.FREE_TIER_CODE
+        val maxUsers = policy?.maxUsers
+            ?: if (tierCode.equals(PlatformOrganizationSubscriptionPolicyService.FREE_TIER_CODE, ignoreCase = true))
+                PlatformOrganizationSubscriptionPolicyService.FREE_TIER_MAX_USERS
+            else null
+        if (maxUsers == null) return
+
+        val activeUsers = organizationMembershipService.membersOf(organization.id).count { it.isActive }.toLong()
+        if (activeUsers >= maxUsers)
+        {
+            throw IllegalArgumentException("Organization user limit reached")
         }
     }
 

@@ -5,6 +5,7 @@ import {setApiClientAuthToken} from '../../../services/apiClient.ts';
 import {fetchAppUser, fetchAppUserPersonOrganization} from '../../../services/appUserApi.ts';
 import {Button, MessageBar, MessageBarBody, Spinner, Text} from "@fluentui/react-components";
 import {useOAuthStyles} from "./OAuthStyles.tsx";
+import {exchangeOAuthTokenHandoff} from "../../../services/authApi.ts";
 
 const ERROR_MESSAGES: Record<string, string> = {
     ACCOUNT_DEPROVISIONED: "Your account has been deprovisioned. Please contact your administrator.",
@@ -39,18 +40,29 @@ const OAuthCallback: React.FC = () =>
                 return;
             }
 
-            const accessToken = searchParams.get('accessToken');
-            const idToken = searchParams.get('idToken');
-            const isNewUser = searchParams.get('isNewUser') === 'true';
+            const code = searchParams.get('code');
 
-            if (!accessToken)
+            if (!code)
             {
                 setErrorMessage("OAuth sign-in did not complete. Please try again.");
                 return;
             }
 
+            let exchange;
+            try
+            {
+                exchange = await exchangeOAuthTokenHandoff(code);
+            }
+            catch
+            {
+                setErrorMessage("OAuth sign-in expired or was already completed. Please try again.");
+                return;
+            }
+
+            const {accessToken, idToken, isNewUser} = exchange;
+
             setAccessToken(accessToken);
-            if (idToken) setIdToken(idToken);
+            setIdToken(idToken);
             setApiClientAuthToken(accessToken);
 
             if (isNewUser)
@@ -94,11 +106,16 @@ const OAuthCallback: React.FC = () =>
     if (errorMessage)
     {
         return (
-            <div className={styles.oauthCallbackContainer}>
+            <div
+                id={"oauth-callback-error-container"}
+                className={styles.oauthCallbackContainer}>
                 <MessageBar
+                    id={"oauth-callback-error-message"}
                     intent="error"
                     className={styles.oauthMessageBar}>
-                    <MessageBarBody>{errorMessage}</MessageBarBody>
+                    <MessageBarBody id={"oauth-callback-error-message-body"}>
+                        {errorMessage}
+                    </MessageBarBody>
                 </MessageBar>
                 <Button
                     id={"oauth-callback-back-to-sign-in-btn"}
@@ -112,9 +129,17 @@ const OAuthCallback: React.FC = () =>
     }
 
     return (
-        <div className={styles.oauthSpinnerContainer}>
-            <Spinner size="large"/>
-            <Text size={400}>Completing sign-in...</Text>
+        <div
+            id={"oauth-callback-progress-container"}
+            className={styles.oauthSpinnerContainer}>
+            <Spinner
+                id={"oauth-callback-spinner"}
+                size="large"/>
+            <Text
+                id={"oauth-callback-progress-text"}
+                size={400}>
+                Completing sign-in...
+            </Text>
         </div>
     );
 };

@@ -259,6 +259,18 @@ data class AppUserSearchResultDto(
 )
 
 @Serializable
+data class OAuthTokenExchangeRequest(
+    val code: String? = null,
+)
+
+@Serializable
+data class OAuthTokenExchangeResponse(
+    val accessToken: String,
+    val idToken: String,
+    val isNewUser: Boolean,
+)
+
+@Serializable
 data class AddOrganizationAppUserPersonRequest(
     var firstName: String? = null,
     var lastName: String? = null,

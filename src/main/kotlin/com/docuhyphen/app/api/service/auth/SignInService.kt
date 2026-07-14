@@ -39,6 +39,7 @@ class SignInService @Inject constructor(
     private val configurationService: ConfigurationService,
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
+    private val organizationIdentityPolicyService: OrganizationIdentityPolicyService,
 )
 {
 
@@ -73,6 +74,11 @@ class SignInService @Inject constructor(
         }
 
         val sanitizedEmail = email.normalizeEmailOrNull()!!
+
+        organizationIdentityPolicyService.assertProviderAllowedForEmail(
+            sanitizedEmail,
+            com.docuhyphen.app.api.model.entity.IdentityProviderType.INTERNAL,
+        )
 
         val appUser = appUserService.findByEmail(sanitizedEmail) ?: throw InvalidSignInCredentialsException()
 

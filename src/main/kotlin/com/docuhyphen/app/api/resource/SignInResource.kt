@@ -12,6 +12,7 @@ import com.docuhyphen.app.api.service.auth.SignInService
 import com.docuhyphen.app.api.service.auth.TokenIssuanceService
 import com.docuhyphen.app.api.service.auth.OAuthStateService
 import com.docuhyphen.app.api.service.auth.OrganizationIdentityPolicyService
+import com.docuhyphen.app.api.service.auth.IdentityProviderNotAllowedException
 import com.docuhyphen.app.api.service.auth.SecurityIncidentService
 import com.docuhyphen.app.api.service.auth.idp.IdentityProviderRegistry
 import com.docuhyphen.app.api.model.entity.SecurityIncidentSeverity
@@ -106,14 +107,19 @@ class SignInResource @Inject constructor(
                     .build()
             }
 
-            // If client already selected an org (second lookup call after MULTIPLE_ORGS picker), resolve that org directly
+            val domainOrganizations = organizationIdentityPolicyService.resolveOrganizationsForEmail(email)
+
+            // If client already selected an org, only accept an organization associated with the submitted email domain.
             val selectedOrgId = payload.orgId?.trim()?.takeIf { it.isNotBlank() }?.let { runCatching { java.util.UUID.fromString(it) }.getOrNull() }
             if (selectedOrgId != null)
             {
-                val org = organizationIdentityPolicyService.findOrganizationById(selectedOrgId)
+                val org = domainOrganizations.firstOrNull { it.id == selectedOrgId }
                 if (org != null)
                 {
                     val orgProviders = organizationIdentityPolicyService.findActiveProviderConfigsForOrganization(org.id)
+                    val internalAvailable = orgProviders.isEmpty() || orgProviders.any {
+                        it.provider.equals(IdentityProviderType.INTERNAL.name, ignoreCase = true)
+                    }
                     val preferredExternal = orgProviders.firstOrNull { !it.provider.equals("INTERNAL", ignoreCase = true) }
                     if (preferredExternal != null)
                     {
@@ -130,9 +136,10 @@ class SignInResource @Inject constructor(
                                     authMethod = providerType.name,
                                     redirectUrl = redirectUrl,
                                     outcome = "ORG_FOUND",
-                                    fallbackAuthMethod = "INTERNAL",
+                                    fallbackAuthMethod = if (internalAvailable) "INTERNAL" else null,
                                     organizations = listOf(SignInLookupOrganizationOption(id = org.id.toString(), name = org.name)),
-                                    availableProviders = listOf(providerType.name, "INTERNAL"),
+                                    availableProviders = listOf(providerType.name) +
+                                        if (internalAvailable) listOf("INTERNAL") else emptyList(),
                                 )
                             ).build()
                         }
@@ -148,8 +155,6 @@ class SignInResource @Inject constructor(
                     ).build()
                 }
             }
-
-            val domainOrganizations = organizationIdentityPolicyService.resolveOrganizationsForEmail(email)
 
             if (domainOrganizations.size > 1)
             {
@@ -180,6 +185,9 @@ class SignInResource @Inject constructor(
             {
                 val organization = domainOrganizations.first()
                 val orgProviders = organizationIdentityPolicyService.findActiveProviderConfigsForOrganization(organization.id)
+                val internalAvailable = orgProviders.isEmpty() || orgProviders.any {
+                    it.provider.equals(IdentityProviderType.INTERNAL.name, ignoreCase = true)
+                }
                 val preferredExternal = orgProviders.firstOrNull { !it.provider.equals("INTERNAL", ignoreCase = true) }
 
                 if (preferredExternal != null)
@@ -197,9 +205,10 @@ class SignInResource @Inject constructor(
                                 authMethod = providerType.name,
                                 redirectUrl = redirectUrl,
                                 outcome = "ORG_FOUND",
-                                fallbackAuthMethod = "INTERNAL",
+                                fallbackAuthMethod = if (internalAvailable) "INTERNAL" else null,
                                 organizations = listOf(SignInLookupOrganizationOption(id = organization.id.toString(), name = organization.name)),
-                                availableProviders = listOf(providerType.name, "INTERNAL"),
+                                availableProviders = listOf(providerType.name) +
+                                    if (internalAvailable) listOf("INTERNAL") else emptyList(),
                             )
                         ).build()
                     }
@@ -347,6 +356,18 @@ class SignInResource @Inject constructor(
                         action = "SIGN_IN_INITIATE",
                         outcome = "DENY",
                         reasonCode = RevocationReasonCode.DEPROVISIONED,
+                        requestId = requestId,
+                    )
+                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
+                }
+
+                is IdentityProviderNotAllowedException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    authAuditService.emit(
+                        action = "SIGN_IN_INITIATE",
+                        outcome = "DENY",
+                        reasonCode = RevocationReasonCode.SECURITY_POLICY,
                         requestId = requestId,
                     )
                     Response.status(Response.Status.FORBIDDEN).entity(responseError).build()

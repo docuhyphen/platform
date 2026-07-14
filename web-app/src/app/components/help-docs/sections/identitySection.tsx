@@ -84,6 +84,23 @@ export const identitySection: HelpDocSectionInput = {
                         <li><b>Inactivity timeout</b> ends a session after no user activity.</li>
                     </ul>
 
+                    <h3>Sign-in enforcement</h3>
+                    <ul>
+                        <li>
+                            Organization sign-in uses the exact active Identity Provider configuration
+                            selected for your verified email domain.
+                        </li>
+                        <li>
+                            Microsoft membership is bound to the configured Entra tenant and immutable
+                            object ID. Google Workspace membership requires a verified email and matching
+                            hosted domain.
+                        </li>
+                        <li>
+                            Deactivate the INTERNAL configuration when members must use organization SSO.
+                            Email and password will no longer be offered as a fallback for that domain.
+                        </li>
+                    </ul>
+
                     <h3>Troubleshooting checklist</h3>
                     <ul>
                         <li>Redirect URI mismatch between provider and DocuHyphen.</li>

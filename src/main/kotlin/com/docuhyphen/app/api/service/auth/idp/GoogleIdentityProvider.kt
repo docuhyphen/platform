@@ -204,6 +204,12 @@ class GoogleIdentityProvider @Inject constructor(
             }
         }
 
+        val emailVerified = claims["email_verified"] as? Boolean
+        if (emailVerified != true)
+        {
+            throw RuntimeException("Google email is not verified")
+        }
+
         return OAuthUserInfo(
             email = claims[EMAIL.claimName] as? String
                 ?: throw RuntimeException("No email claim in Google ID token"),

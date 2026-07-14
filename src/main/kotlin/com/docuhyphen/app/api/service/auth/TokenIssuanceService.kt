@@ -5,6 +5,7 @@ import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import jakarta.ws.rs.core.NewCookie
+import org.eclipse.microprofile.config.ConfigProvider
 import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeUnit
 
@@ -26,6 +27,9 @@ class TokenIssuanceService @Inject constructor(
     companion object
     {
         private val logger = LoggerFactory.getLogger(TokenIssuanceService::class.java)
+
+        internal fun shouldUseSecureCookies(baseUrl: String): Boolean =
+            baseUrl.trim().startsWith("https://", ignoreCase = true)
     }
 
     @Transactional
@@ -62,7 +66,11 @@ class TokenIssuanceService @Inject constructor(
         return TokenTriple(accessToken, idToken, refreshToken, jti)
     }
 
-    fun buildRefreshTokenCookie(refreshToken: String, secure: Boolean = false, maxAgeSeconds: Int = (30 * 60)): NewCookie
+    fun buildRefreshTokenCookie(
+        refreshToken: String,
+        secure: Boolean = usesSecureCookies(),
+        maxAgeSeconds: Int = (30 * 60),
+    ): NewCookie
     {
         return NewCookie.Builder("refresh_token")
             .value(refreshToken)
@@ -74,7 +82,11 @@ class TokenIssuanceService @Inject constructor(
             .build()
     }
 
-    fun buildRefreshTokenCookieWithPolicy(refreshToken: String, appUser: AppUser, secure: Boolean = false): NewCookie
+    fun buildRefreshTokenCookieWithPolicy(
+        refreshToken: String,
+        appUser: AppUser,
+        secure: Boolean = usesSecureCookies(),
+    ): NewCookie
     {
         val policy = authSessionPolicyService.resolveForAppUser(appUser)
         val maxAgeSeconds = TimeUnit.MINUTES.toSeconds(policy.refreshTokenExpiryMinutes).toInt().coerceAtLeast(1)
@@ -87,13 +99,13 @@ class TokenIssuanceService @Inject constructor(
             .value("")
             .path("/auth/token")
             .httpOnly(true)
-            .secure(false)
+            .secure(usesSecureCookies())
             .sameSite(NewCookie.SameSite.STRICT)
             .maxAge(0)
             .build()
     }
 
-    fun buildCsrfTokenCookie(csrfToken: String, secure: Boolean = false): NewCookie
+    fun buildCsrfTokenCookie(csrfToken: String, secure: Boolean = usesSecureCookies()): NewCookie
     {
         return NewCookie.Builder("csrf_token")
             .value(csrfToken)
@@ -111,12 +123,20 @@ class TokenIssuanceService @Inject constructor(
             .value("")
             .path("/")
             .httpOnly(false)
-            .secure(false)
+            .secure(usesSecureCookies())
             .sameSite(NewCookie.SameSite.STRICT)
             .maxAge(0)
             .build()
     }
 
     fun generateCsrfToken(): String = csrfProtectionService.generateCsrfToken()
+
+    private fun usesSecureCookies(): Boolean
+    {
+        val baseUrl = ConfigProvider.getConfig()
+            .getOptionalValue("app.base-url", String::class.java)
+            .orElse("")
+        return shouldUseSecureCookies(baseUrl)
+    }
 }
 

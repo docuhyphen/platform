@@ -1,6 +1,7 @@
 import apiClient, {addBearerToHeaderToken} from './apiClient';
 import {
     OAuthLinkConfirmRequest,
+    OAuthTokenExchangeResponse,
     OrgMemberCapacityResponse,
     PasswordResetCompletionRequest,
     PasswordResetInitiationRequest,
@@ -304,6 +305,20 @@ export const revokeUserSession = async (sessionId: string): Promise<void> =>
     catch (error: unknown)
     {
         throw error.response?.data || error.message;
+    }
+};
+
+export const exchangeOAuthTokenHandoff = async (code: string): Promise<OAuthTokenExchangeResponse> =>
+{
+    try
+    {
+        const response = await apiClient.post(`/auth/oauth/token-exchanges`, {code});
+        return response.data;
+    }
+    catch (error: unknown)
+    {
+        const requestError = error as {response?: {data?: unknown}; message?: string};
+        throw requestError.response?.data || requestError.message;
     }
 };
 

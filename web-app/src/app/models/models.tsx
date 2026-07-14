@@ -712,6 +712,13 @@ export interface OAuthLinkConfirmResponse
     idToken: string;
 }
 
+export interface OAuthTokenExchangeResponse
+{
+    accessToken: string;
+    idToken: string;
+    isNewUser: boolean;
+}
+
 export interface TokenRefreshResponse
 {
     accessToken: string;

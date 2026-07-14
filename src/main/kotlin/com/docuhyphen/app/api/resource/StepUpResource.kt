@@ -10,6 +10,8 @@ import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthRateLimitService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.auth.OAuthStateService
+import com.docuhyphen.app.api.service.auth.OrganizationIdentityPolicyService
+import com.docuhyphen.app.api.service.auth.OrganizationIdpRuntimeCredentialService
 import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.auth.StepUpAuthService
 import com.docuhyphen.app.api.service.auth.idp.IdentityProviderRegistry
@@ -66,6 +68,8 @@ class StepUpResource @Inject constructor(
     private val identityProviderLinkRepository: IdentityProviderLinkRepository,
     private val identityProviderRegistry: IdentityProviderRegistry,
     private val oauthStateService: OAuthStateService,
+    private val organizationIdentityPolicyService: OrganizationIdentityPolicyService,
+    private val organizationIdpRuntimeCredentialService: OrganizationIdpRuntimeCredentialService,
 )
 {
     companion object
@@ -156,9 +160,18 @@ class StepUpResource @Inject constructor(
             else -> throw IllegalArgumentException("Unsupported external provider for step-up")
         }
 
+        val orgIdpConfigId = organizationIdentityPolicyService.findActiveProviderConfigIdForEmail(
+            appUser.email,
+            externalLink.provider,
+        )
+        val runtimeCredentials = organizationIdpRuntimeCredentialService.resolve(
+            externalLink.provider,
+            orgIdpConfigId,
+        )
         val signedState = oauthStateService.createSignedState(
             flow = "stepup",
             provider = externalLink.provider,
+            orgIdpConfigId = orgIdpConfigId,
             stepUpSessionId = sessionId,
             stepUpAppUserId = appUser.id,
             stepUpExpectedSubjectId = externalLink.externalSubjectId,
@@ -169,6 +182,7 @@ class StepUpResource @Inject constructor(
             state = signedState.token,
             nonce = signedState.nonce,
             redirectUri = redirectUri,
+            runtimeCredentials = runtimeCredentials,
             codeChallenge = signedState.codeChallenge,
             prompt = "login",
         )

@@ -11,6 +11,7 @@ import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.auth.ExternalProviderAlreadyLinkedException
 import com.docuhyphen.app.api.service.auth.OAuthStateService
 import com.docuhyphen.app.api.service.auth.OAuthUserLinkingService
+import com.docuhyphen.app.api.service.auth.OAuthTokenHandoffService
 import com.docuhyphen.app.api.service.auth.OrganizationIdentityPolicyService
 import com.docuhyphen.app.api.service.auth.OrganizationIdpRuntimeCredentialService
 import com.docuhyphen.app.api.service.auth.RevocationReasonCode
@@ -45,6 +46,7 @@ class OAuthResource @Inject constructor(
     private val organizationIdentityPolicyService: OrganizationIdentityPolicyService,
     private val organizationIdpRuntimeCredentialService: OrganizationIdpRuntimeCredentialService,
     private val stepUpAuthService: com.docuhyphen.app.api.service.auth.StepUpAuthService,
+    private val oauthTokenHandoffService: OAuthTokenHandoffService,
 )
 {
     companion object
@@ -95,10 +97,12 @@ class OAuthResource @Inject constructor(
                 ?.takeIf { it.isNotBlank() }
                 ?.let { runCatching { java.util.UUID.fromString(it) }.getOrNull() }
             val signedState = oauthStateService.createSignedState(flow ?: "signin", providerType, orgIdpConfigUuid)
+            val runtimeCredentials = organizationIdpRuntimeCredentialService.resolve(providerType, orgIdpConfigUuid)
             val authUrl = provider.buildAuthorizationUrl(
                 state = signedState.token,
                 nonce = signedState.nonce,
                 redirectUri = redirectUri,
+                runtimeCredentials = runtimeCredentials,
                 codeChallenge = signedState.codeChallenge,
             )
 
@@ -225,6 +229,47 @@ class OAuthResource @Inject constructor(
             )
             val userInfo = provider.validateIdToken(oauthResponse.idToken!!, verifiedState.nonce, runtimeCredentials)
 
+            if (verifiedState.flow.equals("link", ignoreCase = true))
+            {
+                val linkingUserId = verifiedState.linkAppUserId
+                    ?: return redirectToFrontendError("Account linking context is missing")
+                val linkingUser = appUserService.getById(linkingUserId)
+                    ?: return redirectToFrontendError("Account linking user was not found")
+                if (!linkingUser.isActive || linkingUser.deprovisionedAt != null || linkingUser.isTemporary)
+                {
+                    return redirectToFrontendError("Account is not eligible for linking")
+                }
+
+                oauthUserLinkingService.createLink(
+                    appUser = linkingUser,
+                    provider = providerType,
+                    externalSubjectId = userInfo.subjectId,
+                    externalEmail = userInfo.email,
+                )
+                val tokenTriple = tokenIssuanceService.issueTokenTriple(
+                    linkingUser,
+                    userAgent = request.getHeader("User-Agent"),
+                    ipAddress = clientIp,
+                )
+                val handoffCode = oauthTokenHandoffService.create(
+                    accessToken = tokenTriple.accessToken,
+                    idToken = tokenTriple.idToken,
+                    isNewUser = false,
+                )
+                val refreshCookie = tokenIssuanceService.buildRefreshTokenCookieWithPolicy(
+                    tokenTriple.refreshToken,
+                    linkingUser,
+                )
+                val csrfCookie = tokenIssuanceService.buildCsrfTokenCookie(
+                    tokenIssuanceService.generateCsrfToken()
+                )
+                val callbackUrl = "${configurationService.baseUrl}/oauth/callback" +
+                    "?code=${URLEncoder.encode(handoffCode, StandardCharsets.UTF_8)}"
+                return Response.temporaryRedirect(URI.create(callbackUrl))
+                    .cookie(refreshCookie, csrfCookie)
+                    .build()
+            }
+
             if (verifiedState.flow.equals("stepup", ignoreCase = true))
             {
                 val sessionId = verifiedState.stepUpSessionId
@@ -234,7 +279,7 @@ class OAuthResource @Inject constructor(
                 val expectedSubject = verifiedState.stepUpExpectedSubjectId
                     ?: return redirectToFrontendError("Step-up subject context is missing")
 
-                if (userInfo.subjectId != expectedSubject)
+                if (userInfo.subjectId != expectedSubject && userInfo.legacySubjectId != expectedSubject)
                 {
                     authAuditService.emit(
                         action = "STEP_UP_OAUTH_CALLBACK",
@@ -258,10 +303,14 @@ class OAuthResource @Inject constructor(
             }
 
             // Enforce per-organization provider allowlist policy when org-specific config exists.
-            organizationIdentityPolicyService.assertProviderAllowedForEmail(userInfo.email, providerType)
+            val trustedOrganization = organizationIdentityPolicyService.resolveTrustedOrganizationForOAuth(
+                email = userInfo.email,
+                provider = providerType,
+                orgIdpConfigId = verifiedState.orgIdpConfigId,
+            )
 
             // Link or create user
-            val result = oauthUserLinkingService.linkOrCreateUser(providerType, userInfo)
+            val result = oauthUserLinkingService.linkOrCreateUser(providerType, userInfo, trustedOrganization)
 
             if (result.requiresLinkConfirmation)
             {
@@ -293,10 +342,13 @@ class OAuthResource @Inject constructor(
             val csrfCookie = tokenIssuanceService.buildCsrfTokenCookie(csrfToken)
 
             val baseUrl = configurationService.baseUrl
+            val handoffCode = oauthTokenHandoffService.create(
+                accessToken = tokenTriple.accessToken,
+                idToken = tokenTriple.idToken,
+                isNewUser = result.isNewUser,
+            )
             val callbackUrl = "$baseUrl/oauth/callback" +
-                    "?accessToken=${URLEncoder.encode(tokenTriple.accessToken, StandardCharsets.UTF_8)}" +
-                    "&idToken=${URLEncoder.encode(tokenTriple.idToken, StandardCharsets.UTF_8)}" +
-                    "&isNewUser=${result.isNewUser}"
+                "?code=${URLEncoder.encode(handoffCode, StandardCharsets.UTF_8)}"
 
             Response.temporaryRedirect(URI.create(callbackUrl)).cookie(refreshCookie, csrfCookie).build()
                 .also {
@@ -330,6 +382,32 @@ class OAuthResource @Inject constructor(
             )
             redirectToFrontendError("OAuth authentication failed")
         }
+    }
+
+    @POST
+    @Path("/token-exchanges")
+    fun exchangeTokenHandoff(payload: OAuthTokenExchangeRequest): Response
+    {
+        val code = payload.code?.trim()
+        if (code.isNullOrBlank())
+        {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(ResponseError("OAuth exchange code is required"))
+                .build()
+        }
+
+        val handoff = oauthTokenHandoffService.consume(code)
+            ?: return Response.status(Response.Status.UNAUTHORIZED)
+                .entity(ResponseError("OAuth exchange code is invalid or expired"))
+                .build()
+
+        return Response.ok(
+            OAuthTokenExchangeResponse(
+                accessToken = handoff.accessToken,
+                idToken = handoff.idToken,
+                isNewUser = handoff.isNewUser,
+            )
+        ).build()
     }
 
     @POST
@@ -372,6 +450,13 @@ class OAuthResource @Inject constructor(
                 ?: return Response.status(Response.Status.NOT_FOUND)
                     .entity(ResponseError("User not found"))
                     .build()
+
+            if (!appUser.isActive || appUser.deprovisionedAt != null || appUser.isTemporary)
+            {
+                return Response.status(Response.Status.FORBIDDEN)
+                    .entity(ResponseError("Account is not eligible for sign-in"))
+                    .build()
+            }
 
             // Validate password
             if (appUser.password == null || !authenticationService.validatePassword(payload.password!!, appUser.password!!))

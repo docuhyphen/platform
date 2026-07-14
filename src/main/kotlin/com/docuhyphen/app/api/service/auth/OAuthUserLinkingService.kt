@@ -5,6 +5,9 @@ import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.IdentityProviderLink
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
+import com.docuhyphen.app.api.model.entity.Organization
+import com.docuhyphen.app.api.exception.InactiveAccountException
+import com.docuhyphen.app.api.exception.SignUpRequiredException
 import com.docuhyphen.app.api.repository.IdentityProviderLinkRepository
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.idp.OAuthUserInfo
@@ -42,17 +45,33 @@ class OAuthUserLinkingService @Inject constructor(
     fun linkOrCreateUser(
         provider: IdentityProviderType,
         userInfo: OAuthUserInfo,
+        trustedOrganization: Organization? = null,
     ): LinkOrCreateResult
     {
         // Check if there's already a link for this provider + subject
-        val existingLink = identityProviderLinkRepository.findByProviderAndExternalSubjectId(
+        var existingLink = identityProviderLinkRepository.findByProviderAndExternalSubjectId(
             provider, userInfo.subjectId
         )
+
+        if (existingLink == null && !userInfo.legacySubjectId.isNullOrBlank())
+        {
+            existingLink = identityProviderLinkRepository.findByProviderAndExternalSubjectId(
+                provider,
+                userInfo.legacySubjectId,
+            )
+            if (existingLink != null)
+            {
+                existingLink.externalSubjectId = userInfo.subjectId
+                identityProviderLinkRepository.update(existingLink)
+            }
+        }
 
         if (existingLink != null)
         {
             logger.info("Found existing IDP link for provider={}", provider)
-            return LinkOrCreateResult(appUser = existingLink.appUser!!, isNewUser = false)
+            val linkedUser = existingLink.appUser!!
+            requireSignInEligible(linkedUser)
+            return LinkOrCreateResult(appUser = linkedUser, isNewUser = false)
         }
 
         // Check if an AppUser exists with this email
@@ -60,6 +79,7 @@ class OAuthUserLinkingService @Inject constructor(
 
         if (existingUser != null)
         {
+            requireSignInEligible(existingUser)
             // Enforce single external IDP: reject if user already has a different external provider
             val existingExternal = findExternalLink(existingUser.id)
 
@@ -91,7 +111,7 @@ class OAuthUserLinkingService @Inject constructor(
         logger.info("Creating new AppUser for OAuth email={}", userInfo.email.maskEmailForLogs())
 
         // Enforce platform-managed organization user caps for JIT provisioning.
-        organizationIdentityPolicyService.enforceUserCapForEmail(userInfo.email)
+        trustedOrganization?.let(organizationIdentityPolicyService::enforceUserCapForOrganization)
 
         val newUser = AppUser().apply {
             this.email = userInfo.email.lowercase()
@@ -116,7 +136,7 @@ class OAuthUserLinkingService @Inject constructor(
 
         // JIT users become members of the organization that owns their email domain, recorded
         // in the organization_membership model so role resolution (UserRoleService) sees them.
-        organizationIdentityPolicyService.resolveOrganizationForEmail(userInfo.email)?.let { organization ->
+        trustedOrganization?.let { organization ->
             organizationMembershipService.assignOrgRole(
                 appUserId = savedUser.id,
                 organizationId = organization.id,
@@ -242,6 +262,18 @@ class OAuthUserLinkingService @Inject constructor(
     {
         return identityProviderLinkRepository.findAllByAppUserId(userId)
             .firstOrNull { it.provider != IdentityProviderType.INTERNAL }
+    }
+
+    private fun requireSignInEligible(appUser: AppUser)
+    {
+        if (appUser.isTemporary && appUser.deprovisionedAt == null)
+        {
+            throw SignUpRequiredException()
+        }
+        if (!appUser.isActive || appUser.deprovisionedAt != null)
+        {
+            throw InactiveAccountException()
+        }
     }
 }
 

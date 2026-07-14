@@ -48,10 +48,10 @@ class OAuthConfigService @Inject constructor(
     @ConfigProperty(name = "app.oidc.validation.require-azp-when-multi-aud", defaultValue = "true")
     private val oidcRequireAzpWhenMultiAudConfig: Boolean,
 
-    @ConfigProperty(name = "app.oidc.validation.required-claims.google", defaultValue = "sub,email,iss,aud,exp,iat,nonce")
+    @ConfigProperty(name = "app.oidc.validation.required-claims.google", defaultValue = "sub,email,email_verified,iss,aud,exp,iat,nonce")
     private val oidcRequiredClaimsGoogleConfig: String,
 
-    @ConfigProperty(name = "app.oidc.validation.required-claims.microsoft", defaultValue = "sub,iss,aud,exp,iat,nonce")
+    @ConfigProperty(name = "app.oidc.validation.required-claims.microsoft", defaultValue = "sub,oid,tid,iss,aud,exp,iat,nonce")
     private val oidcRequiredClaimsMicrosoftConfig: String,
 
     // --- Application tokens ---

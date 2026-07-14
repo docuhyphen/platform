@@ -7,6 +7,8 @@ import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.auth.ExternalProviderAlreadyLinkedException
 import com.docuhyphen.app.api.service.auth.OAuthStateService
 import com.docuhyphen.app.api.service.auth.OAuthUserLinkingService
+import com.docuhyphen.app.api.service.auth.OrganizationIdentityPolicyService
+import com.docuhyphen.app.api.service.auth.OrganizationIdpRuntimeCredentialService
 import com.docuhyphen.app.api.service.auth.idp.IdentityProviderRegistry
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.inject.Inject
@@ -26,6 +28,8 @@ class IdentityProviderResource @Inject constructor(
     private val authenticationService: AuthenticationService,
     private val configurationService: ConfigurationService,
     private val oauthStateService: OAuthStateService,
+    private val organizationIdentityPolicyService: OrganizationIdentityPolicyService,
+    private val organizationIdpRuntimeCredentialService: OrganizationIdpRuntimeCredentialService,
 )
 {
     companion object
@@ -107,8 +111,24 @@ class IdentityProviderResource @Inject constructor(
                 else -> throw IllegalArgumentException("Linking not supported for $providerType")
             }
 
-            val signedState = oauthStateService.createSignedState("link", providerType)
-            val authUrl = provider.buildAuthorizationUrl(signedState.token, signedState.nonce, redirectUri)
+            val orgIdpConfigId = organizationIdentityPolicyService.findActiveProviderConfigIdForEmail(
+                appUser.email,
+                providerType,
+            )
+            val runtimeCredentials = organizationIdpRuntimeCredentialService.resolve(providerType, orgIdpConfigId)
+            val signedState = oauthStateService.createSignedState(
+                flow = "link",
+                provider = providerType,
+                orgIdpConfigId = orgIdpConfigId,
+                linkAppUserId = appUser.id,
+            )
+            val authUrl = provider.buildAuthorizationUrl(
+                state = signedState.token,
+                nonce = signedState.nonce,
+                redirectUri = redirectUri,
+                runtimeCredentials = runtimeCredentials,
+                codeChallenge = signedState.codeChallenge,
+            )
 
             Response.ok(LinkProviderInitiateResponse(authUrl)).build()
         }

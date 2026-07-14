@@ -15,6 +15,7 @@ data class OAuthUserInfo(
     val subjectId: String,
     val firstName: String?,
     val lastName: String?,
+    val legacySubjectId: String? = null,
 )
 
 data class RuntimeIdpCredentials(
