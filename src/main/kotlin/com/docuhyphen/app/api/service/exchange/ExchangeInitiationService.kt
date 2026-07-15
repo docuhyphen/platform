@@ -13,18 +13,22 @@ import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.repository.ExchangeRepository
 import com.docuhyphen.app.api.resource.model.ExchangeInitiationDto
 import com.docuhyphen.app.api.repository.OrganizationRepository
+import com.docuhyphen.app.api.realtime.RealtimeEventService
+import com.docuhyphen.app.api.realtime.RealtimeMessage
+import com.docuhyphen.app.api.realtime.RealtimeMessageType
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthRateLimitService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.auth.RevocationReasonCode
-import com.docuhyphen.app.api.service.communication.AppNotificationService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.documentlibrary.DocumentLibraryService
+import com.docuhyphen.app.api.service.notification.InAppNotificationService
+import com.docuhyphen.app.api.service.notification.UserNotificationPreference
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import com.docuhyphen.app.api.service.variable.TemplateVariableInterpolator
 import com.docuhyphen.app.api.service.variable.VariableResolutionContext
@@ -34,6 +38,9 @@ import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
 import jakarta.transaction.Transactional
+import jakarta.transaction.Status
+import jakarta.transaction.Synchronization
+import jakarta.transaction.TransactionSynchronizationRegistry
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
@@ -52,7 +59,7 @@ class ExchangeInitiationService @Inject constructor(
     private val authRateLimitService: AuthRateLimitService,
     private val configurationService: ConfigurationService,
     private val authAuditService: AuthAuditService,
-    private val appNotificationService: AppNotificationService,
+    private val inAppNotificationService: InAppNotificationService,
     private val shareService: ShareService,
     private val principalGroupRepository: com.docuhyphen.app.api.repository.PrincipalGroupRepository,
     private val principalGroupMemberRepository: com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository,
@@ -65,6 +72,8 @@ class ExchangeInitiationService @Inject constructor(
     private val fileStorageService: FileStorageService,
     private val schemaAssignmentService: com.docuhyphen.app.api.service.fields.SchemaAssignmentService,
     private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
+    private val realtimeEventService: RealtimeEventService,
+    private val transactionSynchronizationRegistry: TransactionSynchronizationRegistry,
 )
 {
     @PersistenceContext
@@ -392,8 +401,105 @@ class ExchangeInitiationService @Inject constructor(
             pendingApproval = recipientNeedsApproval,
         )
 
+        publishInitiatedNotifications(savedExchange, initiator.id, recipientNeedsApproval)
+
+        registerExchangeListBroadcastAfterCommit(
+            exchange = savedExchange,
+            initiatorId = initiator.id,
+            recipientAppUserId = appUserRecipient?.id,
+            recipientGroupId = recipientGroupId,
+            participantPrincipals = participantPrincipals,
+        )
+
         logger.info("Sharing Exchange Initiated ID: ${exchange.id}")
         return savedExchange
+    }
+
+    private fun publishInitiatedNotifications(
+        exchange: Exchange,
+        initiatorId: UUID,
+        pendingApproval: Boolean,
+    )
+    {
+        val recipientUserIds = if (pendingApproval) emptySet() else shareService.recipientUserIds(exchange.id).toSet()
+        buildSet {
+            add(initiatorId)
+            addAll(recipientUserIds)
+        }.forEach { appUserId ->
+            publishInitiatedNotification(exchange, appUserId, appUserId == initiatorId)
+        }
+    }
+
+    private fun publishInitiatedNotification(exchange: Exchange, appUserId: UUID, isInitiator: Boolean)
+    {
+        val exchangeLabel = exchange.name.orEmpty().ifBlank { exchange.id.toString() }
+        val message = if (isInitiator)
+        {
+            "Exchange $exchangeLabel was sent."
+        }
+        else
+        {
+            "A new Exchange, $exchangeLabel, was sent to you."
+        }
+        inAppNotificationService.publishIfEnabled(
+            appUserId = appUserId,
+            preference = UserNotificationPreference.EXCHANGE_INITIATED,
+            type = "exchange.initiated",
+            title = "Exchange initiated",
+            message = message,
+            data = mapOf("exchangeId" to exchange.id.toString()),
+        )
+    }
+
+    private fun registerExchangeListBroadcastAfterCommit(
+        exchange: Exchange,
+        initiatorId: UUID,
+        recipientAppUserId: UUID?,
+        recipientGroupId: UUID?,
+        participantPrincipals: List<Pair<PrincipalKind, UUID>>,
+    )
+    {
+        val recipientUserIds = buildSet {
+            add(initiatorId)
+            recipientAppUserId?.let(::add)
+            recipientGroupId?.let { groupId ->
+                principalGroupMemberRepository.findActiveMembers(groupId)
+                    .filter { it.principalKind == PrincipalKind.USER }
+                    .forEach { add(it.principalId) }
+            }
+            participantPrincipals.forEach { (principalKind, principalId) ->
+                if (principalKind == PrincipalKind.USER)
+                {
+                    add(principalId)
+                }
+                else if (principalKind == PrincipalKind.PRINCIPAL_GROUP)
+                {
+                    principalGroupMemberRepository.findActiveMembers(principalId)
+                        .filter { it.principalKind == PrincipalKind.USER }
+                        .forEach { add(it.principalId) }
+                }
+            }
+        }
+        val message = RealtimeMessage(
+            type = RealtimeMessageType.EXCHANGE_LIST_CHANGED,
+            exchangeId = exchange.id.toString(),
+            status = exchange.status.name,
+        )
+
+        transactionSynchronizationRegistry.registerInterposedSynchronization(
+            object : Synchronization
+            {
+                override fun beforeCompletion() = Unit
+
+                override fun afterCompletion(status: Int)
+                {
+                    if (status == Status.STATUS_COMMITTED)
+                    {
+                        recipientUserIds.forEach { realtimeEventService.broadcastToUser(it, message) }
+                    }
+                }
+            },
+        )
     }
 
     /**
@@ -773,7 +879,7 @@ class ExchangeInitiationService @Inject constructor(
             recipientAppUser?.isTemporary == true &&
             !exchange.requireRecipientSignIn
 
-        // Do not notify the recipient while the exchange is awaiting approval — the approval
+        // Do not notify the recipient while the Exchange is awaiting approval because the approval
         // workflow's own NOTIFICATION step (or a post-approval trigger) should deliver that.
         if (!pendingApproval)
         {
@@ -787,7 +893,7 @@ class ExchangeInitiationService @Inject constructor(
                         val otp = otpService.generateEmailOtp()
                         val accessToken = noAuthExchangeAccessTokenService.issue(exchange)
                         val validityDays = exchange.noAuthAccessValidityDays.toLong()
-                        // Set OTP on managed entity — Hibernate dirty-check flushes at commit.
+                        // Set OTP on the managed entity; Hibernate dirty-check flushes at commit.
                         // The code is valid for the full noAuthAccessValidityDays window so recipients
                         // aren't forced to act within minutes. noAuthAccessValidityDays also controls the
                         // document-access window after verification, so the two lifetimes are aligned.
@@ -958,5 +1064,9 @@ class ExchangeInitiationService @Inject constructor(
                 logger.error("Failed to send post-activation invite email to {}", email, e)
             }
         }
+
+        shareService.recipientUserIds(exchangeId)
+            .filterNot { it == initiator.id }
+            .forEach { publishInitiatedNotification(exchange, it, isInitiator = false) }
     }
 }

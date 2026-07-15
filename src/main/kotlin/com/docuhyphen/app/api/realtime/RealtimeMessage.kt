@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.dto.NotificationDto
 import kotlinx.serialization.Serializable
 
 /**
- * Minimal session snapshot carried inside EXCHANGE_CREATED / EXCHANGE_REMOVED envelopes so
+ * Minimal session snapshot carried inside SESSION_CREATED / SESSION_REMOVED envelopes so
  * receiving clients can update their sessions-tab list without a round-trip.
  */
 @Serializable
@@ -25,16 +25,16 @@ data class UserSessionInfo(
  *
  * Direction is implicit from `type`:
  *
- *   Client → Server
+ *   Client to Server
  *     - PING
  *     - SUBSCRIBE_EXCHANGE      { exchangeId }
  *     - UNSUBSCRIBE_EXCHANGE    { exchangeId }
  *
- *   Server → Client
+ *   Server to Client
  *     - PONG                            { serverTime }
- *     - EXCHANGE_REVOKED                 { reason }          ← this device is kicked
- *     - EXCHANGE_CREATED                 { session }         ← another device signed in
- *     - EXCHANGE_REMOVED                 { userSessionId }   ← another device's session ended
+ *     - SESSION_REVOKED                  { reason }
+ *     - SESSION_CREATED                  { session }
+ *     - SESSION_REMOVED                  { userSessionId }
  *     - PASSWORD_CHANGED
  *     - SIGNED_OUT_OTHER_DEVICE
  *     - NOTIFICATION                    { notification }
@@ -44,6 +44,8 @@ data class UserSessionInfo(
  *     - EXCHANGE_DOCUMENT_REMOVED { exchangeId, documentId }
  *     - EXCHANGE_DOCUMENT_UPDATED { exchangeId, documentId }
  *     - EXCHANGE_STATUS_CHANGED   { exchangeId, status }
+ *     - EXCHANGE_LIST_CHANGED     { exchangeId, status }
+ *     - REALTIME_PROBE                   { message, serverTime }
  *     - ERROR                           { code, message }
  *     - WELCOME                         { userSessionId, serverTime }
  */
@@ -67,16 +69,16 @@ data class RealtimeMessage(
 
 object RealtimeMessageType
 {
-    // Client → Server
+    // Client to Server
     const val PING = "PING"
     const val SUBSCRIBE_EXCHANGE = "SUBSCRIBE_EXCHANGE"
     const val UNSUBSCRIBE_EXCHANGE = "UNSUBSCRIBE_EXCHANGE"
 
-    // Server → Client
+    // Server to Client
     const val PONG = "PONG"
-    const val EXCHANGE_REVOKED = "EXCHANGE_REVOKED"
-    const val EXCHANGE_CREATED = "EXCHANGE_CREATED"
-    const val EXCHANGE_REMOVED = "EXCHANGE_REMOVED"
+    const val SESSION_REVOKED = "SESSION_REVOKED"
+    const val SESSION_CREATED = "SESSION_CREATED"
+    const val SESSION_REMOVED = "SESSION_REMOVED"
     const val PASSWORD_CHANGED = "PASSWORD_CHANGED"
     const val SIGNED_OUT_OTHER_DEVICE = "SIGNED_OUT_OTHER_DEVICE"
     const val NOTIFICATION = "NOTIFICATION"
@@ -86,6 +88,8 @@ object RealtimeMessageType
     const val EXCHANGE_DOCUMENT_REMOVED = "EXCHANGE_DOCUMENT_REMOVED"
     const val EXCHANGE_DOCUMENT_UPDATED = "EXCHANGE_DOCUMENT_UPDATED"
     const val EXCHANGE_STATUS_CHANGED = "EXCHANGE_STATUS_CHANGED"
+    const val EXCHANGE_LIST_CHANGED = "EXCHANGE_LIST_CHANGED"
+    const val REALTIME_PROBE = "REALTIME_PROBE"
     const val ERROR = "ERROR"
     const val WELCOME = "WELCOME"
 }

@@ -80,6 +80,7 @@ class ExchangeUpdateService @Inject constructor(
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val auditRecorder: AuditRecorder,
     private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
+    private val lifecycleNotificationService: ExchangeLifecycleNotificationService,
 )
 {
     @PersistenceContext
@@ -984,10 +985,12 @@ class ExchangeUpdateService @Inject constructor(
             // even when they are not currently subscribed to this session channel.
             session.initiator?.id?.let { realtimeEventService.broadcastToUser(it, message) }
             shareService.recipientUserIds(session.id).forEach { realtimeEventService.broadcastToUser(it, message) }
+            lifecycleNotificationService.publish(session, newStatus)
         }.onFailure { e ->
             logger.warn("Failed to broadcast status change for session={} status={}", session.id, newStatus, e)
         }
     }
+
 
     /** Email of the exchange's primary recipient, resolved from its recipient Share. */
     private fun resolveRecipientEmail(exchangeId: UUID, includeInactive: Boolean = false): String? =

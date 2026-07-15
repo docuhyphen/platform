@@ -380,7 +380,7 @@ class OrganizationExchangeLinkService @Inject constructor(
                         orgAppUser.id,
                         NotificationDto(
                             id = java.util.UUID.randomUUID().toString(),
-                            type = NotificationType.NEW_SESSION,
+                            type = NotificationType.NEW_SESSION.name,
                             message = message,
                             timestamp = Timestamp.from(Instant.now()),
                             data = mapOf("source" to "org-pair"),

@@ -1,4 +1,4 @@
-import {makeStyles, shorthands, tokens} from '@fluentui/react-components';
+import {makeStyles, tokens} from '@fluentui/react-components';
 
 export const useNotificationsPanelStyles = makeStyles({
     triggerContainer: {
@@ -27,58 +27,6 @@ export const useNotificationsPanelStyles = makeStyles({
     },
     tabContent: {
         paddingTop: tokens.spacingVerticalS,
-    },
-
-    // Notification list styles
-    notificationList: {
-        maxHeight: '400px',
-        overflowY: 'auto',
-        width: '350px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: tokens.spacingHorizontalXS,
-    },
-    markAllAsRead: {
-        paddingTop: tokens.spacingVerticalL,
-        display: 'flex',
-        justifyContent: 'end',
-    },
-
-    // Pending approvals styles
-    approvalsList: {
-        display: 'flex',
-        flexDirection: 'column',
-        ...shorthands.gap(tokens.spacingHorizontalS),
-        maxHeight: '400px',
-        overflowY: 'auto',
-    },
-    accordionHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        width: '100%',
-        ...shorthands.gap(tokens.spacingHorizontalS),
-        paddingRight: tokens.spacingHorizontalS,
-    },
-    panelContent: {
-        display: 'flex',
-        flexDirection: 'column',
-        ...shorthands.gap(tokens.spacingHorizontalS),
-        paddingBottom: tokens.spacingVerticalS,
-    },
-    actions: {
-        display: 'flex',
-        ...shorthands.gap(tokens.spacingHorizontalS),
-        justifyContent: 'flex-end',
-        marginTop: tokens.spacingVerticalXS,
-    },
-    emptyState: {
-        display: 'flex',
-        justifyContent: 'center',
-        ...shorthands.padding(tokens.spacingHorizontalL),
-    },
-    commentField: {
-        marginTop: tokens.spacingVerticalXS,
     },
 
     tabCountBadge: {

@@ -16,11 +16,7 @@ import {NotificationDto} from '../../../models/models';
 import {NotificationsIcon} from '../../IconBundles';
 import {useNotificationListStyles} from "./NotificationListStyles.tsx";
 import NotificationListItem from "./notification-item/NotificationListItem.tsx";
-
-const WORKFLOW_NOTIFICATION_TYPES = [
-    'workflow.step_assigned', 'WORKFLOW_STEP_ASSIGNED',
-    'workflow.escalated', 'WORKFLOW_ESCALATED',
-];
+import {getNotificationTarget} from '../../../../services/notificationNavigation';
 
 const NotificationList: React.FC = () =>
 {
@@ -31,28 +27,10 @@ const NotificationList: React.FC = () =>
     const handleNotificationClick = (notification: NotificationDto) =>
     {
         markAsRead(notification.id);
-
-        // Workflow step assigned  to  navigate to session if available
-        if (WORKFLOW_NOTIFICATION_TYPES.includes(notification.type as string))
+        const target = getNotificationTarget(notification);
+        if (target)
         {
-            const sid = notification.exchangeId || notification.data?.exchangeId;
-            if (sid)
-            {
-                navigate(`/exchanges?s=${sid}`);
-            }
-            return;
-        }
-
-        if (notification.exchangeId)
-        {
-            if (notification.documentId)
-            {
-                navigate(`/exchanges?s=${notification.exchangeId}&d=${notification.documentId}`);
-            }
-            else
-            {
-                navigate(`/exchanges?s=${notification.exchangeId}`);
-            }
+            navigate(target);
         }
     };
 

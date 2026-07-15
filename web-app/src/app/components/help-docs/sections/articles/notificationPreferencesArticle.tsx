@@ -22,8 +22,27 @@ export const notificationPreferencesArticle = (
         <p>
             Browser permission applies only to the browser and device where you grant it.
             If permission is blocked, enable notifications for the DocuHyphen site in your
-            browser settings. In-app Push notifications continue to appear in DocuHyphen
-            even when browser alerts are blocked or unsupported.
+            browser settings, return to Preferences, and select <b>Request again</b>. In-app
+            Push notifications continue to appear in DocuHyphen even when browser alerts
+            are blocked or unsupported.
+        </p>
+
+        <h3>Notification bell</h3>
+        <p>
+            The notification bell in the header shows unread in-app notifications and
+            pending approvals. Recent notifications load when you sign in, and new
+            notifications or approval assignments appear automatically while the app is
+            open. The Requests count and Exchange list also refresh automatically when a
+            new Exchange becomes available to you. Approval notifications identify the
+            Exchange and requester by name when that context is available, while internal
+            resource codes and identifiers remain hidden. Older notifications load in
+            batches as you scroll to the bottom of the list. You can also select
+            <b>Load more</b> when it is shown.
+        </p>
+        <p>
+            Select an Exchange notification to open that Exchange. Notifications about a
+            specific document open the Exchange with that document selected. The same
+            navigation applies when you select a native browser alert.
         </p>
 
         <h3>Exchange notifications</h3>
@@ -38,7 +57,8 @@ export const notificationPreferencesArticle = (
         <ul>
             <li>
                 <b>Document notes and comments</b> covers new shared collaboration notes or comments.
-                Internal notes do not send collaboration notifications.
+                Notifications identify the commenter, document, and Exchange when that context is
+                available. Internal notes do not send collaboration notifications.
             </li>
             <li><b>Document deleted</b> covers documents removed from an Exchange.</li>
             <li><b>Document added</b> covers new documents added to an Exchange.</li>

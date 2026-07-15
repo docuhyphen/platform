@@ -8,6 +8,11 @@ export const useNotificationListItemStyles = makeStyles({
         '&:hover': {
             backgroundColor: tokens.colorNeutralBackground1Hover,
         },
+        '&:focus-visible': {
+            outlineColor: tokens.colorStrokeFocus2,
+            outlineStyle: 'solid',
+            outlineWidth: tokens.strokeWidthThick,
+        },
         boxSizing: "border-box",
         maxWidth: "100%"
     },

@@ -134,6 +134,7 @@ class ExchangeAuthorizationTest
         authorizationContextFactory = factory,
         auditRecorder = mock(),
         noAuthExchangeAccessTokenService = mock(),
+        lifecycleNotificationService = mock(),
     )
 
     // -------------------------------------------------------------------------
@@ -217,14 +218,14 @@ class ExchangeAuthorizationTest
             exchangeRepo = repo,
         )
         // updateExchange with only ACCEPTED_STARTED status change should pass the auth gate and reach
-        // the business logic — any business exception (no acceptance workflow etc.) is not a 403/404.
+        // the business logic; any business exception (no acceptance workflow etc.) is not a 403/404.
         try
         {
             svc.updateExchange(exchangeId.toString(), UpdateExchangeRequest(status = ExchangeStatus.ACCEPTED_STARTED))
         }
         catch (e: Exception)
         {
-            // An IllegalStateException or similar from the workflow layer is acceptable — it means
+            // An IllegalStateException or similar from the workflow layer is acceptable because it means
             // the authorization gate passed and the call reached business logic.
             assert(e !is ExchangeNotFoundException) { "Should not throw ExchangeNotFoundException; got $e" }
             assert(e !is ForbiddenException) { "Should not throw ForbiddenException; got $e" }
@@ -242,7 +243,7 @@ class ExchangeAuthorizationTest
             authSvc = makeAuthService(Action.EXCHANGE_VIEW, Action.EXCHANGE_EDIT),
             exchangeRepo = repo,
         )
-        // No exception expected — name update should proceed through the auth gate.
+        // No exception expected; name update should proceed through the auth gate.
         svc.updateExchange(exchangeId.toString(), UpdateExchangeRequest(name = "Updated"))
     }
 

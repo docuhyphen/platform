@@ -24,10 +24,11 @@ import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
-import com.docuhyphen.app.api.service.communication.AppNotificationService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.notification.InAppNotificationService
+import com.docuhyphen.app.api.service.notification.UserNotificationPreference
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
@@ -50,7 +51,7 @@ class ExchangeDocumentService @Inject constructor(
     private val emailTemplateService: EmailTemplateService,
     private val configurationService: ConfigurationService,
     private val fileStorageService: FileStorageService,
-    private val appNotificationService: AppNotificationService,
+    private val inAppNotificationService: InAppNotificationService,
     private val realtimeEventService: RealtimeEventService,
     private val shareService: ShareService,
     private val appUserService: AppUserService,
@@ -100,6 +101,15 @@ class ExchangeDocumentService @Inject constructor(
             ?: auditService.logAction(savedDocument, DocumentAuditAction.CREATED, actorEmail())
 
         broadcastDocumentEvent(exchange.id, RealtimeMessageType.EXCHANGE_DOCUMENT_ADDED, savedDocument.id)
+        publishDocumentNotification(
+            exchange = exchange,
+            document = savedDocument,
+            actorUserId = authTokenContext.authToken.appUser?.id,
+            preference = UserNotificationPreference.DOCUMENT_ADDED,
+            type = "document.added",
+            title = "Document added",
+            action = "was added to",
+        )
 
         return savedDocument
     }
@@ -126,6 +136,15 @@ class ExchangeDocumentService @Inject constructor(
             ?: auditService.logAction(document, DocumentAuditAction.DELETE, actorEmail())
 
         broadcastDocumentEvent(exchange.id, RealtimeMessageType.EXCHANGE_DOCUMENT_REMOVED, document.id)
+        publishDocumentNotification(
+            exchange = exchange,
+            document = document,
+            actorUserId = authTokenContext.authToken.appUser?.id,
+            preference = UserNotificationPreference.DOCUMENT_DELETED,
+            type = "document.deleted",
+            title = "Document deleted",
+            action = "was deleted from",
+        )
     }
 
     @Transactional
@@ -225,6 +244,15 @@ class ExchangeDocumentService @Inject constructor(
             ?: auditService.logAction(document, DocumentAuditAction.UPLOAD, actorEmail())
 
         if (appUser != null) sendUploadNotification(exchange, appUser, document)
+        publishDocumentNotification(
+            exchange = exchange,
+            document = document,
+            actorUserId = appUser?.id,
+            preference = UserNotificationPreference.DOCUMENT_UPLOADED,
+            type = "document.uploaded",
+            title = "Document uploaded",
+            action = "was uploaded in",
+        )
 
         return document
     }
@@ -294,6 +322,15 @@ class ExchangeDocumentService @Inject constructor(
 //        sendUploadNotification(exchange, appUser, document.title)
 
         broadcastDocumentEvent(exchange.id, RealtimeMessageType.EXCHANGE_DOCUMENT_UPDATED, document.id)
+        publishDocumentNotification(
+            exchange = exchange,
+            document = document,
+            actorUserId = null,
+            preference = UserNotificationPreference.DOCUMENT_UPLOADED,
+            type = "document.uploaded",
+            title = "Document uploaded",
+            action = "was uploaded in",
+        )
 
         return document
     }
@@ -723,11 +760,37 @@ class ExchangeDocumentService @Inject constructor(
         val body = emailTemplateService.renderTemplate("exchange-document-uploaded.ftl", model)
         emailService.sendEmail(recipientEmail, subject, body, useHtml = true)
 
-        appNotificationService.sendNotification(
-            recipientEmail,
-            "Document uploaded",
-            "${document.title ?: "Document"} uploaded in session ${exchange.name} by ${appUser.email}"
-        )
+    }
+
+    private fun publishDocumentNotification(
+        exchange: Exchange,
+        document: Document,
+        actorUserId: UUID?,
+        preference: UserNotificationPreference,
+        type: String,
+        title: String,
+        action: String,
+    )
+    {
+        val recipients = buildSet {
+            exchange.initiator?.id?.let(::add)
+            addAll(shareService.recipientUserIds(exchange.id))
+        }.filterNot { it == actorUserId }
+        val documentLabel = document.title.orEmpty().ifBlank { "Document" }
+        val exchangeLabel = exchange.name.orEmpty().ifBlank { exchange.id.toString() }
+        recipients.forEach { appUserId ->
+            inAppNotificationService.publishIfEnabled(
+                appUserId = appUserId,
+                preference = preference,
+                type = type,
+                title = title,
+                message = "$documentLabel $action Exchange $exchangeLabel.",
+                data = mapOf(
+                    "exchangeId" to exchange.id.toString(),
+                    "documentId" to document.id.toString(),
+                ),
+            )
+        }
     }
 
     fun getDocumentFilePreviewAsPdf(exchangeId: String, documentId: String): File

@@ -306,6 +306,15 @@ class ShareService @Inject constructor(
     fun recipientUserIds(exchangeId: UUID): List<UUID> =
         recipientShares(exchangeId).map { it.principalId }.distinct()
 
+    fun recipientUserIdsForDisplay(exchangeId: UUID): List<UUID> =
+        shareRepository.findAllByResource(ResourceType.EXCHANGE, exchangeId)
+            .filter {
+                it.principalKind == PrincipalKind.USER &&
+                    it.roleName != ExchangeShareRoleName.OWNER
+            }
+            .map { it.principalId }
+            .distinct()
+
     /** Returns the user ID of the primary direct (non-inherited) recipient, or null when the
      *  exchange is shared with a group rather than a user directly.  Using DIRECT-only here
      *  prevents an initiator's own INHERITED_FROM_GROUP share (created when they are also a

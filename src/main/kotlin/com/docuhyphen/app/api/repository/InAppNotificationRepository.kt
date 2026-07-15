@@ -8,16 +8,39 @@ import java.util.UUID
 @ApplicationScoped
 class InAppNotificationRepository : BaseRepository<InAppNotification>(InAppNotification::class.java)
 {
-    fun findRecentForUser(appUserId: UUID, limit: Int = 50): List<InAppNotification> =
-        entityManager.createQuery(
-            """SELECT n FROM InAppNotification n
-               WHERE n.appUserId = :uid
-               ORDER BY n.createdAt DESC""",
+    fun findPageForUser(
+        appUserId: UUID,
+        limit: Int,
+        beforeTimestamp: java.sql.Timestamp?,
+        beforeId: UUID?,
+    ): List<InAppNotification>
+    {
+        val hasCursor = beforeTimestamp != null && beforeId != null
+        val query = entityManager.createQuery(
+            if (hasCursor)
+            {
+                """SELECT n FROM InAppNotification n
+                   WHERE n.appUserId = :uid
+                     AND (n.createdAt < :beforeTimestamp
+                          OR (n.createdAt = :beforeTimestamp AND n.id < :beforeId))
+                   ORDER BY n.createdAt DESC, n.id DESC"""
+            }
+            else
+            {
+                """SELECT n FROM InAppNotification n
+                   WHERE n.appUserId = :uid
+                   ORDER BY n.createdAt DESC, n.id DESC"""
+            },
             InAppNotification::class.java,
-        )
-            .setParameter("uid", appUserId)
-            .setMaxResults(limit)
-            .resultList
+        ).setParameter("uid", appUserId)
+
+        if (hasCursor)
+        {
+            query.setParameter("beforeTimestamp", beforeTimestamp)
+            query.setParameter("beforeId", beforeId)
+        }
+        return query.setMaxResults(limit).resultList
+    }
 
     fun countUnread(appUserId: UUID): Long =
         entityManager.createQuery(

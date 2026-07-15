@@ -2,12 +2,10 @@
 
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.dto.NotificationDto
-import com.docuhyphen.app.api.model.dto.NotificationType
 import com.docuhyphen.app.api.model.entity.DocumentAuditAction
+import com.docuhyphen.app.api.model.entity.Document
 import com.docuhyphen.app.api.model.entity.ExchangeDocumentComment
 import com.docuhyphen.app.api.repository.DocumentCommentRepository
-import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.repository.ExchangeRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
@@ -15,6 +13,8 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import com.docuhyphen.app.api.service.notification.InAppNotificationService
+import com.docuhyphen.app.api.service.notification.UserNotificationPreference
 import jakarta.ws.rs.BadRequestException
 import jakarta.ws.rs.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
@@ -28,7 +28,7 @@ import java.util.*
 @ApplicationScoped
 class ExchangeDocumentCommentsService @Inject constructor(
     private val exchangeRepository: ExchangeRepository,
-    private val realtimeEventService: RealtimeEventService,
+    private val inAppNotificationService: InAppNotificationService,
     private val exchangeDocumentAuditService: ExchangeDocumentAuditService,
     private val authTokenContext: AuthTokenContext,
     private val documentCommentRepository: DocumentCommentRepository,
@@ -82,7 +82,7 @@ class ExchangeDocumentCommentsService @Inject constructor(
 
         if (!isInternal)
         {
-            publishCommentNotification(exchangeId, documentId, comment, user)
+            publishCommentNotification(exchangeId, document, comment, user)
         }
 
         return comment
@@ -90,39 +90,56 @@ class ExchangeDocumentCommentsService @Inject constructor(
 
     private fun publishCommentNotification(
         exchangeId: String,
-        documentId: String,
+        document: Document,
         comment: ExchangeDocumentComment,
         user: com.docuhyphen.app.api.model.entity.AppUser,
     )
     {
-        val notification = NotificationDto(
-            id = UUID.randomUUID().toString(),
-            type = NotificationType.NEW_COMMENT,
-            message = "${user.person?.firstName ?: ""} ${user.person?.lastName ?: ""} added a comment on a document",
-            timestamp = Timestamp.from(Instant.now()),
-            exchangeId = exchangeId,
-            documentId = documentId,
-            commentId = comment.id.toString(),
-            userId = user.id.toString()
-        )
-
-        val session = exchangeRepository.findById(UUID.fromString(exchangeId))
-        val initiatorId = session!!.initiator!!.id
-        val recipientId = shareService.primaryRecipientUserId(UUID.fromString(exchangeId))
-        // Notify the "other party": if the commenter is the recipient, notify the initiator; else the recipient.
-        val targetUserId = if (user.id == recipientId) initiatorId else (recipientId ?: initiatorId)
-        realtimeEventService.broadcastNotificationToUser(targetUserId, notification)
-        // Anyone viewing this exchange sees the new comment live regardless of
-        // whether they're the comment target.
-        realtimeEventService.broadcastToExchange(
-            UUID.fromString(exchangeId),
-            com.docuhyphen.app.api.realtime.RealtimeMessage(
-                type = com.docuhyphen.app.api.realtime.RealtimeMessageType.NOTIFICATION,
-                notification = notification,
+        val exchangeUuid = UUID.fromString(exchangeId)
+        val exchange = exchangeRepository.findById(exchangeUuid) ?: return
+        val recipients = buildSet {
+            exchange.initiator?.id?.let(::add)
+            addAll(shareService.recipientUserIds(exchangeUuid))
+        }.filterNot { it == user.id }
+        val author = listOfNotNull(user.person?.firstName, user.person?.lastName)
+            .joinToString(" ")
+            .ifBlank { user.email }
+        val documentName = document.title.trim().takeIf { it.isNotBlank() }
+        val exchangeName = exchange.name?.trim()?.takeIf { it.isNotBlank() }
+        recipients.forEach { appUserId ->
+            inAppNotificationService.publishIfEnabled(
+                appUserId = appUserId,
+                preference = UserNotificationPreference.DOCUMENT_COMMENTED,
+                type = "document.commented",
+                title = "Document comment",
+                message = buildDocumentCommentNotificationMessage(author, documentName, exchangeName),
+                data = buildMap {
+                    put("exchangeId", exchangeId)
+                    put("documentId", document.id.toString())
+                    put("commentId", comment.id.toString())
+                    put("userId", user.id.toString())
+                    put("commenterName", author)
+                    documentName?.let { put("documentName", it) }
+                    exchangeName?.let { put("exchangeName", it) }
+                },
             )
-        )
-
     }
+}
+
+internal fun buildDocumentCommentNotificationMessage(
+    commenterName: String,
+    documentName: String?,
+    exchangeName: String?,
+): String = when
+{
+    documentName != null && exchangeName != null ->
+        "$commenterName commented on \"$documentName\" in Exchange \"$exchangeName\"."
+    documentName != null ->
+        "$commenterName commented on \"$documentName\" in an Exchange shared with you."
+    exchangeName != null ->
+        "$commenterName commented on a document in Exchange \"$exchangeName\"."
+    else -> "$commenterName added a document comment. Open it to view the document and Exchange."
+}
 
     fun getDocumentComments(exchangeId: String, documentId: String): List<ExchangeDocumentComment>
     {

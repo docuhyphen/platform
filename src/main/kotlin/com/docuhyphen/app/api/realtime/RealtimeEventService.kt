@@ -24,7 +24,7 @@ class RealtimeEventService @Inject constructor(
         private val json = Json { ignoreUnknownKeys = true; encodeDefaults = false }
 
         // Reserved close codes 4000-4999 are app-defined.
-        const val CLOSE_CODE_EXCHANGE_REVOKED = 4001
+        const val CLOSE_CODE_SESSION_REVOKED = 4001
     }
 
     fun sendToUserSession(userSessionId: UUID, message: RealtimeMessage)
@@ -52,6 +52,11 @@ class RealtimeEventService @Inject constructor(
         }
     }
 
+    fun broadcastToAll(message: RealtimeMessage)
+    {
+        registry.allUserSessionIds().forEach { sendToUserSession(it, message) }
+    }
+
     fun broadcastNotificationToUser(appUserId: UUID, notification: NotificationDto)
     {
         broadcastToUser(
@@ -61,8 +66,8 @@ class RealtimeEventService @Inject constructor(
     }
 
     /**
-     * Close the socket for a voluntarily-signing-out device without sending EXCHANGE_REVOKED.
-     * EXCHANGE_REVOKED would fire auth-session-expired on the client and redirect to the
+     * Close the socket for a voluntarily-signing-out device without sending SESSION_REVOKED.
+     * SESSION_REVOKED would fire auth-session-expired on the client and redirect to the
      * session-expired page, conflicting with the sign-out component's own navigation to /sign-in.
      */
     fun closeSessionSocket(userSessionId: UUID)
@@ -71,18 +76,18 @@ class RealtimeEventService @Inject constructor(
             runCatching {
                 if (socket.isOpen)
                 {
-                    socket.close(CloseReason({ CLOSE_CODE_EXCHANGE_REVOKED }, "signed out"))
+                    socket.close(CloseReason({ CLOSE_CODE_SESSION_REVOKED }, "signed out"))
                 }
             }
         }
     }
 
-    /** Push EXCHANGE_REVOKED and close the socket for one specific device. */
+    /** Push SESSION_REVOKED and close the socket for one specific device. */
     fun notifySessionRevoked(userSessionId: UUID, reason: String)
     {
         sendToUserSession(
             userSessionId,
-            RealtimeMessage(type = RealtimeMessageType.EXCHANGE_REVOKED, reason = reason)
+            RealtimeMessage(type = RealtimeMessageType.SESSION_REVOKED, reason = reason)
         )
         registry.getSocket(userSessionId)?.let { socket ->
             runCatching {
@@ -90,7 +95,7 @@ class RealtimeEventService @Inject constructor(
                 {
                     socket.close(
                         CloseReason(
-                            { CLOSE_CODE_EXCHANGE_REVOKED },
+                            { CLOSE_CODE_SESSION_REVOKED },
                             "session revoked: $reason"
                         )
                     )
@@ -99,7 +104,7 @@ class RealtimeEventService @Inject constructor(
         }
     }
 
-    /** Push EXCHANGE_REVOKED to every active socket for an app user. */
+    /** Push SESSION_REVOKED to every active socket for an app user. */
     fun notifyAllSessionsRevoked(appUserId: UUID, reason: String, exceptUserSessionId: UUID? = null)
     {
         registry.getUserSessionsForUser(appUserId).forEach { userSessionId ->
@@ -122,7 +127,7 @@ class RealtimeEventService @Inject constructor(
     {
         broadcastToUser(
             appUserId,
-            RealtimeMessage(type = RealtimeMessageType.EXCHANGE_CREATED, session = session),
+            RealtimeMessage(type = RealtimeMessageType.SESSION_CREATED, session = session),
             exceptUserSessionId = newUserSessionId,
         )
     }
@@ -133,7 +138,7 @@ class RealtimeEventService @Inject constructor(
         broadcastToUser(
             appUserId,
             RealtimeMessage(
-                type = RealtimeMessageType.EXCHANGE_REMOVED,
+                type = RealtimeMessageType.SESSION_REMOVED,
                 userSessionId = removedUserSessionId.toString(),
             ),
             exceptUserSessionId,

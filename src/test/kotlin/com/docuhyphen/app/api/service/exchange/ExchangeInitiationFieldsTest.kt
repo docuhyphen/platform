@@ -55,7 +55,7 @@ class ExchangeInitiationFieldsTest
             authRateLimitService = mock(),
             configurationService = mock(),
             authAuditService = mock(),
-            appNotificationService = mock(),
+            inAppNotificationService = mock(),
             shareService = mock(),
             principalGroupRepository = mock(),
             principalGroupMemberRepository = mock(),
@@ -68,6 +68,8 @@ class ExchangeInitiationFieldsTest
             fileStorageService = mock(),
             schemaAssignmentService = schemaAssignmentService,
             noAuthExchangeAccessTokenService = mock(),
+            realtimeEventService = mock(),
+            transactionSynchronizationRegistry = mock(),
         )
 
     private fun entry(): FieldValueEntry =

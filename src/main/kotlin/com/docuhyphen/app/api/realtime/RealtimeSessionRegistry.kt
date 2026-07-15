@@ -27,7 +27,7 @@ class RealtimeSessionRegistry
     private val userIdByUserSession = ConcurrentHashMap<UUID, UUID>()
     private val userSessionIdsByUser = ConcurrentHashMap<UUID, MutableSet<UUID>>()
 
-    private val subscribers = ConcurrentHashMap<UUID, MutableSet<UUID>>() // exchangeId → userSessionIds
+    private val subscribers = ConcurrentHashMap<UUID, MutableSet<UUID>>() // exchangeId to userSessionIds
     private val exchangesByUserSession = ConcurrentHashMap<UUID, MutableSet<UUID>>()
 
     fun addSocket(userSessionId: UUID, appUserId: UUID, session: Session)
@@ -41,9 +41,9 @@ class RealtimeSessionRegistry
         logger.info("Realtime socket added userSessionId={} appUserId={} totalSockets={}", userSessionId, appUserId, socketsByUserSessionId.size)
     }
 
-    fun removeSocket(userSessionId: UUID)
+    fun removeSocket(userSessionId: UUID, session: Session): Boolean
     {
-        socketsByUserSessionId.remove(userSessionId)
+        if (!socketsByUserSessionId.remove(userSessionId, session)) return false
         val appUserId = userIdByUserSession.remove(userSessionId)
         if (appUserId != null)
         {
@@ -56,6 +56,7 @@ class RealtimeSessionRegistry
             subscribers[exchangeId]?.remove(userSessionId)
         }
         logger.info("Realtime socket removed userSessionId={}", userSessionId)
+        return true
     }
 
     fun getSocket(userSessionId: UUID): Session? = socketsByUserSessionId[userSessionId]
@@ -64,6 +65,8 @@ class RealtimeSessionRegistry
 
     fun getUserSessionsForUser(appUserId: UUID): Set<UUID> =
         userSessionIdsByUser[appUserId]?.toSet() ?: emptySet()
+
+    fun allUserSessionIds(): Set<UUID> = socketsByUserSessionId.keys.toSet()
 
     fun isUserOnline(appUserId: UUID): Boolean =
         userSessionIdsByUser[appUserId]?.isNotEmpty() == true

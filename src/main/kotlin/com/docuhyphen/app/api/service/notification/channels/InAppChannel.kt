@@ -1,8 +1,10 @@
 ﻿package com.docuhyphen.app.api.service.notification.channels
 
+import com.docuhyphen.app.api.model.InAppNotificationMapper
 import com.docuhyphen.app.api.model.entity.InAppNotification
 import com.docuhyphen.app.api.model.entity.NotificationChannelType
 import com.docuhyphen.app.api.repository.InAppNotificationRepository
+import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.service.notification.ChannelSendResult
 import com.docuhyphen.app.api.service.notification.DeliveryTask
 import jakarta.enterprise.context.ApplicationScoped
@@ -15,17 +17,19 @@ import java.sql.Timestamp
 import java.time.Instant
 
 /**
- * Persists an [InAppNotification] row for the recipient, the inbox backing store. A
- * follow-up iteration adds the Quarkus WebSocket endpoint that subscribes to a Redis
- * pub/sub topic and live-pushes new rows to connected clients; this bean already publishes
- * the title/body/payload so the WS layer is a thin wrapper when it lands.
+ * Persists an [InAppNotification] row and pushes the same DTO to connected clients.
  */
 @ApplicationScoped
 class InAppChannel : NotificationChannel
 {
     private val logger = LoggerFactory.getLogger(InAppChannel::class.java)
 
-    @Inject private lateinit var repository: InAppNotificationRepository
+    @Inject
+    private lateinit var repository: InAppNotificationRepository
+    @Inject
+    private lateinit var mapper: InAppNotificationMapper
+    @Inject
+    private lateinit var realtimeEventService: RealtimeEventService
 
     private val json = Json { encodeDefaults = true }
 
@@ -35,18 +39,25 @@ class InAppChannel : NotificationChannel
     {
         return try
         {
-            val notif = InAppNotification().apply {
+            val payload = task.event.payload.toMutableMap().apply {
+                task.event.subject?.let { subject ->
+                    putIfAbsent("subjectType", subject.type)
+                    putIfAbsent("subjectId", subject.id.toString())
+                }
+            }
+            val notification = InAppNotification().apply {
                 appUserId = task.recipientUserId
                 eventType = task.event.type
                 title = titleFor(task)
                 body = bodyFor(task)
                 payloadJson = json.encodeToString(
                     MapSerializer(String.serializer(), String.serializer()),
-                    task.event.payload,
+                    payload,
                 )
                 createdAt = Timestamp.from(Instant.now())
             }
-            repository.save(notif)
+            val saved = repository.save(notification)
+            realtimeEventService.broadcastNotificationToUser(task.recipientUserId, mapper.toDto(saved))
             ChannelSendResult.Delivered
         }
         catch (t: Throwable)
@@ -56,28 +67,96 @@ class InAppChannel : NotificationChannel
         }
     }
 
-    private fun titleFor(task: DeliveryTask): String =
+    internal fun titleFor(task: DeliveryTask): String =
         when (task.event.type)
         {
-            "session.activated"        -> "Your exchange was approved"
-            "session.rejected"         -> "Your exchange was rejected"
-            "session.approval_requested" -> "A exchange is awaiting your approval"
-            "workflow.step_assigned"   -> "You have a new task awaiting your decision"
-            "workflow.escalated"       -> "A workflow step has been escalated to you"
-            "workflow.notification"    ->
+            "session.activated" -> "Your Exchange was approved"
+            "session.rejected" -> "Your Exchange was rejected"
+            "session.approval_requested" -> "Exchange approval required"
+            "workflow.step_assigned" -> "Approval required"
+            "workflow.escalated" -> "Approval escalated"
+            "workflow.notification" ->
                 task.event.payload["renderedSubject"]?.takeIf { it.isNotBlank() }
-                    ?: "Workflow Notification"
-            else                       -> task.event.type
+                    ?: "Workflow notification"
+
+            else -> "Notification"
         }.take(255)
 
-    private fun bodyFor(task: DeliveryTask): String?
+    internal fun bodyFor(task: DeliveryTask): String?
     {
-        if (task.event.type == "workflow.notification")
+        val payload = task.event.payload
+        val body = when (task.event.type)
         {
-            return task.event.payload["renderedBody"]?.takeIf { it.isNotBlank() }?.take(2048)
+            "workflow.notification" ->
+                payload["renderedBody"]?.takeIf { it.isNotBlank() }
+                    ?: relatedItemMessage(task)
+
+            "workflow.step_assigned" -> approvalRequiredMessage(payload)
+            "workflow.escalated" -> approvalEscalatedMessage(payload)
+            "session.approval_requested" -> exchangeMessage(
+                payload,
+                namedMessage = { name -> "Review and decide whether to approve Exchange \"$name\"." },
+                fallback = "Review and decide whether to approve the related Exchange.",
+            )
+
+            "session.activated" -> exchangeMessage(
+                payload,
+                namedMessage = { name -> "Exchange \"$name\" was approved and is now active." },
+                fallback = "The related Exchange was approved and is now active.",
+            )
+
+            "session.rejected" -> exchangeMessage(
+                payload,
+                namedMessage = { name -> "Exchange \"$name\" was not approved." },
+                fallback = "The related Exchange was not approved.",
+            )
+
+            else -> relatedItemMessage(task)
         }
-        val subject = task.event.subject ?: return null
-        return "Subject: ${subject.type} ${subject.id}".take(2048)
+        return body.take(2048)
     }
+
+    private fun approvalRequiredMessage(payload: Map<String, String>): String
+    {
+        val exchangeName = payload["exchangeName"]?.takeIf { it.isNotBlank() }
+        val initiatorName = payload["initiatorName"]?.takeIf { it.isNotBlank() }
+        return when
+        {
+            exchangeName != null && initiatorName != null ->
+                "$initiatorName requested your approval for Exchange \"$exchangeName\"."
+
+            exchangeName != null ->
+                "Review and decide on the approval request for Exchange \"$exchangeName\"."
+
+            initiatorName != null ->
+                "$initiatorName requested your approval."
+
+            else -> "Review and decide on the pending approval."
+        }
+    }
+
+    private fun approvalEscalatedMessage(payload: Map<String, String>): String =
+        exchangeMessage(
+            payload,
+            namedMessage = { name -> "An overdue approval for Exchange \"$name\" has been assigned to you." },
+            fallback = "An overdue approval has been assigned to you for review.",
+        )
+
+    private fun exchangeMessage(
+        payload: Map<String, String>,
+        namedMessage: (String) -> String,
+        fallback: String,
+    ): String = payload["exchangeName"]
+        ?.takeIf { it.isNotBlank() }
+        ?.let(namedMessage)
+        ?: fallback
+
+    private fun relatedItemMessage(task: DeliveryTask): String =
+        when (task.event.subject?.type)
+        {
+            "EXCHANGE" -> "Open the related Exchange to view more information."
+            "DOCUMENT" -> "Open the related document to view more information."
+            else -> "Open this notification to view more information."
+        }
 }
 

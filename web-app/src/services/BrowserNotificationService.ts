@@ -1,4 +1,5 @@
 import {NotificationDto} from "../app/models/models.tsx";
+import {getNotificationTarget} from './notificationNavigation';
 
 export type BrowserNotificationPermission = NotificationPermission | "unsupported";
 
@@ -37,6 +38,11 @@ export const showBrowserNotification = (notification: NotificationDto): void =>
     browserNotification.onclick = () =>
     {
         window.focus();
+        const target = getNotificationTarget(notification);
+        if (target)
+        {
+            window.location.assign(target);
+        }
         browserNotification.close();
     };
 };

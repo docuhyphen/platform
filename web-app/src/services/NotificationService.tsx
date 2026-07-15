@@ -24,9 +24,9 @@ export type RealtimeMessageType =
     | 'PONG'
     | 'SUBSCRIBE_EXCHANGE'
     | 'UNSUBSCRIBE_EXCHANGE'
-    | 'EXCHANGE_REVOKED'
-    | 'EXCHANGE_CREATED'
-    | 'EXCHANGE_REMOVED'
+    | 'SESSION_REVOKED'
+    | 'SESSION_CREATED'
+    | 'SESSION_REMOVED'
     | 'PASSWORD_CHANGED'
     | 'SIGNED_OUT_OTHER_DEVICE'
     | 'NOTIFICATION'
@@ -36,8 +36,10 @@ export type RealtimeMessageType =
     | 'EXCHANGE_DOCUMENT_REMOVED'
     | 'EXCHANGE_DOCUMENT_UPDATED'
     | 'EXCHANGE_STATUS_CHANGED'
+    | 'EXCHANGE_LIST_CHANGED'
+    | 'REALTIME_PROBE'
     // NB: workflow.step_assigned / workflow.escalated / session.activated / session.rejected
-    // are *not* envelope types exch- the backend wraps them inside NOTIFICATION. Consumers key
+    // are not envelope types because the backend wraps them inside NOTIFICATION. Consumers key
     // off `msg.notification.type`.
     | 'ERROR'
     | 'WELCOME';
@@ -85,7 +87,7 @@ interface AccessTokenClaims
 const HEARTBEAT_INTERVAL_MS = 25_000;
 const RECONNECT_BASE_MS = 1_000;
 const RECONNECT_CAP_MS = 30_000;
-const CLOSE_CODE_EXCHANGE_REVOKED = 4001;
+const CLOSE_CODE_SESSION_REVOKED = 4001;
 const CLOSE_CODE_AUTH_FAILED = 4401;
 
 class RealtimeService
@@ -260,8 +262,8 @@ class RealtimeService
                 return;
             }
             // Server told us this device's session is revoked. AuthContext picks it up via
-            // the EXCHANGE_REVOKED handler that already ran. No reconnect.
-            if (event.code === CLOSE_CODE_EXCHANGE_REVOKED)
+            // the SESSION_REVOKED handler that already ran. No reconnect.
+            if (event.code === CLOSE_CODE_SESSION_REVOKED)
             {
                 this.userSessionId = null;
                 return;
@@ -342,7 +344,7 @@ class RealtimeService
     {
         // Built-in auth-event handling: every device-level revocation triggers the existing
         // auth-session-expired event. AuthContext already wires this to a redirect.
-        if (msg.type === 'EXCHANGE_REVOKED' || msg.type === 'PASSWORD_CHANGED')
+        if (msg.type === 'SESSION_REVOKED' || msg.type === 'PASSWORD_CHANGED')
         {
             const reason = msg.reason ?? msg.type;
             window.dispatchEvent(new CustomEvent('auth-session-expired', {detail: {reason}}));

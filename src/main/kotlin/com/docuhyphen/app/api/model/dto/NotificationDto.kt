@@ -7,7 +7,7 @@ import java.sql.Timestamp
 @Serializable
 data class NotificationDto(
     val id: String,
-    val type: NotificationType,
+    val type: String,
     val message: String,
     @Serializable(with = TimestampSerializer::class)
     val timestamp: Timestamp,
@@ -17,6 +17,20 @@ data class NotificationDto(
     val userId: String? = null,
     val isRead: Boolean = false,
     val data: Map<String, String> = emptyMap()
+)
+
+@Serializable
+data class NotificationListResponse(
+    val notifications: List<NotificationDto>,
+    val nextCursor: NotificationPageCursorDto? = null,
+    val hasMore: Boolean = false,
+    val unreadCount: Long = 0,
+)
+
+@Serializable
+data class NotificationPageCursorDto(
+    val timestamp: Long,
+    val id: String,
 )
 
 enum class NotificationType

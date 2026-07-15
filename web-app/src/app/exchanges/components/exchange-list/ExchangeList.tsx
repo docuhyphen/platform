@@ -16,6 +16,7 @@ import ExchangeListSearchControls from "./exchange-list-search-controls/Exchange
 import ExchangeListPagination from "./exchange-list-pagination/ExchangeListPagination.tsx";
 import ExchangeListTabs, {ExchangeListTab} from "./exchange-list-tabs/ExchangeListTabs.tsx";
 import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
+import {realtimeService} from '../../../../services/NotificationService';
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'exchanges.sidebar.isCollapsed';
 
@@ -126,6 +127,7 @@ const ExchangeList: React.FC<ExchangeListProps> = (
     const [totalElements, setTotalElements] = useState(0);
     const [sortBy, setSortBy] = useState('createdDate');
     const [sortDirection, setSortDirection] = useState('DESC');
+    const [realtimeRefreshVersion, setRealtimeRefreshVersion] = useState(0);
 
     const isFirstRenderRef = useRef(true);
     const latestFetchRequestIdRef = useRef(0);
@@ -177,6 +179,14 @@ const ExchangeList: React.FC<ExchangeListProps> = (
 
         return () => clearTimeout(timer);
     }, [loadingExchanges]);
+
+    useEffect(() =>
+    {
+        return realtimeService.on('EXCHANGE_LIST_CHANGED', () =>
+        {
+            setRealtimeRefreshVersion((version) => version + 1);
+        });
+    }, []);
 
     const fetchInboxRoleCounts = async () =>
     {
@@ -525,7 +535,7 @@ const ExchangeList: React.FC<ExchangeListProps> = (
             return;
         }
         fetchExchanges();
-    }, [activeTab, inboxRole, currentPage, sortBy, sortDirection]);
+    }, [activeTab, inboxRole, currentPage, sortBy, sortDirection, realtimeRefreshVersion]);
 
     // Debounced re-fetch on search / initiator-filter changes only. Tab and inbox-role changes
     // are already handled immediately by the navigation effect above; they remain in this

@@ -39,6 +39,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
     private val organizationRepository: OrganizationRepository,
     private val exchangeInitiationService: ExchangeInitiationService,
     private val exchangeParticipantOrgService: ExchangeParticipantOrgService,
+    private val lifecycleNotificationService: ExchangeLifecycleNotificationService,
 )
 {
     companion object
@@ -96,6 +97,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
                     {
                         session.status = ExchangeStatus.ACCEPTED_STARTED
                         exchangeRepository.update(session)
+                        lifecycleNotificationService.publish(session, ExchangeStatus.ACCEPTED_STARTED)
                     }
                 }
                 // Shares are now ACTIVE; send the invite email that was deferred during approval.
@@ -110,8 +112,12 @@ class ExchangeApprovalEventHandler @Inject constructor(
             {
                 shareService.revokePendingForResource(ResourceType.EXCHANGE, exchangeId)
                 exchangeRepository.findById(exchangeId)?.let { session ->
-                    session.status = ExchangeStatus.REJECTED
-                    exchangeRepository.update(session)
+                    if (session.status != ExchangeStatus.REJECTED)
+                    {
+                        session.status = ExchangeStatus.REJECTED
+                        exchangeRepository.update(session)
+                        lifecycleNotificationService.publish(session, ExchangeStatus.REJECTED)
+                    }
                 }
                 logger.info("Exchange {} rejected by approval workflow: pending shares revoked", exchangeId)
             }
@@ -138,6 +144,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
                             // Acceptance is not required: auto-advance straight to active.
                             session.status = ExchangeStatus.ACCEPTED_STARTED
                             exchangeRepository.update(session)
+                            lifecycleNotificationService.publish(session, ExchangeStatus.ACCEPTED_STARTED)
                             logger.info(
                                 "Exchange {} activated: {} pending share(s) activated, status -> ACCEPTED_STARTED",
                                 exchangeId, activated,
@@ -211,6 +218,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
                     // Auto-advance: no acceptance required
                     exchange.status = ExchangeStatus.ACCEPTED_STARTED
                     exchangeRepository.update(exchange)
+                    lifecycleNotificationService.publish(exchange, ExchangeStatus.ACCEPTED_STARTED)
                     workflowEngineService.trigger(
                         TriggerRequest(
                             triggerEvent = "exchange.activated",
@@ -236,6 +244,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
                         session.status = ExchangeStatus.ENDED
                         session.endDate = Timestamp.from(Instant.now())
                         exchangeRepository.update(session)
+                        lifecycleNotificationService.publish(session, ExchangeStatus.ENDED)
                     }
                 }
                 logger.info("Exchange {} ended (via exchange.ending event from workflow step)", exchangeId)
@@ -257,6 +266,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
                         session.status = ExchangeStatus.ENDED
                         session.endDate = Timestamp.from(Instant.now())
                         exchangeRepository.update(session)
+                        lifecycleNotificationService.publish(session, ExchangeStatus.ENDED)
                     }
                 }
                 logger.info("Exchange {} ended (confirmed by workflow outcome)", exchangeId)

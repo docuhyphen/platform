@@ -1379,6 +1379,14 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         newAssignees: List<PrincipalRef>,
     )
     {
+        val subjectFields = runCatching {
+            instance.subjectDataJson?.let {
+                json.decodeFromString(MapSerializer(String.serializer(), String.serializer()), it)
+            }
+        }.getOrNull() ?: emptyMap()
+        val workflowName = runCatching {
+            definitionRepository.findById(instance.definitionId)?.name
+        }.getOrNull()
         val payload = mutableMapOf(
             "instanceId" to instance.id.toString(),
             "stepInstanceId" to step.id.toString(),
@@ -1388,6 +1396,9 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         {
             payload["assignees"] = newAssignees.joinToString(",") { "${it.kind.name}:${it.id}" }
         }
+        subjectFields["exchangeName"]?.takeIf { it.isNotBlank() }?.let { payload["exchangeName"] = it }
+        subjectFields["initiatorName"]?.takeIf { it.isNotBlank() }?.let { payload["initiatorName"] = it }
+        workflowName?.let { payload["workflowName"] = it }
         eventPublisher.publish(
             DomainEvent(
                 type = "workflow.escalated",

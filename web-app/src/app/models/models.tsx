@@ -866,13 +866,13 @@ export enum NotificationType
 export interface NotificationDto
 {
     id: string;
-    type: NotificationType;
+    type: string;
     message: string;
     timestamp: string;
-    exchangeId?: string;
-    documentId?: string;
-    commentId?: string;
-    userId?: string;
+    exchangeId?: string | null;
+    documentId?: string | null;
+    commentId?: string | null;
+    userId?: string | null;
     isRead: boolean;
     data: Record<string, string>;
 }

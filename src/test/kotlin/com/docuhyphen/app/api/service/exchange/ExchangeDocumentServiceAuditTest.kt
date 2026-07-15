@@ -81,7 +81,7 @@ class ExchangeDocumentServiceAuditTest
             emailTemplateService = mock<EmailTemplateService>(),
             configurationService = mock<ConfigurationService>(),
             fileStorageService = fileStorageService,
-            appNotificationService = mock<AppNotificationService>(),
+            inAppNotificationService = mock(),
             realtimeEventService = mock<RealtimeEventService>(),
             shareService = shareService,
             appUserService = mock<AppUserService>(),

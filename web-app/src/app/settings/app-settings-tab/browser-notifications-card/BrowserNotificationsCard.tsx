@@ -1,5 +1,5 @@
 import {Badge, Button, Text} from "@fluentui/react-components";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {
     BrowserNotificationPermission,
     getBrowserNotificationPermission,
@@ -22,6 +22,13 @@ const BrowserNotificationsCard = () =>
     );
     const [isRequesting, setIsRequesting] = useState(false);
 
+    useEffect(() =>
+    {
+        const refreshPermission = () => setPermission(getBrowserNotificationPermission());
+        window.addEventListener('focus', refreshPermission);
+        return () => window.removeEventListener('focus', refreshPermission);
+    }, []);
+
     const requestPermission = async () =>
     {
         setIsRequesting(true);
@@ -36,35 +43,49 @@ const BrowserNotificationsCard = () =>
     };
 
     return (
-        <section id="browser-notifications-card"
-                 className={styles.container}>
-            <div id="browser-notifications-content"
-                 className={styles.content}>
-                <Text id="browser-notifications-title"
-                      weight="semibold">
+        <section
+            id="browser-notifications-card"
+            className={styles.container}
+        >
+            <div
+                id="browser-notifications-content"
+                className={styles.content}
+            >
+                <Text
+                    id="browser-notifications-title"
+                    weight="semibold"
+                >
                     Browser notifications
                 </Text>
-                <Text id="browser-notifications-description"
-                      className={styles.description}
-                      size={200}>
+                <Text
+                    id="browser-notifications-description"
+                    className={styles.description}
+                    size={200}
+                >
                     {permissionDescriptions[permission]}
                 </Text>
             </div>
-            {permission === "default" && (
-                <Button id="enable-browser-notifications"
-                        className={styles.action}
-                        appearance="secondary"
-                        shape="circular"
-                        disabled={isRequesting}
-                        onClick={requestPermission}>
-                    {isRequesting ? "Requesting" : "Enable"}
+            {(permission === "default" || permission === "denied") && (
+                <Button
+                    id="enable-browser-notifications"
+                    className={styles.action}
+                    appearance="secondary"
+                    shape="circular"
+                    disabled={isRequesting}
+                    onClick={requestPermission}
+                >
+                    {isRequesting
+                        ? "Requesting"
+                        : permission === "denied" ? "Request again" : "Enable"}
                 </Button>
             )}
             {permission === "granted" && (
-                <Badge id="browser-notifications-enabled"
-                       className={styles.action}
-                       appearance="filled"
-                       color="success">
+                <Badge
+                    id="browser-notifications-enabled"
+                    className={styles.action}
+                    appearance="filled"
+                    color="success"
+                >
                     Enabled
                 </Badge>
             )}

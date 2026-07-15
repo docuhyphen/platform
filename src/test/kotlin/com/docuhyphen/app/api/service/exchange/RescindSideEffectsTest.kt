@@ -127,6 +127,7 @@ class RescindSideEffectsTest
         authorizationContextFactory = makeFactory(),
         auditRecorder = auditRecorder,
         noAuthExchangeAccessTokenService = mock(),
+        lifecycleNotificationService = mock(),
     )
 
     // -------------------------------------------------------------------------
@@ -345,7 +346,7 @@ class RescindSideEffectsTest
             emailTemplateService = mock(),
             configurationService = mock(),
             fileStorageService = mock(),
-            appNotificationService = mock(),
+            inAppNotificationService = mock(),
             realtimeEventService = mock(),
             shareService = mock(),
             appUserService = mock(),

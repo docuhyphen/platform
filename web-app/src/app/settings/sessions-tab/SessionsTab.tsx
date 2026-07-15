@@ -63,13 +63,13 @@ const SessionsTab: React.FC = () =>
 
     useEffect(() =>
     {
-        const offCreated = realtimeService.on('EXCHANGE_CREATED', (msg) =>
+        const offCreated = realtimeService.on('SESSION_CREATED', (msg) =>
         {
             if (!msg.session) return;
             void load();
         });
 
-        const offRemoved = realtimeService.on('EXCHANGE_REMOVED', (msg) =>
+        const offRemoved = realtimeService.on('SESSION_REMOVED', (msg) =>
         {
             if (!msg.userSessionId) return;
             void load();

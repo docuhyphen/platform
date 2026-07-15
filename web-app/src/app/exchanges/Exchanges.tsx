@@ -52,17 +52,9 @@ import ExchangeAuditTab from "./components/exchange-audit-tab/ExchangeAuditTab.t
 import ExchangeWorkflowTab from "./components/exchange-workflow-tab/ExchangeWorkflowTab.tsx";
 import ExchangeFieldsTab from "./components/exchange-fields-tab/ExchangeFieldsTab.tsx";
 import ExchangeTabsHeader from "./components/exchange-tabs-header/ExchangeTabsHeader.tsx";
+import {useExchangeRouteState} from './useExchangeRouteState';
 
 type ExchangePaneNavigationDirection = "forward" | "back" | null;
-
-const parseExchangeListTab = (value: string | null | undefined): ExchangeListTab | null =>
-{
-    if (value === 'inbox' || value === 'active' || value === 'archive')
-    {
-        return value;
-    }
-    return null;
-};
 
 const isExchangeUnavailableError = (error: unknown): boolean =>
 {
@@ -74,6 +66,7 @@ const isExchangeUnavailableError = (error: unknown): boolean =>
 const Exchanges: React.FC = () =>
 {
     const styles = useExchangesStyles();
+    const exchangeRouteState = useExchangeRouteState();
     const isMobile = useIsMobile();
     const toasterId = useId("exchanges-toaster");
     const {dispatchToast} = useToastController(toasterId);
@@ -107,6 +100,7 @@ const Exchanges: React.FC = () =>
     const [documentSearchQuery, setDocumentSearchQuery] = useState<string>("");
     const [appUserHasExchanges, setAppUserHasExchanges] = useState<boolean>(false);
     const [detailsActiveTab, setDetailsActiveTab] = useState<TabValue>('documents');
+    const [routeSelectionVersion, setRouteSelectionVersion] = useState(0);
     const permissions = useMemo<ExchangePermissions>(
         () => getPermissions(exchangeDetails, appUser),
         [exchangeDetails, appUser?.id],
@@ -208,29 +202,35 @@ const Exchanges: React.FC = () =>
         }
     }
 
-    // Restore tab/exchange/document from URL params only.
+    // Keep selection state synchronized with React Router navigation, including notification clicks.
     useEffect(() =>
     {
-        if (typeof window === 'undefined') return;
+        setActiveListTab(exchangeRouteState.listTab ?? 'active');
 
-        const params = new URLSearchParams(window.location.search);
-        const urlTab = parseExchangeListTab(params.get('tab'));
-
-        setActiveListTab(urlTab ?? 'active');
-
-        const deepLinkedId = params.get('s');
-        const deepLinkedDocumentId = params.get('d');
+        const deepLinkedId = exchangeRouteState.exchangeId;
+        const deepLinkedDocumentId = exchangeRouteState.documentId;
         if (deepLinkedId)
         {
             deepLinkedExchangeIdRef.current = deepLinkedId;
             deepLinkedDocumentExchangeIdRef.current = deepLinkedId;
+            setSelectedExchangeDocument(undefined);
             setSelectedExchangeId(deepLinkedId);
+            setRouteSelectionVersion((version) => version + 1);
         }
-        if (deepLinkedDocumentId)
+        else
         {
-            deepLinkedDocumentIdRef.current = deepLinkedDocumentId;
+            deepLinkedExchangeIdRef.current = null;
+            deepLinkedDocumentExchangeIdRef.current = null;
+            setSelectedExchangeId(null);
+            setSelectedExchangeDocument(undefined);
         }
-    }, []);
+
+        deepLinkedDocumentIdRef.current = deepLinkedDocumentId;
+        if (!deepLinkedDocumentId)
+        {
+            deepLinkedDocumentExchangeIdRef.current = null;
+        }
+    }, [exchangeRouteState]);
 
     useEffect(() =>
     {
@@ -389,7 +389,7 @@ const Exchanges: React.FC = () =>
         // refresh shouldn't re-pull the exchange details. `appUser` only
         // affects the permissions computation, which is cheap and stable
         // for the lifetime of the page.
-    }, [selectedExchangeId]);
+    }, [selectedExchangeId, routeSelectionVersion]);
 
     useEffect(() =>
     {

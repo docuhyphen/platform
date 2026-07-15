@@ -1,84 +1,26 @@
-import React, {createContext, useContext, useEffect, useState} from 'react';
-import {NotificationDto} from '../app/models/models';
-import {useAuth} from "./AuthContext.tsx";
-import {notificationService} from "../services/NotificationService.tsx";
-import {showBrowserNotification} from "../services/BrowserNotificationService.ts";
+import React, {createContext, useContext} from 'react';
+import GlobalRealtimeToast from '../app/components/global-realtime-toast/GlobalRealtimeToast';
+import {NotificationInboxState, useNotificationInbox} from './useNotificationInbox';
 
-interface NotificationContextType
+const NotificationContext = createContext<NotificationInboxState>({
+    notifications: [],
+    unreadCount: 0,
+    hasMoreNotifications: false,
+    isLoadingMoreNotifications: false,
+    loadMoreNotifications: async () => {},
+    markAsRead: () => {},
+    markAllAsRead: () => {},
+});
+
+export const NotificationProvider: React.FC<{children: React.ReactNode}> = ({children}) =>
 {
-    notifications: NotificationDto[];
-    unreadCount: number;
-    markAsRead: (notificationId: string) => void;
-    markAllAsRead: () => void;
-}
-
-const NotificationContext = createContext<NotificationContextType>(
-    {
-        notifications: [],
-        unreadCount: 0,
-        markAsRead: () =>
-        {
-        },
-        markAllAsRead: () =>
-        {
-        }
-    });
-
-export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({children}) =>
-{
-    const [notifications, setNotifications] = useState<NotificationDto[]>([]);
-    const {appUser} = useAuth();
-
-    const unreadCount = notifications.filter(n => !n.isRead).length;
-
-    const markAsRead = (notificationId: string) =>
-    {
-        setNotifications(prev =>
-            prev.map(n => n.id === notificationId ? {...n, isRead: true} : n)
-        );
-    };
-
-    const markAllAsRead = () =>
-    {
-        setNotifications(prev =>
-            prev.map(n => ({...n, isRead: true}))
-        );
-    };
-
-    useEffect(() =>
-    {
-        if (appUser?.id)
-        {
-            notificationService.connect(appUser.id);
-
-            const removeHandler = notificationService.addMessageHandler((notification) =>
-            {
-                setNotifications(prev => [...prev, notification]);
-                showBrowserNotification(notification);
-            });
-
-            return () =>
-            {
-                removeHandler();
-                notificationService.disconnect();
-            };
-        }
-    }, [appUser?.id]);
-
+    const {state, probeToast} = useNotificationInbox();
     return (
-        <NotificationContext.Provider
-            value={{notifications, unreadCount, markAsRead, markAllAsRead}}>
+        <NotificationContext.Provider value={state}>
             {children}
+            <GlobalRealtimeToast event={probeToast}/>
         </NotificationContext.Provider>
     );
 };
 
-export const useNotifications = () =>
-{
-    const context = useContext(NotificationContext);
-    if (context === undefined)
-    {
-        throw new Error('useNotifications must be used within a NotificationProvider');
-    }
-    return context;
-};
+export const useNotifications = (): NotificationInboxState => useContext(NotificationContext);
