@@ -44,10 +44,8 @@ nb-configuration.xml
 # TLS Certificates
 .certs/
 
-logs
-
-document-uploads
-document-versions
+# Local development runtime data
+/local-development-resources/
 
 /web-app/node_modules
 

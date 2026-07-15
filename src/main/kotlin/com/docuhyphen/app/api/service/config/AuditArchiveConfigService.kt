@@ -28,10 +28,10 @@ class AuditArchiveConfigService @Inject constructor(
     @ConfigProperty(name = "app.audit.archive.signing.provider", defaultValue = "local")
     private val signingProviderConfig: String,
 
-    @ConfigProperty(name = "app.audit.archive.local.directory", defaultValue = "logs/audit-archive")
+    @ConfigProperty(name = "app.audit.archive.local.directory", defaultValue = "local-development-resources/logs/audit-archive")
     private val localDirectoryConfig: String,
 
-    @ConfigProperty(name = "app.audit.archive.local.signing-directory", defaultValue = "logs/audit-archive-keys")
+    @ConfigProperty(name = "app.audit.archive.local.signing-directory", defaultValue = "local-development-resources/logs/audit-archive-keys")
     private val localSigningDirectoryConfig: String,
 
     @ConfigProperty(name = "app.audit.archive.bucket", defaultValue = "")

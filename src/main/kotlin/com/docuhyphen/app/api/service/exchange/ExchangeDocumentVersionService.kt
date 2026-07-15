@@ -55,7 +55,7 @@ class ExchangeDocumentVersionService @Inject constructor(
     companion object
     {
         private val logger = LoggerFactory.getLogger(ExchangeDocumentVersionService::class.java)
-        private const val VERSIONS_STORAGE_PATH = "document-versions"
+        private const val VERSIONS_STORAGE_PATH = "local-development-resources/document-versions"
     }
 
     @Transactional

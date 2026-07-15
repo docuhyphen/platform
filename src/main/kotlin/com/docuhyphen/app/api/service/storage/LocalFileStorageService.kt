@@ -13,9 +13,14 @@ import java.util.zip.ZipOutputStream
 @ApplicationScoped
 class LocalFileStorageService : FileStorageService
 {
+    private companion object
+    {
+        const val DOCUMENT_UPLOADS_DIRECTORY = "local-development-resources/document-uploads"
+    }
+
     override fun uploadDocument(file: File, key: String): String
     {
-        val targetDirectory = File("document-uploads")
+        val targetDirectory = File(DOCUMENT_UPLOADS_DIRECTORY)
 
         if (!targetDirectory.exists())
         {
@@ -30,7 +35,7 @@ class LocalFileStorageService : FileStorageService
 
     override fun downloadDocument(key: String): File
     {
-        val targetFile = File("document-uploads", key)
+        val targetFile = File(DOCUMENT_UPLOADS_DIRECTORY, key)
 
         if (!targetFile.exists())
         {
@@ -49,7 +54,7 @@ class LocalFileStorageService : FileStorageService
             keys.forEach { key ->
                 if (uniqueKeys.add(key))
                 {
-                    val targetFile = File("document-uploads", key)
+                    val targetFile = File(DOCUMENT_UPLOADS_DIRECTORY, key)
                     if (!targetFile.exists())
                     {
                         throw IllegalArgumentException("File not found: $key")
@@ -63,7 +68,7 @@ class LocalFileStorageService : FileStorageService
                     // Handle duplicate entry, e.g., by renaming or skipping
                     val newKey = generateUniqueKey(key, uniqueKeys)
                     uniqueKeys.add(newKey)
-                    val targetFile = File("document-uploads", key)
+                    val targetFile = File(DOCUMENT_UPLOADS_DIRECTORY, key)
                     if (!targetFile.exists())
                     {
                         throw IllegalArgumentException("File not found: $key")
@@ -79,7 +84,7 @@ class LocalFileStorageService : FileStorageService
 
     override fun getDocumentSizeBytes(key: String): Long
     {
-        val targetFile = File("document-uploads", key)
+        val targetFile = File(DOCUMENT_UPLOADS_DIRECTORY, key)
 
         if (!targetFile.exists())
         {

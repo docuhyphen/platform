@@ -8,8 +8,7 @@ services:
       - "8080:8080"
       - "5005:5005"
     volumes:
-      - ./document-uploads:/app/document-uploads
-      - ./logs:/app/logs
+      - ./local-development-resources:/app/local-development-resources
       - type: bind
         source: ${AWS_CONFIG_DIRECTORY}
         target: /home/appuser/.aws

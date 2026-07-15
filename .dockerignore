@@ -18,7 +18,5 @@ web-app/
 Thumbs.db
 *.md
 
-# Runtime data (mounted as volumes in local dev; in ECS these are ephemeral)
-logs/
-document-uploads/
-document-versions/
+# Runtime data mounted as a single volume in local development
+local-development-resources/
