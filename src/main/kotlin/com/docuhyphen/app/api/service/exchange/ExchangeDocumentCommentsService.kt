@@ -126,21 +126,6 @@ class ExchangeDocumentCommentsService @Inject constructor(
     }
 }
 
-internal fun buildDocumentCommentNotificationMessage(
-    commenterName: String,
-    documentName: String?,
-    exchangeName: String?,
-): String = when
-{
-    documentName != null && exchangeName != null ->
-        "$commenterName commented on \"$documentName\" in Exchange \"$exchangeName\"."
-    documentName != null ->
-        "$commenterName commented on \"$documentName\" in an Exchange shared with you."
-    exchangeName != null ->
-        "$commenterName commented on a document in Exchange \"$exchangeName\"."
-    else -> "$commenterName added a document comment. Open it to view the document and Exchange."
-}
-
     fun getDocumentComments(exchangeId: String, documentId: String): List<ExchangeDocumentComment>
     {
         requireDocumentAccess(exchangeId, documentId, Action.DOCUMENT_VIEW)
@@ -172,4 +157,19 @@ internal fun buildDocumentCommentNotificationMessage(
                 throw ForbiddenException("Permission to access document notes was not granted")
             }
         } ?: throw ExchangeNotFoundException("Document not found")
+}
+
+internal fun buildDocumentCommentNotificationMessage(
+    commenterName: String,
+    documentName: String?,
+    exchangeName: String?,
+): String = when
+{
+    documentName != null && exchangeName != null ->
+        "$commenterName commented on \"$documentName\" in Exchange \"$exchangeName\"."
+    documentName != null ->
+        "$commenterName commented on \"$documentName\" in an Exchange shared with you."
+    exchangeName != null ->
+        "$commenterName commented on a document in Exchange \"$exchangeName\"."
+    else -> "$commenterName added a document comment. Open it to view the document and Exchange."
 }
