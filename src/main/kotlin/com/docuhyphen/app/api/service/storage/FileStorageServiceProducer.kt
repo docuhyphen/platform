@@ -12,25 +12,12 @@ import org.eclipse.microprofile.config.inject.ConfigProperty
 
 @ApplicationScoped
 class FileStorageServiceProducer @Inject constructor(
-    @ConfigProperty(name = "file.storage.service") private val fileStorageServiceType: String
+    @ConfigProperty(name = "file.storage.service") private val fileStorageServiceType: String,
+    @Local private val localFileStorageService: LocalFileStorageService,
+    @Aws private val awsS3FileStorageService: AwsS3FileStorageService,
 ) {
     @Produces
-    @Local
-    fun produceLocalFileStorageService(): FileStorageService {
-        return LocalFileStorageService()
-    }
-
-    @Produces
-    @Aws
-    fun produceAwsS3FileStorageService(): FileStorageService {
-        return AwsS3FileStorageService()
-    }
-
-    @Produces
-    fun produceFileStorageService(
-        @Local localFileStorageService: LocalFileStorageService,
-        @Aws awsS3FileStorageService: AwsS3FileStorageService
-    ): FileStorageService {
+    fun produceFileStorageService(): FileStorageService {
         return when (fileStorageServiceType) {
             "aws" -> awsS3FileStorageService
             "local" -> localFileStorageService

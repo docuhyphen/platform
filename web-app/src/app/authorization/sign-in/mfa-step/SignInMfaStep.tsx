@@ -78,7 +78,7 @@ const SignInMfaStep = ({
             ? undefined
             : (method === 'EMAIL'
                 ? "A verification code has been sent to your email"
-                : `Enter the code from ${method === 'GOOGLE_AUTHENTICATOR' ? 'Google' : 'Microsoft'} Authenticator`)}>
+                : "Enter the code from your authenticator app")}>
         <Input
             id={"sign-in-otp-input"}
             value={code}

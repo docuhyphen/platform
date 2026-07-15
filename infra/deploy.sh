@@ -1,54 +1,47 @@
 #!/usr/bin/env bash
-# ─────────────────────────────────────────────────────────────────────────────
-# DocuHyphen, Production deployment script
-# Region: af-south-1 (Cape Town)
-#
-# Usage:
-#   First deploy:   ./infra/deploy.sh
-#   Update stack:   ./infra/deploy.sh          (same command, CloudFormation
-#                                               detects it's an update)
-#   Deploy image:   ./infra/deploy.sh --image  (build + push Docker only)
-#   Full deploy:    ./infra/deploy.sh --full   (build + push + update stack + invalidate)
-# ─────────────────────────────────────────────────────────────────────────────
+
 set -euo pipefail
 
-# ── Config ────────────────────────────────────────────────────────────────────
-APP_NAME="docuhyphen"
-STACK_NAME="${APP_NAME}-prod"
-REGION="af-south-1"
-AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-ECR_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${APP_NAME}"
-IMAGE_TAG="${ECR_URI}:latest"
+APP_NAME="${APP_NAME:-docuhyphen}"
+STACK_NAME="${STACK_NAME:-${APP_NAME}-prod}"
+REGION="${AWS_REGION:-af-south-1}"
+WEBSITE_DOMAIN="${WEBSITE_DOMAIN:-www.docuhyphen.com}"
+API_DOMAIN="${API_DOMAIN:-api.docuhyphen.com}"
+SES_REGION="${SES_REGION:-us-east-1}"
 TEMPLATE_FILE="$(dirname "$0")/cloudformation.yml"
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-log()  { echo "▶ $*"; }
-ok()   { echo "✅ $*"; }
-fail() { echo "❌ $*" >&2; exit 1; }
+log() { printf '%s\n' "$*"; }
+fail() { printf 'Error: %s\n' "$*" >&2; exit 1; }
 
-# ── Step 1: Build & push Docker image to ECR ─────────────────────────────────
-push_image() {
-  log "Logging in to ECR..."
-  aws ecr get-login-password --region "$REGION" \
-    | docker login --username AWS --password-stdin "${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
+TEMP_DIR=""
+cleanup() {
+  if [[ -n "${TEMP_DIR:-}" && -d "$TEMP_DIR" ]]; then
+    rm -rf -- "$TEMP_DIR"
+  fi
+}
+trap cleanup EXIT
 
-  log "Building Docker image..."
-  docker build -t "$IMAGE_TAG" "$(dirname "$0")/.."
-
-  log "Pushing image to ECR: $IMAGE_TAG"
-  docker push "$IMAGE_TAG"
-  ok "Image pushed."
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || fail "Required command not found: $1"
 }
 
-# ── Step 2: Deploy / update CloudFormation stack ─────────────────────────────
-deploy_stack() {
-  # Prompt for DB password if not set as env var
-  if [[ -z "${DB_PASSWORD:-}" ]]; then
-    read -rsp "Enter RDS master password: " DB_PASSWORD
-    echo
-  fi
+require_command aws
+AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+ECR_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${APP_NAME}"
+IMAGE_TAG="${ECR_URI}:latest"
 
-  log "Deploying CloudFormation stack: $STACK_NAME"
+stack_exists() {
+  aws cloudformation describe-stacks \
+    --stack-name "$STACK_NAME" \
+    --region "$REGION" \
+    >/dev/null 2>&1
+}
+
+deploy_stack() {
+  local application_enabled="$1"
+
+  log "Deploying stack ${STACK_NAME} with ApplicationEnabled=${application_enabled}"
   aws cloudformation deploy \
     --template-file "$TEMPLATE_FILE" \
     --stack-name "$STACK_NAME" \
@@ -57,73 +50,132 @@ deploy_stack() {
     --parameter-overrides \
       AppName="$APP_NAME" \
       ECRImageURI="$IMAGE_TAG" \
-      DBPassword="$DB_PASSWORD" \
       DBUsername="docuhyphen" \
       AppPort="8080" \
       CertificateArn="${CERTIFICATE_ARN:-}" \
+      CloudFrontCertificateArn="${CLOUDFRONT_CERTIFICATE_ARN:-}" \
+      WebsiteDomainName="$WEBSITE_DOMAIN" \
+      ApiDomainName="$API_DOMAIN" \
+      SesRegion="$SES_REGION" \
+      AppAdminBootstrapEmail="${APP_ADMIN_BOOTSTRAP_EMAIL:-}" \
+      ApplicationEnabled="$application_enabled" \
     --no-fail-on-empty-changeset
-
-  ok "Stack deployed."
 }
 
-# ── Step 3: Force ECS to pull the new image ───────────────────────────────────
+bootstrap_stack() {
+  if stack_exists; then
+    return
+  fi
+
+  log "Creating infrastructure without the ECS service"
+  deploy_stack false
+}
+
+populate_audit_signing_secret() {
+  local secret_id="${APP_NAME}/audit-archive-signing-key"
+  local current_secret
+  current_secret="$(aws secretsmanager get-secret-value \
+    --secret-id "$secret_id" \
+    --region "$REGION" \
+    --query SecretString \
+    --output text)"
+
+  if [[ "$current_secret" == *'"privateKeyPem":"-----BEGIN PRIVATE KEY-----'* ]] || \
+     [[ "$current_secret" == *'"privateKeyPem": "-----BEGIN PRIVATE KEY-----'* ]]; then
+    return
+  fi
+
+  require_command openssl
+  require_command node
+
+  TEMP_DIR="$(mktemp -d)"
+
+  openssl genpkey \
+    -algorithm RSA \
+    -pkeyopt rsa_keygen_bits:2048 \
+    -out "$TEMP_DIR/private.pem"
+  openssl pkey \
+    -in "$TEMP_DIR/private.pem" \
+    -pubout \
+    -out "$TEMP_DIR/public.pem"
+
+  node -e '
+    const fs = require("fs");
+    const privateKeyPem = fs.readFileSync(process.argv[1], "utf8");
+    const publicKeyPem = fs.readFileSync(process.argv[2], "utf8");
+    fs.writeFileSync(process.argv[3], JSON.stringify({
+      keyId: "audit-rsa-1",
+      privateKeyPem,
+      publicKeyPem,
+      historicalPublicKeys: {},
+    }));
+  ' "$TEMP_DIR/private.pem" "$TEMP_DIR/public.pem" "$TEMP_DIR/signing-secret.json"
+
+  aws secretsmanager put-secret-value \
+    --secret-id "$secret_id" \
+    --secret-string "file://$TEMP_DIR/signing-secret.json" \
+    --region "$REGION" \
+    >/dev/null
+
+  log "Populated the audit archive signing secret"
+  cleanup
+  TEMP_DIR=""
+}
+
+push_image() {
+  require_command docker
+
+  log "Building the Quarkus application"
+  (cd "$PROJECT_ROOT" && ./mvnw package -DskipTests)
+
+  log "Logging in to ECR"
+  aws ecr get-login-password --region "$REGION" \
+    | docker login --username AWS --password-stdin "${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
+
+  log "Building and pushing ${IMAGE_TAG}"
+  docker build -t "$IMAGE_TAG" "$PROJECT_ROOT"
+  docker push "$IMAGE_TAG"
+}
+
 restart_ecs() {
-  CLUSTER="${APP_NAME}-cluster"
-  SERVICE="${APP_NAME}-service"
-  log "Forcing ECS service redeployment..."
   aws ecs update-service \
-    --cluster "$CLUSTER" \
-    --service "$SERVICE" \
+    --cluster "${APP_NAME}-cluster" \
+    --service "${APP_NAME}-service" \
     --force-new-deployment \
     --region "$REGION" \
-    --output text --query 'service.serviceName'
-  ok "ECS redeployment triggered."
+    --output text \
+    --query 'service.serviceName'
 }
 
-# ── Step 4: Deploy frontend to S3 + invalidate CloudFront ────────────────────
-deploy_frontend() {
-  BUCKET="${APP_NAME}-website-prod"
-  DIST_ID=$(aws cloudformation describe-stacks \
+stack_output() {
+  local output_key="$1"
+  aws cloudformation describe-stacks \
     --stack-name "$STACK_NAME" \
     --region "$REGION" \
-    --query "Stacks[0].Outputs[?OutputKey=='CloudFrontURL'].OutputValue" \
-    --output text | grep -oP '(?<=https://)([^.]+)')
+    --query "Stacks[0].Outputs[?OutputKey=='${output_key}'].OutputValue" \
+    --output text
+}
 
-  log "Building frontend..."
-  (cd "$(dirname "$0")/../website" && npm ci && npm run build)
+deploy_frontend() {
+  local bucket
+  local distribution_id
+  bucket="$(stack_output WebsiteBucketName)"
+  distribution_id="$(stack_output CloudFrontDistributionId)"
 
-  log "Syncing to S3: s3://${BUCKET}"
-  aws s3 sync "$(dirname "$0")/../website/dist" "s3://${BUCKET}" \
+  log "Building the website"
+  (cd "$PROJECT_ROOT/website" && npm ci && npm run build)
+
+  aws s3 sync "$PROJECT_ROOT/website/dist" "s3://${bucket}" \
     --delete \
     --region "$REGION"
 
-  log "Invalidating CloudFront cache..."
-  CF_DIST_ID=$(aws cloudformation describe-stacks \
-    --stack-name "$STACK_NAME" \
-    --region "$REGION" \
-    --query "Stacks[0].Outputs[?OutputKey=='CloudFrontURL'].OutputValue" \
-    --output text | sed 's|https://||' | cut -d. -f1)
-
-  # Get actual distribution ID
-  ACTUAL_DIST_ID=$(aws cloudfront list-distributions \
-    --query "DistributionList.Items[?contains(Origins.Items[].DomainName, '${APP_NAME}-website-prod')].Id" \
-    --output text)
-
-  if [[ -n "$ACTUAL_DIST_ID" ]]; then
-    aws cloudfront create-invalidation \
-      --distribution-id "$ACTUAL_DIST_ID" \
-      --paths "/*"
-    ok "CloudFront cache invalidated."
-  else
-    log "Warning: Could not find CloudFront distribution ID. Skipping invalidation."
-  fi
-
-  ok "Frontend deployed."
+  aws cloudfront create-invalidation \
+    --distribution-id "$distribution_id" \
+    --paths "/*" \
+    >/dev/null
 }
 
-# ── Print stack outputs ───────────────────────────────────────────────────────
 print_outputs() {
-  log "Stack outputs:"
   aws cloudformation describe-stacks \
     --stack-name "$STACK_NAME" \
     --region "$REGION" \
@@ -131,36 +183,32 @@ print_outputs() {
     --output table
 }
 
-# ── Entrypoint ────────────────────────────────────────────────────────────────
-MODE="${1:-}"
-
-case "$MODE" in
+case "${1:-}" in
   --image)
+    stack_exists || fail "Create the stack first with --full"
     push_image
     restart_ecs
     ;;
   --frontend)
+    stack_exists || fail "Create the stack first with --full"
     deploy_frontend
     ;;
   --full)
+    bootstrap_stack
+    populate_audit_signing_secret
     push_image
-    deploy_stack
+    deploy_stack true
     restart_ecs
     deploy_frontend
     print_outputs
     ;;
   "")
-    deploy_stack
+    stack_exists || fail "First deployment must use --full"
+    populate_audit_signing_secret
+    deploy_stack true
     print_outputs
     ;;
   *)
-    echo "Usage: $0 [--image | --frontend | --full]"
-    echo ""
-    echo "  (no flag)    Deploy / update CloudFormation stack only"
-    echo "  --image      Build + push Docker image, restart ECS"
-    echo "  --frontend   Build + deploy website to S3, invalidate CloudFront"
-    echo "  --full       Do everything: image + stack + frontend"
-    exit 1
+    fail "Usage: $0 [--image | --frontend | --full]"
     ;;
 esac
-

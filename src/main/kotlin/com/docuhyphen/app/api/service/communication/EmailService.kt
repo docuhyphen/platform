@@ -1,11 +1,8 @@
 package com.docuhyphen.app.api.service.communication
 
-import io.quarkus.mailer.Mail
-import io.quarkus.mailer.Mailer
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
+import org.eclipse.microprofile.config.inject.ConfigProperty
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.ses.SesClient
 import software.amazon.awssdk.services.ses.model.Body
@@ -15,21 +12,17 @@ import software.amazon.awssdk.services.ses.model.Message
 import software.amazon.awssdk.services.ses.model.SendEmailRequest
 
 @ApplicationScoped
-class EmailService @Inject constructor()
+class EmailService @Inject constructor(
+    @ConfigProperty(name = "app.email.ses.region") private val sesRegion: String,
+    @ConfigProperty(name = "quarkus.mailer.from") private val fromAddress: String,
+)
 {
     private val sesClient: SesClient = createSesClient()
-    private val fromAddress = "no-reply@docuhyphen.com"
 
-    fun createSesClient(): SesClient
+    private fun createSesClient(): SesClient
     {
-        val credentials = AwsBasicCredentials.create(
-            \"REDACTED_AWS_ACCESS_KEY\",
-            \"REDACTED_AWS_SECRET_KEY\",
-        )
-
         return SesClient.builder()
-            .region(Region.US_EAST_1) // SES region must match verified domain
-            .credentialsProvider(StaticCredentialsProvider.create(credentials))
+            .region(Region.of(sesRegion))
             .build()
     }
 

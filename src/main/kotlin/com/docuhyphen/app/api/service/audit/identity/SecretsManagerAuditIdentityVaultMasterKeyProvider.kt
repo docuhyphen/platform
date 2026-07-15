@@ -5,6 +5,7 @@ import com.docuhyphen.app.api.service.config.AuditIdentityVaultConfigService
 import com.docuhyphen.app.api.service.config.AwsSecretsManagerService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
+import java.security.MessageDigest
 import java.util.Base64
 import java.util.concurrent.locks.ReentrantLock
 
@@ -37,7 +38,7 @@ class SecretsManagerAuditIdentityVaultMasterKeyProvider @Inject constructor(
         {
             cachedKey?.let { return it }
             val secretString = secretsManagerService.getSecretString(configService.getSecretId(), configService.getRegion())
-            val key = Base64.getDecoder().decode(secretString.trim())
+            val key = decodeOrDeriveKey(secretString)
             cachedKey = key
             return key
         }
@@ -45,5 +46,16 @@ class SecretsManagerAuditIdentityVaultMasterKeyProvider @Inject constructor(
         {
             lock.unlock()
         }
+    }
+
+    private fun decodeOrDeriveKey(secretString: String): ByteArray
+    {
+        val decoded = runCatching { Base64.getDecoder().decode(secretString.trim()) }.getOrNull()
+        if (decoded?.size == 32)
+        {
+            return decoded
+        }
+
+        return MessageDigest.getInstance("SHA-256").digest(secretString.toByteArray(Charsets.UTF_8))
     }
 }

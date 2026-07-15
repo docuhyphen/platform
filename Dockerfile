@@ -24,16 +24,16 @@ FROM eclipse-temurin:21-jdk
 # Install LibreOffice
 # --no-install-recommends keeps the layer as small as possible.
 RUN apt-get update \
- && apt-get install -y libreoffice \
+ && apt-get install -y --no-install-recommends curl libreoffice \
+ && rm -rf /var/lib/apt/lists/*
 
 # ── Non-root user ────────────────────────────────────────────────────────────
 RUN groupadd -r appgroup --gid 1001 \
-COPY --chown=appuser:appgroup target/quarkus-app/*.jar   /app/
-COPY --chown=appuser:appgroup target/quarkus-app/app/    /app/app/
-COPY --chown=appuser:appgroup target/quarkus-app/quarkus/ /app/quarkus/
+ && useradd -r -g appgroup --uid 1001 --create-home appuser
 
 # Copy Quarkus application (already built by Maven)
-COPY target/quarkus-app/ /app/
+COPY --chown=appuser:appgroup target/quarkus-app/ /app/
+WORKDIR /app
 # -XX:+ExitOnOutOfMemoryError : crash fast on OOM instead of limping along
 # -Djava.util.logging.manager : required by JBoss LogManager (Quarkus)
 ENV JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 \
@@ -45,17 +45,14 @@ ENV JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 \
   -Dfile.encoding=UTF-8"
 
 EXPOSE 8080
-EXPOSE 5005
-
-CMD ["java", \
-  "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005", \
-  "-jar", "/app/quarkus-run.jar"]
 # ── Health check ─────────────────────────────────────────────────────────────
-# ALB also health-checks /actuator/health, but this catches container-level issues
+# ALB also checks the Quarkus health endpoint, but this catches container-level issues
 # before the ALB can even route traffic.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
-  CMD curl -f http://localhost:8080/actuator/health || exit 1
+  CMD curl -f http://localhost:8080/q/health || exit 1
 
 # ── Entrypoint ───────────────────────────────────────────────────────────────
 # exec form ensures PID 1 receives SIGTERM cleanly (graceful ECS task shutdown).
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/quarkus-run.jar"]
+
+USER appuser

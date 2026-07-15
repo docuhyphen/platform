@@ -2,8 +2,8 @@ package com.docuhyphen.app.api.service.storage
 
 import com.docuhyphen.app.api.qualifier.Aws
 import jakarta.enterprise.context.ApplicationScoped
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
+import jakarta.inject.Inject
+import org.eclipse.microprofile.config.inject.ConfigProperty
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
@@ -22,7 +22,10 @@ import software.amazon.awssdk.core.sync.ResponseTransformer
 
 @ApplicationScoped
 @Aws
-class AwsS3FileStorageService : FileStorageService
+class AwsS3FileStorageService @Inject constructor(
+    @ConfigProperty(name = "file.storage.aws.bucket") private val bucketName: String,
+    @ConfigProperty(name = "file.storage.aws.region") private val awsRegion: String,
+) : FileStorageService
 {
 
     companion object
@@ -30,13 +33,6 @@ class AwsS3FileStorageService : FileStorageService
         private const val ALGORITHM = "AES"
         private const val TRANSFORMATION = "AES"
         private const val ENABLE_ENCRYPTION = false
-
-        private const val BUCKET_NAME = "docuhyphen-demo-documents"
-
-        // Hardcoded for now
-        private const val AWS_ACCESS_KEY = \"REDACTED_AWS_ACCESS_KEY\"
-        private const val AWS_SECRET_KEY = \"REDACTED_AWS_SECRET_KEY\"
-        private const val AWS_REGION = "us-east-1"
 
         init
         {
@@ -52,14 +48,8 @@ class AwsS3FileStorageService : FileStorageService
 
     private fun createS3Client(): S3Client
     {
-        val credentials = AwsBasicCredentials.create(
-            AWS_ACCESS_KEY,
-            AWS_SECRET_KEY
-        )
-
         return S3Client.builder()
-            .region(Region.of(AWS_REGION))
-            .credentialsProvider(StaticCredentialsProvider.create(credentials))
+            .region(Region.of(awsRegion))
             .build()
     }
 
@@ -113,7 +103,7 @@ class AwsS3FileStorageService : FileStorageService
             }
 
         val putObjectRequest = PutObjectRequest.builder()
-            .bucket(BUCKET_NAME)
+            .bucket(bucketName)
             .key(key)
             .contentType(Files.probeContentType(fileToUpload.toPath()))
             .build()
@@ -135,7 +125,7 @@ class AwsS3FileStorageService : FileStorageService
         val tempFile = Files.createTempFile("docuhyphen-${UUID.randomUUID()}", extension).toFile()
 
         val getObjectRequest = GetObjectRequest.builder()
-            .bucket(BUCKET_NAME)
+            .bucket(bucketName)
             .key(key)
             .build()
 
@@ -178,7 +168,7 @@ class AwsS3FileStorageService : FileStorageService
     override fun getDocumentSizeBytes(key: String): Long
     {
         val headObjectRequest = HeadObjectRequest.builder()
-            .bucket(BUCKET_NAME)
+            .bucket(bucketName)
             .key(key)
             .build()
 

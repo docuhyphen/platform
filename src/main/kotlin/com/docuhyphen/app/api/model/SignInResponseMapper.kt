@@ -8,8 +8,8 @@ object SignInResponseMapper
     fun toResponse(mfaSession: MfaSessionDto): SignInResponse = SignInResponse(
         message = when (mfaSession.mfaType)
         {
-            "GOOGLE_AUTHENTICATOR" -> "Enter the code from Google Authenticator."
-            "MICROSOFT_AUTHENTICATOR" -> "Enter the code from Microsoft Authenticator."
+            "GOOGLE_AUTHENTICATOR",
+            "MICROSOFT_AUTHENTICATOR" -> "Enter the code from your authenticator app."
             else -> "A verification code has been sent to your email."
         },
         mfaSessionId = mfaSession.id.toString(),
