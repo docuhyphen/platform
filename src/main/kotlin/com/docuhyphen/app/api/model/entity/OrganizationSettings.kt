@@ -29,6 +29,9 @@ class OrganizationSettings
     @Column(name = "allow_share_without_pairing", nullable = false)
     var allowShareWithoutPairing: Boolean = false
 
+    @Column(name = "discoverable_for_trust_requests", nullable = false)
+    var discoverableForTrustRequests: Boolean = false
+
     /**
      * Whether this org may share with external **individual** customers, recipients who belong to
      * no organization (the headline B2C topology). Defaults to `true`: sharing to a person is not

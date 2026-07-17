@@ -5,7 +5,6 @@ import AppSettingsTab from "../../app-settings-tab/AppSettingsTab.tsx";
 import ProfileTab from "../../profile-tab/ProfileTab.tsx";
 import OrganizationGroupsTab from "../../organization-groups-tab/OrganizationGroupsTab.tsx";
 import OrganizationPeopleTab from "../../organization-people-tab/OrganizationPeopleTab.tsx";
-import OrganizationPairingTab from "../../organization-pairing-tab/OrganizationPairingTab.tsx";
 import LinkedAccountsTab from "../../linked-accounts-tab/LinkedAccountsTab.tsx";
 import SessionsTab from "../../sessions-tab/SessionsTab.tsx";
 import MyGroupsTab from "../../my-groups-tab/MyGroupsTab.tsx";
@@ -34,7 +33,7 @@ export interface SettingsTabIds
     appSettings: string;
     people: string;
     groups: string;
-    organizationPairing: string;
+    organizationTrusted: string;
     blueprints: string;
     myGroups: string;
     appAdmins: string;
@@ -90,7 +89,6 @@ const SettingsTabContent = ({selectedValue, tabIds, direction}: SettingsTabConte
                 {selectedValue === tabIds.people && <OrganizationPeopleTab/>}
                 {selectedValue === tabIds.groups &&
                     <OrganizationGroupsTab appUserPersonOrganization={appUserPersonOrganization}/>}
-                {selectedValue === tabIds.organizationPairing && <OrganizationPairingTab/>}
                 {selectedValue === tabIds.appAdmins && <AppAdminsTab/>}
                 {selectedValue === tabIds.blueprints && <BlueprintsTab/>}
                 {selectedValue === tabIds.workflows && <WorkflowsTab/>}

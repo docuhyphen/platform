@@ -3,14 +3,11 @@ package com.docuhyphen.app.api.resource
 import com.docuhyphen.app.api.exception.DataIntegrityException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.model.dto.OrganizationSettingsDto
-import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpdateOrganizationRequest
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
-import com.docuhyphen.app.api.service.auth.DirectoryLookupGuardService
 import com.docuhyphen.app.api.service.SettingsService
 import com.docuhyphen.app.api.service.organization.OrganizationService
-import com.docuhyphen.app.api.service.config.ConfigurationService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -26,8 +23,6 @@ import org.slf4j.LoggerFactory
 class OrganizationResource @Inject constructor(
     private val organizationService: OrganizationService,
     private val settingsService: SettingsService,
-    private val configurationService: ConfigurationService,
-    private val directoryLookupGuardService: DirectoryLookupGuardService,
 )
 {
     companion object
@@ -152,124 +147,4 @@ class OrganizationResource @Inject constructor(
         }
     }
 
-    @GET
-    @Path("/linked/")
-    fun getPairedOrganization(): Response
-    {
-        return try
-        {
-            val orgs = organizationService.getLinkedOrganizations(true).map {
-                BasicEntityToDtoTransformer.toDto(it)
-            }.toTypedArray()
-
-            Response.ok(orgs).build()
-        }
-        catch (exception: Exception)
-        {
-            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
-            when (exception)
-            {
-                is OrganizationNotFoundException ->
-                    Response.status(NOT_FOUND).build()
-
-                is UnauthorizedException ->
-                    Response.status(UNAUTHORIZED).build()
-
-                else ->
-                    Response.status(INTERNAL_SERVER_ERROR).build()
-            }
-        }
-    }
-
-    @GET
-    @Path("/linked/{organizationId}/app-users")
-    fun getPairedOrganizationAppUsers(
-        @PathParam("organizationId") organizationId: String?,
-        @HeaderParam("X-Request-Id") requestId: String?,
-    ): Response
-    {
-        return try
-        {
-            val limitedResponse = enforceDirectoryLookupRateLimit(
-                targetOrganizationId = organizationId,
-                endpointKey = "linked-app-users",
-                requestId = requestId,
-            )
-            if (limitedResponse != null)
-            {
-                return limitedResponse
-            }
-
-            val appUsers = organizationService.getLinkedOrganizationsAppUsers(organizationId).map {
-                BasicEntityToDtoTransformer.toLinkedOrgAppUser(it)
-            }.take(configurationService.getDirectoryLookupMaxResults()).toTypedArray()
-
-            Response.ok(appUsers).build()
-        }
-        catch (exception: Exception)
-        {
-            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
-            when (exception)
-            {
-                is OrganizationNotFoundException ->
-                    Response.status(NOT_FOUND).build()
-
-                is UnauthorizedException ->
-                    Response.status(UNAUTHORIZED).build()
-
-                else ->
-                    Response.status(INTERNAL_SERVER_ERROR).build()
-            }
-        }
-    }
-
-    @GET
-    @Path("/linked/{organizationId}/groups")
-    fun getPairedOrganizationGroups(
-        @PathParam("organizationId") organizationId: String?,
-        @HeaderParam("X-Request-Id") requestId: String?,
-    ): Response
-    {
-        return try
-        {
-            val limitedResponse = enforceDirectoryLookupRateLimit(
-                targetOrganizationId = organizationId,
-                endpointKey = "linked-groups",
-                requestId = requestId,
-            )
-            if (limitedResponse != null)
-            {
-                return limitedResponse
-            }
-
-            val groups = organizationService.getLinkedOrganizationsGroups(organizationId)
-                .take(configurationService.getDirectoryLookupMaxResults()).toTypedArray()
-
-            Response.ok(groups).build()
-        }
-        catch (exception: Exception)
-        {
-            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
-            when (exception)
-            {
-                is OrganizationNotFoundException ->
-                    Response.status(NOT_FOUND).build()
-
-                is UnauthorizedException ->
-                    Response.status(UNAUTHORIZED).build()
-
-                else ->
-                    Response.status(INTERNAL_SERVER_ERROR).build()
-            }
-        }
-    }
-
-    private fun enforceDirectoryLookupRateLimit(
-        targetOrganizationId: String?,
-        endpointKey: String,
-        requestId: String?,
-    ): Response?
-    {
-        return directoryLookupGuardService.enforce(endpointKey, targetOrganizationId, requestId)
-    }
 }

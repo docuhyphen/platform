@@ -1,8 +1,6 @@
 ﻿package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.exception.InvalidEmailException
-import com.docuhyphen.app.api.exception.AppUserNotFoundException
-import com.docuhyphen.app.api.exception.OrganizationGroupNotFoundException
 import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.*
@@ -12,7 +10,13 @@ import com.docuhyphen.app.api.model.entity.ExchangeRecipientType.GROUP
 import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.repository.ExchangeRepository
 import com.docuhyphen.app.api.resource.model.ExchangeInitiationDto
-import com.docuhyphen.app.api.repository.OrganizationRepository
+import com.docuhyphen.app.api.resource.model.ExternalEmailRecipientSelectionRequest
+import com.docuhyphen.app.api.resource.model.InternalGroupRecipientSelectionRequest
+import com.docuhyphen.app.api.resource.model.PersonalGroupRecipientSelectionRequest
+import com.docuhyphen.app.api.resource.model.RegisteredUserRecipientSelectionRequest
+import com.docuhyphen.app.api.resource.model.TrustedGroupRecipientSelectionRequest
+import com.docuhyphen.app.api.resource.model.TrustedPersonRecipientSelectionRequest
+import com.docuhyphen.app.api.service.organization.ExternalIdentityResolutionService
 import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.realtime.RealtimeMessage
 import com.docuhyphen.app.api.realtime.RealtimeMessageType
@@ -21,11 +25,17 @@ import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthRateLimitService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.auth.RevocationReasonCode
+import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.Decision as AuthorizationDecision
+import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
-import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import com.docuhyphen.app.api.service.organization.OrganizationGroupService
+import com.docuhyphen.app.api.service.organization.OrganizationService
 import com.docuhyphen.app.api.service.documentlibrary.DocumentLibraryService
 import com.docuhyphen.app.api.service.notification.InAppNotificationService
 import com.docuhyphen.app.api.service.notification.UserNotificationPreference
@@ -41,6 +51,7 @@ import jakarta.transaction.Transactional
 import jakarta.transaction.Status
 import jakarta.transaction.Synchronization
 import jakarta.transaction.TransactionSynchronizationRegistry
+import io.quarkus.security.ForbiddenException
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
@@ -55,18 +66,22 @@ class ExchangeInitiationService @Inject constructor(
     private val emailTemplateService: EmailTemplateService,
     private val otpService: OtpService,
     private val authTokenContext: AuthTokenContext,
+    private val authorizationService: AuthorizationService,
+    private val authorizationContextFactory: AuthorizationContextFactory,
     private val authenticationService: AuthenticationService,
     private val authRateLimitService: AuthRateLimitService,
     private val configurationService: ConfigurationService,
     private val authAuditService: AuthAuditService,
     private val inAppNotificationService: InAppNotificationService,
     private val shareService: ShareService,
-    private val principalGroupRepository: com.docuhyphen.app.api.repository.PrincipalGroupRepository,
+    private val exchangeRecipientService: ExchangeRecipientService,
+    private val exchangeRecipientAttestationService: ExchangeRecipientAttestationService,
+    private val externalIdentityResolutionService: ExternalIdentityResolutionService,
+    private val exchangeRecipientSelectionResolver: ExchangeRecipientSelectionResolver,
     private val principalGroupMemberRepository: com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository,
-    private val organizationExchangePolicyService: com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService,
+    private val organizationGroupService: OrganizationGroupService,
     private val workflowEngineService: com.docuhyphen.app.api.service.workflow.WorkflowEngineService,
-    private val organizationMembershipService: OrganizationMembershipService,
-    private val organizationRepository: OrganizationRepository,
+    private val organizationService: OrganizationService,
     private val templateVariableInterpolator: TemplateVariableInterpolator,
     private val documentLibraryService: DocumentLibraryService,
     private val fileStorageService: FileStorageService,
@@ -84,12 +99,20 @@ class ExchangeInitiationService @Inject constructor(
         private val logger = LoggerFactory.getLogger(ExchangeInitiationService::class.java)
     }
 
+    private data class ResolvedParticipant(
+        val selection: ResolvedExchangeRecipientSelection,
+        val role: ExchangeShareRoleName,
+    )
+
     @Transactional
     fun initiateExchange(sessionInitiationDto: ExchangeInitiationDto): Exchange
     {
         val initiator = authTokenContext.authToken.appUser!!
+        authorizeActiveOrganizationInitiation()
+        val primarySelectionRequest = sessionInitiationDto.primaryRecipient
+            ?: throw IllegalArgumentException("Primary recipient is required")
 
-        if (sessionInitiationDto.recipientType == EMAIL)
+        if (primarySelectionRequest is ExternalEmailRecipientSelectionRequest)
         {
             val limited = authRateLimitService.isLimited(
                 key = "directory:recipient-resolve:${initiator.id}",
@@ -108,55 +131,38 @@ class ExchangeInitiationService @Inject constructor(
         }
 
         validateExchangeFields(initiator, sessionInitiationDto)
-
-        val recipientGroupId: UUID? =
-            if (sessionInitiationDto.recipientType == GROUP)
-                UUID.fromString(sessionInitiationDto.recipientOrgGroupId!!)
-            else null
-
-        val resolvedRecipient: AppUser? = when (sessionInitiationDto.recipientType)
-        {
-            EMAIL ->
-                appUserService.getAppUserByEmail(sessionInitiationDto.recipientEmail!!)
-                    ?.applyTemporaryRecipientName(
-                        recipientFirstName = sessionInitiationDto.recipientFirstName,
-                        recipientLastName = sessionInitiationDto.recipientLastName,
-                    )
-                    ?: AppUser().apply {
-                        isTemporary = true
-                        email = sessionInitiationDto.recipientEmail!!
-                        isActive = false
-                    }.applyTemporaryRecipientName(
-                        recipientFirstName = sessionInitiationDto.recipientFirstName,
-                        recipientLastName = sessionInitiationDto.recipientLastName,
-                    )
-
-            APP_USER ->
-                appUserService.getById(UUID.fromString(sessionInitiationDto.recipientAppUserId))!!
-
-            GROUP -> null
-
-            else ->
-                throw IllegalArgumentException("Unsupported recipient type")
-        }
-
-        // Org sharing policy: a closed org (allowShareWithoutPairing = false) may only share with
-        // its own members or members of a paired org. GROUP recipients are org-internal groups and
-        // are governed by group membership, so the gate applies to direct USER/EMAIL recipients.
-        if (sessionInitiationDto.recipientType == EMAIL || sessionInitiationDto.recipientType == APP_USER)
-        {
-            organizationExchangePolicyService.assertCanShareWithUser(
-                initiatorAppUserId = initiator.id,
-                recipientAppUserId = resolvedRecipient?.takeIf { it.isTemporary != true }?.id,
+        val activeOrganizationId = authTokenContext.activeOrganizationId
+        val resolvedPrimary = exchangeRecipientSelectionResolver.resolve(
+            primarySelectionRequest,
+            initiator,
+            activeOrganizationId,
+        )
+        val recipientGroupId = resolvedPrimary.group?.id
+        val recipientGroup = resolvedPrimary.group
+        val resolvedRecipient = resolvedPrimary.appUser
+        val resolvedParticipants = sessionInitiationDto.participants.map { participant ->
+            require(participant.role != ExchangeShareRoleName.OWNER) {
+                "Exchange owner cannot be added as a participant"
+            }
+            val resolved = exchangeRecipientSelectionResolver.resolve(
+                participant.selection,
+                initiator,
+                activeOrganizationId,
             )
+            require(resolved.selectionType != ExchangeRecipientSelectionType.EXTERNAL_EMAIL) {
+                "External email participants are not supported"
+            }
+            ResolvedParticipant(resolved, participant.role)
         }
-
-        // Participants as (principal kind, id) pairs, group participants fan out to members.
-        val participantPrincipals: List<Pair<PrincipalKind, UUID>> = sessionInitiationDto.participants.map { p ->
-            if (p.participantType == ExchangeParticipantType.GROUP)
-                PrincipalKind.PRINCIPAL_GROUP to UUID.fromString(p.id)
-            else
-                PrincipalKind.USER to UUID.fromString(p.id)
+        val primaryPrincipal = resolvedPrimary.principalKind to resolvedPrimary.principalId
+        val participantPrincipals = resolvedParticipants.map {
+            it.selection.principalKind to it.selection.principalId
+        }
+        require(primaryPrincipal !in participantPrincipals) {
+            "The primary recipient cannot also be an additional participant"
+        }
+        require(participantPrincipals.distinct().size == participantPrincipals.size) {
+            "An additional participant cannot be selected more than once"
         }
 
         entityManager.detach(initiator)
@@ -165,12 +171,8 @@ class ExchangeInitiationService @Inject constructor(
         val appUserRecipient = resolvedRecipient?.let { entityManager.merge(it) }
 
         // Interpolate template variables in all string fields before entity creation.
-        val orgId0 = when (sessionInitiationDto.recipientType)
-        {
-            GROUP -> recipientGroupId?.let { principalGroupRepository.findById(it) }?.ownerOrganizationId
-            else -> organizationMembershipService.primaryOrganizationId(initiator.id)
-        }
-        val orgForInterpolation = orgId0?.let { organizationRepository.findById(it) }
+        val orgId0 = authTokenContext.activeOrganizationId
+        val orgForInterpolation = orgId0?.let { organizationService.getOrganizationById(it) }
         val interpolationContext = VariableResolutionContext(
             user = initiator,
             organization = orgForInterpolation,
@@ -199,7 +201,9 @@ class ExchangeInitiationService @Inject constructor(
             this.status = ExchangeStatus.INITIATED
             this.createdDate = Timestamp.from(Instant.now())
             this.lastActivity = Timestamp.from(Instant.now())
-            this.requireRecipientSignIn = sessionInitiationDto.requestRecipientSignIn == true
+            this.requireRecipientSignIn = sessionInitiationDto.requestRecipientSignIn == true ||
+                resolvedPrimary.selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP ||
+                resolvedPrimary.selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON
             if (orgId0 != null) {
                 this.ownerOrganizationId = orgId0
             } else {
@@ -258,14 +262,9 @@ class ExchangeInitiationService @Inject constructor(
         // assignee logic) can observe the values. Validation failures roll back the whole Exchange.
         applyCreationTimeFields(savedExchange.id, sessionInitiationDto)
 
-        // Resolve the initiator's org context once; used for both workflow triggers
-        // and the group-specific manager access grant below.
-        val orgId: UUID? = when (sessionInitiationDto.recipientType)
-        {
-            GROUP -> recipientGroupId?.let { principalGroupRepository.findById(it) }?.ownerOrganizationId
-            else -> organizationMembershipService.primaryOrganizationId(initiator.id)
-        }
-        val orgSettings = orgId?.let { organizationRepository.findById(it) }?.settings
+        // Use the caller's validated active organization for Exchange settings and workflows.
+        val orgId = authTokenContext.activeOrganizationId
+        val orgSettings = orgId?.let { organizationService.getOrganizationById(it) }?.settings
 
         // 1. Fire exchange.draft_submitted (optional pre-send internal-approval gate).
         //    If an active workflow picks this up, the recipient share must be held until
@@ -295,7 +294,13 @@ class ExchangeInitiationService @Inject constructor(
         //    • No draft approval, requireRecipientAcceptance = true: fire acceptance_pending now;
         //      a matching WorkflowDefinition holds the share until "exchange.activated" is emitted.
         //    • No draft approval, requireRecipientAcceptance = false: auto-advance immediately.
-        val requireAcceptance = orgSettings?.requireRecipientAcceptance ?: true
+        // Trusted person and trusted group selections always require recipient sign-in and
+        // acceptance, even when the initiating organization normally auto-starts Exchanges. This
+        // preserves the trusted assurance contract: their direct Share is held until the attested
+        // recipient decides.
+        val trustedRecipient = resolvedPrimary.selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP ||
+            resolvedPrimary.selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON
+        val requireAcceptance = trustedRecipient || (orgSettings?.requireRecipientAcceptance ?: true)
         val recipientNeedsApproval: Boolean
 
         if (draftApprovalPending)
@@ -310,7 +315,7 @@ class ExchangeInitiationService @Inject constructor(
         {
             val subjectData = buildMap<String, String> {
                 put("initiatorId", initiator.id.toString())
-                put("recipientType", sessionInitiationDto.recipientType!!.name)
+                put("recipientType", resolvedPrimary.selectionType.name)
                 put("exchangeName", savedExchange.name ?: "")
                 initiator.person?.let { p ->
                     listOfNotNull(p.firstName, p.lastName)
@@ -319,7 +324,7 @@ class ExchangeInitiationService @Inject constructor(
                         ?.let { put("initiatorName", it) }
                 }
                 orgId?.let { put("orgId", it.toString()) }
-                when (sessionInitiationDto.recipientType)
+                when (resolvedPrimary.recipientType)
                 {
                     GROUP -> recipientGroupId?.let { put("recipientGroupId", it.toString()) }
                     else -> appUserRecipient?.let { put("recipientId", it.id.toString()) }
@@ -337,7 +342,7 @@ class ExchangeInitiationService @Inject constructor(
                 )
             )
 
-            recipientNeedsApproval = acceptanceResult != null
+            recipientNeedsApproval = trustedRecipient || acceptanceResult != null
             if (acceptanceResult != null)
             {
                 logger.info(
@@ -372,34 +377,47 @@ class ExchangeInitiationService @Inject constructor(
         // OWNER share was already granted above (before applyCreationTimeFields); the recipient
         // gets a role derived from the requested document permissions, and each participant a
         // PARTICIPANT share (groups fan out to members).
-        grantRecipientShare(
+        val primaryRecipientShare = grantRecipientShare(
             session = savedExchange,
-            recipientType = sessionInitiationDto.recipientType!!,
+            recipientType = resolvedPrimary.recipientType,
             recipientAppUser = appUserRecipient,
             recipientGroupId = recipientGroupId,
             initiator = initiator,
             dto = sessionInitiationDto,
             pendingApproval = recipientNeedsApproval,
         )
-        // For GROUP recipients that need approval: give group OWNERs and MANAGERs an active
-        // REVIEWER share so they can see the draft and act on the acceptance workflow step.
-        if (recipientNeedsApproval && recipientGroupId != null)
-        {
-            grantGroupManagerViewerAccess(savedExchange, recipientGroupId, initiator)
-        }
-        grantParticipantShares(savedExchange, participantPrincipals, initiator)
+        grantParticipantShares(savedExchange, resolvedParticipants, initiator)
 
+        val externalEmailSelection = primarySelectionRequest as? ExternalEmailRecipientSelectionRequest
         sendNotifications(
-            recipientType = sessionInitiationDto.recipientType!!,
+            recipientType = resolvedPrimary.recipientType,
             initiator = initiator,
             recipientAppUser = appUserRecipient,
             recipientGroupId = recipientGroupId,
             exchange = savedExchange,
-            recipientEmail = sessionInitiationDto.recipientEmail,
-            recipientFirstName = sessionInitiationDto.recipientFirstName,
-            recipientLastName = sessionInitiationDto.recipientLastName,
+            recipientEmail = externalEmailSelection?.email,
+            recipientFirstName = externalEmailSelection?.firstName,
+            recipientLastName = externalEmailSelection?.lastName,
             pendingApproval = recipientNeedsApproval,
         )
+        val primaryRecipient = exchangeRecipientService.createBinding(
+            exchangeId = savedExchange.id,
+            directShare = primaryRecipientShare,
+            purpose = ExchangeRecipientPurpose.PRIMARY,
+            selectionType = resolvedPrimary.selectionType,
+            targetOrganizationId = resolvedPrimary.targetOrganizationId,
+            acceptanceStatus = if (requireAcceptance)
+                ExchangeRecipientAcceptanceStatus.PENDING
+            else
+                ExchangeRecipientAcceptanceStatus.NOT_REQUIRED,
+        )
+        resolvedPrimary.trustedGroupValidation?.let { validation ->
+            exchangeRecipientAttestationService.createGroupAttestation(primaryRecipient, validation)
+        }
+        resolvedPrimary.preparedPersonResolution?.let { prepared ->
+            consumeTrustedPersonResolution(prepared, initiator.id, activeOrganizationId, savedExchange.id)
+            exchangeRecipientAttestationService.createPersonAttestation(primaryRecipient, prepared)
+        }
 
         publishInitiatedNotifications(savedExchange, initiator.id, recipientNeedsApproval)
 
@@ -413,6 +431,23 @@ class ExchangeInitiationService @Inject constructor(
 
         logger.info("Sharing Exchange Initiated ID: ${exchange.id}")
         return savedExchange
+    }
+
+    private fun authorizeActiveOrganizationInitiation()
+    {
+        val activeOrganizationId = authTokenContext.activeOrganizationId ?: return
+        val principal = authorizationContextFactory.currentPrincipal()
+            ?: throw ForbiddenException("Authentication is required to initiate an Exchange")
+        val decision = authorizationService.authorize(
+            principal = principal,
+            action = Action.EXCHANGE_INITIATE,
+            resource = ResourceRef.organization(activeOrganizationId),
+            context = authorizationContextFactory.currentContext(),
+        )
+        if (decision is AuthorizationDecision.Deny)
+        {
+            throw ForbiddenException("Not authorized to initiate an Exchange for the active organization")
+        }
     }
 
     private fun publishInitiatedNotifications(
@@ -503,50 +538,8 @@ class ExchangeInitiationService @Inject constructor(
     }
 
     /**
-     * When a group-recipient exchange requires approval, grant each group OWNER/MANAGER an
-     * active REVIEWER share so they can see the draft exchange in their list and act on the
-     * approval workflow step assigned to them. Without this the group's share (and all
-     * inherited member shares) sits at PENDING_APPROVAL status, which the ACCESSIBLE predicate
-     * does not match, leaving the exchange invisible to the approvers and stuck in draft.
-     *
-     * Regular group MEMBER/OBSERVER principals are intentionally excluded: they only get access
-     * once the approval completes and the group's share is activated.
-     */
-    private fun grantGroupManagerViewerAccess(
-        session: Exchange,
-        recipientGroupId: UUID,
-        initiator: AppUser,
-    )
-    {
-        principalGroupMemberRepository.findActiveMembers(recipientGroupId)
-            .filter { it.principalKind == PrincipalKind.USER }
-            .filter {
-                it.groupRole == PrincipalGroupRoleName.MANAGER ||
-                    it.groupRole == PrincipalGroupRoleName.OWNER
-            }
-            .forEach { member ->
-                shareService.grant(
-                    resourceType = ResourceType.EXCHANGE,
-                    resourceId = session.id,
-                    principalKind = PrincipalKind.USER,
-                    principalId = member.principalId,
-                    roleName = ExchangeShareRoleName.REVIEWER,
-                    grantedByAppUserId = initiator.id,
-                    source = ShareSource.DIRECT,
-                )
-            }
-    }
-
-    /**
-     * Dual-write: mirror the session's legacy recipient into a unified [Share] row so the new
-     * authorization model stays in sync. The legacy recipient columns remain authoritative for
-     * reads until cutover. No-op when dual-write is disabled.
-     *
-     * A GROUP recipient becomes a `PRINCIPAL_GROUP` share, which [ShareService] fans out into
-     * `INHERITED_FROM_GROUP` rows per member. USER / EMAIL recipients (the latter already
-     * materialised as a temporary [AppUser] by the legacy flow) become `USER` shares.
-     *
-     * Participants are not mirrored here yet, that is a separate follow-up slice.
+     * Creates the direct Share that grants the selected recipient access to the Exchange.
+     * Group Shares fan out to active group members through [ShareService].
      */
     private fun grantRecipientShare(
         session: Exchange,
@@ -556,15 +549,17 @@ class ExchangeInitiationService @Inject constructor(
         initiator: AppUser,
         dto: ExchangeInitiationDto,
         pendingApproval: Boolean = false,
-    )
+    ): Share
     {
         val (principalKind, principalId) = when (recipientType)
         {
-            GROUP -> recipientGroupId?.let { PrincipalKind.PRINCIPAL_GROUP to it } ?: return
-            else -> recipientAppUser?.let { PrincipalKind.USER to it.id } ?: return
+            GROUP -> recipientGroupId?.let { PrincipalKind.PRINCIPAL_GROUP to it }
+                ?: throw IllegalArgumentException("Recipient group is required")
+            else -> recipientAppUser?.let { PrincipalKind.USER to it.id }
+                ?: throw IllegalArgumentException("Recipient user is required")
         }
 
-        shareService.grant(
+        return shareService.grant(
             resourceType = ResourceType.EXCHANGE,
             resourceId = session.id,
             principalKind = principalKind,
@@ -593,27 +588,70 @@ class ExchangeInitiationService @Inject constructor(
     }
 
     /**
-     * Grant each participant a `PARTICIPANT`-role [Share]. A group participant becomes a
-     * `PRINCIPAL_GROUP` share (fanned out to members by [ShareService]); an individual a `USER` share.
+     * Grant each participant the requested non-owner Share role. Trusted group Shares are created
+     * pending, attested, and then activated so current trust policy is revalidated before members
+     * receive inherited access.
      */
     private fun grantParticipantShares(
         session: Exchange,
-        participants: List<Pair<PrincipalKind, UUID>>,
+        participants: List<ResolvedParticipant>,
         initiator: AppUser,
     )
     {
-        for ((principalKind, principalId) in participants)
+        for (participant in participants)
         {
-            shareService.grant(
+            val selection = participant.selection
+            val trusted = selection.trustedGroupValidation != null || selection.preparedPersonResolution != null
+            val participantShare = shareService.grant(
                 resourceType = ResourceType.EXCHANGE,
                 resourceId = session.id,
-                principalKind = principalKind,
-                principalId = principalId,
-                roleName = ExchangeShareRoleName.PARTICIPANT,
+                principalKind = selection.principalKind,
+                principalId = selection.principalId,
+                roleName = participant.role,
                 grantedByAppUserId = initiator.id,
                 source = ShareSource.DIRECT,
+                status = if (trusted) ShareStatus.PENDING_APPROVAL else ShareStatus.ACTIVE,
             )
+            val recipient = exchangeRecipientService.createBinding(
+                exchangeId = session.id,
+                directShare = participantShare,
+                purpose = ExchangeRecipientPurpose.PARTICIPANT,
+                selectionType = selection.selectionType,
+                targetOrganizationId = selection.targetOrganizationId,
+                acceptanceStatus = ExchangeRecipientAcceptanceStatus.NOT_REQUIRED,
+            )
+            selection.trustedGroupValidation?.let { validation ->
+                exchangeRecipientAttestationService.createGroupAttestation(recipient, validation)
+                shareService.activate(participantShare.id)
+            }
+            selection.preparedPersonResolution?.let { prepared ->
+                consumeTrustedPersonResolution(prepared, initiator.id, authTokenContext.activeOrganizationId, session.id)
+                exchangeRecipientAttestationService.createPersonAttestation(recipient, prepared)
+                shareService.activate(participantShare.id)
+            }
         }
+    }
+
+    /**
+     * Consumes a trusted-member verification under a row lock inside this Exchange transaction so it
+     * cannot be replayed. Consumption rolls back if Exchange creation rolls back.
+     */
+    private fun consumeTrustedPersonResolution(
+        prepared: ExternalIdentityResolutionService.PreparedPersonResolution,
+        actorAppUserId: UUID,
+        callerOrganizationId: UUID?,
+        exchangeId: UUID,
+    )
+    {
+        val organizationId = callerOrganizationId
+            ?: throw IllegalArgumentException("An active organization is required for a trusted person")
+        externalIdentityResolutionService.consumeForExchange(
+            resolutionId = prepared.resolution.id,
+            actorAppUserId = actorAppUserId,
+            callerOrganizationId = organizationId,
+            targetOrganizationId = prepared.resolution.targetOrganizationId,
+            exchangeId = exchangeId,
+        )
     }
 
     /**
@@ -750,53 +788,50 @@ class ExchangeInitiationService @Inject constructor(
             throw IllegalArgumentException("Session name is required")
         }
 
-        when (sessionInitiationDto.recipientType)
+        when (val selection = sessionInitiationDto.primaryRecipient)
         {
-            EMAIL ->
+            is ExternalEmailRecipientSelectionRequest ->
             {
-                if ((sessionInitiationDto.recipientEmail?.trim()?.length ?: 0) < 5)
+                if (selection.email.trim().length < 5)
                 {
                     throw InvalidEmailException("Recipient email is invalid")
                 }
 
-                if (initiator.email.normalizeEmailOrNull() == sessionInitiationDto.recipientEmail.normalizeEmailOrNull())
+                if (initiator.email.normalizeEmailOrNull() == selection.email.normalizeEmailOrNull())
                 {
                     throw IllegalArgumentException("Recipient and Initiator cannot be the same")
                 }
 
-                sessionInitiationDto.recipientEmail?.let {
-                    if (authenticationService.isEmailInvalid(it))
-                    {
-                        throw InvalidEmailException("Recipient email is invalid")
-                    }
-                } ?: throw InvalidEmailException("Recipient email is required")
+                if (authenticationService.isEmailInvalid(selection.email))
+                {
+                    throw InvalidEmailException("Recipient email is invalid")
+                }
+                if (selection.firstName.isBlank() || selection.lastName.isBlank())
+                {
+                    throw IllegalArgumentException("Recipient first and last name are required")
+                }
             }
 
-            APP_USER ->
+            is RegisteredUserRecipientSelectionRequest ->
             {
-                sessionInitiationDto.recipientAppUserId?.let {
-
-                    val recipientId = UUID.fromString(it)
-                    if (recipientId == initiator.id)
-                    {
-                        throw IllegalArgumentException("Recipient and Initiator cannot be the same")
-                    }
-                    appUserService.getById(recipientId)
-                        ?: throw AppUserNotFoundException("Recipient not found")
-
-                } ?: throw AppUserNotFoundException("Recipient not found")
+                val recipientId = UUID.fromString(selection.appUserId)
+                if (recipientId == initiator.id)
+                {
+                    throw IllegalArgumentException("Recipient and Initiator cannot be the same")
+                }
             }
 
-            GROUP ->
+            is InternalGroupRecipientSelectionRequest -> UUID.fromString(selection.groupId)
+            is PersonalGroupRecipientSelectionRequest -> UUID.fromString(selection.groupId)
+            is TrustedGroupRecipientSelectionRequest ->
             {
-                sessionInitiationDto.recipientOrgGroupId?.let {
-                    principalGroupRepository.findById(UUID.fromString(it))
-                        ?: throw OrganizationGroupNotFoundException("Recipient group not found")
-                } ?: throw OrganizationGroupNotFoundException("Recipient group not found")
+                UUID.fromString(selection.organizationId)
+                UUID.fromString(selection.groupId)
             }
 
-            else ->
-                throw IllegalArgumentException("Unsupported recipient type")
+            is TrustedPersonRecipientSelectionRequest -> UUID.fromString(selection.resolutionId)
+
+            null -> throw IllegalArgumentException("Primary recipient is required")
         }
 
         if (sessionInitiationDto.exchangeDocuments.isNullOrEmpty())
@@ -805,12 +840,13 @@ class ExchangeInitiationService @Inject constructor(
         }
 
         sessionInitiationDto.participants.forEach {
-            if (it.participantType == ExchangeParticipantType.GROUP)
+            val selection = it.selection
+            if (selection !is RegisteredUserRecipientSelectionRequest)
             {
                 return@forEach
             }
 
-            val participantId = runCatching { UUID.fromString(it.id) }.getOrNull()
+            val participantId = runCatching { UUID.fromString(selection.appUserId) }.getOrNull()
                 ?: throw IllegalArgumentException("Participant id is invalid")
 
             if (participantId == initiator.id)
@@ -860,7 +896,8 @@ class ExchangeInitiationService @Inject constructor(
 
         val recipientLabel = when (recipientType)
         {
-            GROUP -> recipientGroupId?.let { principalGroupRepository.findById(it)?.name }?.let { "Group: $it" } ?: "Group"
+            GROUP -> recipientGroupId?.let { organizationGroupService.getById(it.toString())?.name }
+                ?.let { "Group: $it" } ?: "Group"
             else -> listOfNotNull(
                 recipientAppUser?.person?.firstName?.trim()?.takeIf { it.isNotBlank() },
                 recipientAppUser?.person?.lastName?.trim()?.takeIf { it.isNotBlank() },
@@ -977,29 +1014,6 @@ class ExchangeInitiationService @Inject constructor(
                 logger.error("Failed to send exchange initiator email to {}", initiator.email, e)
             }
         }
-    }
-
-    private fun AppUser.applyTemporaryRecipientName(
-        recipientFirstName: String?,
-        recipientLastName: String?,
-    ): AppUser
-    {
-        if (!isTemporary) return this
-
-        val firstName = recipientFirstName?.trim()?.takeIf { it.isNotBlank() }
-        val lastName = recipientLastName?.trim()?.takeIf { it.isNotBlank() }
-        if (firstName == null && lastName == null) return this
-
-        val currentPerson = person
-        val currentFirstName = currentPerson?.firstName?.trim()?.takeIf { it.isNotBlank() }
-        val currentLastName = currentPerson?.lastName?.trim()?.takeIf { it.isNotBlank() }
-        if (currentFirstName != null || currentLastName != null) return this
-
-        person = (currentPerson ?: Person()).apply {
-            this.firstName = firstName
-            this.lastName = lastName
-        }
-        return this
     }
 
     /**

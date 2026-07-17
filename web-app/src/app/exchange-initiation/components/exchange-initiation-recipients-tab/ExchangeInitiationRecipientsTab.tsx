@@ -1,10 +1,11 @@
 ﻿import React, {useEffect, useRef} from 'react';
 import {Badge, Dropdown, Field, InfoLabel, Option, Radio, RadioGroup, Text} from "@fluentui/react-components";
 import {useExchangeInitiationRecipientsTabStyles} from "./ExchangeInitiationRecipientsTabStyles.tsx";
-import {AppUserPublicDto, OrganizationBasicDto} from "../../../models/models.tsx";
+import {AppUserPublicDto, Capability, OrganizationBasicDto} from "../../../models/models.tsx";
 import {OrganizationGroupBasicDto} from "../../../../services/organizationApi";
+import {ExternalIdentityResolution} from "../../../../services/organizationTrust.ts";
 import MyOrganizationRecipients from "./my-organization-recipients/MyOrganizationRecipients";
-import ExternalOrganizationRecipients from "./external-organization-recipients/ExternalOrganizationRecipients";
+import TrustedOrganizationRecipients from "./trusted-organization-recipients/TrustedOrganizationRecipients.tsx";
 import {ExchangeNewMainRecipient} from "./new-recipient/NewRecipient";
 import PeopleRecipients from "./people-recipients/PeopleRecipients";
 import MyGroupsRecipients from "./my-groups-recipients/MyGroupsRecipients";
@@ -24,7 +25,7 @@ export enum ExchangeInitiationRecipientMode
     PEOPLE = "PEOPLE",
     MY_GROUPS = "MY_GROUPS",
     MY_ORG = "MY_ORG",
-    EXTERNAL_ORG = "EXTERNAL_ORG",
+    TRUSTED_ORG = "TRUSTED_ORG",
     EMAIL = "EMAIL"
 }
 
@@ -38,6 +39,7 @@ interface ExchangeRecipientsTabProps
     setRecipientOrgUser: (user: AppUserPublicDto | undefined) => void;
     recipientOrgGroup: OrganizationGroupBasicDto | undefined;
     setRecipientOrgGroup: (group: OrganizationGroupBasicDto | undefined) => void;
+    setRecipientResolution: (resolution?: ExternalIdentityResolution) => void;
     internalParticipants: AppUserPublicDto[];
     setInternalParticipants: (appUser: AppUserPublicDto[] | undefined) => void;
     newRecipient: ExchangeNewMainRecipient | undefined;
@@ -52,7 +54,7 @@ interface ExchangeRecipientsTabProps
 const ExchangeInitiationRecipientsTab: React.FC<ExchangeRecipientsTabProps> = (props) =>
 {
     const styles = useExchangeInitiationRecipientsTabStyles();
-    const {appUserPersonOrganization} = useAuth()
+    const {appUserPersonOrganization, hasCapability} = useAuth()
     const isMobile = useIsMobile();
 
     type RecipientModeSnapshot = {
@@ -67,7 +69,7 @@ const ExchangeInitiationRecipientsTab: React.FC<ExchangeRecipientsTabProps> = (p
         [ExchangeInitiationRecipientMode.PEOPLE]: {},
         [ExchangeInitiationRecipientMode.MY_GROUPS]: {},
         [ExchangeInitiationRecipientMode.MY_ORG]: {},
-        [ExchangeInitiationRecipientMode.EXTERNAL_ORG]: {},
+        [ExchangeInitiationRecipientMode.TRUSTED_ORG]: {},
         [ExchangeInitiationRecipientMode.EMAIL]: {},
     });
 
@@ -124,17 +126,19 @@ const ExchangeInitiationRecipientsTab: React.FC<ExchangeRecipientsTabProps> = (p
 
     useEffect(() =>
     {
-        if (!appUserPersonOrganization)
+        if (!appUserPersonOrganization ||
+            (!hasCapability(Capability.EXTERNAL_GROUP_DISCOVER) &&
+                !hasCapability(Capability.EXTERNAL_IDENTITY_RESOLVE)))
         {
             // Only reset org-specific modes; PEOPLE and MY_GROUPS are always available
             if (props.recipientMode === ExchangeInitiationRecipientMode.MY_ORG ||
-                props.recipientMode === ExchangeInitiationRecipientMode.EXTERNAL_ORG)
+                props.recipientMode === ExchangeInitiationRecipientMode.TRUSTED_ORG)
             {
                 props.setRecipientMode(ExchangeInitiationRecipientMode.PEOPLE);
             }
         }
 
-    }, [appUserPersonOrganization, props]);
+    }, [appUserPersonOrganization, hasCapability, props]);
 
     return (
         <div className={styles.recipientsTabContent}>
@@ -147,9 +151,19 @@ const ExchangeInitiationRecipientsTab: React.FC<ExchangeRecipientsTabProps> = (p
                     <Radio value={ExchangeInitiationRecipientMode.PEOPLE} label="People"/>
                     <Radio value={ExchangeInitiationRecipientMode.MY_GROUPS} label="My Groups"/>
                     {appUserPersonOrganization?.verificationComplete && appUserPersonOrganization?.isActive && <>
-                        <Radio value={ExchangeInitiationRecipientMode.MY_ORG} label="My Organization"/>
-                        <Radio value={ExchangeInitiationRecipientMode.EXTERNAL_ORG}
-                               label="External Organization"/>
+                        <Radio
+                            id={"exchange-recipient-mode-my-organization"}
+                            value={ExchangeInitiationRecipientMode.MY_ORG}
+                            label="My Organization"
+                        />
+                        {(hasCapability(Capability.EXTERNAL_GROUP_DISCOVER) ||
+                            hasCapability(Capability.EXTERNAL_IDENTITY_RESOLVE)) && (
+                            <Radio
+                                id={"exchange-recipient-mode-trusted-organization"}
+                                value={ExchangeInitiationRecipientMode.TRUSTED_ORG}
+                                label="Trusted Organization"
+                            />
+                        )}
                     </>}
                 </RadioGroup>
             </Field>
@@ -172,16 +186,14 @@ const ExchangeInitiationRecipientsTab: React.FC<ExchangeRecipientsTabProps> = (p
                 />
             )}
 
-            {props.recipientMode === ExchangeInitiationRecipientMode.EXTERNAL_ORG && (
-                <ExternalOrganizationRecipients
+            {props.recipientMode === ExchangeInitiationRecipientMode.TRUSTED_ORG && (
+                <TrustedOrganizationRecipients
                     recipientOrg={props.recipientOrg}
-                    recipientOrgUser={props.recipientOrgUser}
                     recipientOrgGroup={props.recipientOrgGroup}
-                    internalParticipants={props.internalParticipants}
                     setRecipientOrg={props.setRecipientOrg}
                     setRecipientOrgUser={props.setRecipientOrgUser}
                     setRecipientOrgGroup={props.setRecipientOrgGroup}
-                    setInternalParticipants={props.setInternalParticipants}
+                    setRecipientResolution={props.setRecipientResolution}
                 />
             )}
 

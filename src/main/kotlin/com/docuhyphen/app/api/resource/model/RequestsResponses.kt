@@ -3,6 +3,7 @@
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import com.docuhyphen.app.api.service.fields.FieldValueEntry
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.util.UUID
 
@@ -298,11 +299,7 @@ data class UpdateOrganizationAppUserRequest(
 data class ExchangeInitiationDto(
     var initialShareMessage: String? = null,
     var description: String? = null,
-    var recipientOrgGroupId: String? = null,
-    var recipientAppUserId: String? = null,
-    var recipientEmail: String? = null,
-    var recipientFirstName: String? = null,
-    var recipientLastName: String? = null,
+    var primaryRecipient: ExchangeRecipientSelectionRequest? = null,
     var name: String? = null,
     var exchangeDocuments: List<ExchangeRequestDocumentRequest>? = null,
     var requestRecipientSignIn: Boolean = false,
@@ -314,7 +311,6 @@ data class ExchangeInitiationDto(
     var participants: List<ExchangeParticipantRequest> = listOf(),
     var status: ExchangeStatus? = null,
     var rejectionReason: String? = null,
-    var recipientType: ExchangeRecipientType? = null,
     var recipientRoleName: String? = null,
     var recipientConstraintsJson: String? = null,
     var allowedDownloadFormats: List<String>? = null,
@@ -324,6 +320,48 @@ data class ExchangeInitiationDto(
     var schemaAssignmentSource: SchemaAssignmentSource? = null,
     //ToDo: add accepted by, rejected by, ended by
 )
+
+@Serializable
+sealed interface ExchangeRecipientSelectionRequest
+
+@Serializable
+@SerialName("REGISTERED_USER")
+data class RegisteredUserRecipientSelectionRequest(
+    val appUserId: String,
+) : ExchangeRecipientSelectionRequest
+
+@Serializable
+@SerialName("EXTERNAL_EMAIL")
+data class ExternalEmailRecipientSelectionRequest(
+    val email: String,
+    val firstName: String,
+    val lastName: String,
+) : ExchangeRecipientSelectionRequest
+
+@Serializable
+@SerialName("INTERNAL_GROUP")
+data class InternalGroupRecipientSelectionRequest(
+    val groupId: String,
+) : ExchangeRecipientSelectionRequest
+
+@Serializable
+@SerialName("PERSONAL_GROUP")
+data class PersonalGroupRecipientSelectionRequest(
+    val groupId: String,
+) : ExchangeRecipientSelectionRequest
+
+@Serializable
+@SerialName("TRUSTED_GROUP")
+data class TrustedGroupRecipientSelectionRequest(
+    val organizationId: String,
+    val groupId: String,
+) : ExchangeRecipientSelectionRequest
+
+@Serializable
+@SerialName("TRUSTED_PERSON")
+data class TrustedPersonRecipientSelectionRequest(
+    val resolutionId: String,
+) : ExchangeRecipientSelectionRequest
 
 @Serializable
 data class UpdateExchangeRequest(
@@ -377,11 +415,15 @@ class ExchangeRequestDocumentRequest
 }
 
 @Serializable
-class ExchangeParticipantRequest
-{
-    var id: String = ""
-    var participantType: ExchangeParticipantType = ExchangeParticipantType.APP_USER
-}
+data class ExchangeParticipantRequest(
+    val selection: ExchangeRecipientSelectionRequest,
+    val role: ExchangeShareRoleName = ExchangeShareRoleName.PARTICIPANT,
+)
+
+@Serializable
+data class AddExchangeParticipantRequest(
+    val id: String,
+)
 
 @Serializable
 class UpdateShareSessionDocumentRequest

@@ -17,6 +17,7 @@ import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
+import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
@@ -59,6 +60,8 @@ class ShareServiceAuditTest
         groupMemberRepository = mock<PrincipalGroupMemberRepository>(),
         auditRecorder = auditRecorder,
         exchangeAuthorizationContextProvider = contextProvider,
+        exchangeRecipientAttestationService = mock<ExchangeRecipientAttestationService>(),
+        trustedRecipientValidationService = mock<TrustedRecipientValidationService>(),
     )
 
     @Test

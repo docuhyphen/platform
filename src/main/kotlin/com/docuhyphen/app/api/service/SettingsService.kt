@@ -182,6 +182,9 @@ class SettingsService @Inject constructor(
             settings.allowShareWithoutPairing = settingsDto.allowShareWithoutPairing
         }
 
+        settings.discoverableForTrustRequests = settingsDto.discoverableForTrustRequests
+        settings.allowExternalCustomerSharing = settingsDto.allowExternalCustomerSharing
+
         if (settings.allowProfileUpdate != settingsDto.allowProfileUpdate)
         {
             authorizationService.validateUpdateProfileUpdatePermission(currentUser)
@@ -193,6 +196,8 @@ class SettingsService @Inject constructor(
             authorizationService.validateUpdateEmailUpdatePermission(currentUser)
             settings.allowEmailUpdate = settingsDto.allowEmailUpdate
         }
+
+        settings.requireRecipientAcceptance = settingsDto.requireRecipientAcceptance
 
         organization.settings = settings
         organizationService.update(organization)
@@ -267,8 +272,11 @@ class SettingsService @Inject constructor(
         {
             return OrganizationSettingsDto(
                 allowShareWithoutPairing = false,
+                discoverableForTrustRequests = false,
+                allowExternalCustomerSharing = true,
                 allowProfileUpdate = false,
-                allowEmailUpdate = false
+                allowEmailUpdate = false,
+                requireRecipientAcceptance = true,
             )
         }
     }

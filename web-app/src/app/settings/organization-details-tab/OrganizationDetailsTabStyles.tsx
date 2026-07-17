@@ -4,7 +4,8 @@ export const useOrganizationTabStyles = makeStyles({
     orgOnboardingContainer: {
         display: "flex",
         flexDirection: "column",
-        width: "400px",
+        width: "100%",
+        maxWidth: "400px",
         gap: tokens.spacingHorizontalL
     },
 
@@ -18,6 +19,7 @@ export const useOrganizationTabStyles = makeStyles({
     dataContainer: {
         display: "flex",
         flexDirection: "row",
+        flexWrap: "wrap",
         gap: tokens.spacingHorizontalXXL
     },
 
@@ -31,7 +33,8 @@ export const useOrganizationTabStyles = makeStyles({
     },
 
     mainDivider: {
-        width: "300px"
+        width: "100%",
+        maxWidth: "300px"
     },
 
     loadingWrapper: {

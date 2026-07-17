@@ -27,14 +27,10 @@
     BookAddRegular,
     BookTemplateFilled,
     BookTemplateRegular,
-    BuildingBankLinkFilled,
-    BuildingBankLinkRegular,
     BuildingFilled,
     BuildingPeopleFilled,
     BuildingPeopleRegular,
     BuildingRegular,
-    BuildingTownhouseFilled,
-    BuildingTownhouseRegular,
     bundleIcon,
     CalculatorArrowClockwiseFilled,
     CalculatorArrowClockwiseRegular,
@@ -103,7 +99,7 @@
     FolderZipFilled,
     FolderZipRegular,
     InfoFilled,
-    InfoRegular, LinkAddFilled, LinkAddRegular, LinkMultipleFilled, LinkMultipleRegular,
+    InfoRegular,
     NotepadEditFilled,
     NotepadEditRegular,
     OptionsFilled,
@@ -153,8 +149,6 @@ export const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
 export const DocumentAddIcon = bundleIcon(DocumentAddFilled, DocumentAddRegular)
 export const LinkDismissIcon = bundleIcon(LinkDismissFilled, LinkDismissRegular)
 export const GroupAddIcon = bundleIcon(PeopleTeamAddFilled, PeopleTeamAddRegular)
-export const ParedOrganizationsTabIcon = bundleIcon(LinkMultipleFilled, LinkMultipleRegular)
-export const OrganizationParingRequestsTabIcon = bundleIcon(LinkAddFilled, LinkAddRegular)
 export const SettingsProfileTabIcon = bundleIcon(PersonSettingsFilled, PersonSettingsRegular)
 export const SettingsOrganizationTabIcon = bundleIcon(BuildingFilled, BuildingRegular)
 export const SettingsOrganizationBillingTabIcon = bundleIcon(ReceiptFilled, ReceiptRegular)
@@ -165,7 +159,6 @@ export const SettingsDeviceSessionsTabIcon = bundleIcon(PhoneLaptopFilled, Phone
 export const SettingsOrganizationGroupsTabIcon = bundleIcon(PeopleTeamToolboxFilled, PeopleTeamToolboxRegular)
 export const SettingsMyGroupsTabIcon = bundleIcon(PeopleTeamFilled, PeopleTeamRegular)
 export const SettingsAppSettingsTabIcon = bundleIcon(SettingsCogMultipleFilled, SettingsCogMultipleRegular)
-export const OrganizationPairingTabIcon = bundleIcon(BuildingBankLinkFilled, BuildingBankLinkRegular)
 export const SettingsBlueprintsTabIcon = bundleIcon(BookTemplateFilled, BookTemplateRegular)
 export const BlueprintAddIcon = bundleIcon(BookAddFilled, BookAddRegular)
 export const SettingsAppAdminsIcon = bundleIcon(PersonShieldFilled, PersonShieldRegular)
@@ -178,7 +171,6 @@ export const AddIcon = bundleIcon(AddFilled, AddRegular)
 export const BackIcon = bundleIcon(ArrowLeftFilled, ArrowLeftRegular)
 export const CheckmarkIcon = bundleIcon(CheckmarkFilled, CheckmarkRegular)
 export const DismissIcon = bundleIcon(DismissFilled, DismissRegular)
-export const PairOrgTabIcon = bundleIcon(BuildingTownhouseFilled, BuildingTownhouseRegular)
 export const PersonAddIcon = bundleIcon(PersonAddFilled, PersonAddRegular)
 export const FilterIcon = bundleIcon(FilterFilled, FilterRegular);
 export const SortDownIcon = bundleIcon(ArrowSortDownLinesFilled, ArrowSortDownLinesRegular);

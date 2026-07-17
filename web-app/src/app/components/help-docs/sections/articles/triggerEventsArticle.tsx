@@ -34,8 +34,9 @@ export const triggerEventsArticle = (
         <ul>
             <li><b>Recipient</b> - the primary recipient user. In the condition builder, searchable from your contacts.</li>
             <li>
-                <b>Recipient Group</b> - the recipient group (GROUP recipient
-                type only). In the condition builder, searchable from your personal groups.
+                <b>Recipient Group</b> - the primary recipient group, including a published
+                group in a Trusted Organization. The condition builder group picker contains
+                groups available in the current organization context.
             </li>
             <li><b>Initiator</b> - the user who created the Exchange. In the condition builder, searchable from your contacts.</li>
             <li><b>Org</b> - the initiator organization. No searchable picker - used as a scope reference in assignee configuration.</li>

@@ -2,6 +2,8 @@ package com.docuhyphen.app.api.service.auth.authz
 
 import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
 import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.entity.PrincipalGroupMember
+import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareSource
@@ -388,6 +390,41 @@ class ShareConstraintTest
     // Helpers
     // -----------------------------------------------------------------------
 
+    @Test
+    fun `pending recipient Share grants acceptance only`()
+    {
+        val principalId = UUID.randomUUID()
+        val resourceId = UUID.randomUUID()
+        val share = buildActiveShare(
+            principalId = principalId,
+            resourceId = resourceId,
+            role = ExchangeShareRoleName.PARTICIPANT,
+        ).apply {
+            status = ShareStatus.PENDING_APPROVAL
+        }
+        val shareRepo = mock<ShareRepository>()
+        whenever(shareRepo.findActiveForPrincipalOnResource(any(), any(), any(), any()))
+            .thenReturn(emptyList())
+        whenever(shareRepo.findDirectForPrincipalOnResource(any(), any(), any(), any()))
+            .thenReturn(listOf(share))
+        whenever(shareRepo.findById(share.id)).thenReturn(share)
+        val service = buildService(shareRepo)
+        val principal = PrincipalRef(PrincipalKind.USER, principalId)
+        val resource = ResourceRef.exchange(resourceId)
+
+        assertTrue(service.authorize(principal, Action.EXCHANGE_ACCEPT, resource, AuthorizationContext()).isAllowed)
+        assertFalse(service.authorize(principal, Action.EXCHANGE_VIEW, resource, AuthorizationContext()).isAllowed)
+    }
+
+    @Test
+    fun `pending group Share grants acceptance only to group owners and managers`()
+    {
+        assertTrue(groupAcceptanceDecision(PrincipalGroupRoleName.OWNER).isAllowed)
+        assertTrue(groupAcceptanceDecision(PrincipalGroupRoleName.MANAGER).isAllowed)
+        assertFalse(groupAcceptanceDecision(PrincipalGroupRoleName.MEMBER).isAllowed)
+        assertFalse(groupAcceptanceDecision(PrincipalGroupRoleName.OBSERVER).isAllowed)
+    }
+
     private fun buildServiceWithSingleShare(
         constraintsJson: String?,
         role: ExchangeShareRoleName,
@@ -417,7 +454,56 @@ class ShareConstraintTest
         this.constraintsJson = constraintsJson
     }
 
-    private fun buildService(shareRepo: ShareRepository): DefaultAuthorizationService
+    private fun groupAcceptanceDecision(groupRole: PrincipalGroupRoleName): Decision
+    {
+        val userId = UUID.randomUUID()
+        val groupId = UUID.randomUUID()
+        val resourceId = UUID.randomUUID()
+        val membership = PrincipalGroupMember().apply {
+            principalGroupId = groupId
+            principalKind = PrincipalKind.USER
+            principalId = userId
+            this.groupRole = groupRole
+        }
+        val share = buildActiveShare(
+            principalId = groupId,
+            resourceId = resourceId,
+            role = ExchangeShareRoleName.PARTICIPANT,
+        ).apply {
+            principalKind = PrincipalKind.PRINCIPAL_GROUP
+            status = ShareStatus.PENDING_APPROVAL
+        }
+        val shareRepo = mock<ShareRepository>()
+        whenever(shareRepo.findActiveForPrincipalOnResource(any(), any(), any(), any()))
+            .thenReturn(emptyList())
+        whenever(
+            shareRepo.findDirectForPrincipalOnResource(
+                PrincipalKind.PRINCIPAL_GROUP,
+                groupId,
+                ResourceType.EXCHANGE,
+                resourceId,
+            ),
+        ).thenReturn(listOf(share))
+        whenever(shareRepo.findById(share.id)).thenReturn(share)
+        val memberRepo = mock<PrincipalGroupMemberRepository>()
+        whenever(memberRepo.findGroupsForPrincipal(PrincipalKind.USER, userId))
+            .thenReturn(listOf(membership))
+        val service = buildService(shareRepo, memberRepo)
+
+        return service.authorize(
+            PrincipalRef.user(userId),
+            Action.EXCHANGE_ACCEPT,
+            ResourceRef.exchange(resourceId),
+            AuthorizationContext(),
+        )
+    }
+
+    private fun buildService(
+        shareRepo: ShareRepository,
+        groupMemberRepo: PrincipalGroupMemberRepository = mock<PrincipalGroupMemberRepository>().also {
+            whenever(it.findGroupsForPrincipal(any(), any())).thenReturn(emptyList())
+        },
+    ): DefaultAuthorizationService
     {
         val registry = mock<ResourceAuthorizationContextRegistry>()
         whenever(registry.resolve(any<ResourceRef>())).thenReturn(null)
@@ -427,9 +513,7 @@ class ShareConstraintTest
             appRoleAssignmentRepository = mock<AppRoleAssignmentRepository>().also {
                 whenever(it.findActiveForUser(any())).thenReturn(emptyList())
             },
-            principalGroupMemberRepository = mock<PrincipalGroupMemberRepository>().also {
-                whenever(it.findGroupsForPrincipal(any(), any())).thenReturn(emptyList())
-            },
+            principalGroupMemberRepository = groupMemberRepo,
             organizationMembershipRepository = mock<OrganizationMembershipRepository>().also {
                 whenever(it.findActiveByUserAndOrg(any(), any())).thenReturn(null)
             },

@@ -54,6 +54,23 @@ class OrganizationMembershipRepository :
             .resultList
             .firstOrNull()
 
+    fun findActiveMembershipsByOrganizationAndExactEmail(
+        organizationId: UUID,
+        normalizedEmail: String,
+    ): List<OrganizationMembership> =
+        entityManager.createQuery(
+            """SELECT m FROM OrganizationMembership m
+               JOIN AppUser u ON u.id = m.appUserId
+               WHERE m.organizationId = :organizationId
+                 AND m.status = :status
+                 AND LOWER(u.email) = :normalizedEmail""",
+            OrganizationMembership::class.java,
+        )
+            .setParameter("organizationId", organizationId)
+            .setParameter("status", OrganizationMembershipStatus.ACTIVE)
+            .setParameter("normalizedEmail", normalizedEmail)
+            .resultList
+
     fun findActiveMembersOfOrg(organizationId: UUID): List<OrganizationMembership> =
         entityManager.createQuery(
             """SELECT m FROM OrganizationMembership m

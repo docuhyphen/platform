@@ -237,46 +237,6 @@ class OrganizationGroupResource @Inject constructor(
         }
     }
 
-    @Path("/{organizationId}/paired-organizations/{pairedOrganizationId}/published-groups")
-    @GET
-    fun getPublishedGroupsFromPairedOrganization(
-        @PathParam("organizationId") organizationId: String,
-        @PathParam("pairedOrganizationId") pairedOrganizationId: String,
-    ): Response
-    {
-        return try
-        {
-            val groups = organizationGroupService
-                .getPublishedGroupViewsForPairedOrganization(organizationId, pairedOrganizationId)
-                .toTypedArray()
-
-            Response.ok(groups).build()
-        }
-        catch (exception: Exception)
-        {
-            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
-            logger.error("Error getting published groups for paired organization", exception)
-
-            when (exception)
-            {
-                is OrganizationNotFoundException, is OrganizationLinkNotFoundException ->
-                {
-                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
-                }
-                is IllegalArgumentException ->
-                {
-                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
-                }
-                else ->
-                {
-                    Response.status(INTERNAL_SERVER_ERROR)
-                        .entity(ResponseError("An error occurred while getting published groups"))
-                        .build()
-                }
-            }
-        }
-    }
-
     @DELETE
     @Path("/{organizationId}/groups/{groupId}")
     fun deleteOrganizationGroup(

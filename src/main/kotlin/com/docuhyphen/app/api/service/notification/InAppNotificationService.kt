@@ -84,4 +84,29 @@ class InAppNotificationService @Inject constructor(
         realtimeEventService.broadcastNotificationToUser(appUserId, dto)
         return dto
     }
+
+    @Transactional
+    fun publishAdministrative(
+        appUserId: UUID,
+        type: String,
+        title: String,
+        message: String,
+        data: Map<String, String>,
+    ): NotificationDto
+    {
+        val notification = InAppNotification().apply {
+            this.appUserId = appUserId
+            eventType = type
+            this.title = title
+            body = message
+            payloadJson = json.encodeToString(
+                MapSerializer(String.serializer(), String.serializer()),
+                data,
+            )
+            createdAt = Timestamp.from(Instant.now())
+        }
+        val dto = mapper.toDto(repository.save(notification))
+        realtimeEventService.broadcastNotificationToUser(appUserId, dto)
+        return dto
+    }
 }

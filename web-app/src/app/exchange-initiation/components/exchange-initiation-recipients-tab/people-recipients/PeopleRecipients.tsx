@@ -59,11 +59,11 @@ const toPersonPickerItem = (contact: UserContactDto): PersonPickerItem => ({
  *     email flow.
  *
  * Selection semantics:
- *   - Picking a contact with contactAppUserId != null sets recipientOrgUser, which the
- *     parent maps to recipientType=APP_USER on submit.
+ *   - Picking a contact with contactAppUserId != null selects the registered-user
+ *     initiation contract.
  *   - Picking a contact with contactAppUserId == null (the other party hasn't signed up
  *     yet, but a prior exchange was accepted) OR a fresh email pre-fills newRecipient and
- *     leaves recipientOrgUser undefined, so the parent maps to recipientType=EMAIL.
+ *     leaves recipientOrgUser undefined, so the parent selects the external-email contract.
  */
 const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
     {
@@ -257,7 +257,7 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
         setShowEmailFallback(false);
         if (contact.contactAppUserId)
         {
-            // Existing real user, set recipientOrgUser (recipientType=APP_USER on submit).
+            // Existing real user, select the registered-user initiation contract.
             const fauxAppUser: AppUserPublicDto = {
                 id: contact.contactAppUserId,
                 email: contact.email,
@@ -422,6 +422,7 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
 
             {recipientOrgUser && appUserPersonOrganization && (
                 <MyOrgRecipients
+                    id={"people-recipients-internal-participants"}
                     orgUsers={orgUsers.filter(u => u.id !== appUser?.id && u.id !== recipientOrgUser.id)}
                     isLoadingUsers={isLoadingUsers}
                     selectedInternalRecipients={selectedInternalRecipients}

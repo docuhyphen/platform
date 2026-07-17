@@ -2,7 +2,7 @@
 
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.resource.model.ExchangeParticipantRequest
+import com.docuhyphen.app.api.resource.model.AddExchangeParticipantRequest
 import com.docuhyphen.app.api.service.exchange.ExchangeParticipantService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
@@ -25,7 +25,7 @@ class ExchangeParticipantResource @Inject constructor(
     @POST
     fun addParticipant(
         @PathParam("exchangeId") exchangeId: String,
-        request: ExchangeParticipantRequest
+        request: AddExchangeParticipantRequest
     ): Response
     {
         return try

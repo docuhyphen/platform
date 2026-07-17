@@ -1,5 +1,6 @@
 import {HelpDocSectionInput} from "../helpDocsRegistry";
 import {auditWorkspaceOverviewArticle} from "./articles/auditWorkspaceOverviewArticle";
+import {trustedOrganizationsAdministrationArticle} from "./articles/trustedOrganizationsAdministrationArticle";
 
 export const adminOperationsSection: HelpDocSectionInput = {
     id: "admin-operations",
@@ -9,6 +10,11 @@ export const adminOperationsSection: HelpDocSectionInput = {
             id: "audit-workspace-overview",
             title: "Audit workspace overview",
             content: auditWorkspaceOverviewArticle,
+        },
+        {
+            id: "trusted-organizations-administration",
+            title: "Trusted Organizations administration",
+            content: trustedOrganizationsAdministrationArticle,
         },
         {
             id: "role-permission-matrix",

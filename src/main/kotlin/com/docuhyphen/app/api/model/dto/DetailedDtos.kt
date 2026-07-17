@@ -193,6 +193,9 @@ data class OrganizationSettingsDto(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID? = null,
     val allowShareWithoutPairing: Boolean = false,
+    val discoverableForTrustRequests: Boolean = false,
+    val allowExternalCustomerSharing: Boolean = true,
     val allowProfileUpdate: Boolean = false,
-    val allowEmailUpdate: Boolean = false
+    val allowEmailUpdate: Boolean = false,
+    val requireRecipientAcceptance: Boolean = true,
 )

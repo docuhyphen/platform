@@ -17,12 +17,14 @@ const toPersonPickerItem = (user: AppUserPublicDto): PersonPickerItem => ({
 });
 
 const MyOrgRecipients: React.FC<{
+    id: string;
     orgUsers: AppUserPublicDto[];
     isLoadingUsers: boolean;
     selectedInternalRecipients: AppUserPublicDto[];
     setSelectedInternalParticipants: (participants: AppUserPublicDto[]) => void;
     setInternalParticipants?: (users: AppUserPublicDto[]) => void;
 }> = ({
+          id,
           orgUsers,
           isLoadingUsers,
           selectedInternalRecipients,
@@ -58,13 +60,20 @@ const MyOrgRecipients: React.FC<{
 
 
     return (
-        <>
-            <Divider alignContent="start">
+        <div id={id}>
+            <Divider
+                id={`${id}-divider`}
+                alignContent="start"
+            >
                 Participants from your organization
             </Divider>
-            <Field>
+            <Field id={`${id}-field`}>
                 {isLoadingUsers ? (
-                    <Spinner size="tiny" label="Loading users..."/>
+                    <Spinner
+                        id={`${id}-loading`}
+                        size="tiny"
+                        label="Loading users..."
+                    />
                 ) : (
                     <MultiPersonPicker
                         id="my-org-recipients-combobox"
@@ -78,7 +87,7 @@ const MyOrgRecipients: React.FC<{
                     />
                 )}
             </Field>
-        </>
+        </div>
     );
 };
 

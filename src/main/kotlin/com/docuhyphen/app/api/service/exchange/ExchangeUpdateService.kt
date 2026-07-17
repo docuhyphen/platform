@@ -68,6 +68,7 @@ class ExchangeUpdateService @Inject constructor(
     private val otpService: OtpService,
     private val userContactService: UserContactService,
     private val shareService: ShareService,
+    private val exchangeRecipientService: ExchangeRecipientService,
     private val externalParticipantRepository: ExternalParticipantRepository,
     private val principalGroupRepository: PrincipalGroupRepository,
     private val shareRepository: ShareRepository,
@@ -112,15 +113,49 @@ class ExchangeUpdateService @Inject constructor(
         request: UpdateExchangeRequest?
     )
     {
+        if (request?.status == ExchangeStatus.ACCEPTED_STARTED || request?.status == ExchangeStatus.REJECTED)
+        {
+            throw IllegalArgumentException("Use the Exchange acceptance decision resource")
+        }
+        updateExchangeInternal(exchangeId, request)
+    }
+
+    @Transactional(dontRollbackOn = [WorkflowConflictException::class])
+    fun decideAcceptance(
+        exchangeId: String,
+        accepted: Boolean,
+        reason: String?,
+    )
+    {
+        updateExchangeInternal(
+            exchangeId,
+            UpdateExchangeRequest(
+                status = if (accepted) ExchangeStatus.ACCEPTED_STARTED else ExchangeStatus.REJECTED,
+                rejectionReason = reason,
+            ),
+            recipientDecision = true,
+        )
+    }
+
+    private fun updateExchangeInternal(
+        exchangeId: String,
+        request: UpdateExchangeRequest?,
+        recipientDecision: Boolean = false,
+    )
+    {
         val sessionUUID = UUID.fromString(exchangeId)
 
-        // Any caller must have at least EXCHANGE_READ. Returns 404 to avoid leaking existence.
         val principal = authorizationContextFactory.currentPrincipal()
             ?: throw ExchangeNotFoundException("Exchange not found")
         val authCtx = authorizationContextFactory.currentContext()
-        if (authorizationService.authorize(principal, Action.EXCHANGE_VIEW, ResourceRef.exchange(sessionUUID), authCtx)
+        val initialAction = if (recipientDecision) Action.EXCHANGE_ACCEPT else Action.EXCHANGE_VIEW
+        if (authorizationService.authorize(principal, initialAction, ResourceRef.exchange(sessionUUID), authCtx)
                 is AuthDecision.Deny)
         {
+            if (recipientDecision)
+            {
+                throw ForbiddenException("Only the primary recipient may decide this Exchange")
+            }
             throw ExchangeNotFoundException("Exchange not found")
         }
 
@@ -159,6 +194,32 @@ class ExchangeUpdateService @Inject constructor(
             if (newStatus == ExchangeStatus.RESCINDED)
             {
                 throw IllegalArgumentException("Use the rescind action to cancel an outgoing exchange")
+            }
+
+            if (newStatus == ExchangeStatus.ACCEPTED_STARTED || newStatus == ExchangeStatus.REJECTED)
+            {
+                val runningDraftApproval = workflowInstanceRepository
+                    .findActiveForSubjectAndTrigger(sessionUUID, "exchange.draft_submitted")
+                if (runningDraftApproval != null)
+                {
+                    throw WorkflowConflictException(
+                        "This Exchange is awaiting sender approval before the recipient may decide."
+                    )
+                }
+                val actorId = authTokenContext.authToken.appUser?.id
+                    ?: throw ForbiddenException("Only the primary recipient may decide this Exchange")
+                try
+                {
+                    exchangeRecipientService.recordPrimaryDecision(
+                        exchangeId = sessionUUID,
+                        appUserId = actorId,
+                        accepted = newStatus == ExchangeStatus.ACCEPTED_STARTED,
+                    )
+                }
+                catch (exception: IllegalArgumentException)
+                {
+                    throw ForbiddenException("Only the primary recipient may decide this Exchange")
+                }
             }
 
             // --- Workflow routing for ACCEPTED_STARTED and REJECTED -----------------------
@@ -255,6 +316,10 @@ class ExchangeUpdateService @Inject constructor(
             }
 
             // --- Direct status write (no workflow gate) ------------------------------------
+            if (recipientDecision && newStatus == ExchangeStatus.ACCEPTED_STARTED)
+            {
+                shareService.activatePendingForResource(ResourceType.EXCHANGE, sessionUUID)
+            }
             exchangeRepository.updateStatus(sessionUUID, newStatus)
 
             if (newStatus == ExchangeStatus.ENDED)
@@ -579,6 +644,7 @@ class ExchangeUpdateService @Inject constructor(
         }
     }
 
+    @Transactional
     fun updateNoAuthExchange(
         exchangeId: String,
         sessionStatus: ExchangeStatus?,
@@ -653,6 +719,10 @@ class ExchangeUpdateService @Inject constructor(
         }
 
         verifyRecipientOtp(session, otp)
+        exchangeRecipientService.recordExternalEmailPrimaryDecision(
+            exchangeId = sessionUUID,
+            accepted = requestedStatus == ExchangeStatus.ACCEPTED_STARTED,
+        )
 
         // If an acceptance workflow is running, route the decision through the engine.
         // The no-auth recipient's user ID (from their Share row) is used as the principal.

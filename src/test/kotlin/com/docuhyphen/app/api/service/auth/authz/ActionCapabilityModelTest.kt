@@ -40,7 +40,7 @@ class ActionCapabilityModelTest
         val allAssigned = collectAllAssignedCapabilities()
 
         // WEBHOOK_DELIVER is an internal system action not granted to any human or machine
-        // role in Phase 5 — it proves the default-deny extension point.
+        // role, which proves the default-deny extension point.
         assertFalse(allAssigned.contains(Capability.WEBHOOK_DELIVER)) {
             "WEBHOOK_DELIVER must not be granted to any role; it is a reserved system-only action"
         }
@@ -99,6 +99,63 @@ class ActionCapabilityModelTest
     fun `ORG_GUEST does not have EXCHANGE_INITIATE`()
     {
         assertFalse(RoleCapabilities.forOrganizationRole(OrganizationRoleName.ORG_GUEST).contains(Capability.EXCHANGE_INITIATE))
+    }
+
+    @Test
+    fun `organization owners and admins receive trust administration capabilities`()
+    {
+        val required = setOf(
+            Capability.ORG_TRUST_READ,
+            Capability.ORG_TRUST_REQUEST,
+            Capability.ORG_TRUST_DECIDE,
+            Capability.ORG_TRUST_POLICY_MANAGE,
+            Capability.ORG_TRUST_SUSPEND,
+            Capability.EXTERNAL_IDENTITY_RESOLVE,
+            Capability.EXTERNAL_GROUP_DISCOVER,
+        )
+
+        assertTrue(RoleCapabilities.forOrganizationRole(OrganizationRoleName.ORG_OWNER).containsAll(required))
+        assertTrue(RoleCapabilities.forOrganizationRole(OrganizationRoleName.ORG_ADMIN).containsAll(required))
+    }
+
+    @Test
+    fun `organization members can resolve trusted recipients without administering trust`()
+    {
+        val capabilities = RoleCapabilities.forOrganizationRole(OrganizationRoleName.ORG_MEMBER)
+
+        assertTrue(capabilities.contains(Capability.EXTERNAL_IDENTITY_RESOLVE))
+        assertTrue(capabilities.contains(Capability.EXTERNAL_GROUP_DISCOVER))
+        assertFalse(capabilities.contains(Capability.ORG_TRUST_REQUEST))
+        assertFalse(capabilities.contains(Capability.ORG_TRUST_POLICY_MANAGE))
+    }
+
+    @Test
+    fun `platform and application roles receive no organization trust capabilities`()
+    {
+        val trustCapabilities = setOf(
+            Capability.ORG_TRUST_READ,
+            Capability.ORG_TRUST_REQUEST,
+            Capability.ORG_TRUST_DECIDE,
+            Capability.ORG_TRUST_POLICY_MANAGE,
+            Capability.ORG_TRUST_SUSPEND,
+            Capability.EXTERNAL_IDENTITY_RESOLVE,
+            Capability.EXTERNAL_GROUP_DISCOVER,
+        )
+
+        assertTrue(RoleCapabilities.forAppRole(AppRoleName.APP_ADMIN).intersect(trustCapabilities).isEmpty())
+        assertTrue(RoleCapabilities.forApplicationRole(ApplicationRoleName.APPLICATION).intersect(trustCapabilities).isEmpty())
+    }
+
+    @Test
+    fun `assignable Exchange Share roles receive acceptance capability`()
+    {
+        ExchangeShareRoleName.entries
+            .filter { it != ExchangeShareRoleName.OWNER }
+            .forEach {
+                assertTrue(RoleCapabilities.forExchangeShareRole(it).contains(Capability.EXCHANGE_ACCEPT))
+            }
+        assertFalse(RoleCapabilities.forExchangeShareRole(ExchangeShareRoleName.OWNER).contains(Capability.EXCHANGE_ACCEPT))
+        assertTrue(Action.EXCHANGE_ACCEPT.required == Capability.EXCHANGE_ACCEPT)
     }
 
     // --- ORG_MEMBER write restriction ---

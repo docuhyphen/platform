@@ -65,6 +65,14 @@ export const notificationPreferencesArticle = (
             <li><b>Document uploaded</b> covers initial files and newly uploaded file versions.</li>
         </ul>
 
+        <h3>Trusted Organization administration</h3>
+        <p>
+            Active organization administrators receive email and in-app notifications for
+            Trusted Organization requests, decisions, policy changes, suspensions, resumptions,
+            and endings. These administrative notifications are not controlled by the Exchange
+            and document event preferences above.
+        </p>
+
         <p>
             Changes save immediately. Available events still respect your Exchange access
             and organization permissions.

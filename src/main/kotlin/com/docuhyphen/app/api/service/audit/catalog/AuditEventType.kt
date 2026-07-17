@@ -50,6 +50,23 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     ORG_LINK_CREATE("organization.link.create", AuditCategory.ORGANIZATION),
     ORG_LINK_DECIDE("organization.link.decide", AuditCategory.ORGANIZATION),
     ORG_LINK_DELETE("organization.link.delete", AuditCategory.ORGANIZATION),
+    ORG_TRUST_REQUESTED("organization.trust.requested", AuditCategory.ORGANIZATION),
+    ORG_TRUST_REREQUESTED("organization.trust.rerequested", AuditCategory.ORGANIZATION),
+    ORG_TRUST_ACCEPTED("organization.trust.accepted", AuditCategory.ORGANIZATION),
+    ORG_TRUST_REJECTED("organization.trust.rejected", AuditCategory.ORGANIZATION),
+    ORG_TRUST_WITHDRAWN("organization.trust.withdrawn", AuditCategory.ORGANIZATION),
+    ORG_TRUST_EXPIRED("organization.trust.expired", AuditCategory.ORGANIZATION),
+    ORG_TRUST_SUSPENDED("organization.trust.suspended", AuditCategory.ORGANIZATION),
+    ORG_TRUST_RESUMED("organization.trust.resumed", AuditCategory.ORGANIZATION),
+    ORG_TRUST_ENDED("organization.trust.ended", AuditCategory.ORGANIZATION),
+    ORG_TRUST_POLICY_UPDATED("organization.trust.policy.updated", AuditCategory.ORGANIZATION),
+    ORG_TRUST_PUBLISHED_GROUP_LISTED("organization.trust.published_group.listed", AuditCategory.ORGANIZATION),
+    ORG_TRUST_PUBLISHED_GROUP_DENIED("organization.trust.published_group.denied", AuditCategory.ORGANIZATION),
+    ORG_TRUST_IDENTITY_RESOLUTION_ALLOWED("organization.trust.identity_resolution.allowed", AuditCategory.ORGANIZATION),
+    ORG_TRUST_IDENTITY_RESOLUTION_DENIED("organization.trust.identity_resolution.denied", AuditCategory.ORGANIZATION),
+    ORG_TRUST_IDENTITY_RESOLUTION_EXPIRED("organization.trust.identity_resolution.expired", AuditCategory.ORGANIZATION),
+    ORG_TRUST_IDENTITY_RESOLUTION_CONSUMED("organization.trust.identity_resolution.consumed", AuditCategory.ORGANIZATION),
+    ORG_TRUST_IDENTITY_RESOLUTION_REPLAY_DENIED("organization.trust.identity_resolution.replay_denied", AuditCategory.ORGANIZATION),
     ORG_SHARE_EXTERNAL_CUSTOMER("organization.share.external_customer", AuditCategory.ORGANIZATION),
     ORG_AUTH_EXCHANGE_POLICY_UPDATE("organization.auth_exchange_policy.update", AuditCategory.ORGANIZATION),
     ORG_AUTH_EXCHANGE_POLICY_VIEW("organization.auth_exchange_policy.view", AuditCategory.ORGANIZATION),
@@ -167,7 +184,7 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
          * consumers (ledger, exports, projections) can reason about which catalog shape produced
          * a given event.
          */
-        const val CATALOG_VERSION: Int = 7
+        const val CATALOG_VERSION: Int = 10
 
         private val byKey: Map<String, AuditEventType> = entries.associateBy { it.key }
 

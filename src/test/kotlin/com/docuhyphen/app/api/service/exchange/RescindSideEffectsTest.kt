@@ -115,6 +115,7 @@ class RescindSideEffectsTest
         otpService = mock(),
         userContactService = mock(),
         shareService = shareService,
+        exchangeRecipientService = mock(),
         externalParticipantRepository = mock(),
         principalGroupRepository = mock(),
         shareRepository = mock(),

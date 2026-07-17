@@ -6,6 +6,7 @@ import {
     NoAuthExchangeBasicDto,
     ResponseError,
     ExchangeBasicDto,
+    ExchangeStatus,
     ExchangeInitiationRequest,
     ExchangeRequestDocumentRequest,
     UpdateNoAuthExchangeRequest,
@@ -118,9 +119,21 @@ export const updateNoAuthExchange = (exchangeId: string, request: UpdateNoAuthEx
     );
 
 export const updateExchange = (exchangeId: string, request: UpdateExchangeRequest) =>
-    executeRequest(() =>
+{
+    if (request.status === ExchangeStatus.ACCEPTED_STARTED || request.status === ExchangeStatus.REJECTED)
+    {
+        return executeRequest(() =>
+            apiClient.post(`/exchanges/${exchangeId}/acceptance-decisions`, {
+                decision: request.status === ExchangeStatus.ACCEPTED_STARTED ? "ACCEPT" : "REJECT",
+                reason: request.rejectionReason,
+            })
+        );
+    }
+
+    return executeRequest(() =>
         apiClient.put(`/exchanges/${exchangeId}`, request)
     );
+};
 
 export const addExchangeDocument = (exchangeId: string, request: ExchangeRequestDocumentRequest) =>
     executeRequest(() =>

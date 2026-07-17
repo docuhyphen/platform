@@ -1,10 +1,8 @@
 ﻿package com.docuhyphen.app.api.service.organization
 
-import com.docuhyphen.app.api.model.entity.LinkStatus
+import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.PrincipalGroup
 import com.docuhyphen.app.api.model.entity.PrincipalGroupScope
-import com.docuhyphen.app.api.repository.OrganizationRepository
-import com.docuhyphen.app.api.repository.OrganizationExchangeLinkRepository
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -29,9 +27,10 @@ import java.util.UUID
  */
 @ApplicationScoped
 class OrganizationExchangePolicyService @Inject constructor(
-    private val organizationRepository: OrganizationRepository,
+    private val organizationService: OrganizationService,
+    private val authTokenContext: AuthTokenContext,
     private val organizationMembershipService: OrganizationMembershipService,
-    private val linkRepository: OrganizationExchangeLinkRepository,
+    private val organizationExchangeLinkService: OrganizationExchangeLinkService,
     private val authAuditService: AuthAuditService,
 )
 {
@@ -47,10 +46,10 @@ class OrganizationExchangePolicyService @Inject constructor(
      */
     fun assertCanShareWithUser(initiatorAppUserId: UUID, recipientAppUserId: UUID?)
     {
-        val initiatorOrgId = organizationMembershipService.primaryOrganizationId(initiatorAppUserId)
-            ?: return // initiator belongs to no org → org-level policy does not apply
+        val initiatorOrgId = authTokenContext.activeOrganizationId
+            ?: return
 
-        val organization = organizationRepository.findById(initiatorOrgId) ?: return
+        val organization = organizationService.getOrganizationById(initiatorOrgId)
         val settings = organization.settings
 
         val recipientOrgId = recipientAppUserId
@@ -101,7 +100,7 @@ class OrganizationExchangePolicyService @Inject constructor(
 
             PrincipalGroupScope.ORG ->
             {
-                val initiatorOrgId = organizationMembershipService.primaryOrganizationId(initiatorAppUserId)
+                val initiatorOrgId = authTokenContext.activeOrganizationId
                     ?: throw IllegalArgumentException("An organization is required to share with an organization group")
                 val recipientOrgId = group.ownerOrganizationId
                     ?: throw IllegalArgumentException("The selected group has no owning organization")
@@ -111,9 +110,7 @@ class OrganizationExchangePolicyService @Inject constructor(
                     throw IllegalArgumentException("The selected group is not available for external sharing")
                 }
 
-                val organization = organizationRepository.findById(initiatorOrgId)
-                val allowShareWithoutPairing = organization?.settings?.allowShareWithoutPairing ?: false
-                if (!allowShareWithoutPairing && !arePaired(initiatorOrgId, recipientOrgId))
+                if (!arePaired(initiatorOrgId, recipientOrgId))
                 {
                     throw IllegalArgumentException("Your organization only permits sharing with groups from a paired organization")
                 }
@@ -146,10 +143,6 @@ class OrganizationExchangePolicyService @Inject constructor(
 
     private fun arePaired(orgA: UUID, orgB: UUID): Boolean
     {
-        val outgoing = linkRepository.findByRequestingOrganization(orgA)
-            .any { it.status == LinkStatus.ACCEPTED && it.requestedOrganization?.id == orgB }
-        if (outgoing) return true
-        return linkRepository.findByRequestedOrganization(orgA)
-            .any { it.status == LinkStatus.ACCEPTED && it.requestingOrganization?.id == orgB }
+        return organizationExchangeLinkService.hasAcceptedLink(orgA, orgB)
     }
 }

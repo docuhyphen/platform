@@ -132,47 +132,15 @@ class OrganizationService @Inject constructor(
         organizationRepository.update(organization)
     }
 
-    fun getLinkedOrganizations(includePublic: Boolean): List<Organization>
-    {
-        val currentAppUser = authTokenContext.authToken.appUser
-        val currentAppUserPerson = authTokenContext.authToken.appUser?.person!!
-
-        val currentAppUserOrg = organizationRepository.findByAppUserIdAndPersonId(
-            currentAppUser?.id!!,
-            currentAppUserPerson.id
-        )
-
-        return organizationRepository.getLinkedOrganizations(currentAppUserOrg?.id!!, includePublic)
-    }
-
-    fun getLinkedOrganizationsAppUsers(organizationId: String?): List<AppUser>
-    {
-        val currentAppUser = authTokenContext.authToken.appUser
-
-        return getAppUsers(organizationId)
-    }
-
-    fun getLinkedOrganizationsGroups(organizationId: String?): List<com.docuhyphen.app.api.model.dto.PrincipalGroupDto>
-    {
-        if (organizationId.isNullOrBlank())
-        {
-            throw OrganizationNotFoundException("organization is required")
-        }
-
-        val currentAppUser = authTokenContext.authToken.appUser
-            ?: throw OrganizationNotFoundException("Caller must be authenticated")
-        val currentOrg = organizationRepository.findByAppUserIdAndPersonId(
-            currentAppUser.id, currentAppUser.person?.id!!,
-        ) ?: throw OrganizationNotFoundException("Caller has no organization")
-
-        // v1 trusted-org visibility: never enumerate users; expose only the paired org's
-        // explicitly published groups. Pairing must be ACCEPTED. See OrganizationGroupService
-        // for the link check.
-        return organizationGroupService.getPublishedGroupViewsForPairedOrganization(
-            currentOrg.id.toString(),
-            organizationId,
-        )
-    }
+    fun searchDiscoverableForTrustRequests(
+        activeOrganizationId: UUID,
+        normalizedQuery: String,
+        limit: Int,
+    ): List<Organization> = organizationRepository.searchDiscoverableForTrustRequests(
+        activeOrganizationId,
+        normalizedQuery,
+        limit,
+    )
 
     private fun sendOrganizationUpdateEmail(organization: Organization, updatedFields: List<String>)
     {

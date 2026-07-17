@@ -15,7 +15,6 @@ import {updateOrganizationSettings} from "../../../services/organizationApi";
 import {ContactDetailsDetailedDto, OrganizationDetailedDto, OrganizationSettingsDto} from "../../models/models.tsx";
 import {Capability} from '../../models/models.tsx';
 import {
-    PairOrgTabIcon,
     ProfileEditBasicDetailsIcon, SettingsAppAdminsIcon,
     SettingsAppSettingsTabIcon, SettingsDeviceSessionsTabIcon, SettingsLinkedAccountsTabIcon, SettingsMyGroupsTabIcon,
     SettingsOrganizationGroupsTabIcon,
@@ -37,7 +36,7 @@ import AppSettingsTab from "../app-settings-tab/AppSettingsTab.tsx";
 import MyGroupsTab from "../my-groups-tab/MyGroupsTab.tsx";
 import OrganizationPeopleTab from "../organization-people-tab/OrganizationPeopleTab.tsx";
 import OrganizationGroupsTab from "../organization-groups-tab/OrganizationGroupsTab.tsx";
-import OrganizationPairingTab from "../organization-pairing-tab/OrganizationPairingTab.tsx";
+import TrustedOrganizationsTab from "../trusted-organizations-tab/TrustedOrganizationsTab.tsx";
 import AppAdminsTab from "../app-admins-tab/AppAdminsTab.tsx";
 import TemplatesTab from "../blueprints-tab/BlueprintsTab.tsx";
 import OrganizationDetailsTab from "../organization-details-tab/OrganizationDetailsTab.tsx";
@@ -51,7 +50,7 @@ const OrganizationTab = () =>
         organization: "OrganizationTab",
         people: "PeopleTab",
         groups: "GroupsTab",
-        organizationPairing: "OrganizationPairingTab",
+        organizationTrusted: "TrustedOrganizationsTab",
         templates: "TemplatesTab",
         myGroups: "MyGroupsTab",
         appAdmins: "AppAdminsTab",
@@ -268,9 +267,9 @@ const OrganizationTab = () =>
                          value={tabIds.groups}>
                         Groups/Teams
                     </Tab>
-                    <Tab id="OrganiationPairingTab"
-                         value={tabIds.organizationPairing}>
-                        Org Pairing
+                    <Tab id="TrustedOrganizationsTab"
+                         value={tabIds.organizationTrusted}>
+                        Trusted Organizations
                     </Tab>
                     <Tab id="AppAdminsTab"
                          value={tabIds.appAdmins}>
@@ -289,7 +288,7 @@ const OrganizationTab = () =>
                     {selectedValue === tabIds.people && <OrganizationPeopleTab/>}
                     {selectedValue === tabIds.groups &&
                         <OrganizationGroupsTab appUserPersonOrganization={appUserPersonOrganization}/>}
-                    {selectedValue === tabIds.organizationPairing && <OrganizationPairingTab/>}
+                    {selectedValue === tabIds.organizationTrusted && <TrustedOrganizationsTab/>}
                     {selectedValue === tabIds.appAdmins && <AppAdminsTab/>}
                     {selectedValue === tabIds.templates && <TemplatesTab/>}
                     {selectedValue === tabIds.auth && organization?.id && (

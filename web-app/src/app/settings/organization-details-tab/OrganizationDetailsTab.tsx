@@ -307,6 +307,13 @@ const OrganizationDetailsTab = () =>
 
                 {organizationSettings && canManageOrganization && <>
                     <Switch
+                        id={"switch-discoverable-for-trust-requests"}
+                        checked={organizationSettings.discoverableForTrustRequests}
+                        onChange={(_, data) => handleSettingChange('discoverableForTrustRequests', data.checked)}
+                        label="Allow verified organizations to find us for trust requests"
+                        disabled={savingSettings}
+                    />
+                    <Switch
                         id={"switch-allow-external-customer-sharing"}
                         checked={organizationSettings.allowExternalCustomerSharing !== false}
                         onChange={(_, data) => handleSettingChange('allowExternalCustomerSharing', data.checked)}
@@ -337,7 +344,8 @@ const OrganizationDetailsTab = () =>
                 </>}
 
                 {organizationSettings && !canManageOrganization && (
-                    <div>
+                    <div id={"organization-preferences-summary"}>
+                        <Text size={300}>Trust request discovery: {organizationSettings.discoverableForTrustRequests ? 'Enabled' : 'Disabled'}</Text><br/>
                         <Text size={300}>External sharing: {organizationSettings.allowExternalCustomerSharing !== false ? 'Enabled' : 'Disabled'}</Text><br/>
                         <Text size={300}>Sharing with unpaired orgs: {organizationSettings.allowShareWithoutPairing ? 'Enabled' : 'Disabled'}</Text><br/>
                         <Text size={300}>Profile updates: {organizationSettings.allowProfileUpdate ? 'Allowed' : 'Not allowed'}</Text><br/>

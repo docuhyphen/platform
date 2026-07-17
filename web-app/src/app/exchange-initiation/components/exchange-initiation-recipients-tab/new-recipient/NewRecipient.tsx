@@ -185,6 +185,7 @@ const NewRecipient: React.FC<NewRecipientProps> = (
 
             {appUserPersonOrganization && isRecipientDataValid() && (
                 <MyOrgRecipients
+                    id={"new-recipient-internal-participants"}
                     orgUsers={orgUsers.filter(u => u.id !== appUser?.id)}
                     isLoadingUsers={isLoadingUsers}
                     selectedInternalRecipients={selectedInternalRecipients}

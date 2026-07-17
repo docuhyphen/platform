@@ -316,12 +316,6 @@ const orgGroups: OrganizationGroupBasicDto[] = [
 ];
 
 // Implement API service functions that simulate API calls
-export const fetchPairedOrganizations = async (): Promise<Organization[]> => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return pairedOrganizations;
-};
-
 export const fetchOrganizationUsers = async (organizationId: string): Promise<AppUserPublicDto[]> => {
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 200));

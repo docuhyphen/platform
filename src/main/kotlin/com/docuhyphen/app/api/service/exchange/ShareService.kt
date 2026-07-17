@@ -16,6 +16,7 @@ import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
+import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
@@ -38,12 +39,16 @@ class ShareService @Inject constructor(
     private val groupMemberRepository: PrincipalGroupMemberRepository,
     private val auditRecorder: AuditRecorder,
     private val exchangeAuthorizationContextProvider: ExchangeAuthorizationContextProvider,
+    private val exchangeRecipientAttestationService: ExchangeRecipientAttestationService,
+    private val trustedRecipientValidationService: TrustedRecipientValidationService,
 )
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(ShareService::class.java)
     }
+
+    fun getById(shareId: UUID): Share? = shareRepository.findById(shareId)
     /**
      * Grant (or refresh) a DIRECT share of [resourceType]/[resourceId] to a principal.
      * Idempotent: an existing ACTIVE DIRECT share to the same principal is updated in place
@@ -139,7 +144,13 @@ class ShareService @Inject constructor(
     {
         shareRepository.findActiveForPrincipal(PrincipalKind.PRINCIPAL_GROUP, groupId)
             .filter { it.source == ShareSource.DIRECT }
-            .forEach { synchronizeInheritedShare(it, principalKind, principalId, active) }
+            .forEach { parentShare ->
+                if (active && !canExpandTrustedGroup(parentShare))
+                {
+                    return@forEach
+                }
+                synchronizeInheritedShare(parentShare, principalKind, principalId, active)
+            }
     }
 
     fun revokeGroupAccess(groupId: UUID)
@@ -195,6 +206,10 @@ class ShareService @Inject constructor(
     {
         val share = shareRepository.findById(shareId) ?: return null
         if (share.status != ShareStatus.PENDING_APPROVAL) return share
+        if (share.principalKind == PrincipalKind.PRINCIPAL_GROUP && !canExpandTrustedGroup(share))
+        {
+            throw IllegalArgumentException("Trusted group is no longer eligible")
+        }
         share.status = ShareStatus.ACTIVE
         val activated = shareRepository.update(share)
 
@@ -210,6 +225,22 @@ class ShareService @Inject constructor(
             materialiseGroupInheritance(activated)
         }
         return activated
+    }
+
+    fun reconcileGroupShare(shareId: UUID)
+    {
+        val share = shareRepository.findById(shareId) ?: return
+        if (share.status == ShareStatus.ACTIVE && share.principalKind == PrincipalKind.PRINCIPAL_GROUP &&
+            canExpandTrustedGroup(share))
+        {
+            materialiseGroupInheritance(share)
+        }
+    }
+
+    private fun canExpandTrustedGroup(parentShare: Share): Boolean
+    {
+        val attestation = exchangeRecipientAttestationService.findForDirectShare(parentShare.id) ?: return true
+        return trustedRecipientValidationService.isGroupAttestationCurrentlyEligible(attestation)
     }
 
     /** Promote every PENDING_APPROVAL share on a resource to ACTIVE; returns the count activated. */
@@ -320,21 +351,19 @@ class ShareService @Inject constructor(
      *  prevents an initiator's own INHERITED_FROM_GROUP share (created when they are also a
      *  member of the recipient group) from being mistaken for the "primary recipient". */
     fun primaryRecipientUserId(exchangeId: UUID): UUID? =
-        shareRepository.findActiveByResource(ResourceType.EXCHANGE, exchangeId)
-            .firstOrNull {
-                it.principalKind == PrincipalKind.USER &&
-                    it.roleName != ExchangeShareRoleName.OWNER &&
-                    it.source == ShareSource.DIRECT
-            }?.principalId
+        primaryDirectRecipientShare(exchangeId)
+            ?.takeIf { it.principalKind == PrincipalKind.USER }
+            ?.principalId
 
     /** Returns the group ID of the primary PRINCIPAL_GROUP recipient share, or null if none. */
     fun primaryRecipientGroupId(exchangeId: UUID): UUID? =
-        shareRepository.findActiveByResource(ResourceType.EXCHANGE, exchangeId)
-            .filter {
-                it.principalKind == PrincipalKind.PRINCIPAL_GROUP &&
-                    it.roleName != ExchangeShareRoleName.OWNER
-            }
-            .firstOrNull()?.principalId
+        primaryDirectRecipientShare(exchangeId)
+            ?.takeIf { it.principalKind == PrincipalKind.PRINCIPAL_GROUP }
+            ?.principalId
+
+    private fun primaryDirectRecipientShare(exchangeId: UUID): Share? =
+        shareRepository.findActiveDirectByResourceOrdered(ResourceType.EXCHANGE, exchangeId)
+            .firstOrNull { it.roleName != ExchangeShareRoleName.OWNER }
 
     /**
      * Display-only variant of [primaryRecipientUserId]: searches ALL share rows regardless of

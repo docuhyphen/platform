@@ -1,11 +1,6 @@
 package com.docuhyphen.app.api.service.exchange
 
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.ShareStatus
 import com.docuhyphen.app.api.repository.ExchangeRepository
-import com.docuhyphen.app.api.repository.OrganizationMembershipRepository
-import com.docuhyphen.app.api.repository.ShareRepository
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -19,9 +14,8 @@ import java.util.UUID
  */
 @ApplicationScoped
 class ExchangeParticipantOrgService @Inject constructor(
-    private val shareRepository: ShareRepository,
+    private val shareService: ShareService,
     private val exchangeRepository: ExchangeRepository,
-    private val organizationMembershipRepository: OrganizationMembershipRepository,
     private val organizationMembershipService: OrganizationMembershipService,
 )
 {
@@ -32,15 +26,11 @@ class ExchangeParticipantOrgService @Inject constructor(
     fun findRecipientOrgIds(exchangeId: UUID): List<UUID>
     {
         val exchange = exchangeRepository.findById(exchangeId) ?: return emptyList()
-        val initiatorOrgId = exchange.initiator?.id?.let { organizationMembershipService.primaryOrganizationId(it) }
+        val initiatorOrgId = exchange.ownerOrganizationId
 
-        val activeUserShares = shareRepository.findAllByResource(ResourceType.EXCHANGE, exchangeId)
-            .filter { it.principalKind == PrincipalKind.USER && it.status == ShareStatus.ACTIVE }
-
-        return activeUserShares
-            .flatMap { share ->
-                organizationMembershipRepository.findActiveByUser(share.principalId)
-                    .map { membership -> membership.organizationId }
+        return shareService.recipientUserIds(exchangeId)
+            .flatMap { recipientUserId ->
+                organizationMembershipService.activeOrganizationIds(recipientUserId)
             }
             .distinct()
             .filter { it != initiatorOrgId }

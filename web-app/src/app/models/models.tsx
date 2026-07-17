@@ -1,19 +1,4 @@
-export enum ExchangeParticipantRole
-{
-    VIEWER = "VIEWER",
-    FULL_ACCESS = "FULL_ACCESS",
-    EDITOR = "EDITOR",
-    COMMENTER = "COMMENTER",
-    OWNER = "OWNER",
-    UPLOADER = "UPLOADER",
-    DOWNLOADER = "DOWNLOADER"
-}
-
-export enum ExchangeParticipantType
-{
-    GROUP = "GROUP",
-    APP_USER = "APP_USER"
-}
+import {ExchangeShareRoleName} from "../../services/types/roles.ts";
 
 export interface ResponseError
 {
@@ -176,21 +161,19 @@ export interface OrganizationRegistrationRequest
     email?: string;
 }
 
-export enum ExchangeRecipientType
-{
-    APP_USER = 'APP_USER',
-    GROUP = 'GROUP',
-    EMAIL = 'EMAIL'
-}
+export type ExchangeRecipientSelection =
+    | {type: "REGISTERED_USER"; appUserId: string}
+    | {type: "EXTERNAL_EMAIL"; email: string; firstName: string; lastName: string}
+    | {type: "INTERNAL_GROUP"; groupId: string}
+    | {type: "PERSONAL_GROUP"; groupId: string}
+    | {type: "TRUSTED_GROUP"; organizationId: string; groupId: string}
+    | {type: "TRUSTED_PERSON"; resolutionId: string};
 
 export interface ExchangeInitiationRequest
 {
     initialShareMessage?: string;
     description?: string;
-    recipientType?: ExchangeRecipientType;
-    recipientEmail?: string;
-    recipientFirstName?: string;
-    recipientLastName?: string;
+    primaryRecipient: ExchangeRecipientSelection;
     name?: string;
     exchangeDocuments?: ExchangeRequestDocumentRequest[];
     requestRecipientSignIn?: boolean;
@@ -262,8 +245,8 @@ export interface DownloadDocumentsZipRequest
 
 export interface ExchangeParticipantRequest
 {
-    id: string;
-    role: ExchangeParticipantRole;
+    selection: ExchangeRecipientSelection;
+    role: ExchangeShareRoleName;
 }
 
 export interface UpdateShareExchangeDocumentRequest
@@ -584,6 +567,14 @@ export enum Capability
     ORG_AUDIT_READ = 'ORG_AUDIT_READ',
     ORG_AUDIT_EXPORT = 'ORG_AUDIT_EXPORT',
     ORG_AUDIT_VIEW_SENSITIVE = 'ORG_AUDIT_VIEW_SENSITIVE',
+    ORG_TRUST_READ = 'ORG_TRUST_READ',
+    ORG_TRUST_REQUEST = 'ORG_TRUST_REQUEST',
+    ORG_TRUST_DECIDE = 'ORG_TRUST_DECIDE',
+    ORG_TRUST_POLICY_MANAGE = 'ORG_TRUST_POLICY_MANAGE',
+    ORG_TRUST_SUSPEND = 'ORG_TRUST_SUSPEND',
+    EXTERNAL_IDENTITY_RESOLVE = 'EXTERNAL_IDENTITY_RESOLVE',
+    EXTERNAL_GROUP_DISCOVER = 'EXTERNAL_GROUP_DISCOVER',
+    EXCHANGE_ACCEPT = 'EXCHANGE_ACCEPT',
 
     // Platform
     APP_ADMIN = 'APP_ADMIN',
@@ -916,6 +907,7 @@ export interface OrganizationSettingsDto
 {
     id?: string;
     allowShareWithoutPairing: boolean;
+    discoverableForTrustRequests: boolean;
     allowExternalCustomerSharing: boolean;
     allowProfileUpdate: boolean;
     allowEmailUpdate: boolean;
@@ -950,28 +942,6 @@ export interface OrganizationGroupMemberDetailedDto
 {
     user: AppUserDetailedDto;
     permissions: OrganizationGroupMemberPermissionDto;
-}
-
-export enum LinkStatus
-{
-    PENDING = "PENDING",
-    ACCEPTED = "ACCEPTED",
-    REJECTED = "REJECTED"
-}
-
-export interface OrganizationExchangeLinkBasicDto
-{
-    id: string;
-    createdDate: string;
-    requestingOrganizationName: string;
-    requestingOrganizationId: string;
-    requestedOrganizationId: string;
-    requestedOrganizationName: string;
-    requestingMessage?: string;
-    status: LinkStatus;
-    linkedDate?: string;
-    rejectedDate?: string;
-    rejectionReason?: string;
 }
 
 // ── Workflow DTOs ─────────────────────────────────────────────────────────────

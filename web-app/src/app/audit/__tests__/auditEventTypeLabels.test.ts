@@ -7,6 +7,11 @@ describe("getAuditEventTypeLabel", () =>
     {
         expect(getAuditEventTypeLabel("audit.search.performed")).toBe("Audit trail searched");
         expect(getAuditEventTypeLabel("document.download")).toBe("Document downloaded");
+        expect(getAuditEventTypeLabel("organization.trust.suspended")).toBe("Trusted Organization suspended");
+        expect(getAuditEventTypeLabel("organization.trust.published_group.listed"))
+            .toBe("Trusted Organization published groups viewed");
+        expect(getAuditEventTypeLabel("organization.trust.identity_resolution.allowed"))
+            .toBe("Trusted Organization member verified");
     });
 
     it("humanizes an unmapped key as a title-cased fallback instead of showing raw dots/underscores", () =>

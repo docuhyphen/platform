@@ -85,6 +85,11 @@ class ExchangeResource @Inject constructor(
                         .build()
                 }
 
+                is ForbiddenException ->
+                    Response.status(Response.Status.FORBIDDEN)
+                        .entity(ResponseError(exception.message))
+                        .build()
+
                 else ->
                 {
                     logger.error("Error initiating exchange", exception)

@@ -34,3 +34,15 @@ data class PrincipalGroupDto(
     val iconUrl: String? = null,
     val members: List<PrincipalGroupMemberDto>,
 )
+
+/** Destination metadata for an externally published organization group. */
+@Serializable
+data class PublishedExchangeGroupDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID,
+    val name: String,
+    val description: String? = null,
+    @Serializable(with = UUIDSerializer::class)
+    val organizationId: UUID,
+    val iconUrl: String? = null,
+)

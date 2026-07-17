@@ -312,51 +312,6 @@ export const deleteOrganizationAppUser = async (organizationId: string, appUserI
     }
 };
 
-export const fetchPairedOrganizations = async (token?: string): Promise<Organization[]> =>
-{
-    try
-    {
-        const response = await apiClient.get('/organizations/linked', {
-            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
-        });
-        return response.data;
-    }
-    catch (error: unknown)
-    {
-        throw error.response?.data || error.message;
-    }
-};
-
-export const fetchPairedOrganizationUsers = async (orgId?: string, token?: string): Promise<AppUserPublicDto[]> =>
-{
-    try
-    {
-        const response = await apiClient.get(`/organizations/linked/${orgId}/app-users`, {
-            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
-        });
-        return response.data;
-    }
-    catch (error: unknown)
-    {
-        throw error.response?.data || error.message;
-    }
-};
-
-export const fetchPairedOrganizationGroups  = async (orgId?: string, token?: string): Promise<Organization[]> =>
-{
-    try
-    {
-        const response = await apiClient.get(`/organizations/linked/${orgId}/groups`, {
-            headers: token ? {Authorization: addBearerToHeaderToken(token)} : undefined
-        });
-        return response.data;
-    }
-    catch (error: unknown)
-    {
-        throw error.response?.data || error.message;
-    }
-};
-
 export const fetchMyOrganizationUsers = async (token?: string): Promise<AppUserPublicDto[]> =>
 {
     try

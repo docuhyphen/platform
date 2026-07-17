@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.auth.authz
 
 import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareLinkStatus
@@ -61,7 +62,36 @@ class DefaultAuthorizationService @Inject constructor(
         context: AuthorizationContext,
     ): Decision
     {
-        val grants = grantsOn(principal, resource, context)
+        val grants = grantsOn(principal, resource, context).toMutableList()
+        if (action == Action.EXCHANGE_ACCEPT)
+        {
+            shareRepository.findDirectForPrincipalOnResource(
+                principal.kind,
+                principal.id,
+                resource.type,
+                resource.id,
+            )
+                .filter { it.status == ShareStatus.PENDING_APPROVAL }
+                .mapTo(grants) { it.toGrant(Grant.SourceKind.DIRECT_SHARE) }
+            if (principal.kind == PrincipalKind.USER || principal.kind == PrincipalKind.PARTICIPANT)
+            {
+                principalGroupMemberRepository.findGroupsForPrincipal(principal.kind, principal.id)
+                    .filter {
+                        it.groupRole == PrincipalGroupRoleName.OWNER ||
+                            it.groupRole == PrincipalGroupRoleName.MANAGER
+                    }
+                    .forEach { membership ->
+                        shareRepository.findDirectForPrincipalOnResource(
+                            PrincipalKind.PRINCIPAL_GROUP,
+                            membership.principalGroupId,
+                            resource.type,
+                            resource.id,
+                        )
+                            .filter { it.status == ShareStatus.PENDING_APPROVAL }
+                            .mapTo(grants) { it.toGrant(Grant.SourceKind.INHERITED_GROUP_SHARE) }
+                    }
+            }
+        }
         if (grants.isEmpty())
         {
             return Decision.Deny(Decision.REASON_NO_GRANT, "No grants for ${principal.kind}/${principal.id} on $resource")
@@ -106,12 +136,26 @@ class DefaultAuthorizationService @Inject constructor(
         capableShareIds
             .filter { shareId -> capableShares.none { it.id == shareId } }
             .mapNotNullTo(capableShares) { shareRepository.findById(it) }
-        val validCapableShares = capableShares.filter { evaluateShareConstraints(it, context, now) == null }
+        val validCapableShares = capableShares.filter {
+            evaluateShareConstraints(
+                share = it,
+                context = context,
+                now = now,
+                allowPendingApproval = action == Action.EXCHANGE_ACCEPT,
+            ) == null
+        }
         val independentlyCapable = capableGrants.any { it.sourceKind !in shareSources }
         if (!independentlyCapable && validCapableShares.isEmpty())
         {
             return capableShares.asSequence()
-                .mapNotNull { evaluateShareConstraints(it, context, now) }
+                .mapNotNull {
+                    evaluateShareConstraints(
+                        share = it,
+                        context = context,
+                        now = now,
+                        allowPendingApproval = action == Action.EXCHANGE_ACCEPT,
+                    )
+                }
                 .firstOrNull()
                 ?: Decision.Deny(Decision.REASON_NO_GRANT, "No effective grant for $action")
         }
@@ -479,13 +523,15 @@ class DefaultAuthorizationService @Inject constructor(
         share: Share,
         context: AuthorizationContext,
         now: Timestamp,
+        allowPendingApproval: Boolean = false,
     ): Decision.Deny?
     {
         if (share.status == ShareStatus.EXPIRED || (share.expiresAt != null && !share.expiresAt!!.after(now)))
         {
             return Decision.Deny(Decision.REASON_SHARE_EXPIRED, "Share ${share.id} expired")
         }
-        if (share.status != ShareStatus.ACTIVE)
+        if (share.status != ShareStatus.ACTIVE &&
+            !(allowPendingApproval && share.status == ShareStatus.PENDING_APPROVAL))
         {
             return Decision.Deny(Decision.REASON_SHARE_NOT_ACTIVE, "Share ${share.id} status=${share.status}")
         }

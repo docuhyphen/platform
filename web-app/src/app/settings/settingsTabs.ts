@@ -9,7 +9,7 @@ export const tabIds = {
     appSettings: "AppSettingsTab",
     people: "PeopleTab",
     groups: "GroupsTab",
-    organizationPairing: "OrganizationPairingTab",
+    organizationTrusted: "TrustedOrganizationsTab",
     blueprints: "BlueprintsTab",
     myGroups: "MyGroupsTab",
     appAdmins: "AppAdminsTab",

@@ -62,30 +62,6 @@ class OrganizationRepository : BaseRepository<Organization>(Organization::class.
 //            ?: throw IllegalArgumentException("Organization not found for appUserId: $appUserId and appId: $appId")
     }
 
-    fun getLinkedOrganizations(id: UUID, includePublic: Boolean = false): List<Organization>
-    {
-        val query = entityManager.createQuery(
-            """
-        SELECT DISTINCT o FROM Organization o
-        WHERE
-            o.id <> :orgId AND (
-                o.id IN (
-                    SELECT l.requestedOrganization.id FROM OrganizationExchangeLink l
-                    WHERE l.requestingOrganization.id = :orgId AND l.status = 'ACCEPTED'
-                    UNION
-                    SELECT l.requestingOrganization.id FROM OrganizationExchangeLink l
-                    WHERE l.requestedOrganization.id = :orgId AND l.status = 'ACCEPTED'
-                )
-                OR o.settings.allowShareWithoutPairing = :includePublic
-            )
-        """.trimIndent(),
-            Organization::class.java
-        )
-        query.setParameter("orgId", id)
-        query.setParameter("includePublic", includePublic)
-        return query.resultList
-    }
-
     fun findByVerifiedContactEmailDomain(domain: String): Organization?
     {
         val query = entityManager.createQuery(
@@ -115,6 +91,29 @@ class OrganizationRepository : BaseRepository<Organization>(Organization::class.
             Organization::class.java,
         )
         query.setParameter("domain", domain.lowercase())
+        return query.resultList
+    }
+
+    fun searchDiscoverableForTrustRequests(
+        activeOrganizationId: UUID,
+        normalizedQuery: String,
+        limit: Int,
+    ): List<Organization>
+    {
+        val query = entityManager.createQuery(
+            """SELECT o FROM Organization o
+               WHERE o.id <> :activeOrganizationId
+                 AND o.isActive = true
+                 AND o.verificationComplete = true
+                 AND o.settings.discoverableForTrustRequests = true
+                 AND (LOWER(o.name) LIKE :nameQuery OR LOWER(o.registrationNumber) = :exactQuery)
+               ORDER BY LOWER(o.name) ASC, o.id ASC""",
+            Organization::class.java,
+        )
+        query.setParameter("activeOrganizationId", activeOrganizationId)
+        query.setParameter("nameQuery", "%$normalizedQuery%")
+        query.setParameter("exactQuery", normalizedQuery)
+        query.maxResults = limit.coerceIn(1, 100)
         return query.resultList
     }
 }

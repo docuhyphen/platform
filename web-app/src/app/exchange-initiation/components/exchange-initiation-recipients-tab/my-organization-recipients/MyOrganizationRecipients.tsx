@@ -396,6 +396,7 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
 
             {(selectedOrgUser || selectedOrgGroup) && (
                 <MyOrgRecipients
+                    id={"my-organization-recipients-internal-participants"}
                     orgUsers={getFilteredInternalUsers()}
                     isLoadingUsers={isLoadingUsers}
                     selectedInternalRecipients={selectedInternalRecipients}

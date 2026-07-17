@@ -1,14 +1,14 @@
 export const usingBlueprintsArticle = (
     <>
         <p>
-            The blueprint picker pre-fills a new exchange with a saved configuration
+            The blueprint picker pre-fills a new Exchange with a saved configuration
             so you can go straight to choosing a recipient rather than rebuilding
-            the exchange from scratch.
+            the Exchange from scratch.
         </p>
 
         <h3>Opening the picker</h3>
         <ol>
-            <li>Click <b>Start Exchange</b> from the main navigation or exchanges list.</li>
+            <li>Click <b>Start Exchange</b> from the main navigation or Exchange list.</li>
             <li>In the start menu, click <b>From Blueprint</b>.</li>
             <li>The blueprint picker opens inside the exchange initiation dialog.</li>
         </ol>
@@ -27,7 +27,7 @@ export const usingBlueprintsArticle = (
         </p>
         <p>
             Click <b>Use Blueprint</b> on the card you want. The picker closes and
-            the exchange form is pre-filled with all the saved settings.
+            the Exchange form is pre-filled with all the saved settings.
         </p>
 
         <h3>What gets pre-filled</h3>
@@ -57,16 +57,16 @@ export const usingBlueprintsArticle = (
         </p>
         <p>
             The dialog moves to the <b>Recipients</b> tab automatically once you
-            have reviewed the pre-filled details. Search for a recipient by name or
-            email and select their person card. You can enter a complete email address
-            for a new recipient who is not in your contacts. Add any internal
-            participants with the multi-person picker, then initiate the exchange
-            when ready.
+            have reviewed the pre-filled details. Search for a recipient by name or email,
+            select a personal or organization group, or use an eligible <b>Trusted Organization</b>
+            to verify a known member by exact email or choose a published group. You can enter a complete email address for
+            a new recipient who is not in your contacts. Add any internal participants with
+            the multi-person picker, then initiate the Exchange when ready.
         </p>
 
         <h3>Saving the current form as a blueprint</h3>
         <p>
-            If you have filled out the exchange form and want to save the
+            If you have filled out the Exchange form and want to save the
             configuration for future reuse, click <b>Save as Blueprint</b> in the
             dialog title bar. You will be prompted to give the blueprint a name and
             optional summary and tags before saving. If you selected a business

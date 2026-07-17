@@ -282,8 +282,11 @@ class DetailedEntityToDtoTransformer
                     OrganizationSettingsDto(
                         id = id,
                         allowShareWithoutPairing = allowShareWithoutPairing,
+                        discoverableForTrustRequests = discoverableForTrustRequests,
+                        allowExternalCustomerSharing = allowExternalCustomerSharing,
                         allowProfileUpdate = allowProfileUpdate,
-                        allowEmailUpdate = allowEmailUpdate
+                        allowEmailUpdate = allowEmailUpdate,
+                        requireRecipientAcceptance = requireRecipientAcceptance,
                     )
                 }
             } ?: SettingsService.getDefaultOrganizationSettings()

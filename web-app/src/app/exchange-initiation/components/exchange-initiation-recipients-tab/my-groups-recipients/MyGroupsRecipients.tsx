@@ -14,7 +14,7 @@ interface MyGroupsRecipientsProps
 /**
  * Lets the user pick one of their personal groups as the exchange recipient.
  * The selected PrincipalGroupDto is cast to OrganizationGroupBasicDto so the
- * parent form can reuse the same recipientOrgGroup / recipientType = GROUP path.
+ * parent form can submit the selected personal group through the typed initiation contract.
  */
 const MyGroupsRecipients: React.FC<MyGroupsRecipientsProps> = ({recipientOrgGroup, setRecipientOrgGroup}) =>
 {

@@ -44,6 +44,13 @@ object RoleCapabilities
 
     private val ORG_OWNER_AND_ADMIN_COMMON: Set<Capability> = setOf(
         Capability.EXCHANGE_INITIATE,
+        Capability.ORG_TRUST_READ,
+        Capability.ORG_TRUST_REQUEST,
+        Capability.ORG_TRUST_DECIDE,
+        Capability.ORG_TRUST_POLICY_MANAGE,
+        Capability.ORG_TRUST_SUSPEND,
+        Capability.EXTERNAL_IDENTITY_RESOLVE,
+        Capability.EXTERNAL_GROUP_DISCOVER,
         Capability.GROUP_READ,
         Capability.GROUP_EDIT,
         Capability.GROUP_ADMIN,
@@ -126,6 +133,8 @@ object RoleCapabilities
         OrganizationRoleName.ORG_MEMBER to setOf(
             Capability.GROUP_READ,
             Capability.EXCHANGE_INITIATE,
+            Capability.EXTERNAL_IDENTITY_RESOLVE,
+            Capability.EXTERNAL_GROUP_DISCOVER,
             Capability.DOC_LIBRARY_DISCOVER,
             Capability.DOC_LIBRARY_READ,
             Capability.DOC_LIBRARY_USE,
@@ -182,6 +191,7 @@ object RoleCapabilities
             Capability.DOCUMENT_COMMENT,
         ),
         ExchangeShareRoleName.EDITOR to setOf(
+            Capability.EXCHANGE_ACCEPT,
             Capability.EXCHANGE_READ,
             Capability.EXCHANGE_WRITE,
             Capability.DOCUMENT_READ,
@@ -190,27 +200,32 @@ object RoleCapabilities
             Capability.DOCUMENT_COMMENT,
         ),
         ExchangeShareRoleName.REVIEWER to setOf(
+            Capability.EXCHANGE_ACCEPT,
             Capability.EXCHANGE_READ,
             Capability.DOCUMENT_READ,
             Capability.DOCUMENT_DOWNLOAD,
             Capability.DOCUMENT_COMMENT,
         ),
         ExchangeShareRoleName.SIGNER to setOf(
+            Capability.EXCHANGE_ACCEPT,
             Capability.EXCHANGE_READ,
             Capability.DOCUMENT_READ,
             Capability.DOCUMENT_DOWNLOAD,
             Capability.DOCUMENT_SIGN,
         ),
         ExchangeShareRoleName.VIEWER to setOf(
+            Capability.EXCHANGE_ACCEPT,
             Capability.EXCHANGE_READ,
             Capability.DOCUMENT_READ,
         ),
         ExchangeShareRoleName.COMMENTER to setOf(
+            Capability.EXCHANGE_ACCEPT,
             Capability.EXCHANGE_READ,
             Capability.DOCUMENT_READ,
             Capability.DOCUMENT_COMMENT,
         ),
         ExchangeShareRoleName.PARTICIPANT to setOf(
+            Capability.EXCHANGE_ACCEPT,
             Capability.EXCHANGE_READ,
             Capability.DOCUMENT_READ,
         ),

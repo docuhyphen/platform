@@ -1,21 +1,19 @@
 ﻿package com.docuhyphen.app.api.service.organization
 
 import com.docuhyphen.app.api.exception.OrganizationGroupNotFoundException
-import com.docuhyphen.app.api.exception.OrganizationLinkNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.model.dto.PrincipalGroupDto
 import com.docuhyphen.app.api.model.dto.PrincipalGroupMemberDto
 import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.LinkStatus
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.PrincipalGroup
+import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
 import com.docuhyphen.app.api.repository.OrganizationRepository
-import com.docuhyphen.app.api.repository.OrganizationExchangeLinkRepository
 import com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.PrincipalGroupRepository
 import com.docuhyphen.app.api.repository.ShareRepository
@@ -50,7 +48,6 @@ class OrganizationGroupService @Inject constructor(
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
     private val configurationService: ConfigurationService,
-    private val orgLinkRepository: OrganizationExchangeLinkRepository,
     private val principalGroupService: PrincipalGroupService,
     private val principalGroupRepository: PrincipalGroupRepository,
     private val principalGroupMemberRepository: PrincipalGroupMemberRepository,
@@ -68,6 +65,30 @@ class OrganizationGroupService @Inject constructor(
     fun getById(groupId: String?): PrincipalGroup? =
         groupId?.let { principalGroupRepository.findById(UUID.fromString(it)) }
             ?: throw IllegalArgumentException("Group id required")
+
+    fun getPublishedExchangeGroups(organizationId: UUID): List<PrincipalGroup> =
+        principalGroupRepository.findExternallyPublishedFor(organizationId)
+
+    fun getPublishedExchangeGroup(organizationId: UUID, groupId: UUID): PrincipalGroup? =
+        principalGroupRepository.findExternallyPublishedFor(organizationId)
+            .firstOrNull { it.id == groupId }
+
+    fun isActiveOwnerOrManager(groupId: UUID, appUserId: UUID): Boolean
+    {
+        val group = principalGroupRepository.findById(groupId)
+            ?: return false
+        if (!group.isActive)
+        {
+            return false
+        }
+        return principalGroupMemberRepository.findActiveMembers(groupId)
+            .any {
+                it.principalKind == PrincipalKind.USER &&
+                    it.principalId == appUserId &&
+                    (it.groupRole == PrincipalGroupRoleName.OWNER ||
+                        it.groupRole == PrincipalGroupRoleName.MANAGER)
+            }
+    }
 
     fun getOrganizationByAppUserIdAndPersonId(appUserId: UUID, personId: UUID): Organization =
         organizationRepository.findByAppUserIdAndPersonId(appUserId, personId)
@@ -305,52 +326,6 @@ class OrganizationGroupService @Inject constructor(
         organizationRepository.findById(orgId)
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
         return principalGroupRepository.findByOwnerOrg(orgId).map { toGroupView(it) }
-    }
-
-    /**
-     * Externally-published groups of a paired organization, visible to [currentOrganizationId]
-     * only when an ACCEPTED pairing exists. Never enumerates users.
-     */
-    fun getPublishedGroupViewsForPairedOrganization(
-        currentOrganizationId: String,
-        pairedOrganizationId: String,
-    ): List<PrincipalGroupDto>
-    {
-        validatePairing(currentOrganizationId, pairedOrganizationId)
-        return principalGroupRepository
-            .findExternallyPublishedFor(UUID.fromString(pairedOrganizationId))
-            .map { toGroupView(it) }
-    }
-
-    private fun validatePairing(currentOrganizationId: String, pairedOrganizationId: String)
-    {
-        if (currentOrganizationId == pairedOrganizationId)
-        {
-            throw IllegalArgumentException("Paired organization must differ from current organization")
-        }
-
-        val currentUUID = UUID.fromString(currentOrganizationId)
-        val pairedUUID = UUID.fromString(pairedOrganizationId)
-
-        val currentOrg = organizationRepository.findById(currentUUID)
-            ?: throw OrganizationNotFoundException("Current organization not found")
-        organizationRepository.findById(pairedUUID)
-            ?: throw OrganizationNotFoundException("Paired organization not found")
-
-        val appUser = authTokenContext.authToken.appUser
-            ?: throw IllegalArgumentException("Caller must be authenticated")
-        if (!organizationMembershipService.isMember(appUser.id, currentUUID))
-        {
-            throw IllegalArgumentException("Caller does not belong to the current organization")
-        }
-
-        (orgLinkRepository.findByRequestingOrganization(currentUUID) +
-            orgLinkRepository.findByRequestedOrganization(currentUUID))
-            .firstOrNull { l ->
-                (l.requestingOrganization?.id == pairedUUID || l.requestedOrganization?.id == pairedUUID) &&
-                    l.status == LinkStatus.ACCEPTED
-            }
-            ?: throw OrganizationLinkNotFoundException("No active pairing with the requested organization")
     }
 
     // -------------------------------------------------------------------------

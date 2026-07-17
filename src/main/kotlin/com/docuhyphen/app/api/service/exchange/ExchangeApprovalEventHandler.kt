@@ -3,9 +3,8 @@
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.repository.ExchangeRepository
-import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.service.notification.DomainEvent
-import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import com.docuhyphen.app.api.service.organization.OrganizationService
 import com.docuhyphen.app.api.service.workflow.TriggerRequest
 import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
 import jakarta.enterprise.context.ApplicationScoped
@@ -35,8 +34,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
     private val shareService: ShareService,
     private val exchangeRepository: ExchangeRepository,
     private val workflowEngineService: WorkflowEngineService,
-    private val organizationMembershipService: OrganizationMembershipService,
-    private val organizationRepository: OrganizationRepository,
+    private val organizationService: OrganizationService,
     private val exchangeInitiationService: ExchangeInitiationService,
     private val exchangeParticipantOrgService: ExchangeParticipantOrgService,
     private val lifecycleNotificationService: ExchangeLifecycleNotificationService,
@@ -131,9 +129,9 @@ class ExchangeApprovalEventHandler @Inject constructor(
                 // Fired when the acceptance_pending workflow completes (or auto-acceptance).
                 val activated = shareService.activatePendingForResource(ResourceType.EXCHANGE, exchangeId)
                 val exchange = exchangeRepository.findById(exchangeId)
-                val orgId = exchange?.initiator?.id?.let { organizationMembershipService.primaryOrganizationId(it) }
+                val orgId = exchange?.ownerOrganizationId
                 val requireRecipientAcceptance = orgId
-                    ?.let { organizationRepository.findById(it) }?.settings?.requireRecipientAcceptance
+                    ?.let { organizationService.getOrganizationById(it) }?.settings?.requireRecipientAcceptance
                     ?: true
 
                 exchange?.let { session ->
@@ -188,8 +186,8 @@ class ExchangeApprovalEventHandler @Inject constructor(
                     logger.warn("Exchange {} not found for draft_approved event", exchangeId)
                     return
                 }
-                val orgId = exchange.initiator?.id?.let { organizationMembershipService.primaryOrganizationId(it) }
-                val settings = orgId?.let { organizationRepository.findById(it) }?.settings
+                val orgId = exchange.ownerOrganizationId
+                val settings = orgId?.let { organizationService.getOrganizationById(it) }?.settings
                 val requireAcceptance = settings?.requireRecipientAcceptance ?: true
 
                 val subjectData = buildMap<String, String> {
@@ -248,7 +246,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
                     }
                 }
                 logger.info("Exchange {} ended (via exchange.ending event from workflow step)", exchangeId)
-                val orgId = exchange?.initiator?.id?.let { organizationMembershipService.primaryOrganizationId(it) }
+                val orgId = exchange?.ownerOrganizationId
                 val subjectData = buildMap<String, String> {
                     exchange?.initiator?.id?.let { put("initiatorId", it.toString()) }
                     orgId?.let { put("orgId", it.toString()) }
@@ -270,7 +268,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
                     }
                 }
                 logger.info("Exchange {} ended (confirmed by workflow outcome)", exchangeId)
-                val orgId = exchange?.initiator?.id?.let { organizationMembershipService.primaryOrganizationId(it) }
+                val orgId = exchange?.ownerOrganizationId
                 val subjectData = buildMap<String, String> {
                     exchange?.initiator?.id?.let { put("initiatorId", it.toString()) }
                     orgId?.let { put("orgId", it.toString()) }

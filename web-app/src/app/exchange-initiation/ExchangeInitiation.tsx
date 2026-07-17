@@ -47,7 +47,7 @@ import {
     BlueprintDocumentConfig,
     DocumentType,
     DocumentLibraryEntrySummaryDto,
-    ExchangeInitiationRequest, ExchangeParticipantRole, ExchangeParticipantType,
+    ExchangeInitiationRequest,
     ExchangeRequestDocumentRequest,
     SchemaAssignmentSource,
     SchemaDefinitionDto
@@ -64,6 +64,8 @@ import SaveBlueprintPanel from "./components/save-blueprint-dialog/SaveBlueprint
 import {useAuth} from "../../context/AuthContext.tsx";
 import {recreateRejectedExchangeObservable} from "../observable/exchangeObservables.ts";
 import {useNavigate} from "react-router-dom";
+import {buildRecipientSelection} from "./exchangeInitiationRecipientSelection.ts";
+import {ExchangeShareRoleName} from "../../services/types/roles.ts";
 
 type CreatedExchangeSummary = {
     id?: string;
@@ -101,6 +103,7 @@ const ExchangeInitiation: React.FC = () =>
         recipientOrg, setRecipientOrg,
         recipientOrgUser, setRecipientOrgUser,
         recipientOrgGroup, setRecipientOrgGroup,
+        recipientResolution, setRecipientResolution,
         internalParticipants, setInternalParticipants,
         newRecipient, setNewRecipient,
         recipientRole, setRecipientRole,
@@ -343,6 +346,10 @@ const ExchangeInitiation: React.FC = () =>
 
     const buildRecipientLabel = (): string =>
     {
+        if (recipientResolution)
+        {
+            return recipientResolution.displayName || recipientResolution.email;
+        }
         if (recipientOrgGroup?.name)
         {
             return `Group: ${recipientOrgGroup.name}`;
@@ -446,22 +453,22 @@ const ExchangeInitiation: React.FC = () =>
 
         switch (recipientMode)
         {
-            case ExchangeInitiationRecipientMode.EXTERNAL_ORG:
+            case ExchangeInitiationRecipientMode.TRUSTED_ORG:
                 if (!recipientOrg)
                 {
                     setMessageGroupMessages(['A valid recipient organization is required']);
                     setSelectedTab('recipients-tab');
                     return false;
                 }
-                if (!recipientOrgUser && !recipientOrgGroup)
+                if (recipientResolution && recipientResolution.expiresAt <= Date.now())
                 {
-                    setMessageGroupMessages(['A valid recipient organization user or group is required']);
+                    setMessageGroupMessages(['The trusted member verification expired. Verify the member again.']);
                     setSelectedTab('recipients-tab');
                     return false;
                 }
-                if (recipientOrgUser && appUser && recipientOrgUser.id === appUser.id)
+                if (!recipientResolution && !recipientOrgGroup)
                 {
-                    setMessageGroupMessages(['You cannot be the recipient of your own exchange']);
+                    setMessageGroupMessages(['Verify a member or select a published group from the Trusted Organization']);
                     setSelectedTab('recipients-tab');
                     return false;
                 }
@@ -556,26 +563,18 @@ const ExchangeInitiation: React.FC = () =>
                 return;
             }
 
-            let recipientType = "EMAIL";
-
-            if (recipientOrgGroup)
-            {
-                recipientType = "GROUP"
-            }
-            else if (recipientOrgUser)
-            {
-                recipientType = "APP_USER"
-
-            }
-
-            const exchange = {
+            const primaryRecipient = buildRecipientSelection({
+                mode: recipientMode,
+                organization: recipientOrg,
+                appUser: recipientOrgUser,
+                group: recipientOrgGroup,
+                externalRecipient: newRecipient,
+                resolutionId: recipientResolution?.id,
+            });
+            const exchange: ExchangeInitiationRequest = {
                 name,
                 description,
-                recipientOrgGroupId: recipientOrgGroup?.id,
-                recipientAppUserId: recipientOrgUser?.id,
-                recipientEmail: newRecipient?.email,
-                recipientFirstName: newRecipient?.firstName,
-                recipientLastName: newRecipient?.lastName,
+                primaryRecipient,
                 initialShareMessage,
                 exchangeDocuments: documents.map((doc: ExchangeRequestDocumentRequest, _: number) => ({
                     ...doc,
@@ -588,7 +587,6 @@ const ExchangeInitiation: React.FC = () =>
                 allowDocumentUpdate: allowDocumentUpdate,
                 allowDocumentUpload: allowDocumentUpload,
                 allowedDownloadFormats: allowDocumentDownload ? (allowedDownloadFormats ?? undefined) : undefined,
-                recipientType,
                 recipientRoleName: recipientRole,
                 recipientConstraintsJson:
                     Object.keys(recipientConstraints).length > 0
@@ -596,16 +594,17 @@ const ExchangeInitiation: React.FC = () =>
                         : undefined,
                 participants: internalParticipants
                     ?.filter(p => !appUser || p.id !== appUser.id)
-                    ?.map(p => {
-                        return {id: p.id, participantType: ExchangeParticipantType.APP_USER}
-                    }),
+                    ?.map((participant) => ({
+                        selection: {type: "REGISTERED_USER", appUserId: participant.id},
+                        role: ExchangeShareRoleName.PARTICIPANT,
+                    })),
                 variableOverrides: Object.keys(variableOverrides).length > 0 ? variableOverrides : undefined,
                 schemaDefinitionId: schemaDefinitionId || undefined,
                 fieldValues: buildCreationFieldValues(schemaDefinitionId, fieldBindings, fieldValueMap),
                 schemaAssignmentSource: schemaFromBlueprint && schemaDefinitionId
                     ? SchemaAssignmentSource.BLUEPRINT
                     : undefined,
-            } as ExchangeInitiationRequest;
+            };
 
             const createdExchange = await initiateExchange(exchange);
             const createdExchangeId = (createdExchange as { id?: string })?.id;
@@ -801,6 +800,7 @@ const ExchangeInitiation: React.FC = () =>
                 setRecipientOrgUser={setRecipientOrgUser}
                 recipientOrgGroup={recipientOrgGroup}
                 setRecipientOrgGroup={setRecipientOrgGroup}
+                setRecipientResolution={setRecipientResolution}
                 internalParticipants={internalParticipants}
                 setInternalParticipants={setInternalParticipants}
                 newRecipient={newRecipient}

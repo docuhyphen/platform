@@ -37,6 +37,12 @@ class OrganizationMembershipService @Inject constructor(
     fun isMember(appUserId: UUID, organizationId: UUID): Boolean =
         membershipRepository.findActiveByUserAndOrg(appUserId, organizationId) != null
 
+    fun findActiveMembershipsByOrganizationAndExactEmail(
+        organizationId: UUID,
+        normalizedEmail: String,
+    ): List<OrganizationMembership> =
+        membershipRepository.findActiveMembershipsByOrganizationAndExactEmail(organizationId, normalizedEmail)
+
     fun activeOrganizationIds(appUserId: UUID): Set<UUID> =
         membershipRepository.findActiveByUser(appUserId)
             .map { it.organizationId }

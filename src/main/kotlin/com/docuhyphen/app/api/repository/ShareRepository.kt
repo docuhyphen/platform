@@ -59,6 +59,24 @@ class ShareRepository : BaseRepository<Share>(Share::class.java)
             .setParameter("status", ShareStatus.ACTIVE)
             .resultList
 
+    fun findActiveDirectByResourceOrdered(
+        resourceType: ResourceType,
+        resourceId: UUID,
+    ): List<Share> =
+        entityManager.createQuery(
+            """SELECT s FROM Share s
+               WHERE s.resourceType = :rt AND s.resourceId = :rid
+                 AND s.status = :status AND s.source = :source
+                 AND s.sourceShareId IS NULL
+               ORDER BY s.grantedAt ASC, s.id ASC""",
+            Share::class.java,
+        )
+            .setParameter("rt", resourceType)
+            .setParameter("rid", resourceId)
+            .setParameter("status", ShareStatus.ACTIVE)
+            .setParameter("source", ShareSource.DIRECT)
+            .resultList
+
     fun findAllForPrincipal(kind: PrincipalKind, principalId: UUID): List<Share> =
         entityManager.createQuery(
             """SELECT s FROM Share s

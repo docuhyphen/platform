@@ -43,7 +43,7 @@ import java.util.UUID
  *  - updateExchange: caller with no EXCHANGE_READ -> ExchangeNotFoundException (existence hidden).
  *  - updateExchange: caller with EXCHANGE_READ but no EXCHANGE_WRITE cannot mutate owner fields.
  *  - updateExchange: caller with EXCHANGE_WRITE can change name/settings.
- *  - updateExchange: caller with EXCHANGE_READ can change ACCEPTED_STARTED status (recipient path).
+ *  - updateExchange: EXCHANGE_READ alone cannot change recipient acceptance status.
  *  - updateExchange: caller with EXCHANGE_READ cannot set ENDED status (needs EXCHANGE_WRITE).
  *  - rescindExchange: caller with no EXCHANGE_RESCIND -> ForbiddenException.
  *  - rescindExchange: caller with EXCHANGE_RESCIND on already-RESCINDED exchange is idempotent.
@@ -114,6 +114,7 @@ class ExchangeAuthorizationTest
         exchangeRepo: ExchangeRepository = mock(),
         workflowInstanceRepo: WorkflowInstanceRepository = mock(),
         workflowEngine: WorkflowEngineService = mock(),
+        exchangeRecipientService: ExchangeRecipientService = mock(),
     ): ExchangeUpdateService = ExchangeUpdateService(
         exchangeRepository = exchangeRepo,
         emailService = mock(),
@@ -122,6 +123,7 @@ class ExchangeAuthorizationTest
         otpService = mock(),
         userContactService = mock(),
         shareService = mock(),
+        exchangeRecipientService = exchangeRecipientService,
         externalParticipantRepository = mock(),
         principalGroupRepository = mock(),
         shareRepository = mock(),
@@ -207,7 +209,7 @@ class ExchangeAuthorizationTest
     }
 
     @Test
-    fun `updateExchange - EXCHANGE_READ sufficient for ACCEPTED_STARTED status`()
+    fun `updateExchange - EXCHANGE_READ alone cannot accept an Exchange`()
     {
         val exchange = makeExchange(ExchangeStatus.INITIATED)
         val repo = mock<ExchangeRepository>()
@@ -216,20 +218,77 @@ class ExchangeAuthorizationTest
         val svc = makeService(
             authSvc = makeAuthService(Action.EXCHANGE_VIEW),
             exchangeRepo = repo,
+            exchangeRecipientService = mock<ExchangeRecipientService>().also {
+                whenever(it.recordPrimaryDecision(any(), any(), any())).thenThrow(
+                    IllegalArgumentException("not primary recipient"),
+                )
+            },
         )
-        // updateExchange with only ACCEPTED_STARTED status change should pass the auth gate and reach
-        // the business logic; any business exception (no acceptance workflow etc.) is not a 403/404.
-        try
-        {
-            svc.updateExchange(exchangeId.toString(), UpdateExchangeRequest(status = ExchangeStatus.ACCEPTED_STARTED))
+        assertThrows<ForbiddenException> {
+            svc.decideAcceptance(exchangeId.toString(), accepted = true, reason = null)
         }
-        catch (e: Exception)
-        {
-            // An IllegalStateException or similar from the workflow layer is acceptable because it means
-            // the authorization gate passed and the call reached business logic.
-            assert(e !is ExchangeNotFoundException) { "Should not throw ExchangeNotFoundException; got $e" }
-            assert(e !is ForbiddenException) { "Should not throw ForbiddenException; got $e" }
+    }
+
+    @Test
+    fun `updateExchange rejects recipient decisions through the generic update resource`()
+    {
+        val svc = makeService()
+
+        assertThrows<IllegalArgumentException> {
+            svc.updateExchange(
+                exchangeId.toString(),
+                UpdateExchangeRequest(status = ExchangeStatus.ACCEPTED_STARTED),
+            )
         }
+    }
+
+    @Test
+    fun `acceptance decision authorizes pending primary recipient without Exchange view`()
+    {
+        val exchange = makeExchange(ExchangeStatus.INITIATED)
+        val repo = mock<ExchangeRepository>()
+        val recipientService = mock<ExchangeRecipientService>()
+        whenever(repo.findById(exchangeId)).thenReturn(exchange)
+
+        val svc = makeService(
+            authSvc = makeAuthService(Action.EXCHANGE_ACCEPT),
+            exchangeRepo = repo,
+            exchangeRecipientService = recipientService,
+        )
+
+        svc.decideAcceptance(exchangeId.toString(), accepted = true, reason = null)
+
+        verify(recipientService).recordPrimaryDecision(exchangeId, userId, accepted = true)
+        verify(repo).updateStatus(exchangeId, ExchangeStatus.ACCEPTED_STARTED)
+    }
+
+    @Test
+    fun `acceptance decision waits for sender approval before recording a recipient decision`()
+    {
+        val exchange = makeExchange(ExchangeStatus.INITIATED)
+        val repo = mock<ExchangeRepository>()
+        val instanceRepo = mock<WorkflowInstanceRepository>()
+        val recipientService = mock<ExchangeRecipientService>()
+        val draftApproval = WorkflowInstance().apply {
+            status = WorkflowInstanceStatus.RUNNING
+            triggerEventSnapshot = "exchange.draft_submitted"
+        }
+        whenever(repo.findById(exchangeId)).thenReturn(exchange)
+        whenever(instanceRepo.findActiveForSubjectAndTrigger(exchangeId, "exchange.draft_submitted"))
+            .thenReturn(draftApproval)
+
+        val svc = makeService(
+            authSvc = makeAuthService(Action.EXCHANGE_ACCEPT),
+            exchangeRepo = repo,
+            workflowInstanceRepo = instanceRepo,
+            exchangeRecipientService = recipientService,
+        )
+
+        assertThrows<com.docuhyphen.app.api.exception.WorkflowConflictException> {
+            svc.decideAcceptance(exchangeId.toString(), accepted = true, reason = null)
+        }
+        verify(recipientService, never()).recordPrimaryDecision(any(), any(), any())
+        verify(repo, never()).updateStatus(any(), any())
     }
 
     @Test

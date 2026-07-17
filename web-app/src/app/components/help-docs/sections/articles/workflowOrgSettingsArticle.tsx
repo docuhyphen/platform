@@ -10,7 +10,7 @@ export const workflowOrgSettingsArticle = (
         <h3>Require recipient acceptance</h3>
         <p>
             The <b>Require recipient acceptance</b> toggle controls whether every
-            Exchange created in your organization must wait for at least one
+            Exchange created in your organization must wait for its primary
             recipient to accept before it transitions to Active.
         </p>
         <ul>
@@ -19,19 +19,28 @@ export const workflowOrgSettingsArticle = (
                 a recipient accepts. If a workflow definition for the{" "}
                 <code>exchange.acceptance_pending</code> trigger is active, that
                 workflow gates the acceptance. If no matching definition is active,
-                the platform still requires at least one manual recipient acceptance
+                the platform still requires the primary recipient's manual acceptance
                 before the Exchange becomes Active.
             </li>
             <li>
-                <b>Off</b> - newly created Exchanges advance to Active immediately
+                <b>Off</b> - most newly created Exchanges advance to Active immediately
                 on creation. The <code>exchange.activated</code> event fires and
                 the Exchange bypasses the acceptance stage. Use this for internal
-                or automated Exchanges where recipient sign-off is not needed.
+                or automated Exchanges where recipient sign-off is not needed. An Exchange
+                sent to a published group in a Trusted Organization is an exception and always
+                requires group acceptance.
             </li>
         </ul>
         <p>
             Changing this setting affects all new Exchanges created after the
             change. Exchanges that are already in Draft or Active are not affected.
+        </p>
+        <p>
+            Only the primary recipient can accept or reject an Exchange. Additional
+            participants cannot make that decision. When the primary recipient is a
+            group, an active group Owner or Manager makes the decision for the group.
+            For a published group in a Trusted Organization, the current trust relationship,
+            directional policies, group publication, and group role must also remain eligible.
         </p>
 
         <h3>Where to find this setting</h3>
@@ -66,7 +75,9 @@ export const workflowOrgSettingsArticle = (
             <li>
                 When the setting is <b>off</b>, the{" "}
                 <code>exchange.acceptance_pending</code> trigger never fires and
-                acceptance workflow definitions for that trigger will not run.
+                acceptance workflow definitions for that trigger will not run for ordinary
+                recipients. Trusted Organization group recipients still require a direct group
+                acceptance decision.
             </li>
         </ul>
 

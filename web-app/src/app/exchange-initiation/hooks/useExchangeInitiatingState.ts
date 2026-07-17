@@ -1,5 +1,10 @@
 ﻿import {useState} from 'react';
-import {ExchangeRequestDocumentRequest, SchemaFieldBindingDto} from '../../models/models.tsx';
+import {
+    AppUserPublicDto,
+    ExchangeRequestDocumentRequest,
+    OrganizationBasicDto,
+    SchemaFieldBindingDto,
+} from '../../models/models.tsx';
 import {
     ExchangeInitiationRecipientMode
 } from "../components/exchange-initiation-recipients-tab/ExchangeInitiationRecipientsTab.tsx";
@@ -8,6 +13,8 @@ import {
 } from "../components/exchange-initiation-recipients-tab/new-recipient/NewRecipient.tsx";
 import {ExchangeShareRoleName} from '../../../services/types/roles.ts';
 import {ShareConstraints} from '../../../services/types/dtos.ts';
+import {OrganizationGroupBasicDto} from '../../../services/organizationApi.ts';
+import {ExternalIdentityResolution} from '../../../services/organizationTrust.ts';
 
 const useExchangeInitiatingState = () =>
 {
@@ -26,13 +33,14 @@ const useExchangeInitiatingState = () =>
     const [exchangeInitiatedSuccessfully, setExchangeInitiatedSuccessfully] = useState<boolean>(false);
     const [documents, setDocuments] = useState<ExchangeRequestDocumentRequest[]>([]);
     const [selectedTab, setSelectedTab] = useState<string>("recipients-tab");
-    const [messageGroupMessages, setMessageGroupMessages] = useState<any>([]);
+    const [messageGroupMessages, setMessageGroupMessages] = useState<string[]>([]);
     const [requestingDocuments, setRequestingDocuments] = useState<boolean>(true);
     const [recipientMode, setRecipientMode] = useState<ExchangeInitiationRecipientMode>(ExchangeInitiationRecipientMode.PEOPLE);
-    const [recipientOrg, setRecipientOrg] = useState<any>();
-    const [recipientOrgUser, setRecipientOrgUser] = useState<any | undefined>();
-    const [recipientOrgGroup, setRecipientOrgGroup] = useState<any | undefined>();
-    const [internalParticipants, setInternalParticipants] = useState<any | undefined>();
+    const [recipientOrg, setRecipientOrg] = useState<OrganizationBasicDto>();
+    const [recipientOrgUser, setRecipientOrgUser] = useState<AppUserPublicDto>();
+    const [recipientOrgGroup, setRecipientOrgGroup] = useState<OrganizationGroupBasicDto>();
+    const [recipientResolution, setRecipientResolution] = useState<ExternalIdentityResolution>();
+    const [internalParticipants, setInternalParticipants] = useState<AppUserPublicDto[]>();
     const [newRecipient, setNewRecipient] = useState<ExchangeNewMainRecipient | undefined>({
         email: '',
         firstName: '',
@@ -67,6 +75,7 @@ const useExchangeInitiatingState = () =>
         recipientOrg, setRecipientOrg,
         recipientOrgUser, setRecipientOrgUser,
         recipientOrgGroup, setRecipientOrgGroup,
+        recipientResolution, setRecipientResolution,
         internalParticipants, setInternalParticipants,
         newRecipient, setNewRecipient,
         recipientRole, setRecipientRole,

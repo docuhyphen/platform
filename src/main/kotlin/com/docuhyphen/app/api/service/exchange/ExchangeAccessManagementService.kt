@@ -11,8 +11,11 @@ import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
 import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareSource
 import com.docuhyphen.app.api.model.entity.Exchange
+import com.docuhyphen.app.api.model.entity.ExchangeRecipientAcceptanceStatus
+import com.docuhyphen.app.api.model.entity.ExchangeRecipientPurpose
+import com.docuhyphen.app.api.model.entity.ExchangeRecipientSelectionType
+import com.docuhyphen.app.api.model.entity.PrincipalGroupScope
 import com.docuhyphen.app.api.repository.ExternalParticipantRepository
-import com.docuhyphen.app.api.repository.PrincipalGroupRepository
 import com.docuhyphen.app.api.repository.ShareRepository
 import com.docuhyphen.app.api.repository.ExchangeRepository
 import com.docuhyphen.app.api.service.AppUserService
@@ -26,6 +29,7 @@ import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
 import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
+import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
 import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
@@ -60,7 +64,8 @@ class ExchangeAccessManagementService @Inject constructor(
     private val shareQueryService: ShareQueryService,
     private val appUserService: AppUserService,
     private val externalParticipantRepository: ExternalParticipantRepository,
-    private val principalGroupRepository: PrincipalGroupRepository,
+    private val organizationGroupService: OrganizationGroupService,
+    private val exchangeRecipientService: ExchangeRecipientService,
     private val authTokenContext: AuthTokenContext,
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
@@ -115,7 +120,7 @@ class ExchangeAccessManagementService @Inject constructor(
         // Reject malformed/contradictory constraints up front and store a canonical form.
         val normalizedConstraints = ShareConstraints.normalizeForStorage(constraintsJson)
 
-        shareService.grant(
+        val directShare = shareService.grant(
             resourceType = ResourceType.EXCHANGE,
             resourceId = exchangeId,
             principalKind = kind,
@@ -125,6 +130,15 @@ class ExchangeAccessManagementService @Inject constructor(
             constraintsJson = normalizedConstraints,
             expiresAt = expiresAtEpochMillis?.let { Timestamp(it) },
             resourceLabel = session.name,
+        )
+        val binding = recipientBinding(session, kind, principalUuid)
+        exchangeRecipientService.createBinding(
+            exchangeId = exchangeId,
+            directShare = directShare,
+            purpose = ExchangeRecipientPurpose.PARTICIPANT,
+            selectionType = binding.selectionType,
+            targetOrganizationId = binding.targetOrganizationId,
+            acceptanceStatus = ExchangeRecipientAcceptanceStatus.NOT_REQUIRED,
         )
 
         // Send invitation email to the newly added person.
@@ -220,7 +234,7 @@ class ExchangeAccessManagementService @Inject constructor(
             )
             emailService.sendEmail(
                 to = recipientEmail,
-                subject = "${configurationService.emailSubjectTitle} | You've been added to a exchange",
+                subject = "${configurationService.emailSubjectTitle} | You've been added to a Document Exchange",
                 body = body,
                 useHtml = true,
             )
@@ -370,7 +384,7 @@ class ExchangeAccessManagementService @Inject constructor(
                 throw IllegalArgumentException("Participant not found")
             }
 
-            PrincipalKind.PRINCIPAL_GROUP -> if (principalGroupRepository.findById(principalId) == null)
+            PrincipalKind.PRINCIPAL_GROUP -> if (organizationGroupService.getById(principalId.toString()) == null)
             {
                 throw IllegalArgumentException("Group not found")
             }
@@ -396,7 +410,7 @@ class ExchangeAccessManagementService @Inject constructor(
             PrincipalKind.PARTICIPANT -> organizationExchangePolicyService.assertCanShareWithUser(actorId, null)
             PrincipalKind.PRINCIPAL_GROUP ->
             {
-                val group = principalGroupRepository.findById(principalId)
+                val group = organizationGroupService.getById(principalId.toString())
                     ?: throw IllegalArgumentException("Group not found")
                 organizationExchangePolicyService.assertCanShareWithGroup(actorId, group)
             }
@@ -404,6 +418,48 @@ class ExchangeAccessManagementService @Inject constructor(
             else -> throw IllegalArgumentException("Principal kind is not supported for Exchange access")
         }
     }
+
+    private data class RecipientBinding(
+        val selectionType: ExchangeRecipientSelectionType,
+        val targetOrganizationId: UUID?,
+    )
+
+    private fun recipientBinding(
+        exchange: Exchange,
+        principalKind: PrincipalKind,
+        principalId: UUID,
+    ): RecipientBinding =
+        when (principalKind)
+        {
+            PrincipalKind.USER -> RecipientBinding(
+                selectionType = ExchangeRecipientSelectionType.REGISTERED_USER,
+                targetOrganizationId = null,
+            )
+            PrincipalKind.PARTICIPANT -> RecipientBinding(
+                selectionType = ExchangeRecipientSelectionType.EXTERNAL_EMAIL,
+                targetOrganizationId = null,
+            )
+            PrincipalKind.PRINCIPAL_GROUP ->
+            {
+                val group = organizationGroupService.getById(principalId.toString())
+                    ?: throw IllegalArgumentException("Group not found")
+                val selectionType = when (group.scope)
+                {
+                    PrincipalGroupScope.PERSONAL -> ExchangeRecipientSelectionType.PERSONAL_GROUP
+                    PrincipalGroupScope.ORG -> if (group.ownerOrganizationId == exchange.ownerOrganizationId)
+                        ExchangeRecipientSelectionType.INTERNAL_GROUP
+                    else
+                        ExchangeRecipientSelectionType.TRUSTED_GROUP
+                    PrincipalGroupScope.SHARED_PROJECT ->
+                        throw IllegalArgumentException("Shared project groups cannot be used as Exchange recipients")
+                }
+                RecipientBinding(
+                    selectionType = selectionType,
+                    targetOrganizationId = group.ownerOrganizationId,
+                )
+            }
+            else -> throw IllegalArgumentException("Principal kind is not supported for Exchange access")
+        }
 
     private fun findOrCreateExternalParticipant(email: String): ExternalParticipant
     {
