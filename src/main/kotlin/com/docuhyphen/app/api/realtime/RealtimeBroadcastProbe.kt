@@ -22,7 +22,7 @@ class RealtimeBroadcastProbe @Inject constructor(
     }
 
     @Scheduled(
-        every = "600s",
+        every = "3600s",
         identity = "realtime-broadcast-probe",
         concurrentExecution = Scheduled.ConcurrentExecution.SKIP,
     )

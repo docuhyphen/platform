@@ -7,7 +7,7 @@ import {
 } from '../../models/models.tsx';
 import {
     ExchangeInitiationRecipientMode
-} from "../components/exchange-initiation-recipients-tab/ExchangeInitiationRecipientsTab.tsx";
+} from "../components/exchange-initiation-recipients-tab/exchangeInitiationRecipientMode.ts";
 import {
     ExchangeNewMainRecipient
 } from "../components/exchange-initiation-recipients-tab/new-recipient/NewRecipient.tsx";

@@ -55,6 +55,8 @@ An "Exchange" is a first class word and should be used as a noun. For example, i
 ## BACKEND RULES
 - A service should not user another service's repository directly, they should communicate via methods
 - toDto methods must be in their own dedicated class an not in the service or resource class
+- Entity/model (data classes) must be in dedicated entity classes or a single one
+- Use SOLID software design principles so that classes are not too big
 ---
 
 ---

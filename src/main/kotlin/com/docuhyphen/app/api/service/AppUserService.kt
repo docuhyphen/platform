@@ -54,6 +54,11 @@ class AppUserService @Inject constructor(
         return appUserRepository.findByEmail(email)
     }
 
+    fun findRegisteredByEmail(email: String): AppUser?
+    {
+        return appUserRepository.findActiveByEmail(email)
+    }
+
     fun searchActiveUsers(query: String, limit: Int = 20): List<AppUser>
     {
         return appUserRepository.searchActiveUsers(query, limit)
@@ -350,4 +355,5 @@ class AppUserService @Inject constructor(
             logger.error("Failed to send profile-updated email to {}", appUser.email, e)
         }
     }
+
 }

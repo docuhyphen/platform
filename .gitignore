@@ -50,4 +50,5 @@ nb-configuration.xml
 /web-app/node_modules
 
 ./.claude
+/.claude/settings.local.json
 ./.agents

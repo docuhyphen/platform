@@ -1,7 +1,6 @@
 package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.exception.OrganizationGroupNotFoundException
-import com.docuhyphen.app.api.exception.OrganizationLinkNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.model.resourceservice.OrganizationGroupMemberModel

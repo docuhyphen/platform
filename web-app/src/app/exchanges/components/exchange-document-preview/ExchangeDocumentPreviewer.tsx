@@ -735,7 +735,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                             {downloadingPdf ? 'Preparing PDF…' : 'Download as PDF'}
                         </Button>
                     )}
-                    {!downloadAllowed && (
+                    {appUser.id != exchange.initiator.id && !downloadAllowed && (
                         <Text size={200} italic>
                             Download is disabled for this exchange.
                         </Text>

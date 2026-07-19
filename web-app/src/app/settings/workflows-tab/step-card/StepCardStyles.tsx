@@ -30,12 +30,9 @@ export const useStepCardStyles = makeStyles({
     },
 
     fieldGroup: {
-        display: "grid",
-        gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+        display: "flex",
+        flexDirection: "column",
         gap: tokens.spacingHorizontalM,
-        "@media (max-width: 900px)": {
-            gridTemplateColumns: "1fr",
-        },
     },
 
     field: {

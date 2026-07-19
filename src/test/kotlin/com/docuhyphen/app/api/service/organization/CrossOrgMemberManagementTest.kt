@@ -15,12 +15,17 @@ import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.Mockito.`when`
+import org.mockito.kotlin.any
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.junit.jupiter.MockitoSettings
 import org.mockito.quality.Strictness
@@ -128,6 +133,77 @@ class CrossOrgMemberManagementTest
         assertFalse(ex.message!!.contains("does not have permission")) {
             "Auth gate blocked when it should not: ${ex.message}"
         }
+    }
+
+    @Test
+    fun `addAppUser reuses an active registered account without replacing its credentials`()
+    {
+        val org = Organization().apply {
+            id = orgAId
+            name = "Organization A"
+        }
+        val registered = AppUser().apply {
+            email = "member@test.com"
+            isActive = true
+            isTemporary = false
+            isPasswordTemporary = false
+        }
+        whenever(organizationGroupService.getOrganizationById(orgAId)).thenReturn(org)
+        whenever(organizationMembershipService.membersOf(orgAId)).thenReturn(emptyList())
+        whenever(subscriptionPolicyRepository.findByOrganizationId(orgAId)).thenReturn(null)
+        whenever(appUserService.findRegisteredByEmail(registered.email)).thenReturn(registered)
+
+        val result = service.addAppUser(
+            orgAId.toString(),
+            setOf(OrganizationRoleName.ORG_MEMBER),
+            registered.email,
+            "Changed",
+            "Name",
+            approvalCtx,
+        )
+
+        assertSame(registered, result)
+        verify(appUserService, never()).create(any())
+        verify(authenticationService, never()).generatePasswordSalt()
+        verify(organizationMembershipService).assignOrgRole(
+            registered.id,
+            orgAId,
+            OrganizationRoleName.ORG_MEMBER,
+            false,
+            actorId,
+        )
+    }
+
+    @Test
+    fun `addAppUser denies a stale inactive account before membership mutation`()
+    {
+        val org = Organization().apply {
+            id = orgAId
+            name = "Organization A"
+        }
+        val inactive = AppUser().apply {
+            email = "inactive@test.com"
+            isActive = false
+            isTemporary = false
+        }
+        whenever(organizationGroupService.getOrganizationById(orgAId)).thenReturn(org)
+        whenever(organizationMembershipService.membersOf(orgAId)).thenReturn(emptyList())
+        whenever(subscriptionPolicyRepository.findByOrganizationId(orgAId)).thenReturn(null)
+        whenever(appUserService.findRegisteredByEmail(inactive.email)).thenReturn(inactive)
+
+        assertThrows<IllegalArgumentException> {
+            service.addAppUser(
+                orgAId.toString(),
+                setOf(OrganizationRoleName.ORG_MEMBER),
+                inactive.email,
+                "Inactive",
+                "Member",
+                approvalCtx,
+            )
+        }
+
+        verify(appUserService, never()).create(any())
+        verify(organizationMembershipService, never()).assignOrgRole(any(), any(), any(), any(), any())
     }
 
     @Test

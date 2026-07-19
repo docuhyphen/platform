@@ -211,7 +211,7 @@ class ExchangeUpdateService @Inject constructor(
                 try
                 {
                     exchangeRecipientService.recordPrimaryDecision(
-                        exchangeId = sessionUUID,
+                        exchange = existingExchange,
                         appUserId = actorId,
                         accepted = newStatus == ExchangeStatus.ACCEPTED_STARTED,
                     )
@@ -318,7 +318,11 @@ class ExchangeUpdateService @Inject constructor(
             // --- Direct status write (no workflow gate) ------------------------------------
             if (recipientDecision && newStatus == ExchangeStatus.ACCEPTED_STARTED)
             {
-                shareService.activatePendingForResource(ResourceType.EXCHANGE, sessionUUID)
+                shareService.activatePendingForResource(
+                    ResourceType.EXCHANGE,
+                    sessionUUID,
+                    exchangeRecipientService.pendingTrustedParticipantShareIds(sessionUUID),
+                )
             }
             exchangeRepository.updateStatus(sessionUUID, newStatus)
 
@@ -720,7 +724,7 @@ class ExchangeUpdateService @Inject constructor(
 
         verifyRecipientOtp(session, otp)
         exchangeRecipientService.recordExternalEmailPrimaryDecision(
-            exchangeId = sessionUUID,
+            exchange = session,
             accepted = requestedStatus == ExchangeStatus.ACCEPTED_STARTED,
         )
 

@@ -103,23 +103,28 @@ class OrganizationAppUserService @Inject constructor(
 
         enforceOrganizationUserCap(organization)
 
-        val appUserPerson = Person().apply {
-            this.firstName = firstName
-            this.lastName = lastName
+        val registeredUser = appUserService.findRegisteredByEmail(normalizedEmail)
+        if (registeredUser != null && (!registeredUser.isActive || registeredUser.deprovisionedAt != null))
+        {
+            throw IllegalArgumentException("An inactive account cannot be added to an organization")
         }
-
-        val appUser = AppUser().apply {
+        val isNewUser = registeredUser == null
+        val appUser = registeredUser ?: AppUser().apply {
             this.email = normalizedEmail
-            person = appUserPerson
+            person = Person().apply {
+                this.firstName = firstName
+                this.lastName = lastName
+            }
         }
-
-        val temporaryPassword = generateTemporaryPassword()
-        val temporaryPasswordExpiry = Timestamp.from(Instant.now().plusSeconds(TEMP_PASSWORD_EXPIRY_DAYS * 24 * 60 * 60))
-        applyTemporaryPassword(appUser, temporaryPassword, temporaryPasswordExpiry)
-
-        // Persist the new user directly (the org→users join column is retired; org binding is
-        // recorded by the membership row below).
-        appUserService.create(appUser)
+        val temporaryPassword = generateTemporaryPassword().takeIf { isNewUser }
+        val temporaryPasswordExpiry = Timestamp.from(
+            Instant.now().plusSeconds(TEMP_PASSWORD_EXPIRY_DAYS * 24 * 60 * 60),
+        ).takeIf { isNewUser }
+        if (temporaryPassword != null && temporaryPasswordExpiry != null)
+        {
+            applyTemporaryPassword(appUser, temporaryPassword, temporaryPasswordExpiry)
+            appUserService.create(appUser)
+        }
 
         assignedRoles.forEach { role ->
             organizationMembershipService.assignOrgRole(
@@ -144,7 +149,7 @@ class OrganizationAppUserService @Inject constructor(
             appUser = appUser,
             organizationName = organization.name,
             roles = assignedRoles,
-            isNewUser = true,
+            isNewUser = isNewUser,
             temporaryPassword = temporaryPassword,
             temporaryPasswordExpiry = temporaryPasswordExpiry,
         )

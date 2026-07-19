@@ -295,6 +295,16 @@ export interface ExchangeBasicDto
     recipientOrganizationName?: string;
 }
 
+export type TrustedParticipantSelectionType = "TRUSTED_PERSON" | "TRUSTED_GROUP";
+
+export interface ExchangeRecipientInvitationDto
+{
+    id: string;
+    exchangeId: string;
+    selectionType: TrustedParticipantSelectionType;
+    createdAt: string;
+}
+
 export interface NoAuthExchangeBasicDto
 {
     id: string;
@@ -906,7 +916,7 @@ export type ViewMode = 'cards' | 'table';
 export interface OrganizationSettingsDto
 {
     id?: string;
-    allowShareWithoutPairing: boolean;
+    requireTrustedOrganizationForB2b: boolean;
     discoverableForTrustRequests: boolean;
     allowExternalCustomerSharing: boolean;
     allowProfileUpdate: boolean;

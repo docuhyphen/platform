@@ -55,6 +55,13 @@ export const useAccessManagementDialogStyles = makeStyles({
         overflowWrap: "anywhere",
     },
 
+    primaryRecipientActions: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: tokens.spacingVerticalXS,
+    },
+
     metaGrid: {
         display: "grid",
         gridTemplateColumns: "160px 1fr",

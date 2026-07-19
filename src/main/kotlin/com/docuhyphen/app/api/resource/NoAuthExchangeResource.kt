@@ -1,6 +1,7 @@
 ﻿package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.exception.NoAuthOtpException
+import com.docuhyphen.app.api.exception.ExchangeRecipientEligibilityException
 import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
@@ -309,6 +310,14 @@ class NoAuthExchangeResource @Inject constructor(
         {
             when (exception)
             {
+                is ExchangeRecipientEligibilityException ->
+                {
+                    logger.warn("No-auth Exchange acceptance eligibility changed")
+                    Response.status(Response.Status.CONFLICT)
+                        .entity(ResponseError("This Exchange can no longer be accepted"))
+                        .build()
+                }
+
                 is NoAuthOtpException ->
                 {
                     logger.error("Error updating exchange: reasonCode={} retryAfter={}", exception.reasonCode, exception.retryAfterSeconds)

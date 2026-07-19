@@ -12,4 +12,10 @@ export const useCopyableFieldLabelStyles = makeStyles({
         height: "20px",
         padding: 0,
     },
+    copyBuffer: {
+        position: "fixed",
+        insetInlineStart: "-100%",
+        insetBlockStart: "0",
+        opacity: 0,
+    },
 });

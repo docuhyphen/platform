@@ -39,7 +39,6 @@ class InvalidOrganizationRegistrationException(message: String?) : RuntimeExcept
 class PersonAlreadyExistsException() : RuntimeException("Person already exists")
 class OrganizationAlreadyExistsException() : RuntimeException("Organization already exists")
 class OrganizationNotFoundException(message: String?) : RuntimeException(message)
-class OrganizationLinkNotFoundException(message: String? = "") : RuntimeException(message)
 class OrganizationGroupNotFoundException(message: String?) : RuntimeException(message)
 class AppUserNotFoundException(message: String?) : RuntimeException(message)
 class ExchangeNotFoundException(message: String?) : RuntimeException(message)

@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
+import com.docuhyphen.app.api.exception.ExchangeRecipientEligibilityException
 import com.docuhyphen.app.api.exception.OrganizationTrustException
 import com.docuhyphen.app.api.exception.WorkflowConflictException
 import com.docuhyphen.app.api.resource.model.ExchangeAcceptanceDecisionRequest
@@ -44,6 +45,10 @@ class ExchangeAcceptanceResource @Inject constructor(
                 is WorkflowConflictException ->
                     Response.status(Response.Status.CONFLICT).entity(ResponseError(exception.message)).build()
                 is OrganizationTrustException ->
+                    Response.status(Response.Status.CONFLICT)
+                        .entity(ResponseError("This Exchange can no longer be accepted"))
+                        .build()
+                is ExchangeRecipientEligibilityException ->
                     Response.status(Response.Status.CONFLICT)
                         .entity(ResponseError("This Exchange can no longer be accepted"))
                         .build()

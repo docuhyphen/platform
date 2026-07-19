@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {ExchangeInitiationRecipientMode} from "./components/exchange-initiation-recipients-tab/ExchangeInitiationRecipientsTab.tsx";
+import {ExchangeInitiationRecipientMode} from "./components/exchange-initiation-recipients-tab/exchangeInitiationRecipientMode.ts";
 import {buildRecipientSelection} from "./exchangeInitiationRecipientSelection.ts";
 
 describe("buildRecipientSelection", () =>

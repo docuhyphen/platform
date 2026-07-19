@@ -58,9 +58,8 @@ class PrincipalGroup
     var parentGroupId: UUID? = null
 
     /**
-     * For [PrincipalGroupScope.ORG] only: when true, the group is visible to paired
-     * (trusted) organizations as a sharing target. Mirrors the legacy
-     * `OrganizationGroup.externallyPublished` field.
+     * For [PrincipalGroupScope.ORG] only: when true, the group is visible to trusted
+     * organizations as a sharing target.
      */
     @Column(name = "externally_published", nullable = false)
     var externallyPublished: Boolean = false

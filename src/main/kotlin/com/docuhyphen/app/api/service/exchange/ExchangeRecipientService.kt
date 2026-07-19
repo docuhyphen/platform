@@ -5,6 +5,7 @@ import com.docuhyphen.app.api.model.entity.ExchangeRecipientAcceptanceStatus
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientPurpose
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientSelectionType
 import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
+import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.Share
@@ -15,6 +16,7 @@ import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
+import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
@@ -26,6 +28,7 @@ class ExchangeRecipientService @Inject constructor(
     private val organizationGroupService: OrganizationGroupService,
     private val attestationService: ExchangeRecipientAttestationService,
     private val trustedRecipientValidationService: TrustedRecipientValidationService,
+    private val externalEmailAcceptancePolicyService: ExternalEmailAcceptancePolicyService,
 )
 {
     fun createBinding(
@@ -64,8 +67,15 @@ class ExchangeRecipientService @Inject constructor(
         }
         if (purpose == ExchangeRecipientPurpose.PARTICIPANT)
         {
-            require(acceptanceStatus == ExchangeRecipientAcceptanceStatus.NOT_REQUIRED) {
-                "Participants cannot decide Exchange acceptance"
+            val trustedParticipant = selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON ||
+                selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP
+            require(
+                acceptanceStatus == if (trustedParticipant)
+                    ExchangeRecipientAcceptanceStatus.PENDING
+                else
+                    ExchangeRecipientAcceptanceStatus.NOT_REQUIRED,
+            ) {
+                "Only trusted participants can have a pending invitation decision"
             }
         }
 
@@ -84,17 +94,41 @@ class ExchangeRecipientService @Inject constructor(
     fun findPrimary(exchangeId: UUID): ExchangeRecipient? =
         exchangeRecipientRepository.findPrimary(exchangeId)
 
+    /**
+     * Removes a recipient binding and its attestation, if any. Used when an Exchange owner replaces
+     * a pending primary recipient so the single-primary and Share-uniqueness constraints stay
+     * satisfied. The bound Share is revoked separately by the caller.
+     */
+    fun deleteBinding(recipient: ExchangeRecipient)
+    {
+        attestationService.deleteForRecipient(recipient.id)
+        exchangeRecipientRepository.delete(recipient)
+    }
+
     fun findByDirectShareId(directShareId: UUID): ExchangeRecipient? =
         exchangeRecipientRepository.findByDirectShareId(directShareId)
 
     fun getById(recipientId: UUID): ExchangeRecipient? = exchangeRecipientRepository.findById(recipientId)
 
+    fun pendingTrustedParticipantShareIds(exchangeId: UUID): Set<UUID> =
+        exchangeRecipientRepository.findPendingTrustedParticipants(exchangeId)
+            .mapTo(mutableSetOf()) { it.directShareId }
+
+    fun pendingTrustedParticipantInvitationsFor(appUserId: UUID): List<ExchangeRecipient> =
+        exchangeRecipientRepository.findAllPendingTrustedParticipants()
+            .filter { recipient ->
+                shareService.getById(recipient.directShareId)
+                    ?.let { share -> canDecide(share, appUserId) }
+                    ?: false
+            }
+
     fun recordPrimaryDecision(
-        exchangeId: UUID,
+        exchange: Exchange,
         appUserId: UUID,
         accepted: Boolean,
     ): ExchangeRecipient
     {
+        val exchangeId = exchange.id
         val recipient = pendingPrimaryForUpdate(exchangeId)
         val share = eligibleDirectShare(recipient, exchangeId)
         if (!canDecide(share, appUserId))
@@ -123,6 +157,8 @@ class ExchangeRecipientService @Inject constructor(
                     trustedRecipientValidationService.validatePersonAttestation(attestation)
                     attestationService.markAcceptanceVerified(attestation)
                 }
+                ExchangeRecipientSelectionType.EXTERNAL_EMAIL ->
+                    externalEmailAcceptancePolicyService.validate(exchange, share, appUserId)
                 else -> Unit
             }
         }
@@ -131,10 +167,11 @@ class ExchangeRecipientService @Inject constructor(
     }
 
     fun recordExternalEmailPrimaryDecision(
-        exchangeId: UUID,
+        exchange: Exchange,
         accepted: Boolean,
     ): ExchangeRecipient
     {
+        val exchangeId = exchange.id
         val recipient = pendingPrimaryForUpdate(exchangeId)
         require(recipient.selectionType == ExchangeRecipientSelectionType.EXTERNAL_EMAIL) {
             "No-auth acceptance requires an external email recipient"
@@ -143,7 +180,67 @@ class ExchangeRecipientService @Inject constructor(
         require(share.principalKind == PrincipalKind.USER) {
             "No-auth primary recipient must resolve to a user Share"
         }
+        if (accepted)
+        {
+            externalEmailAcceptancePolicyService.validate(exchange, share, authenticatedAppUserId = null)
+        }
         return recordDecision(recipient, share.principalId, accepted)
+    }
+
+    @Transactional
+    fun recordTrustedParticipantDecision(
+        recipientId: UUID,
+        appUserId: UUID,
+        accepted: Boolean,
+    ): ExchangeRecipient
+    {
+        val recipient = exchangeRecipientRepository.findByIdForUpdate(recipientId)
+            ?: throw IllegalArgumentException("Trusted participant invitation was not found")
+        val exchangeId = recipient.exchangeId
+        require(recipient.purpose == ExchangeRecipientPurpose.PARTICIPANT) {
+            "The primary recipient must use the Exchange acceptance decision"
+        }
+        require(
+            recipient.selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON ||
+                recipient.selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP,
+        ) {
+            "Only trusted participant invitations require an independent decision"
+        }
+        require(recipient.acceptanceStatus == ExchangeRecipientAcceptanceStatus.PENDING) {
+            "Trusted participant invitation decision is not pending"
+        }
+
+        val share = eligibleDirectShare(recipient, exchangeId)
+        if (!canDecide(share, appUserId))
+        {
+            throw IllegalArgumentException("Only the invited trusted participant may decide this invitation")
+        }
+
+        if (accepted)
+        {
+            val attestation = attestationService.findForRecipient(recipient.id)
+                ?: throw IllegalArgumentException("Trusted participant attestation was not found")
+            when (recipient.selectionType)
+            {
+                ExchangeRecipientSelectionType.TRUSTED_PERSON ->
+                    trustedRecipientValidationService.validatePersonAttestation(attestation)
+                ExchangeRecipientSelectionType.TRUSTED_GROUP ->
+                    trustedRecipientValidationService.validateGroupAttestation(attestation)
+                else -> error("Unsupported trusted participant selection")
+            }
+            attestationService.markAcceptanceVerified(attestation)
+        }
+
+        val updated = recordDecision(recipient, appUserId, accepted)
+        if (accepted)
+        {
+            shareService.activate(share.id)
+        }
+        else
+        {
+            shareService.revoke(share.id, appUserId)
+        }
+        return updated
     }
 
     private fun pendingPrimaryForUpdate(exchangeId: UUID): ExchangeRecipient

@@ -87,8 +87,19 @@ export const identitySection: HelpDocSectionInput = {
                     <h3>Sign-in enforcement</h3>
                     <ul>
                         <li>
-                            Organization sign-in uses the exact active Identity Provider configuration
-                            selected for your verified email domain.
+                            Organization choices shown before authentication come only from the exact
+                            account&apos;s current active organization memberships. Organizations are not
+                            listed merely because their contact addresses use the same email domain.
+                        </li>
+                        <li>
+                            Consumer email domains never provide an organization directory. A single,
+                            unambiguous configured organization domain may route directly to its active
+                            Identity Provider without returning the organization&apos;s name or identifier.
+                        </li>
+                        <li>
+                            A selected organization is checked against the account&apos;s current active
+                            memberships before its sign-in policy is used. An inactive membership,
+                            inactive organization, or altered organization identifier is rejected.
                         </li>
                         <li>
                             Microsoft membership is bound to the configured Entra tenant and immutable

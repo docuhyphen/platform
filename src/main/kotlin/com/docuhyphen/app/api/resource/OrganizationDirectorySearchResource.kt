@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource
 
+import com.docuhyphen.app.api.model.dto.OrganizationDirectoryEntryDto
 import com.docuhyphen.app.api.resource.model.OrganizationDirectorySearchRequest
 import com.docuhyphen.app.api.service.organization.OrganizationDirectorySearchService
 import jakarta.inject.Inject
@@ -8,6 +9,7 @@ import jakarta.ws.rs.HeaderParam
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.Produces
+import jakarta.ws.rs.core.GenericEntity
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 
@@ -22,5 +24,11 @@ class OrganizationDirectorySearchResource @Inject constructor(
     fun search(
         request: OrganizationDirectorySearchRequest,
         @HeaderParam("X-Request-Id") requestId: String?,
-    ): Response = Response.ok(searchService.search(request.query, requestId)).build()
+    ): Response
+    {
+        val organizations = searchService.search(request.query, requestId)
+        return Response.ok(
+            object : GenericEntity<List<OrganizationDirectoryEntryDto>>(organizations) {},
+        ).build()
+    }
 }

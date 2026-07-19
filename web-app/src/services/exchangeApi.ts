@@ -8,6 +8,8 @@ import {
     ExchangeBasicDto,
     ExchangeStatus,
     ExchangeInitiationRequest,
+    ExchangeRecipientInvitationDto,
+    ExchangeRecipientSelection,
     ExchangeRequestDocumentRequest,
     UpdateNoAuthExchangeRequest,
     UpdateExchangeRequest,
@@ -17,6 +19,7 @@ import {AxiosProgressEvent, AxiosRequestConfig} from "axios";
 import {
     GrantExchangeShareRequest,
     ExchangeAccessEntryDto,
+    InviteTrustedParticipantRequest,
     UpdateExchangeShareRoleRequest,
 } from './types/dtos';
 
@@ -134,6 +137,17 @@ export const updateExchange = (exchangeId: string, request: UpdateExchangeReques
         apiClient.put(`/exchanges/${exchangeId}`, request)
     );
 };
+
+export const fetchPendingExchangeRecipientInvitations = (): Promise<ExchangeRecipientInvitationDto[]> =>
+    executeRequest(() => apiClient.get("/exchange-recipient-invitations"));
+
+export const decideExchangeRecipientInvitation = (
+    recipientId: string,
+    decision: "ACCEPT" | "REJECT",
+): Promise<void> =>
+    executeRequest(() =>
+        apiClient.post(`/exchange-recipient-invitations/${recipientId}/decisions`, {decision}),
+    );
 
 export const addExchangeDocument = (exchangeId: string, request: ExchangeRequestDocumentRequest) =>
     executeRequest(() =>
@@ -306,6 +320,12 @@ export const grantExchangeAccess = (
 ): Promise<ExchangeAccessEntryDto[]> =>
     executeRequest(() => apiClient.post(`/exchanges/${exchangeId}/access`, request));
 
+export const inviteTrustedParticipant = (
+    exchangeId: string,
+    request: InviteTrustedParticipantRequest,
+): Promise<ExchangeAccessEntryDto[]> =>
+    executeRequest(() => apiClient.post(`/exchanges/${exchangeId}/recipient-invitations`, request));
+
 export const changeExchangeAccessRole = (
     exchangeId: string,
     shareId: string,
@@ -321,6 +341,14 @@ export const revokeExchangeAccess = (
 ): Promise<ExchangeAccessEntryDto[]> =>
     executeRequest(() =>
         apiClient.delete(`/exchanges/${exchangeId}/access/${shareId}`),
+    );
+
+export const replaceExchangePrimaryRecipient = (
+    exchangeId: string,
+    selection: ExchangeRecipientSelection,
+): Promise<ExchangeAccessEntryDto[]> =>
+    executeRequest(() =>
+        apiClient.post(`/exchanges/${exchangeId}/access/primary-recipient`, {selection}),
     );
 
 export const fetchExchangeWorkflowInstances = (

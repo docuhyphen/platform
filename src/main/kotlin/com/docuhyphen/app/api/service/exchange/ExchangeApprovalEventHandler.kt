@@ -38,6 +38,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
     private val exchangeInitiationService: ExchangeInitiationService,
     private val exchangeParticipantOrgService: ExchangeParticipantOrgService,
     private val lifecycleNotificationService: ExchangeLifecycleNotificationService,
+    private val exchangeRecipientService: ExchangeRecipientService,
 )
 {
     companion object
@@ -88,7 +89,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
 
             EVENT_ACTIVATED ->
             {
-                val activated = shareService.activatePendingForResource(ResourceType.EXCHANGE, exchangeId)
+                val activated = activateExchangeGateShares(exchangeId)
                 // Fix known gap: the legacy handler did not set exchange.status; do it now.
                 exchangeRepository.findById(exchangeId)?.let { session ->
                     if (session.status != ExchangeStatus.ACCEPTED_STARTED)
@@ -127,7 +128,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
             EVENT_EXCHANGE_ACTIVATED ->
             {
                 // Fired when the acceptance_pending workflow completes (or auto-acceptance).
-                val activated = shareService.activatePendingForResource(ResourceType.EXCHANGE, exchangeId)
+                val activated = activateExchangeGateShares(exchangeId)
                 val exchange = exchangeRepository.findById(exchangeId)
                 val orgId = exchange?.ownerOrganizationId
                 val requireRecipientAcceptance = orgId
@@ -277,6 +278,13 @@ class ExchangeApprovalEventHandler @Inject constructor(
             }
         }
     }
+
+    private fun activateExchangeGateShares(exchangeId: UUID): Int =
+        shareService.activatePendingForResource(
+            ResourceType.EXCHANGE,
+            exchangeId,
+            exchangeRecipientService.pendingTrustedParticipantShareIds(exchangeId),
+        )
 
     /**
      * Fires [recipientEvent] in the context of each recipient org for [exchangeId].

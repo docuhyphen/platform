@@ -16,7 +16,6 @@ export const useWorkflowsTabStyles = makeStyles({
         minHeight: "2.75rem",
         flexShrink: 0,
         paddingInline: tokens.spacingHorizontalS,
-        boxSizing: "border-box",
     },
 
     content: {

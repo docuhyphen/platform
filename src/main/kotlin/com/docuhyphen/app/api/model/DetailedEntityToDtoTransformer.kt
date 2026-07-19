@@ -281,7 +281,7 @@ class DetailedEntityToDtoTransformer
                 with(it) {
                     OrganizationSettingsDto(
                         id = id,
-                        allowShareWithoutPairing = allowShareWithoutPairing,
+                        requireTrustedOrganizationForB2b = requireTrustedOrganizationForB2b,
                         discoverableForTrustRequests = discoverableForTrustRequests,
                         allowExternalCustomerSharing = allowExternalCustomerSharing,
                         allowProfileUpdate = allowProfileUpdate,

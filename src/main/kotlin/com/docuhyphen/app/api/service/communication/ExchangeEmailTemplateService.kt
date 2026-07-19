@@ -156,7 +156,7 @@ class ExchangeEmailTemplateService @Inject constructor(
             ExchangeStatus.ACCEPTED_STARTED -> when (audience)
             {
                 ExchangeStatusEmailAudience.INITIATOR -> "Accepted: Exchange is now active - $name"
-                ExchangeStatusEmailAudience.RECIPIENT -> "Confirmed: You have accepted an exchange request - $name"
+                ExchangeStatusEmailAudience.RECIPIENT -> "Confirmed: You have accepted an Exchange request - $name"
             }
 
             ExchangeStatus.REJECTED -> when (audience)

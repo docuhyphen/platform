@@ -1,4 +1,4 @@
-﻿import {tokens, makeStyles, shorthands} from "@fluentui/react-components";
+﻿import {tokens, makeStyles} from "@fluentui/react-components";
 
 export const useExchangeInitiationRecipientsTabStyles = makeStyles({
 
@@ -8,27 +8,6 @@ export const useExchangeInitiationRecipientsTabStyles = makeStyles({
         gap: tokens.spacingHorizontalL,
     },
 
-    recipientEmailFields: {
-        display: "flex",
-        gap: tokens.spacingHorizontalS,
-    },
-    recipientEmail: {
-        flex: 1
-    },
-    externalBadgeRow: {
-        marginTop: tokens.spacingVerticalS,
-        display: "flex",
-        alignItems: "center",
-        gap: tokens.spacingHorizontalS,
-    },
-    roleSection: {
-        marginTop: tokens.spacingVerticalL,
-        paddingTop: tokens.spacingVerticalM,
-        borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
-    },
-    constraintsRow: {
-        marginTop: tokens.spacingVerticalS,
-    },
     myGroupsOptionContent: {
         display: "flex",
         flexDirection: "column",

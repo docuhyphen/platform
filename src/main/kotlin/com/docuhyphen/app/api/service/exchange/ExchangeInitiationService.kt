@@ -588,9 +588,8 @@ class ExchangeInitiationService @Inject constructor(
     }
 
     /**
-     * Grant each participant the requested non-owner Share role. Trusted group Shares are created
-     * pending, attested, and then activated so current trust policy is revalidated before members
-     * receive inherited access.
+     * Grant each participant the requested non-owner Share role. Trusted participant Shares remain
+     * pending until that participant independently accepts its attested invitation.
      */
     private fun grantParticipantShares(
         session: Exchange,
@@ -618,16 +617,17 @@ class ExchangeInitiationService @Inject constructor(
                 purpose = ExchangeRecipientPurpose.PARTICIPANT,
                 selectionType = selection.selectionType,
                 targetOrganizationId = selection.targetOrganizationId,
-                acceptanceStatus = ExchangeRecipientAcceptanceStatus.NOT_REQUIRED,
+                acceptanceStatus = if (trusted)
+                    ExchangeRecipientAcceptanceStatus.PENDING
+                else
+                    ExchangeRecipientAcceptanceStatus.NOT_REQUIRED,
             )
             selection.trustedGroupValidation?.let { validation ->
                 exchangeRecipientAttestationService.createGroupAttestation(recipient, validation)
-                shareService.activate(participantShare.id)
             }
             selection.preparedPersonResolution?.let { prepared ->
                 consumeTrustedPersonResolution(prepared, initiator.id, authTokenContext.activeOrganizationId, session.id)
                 exchangeRecipientAttestationService.createPersonAttestation(recipient, prepared)
-                shareService.activate(participantShare.id)
             }
         }
     }

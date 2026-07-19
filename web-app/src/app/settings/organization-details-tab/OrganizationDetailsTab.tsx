@@ -1,12 +1,11 @@
-import React, {useEffect, useState} from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import {
     Button,
     Divider,
     MessageBar,
-    MessageBarBody, SelectTabData, SelectTabEvent,
+    MessageBarBody,
     Spinner,
     Switch,
-    Tab, TabList, TabValue,
     Text,
 } from "@fluentui/react-components";
 import {useAuth} from "../../../context/AuthContext";
@@ -22,7 +21,6 @@ import EmailManagementDialog, {EmailManagementMode} from "../../components/email
 import {useOrganizationTabStyles} from "./OrganizationDetailsTabStyles.tsx";
 import OrganizationDetailsEditDialog from "./details-edit-dialog/OrganizationDetailsEditDialog.tsx";
 import {AxiosError} from "axios";
-import OrganizationOnboardingDialog from "./organization-onboarding-dialog/OrganizationOnboardingDialog.tsx";
 
 const OrganizationDetailsTab = () =>
 {
@@ -39,11 +37,10 @@ const OrganizationDetailsTab = () =>
     const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
     const [phoneManagementMode, setPhoneManagementMode] = useState(PhoneManagementMode.ADD);
     const [emailManagementMode, setEmailManagementMode] = useState(EmailManagementMode.ADD);
-    const [isOnboardingDialogOpen, setOnboardingDialogOpen] = useState(false);
     const canManageOrganization = appUserPersonOrganization?.isActive &&
         (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
 
-    const getOrganization = async () =>
+    const getOrganization = useCallback(async () =>
     {
         if (!appUser?.id || !appUser?.person?.id) return;
 
@@ -58,22 +55,18 @@ const OrganizationDetailsTab = () =>
         }
         catch (err: unknown)
         {
-            if (err instanceof AxiosError)
+            if (!(err instanceof AxiosError))
             {
-
-            }
-            else
-            {
-                setError(err.message || "Failed to fetch organization");
+                const message = err instanceof Error ? err.message : "Failed to fetch organization";
+                setError(message);
                 console.error("Failed to fetch organization:", err);
             }
-
         }
         finally
         {
             setFetchingOrganization(false);
         }
-    };
+    }, [appUser?.id, appUser?.person?.id, token]);
 
     const handleSettingChange = async (setting: keyof OrganizationSettingsDto, value: boolean) =>
     {
@@ -150,7 +143,7 @@ const OrganizationDetailsTab = () =>
     useEffect(() =>
     {
         getOrganization()
-    }, []);
+    }, [getOrganization]);
 
     return <>
         {fetchingOrganization &&
@@ -321,10 +314,10 @@ const OrganizationDetailsTab = () =>
                         disabled={savingSettings}
                     />
                     <Switch
-                        id={"switch-allow-share-without-pairing"}
-                        checked={organizationSettings.allowShareWithoutPairing}
-                        onChange={(_, data) => handleSettingChange('allowShareWithoutPairing', data.checked)}
-                        label="Allow sharing with unpaired organizations"
+                        id={"switch-require-trusted-organization-for-b2b"}
+                        checked={organizationSettings.requireTrustedOrganizationForB2b}
+                        onChange={(_, data) => handleSettingChange('requireTrustedOrganizationForB2b', data.checked)}
+                        label="Require a trusted organization for sharing with other organizations"
                         disabled={savingSettings}
                     />
                     <Switch
@@ -347,7 +340,7 @@ const OrganizationDetailsTab = () =>
                     <div id={"organization-preferences-summary"}>
                         <Text size={300}>Trust request discovery: {organizationSettings.discoverableForTrustRequests ? 'Enabled' : 'Disabled'}</Text><br/>
                         <Text size={300}>External sharing: {organizationSettings.allowExternalCustomerSharing !== false ? 'Enabled' : 'Disabled'}</Text><br/>
-                        <Text size={300}>Sharing with unpaired orgs: {organizationSettings.allowShareWithoutPairing ? 'Enabled' : 'Disabled'}</Text><br/>
+                        <Text size={300}>Trusted organization required for B2B sharing: {organizationSettings.requireTrustedOrganizationForB2b ? 'Enabled' : 'Disabled'}</Text><br/>
                         <Text size={300}>Profile updates: {organizationSettings.allowProfileUpdate ? 'Allowed' : 'Not allowed'}</Text><br/>
                         <Text size={300}>Email updates: {organizationSettings.allowEmailUpdate ? 'Allowed' : 'Not allowed'}</Text>
                     </div>

@@ -10,11 +10,17 @@ import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
 import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareSource
+import com.docuhyphen.app.api.model.entity.ShareStatus
 import com.docuhyphen.app.api.model.entity.Exchange
+import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientAcceptanceStatus
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientPurpose
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientSelectionType
 import com.docuhyphen.app.api.model.entity.PrincipalGroupScope
+import com.docuhyphen.app.api.resource.model.ExchangeRecipientSelectionRequest
+import com.docuhyphen.app.api.resource.model.TrustedGroupRecipientSelectionRequest
+import com.docuhyphen.app.api.resource.model.TrustedPersonRecipientSelectionRequest
+import com.docuhyphen.app.api.service.organization.ExternalIdentityResolutionService
 import com.docuhyphen.app.api.repository.ExternalParticipantRepository
 import com.docuhyphen.app.api.repository.ShareRepository
 import com.docuhyphen.app.api.repository.ExchangeRepository
@@ -66,6 +72,9 @@ class ExchangeAccessManagementService @Inject constructor(
     private val externalParticipantRepository: ExternalParticipantRepository,
     private val organizationGroupService: OrganizationGroupService,
     private val exchangeRecipientService: ExchangeRecipientService,
+    private val exchangeRecipientSelectionResolver: ExchangeRecipientSelectionResolver,
+    private val exchangeRecipientAttestationService: ExchangeRecipientAttestationService,
+    private val externalIdentityResolutionService: ExternalIdentityResolutionService,
     private val authTokenContext: AuthTokenContext,
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
@@ -145,6 +154,76 @@ class ExchangeAccessManagementService @Inject constructor(
         sendAccessGrantedNotification(session, kind, principalUuid, principalId.trim())
     }
 
+    /**
+     * Adds a verified Trusted Organization person or published group as an additional participant.
+     * The direct Share remains inactive until that participant independently accepts the attested
+     * invitation.
+     */
+    @Transactional
+    fun inviteTrustedParticipant(
+        exchangeId: UUID,
+        selection: ExchangeRecipientSelectionRequest,
+        roleName: ExchangeShareRoleName,
+        constraintsJson: String? = null,
+        expiresAtEpochMillis: Long? = null,
+    ): List<SessionAccessEntryDto>
+    {
+        val session = requireSessionOwnerAndReturn(exchangeId)
+        requireAssignableRole(roleName)
+        val caller = authTokenContext.authToken.appUser
+            ?: throw ForbiddenException("A user account is required to manage access")
+        val activeOrganizationId = authTokenContext.activeOrganizationId
+        val resolved = resolveTrustedSelection(selection, caller, activeOrganizationId)
+        require(!(resolved.principalKind == PrincipalKind.USER && resolved.principalId == caller.id)) {
+            "You cannot add yourself to an Exchange you own"
+        }
+
+        val normalizedConstraints = ShareConstraints.normalizeForStorage(constraintsJson)
+        val participantShare = shareService.grant(
+            resourceType = ResourceType.EXCHANGE,
+            resourceId = exchangeId,
+            principalKind = resolved.principalKind,
+            principalId = resolved.principalId,
+            roleName = roleName,
+            grantedByAppUserId = caller.id,
+            source = ShareSource.DIRECT,
+            constraintsJson = normalizedConstraints,
+            expiresAt = expiresAtEpochMillis?.let { Timestamp(it) },
+            status = ShareStatus.PENDING_APPROVAL,
+            resourceLabel = session.name,
+        )
+        val participant = exchangeRecipientService.createBinding(
+            exchangeId = exchangeId,
+            directShare = participantShare,
+            purpose = ExchangeRecipientPurpose.PARTICIPANT,
+            selectionType = resolved.selectionType,
+            targetOrganizationId = resolved.targetOrganizationId,
+            acceptanceStatus = ExchangeRecipientAcceptanceStatus.PENDING,
+        )
+        resolved.trustedGroupValidation?.let { validation ->
+            exchangeRecipientAttestationService.createGroupAttestation(participant, validation)
+        }
+        resolved.preparedPersonResolution?.let { prepared ->
+            val callerOrganizationId = activeOrganizationId
+                ?: throw IllegalArgumentException("An active organization is required for a trusted person")
+            externalIdentityResolutionService.consumeForExchange(
+                resolutionId = prepared.resolution.id,
+                actorAppUserId = caller.id,
+                callerOrganizationId = callerOrganizationId,
+                targetOrganizationId = prepared.resolution.targetOrganizationId,
+                exchangeId = exchangeId,
+            )
+            exchangeRecipientAttestationService.createPersonAttestation(participant, prepared)
+        }
+        sendAccessGrantedNotification(
+            session,
+            resolved.principalKind,
+            resolved.principalId,
+            resolved.appUser?.email.orEmpty(),
+        )
+        return shareQueryService.getSessionAccessView(exchangeId)
+    }
+
     @Transactional
     fun changeRole(exchangeId: UUID, shareId: UUID, roleName: ExchangeShareRoleName, constraintsJson: String? = null)
     {
@@ -168,6 +247,114 @@ class ExchangeAccessManagementService @Inject constructor(
         val session = requireSessionOwnerAndReturn(exchangeId)
         requireMutableAccessShare(exchangeId, shareId)
         shareService.revoke(shareId, authTokenContext.authToken.appUser?.id, resourceLabel = session.name)
+    }
+
+    /**
+     * Replaces the pending primary recipient of a draft Exchange with a freshly resolved selection.
+     * This lets the Exchange owner recover an invitation whose trusted verification, membership,
+     * relationship, or policy is no longer valid. The old primary Share is revoked (cascading to any
+     * inherited group-member Shares) and its recipient binding and attestation are removed, then a
+     * new pending primary Share, binding, and attestation are created in the same transaction. A
+     * trusted selection revalidates through the recipient resolver and always requires sign-in and
+     * acceptance. Other recipient paths have separate invitation contracts and cannot use this
+     * trusted-recipient recovery operation.
+     */
+    @Transactional
+    fun replacePrimaryRecipient(
+        exchangeId: UUID,
+        selection: ExchangeRecipientSelectionRequest,
+    ): List<SessionAccessEntryDto>
+    {
+        val session = requireSessionOwnerAndReturn(exchangeId)
+
+        if (session.status != ExchangeStatus.INITIATED)
+        {
+            throw IllegalArgumentException(
+                "The primary recipient can be replaced only while the Exchange is a draft awaiting acceptance",
+            )
+        }
+        if (selection !is TrustedPersonRecipientSelectionRequest &&
+            selection !is TrustedGroupRecipientSelectionRequest)
+        {
+            throw IllegalArgumentException(
+                "A primary recipient can be replaced only with a verified member or published group from a Trusted Organization",
+            )
+        }
+
+        val currentPrimary = exchangeRecipientService.findPrimary(exchangeId)
+            ?: throw IllegalArgumentException("The Exchange has no primary recipient to replace")
+        require(currentPrimary.acceptanceStatus == ExchangeRecipientAcceptanceStatus.PENDING) {
+            "Only a pending primary recipient can be replaced"
+        }
+
+        val caller = authTokenContext.authToken.appUser
+            ?: throw ForbiddenException("A user account is required to manage access")
+        val activeOrganizationId = authTokenContext.activeOrganizationId
+
+        val resolved = resolveTrustedSelection(selection, caller, activeOrganizationId)
+
+        val previousShare = shareService.getById(currentPrimary.directShareId)
+            ?: throw IllegalArgumentException("The current primary recipient Share was not found")
+        val preservedRole = previousShare.roleName
+        val preservedConstraints = previousShare.constraintsJson
+
+        // Remove the old binding and attestation first so the single-primary constraint is free,
+        // then revoke the old Share, which cascades to any inherited group-member Shares.
+        exchangeRecipientService.deleteBinding(currentPrimary)
+        shareService.revoke(previousShare.id, caller.id, resourceLabel = session.name)
+
+        // Trusted selections always require sign-in and hold their Share until the attested recipient accepts.
+        if (!session.requireRecipientSignIn)
+        {
+            session.requireRecipientSignIn = true
+            exchangeRepository.update(session)
+        }
+
+        val newShare = shareService.grant(
+            resourceType = ResourceType.EXCHANGE,
+            resourceId = exchangeId,
+            principalKind = resolved.principalKind,
+            principalId = resolved.principalId,
+            roleName = preservedRole,
+            grantedByAppUserId = caller.id,
+            source = ShareSource.DIRECT,
+            constraintsJson = preservedConstraints,
+            status = ShareStatus.PENDING_APPROVAL,
+            resourceLabel = session.name,
+        )
+
+        val newPrimary = exchangeRecipientService.createBinding(
+            exchangeId = exchangeId,
+            directShare = newShare,
+            purpose = ExchangeRecipientPurpose.PRIMARY,
+            selectionType = resolved.selectionType,
+            targetOrganizationId = resolved.targetOrganizationId,
+            acceptanceStatus = ExchangeRecipientAcceptanceStatus.PENDING,
+        )
+        resolved.trustedGroupValidation?.let { validation ->
+            exchangeRecipientAttestationService.createGroupAttestation(newPrimary, validation)
+        }
+        resolved.preparedPersonResolution?.let { prepared ->
+            val callerOrganizationId = activeOrganizationId
+                ?: throw IllegalArgumentException("An active organization is required for a trusted person")
+            externalIdentityResolutionService.consumeForExchange(
+                resolutionId = prepared.resolution.id,
+                actorAppUserId = caller.id,
+                callerOrganizationId = callerOrganizationId,
+                targetOrganizationId = prepared.resolution.targetOrganizationId,
+                exchangeId = exchangeId,
+            )
+            exchangeRecipientAttestationService.createPersonAttestation(newPrimary, prepared)
+        }
+
+        sendAccessGrantedNotification(
+            session,
+            resolved.principalKind,
+            resolved.principalId,
+            resolved.appUser?.email.orEmpty(),
+        )
+
+        return shareQueryService.getSessionAccessView(exchangeId)
     }
 
     fun getSessionAccessView(exchangeId: UUID): List<SessionAccessEntryDto>
@@ -354,6 +541,47 @@ class ExchangeAccessManagementService @Inject constructor(
         runCatching { UUID.fromString(value.trim()) }
             .getOrElse { throw IllegalArgumentException("Invalid $field") }
 
+    private fun resolveTrustedSelection(
+        selection: ExchangeRecipientSelectionRequest,
+        caller: com.docuhyphen.app.api.model.entity.AppUser,
+        activeOrganizationId: UUID?,
+    ): ResolvedExchangeRecipientSelection
+    {
+        if (selection !is TrustedPersonRecipientSelectionRequest &&
+            selection !is TrustedGroupRecipientSelectionRequest)
+        {
+            throw IllegalArgumentException(
+                "A trusted participant must be a verified member or published group from a Trusted Organization",
+            )
+        }
+        val resolved = exchangeRecipientSelectionResolver.resolve(selection, caller, activeOrganizationId)
+        when (selection)
+        {
+            is TrustedPersonRecipientSelectionRequest ->
+            {
+                require(resolved.selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON) {
+                    "The resolved selection does not match the requested trusted person"
+                }
+                requireNotNull(resolved.preparedPersonResolution) {
+                    "The trusted person selection has no verification evidence"
+                }
+            }
+
+            is TrustedGroupRecipientSelectionRequest ->
+            {
+                require(resolved.selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP) {
+                    "The resolved selection does not match the requested trusted group"
+                }
+                requireNotNull(resolved.trustedGroupValidation) {
+                    "The trusted group selection has no verification evidence"
+                }
+            }
+
+            else -> error("Unsupported trusted participant selection")
+        }
+        return resolved
+    }
+
     /**
      * Resolve the effective principal for a manage-access grant. For USER kind the value can be
      * a UUID or an email. If the email matches an existing user, grant as USER; otherwise fall
@@ -404,15 +632,16 @@ class ExchangeAccessManagementService @Inject constructor(
 
     private fun enforceSharingPolicy(actorId: UUID, kind: PrincipalKind, principalId: UUID)
     {
+        val callerOrganizationId = authTokenContext.activeOrganizationId
         when (kind)
         {
-            PrincipalKind.USER -> organizationExchangePolicyService.assertCanShareWithUser(actorId, principalId)
-            PrincipalKind.PARTICIPANT -> organizationExchangePolicyService.assertCanShareWithUser(actorId, null)
+            PrincipalKind.USER -> organizationExchangePolicyService.assertCanShareWithUser(callerOrganizationId, actorId, principalId)
+            PrincipalKind.PARTICIPANT -> organizationExchangePolicyService.assertCanShareWithUser(callerOrganizationId, actorId, null)
             PrincipalKind.PRINCIPAL_GROUP ->
             {
                 val group = organizationGroupService.getById(principalId.toString())
                     ?: throw IllegalArgumentException("Group not found")
-                organizationExchangePolicyService.assertCanShareWithGroup(actorId, group)
+                organizationExchangePolicyService.assertCanShareWithGroup(callerOrganizationId, actorId, group)
             }
 
             else -> throw IllegalArgumentException("Principal kind is not supported for Exchange access")

@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.exception.OrganizationTrustValidationException
+import com.docuhyphen.app.api.model.dto.OrganizationTrustRelationshipDto
 import com.docuhyphen.app.api.resource.model.OrganizationTrustDecisionRequest
 import com.docuhyphen.app.api.resource.model.OrganizationTrustPolicyUpdateRequest
 import com.docuhyphen.app.api.resource.model.OrganizationTrustRelationshipCreateRequest
@@ -18,6 +19,7 @@ import jakarta.ws.rs.POST
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
+import jakarta.ws.rs.core.GenericEntity
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 import java.util.UUID
@@ -40,7 +42,13 @@ class OrganizationTrustRelationshipResource @Inject constructor(
     }
 
     @GET
-    fun list(): Response = Response.ok(queryService.listRelationships()).build()
+    fun list(): Response
+    {
+        val relationships = queryService.listRelationships()
+        return Response.ok(
+            object : GenericEntity<List<OrganizationTrustRelationshipDto>>(relationships) {},
+        ).build()
+    }
 
     @GET
     @Path("{relationshipId}")

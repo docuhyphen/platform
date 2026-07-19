@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import {tokens, 
+import {
     Button,
     Dialog,
     DialogActions,
@@ -35,9 +35,11 @@ import ExchangeInitiationDialogTitleSection
 import ExchangeInitiationFieldsTab
     from "./components/exchange-initiation-fields-tab/ExchangeInitiationFieldsTab.tsx";
 import {ArrowLeftRegular, DismissRegular} from "@fluentui/react-icons";
-import ExchangeInitiationRecipientsTab, {
+import ExchangeInitiationRecipientsTab
+    from "./components/exchange-initiation-recipients-tab/ExchangeInitiationRecipientsTab.tsx";
+import {
     ExchangeInitiationRecipientMode
-} from "./components/exchange-initiation-recipients-tab/ExchangeInitiationRecipientsTab.tsx";
+} from "./components/exchange-initiation-recipients-tab/exchangeInitiationRecipientMode.ts";
 import {publishNewExchangeAddition} from '../observable/exchangeObservables.ts';
 import {useExchangeInitiationStyles} from "./ExchangeInitiationStyles.tsx";
 import {
@@ -272,7 +274,7 @@ const ExchangeInitiation: React.FC = () =>
             setBlueprintLocked(blueprint.scope !== 'PERSONAL' && !(config.allowEditOnExchangeStart === true));
             applyBlueprintSchema(blueprint);
         }
-        catch (e)
+        catch
         {
             // Invalid configJson; apply what we can, ignore the rest
         }
@@ -379,7 +381,7 @@ const ExchangeInitiation: React.FC = () =>
                 return true;
             }
         }
-        catch (_)
+        catch
         {
             // Fallback below for environments where clipboard APIs are blocked.
         }
@@ -576,7 +578,7 @@ const ExchangeInitiation: React.FC = () =>
                 description,
                 primaryRecipient,
                 initialShareMessage,
-                exchangeDocuments: documents.map((doc: ExchangeRequestDocumentRequest, _: number) => ({
+                exchangeDocuments: documents.map((doc: ExchangeRequestDocumentRequest) => ({
                     ...doc,
                     restrictedType: doc.restrictType ? doc.restrictedType : undefined
                 })),
@@ -786,7 +788,29 @@ const ExchangeInitiation: React.FC = () =>
         });
 
         return () => subscription.unsubscribe();
-    }, []);
+    }, [
+        setAllowDocumentAdditions,
+        setAllowDocumentDeletions,
+        setAllowDocumentDownload,
+        setAllowDocumentUpdate,
+        setAllowDocumentUpload,
+        setAllowedDownloadFormats,
+        setChoosingBlueprint,
+        setDescription,
+        setDocuments,
+        setExchangeInitiatedSuccessfully,
+        setExchangeName,
+        setInitialShareMessage,
+        setInitiatingExchange,
+        setMessageGroupMessages,
+        setNewRecipient,
+        setRecipientMode,
+        setRecipientOrg,
+        setRecipientOrgGroup,
+        setRecipientOrgUser,
+        setRequireSignIn,
+        setSelectedTab,
+    ]);
 
     const renderRecipientsTab = () =>
     {

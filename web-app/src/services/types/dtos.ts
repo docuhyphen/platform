@@ -1,7 +1,7 @@
 ﻿/**
  * Shared TypeScript interfaces mirroring backend DTOs.
  */
-import {AppUserPublicDto} from '../../app/models/models';
+import {AppUserPublicDto, ExchangeRecipientSelection} from '../../app/models/models';
 import {ExchangeShareRoleName, PrincipalGroupRoleName} from './roles';
 
 // ── Exchange Access ──
@@ -25,6 +25,14 @@ export interface GrantExchangeShareRequest
 {
     principalKind: string;
     principalId: string;
+    roleName: ExchangeShareRoleName;
+    constraintsJson?: string;
+    expiresAtEpochMillis?: number;
+}
+
+export interface InviteTrustedParticipantRequest
+{
+    selection: ExchangeRecipientSelection;
     roleName: ExchangeShareRoleName;
     constraintsJson?: string;
     expiresAtEpochMillis?: number;

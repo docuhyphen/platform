@@ -88,7 +88,7 @@ const StepUpVerification: React.FC<StepUpVerificationProps> = (
                 <Text
                     id={"step-up-code-action"}
                     weight={"semibold"}>
-                    {actionLabel}.
+                    {" "} {actionLabel}.
                 </Text>
             </div>
             <Field

@@ -1,10 +1,9 @@
-﻿import React, {useEffect, useState} from 'react';
 import {Field, InfoLabel, Input} from "@fluentui/react-components";
-import {useExchangeInitiationRecipientsTabStyles} from "../ExchangeInitiationRecipientsTabStyles.tsx";
+import React from "react";
 import {AppUserPublicDto} from "../../../../models/models.tsx";
 import MyOrgRecipients from "../MyOrgRecipients.tsx";
-import {fetchMyOrganizationUsers} from "../../../../../services/organizationApi";
-import {useAuth} from "../../../../../context/AuthContext.tsx";
+import {useNewRecipientStyles} from "./NewRecipientStyles.tsx";
+import {useNewRecipient} from "./useNewRecipient.ts";
 
 export interface ExchangeNewMainRecipient
 {
@@ -22,175 +21,70 @@ interface NewRecipientProps
     setInternalParticipants?: (users: AppUserPublicDto[]) => void;
 }
 
-const NewRecipient: React.FC<NewRecipientProps> = (
-    {
-        isRequestingDocuments,
-        setNewRecipient,
-        newRecipient,
-        internalParticipants,
-        setInternalParticipants
-    }) =>
+const NewRecipient: React.FC<NewRecipientProps> = props =>
 {
-    const styles = useExchangeInitiationRecipientsTabStyles();
-    const [recipient, setRecipient] = useState<ExchangeNewMainRecipient>({
-        email: newRecipient?.email || '',
-        firstName: newRecipient?.firstName || '',
-        lastName: newRecipient?.lastName || ''
-    });
-
-    const {appUser, appUserPersonOrganization} = useAuth()
-    const [selectedInternalRecipients, setSelectedInternalParticipants] = useState<AppUserPublicDto[]>([]);
-    const [orgUsers, setOrgUsers] = useState<AppUserPublicDto[]>([]);
-    const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
-    const [usersLoaded, setUsersLoaded] = useState<boolean>(false);
-
-    const isRecipientDataValid = () =>
-    {
-        return recipient.email && recipient.email.includes('@') &&
-            recipient.firstName && recipient.firstName.trim() !== '' &&
-            recipient.lastName && recipient.lastName.trim() !== '';
-    };
-
-    useEffect(() =>
-    {
-        if (isRecipientDataValid() && !usersLoaded)
-        {
-            loadMyOrganizationUsers();
-        }
-    }, [recipient.email, recipient.firstName, recipient.lastName, usersLoaded]);
-
-    useEffect(() =>
-    {
-        if (newRecipient)
-        {
-            setRecipient({
-                email: newRecipient.email || recipient.email,
-                firstName: newRecipient.firstName || recipient.firstName,
-                lastName: newRecipient.lastName || recipient.lastName
-            });
-        }
-    }, [newRecipient]);
-
-    useEffect(() =>
-    {
-        if (internalParticipants)
-        {
-            setSelectedInternalParticipants([...internalParticipants]);
-        }
-    }, [internalParticipants]);
-
-    const loadMyOrganizationUsers = async () =>
-    {
-        setIsLoadingUsers(true);
-        try
-        {
-            const users = await fetchMyOrganizationUsers();
-            setOrgUsers(users);
-            setUsersLoaded(true);
-        }
-        catch (error)
-        {
-            console.error("Error loading my organization users:", error);
-        }
-        finally
-        {
-            setIsLoadingUsers(false);
-        }
-    };
-
-    const updateRecipient = (field: keyof ExchangeNewMainRecipient, value: string) =>
-    {
-        const updated = {...recipient, [field]: value};
-        setRecipient(updated);
-        setNewRecipient(updated);
-
-        if (!isRecipientDataValid() && usersLoaded)
-        {
-            setUsersLoaded(false);
-        }
-    };
-
-    const onEmailChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    {
-        if (e.target.value && e.target.value.length)
-        {
-            updateRecipient('email', e.target.value.trim().toLowerCase())
-        }
-        else
-        {
-            updateRecipient('email', '')
-        }
-    }
-    const onFirstNameChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    {
-        if (e.target.value && e.target.value.length)
-        {
-            updateRecipient('firstName', e.target.value.trim())
-        }
-        else
-        {
-            updateRecipient('firstName', '')
-        }
-    }
-
-    const onLastNameChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    {
-        if (e.target.value && e.target.value.length)
-        {
-            updateRecipient('lastName', e.target.value.trim())
-        }
-        else
-        {
-            updateRecipient('lastName', '')
-        }
-    }
-
+    const styles = useNewRecipientStyles();
+    const state = useNewRecipient(props);
+    const updateFromInput = (field: keyof ExchangeNewMainRecipient, normalize: (value: string) => string) =>
+        (event: React.ChangeEvent<HTMLInputElement>) =>
+            state.updateRecipient(field, event.target.value ? normalize(event.target.value) : "");
     return (
         <>
-            <Field label={
-                <InfoLabel info="The email doesn't have to be from a registered user.">
-                    {isRequestingDocuments ?
-                        'Email to request documents from' :
-                        'Email to send documents to'}
-                </InfoLabel>
-            }>
+            <Field
+                id={"new-recipient-email-field"}
+                label={
+                    <InfoLabel info={"The email does not have to be from a registered user."}>
+                        {props.isRequestingDocuments
+                            ? "Email to request documents from"
+                            : "Email to send documents to"}
+                    </InfoLabel>
+                }
+            >
                 <Input
                     id={"new-recipient-email-input"}
-                    type="email"
-                    value={recipient.email}
-                    onChange={onEmailChange}
-                    placeholder="Email"
+                    type={"email"}
+                    value={state.recipient.email}
+                    onChange={updateFromInput("email", value => value.trim().toLowerCase())}
+                    placeholder={"Email"}
                 />
             </Field>
-            <div className={styles.recipientEmailFields}>
-                <Field className={styles.recipientEmail}>
+            <div
+                id={"new-recipient-name-fields"}
+                className={styles.nameFields}
+            >
+                <Field
+                    id={"new-recipient-first-name-field"}
+                    className={styles.nameField}
+                >
                     <Input
                         id={"new-recipient-first-name-input"}
-                        type="text"
-                        value={recipient.firstName}
-                        onChange={onFirstNameChange}
-                        placeholder="First Name"
+                        type={"text"}
+                        value={state.recipient.firstName}
+                        onChange={updateFromInput("firstName", value => value.trim())}
+                        placeholder={"First Name"}
                     />
                 </Field>
-                <Field className={styles.recipientEmail}>
+                <Field
+                    id={"new-recipient-last-name-field"}
+                    className={styles.nameField}
+                >
                     <Input
                         id={"new-recipient-last-name-input"}
-                        type="text"
-                        value={recipient.lastName}
-                        onChange={onLastNameChange}
-                        placeholder="Last Name"
+                        type={"text"}
+                        value={state.recipient.lastName}
+                        onChange={updateFromInput("lastName", value => value.trim())}
+                        placeholder={"Last Name"}
                     />
                 </Field>
             </div>
-
-            {appUserPersonOrganization && isRecipientDataValid() && (
+            {state.appUserPersonOrganization && state.isRecipientDataValid && (
                 <MyOrgRecipients
                     id={"new-recipient-internal-participants"}
-                    orgUsers={orgUsers.filter(u => u.id !== appUser?.id)}
-                    isLoadingUsers={isLoadingUsers}
-                    selectedInternalRecipients={selectedInternalRecipients}
-                    setSelectedInternalParticipants={setSelectedInternalParticipants}
-                    setInternalParticipants={setInternalParticipants}
+                    orgUsers={state.orgUsers.filter(user => user.id !== state.appUser?.id)}
+                    isLoadingUsers={state.isLoadingUsers}
+                    selectedInternalRecipients={state.selectedInternalRecipients}
+                    setSelectedInternalParticipants={state.setSelectedInternalParticipants}
+                    setInternalParticipants={props.setInternalParticipants}
                 />
             )}
         </>

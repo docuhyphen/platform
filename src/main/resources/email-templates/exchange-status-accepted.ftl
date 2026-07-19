@@ -4,7 +4,7 @@
 <#if audience == "INITIATOR">
 <p style="margin:0 0 14px 0;"><strong>Your Exchange request has been accepted</strong></p>
 <#else>
-<p style="margin:0 0 14px 0;"><strong>You accepted this exchange. The session is now active.</strong></p>
+<p style="margin:0 0 14px 0;"><strong>You accepted this Exchange, it is now active.</strong></p>
 </#if>
 
 <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin:0 0 14px 0; border:1px solid #dddddd; background-color:#f0f2f5;">

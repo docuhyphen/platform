@@ -75,11 +75,15 @@ export const manageAccessArticle = (
 
         <h3>Adding a person</h3>
         <p>
-            In Access &amp; permissions, choose <strong>Add person</strong> and search
-            by name or email. Matching contacts appear with their name, email, and
-            avatar or initials. You can also enter a complete email address when the
-            person is not yet in your contacts. Choose an access role and any allowed
-            constraints before adding them.
+            In <strong>Manage access</strong>, open <strong>Access &amp; permissions</strong> and choose
+            <strong>Add person</strong>. Use <strong>Person</strong> to search contacts or enter a complete email
+            address, then choose an access role and allowed constraints.
+        </p>
+        <p>
+            Use <strong>Trusted Organization</strong> to add a verified member or published group from an active
+            relationship. Choose the organization, verify the exact member email or select a group, and choose the
+            role. The resulting Share stays inactive until the person, or a current group Owner or Manager, accepts
+            the separate invitation in Requests. Declining affects only that participant invitation.
         </p>
 
         <h3>Document permissions</h3>
@@ -122,10 +126,22 @@ export const manageAccessArticle = (
             through the Access &amp; permissions tab).
         </p>
 
+        <h3>Replacing a pending primary recipient</h3>
         <p>
-            <em>Changes to access and permissions take effect immediately after saving. Protected entries
-            (your own access and the exchange owner) cannot be modified or revoked. Once an exchange is
-            rescinded or ended, document and access changes are no longer available.</em>
+            While an Exchange is still a draft awaiting acceptance, the owner can select
+            <strong>Replace recipient</strong> on the primary recipient card. This is used to recover an
+            invitation whose trusted verification, membership, relationship, or policy is no longer valid.
+            Replacement supports only a newly verified member of a Trusted Organization or one of its
+            published groups. People, external email invitations, and internal or personal groups cannot
+            replace the primary recipient through this recovery action. The previous invitation is withdrawn,
+            and the new trusted recipient's access stays inactive until they sign in and accept. Replacement
+            is unavailable once the primary recipient has accepted.
+        </p>
+
+        <p>
+            <em>Ordinary access changes take effect after saving. Trusted participant invitations remain inactive
+            until accepted. Protected entries (your own access and the Exchange owner) cannot be modified or revoked.
+            Once an Exchange is rescinded or ended, document and access changes are no longer available.</em>
         </p>
     </>
 );

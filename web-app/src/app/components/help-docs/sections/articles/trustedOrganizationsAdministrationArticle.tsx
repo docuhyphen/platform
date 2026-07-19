@@ -1,11 +1,9 @@
 export const trustedOrganizationsAdministrationArticle = (
     <>
         <p>
-            Trusted Organizations lets two active, verified organizations jointly approve a
-            collaboration relationship. Each organization keeps control of its own policy and can
-            suspend or end trust independently.
+            Trusted Organizations lets two active, verified organizations jointly approve a collaboration
+            relationship. Each organization controls its policy and can suspend or end trust independently.
         </p>
-
         <h3>Who can manage trust</h3>
         <p>
             Organization Owners and Organization Admins can view, request, decide, suspend, resume,
@@ -13,7 +11,6 @@ export const trustedOrganizationsAdministrationArticle = (
             selected. App-level roles do not grant these permissions without an active membership
             in the selected organization.
         </p>
-
         <h3>Allowing other organizations to find you</h3>
         <ol>
             <li>Open <b>Settings</b> and select <b>Organization</b>.</li>
@@ -27,8 +24,12 @@ export const trustedOrganizationsAdministrationArticle = (
             This setting is off by default. It is separate from Exchange sharing settings. Search
             results include only active, verified organizations that opted in, and organizations
             with a current pending or active relationship are excluded.
-        </p>
-
+        </p><p>
+            The separate <b>Require a trusted organization for sharing with other organizations</b>
+            preference is on by default. While it is on, a member can share an Exchange with a
+            recipient in another organization only while both organizations, the relationship review,
+            and both directional policies are current and eligible. Individual customers are separate.
+            Email invitations recheck current eligibility at acceptance without a trusted-membership assurance.</p>
         <h3>Sending and deciding requests</h3>
         <ol>
             <li>Open <b>Settings</b>, select <b>Organization</b>, then <b>Trusted Organizations</b>.</li>
@@ -41,7 +42,6 @@ export const trustedOrganizationsAdministrationArticle = (
             not decided within the configured request period. A new request after a terminal decision
             is subject to the configured cooldown.
         </p>
-
         <h3>Directional policy</h3>
         <p>
             Every relationship has one policy owned by each organization. New policies deny all
@@ -55,7 +55,6 @@ export const trustedOrganizationsAdministrationArticle = (
             <li><b>Allow published group discovery</b> controls partner access to published group destinations.</li>
             <li><b>Share resolved member display names</b> controls display-name projection after a successful exact match.</li>
         </ul>
-
         <h3>Verifying a known member by exact email</h3>
         <ol>
             <li>Start an Exchange and open the <b>Recipients</b> step.</li>
@@ -94,7 +93,6 @@ export const trustedOrganizationsAdministrationArticle = (
             of those is no longer eligible. A member can still decline a verification that has
             lapsed.
         </p>
-
         <h3>Sending an Exchange to a published group</h3>
         <ol>
             <li>Start an Exchange and open the <b>Recipients</b> step.</li>
@@ -114,6 +112,13 @@ export const trustedOrganizationsAdministrationArticle = (
             Group Members and Observers cannot make this decision. The current relationship, policies,
             group publication, and the decision maker's current group role are checked again at
             acceptance time.
+        </p>
+        <p>
+            In an Exchange, open <b>Manage access</b>, then <b>Access &amp; permissions</b>, <b>Add person</b>, and
+            <b>Trusted Organization</b> to add a verified member or published group as an additional participant.
+            Its separate invitation appears in Requests, and its Share stays inactive until that person, or a current group
+            Owner or Manager, accepts. Declining affects only that invitation, not the Exchange or primary
+            recipient. Acceptance rechecks current trust, policies, membership, organization, and publication eligibility.
         </p>
 
         <h3>Suspending and ending trust</h3>

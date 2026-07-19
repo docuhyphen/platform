@@ -1,6 +1,5 @@
 ﻿package com.docuhyphen.app.api.model.dto
 
-import com.docuhyphen.app.api.model.entity.LinkStatus
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
@@ -68,25 +67,6 @@ data class OrganizationBasicDto(
 )
 
 @Serializable
-data class OrganizationExchangeLinkBasicDto(
-    @Serializable(with = UUIDSerializer::class)
-    val id: UUID?,
-    @Serializable(with = TimestampSerializer::class)
-    val createdDate: Timestamp?,
-    val requestingOrganizationId: String? = null,
-    val requestingOrganizationName: String? = null,
-    val requestedOrganizationId: String? = null,
-    val requestedOrganizationName: String? = null,
-    val requestingMessage: String? = null,
-    val status: LinkStatus,
-    @Serializable(with = TimestampSerializer::class)
-    val linkedDate: Timestamp?,
-    @Serializable(with = TimestampSerializer::class)
-    val rejectedDate: Timestamp?
-
-)
-
-@Serializable
 data class PersonBasicDto(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID? = null,
@@ -124,22 +104,6 @@ data class DocumentBasicDto(
     val type: String?,
     val restrictedType: String?,
     val hash: String?,
-)
-
-@Serializable
-data class LinkedOrgAppUserDto(
-    @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
-    val email: String,
-    val person: LinkedOrgAppUserPersonDto?,
-)
-
-@Serializable
-data class LinkedOrgAppUserPersonDto(
-    @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
-    val firstName: String,
-    val lastName: String,
 )
 
 /**

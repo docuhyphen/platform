@@ -102,4 +102,10 @@ class ExchangeRecipientAttestationService @Inject constructor(
         attestation.acceptanceVerifiedAt = Timestamp.from(verifiedAt)
         repository.update(attestation)
     }
+
+    /** Removes the attestation for a recipient, if one exists. Used when a recipient binding is replaced. */
+    fun deleteForRecipient(exchangeRecipientId: UUID)
+    {
+        repository.findByExchangeRecipientId(exchangeRecipientId)?.let { repository.delete(it) }
+    }
 }

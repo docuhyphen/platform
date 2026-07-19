@@ -26,8 +26,14 @@ class OrganizationSettings
     @Serializable(with = TimestampSerializer::class)
     var updatedDate: Timestamp = Timestamp.from(Instant.now())
 
-    @Column(name = "allow_share_without_pairing", nullable = false)
-    var allowShareWithoutPairing: Boolean = false
+    /**
+     * When true (**default**), members of this organization may share an Exchange with a recipient
+     * belonging to another organization only when both organizations, their trust relationship,
+     * and both directional policies are current and eligible. When false, cross-organization
+     * sharing is unrestricted.
+     */
+    @Column(name = "require_trusted_organization_for_b2b", nullable = false)
+    var requireTrustedOrganizationForB2b: Boolean = true
 
     @Column(name = "discoverable_for_trust_requests", nullable = false)
     var discoverableForTrustRequests: Boolean = false
@@ -35,8 +41,8 @@ class OrganizationSettings
     /**
      * Whether this org may share with external **individual** customers, recipients who belong to
      * no organization (the headline B2C topology). Defaults to `true`: sharing to a person is not
-     * federating into a managed tenant, so it is allowed out of the box. The B2B-unpaired case
-     * (recipient belongs to another, non-paired org) stays gated by [allowShareWithoutPairing].
+     * federating into a managed tenant, so it is allowed out of the box. The B2B case (recipient
+     * belongs to another organization) stays gated by [requireTrustedOrganizationForB2b].
      */
     @Column(name = "allow_external_customer_sharing", nullable = false)
     var allowExternalCustomerSharing: Boolean = true

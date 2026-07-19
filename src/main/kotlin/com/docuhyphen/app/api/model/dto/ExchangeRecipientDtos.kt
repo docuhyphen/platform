@@ -29,3 +29,14 @@ data class ExchangeRecipientDto(
     @Serializable(with = TimestampSerializer::class)
     val createdAt: Timestamp,
 )
+
+@Serializable
+data class ExchangeRecipientInvitationDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID,
+    @Serializable(with = UUIDSerializer::class)
+    val exchangeId: UUID,
+    val selectionType: ExchangeRecipientSelectionType,
+    @Serializable(with = TimestampSerializer::class)
+    val createdAt: Timestamp,
+)

@@ -59,10 +59,10 @@ class ExchangeRecipientSelectionResolver @Inject constructor(
         activeOrganizationId: UUID?,
     ): ResolvedExchangeRecipientSelection = when (selection)
     {
-        is RegisteredUserRecipientSelectionRequest -> resolveRegisteredUser(selection, initiator)
-        is ExternalEmailRecipientSelectionRequest -> resolveExternalEmail(selection, initiator)
+        is RegisteredUserRecipientSelectionRequest -> resolveRegisteredUser(selection, initiator, activeOrganizationId)
+        is ExternalEmailRecipientSelectionRequest -> resolveExternalEmail(selection, initiator, activeOrganizationId)
         is InternalGroupRecipientSelectionRequest -> resolveInternalGroup(selection, initiator, activeOrganizationId)
-        is PersonalGroupRecipientSelectionRequest -> resolvePersonalGroup(selection, initiator)
+        is PersonalGroupRecipientSelectionRequest -> resolvePersonalGroup(selection, initiator, activeOrganizationId)
         is TrustedGroupRecipientSelectionRequest -> resolveTrustedGroup(selection, activeOrganizationId)
         is TrustedPersonRecipientSelectionRequest -> resolveTrustedPerson(selection, initiator, activeOrganizationId)
     }
@@ -70,13 +70,14 @@ class ExchangeRecipientSelectionResolver @Inject constructor(
     private fun resolveRegisteredUser(
         selection: RegisteredUserRecipientSelectionRequest,
         initiator: AppUser,
+        activeOrganizationId: UUID?,
     ): ResolvedExchangeRecipientSelection
     {
         val appUserId = parseId(selection.appUserId, "Recipient user")
         require(appUserId != initiator.id) { "Recipient and Initiator cannot be the same" }
         val appUser = appUserService.getById(appUserId)
             ?: throw AppUserNotFoundException("Recipient not found")
-        organizationExchangePolicyService.assertCanShareWithUser(initiator.id, appUser.id)
+        organizationExchangePolicyService.assertCanShareWithUser(activeOrganizationId, initiator.id, appUser.id)
         return ResolvedExchangeRecipientSelection(
             ExchangeRecipientType.APP_USER,
             ExchangeRecipientSelectionType.REGISTERED_USER,
@@ -87,6 +88,7 @@ class ExchangeRecipientSelectionResolver @Inject constructor(
     private fun resolveExternalEmail(
         selection: ExternalEmailRecipientSelectionRequest,
         initiator: AppUser,
+        activeOrganizationId: UUID?,
     ): ResolvedExchangeRecipientSelection
     {
         val appUser = appUserService.getAppUserByEmail(selection.email)
@@ -98,6 +100,7 @@ class ExchangeRecipientSelectionResolver @Inject constructor(
             }.applyRecipientName(selection.firstName, selection.lastName)
         require(appUser.id != initiator.id) { "Recipient and Initiator cannot be the same" }
         organizationExchangePolicyService.assertCanShareWithUser(
+            activeOrganizationId,
             initiator.id,
             appUser.takeIf { it.isTemporary != true }?.id,
         )
@@ -120,7 +123,7 @@ class ExchangeRecipientSelectionResolver @Inject constructor(
         require(group.scope == PrincipalGroupScope.ORG && group.ownerOrganizationId == organizationId) {
             "Recipient group is not owned by the active organization"
         }
-        organizationExchangePolicyService.assertCanShareWithGroup(initiator.id, group)
+        organizationExchangePolicyService.assertCanShareWithGroup(activeOrganizationId, initiator.id, group)
         return ResolvedExchangeRecipientSelection(
             ExchangeRecipientType.GROUP,
             ExchangeRecipientSelectionType.INTERNAL_GROUP,
@@ -132,13 +135,14 @@ class ExchangeRecipientSelectionResolver @Inject constructor(
     private fun resolvePersonalGroup(
         selection: PersonalGroupRecipientSelectionRequest,
         initiator: AppUser,
+        activeOrganizationId: UUID?,
     ): ResolvedExchangeRecipientSelection
     {
         val group = requireGroup(selection.groupId)
         require(group.scope == PrincipalGroupScope.PERSONAL && group.ownerAppUserId == initiator.id) {
             "Recipient group is not owned by the initiator"
         }
-        organizationExchangePolicyService.assertCanShareWithGroup(initiator.id, group)
+        organizationExchangePolicyService.assertCanShareWithGroup(activeOrganizationId, initiator.id, group)
         return ResolvedExchangeRecipientSelection(
             ExchangeRecipientType.GROUP,
             ExchangeRecipientSelectionType.PERSONAL_GROUP,

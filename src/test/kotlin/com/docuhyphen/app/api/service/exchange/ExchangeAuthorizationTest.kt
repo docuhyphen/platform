@@ -258,7 +258,7 @@ class ExchangeAuthorizationTest
 
         svc.decideAcceptance(exchangeId.toString(), accepted = true, reason = null)
 
-        verify(recipientService).recordPrimaryDecision(exchangeId, userId, accepted = true)
+        verify(recipientService).recordPrimaryDecision(exchange, userId, accepted = true)
         verify(repo).updateStatus(exchangeId, ExchangeStatus.ACCEPTED_STARTED)
     }
 

@@ -52,6 +52,7 @@ const ProfileSecurityCard = (
                 <Button
                     id={"button-change-password"}
                     appearance={"secondary"}
+                    size={"small"}
                     shape={"circular"}
                     icon={<PasswordRegular/>}
                     onClick={onChangePassword}>
@@ -83,6 +84,7 @@ const ProfileSecurityCard = (
                     id={"button-configure-mfa"}
                     appearance={"secondary"}
                     shape={"circular"}
+                    size={"small"}
                     icon={<ShieldKeyholeRegular/>}
                     onClick={onConfigureMfa}>
                     Configure MFA

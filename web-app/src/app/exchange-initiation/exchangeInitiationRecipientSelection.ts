@@ -1,6 +1,6 @@
 import {AppUserPublicDto, ExchangeRecipientSelection, OrganizationBasicDto} from "../models/models.tsx";
 import {OrganizationGroupBasicDto} from "../../services/organizationApi.ts";
-import {ExchangeInitiationRecipientMode} from "./components/exchange-initiation-recipients-tab/ExchangeInitiationRecipientsTab.tsx";
+import {ExchangeInitiationRecipientMode} from "./components/exchange-initiation-recipients-tab/exchangeInitiationRecipientMode.ts";
 import {ExchangeNewMainRecipient} from "./components/exchange-initiation-recipients-tab/new-recipient/NewRecipient.tsx";
 
 interface BuildRecipientSelectionInput

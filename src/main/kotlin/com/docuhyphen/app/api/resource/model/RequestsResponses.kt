@@ -780,10 +780,34 @@ data class GrantSessionShareRequest(
     val expiresAtEpochMillis: Long? = null,
 )
 
+/** Invite a verified Trusted Organization person or published group as an additional participant. */
+@Serializable
+data class InviteTrustedParticipantRequest(
+    val selection: ExchangeRecipientSelectionRequest,
+    val roleName: ExchangeShareRoleName,
+    val constraintsJson: String? = null,
+    val expiresAtEpochMillis: Long? = null,
+)
+
 /** Change the role on an existing session share. */
 @Serializable
 data class UpdateSessionShareRoleRequest(
     val roleName: ExchangeShareRoleName,
     val constraintsJson: String? = null,
+)
+
+/**
+ * Replace the pending primary recipient of an Exchange with a freshly resolved selection. Used by
+ * the Exchange owner to recover an invitation whose trusted verification, membership, relationship,
+ * or policy is no longer valid.
+ */
+@Serializable
+data class ReplacePrimaryRecipientRequest(
+    val selection: ExchangeRecipientSelectionRequest,
+)
+
+@Serializable
+data class ExchangeRecipientInvitationDecisionRequest(
+    val decision: ExchangeAcceptanceDecision,
 )
 

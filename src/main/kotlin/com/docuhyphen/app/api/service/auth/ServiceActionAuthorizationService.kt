@@ -67,7 +67,7 @@ class ServiceActionAuthorizationService @Inject constructor(
         throw UnauthorizedException("Only organization admins can update organization settings")
     }
 
-    fun validateUpdateShareWithoutPairingSetting(appUser: AppUser)
+    fun validateUpdateTrustedOrganizationB2bSetting(appUser: AppUser)
     {
         if (userRoleService.isOrgAdmin(appUser.id)) return
         throw UnauthorizedException("Only organization admins can update exchange settings")

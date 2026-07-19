@@ -13,13 +13,13 @@ class ExchangePrimaryRecipientIdentityPermutationTest
     fun `EX-PRI-02 same-organization user can be primary recipient`() { /* Implementation will be added later. */ }
 
     @Test
-    fun `EX-PRI-03 paired external-organization user can be primary recipient`() { /* Implementation will be added later. */ }
+    fun `EX-PRI-03 trusted external-organization user can be primary recipient`() { /* Implementation will be added later. */ }
 
     @Test
-    fun `EX-PRI-04 unpaired external user is denied when pairing is required`() { /* Implementation will be added later. */ }
+    fun `EX-PRI-04 untrusted external user is denied when a trusted organization is required`() { /* Implementation will be added later. */ }
 
     @Test
-    fun `EX-PRI-05 unpaired external user is allowed by policy`() { /* Implementation will be added later. */ }
+    fun `EX-PRI-05 untrusted external user is allowed when no trusted organization is required`() { /* Implementation will be added later. */ }
 
     @Test
     fun `EX-PRI-06 nonexistent external email creates temporary recipient`() { /* Implementation will be added later. */ }

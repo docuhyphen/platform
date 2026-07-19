@@ -213,7 +213,7 @@ class OrganizationGroupService @Inject constructor(
         }
         if (group.externallyPublished != externallyPublished)
         {
-            groupUpdateFields.add(if (externallyPublished) "Made visible to paired orgs" else "Hidden from paired orgs")
+            groupUpdateFields.add(if (externallyPublished) "Made visible to trusted organizations" else "Hidden from trusted organizations")
         }
 
         val specs = toSpecs(organization, members)

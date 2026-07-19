@@ -5,6 +5,7 @@ import com.docuhyphen.app.api.exception.InvalidEmailException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.exception.AppUserNotFoundException
 import com.docuhyphen.app.api.exception.WorkflowConflictException
+import com.docuhyphen.app.api.exception.OrganizationTrustException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer.Companion.toDto
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
@@ -14,9 +15,11 @@ import com.docuhyphen.app.api.model.dto.ExchangeDetailedDto
 import com.docuhyphen.app.api.model.entity.DocumentType
 import com.docuhyphen.app.api.repository.PrincipalGroupRepository
 import com.docuhyphen.app.api.resource.model.GrantSessionShareRequest
+import com.docuhyphen.app.api.resource.model.InviteTrustedParticipantRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.ExchangeInitiationDto
 import com.docuhyphen.app.api.resource.model.UpdateSessionShareRoleRequest
+import com.docuhyphen.app.api.resource.model.ReplacePrimaryRecipientRequest
 import com.docuhyphen.app.api.resource.model.UpdateExchangeRequest
 import com.docuhyphen.app.api.service.exchange.*
 import com.docuhyphen.app.api.service.fields.FieldValidationException
@@ -290,6 +293,30 @@ class ExchangeResource @Inject constructor(
         }
     }
 
+    @POST
+    @Path("/{exchangeId}/recipient-invitations")
+    fun inviteTrustedParticipant(
+        @PathParam("exchangeId") exchangeId: String,
+        request: InviteTrustedParticipantRequest,
+    ): Response
+    {
+        return try
+        {
+            val accessView = sessionAccessManagementService.inviteTrustedParticipant(
+                exchangeId = UUID.fromString(exchangeId),
+                selection = request.selection,
+                roleName = request.roleName,
+                constraintsJson = request.constraintsJson,
+                expiresAtEpochMillis = request.expiresAtEpochMillis,
+            )
+            Response.ok(accessView.toTypedArray()).build()
+        }
+        catch (exception: Exception)
+        {
+            mapAccessMutationError(exception, "inviting a trusted Exchange participant")
+        }
+    }
+
     @PATCH
     @Path("/{exchangeId}/access/{shareId}")
     fun updateExchangeAccessRole(
@@ -337,6 +364,28 @@ class ExchangeResource @Inject constructor(
         }
     }
 
+    @POST
+    @Path("/{exchangeId}/access/primary-recipient")
+    fun replacePrimaryRecipient(
+        @PathParam("exchangeId") exchangeId: String,
+        request: ReplacePrimaryRecipientRequest,
+    ): Response
+    {
+        return try
+        {
+            val sessionUuid = java.util.UUID.fromString(exchangeId)
+            val view = sessionAccessManagementService.replacePrimaryRecipient(
+                exchangeId = sessionUuid,
+                selection = request.selection,
+            )
+            Response.ok(view.toTypedArray()).build()
+        }
+        catch (exception: Exception)
+        {
+            mapAccessMutationError(exception, "replacing the primary recipient")
+        }
+    }
+
     private fun mapAccessMutationError(exception: Exception, context: String): Response =
         when (exception)
         {
@@ -345,6 +394,11 @@ class ExchangeResource @Inject constructor(
 
             is ExchangeNotFoundException ->
                 Response.status(Response.Status.NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+            is OrganizationTrustException ->
+                Response.status(Response.Status.CONFLICT)
+                    .entity(ResponseError("This trusted recipient can no longer be selected"))
+                    .build()
 
             is IllegalArgumentException ->
                 Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()

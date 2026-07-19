@@ -244,8 +244,13 @@ class ShareService @Inject constructor(
     }
 
     /** Promote every PENDING_APPROVAL share on a resource to ACTIVE; returns the count activated. */
-    fun activatePendingForResource(resourceType: ResourceType, resourceId: UUID): Int =
+    fun activatePendingForResource(
+        resourceType: ResourceType,
+        resourceId: UUID,
+        excludedShareIds: Set<UUID> = emptySet(),
+    ): Int =
         shareRepository.findByResourceAndStatus(resourceType, resourceId, ShareStatus.PENDING_APPROVAL)
+            .filterNot { it.id in excludedShareIds }
             .count { activate(it.id)?.status == ShareStatus.ACTIVE }
 
     /** Revoke every PENDING_APPROVAL share on a resource (e.g. when an approval is rejected). */

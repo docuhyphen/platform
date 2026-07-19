@@ -37,7 +37,8 @@ export const workflowOrgSettingsArticle = (
         </p>
         <p>
             Only the primary recipient can accept or reject an Exchange. Additional
-            participants cannot make that decision. When the primary recipient is a
+            participants cannot make that decision. A trusted additional participant instead decides
+            only their own pending access invitation. When the primary recipient is a
             group, an active group Owner or Manager makes the decision for the group.
             For a published group in a Trusted Organization, the current trust relationship,
             directional policies, group publication, and group role must also remain eligible.
@@ -87,7 +88,10 @@ export const workflowOrgSettingsArticle = (
             one-time password link are also routed through the workflow engine when
             the setting is on. After OTP verification, their acceptance is recorded
             as a workflow decision, ensuring consistent audit records regardless of
-            recipient account type.
+            recipient account type. Immediately before acceptance, DocuHyphen resolves
+            the invitation email again and checks the sender's current external-customer
+            or organization-sharing policy. The same check runs when an invited recipient
+            accepts after signing in.
         </p>
 
         <h3>Related articles</h3>

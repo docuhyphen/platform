@@ -130,7 +130,7 @@ class SettingsService @Inject constructor(
         // Tour completion is a personal preference, no admin check needed.
         settings.tourCompleted = settingsDto.tourCompleted
 
-        // View mode preferences — personal preferences, no admin validation needed.
+        // View mode preferences are personal preferences, no admin validation needed.
         val validViewModes = setOf("cards", "table")
         if (settingsDto.documentLibraryView in validViewModes) settings.documentLibraryView = settingsDto.documentLibraryView
         if (settingsDto.blueprintsView in validViewModes) settings.blueprintsView = settingsDto.blueprintsView
@@ -176,10 +176,10 @@ class SettingsService @Inject constructor(
         settings.updatedDate = Timestamp.from(Instant.now())
 
         // Apply updates with proper validations
-        if (settings.allowShareWithoutPairing != settingsDto.allowShareWithoutPairing)
+        if (settings.requireTrustedOrganizationForB2b != settingsDto.requireTrustedOrganizationForB2b)
         {
-            authorizationService.validateUpdateShareWithoutPairingSetting(currentUser)
-            settings.allowShareWithoutPairing = settingsDto.allowShareWithoutPairing
+            authorizationService.validateUpdateTrustedOrganizationB2bSetting(currentUser)
+            settings.requireTrustedOrganizationForB2b = settingsDto.requireTrustedOrganizationForB2b
         }
 
         settings.discoverableForTrustRequests = settingsDto.discoverableForTrustRequests
@@ -271,7 +271,7 @@ class SettingsService @Inject constructor(
         fun getDefaultOrganizationSettings(): OrganizationSettingsDto
         {
             return OrganizationSettingsDto(
-                allowShareWithoutPairing = false,
+                requireTrustedOrganizationForB2b = true,
                 discoverableForTrustRequests = false,
                 allowExternalCustomerSharing = true,
                 allowProfileUpdate = false,

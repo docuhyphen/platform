@@ -1,6 +1,5 @@
-﻿package com.docuhyphen.app.api.service.organization
+package com.docuhyphen.app.api.service.organization
 
-import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.PrincipalGroup
 import com.docuhyphen.app.api.model.entity.PrincipalGroupScope
 import com.docuhyphen.app.api.service.auth.AuthAuditService
@@ -18,19 +17,20 @@ import java.util.UUID
  *     [OrganizationSettings.allowExternalCustomerSharing] (**default `true`**); an org may opt out.
  *     This is the headline B2C topology and must be ergonomic out of the box.
  *   * **Internal, recipient is in the initiator's own org.** Always allowed.
- *   * **B2B, recipient belongs to another organization.** Allowed only when the two orgs have an
- *     ACCEPTED pairing link ([OrganizationExchangeLink], either direction), or the initiator
- *     org has explicitly set [OrganizationSettings.allowShareWithoutPairing] = `true`.
+ *   * **B2B, recipient belongs to another organization.** When the initiator org has
+ *     [OrganizationSettings.requireTrustedOrganizationForB2b] set (**default `true`**), the share is
+ *     allowed only when both organizations, the relationship, and both directional policies are
+ *     currently eligible. When the requirement is disabled, B2B sharing is unrestricted.
  *
- * Initiators who belong to no organization are unconstrained, the policy is an org-level control
- * and there is no org to read the settings from.
+ * The caller supplies its validated active organization explicitly. When it is null the initiator
+ * belongs to no organization for this action, the policy is an org-level control and there is no org
+ * to read the settings from, so the share is unconstrained.
  */
 @ApplicationScoped
 class OrganizationExchangePolicyService @Inject constructor(
     private val organizationService: OrganizationService,
-    private val authTokenContext: AuthTokenContext,
     private val organizationMembershipService: OrganizationMembershipService,
-    private val organizationExchangeLinkService: OrganizationExchangeLinkService,
+    private val organizationTrustExchangePolicyService: OrganizationTrustExchangePolicyService,
     private val authAuditService: AuthAuditService,
 )
 {
@@ -44,24 +44,29 @@ class OrganizationExchangePolicyService @Inject constructor(
      * [recipientAppUserId] is null for recipients with no resolvable account (e.g. a brand-new
      * external email), treated as an external individual (B2C).
      */
-    fun assertCanShareWithUser(initiatorAppUserId: UUID, recipientAppUserId: UUID?)
+    fun assertCanShareWithUser(
+        callerOrganizationId: UUID?,
+        initiatorAppUserId: UUID,
+        recipientAppUserId: UUID?,
+    )
     {
-        val initiatorOrgId = authTokenContext.activeOrganizationId
+        val initiatorOrgId = callerOrganizationId
             ?: return
 
         val organization = organizationService.getOrganizationById(initiatorOrgId)
         val settings = organization.settings
 
-        val recipientOrgId = recipientAppUserId
-            ?.let { organizationMembershipService.primaryOrganizationId(it) }
+        val recipientOrgIds = recipientAppUserId
+            ?.let { organizationMembershipService.activeOrganizationIds(it) }
+            ?: emptySet()
 
         // Internal share (same org) is always allowed.
-        if (recipientOrgId != null && recipientOrgId == initiatorOrgId) return
+        if (initiatorOrgId in recipientOrgIds) return
 
         // B2C, recipient is an external individual with no org. Allowed by default; an org may
-        // opt out via allowExternalCustomerSharing. Audit-logged because it bypasses the pairing
+        // opt out via allowExternalCustomerSharing. Audit-logged because it bypasses the B2B trust
         // gate, so admins retain visibility into external-customer shares.
-        if (recipientOrgId == null)
+        if (recipientOrgIds.isEmpty())
         {
             val allowExternalCustomerSharing = settings?.allowExternalCustomerSharing ?: true
             if (!allowExternalCustomerSharing)
@@ -75,16 +80,25 @@ class OrganizationExchangePolicyService @Inject constructor(
         }
 
         // B2B, recipient belongs to another organization.
-        val allowShareWithoutPairing = settings?.allowShareWithoutPairing ?: false
-        if (allowShareWithoutPairing) return
-        if (arePaired(initiatorOrgId, recipientOrgId)) return
+        val requireTrustedOrganizationForB2b = settings?.requireTrustedOrganizationForB2b ?: true
+        if (!requireTrustedOrganizationForB2b) return
+        if (recipientOrgIds.any {
+                organizationTrustExchangePolicyService.permitsExchange(initiatorOrgId, it)
+            })
+        {
+            return
+        }
 
         throw IllegalArgumentException(
-            "Your organization only permits sharing with members of your organization or a paired organization."
+            "Your organization only permits sharing with members of your organization or a trusted organization."
         )
     }
 
-    fun assertCanShareWithGroup(initiatorAppUserId: UUID, group: PrincipalGroup)
+    fun assertCanShareWithGroup(
+        callerOrganizationId: UUID?,
+        initiatorAppUserId: UUID,
+        group: PrincipalGroup,
+    )
     {
         if (!group.isActive) throw IllegalArgumentException("The selected group is inactive")
 
@@ -100,7 +114,7 @@ class OrganizationExchangePolicyService @Inject constructor(
 
             PrincipalGroupScope.ORG ->
             {
-                val initiatorOrgId = authTokenContext.activeOrganizationId
+                val initiatorOrgId = callerOrganizationId
                     ?: throw IllegalArgumentException("An organization is required to share with an organization group")
                 val recipientOrgId = group.ownerOrganizationId
                     ?: throw IllegalArgumentException("The selected group has no owning organization")
@@ -110,9 +124,13 @@ class OrganizationExchangePolicyService @Inject constructor(
                     throw IllegalArgumentException("The selected group is not available for external sharing")
                 }
 
-                if (!arePaired(initiatorOrgId, recipientOrgId))
+                val organization = organizationService.getOrganizationById(initiatorOrgId)
+                val requireTrustedOrganizationForB2b =
+                    organization.settings?.requireTrustedOrganizationForB2b ?: true
+                if (requireTrustedOrganizationForB2b &&
+                    !organizationTrustExchangePolicyService.permitsExchange(initiatorOrgId, recipientOrgId))
                 {
-                    throw IllegalArgumentException("Your organization only permits sharing with groups from a paired organization")
+                    throw IllegalArgumentException("Your organization only permits sharing with groups from a trusted organization")
                 }
             }
 
@@ -141,8 +159,4 @@ class OrganizationExchangePolicyService @Inject constructor(
         }
     }
 
-    private fun arePaired(orgA: UUID, orgB: UUID): Boolean
-    {
-        return organizationExchangeLinkService.hasAcceptedLink(orgA, orgB)
-    }
 }

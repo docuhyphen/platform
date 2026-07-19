@@ -112,6 +112,8 @@ class AuditMigrationUpgradeContractTest
                     "ck_exchange_recipient_participant_acceptance",
                 )
                 assertTrue(participantAcceptanceConstraint?.contains("NOT_REQUIRED") == true)
+                assertTrue(participantAcceptanceConstraint?.contains("TRUSTED_PERSON") == true)
+                assertTrue(participantAcceptanceConstraint?.contains("TRUSTED_GROUP") == true)
                 assertTrue(tableExists(connection, "organization_trust_relationship"))
                 assertTrue(tableExists(connection, "organization_trust_suspension"))
                 assertTrue(tableExists(connection, "organization_trust_party_policy"))
@@ -124,11 +126,14 @@ class AuditMigrationUpgradeContractTest
                 assertTrue(tableExists(connection, "external_identity_resolution"))
                 assertTrue(columnExists(connection, "external_identity_resolution", "normalized_email"))
                 assertTrue(columnExists(connection, "external_identity_resolution", "consumed_by_exchange_id"))
+                assertFalse(tableExists(connection, "organization_exchange_link"))
+                assertFalse(columnExists(connection, "organization_settings", "allow_share_without_pairing"))
+                assertTrue(columnExists(connection, "organization_settings", "require_trusted_organization_for_b2b"))
                 verifyTrustPersistenceConstraints(connection)
                 verifyExchangeRecipientShareBinding(connection)
             }
 
-            assertEquals("63", currentFlyway.info().current().version.toString())
+            assertEquals("66", currentFlyway.info().current().version.toString())
         }
         finally
         {
@@ -315,6 +320,8 @@ class AuditMigrationUpgradeContractTest
         val foreignShareId = UUID.fromString("70000000-0000-0000-0000-000000000002")
         val inheritedShareId = UUID.fromString("70000000-0000-0000-0000-000000000003")
         val ownerShareId = UUID.fromString("70000000-0000-0000-0000-000000000004")
+        val trustedParticipantShareId = UUID.fromString("70000000-0000-0000-0000-000000000005")
+        val ordinaryPendingShareId = UUID.fromString("70000000-0000-0000-0000-000000000006")
         val principalId = UUID.fromString("80000000-0000-0000-0000-000000000001")
         val ownerUserId = UUID.fromString("80000000-0000-0000-0000-000000000009")
         val now = Timestamp.from(Instant.parse("2026-07-16T09:00:00Z"))
@@ -347,6 +354,28 @@ class AuditMigrationUpgradeContractTest
             now,
         )
         insertShare(connection, ownerShareId, exchangeId, "DIRECT", null, "OWNER", "USER", principalId, now)
+        insertShare(
+            connection,
+            trustedParticipantShareId,
+            exchangeId,
+            "DIRECT",
+            null,
+            "VIEWER",
+            "USER",
+            UUID.randomUUID(),
+            now,
+        )
+        insertShare(
+            connection,
+            ordinaryPendingShareId,
+            exchangeId,
+            "DIRECT",
+            null,
+            "VIEWER",
+            "USER",
+            UUID.randomUUID(),
+            now,
+        )
 
         insertExchangeRecipient(connection, UUID.randomUUID(), exchangeId, directShareId, now)
 
@@ -358,6 +387,26 @@ class AuditMigrationUpgradeContractTest
         }
         assertSqlState("23514") {
             insertExchangeRecipient(connection, UUID.randomUUID(), exchangeId, ownerShareId, now)
+        }
+        insertParticipantRecipient(
+            connection,
+            UUID.randomUUID(),
+            exchangeId,
+            trustedParticipantShareId,
+            "TRUSTED_PERSON",
+            "PENDING",
+            now,
+        )
+        assertSqlState("23514") {
+            insertParticipantRecipient(
+                connection,
+                UUID.randomUUID(),
+                exchangeId,
+                ordinaryPendingShareId,
+                "REGISTERED_USER",
+                "PENDING",
+                now,
+            )
         }
     }
 
@@ -424,6 +473,31 @@ class AuditMigrationUpgradeContractTest
             statement.setObject(2, exchangeId)
             statement.setObject(3, directShareId)
             statement.setTimestamp(4, now)
+            statement.executeUpdate()
+        }
+    }
+
+    private fun insertParticipantRecipient(
+        connection: Connection,
+        recipientId: UUID,
+        exchangeId: UUID,
+        directShareId: UUID,
+        selectionType: String,
+        acceptanceStatus: String,
+        now: Timestamp,
+    )
+    {
+        connection.prepareStatement(
+            """INSERT INTO exchange_recipient
+               (id, exchange_id, direct_share_id, purpose, selection_type, acceptance_status, created_at)
+               VALUES (?, ?, ?, 'PARTICIPANT', ?, ?, ?)""",
+        ).use { statement ->
+            statement.setObject(1, recipientId)
+            statement.setObject(2, exchangeId)
+            statement.setObject(3, directShareId)
+            statement.setString(4, selectionType)
+            statement.setString(5, acceptanceStatus)
+            statement.setTimestamp(6, now)
             statement.executeUpdate()
         }
     }

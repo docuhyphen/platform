@@ -107,7 +107,14 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
                 }
             }
         }
-    }, [internalParticipants, appUser, recipientOrgUser, recipientOrgGroup]);
+    }, [
+        internalParticipants,
+        appUser,
+        recipientOrgUser,
+        recipientOrgGroup,
+        selectedInternalRecipients.length,
+        setInternalParticipants,
+    ]);
 
     useEffect(() =>
     {
@@ -136,7 +143,7 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
 
             setSelectedInternalParticipants(filteredParticipants);
         }
-    }, []);
+    }, [appUser?.id, internalParticipants, recipientOrgGroup, recipientOrgUser]);
 
     useEffect(() =>
     {
