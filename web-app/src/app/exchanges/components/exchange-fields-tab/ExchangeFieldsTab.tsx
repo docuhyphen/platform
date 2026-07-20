@@ -114,7 +114,7 @@ const ExchangeFieldsTab = ({exchange}: Props) =>
                                 {fieldCount} {fieldCount === 1 ? 'field' : 'fields'}
                             </Badge>
                             <Badge appearance="outline"
-                                   color={editable ? 'success' : 'subtle'}
+                                   color={editable ? 'success' : 'warning'}
                                    size="small">
                                 {editable ? 'Editable' : 'Read only'}
                             </Badge>

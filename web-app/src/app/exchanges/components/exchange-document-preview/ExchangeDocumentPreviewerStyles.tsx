@@ -231,6 +231,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         background: tokens.colorNeutralBackground1,
         margin: "0 auto",
         flex: 1,
+        width: "100%",
         overflow: "hidden",
         borderRadius: tokens.borderRadiusMedium,
         animationName: {
