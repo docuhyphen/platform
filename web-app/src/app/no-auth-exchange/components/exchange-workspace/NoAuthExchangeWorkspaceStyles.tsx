@@ -15,10 +15,13 @@ export const useNoAuthExchangeWorkspaceStyles = makeStyles({
         '@media (max-width: 920px)': {
             gridTemplateColumns: "1fr",
             maxWidth: "760px",
+            display: "flex",
+            flexDirection: "column"
         },
         '@media (max-width: 640px)': {
             padding: `calc(${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalXXL}) ${tokens.spacingHorizontalL} ${tokens.spacingVerticalXXXL}`,
             gap: tokens.spacingHorizontalL,
+            display: "flex"
         },
     },
 

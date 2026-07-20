@@ -71,6 +71,12 @@ export const useExchangeInitiationStyles = makeStyles({
     shadingExchangeDocumentCard: {
         flex: 1,
     },
+
+    dialog: {
+      width: "60vw",
+      maxWidth: "100%"
+    },
+
     dialogTitle: {
         display: "flex",
         gap: tokens.spacingHorizontalL,

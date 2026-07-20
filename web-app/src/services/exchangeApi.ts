@@ -53,7 +53,7 @@ export const storeNoAuthExchangeAccessToken = (exchangeId: string, token: string
 };
 
 const getNoAuthAccessHeaders = (exchangeId: string): Record<string, string> => ({
-    'X-No-Auth-Access-Token': window.sessionStorage.getItem(noAuthAccessTokenKey(exchangeId)) ?? '',
+    'x-no-auth-access-token': window.sessionStorage.getItem(noAuthAccessTokenKey(exchangeId)) ?? '',
 });
 
 export const initiateExchange = (request: ExchangeInitiationRequest) =>

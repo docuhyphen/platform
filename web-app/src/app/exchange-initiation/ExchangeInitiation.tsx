@@ -1089,14 +1089,16 @@ const ExchangeInitiation: React.FC = () =>
     );
 
     return (
-        <Dialog modalType="alert" open={isDialogOpen} onOpenChange={onDialogOpenChange}>
+        <Dialog modalType="alert"
+                open={isDialogOpen} onOpenChange={onDialogOpenChange}
+        >
             <DialogTrigger disableButtonEnhancement>
                 <ExchangeInitiationDialogTrigger
                     onRequestingDocumentsChange={handleRequestingDocumentsChange}
                     onChooseBlueprint={openBlueprintPicker}
                 />
             </DialogTrigger>
-            <DialogSurface>
+            <DialogSurface className={styles.dialog}>
                 <DialogBody>
                     <DialogTitle className={styles.dialogTitle}>
                         {saveBlueprintDialogOpen ? (

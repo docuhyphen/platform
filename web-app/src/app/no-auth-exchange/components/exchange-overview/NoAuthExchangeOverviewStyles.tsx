@@ -19,10 +19,14 @@ export const useNoAuthExchangeOverviewStyles = makeStyles({
         zIndex: 2,
         '@media (max-width: 920px)': {
             top: "72px",
+            width: "100%",
+            boxSizing: "border-box"
         },
         '@media (max-width: 640px)': {
             padding: tokens.spacingHorizontalL,
             borderRadius: tokens.borderRadiusLarge,
+            width: "100%",
+            boxSizing: "border-box"
         },
     },
 

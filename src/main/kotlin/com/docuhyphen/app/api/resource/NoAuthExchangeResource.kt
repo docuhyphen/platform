@@ -57,7 +57,7 @@ class NoAuthExchangeResource @Inject constructor(
     fun getNoAuthExchange(
         @PathParam("exchangeId") exchangeId: String,
         @HeaderParam("X-Share-Link-Token") shareLinkToken: String?,
-        @HeaderParam("X-No-Auth-Access-Token") noAuthAccessToken: String?,
+        @HeaderParam("x-no-auth-access-token") noAuthAccessToken: String?,
     ): Response
     {
         return try
@@ -143,7 +143,7 @@ class NoAuthExchangeResource @Inject constructor(
     @Path("/{exchangeId}/otp")
     fun issueNoAuthExchangeOtp(
         @PathParam("exchangeId") exchangeId: String,
-        @HeaderParam("X-No-Auth-Access-Token") noAuthAccessToken: String?,
+        @HeaderParam("x-no-auth-access-token") noAuthAccessToken: String?,
     ): Response
     {
         return ResourceEndpointDelayHelper.withFixedFloor(1000) { try
@@ -214,7 +214,7 @@ class NoAuthExchangeResource @Inject constructor(
     @Path("/{exchangeId}/verify-access-code")
     fun verifyNoAuthAccessCode(
         @PathParam("exchangeId") exchangeId: String,
-        @HeaderParam("X-No-Auth-Access-Token") noAuthAccessToken: String?,
+        @HeaderParam("x-no-auth-access-token") noAuthAccessToken: String?,
         request: UpdateNoAuthExchange,
     ): Response
     {
@@ -288,7 +288,7 @@ class NoAuthExchangeResource @Inject constructor(
     @Path("/{exchangeId}")
     fun updateNoAuthExchange(
         @PathParam("exchangeId") exchangeId: String,
-        @HeaderParam("X-No-Auth-Access-Token") noAuthAccessToken: String?,
+        @HeaderParam("x-no-auth-access-token") noAuthAccessToken: String?,
         request: UpdateNoAuthExchange
     ): Response
     {
@@ -404,7 +404,7 @@ class NoAuthExchangeResource @Inject constructor(
         @RestForm("encryptionMode") encryptionMode: DocumentEncryptionMode?,
         @PathParam("exchangeId") exchangeId: String?,
         @PathParam("documentId") documentId: String?,
-        @HeaderParam("X-No-Auth-Access-Token") noAuthAccessToken: String?,
+        @HeaderParam("x-no-auth-access-token") noAuthAccessToken: String?,
     ): Response
     {
         return try
@@ -456,7 +456,7 @@ class NoAuthExchangeResource @Inject constructor(
     fun downloadDocument(
         @PathParam("exchangeId") exchangeId: String,
         @PathParam("documentId") documentId: String,
-        @HeaderParam("X-No-Auth-Access-Token") noAuthAccessToken: String?,
+        @HeaderParam("x-no-auth-access-token") noAuthAccessToken: String?,
     ): Response
     {
         return try

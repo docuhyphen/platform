@@ -1,7 +1,7 @@
 <#assign emailTitle = (appName!'DocuHyphen') + " - Document Request">
 <#include "email-header.ftl">
 
-<p style="margin:0 0 14px 0;"><strong>${initiatorName} has sent you a document exchange request.</strong></p>
+<p style="margin:0 0 14px 0;"><strong>${initiatorName} has sent you a document Exchange request.</strong></p>
 <#if initiatorOrganization??>
 <p style="margin:0 0 14px 0;">Sent on behalf of <strong>${initiatorOrganization}</strong>.</p>
 </#if>
