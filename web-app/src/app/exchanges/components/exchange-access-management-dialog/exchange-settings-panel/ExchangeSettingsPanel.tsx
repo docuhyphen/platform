@@ -32,8 +32,8 @@ const ExchangeSettingsPanel = (props: ExchangeSettingsPanelProps) =>
 {
     const styles = useExchangeSettingsPanelStyles();
     const accessModeLabel = props.requireRecipientSignIn
-        ? "Recipient must sign in with account"
-        : "Recipient can use one-time email access code";
+        ? "Recipient must sign in with an account."
+        : "Recipient can use one-time email access code.";
     return (
         <section
             id={"access-mgmt-exchange-settings"}

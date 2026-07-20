@@ -44,7 +44,7 @@ export const useExchangeDetailsHeaderStyles = makeStyles({
         overflow: "hidden",
         transition: "max-height 200ms ease, opacity 180ms ease, margin-top 180ms ease",
         maxHeight: "0px",
-        opacity: 0,
+        opacity: 1,
         marginTop: "0",
     },
 
