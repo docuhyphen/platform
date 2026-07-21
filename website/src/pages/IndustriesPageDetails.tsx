@@ -23,6 +23,7 @@ export function IndustriesPageDetails({data}: IndustriesPageDetailsProps)
             >
                 <Title3
                     id="industry-detail-use-cases-title"
+                    as="h2"
                     className={styles.panelTitle}
                 >
                     Use cases
@@ -45,6 +46,7 @@ export function IndustriesPageDetails({data}: IndustriesPageDetailsProps)
             >
                 <Title3
                     id="industry-detail-benefits-title"
+                    as="h2"
                     className={styles.panelTitle}
                 >
                     How DocuHyphen helps

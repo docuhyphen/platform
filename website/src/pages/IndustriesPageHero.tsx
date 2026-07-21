@@ -33,6 +33,7 @@ export function IndustriesPageHero({data, demoIndustry}: IndustriesPageHeroProps
                 </Text>
                 <Title1
                     id="industry-detail-title"
+                    as="h1"
                     className={styles.heroTitle}
                 >
                     {data.headline}

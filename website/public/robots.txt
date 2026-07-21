@@ -1,0 +1,10 @@
+User-agent: *
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /backgrounds/
+Disallow: /demo-pdfs/
+Disallow: /demo-previews/
+Disallow: /demo-screenshots/
+Disallow: /illustrations/
+
+Sitemap: https://www.docuhyphen.com/sitemap.xml

@@ -14,46 +14,8 @@ import {
 } from "@fluentui/react-components";
 import {useEffect, useState} from "react";
 import {BREAKPOINT_MOBILE, SPACE_MD, SPACE_SM, SPACE_XS} from "./shared.ts";
-
-const STORAGE_KEY = "dh_selected_industry";
-
-export const INDUSTRY_OPTIONS = [
-    {label: "Law Firms & Legal Practices", slug: "legal"},
-    {label: "Real Estate & Property Management", slug: "real-estate"},
-    {label: "Healthcare & Medical Practices", slug: "healthcare"},
-    {label: "Accounting & Audit Firms", slug: "accounting"},
-    {label: "Banks & Lending Institutions", slug: "banking"},
-    {label: "Other", slug: "other"},
-] as const;
-
-export type IndustrySlug = (typeof INDUSTRY_OPTIONS)[number]["slug"];
-
-export function getStoredIndustry(): IndustrySlug | null
-{
-    try
-    {
-        const value = localStorage.getItem(STORAGE_KEY);
-        if (value && INDUSTRY_OPTIONS.some((o) => o.slug === value))
-        {
-            return value as IndustrySlug;
-        }
-    }
-    catch
-    { /* SSR / private browsing */
-    }
-    return null;
-}
-
-function setStoredIndustry(slug: IndustrySlug): void
-{
-    try
-    {
-        localStorage.setItem(STORAGE_KEY, slug);
-    }
-    catch
-    { /* ignore */
-    }
-}
+import {INDUSTRY_OPTIONS, setStoredIndustry} from "./industryOptions.ts";
+import type {IndustrySlug} from "./industryOptions.ts";
 
 const useStyles = makeStyles({
     surface: {
@@ -80,6 +42,7 @@ const useStyles = makeStyles({
         display: "grid",
         gridTemplateColumns: "1fr 1fr",
         gap: SPACE_SM,
+        marginTop: SPACE_MD,
 
         [BREAKPOINT_MOBILE]: {
             gridTemplateColumns: "1fr",
@@ -149,12 +112,17 @@ export function IndustryPickerDialog({onSelect}: IndustryPickerDialogProps)
                         <Text className={styles.subtitle} block>
                             Select which industry you're in so we can show you the most relevant experience.
                         </Text>
-                        <div className={styles.grid} style={{marginTop: SPACE_MD}}>
+                        <div
+                            id="industry-picker-options"
+                            className={styles.grid}
+                        >
                             {INDUSTRY_OPTIONS.map((option) => (
                                 <Button
+                                    id={`industry-picker-option-${option.slug}`}
                                     key={option.slug}
                                     appearance={selected === option.slug ? "primary" : "secondary"}
                                     className={styles.option}
+                                    shape="circular"
                                     onClick={() => setSelected(option.slug)}
                                 >
                                     {option.label}

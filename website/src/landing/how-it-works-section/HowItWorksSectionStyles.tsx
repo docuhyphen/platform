@@ -34,8 +34,8 @@ export const useHowItWorksSectionStyles = makeStyles({
 
         "@media (prefers-reduced-motion: reduce)": {
             "& *": {
-                animationDuration: "0.01ms !important",
-                animationIterationCount: "1 !important",
+                animationName: "none !important",
+                transitionDuration: "0.01ms !important",
             },
         },
 
@@ -95,6 +95,11 @@ export const useHowItWorksSectionStyles = makeStyles({
         alignItems: "stretch",
         opacity: 0,
         transform: "translateY(2rem) scale(0.94)",
+
+        "@media (prefers-reduced-motion: reduce)": {
+            opacity: 1,
+            transform: "none",
+        },
     },
 
     stepVisible: {
@@ -130,6 +135,12 @@ export const useHowItWorksSectionStyles = makeStyles({
         [BREAKPOINT_MOBILE]: {
             "::after": {
                 display: "none",
+            },
+        },
+
+        "@media (prefers-reduced-motion: reduce)": {
+            "::after": {
+                transform: "scaleX(1)",
             },
         },
     },
@@ -218,7 +229,7 @@ export const useHowItWorksSectionStyles = makeStyles({
     illustrationOne: {
         width: "100%",
         aspectRatio: "1.2",
-        backgroundImage: "url('/illustrations/how-it-works-sprite.png')",
+        backgroundImage: "url('/illustrations/how-it-works-sprite.webp')",
         backgroundRepeat: "no-repeat",
         backgroundSize: "200% 200%",
         backgroundPosition: "0 0",
@@ -228,7 +239,7 @@ export const useHowItWorksSectionStyles = makeStyles({
     illustrationTwo: {
         width: "100%",
         aspectRatio: "1.2",
-        backgroundImage: "url('/illustrations/how-it-works-sprite.png')",
+        backgroundImage: "url('/illustrations/how-it-works-sprite.webp')",
         backgroundRepeat: "no-repeat",
         backgroundSize: "200% 200%",
         backgroundPosition: "100% 0",
@@ -238,7 +249,7 @@ export const useHowItWorksSectionStyles = makeStyles({
     illustrationThree: {
         width: "100%",
         aspectRatio: "1.2",
-        backgroundImage: "url('/illustrations/how-it-works-sprite.png')",
+        backgroundImage: "url('/illustrations/how-it-works-sprite.webp')",
         backgroundRepeat: "no-repeat",
         backgroundSize: "200% 200%",
         backgroundPosition: "0 100%",
@@ -248,7 +259,7 @@ export const useHowItWorksSectionStyles = makeStyles({
     illustrationFour: {
         width: "100%",
         aspectRatio: "1.2",
-        backgroundImage: "url('/illustrations/how-it-works-sprite.png')",
+        backgroundImage: "url('/illustrations/how-it-works-sprite.webp')",
         backgroundRepeat: "no-repeat",
         backgroundSize: "200% 200%",
         backgroundPosition: "100% 100%",

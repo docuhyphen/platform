@@ -80,6 +80,13 @@ export const useHeroSectionStyles = makeStyles({
         lineHeight: tokens.lineHeightBase500,
     },
 
+    productDefinition: {
+        maxWidth: "38rem",
+        color: tokens.colorNeutralForeground2,
+        fontSize: tokens.fontSizeBase300,
+        lineHeight: tokens.lineHeightBase400,
+    },
+
     actions: {
         display: "flex",
         alignItems: "center",

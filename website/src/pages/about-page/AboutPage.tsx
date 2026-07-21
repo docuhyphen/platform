@@ -28,6 +28,7 @@ export function AboutPage()
                     </Text>
                     <Title1
                         id="about-hero-title"
+                        as="h1"
                         className={styles.heroTitle}
                     >
                         Trust belongs in every Exchange.

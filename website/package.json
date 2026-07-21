@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "buildWTsc": "npm run generate:industry-assets && tsc -b && vite build",
-    "build": "npm run generate:industry-assets && tsc -b && vite build",
+    "buildWTsc": "npm run build",
+    "build": "npm run generate:industry-assets && tsc -b && vite build && vite build --ssr src/entry-server.tsx --outDir dist-ssr && node scripts/prerender.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "generate:industry-assets": "node scripts/generate-industry-demo-pdfs.mjs",
@@ -16,6 +16,7 @@
     "@fluentui/react-components": "^9.72.9",
     "@fluentui/react-icons": "^2.0.316",
     "@fontsource-variable/manrope": "^5.2.8",
+    "@griffel/react": "^1.5.32",
     "axios": "^1.13.2",
     "pdfkit": "^0.17.2",
     "react": "^19.2.0",

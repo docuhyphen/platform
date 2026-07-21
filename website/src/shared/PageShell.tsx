@@ -1,7 +1,6 @@
 import type {ReactNode} from "react";
 import {makeStyles, tokens} from "@fluentui/react-components";
 import {LandingHeader} from "../landing/landing-header/LandingHeader.tsx";
-import {Footer} from "./Footer.tsx";
 import {
     BREAKPOINT_MOBILE,
     SECTION_PADDING_DESKTOP,
@@ -62,10 +61,19 @@ export function PageShell({children, constrain = true}: PageShellProps)
     return (
         <div className={styles.page}>
             <LandingHeader fixed/>
-            <main className={styles.main}>
-                {constrain ? <div className={styles.content}>{children}</div> : children}
+            <main
+                id="page-main-content"
+                className={styles.main}
+            >
+                {constrain ? (
+                    <div
+                        id="page-content"
+                        className={styles.content}
+                    >
+                        {children}
+                    </div>
+                ) : children}
             </main>
-            <Footer/>
         </div>
     );
 }

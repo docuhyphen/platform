@@ -18,7 +18,7 @@ export const industries: Record<string, IndustriesContent> = {
     "real-estate": {
         name: "Real Estate & Property",
         headline: "Move deals forward without losing control of the paperwork.",
-        blurb: "Collect offer documents, FICA records, and lease signatures from buyers, sellers, and tenants in one secure space.",
+        blurb: "Real estate teams often chase offer documents, FICA records, and lease signatures across email. DocuHyphen collects them from buyers, sellers, and tenants in one controlled workspace so property processes can move forward with a clear record.",
         heroClassName: "heroRealEstate",
         useCases: [
             {title: "FICA collection", body: "Request ID, proof of address, and source-of-funds documents from buyers without email back-and-forth."},
@@ -28,13 +28,13 @@ export const industries: Record<string, IndustriesContent> = {
         benefits: [
             "Tracked access for every document",
             "No more long email threads with attachments",
-            "POPIA-aligned data handling",
+            "Controlled handling of sensitive personal information",
         ],
     },
     legal: {
         name: "Law Firms & Legal Practices",
         headline: "Protect confidential legal information at every stage.",
-        blurb: "Replace attachment email chains and consumer file-sharing tools with structured, auditable client Exchanges.",
+        blurb: "Law firms need to exchange confidential matter documents without losing control in email chains. DocuHyphen provides structured, traceable client Exchanges so legal teams can collaborate with a clear activity record.",
         heroClassName: "heroLegal",
         useCases: [
             {title: "Client matter intake", body: "Collect contracts, affidavits, and discovery materials with role-restricted access."},
@@ -50,7 +50,7 @@ export const industries: Record<string, IndustriesContent> = {
     healthcare: {
         name: "Healthcare & Medical Practices",
         headline: "Patient documents handled with the care patients expect.",
-        blurb: "Request consent forms, ID, and medical records from patients via tracked, encrypted Exchange sessions.",
+        blurb: "Healthcare teams need to collect consent forms, identity records, and medical documents without fragmented handovers. DocuHyphen keeps requests and sharing in controlled Exchanges so staff can trace progress and access.",
         heroClassName: "heroHealthcare",
         useCases: [
             {title: "Patient intake", body: "Collect consent forms and IDs before the first visit, no clipboards."},
@@ -66,7 +66,7 @@ export const industries: Record<string, IndustriesContent> = {
     accounting: {
         name: "Accounting & Audit Firms",
         headline: "Audit-ready collection of client financial records.",
-        blurb: "Centralize tax records, trial balances, and supporting documents in one secure, trackable workspace per engagement.",
+        blurb: "Accounting firms often collect tax records, trial balances, and evidence through scattered requests. DocuHyphen centralizes collection and review in one controlled workspace per engagement so teams can maintain an organized record.",
         heroClassName: "heroAccounting",
         useCases: [
             {title: "Tax season intake", body: "One link per client to collect every record you need, with deadline tracking."},
@@ -82,7 +82,7 @@ export const industries: Record<string, IndustriesContent> = {
     banking: {
         name: "Banks & Lending Institutions",
         headline: "Faster KYC. Tighter control. Cleaner audits.",
-        blurb: "Collect KYC, income verification, and compliance documents from borrowers and counterparties with full traceability.",
+        blurb: "Banks and lenders need to collect KYC, income, and lending documents from borrowers without opaque email chains. DocuHyphen structures requests, review, and access so each lending workflow has a traceable outcome.",
         heroClassName: "heroBanking",
         useCases: [
             {title: "Loan applications", body: "Borrowers upload paystubs, IDs, and bank statements to a single tracked session."},
@@ -90,8 +90,8 @@ export const industries: Record<string, IndustriesContent> = {
             {title: "Correspondent banking", body: "Exchange diligence packages with counterparties with role-restricted access."},
         ],
         benefits: [
-            "Regulator-ready audit trails",
-            "Risk-tiered access controls",
+            "Traceable document activity",
+            "Role-based access controls",
             "Designed to scale across branches",
         ],
     },

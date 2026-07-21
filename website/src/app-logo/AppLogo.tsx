@@ -1,16 +1,22 @@
-import React from 'react';
 import logo from "../../assets/logo.svg";
 import {useAppLogoStyles} from "./AppLogoStyles.tsx";
 
-const AppLogo: React.FC = () =>
+function AppLogo()
 {
     const styles = useAppLogoStyles();
 
     return (
-        <span>
-            <img src={logo} alt="DocuHyphen Logo" className={styles.appLogo}/>
+        <span id="docuhyphen-logo-container">
+            <img
+                id="docuhyphen-logo-image"
+                src={logo}
+                alt="DocuHyphen"
+                className={styles.appLogo}
+                width={140}
+                height={80}
+            />
         </span>
     );
-};
+}
 
 export default AppLogo;

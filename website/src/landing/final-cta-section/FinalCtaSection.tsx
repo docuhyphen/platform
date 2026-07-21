@@ -1,29 +1,30 @@
 import {Button, Text} from "@fluentui/react-components";
 import {SIGN_UP_URL} from "../shared.ts";
-import {useFooterCtaSectionStyles} from "./FooterCtaSectionStyles.tsx";
+import {useFinalCtaSectionStyles} from "./FinalCtaSectionStyles.tsx";
 
-export function FooterCtaSection()
+export function FinalCtaSection()
 {
-    const styles = useFooterCtaSectionStyles();
+    const styles = useFinalCtaSectionStyles();
 
     return (
-        <footer
-            id="home-footer-call-to-action"
+        <section
+            id="home-final-call-to-action"
             className={styles.wrapper}
+            aria-labelledby="home-final-call-to-action-title"
         >
             <Text
-                id="home-footer-call-to-action-title"
+                id="home-final-call-to-action-title"
                 weight="regular"
                 size={600}
             >
                 Keep every document and decision in one auditable Exchange.
             </Text>
             <div
-                id="home-footer-call-to-action-actions"
+                id="home-final-call-to-action-actions"
                 className={styles.buttonGroup}
             >
                 <Button
-                    id="home-footer-start-free"
+                    id="home-final-start-free"
                     appearance="primary"
                     as="a"
                     size="large"
@@ -36,6 +37,7 @@ export function FooterCtaSection()
                     Start Free
                 </Button>
             </div>
-        </footer>
+        </section>
     );
 }
+

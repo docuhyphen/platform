@@ -111,6 +111,8 @@ export function IndustryDocumentView({industry}: IndustryDocumentViewProps)
                         src={industry.document.previewSrc}
                         alt={`${industry.document.title} preview`}
                         loading="lazy"
+                        width={595}
+                        height={842}
                     />
                 </a>
             </div>

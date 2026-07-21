@@ -89,7 +89,13 @@ export function ContactPage()
     return (
         <PageShell>
             <section className={styles.hero}>
-                <Title1 className={styles.heroTitle}>Get in touch</Title1>
+                <Title1
+                    id="contact-page-title"
+                    as="h1"
+                    className={styles.heroTitle}
+                >
+                    Get in touch
+                </Title1>
                 <Text size={500}>
                     Whether you&apos;re evaluating, mid-rollout, or already a customer, we&apos;re here to help.
                 </Text>
@@ -98,21 +104,21 @@ export function ContactPage()
             <div className={styles.grid}>
                 <section className={styles.card}>
                     <div className={styles.icon}><Mail24Regular/></div>
-                    <Title3>Sales</Title3>
+                    <Title3 as="h2">Sales</Title3>
                     <Text>For pricing, procurement, and security reviews.</Text>
                     <a className={styles.link} href={SALES_EMAIL_URL}>sales@docuhyphen.com</a>
                 </section>
 
                 <section className={styles.card}>
                     <div className={styles.icon}><ChatHelp24Regular/></div>
-                    <Title3>Support</Title3>
+                    <Title3 as="h2">Support</Title3>
                     <Text>For help with your account or technical issues.</Text>
                     <a className={styles.link} href="mailto:support@docuhyphen.com">support@docuhyphen.com</a>
                 </section>
 
                 <section className={styles.card}>
                     <div className={styles.icon}><Location24Regular/></div>
-                    <Title3>Office</Title3>
+                    <Title3 as="h2">Office</Title3>
                     <Text>
                         We are based in South Africa.<br/>
                         Available for meetings across SAST hours.
@@ -121,7 +127,7 @@ export function ContactPage()
             </div>
 
             <section className={styles.salesPanel}>
-                <Title3>Want a guided demo?</Title3>
+                <Title3 as="h2">Want a guided demo?</Title3>
                 <Text>
                     Fill out a short form and our sales team will reach out within one business day to schedule a personalized walkthrough.
                 </Text>

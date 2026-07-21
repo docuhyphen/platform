@@ -10,13 +10,20 @@ export function PricingPage()
 
     return (
         <PageShell>
-            <main className={styles.page}>
+            <div
+                id="pricing-page"
+                className={styles.page}
+            >
                 <section className={styles.hero} aria-labelledby="pricing-page-title">
                     <div className={styles.heroIcon} aria-hidden="true">
                         <CalendarClock24Regular/>
                     </div>
                     <Text className={styles.eyebrow}>Pricing is in progress</Text>
-                    <Title1 id="pricing-page-title" className={styles.title}>
+                    <Title1
+                        id="pricing-page-title"
+                        as="h1"
+                        className={styles.title}
+                    >
                         We are shaping plans that fit how your team works.
                     </Title1>
                     <Text size={500} className={styles.description}>
@@ -67,7 +74,7 @@ export function PricingPage()
                         </article>
                     </div>
                 </section>
-            </main>
+            </div>
         </PageShell>
     );
 }

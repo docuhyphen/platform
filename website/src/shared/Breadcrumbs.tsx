@@ -44,17 +44,31 @@ export function Breadcrumbs({trail}: {trail: Crumb[]})
     const styles = useStyles();
 
     return (
-        <nav className={styles.wrapper} aria-label="Breadcrumb">
+        <nav
+            id="page-breadcrumbs"
+            className={styles.wrapper}
+            aria-label="Breadcrumb"
+        >
             {trail.map((crumb, i) => {
                 const isLast = i === trail.length - 1;
                 return (
                     <Fragment key={`${crumb.label}-${i}`}>
                         {crumb.to && !isLast ? (
-                            <Link to={crumb.to} className={styles.link}>
+                            <Link
+                                id={`breadcrumb-${i}`}
+                                to={crumb.to}
+                                className={styles.link}
+                            >
                                 {crumb.label}
                             </Link>
                         ) : (
-                            <Text className={isLast ? styles.current : undefined}>{crumb.label}</Text>
+                            <Text
+                                id={`breadcrumb-${i}`}
+                                className={isLast ? styles.current : undefined}
+                                aria-current={isLast ? "page" : undefined}
+                            >
+                                {crumb.label}
+                            </Text>
                         )}
                         {!isLast && <ChevronRight16Regular className={styles.separator}/>}
                     </Fragment>

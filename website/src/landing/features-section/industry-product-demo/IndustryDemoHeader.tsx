@@ -41,6 +41,8 @@ export function IndustryDemoHeader({persona}: IndustryDemoHeaderProps)
                     className={styles.logo}
                     src={logo}
                     alt="DocuHyphen"
+                    width={140}
+                    height={80}
                 />
                 <span
                     id="industry-demo-organization-short-name"

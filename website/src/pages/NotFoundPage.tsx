@@ -46,16 +46,22 @@ export function NotFoundPage()
         <PageShell>
             <section className={styles.wrapper}>
                 <Text className={styles.code}>404</Text>
-                <Title1 className={styles.title}>We can&apos;t find that page</Title1>
+                <Title1
+                    id="not-found-page-title"
+                    as="h1"
+                    className={styles.title}
+                >
+                    We can&apos;t find that page
+                </Title1>
                 <Text size={500} className={styles.blurb}>
-                    The page may have moved or never existed. Try heading home or browsing our resources.
+                    The page may have moved or never existed. Return to the homepage or contact our team for help.
                 </Text>
                 <div className={styles.actions}>
                     <LinkButton to="/" appearance="primary" shape="circular">
                         Back home
                     </LinkButton>
-                    <LinkButton to="/resources" appearance="secondary" shape="circular">
-                        Browse resources
+                    <LinkButton to="/contact" appearance="secondary" shape="circular">
+                        Contact DocuHyphen
                     </LinkButton>
                 </div>
             </section>

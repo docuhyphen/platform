@@ -4,6 +4,78 @@ DocuHyphen is a Quarkus and Kotlin backend with a React and Vite frontend. Local
 
 This guide uses PowerShell on Windows. Run commands from the repository root unless a step says otherwise.
 
+## Production marketing website deploy
+
+The public marketing website is deployed from `website/` to the production S3 bucket `docuhyphen-website` in `us-east-1`, then invalidated through CloudFront distribution `E3NCVYE325OBGH`.
+
+### Recommended production deploy command
+
+From the repository root:
+
+```powershell
+bash ./infra/deploy.sh --frontend
+```
+
+If `bash` is not available on your PowerShell `PATH`, use Git Bash directly:
+
+```powershell
+& "C:\Program Files\Git\bin\bash.exe" ./infra/deploy.sh --frontend
+```
+
+The deploy script now defaults to:
+
+| Setting | Default value |
+|---|---|
+| AWS Region | `us-east-1` |
+| Website bucket | `docuhyphen-website` |
+| CloudFront distribution | `E3NCVYE325OBGH` |
+
+For the marketing website, `--frontend`:
+
+- Runs `npm ci` and `npm run build` inside `website/`
+- Syncs `website/dist` to `s3://docuhyphen-website`
+- Invalidates `E3NCVYE325OBGH`
+
+If a matching CloudFormation stack exists, the script still supports stack-managed environments. If not, it falls back to the manual production bucket and CloudFront defaults above.
+
+### Manual production deploy commands
+
+Use this if you want to deploy the marketing site without the helper script:
+
+```powershell
+Set-Location C:\Users\Black\IdeaProjects\doc-hyphen\website
+npm ci
+npm run build
+aws s3 sync dist s3://docuhyphen-website --delete --region us-east-1
+aws cloudfront create-invalidation --distribution-id E3NCVYE325OBGH --paths "/*"
+```
+
+### Required AWS access for production website deploys
+
+The signed-in AWS identity needs permission to:
+
+- Read and write objects in `docuhyphen-website`
+- Create CloudFront invalidations for distribution `E3NCVYE325OBGH`
+
+Before a production deploy, confirm the active account and login:
+
+```powershell
+aws sts get-caller-identity --output table
+aws s3api head-bucket --bucket docuhyphen-website --region us-east-1
+```
+
+### Production route handling
+
+The marketing site uses pre-rendered route files such as `/security/index.html` and `/about/index.html`. Directly opening clean paths like `/security` or refreshing a route only works when CloudFront rewrites extensionless paths to the matching `index.html`.
+
+The current infrastructure template includes a CloudFront Function for this behavior. If production CloudFront was created manually, make sure the live distribution is configured with equivalent clean-path rewriting before relying on direct route refreshes.
+
+### Notes
+
+- These commands deploy the public marketing site from `website/`, not the authenticated product frontend from `web-app/`.
+- Pricing stays deployable but is intentionally marked `noindex,follow` in the built marketing site.
+- Run production deploys from a clean or at least understood working tree so you do not ship unintended frontend changes.
+
 ## Local services and ports
 
 | Service | Local address | Purpose |
