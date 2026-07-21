@@ -174,7 +174,7 @@ export function IndustryPickerDialog({onSelect}: IndustryPickerDialogProps)
                         </Button>
                         <Button
                             id="industry-picker-skip-btn"
-                            appearance="subtle"
+                            appearance="secondary"
                             shape="circular"
                             onClick={handleSkip}
                         >

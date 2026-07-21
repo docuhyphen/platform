@@ -60,7 +60,6 @@ const SignInMfaStep = ({
     };
 
     return <div id={"sign-in-mfa-step"}>
-    <span id={"sign-in-mfa-message"}>{message}</span>
     {sessionExpired && <MessageBar
         id={"sign-in-mfa-expired-message"}
         intent={"warning"}>
@@ -75,7 +74,7 @@ const SignInMfaStep = ({
         validationState={successMessage ? "success" : "none"}
         validationMessage={successMessage}
         hint={successMessage || message
-            ? undefined
+            ? message
             : (method === 'EMAIL'
                 ? "A verification code has been sent to your email"
                 : "Enter the code from your authenticator app")}>
@@ -109,7 +108,7 @@ const SignInMfaStep = ({
         </Button>}
         {method !== 'EMAIL' && emailFallbackEnabled && <Button
             id={"sign-in-use-another-method-btn"}
-            appearance={"transparent"}
+            appearance={"outline"}
             size={"small"}
             disabled={resending || busy}
             shape={"circular"}

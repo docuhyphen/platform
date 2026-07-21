@@ -158,7 +158,6 @@ const columns: FooterColumn[] = [
         title: "Product",
         links: [
             {label: "Features", to: "/#features"},
-            {label: "Pricing", to: "/pricing"},
             {label: "Security", to: "/security"},
             {label: "Sign in", href: SIGN_IN_URL, external: true},
             {label: "Start Free", href: SIGN_UP_URL, external: true},

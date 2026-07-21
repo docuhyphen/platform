@@ -23,6 +23,8 @@ const useStyles = makeStyles({
     main: {
         flex: 1,
         width: "100%",
+        paddingTop: "4.5rem",
+        boxSizing: "border-box",
     },
 
     content: {
@@ -59,7 +61,7 @@ export function PageShell({children, constrain = true}: PageShellProps)
 
     return (
         <div className={styles.page}>
-            <LandingHeader/>
+            <LandingHeader fixed/>
             <main className={styles.main}>
                 {constrain ? <div className={styles.content}>{children}</div> : children}
             </main>
