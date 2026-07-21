@@ -16,7 +16,7 @@ export function FooterCtaSection()
                 weight="regular"
                 size={600}
             >
-                Take Control of Your Sensitive Documents
+                Keep every document and decision in one auditable Exchange.
             </Text>
             <div
                 id="home-footer-call-to-action-actions"

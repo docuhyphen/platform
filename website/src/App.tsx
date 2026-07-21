@@ -3,6 +3,7 @@ import {useState} from "react";
 import {LandingHeader} from "./landing/landing-header/LandingHeader.tsx";
 import {HeroSection} from "./landing/hero-section/HeroSection.tsx";
 import {RisksSection} from "./landing/RisksSection.tsx";
+import {HowItWorksSection} from "./landing/how-it-works-section/HowItWorksSection.tsx";
 import {FeaturesSection} from "./landing/features-section/FeaturesSection.tsx";
 import {AudienceSection} from "./landing/AudienceSection.tsx";
 import {FooterCtaSection} from "./landing/footer-cta-section/FooterCtaSection.tsx";
@@ -37,6 +38,7 @@ function LandingPage({industrySlug}: {industrySlug: IndustrySlug | null})
                 >
                     <FeaturesSection initialIndustrySlug={industrySlug ?? undefined}/>
                 </div>
+                <HowItWorksSection/>
                 <div
                     id="home-risks-surface"
                     className={styles.risksSurface}

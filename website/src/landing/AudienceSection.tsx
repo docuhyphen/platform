@@ -14,12 +14,11 @@ import {
     BREAKPOINT_MOBILE,
     CARD_RADIUS,
     LAW_SECTION_GRADIENT,
-    SECTION6_RADIUS_DESKTOP,
-    SECTION6_RADIUS_MOBILE,
     SECTION_PADDING_DESKTOP,
     SECTION_PADDING_MOBILE,
     SPACE_LG,
     SPACE_SM,
+    SPACE_XL,
     SPACE_XS,
     WIDTH_CONTENT,
     WIDTH_SUBTITLE,
@@ -37,7 +36,8 @@ type AudienceGroup = {
 
 const useStyles = makeStyles({
     wrapper: {
-        backgroundColor: "transparent",
+        color: tokens.colorNeutralForegroundOnBrand,
+        background: LAW_SECTION_GRADIENT,
         padding: SECTION_PADDING_DESKTOP,
         boxSizing: "border-box",
 
@@ -51,13 +51,13 @@ const useStyles = makeStyles({
         flexDirection: "column",
         gap: SPACE_SM,
         maxWidth: WIDTH_CONTENT,
-        margin: "3rem auto",
-        marginBottom: SPACE_LG,
+        margin: "0 auto",
+        marginBottom: SPACE_XL,
         alignItems: "flex-start",
     },
 
     sectionTitle: {
-        color: tokens.colorBrandForeground1,
+        color: tokens.colorNeutralForegroundOnBrand,
         fontWeight: tokens.fontWeightSemibold,
         fontSize: tokens.fontSizeHero800
     },
@@ -67,24 +67,22 @@ const useStyles = makeStyles({
         margin: "0 auto",
         maxWidth: WIDTH_CONTENT,
         width: "100%",
-        color: "white",
-        background: LAW_SECTION_GRADIENT,
-        borderRadius: SECTION6_RADIUS_DESKTOP,
+        color: tokens.colorNeutralForegroundOnBrand,
+        backgroundColor: "transparent",
         display: "flex",
         flexDirection: "column",
         gap: SPACE_LG,
-        padding: SECTION_PADDING_DESKTOP,
+        padding: 0,
 
         [BREAKPOINT_MOBILE]: {
-            borderRadius: SECTION6_RADIUS_MOBILE,
-            padding: SECTION_PADDING_MOBILE,
+            padding: 0,
             margin: "0",
         },
     },
 
     subheading: {
         maxWidth: WIDTH_SUBTITLE,
-        color: tokens.colorNeutralForeground1,
+        color: tokens.colorNeutralForegroundOnBrand,
         fontWeight: "100"
     },
 
@@ -192,16 +190,33 @@ export function AudienceSection()
                 },
             ],
         },
+        {
+            title: "Any document-driven team",
+            items: [
+                {
+                    title: "Project and operations teams",
+                    body: "Coordinate documents, responsibilities, and decisions across internal and external stakeholders.",
+                },
+                {
+                    title: "Growing businesses",
+                    body: "Replace scattered email attachments and shared-drive links with controlled document Exchanges.",
+                },
+                {
+                    title: "Specialist service providers",
+                    body: "Share client documents securely while keeping a clear record of every important action.",
+                },
+            ],
+        },
     ];
 
     return (
         <section className={styles.wrapper}>
             <section className={styles.intro}>
                 <Title2 className={styles.sectionTitle}>
-                    Industry Coverage
+                    More industry coverage
                 </Title2>
                 <Text className={styles.subheading} size={500}>
-                    Check out some use cases for your industry
+                    Explore additional use cases beyond the industry solutions above.
                 </Text>
             </section>
 

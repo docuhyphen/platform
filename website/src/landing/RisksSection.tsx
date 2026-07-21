@@ -8,6 +8,7 @@ import {
     SPACE_LG,
     SPACE_MD,
     SPACE_SM,
+    SPACE_XL,
     SPACE_XS,
     WIDTH_CONTENT, WIDTH_SUBTITLE,
 } from "./shared.ts";
@@ -43,7 +44,8 @@ const useStyles = makeStyles({
         flexDirection: "column",
         gap: SPACE_LG,
         maxWidth: WIDTH_CONTENT,
-        margin: "4rem auto",
+        margin: "0 auto",
+        marginBottom: SPACE_XL,
         alignItems: "flex-start",
     },
 
@@ -61,7 +63,7 @@ const useStyles = makeStyles({
     cardsWrapper: {
         boxSizing: "border-box",
         background: "transparent",
-        marginTop: "2rem",
+        marginTop: 0,
     },
 
     cardsContainer: {

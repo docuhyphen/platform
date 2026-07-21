@@ -43,11 +43,12 @@ export function IndustryExperience({initialIndustrySlug}: IndustryExperienceProp
                     id="industry-product-experience-heading"
                     className={styles.heading}
                 >
-                    See DocuHyphen in your industry
+                    Built to adapt to your industry
                 </Title2>
                 <Text
                     id="industry-product-experience-description"
                     className={styles.description}
+                    size={500}
                 >
                     Explore how the platform supports document-driven processes, controls, and collaboration needs of your industry.
                 </Text>

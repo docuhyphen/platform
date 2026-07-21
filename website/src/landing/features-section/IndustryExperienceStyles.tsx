@@ -1,11 +1,11 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
-import {BREAKPOINT_MOBILE, WIDTH_CONTENT} from "../shared.ts";
+import {BREAKPOINT_MOBILE, SPACE_SM, SPACE_XL, WIDTH_CONTENT} from "../shared.ts";
 
 export const useIndustryExperienceStyles = makeStyles({
     section: {
         display: "flex",
         flexDirection: "column",
-        gap: tokens.spacingVerticalXL,
+        gap: SPACE_XL,
         width: "100%",
         maxWidth: `min(92rem, calc(100vw - ${tokens.spacingHorizontalXXXL}))`,
         margin: "0 auto",
@@ -16,29 +16,32 @@ export const useIndustryExperienceStyles = makeStyles({
     },
 
     introduction: {
+        width: "100%",
+        maxWidth: WIDTH_CONTENT,
+        margin: "0 auto",
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-start",
-        gap: tokens.spacingVerticalS,
+        gap: SPACE_SM,
         textAlign: "left",
     },
 
     heading: {
         color: tokens.colorBrandForeground1,
-        fontSize: tokens.fontSizeHero700,
-        lineHeight: tokens.lineHeightHero700,
+        fontSize: tokens.fontSizeHero800,
+        lineHeight: tokens.lineHeightHero800,
         fontWeight: tokens.fontWeightSemibold,
 
         [BREAKPOINT_MOBILE]: {
-            fontSize: tokens.fontSizeBase600,
-            lineHeight: tokens.lineHeightBase600,
+            fontSize: tokens.fontSizeHero700,
+            lineHeight: tokens.lineHeightHero700,
         },
     },
 
     description: {
         maxWidth: "43rem",
         color: tokens.colorNeutralForeground2,
-        fontSize: tokens.fontSizeBase400,
+        fontSize: tokens.fontSizeBase500,
         lineHeight: tokens.lineHeightBase500,
     },
 
