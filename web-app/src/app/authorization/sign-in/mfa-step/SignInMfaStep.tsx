@@ -53,6 +53,10 @@ const SignInMfaStep = ({
 {
     const [alternativeMethodDialogOpen, setAlternativeMethodDialogOpen] = useState(false);
     const styles = useSignInMfaStepStyles();
+    const activeSuccessMessage = successMessage || message;
+    const codeHint = method === 'EMAIL'
+        ? "A verification code has been sent to your email"
+        : "Enter the code from your authenticator app";
     const chooseEmail = () =>
     {
         setAlternativeMethodDialogOpen(false);
@@ -71,13 +75,9 @@ const SignInMfaStep = ({
         id={"sign-in-otp-field"}
         className={styles.codeField}
         label={"Verification code"}
-        validationState={successMessage ? "success" : "none"}
-        validationMessage={successMessage}
-        hint={successMessage || message
-            ? message
-            : (method === 'EMAIL'
-                ? "A verification code has been sent to your email"
-                : "Enter the code from your authenticator app")}>
+        validationState={activeSuccessMessage ? "success" : "none"}
+        validationMessage={activeSuccessMessage}
+        hint={activeSuccessMessage ? undefined : codeHint}>
         <Input
             id={"sign-in-otp-input"}
             value={code}

@@ -170,7 +170,7 @@ class SignInService @Inject constructor(
         val mfaRecord =
             mfaService.getMfaRecordByEmailAndSessionId(sanitizedEmail, sessionId) ?: throw InvalidOtpException("Invalid verification code")
 
-        if (mfaRecord.expiryDateTime!!.before(Timestamp.from(Instant.now())))
+        if (mfaRecord.mfaType == EMAIL && mfaRecord.expiryDateTime?.before(Timestamp.from(Instant.now())) == true)
         {
             logger.warn("Sign in completion failed: verification code expired for {}", sanitizedEmail.maskEmailForLogs())
 
@@ -376,8 +376,7 @@ class SignInService @Inject constructor(
         {
             throw InvalidSignInCredentialsException()
         }
-        if (mfaRecord.expiryDateTime!!.before(Timestamp.from(Instant.now())) ||
-            mfaRecord.status != MultifactorAuthenticationStatus.PENDING)
+        if (mfaRecord.status != MultifactorAuthenticationStatus.PENDING)
         {
             throw InvalidSignInCredentialsException()
         }
