@@ -44,8 +44,8 @@ export const platformTemplatesArticle = (
         </p>
         <ul>
             <li>
-                All hardcoded principal UUIDs in assignee entries are replaced with
-                portable ORGANIZATION_ROLE placeholders. Review and adjust these after cloning
+                All hardcoded Specific User assignees are replaced with
+                portable Organization Role placeholders. Review and adjust these after cloning
                 to ensure they target the correct roles for your organization.
             </li>
             <li>
@@ -66,7 +66,7 @@ export const platformTemplatesArticle = (
                 click <b>Edit</b>.
             </li>
             <li>
-                Review all assignee entries. The replaced ORGANIZATION_ROLE placeholders may
+                Review all assignee entries. The replaced Organization Role placeholders may
                 not match your intended approvers. Update them to the correct
                 roles, groups, or individuals.
             </li>

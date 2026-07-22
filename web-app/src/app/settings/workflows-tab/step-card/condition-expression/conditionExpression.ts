@@ -67,6 +67,23 @@ export function getAllowedConditionOperators(
     return CONDITION_OPERATORS.filter(operator => ["==", "!=", "contains", "startsWith"].includes(operator.value));
 }
 
+/** Converts a field name like "recipientTypeId" into a human-readable label, e.g. "Recipient Type". */
+export const humanizeFieldName = (value: string): string => value.replace(/Id$/, "")
+    .replace(/([A-Z])/g, " $1").replace(/^./, character => character.toUpperCase()).trim();
+
+/**
+ * Converts a raw stored condition expression (e.g. "$subject.recipientType == 'GROUP'") into a
+ * plain-language summary (e.g. "Recipient Type is equal to GROUP") for display outside the builder.
+ */
+export function humanizeConditionExpression(expression: string | undefined): string | undefined
+{
+    if (!expression) return undefined;
+    const parsed = parseConditionExpression(expression);
+    if (!parsed.field) return undefined;
+    const operatorLabel = CONDITION_OPERATORS.find(candidate => candidate.value === parsed.operator)?.label ?? parsed.operator;
+    return `${humanizeFieldName(parsed.field)} ${operatorLabel} ${parsed.value}`;
+}
+
 export function parseEnumDescription(description: string | undefined): string[] | null
 {
     if (!description) return null;

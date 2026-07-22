@@ -2,6 +2,8 @@ import {Badge, Card, mergeClasses, Text} from "@fluentui/react-components";
 import {WorkflowStepSpecDraft, WorkflowStepType} from "../../../../../models/models.tsx";
 import {stepKindIcon} from "../../../workflow-graph/workflowGraphPresentation.tsx";
 import {useStepSummaryCardStyles} from "./StepSummaryCardStyles.tsx";
+import {humanizeConditionExpression} from "../../../step-card/condition-expression/conditionExpression.ts";
+import {formatTriggerName} from "../../../workflowUtils.ts";
 
 const STEP_TYPE_LABELS: Record<WorkflowStepType, string> = {
     APPROVAL: "Approval",
@@ -34,8 +36,14 @@ const getStepDetail = (step: WorkflowStepSpecDraft): string =>
         return `${assigneeCount} ${assigneeCount === 1 ? "recipient" : "recipients"}${step.communicationId ? ", communication selected" : ""}`;
     }
 
-    if (step.type === "CONDITION") return step.predicateExpression || "Condition not configured";
-    if (step.type === "ACTION") return step.actionHandlerKey || "Action not configured";
+    if (step.type === "CONDITION")
+    {
+        return humanizeConditionExpression(step.predicateExpression) ?? "Condition not configured";
+    }
+    if (step.type === "ACTION")
+    {
+        return step.actionHandlerKey ? formatTriggerName(step.actionHandlerKey) : "Action not configured";
+    }
     return "Waits for the other party's workflows";
 };
 

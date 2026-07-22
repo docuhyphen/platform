@@ -4,13 +4,13 @@ export const stepTypesArticle = (
     <>
         <p>
             Each workflow step type controls how the engine advances the workflow.
-            The available types are APPROVAL, NOTIFICATION, CONDITION, ACTION, and
-            WAIT_FOR_COUNTERPARTY_CLEARANCE.
+            The available types are Approval, Notification, Condition, Action, and
+            Wait for Counterparty Clearance.
         </p>
 
-        <h3>APPROVAL</h3>
+        <h3>Approval <code>(APPROVAL)</code></h3>
         <p>
-            APPROVAL pauses the workflow until assigned principals make a decision.
+            An Approval step pauses the workflow until assigned principals make a decision.
             The step advances when the configured quorum is met.
         </p>
         <ul>
@@ -36,9 +36,9 @@ export const stepTypesArticle = (
             </li>
         </ul>
 
-        <h3>NOTIFICATION</h3>
+        <h3>Notification <code>(NOTIFICATION)</code></h3>
         <p>
-            NOTIFICATION sends a message to assigned principals and then advances
+            A Notification step sends a message to assigned principals and then advances
             automatically. Choose a saved communication or leave the field blank to
             use the default system message. See{" "}
             <a href="#" data-help-article="communications-in-workflows">
@@ -47,9 +47,9 @@ export const stepTypesArticle = (
             .
         </p>
 
-        <h3>CONDITION</h3>
+        <h3>Condition <code>(CONDITION)</code></h3>
         <p>
-            CONDITION evaluates Exchange subject data and routes based on the
+            A Condition step evaluates Exchange data and routes based on the
             result. The builder lets you select a field, an operator, and a value.
             Available fields update when the trigger event changes.
         </p>
@@ -69,20 +69,20 @@ export const stepTypesArticle = (
             </li>
         </ul>
 
-        <h3>ACTION</h3>
+        <h3>Action <code>(ACTION)</code></h3>
         <p>
-            ACTION runs a built-in automated operation and then advances without
-            assignees or routing configuration.
+            An Action step runs a built-in automated operation and then advances
+            without assignees or routing configuration.
         </p>
         <ul>
-            <li><b>exchange.auto-accept</b> - activates the Exchange.</li>
-            <li><b>exchange.send-reminder</b> - sends a reminder notification.</li>
-            <li><b>exchange.revoke-access</b> - revokes active Exchange shares.</li>
+            <li><b>Auto-accept the Exchange</b> <code>(exchange.auto-accept)</code> - activates the Exchange.</li>
+            <li><b>Send a reminder</b> <code>(exchange.send-reminder)</code> - sends a reminder notification.</li>
+            <li><b>Revoke access</b> <code>(exchange.revoke-access)</code> - revokes active Exchange shares.</li>
         </ul>
 
-        <h3>WAIT_FOR_COUNTERPARTY_CLEARANCE</h3>
+        <h3>Wait for Counterparty Clearance <code>(WAIT_FOR_COUNTERPARTY_CLEARANCE)</code></h3>
         <p>
-            WAIT_FOR_COUNTERPARTY_CLEARANCE waits until workflow instances on the
+            A Wait for Counterparty Clearance step waits until workflow instances on the
             other party's side of the Exchange are complete. While waiting, the step
             shows <b>Awaiting Counterparty</b>. See{" "}
             <a href="#" data-help-article="recipient-workflows">
@@ -94,7 +94,7 @@ export const stepTypesArticle = (
         <h3>Ordering and branching</h3>
         <p>
             Steps are stored in order and referenced by zero-based index. Outcome
-            connectors point to another step or to <code>END</code>. CONDITION steps
+            connectors point to another step or to <b>End</b>. Condition steps
             create branches by sending true and false outcomes to different targets.
         </p>
 
@@ -110,7 +110,7 @@ export const stepTypesArticle = (
                 <a href="#" data-help-article="sla-escalations-reminders">
                     <b>SLA, escalations, and reminders</b>
                 </a>{" "}
-                - deadline management for APPROVAL steps.
+                - deadline management for Approval steps.
             </li>
         </ul>
     </>

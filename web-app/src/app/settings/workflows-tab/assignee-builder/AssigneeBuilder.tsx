@@ -118,7 +118,7 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
         {value: "$subject.orgId", label: "Caller's organization"},
         ...subjectFields
             .filter(f => f.name !== 'orgId')
-            .map(f => ({value: `$subject.${f.name}`, label: `${f.description ?? f.name} ($subject.${f.name})`})),
+            .map(f => ({value: `$subject.${f.name}`, label: `${f.description ?? f.name} (from trigger)`})),
     ];
 
     const groupRefOptions = [

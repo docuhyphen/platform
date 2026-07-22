@@ -3,14 +3,14 @@ import React from "react";
 export const slaEscalationsArticle = (
     <>
         <p>
-            APPROVAL steps support deadline management through SLA settings,
+            Approval steps support deadline management through SLA settings,
             escalation actions, and reminder addons. These features ensure that
             pending approvals do not stall indefinitely.
         </p>
 
         <h3>SLA (service-level agreement)</h3>
         <p>
-            The SLA field on an APPROVAL step sets a deadline in minutes from
+            The SLA field on an Approval step sets a deadline in minutes from
             when the step becomes active. The escalation scheduler checks all
             pending steps every 60 seconds and triggers the configured escalation
             action when the deadline passes.
@@ -26,7 +26,7 @@ export const slaEscalationsArticle = (
         </p>
         <ul>
             <li>
-                <b>Escalate</b> - the workflow instance transitions to ESCALATED
+                <b>Escalate</b> - the workflow instance transitions to Escalated
                 status and the pending step is reassigned to the escalation
                 targets you choose in the designer. Use this when a stalled
                 approval should move to another approver rather than resolving
@@ -47,7 +47,7 @@ export const slaEscalationsArticle = (
         <h3>How the scheduler works</h3>
         <p>
             The escalation scheduler runs automatically in the background every
-            60 seconds. For each pending APPROVAL step it checks whether the SLA
+            60 seconds. For each pending Approval step it checks whether the SLA
             deadline has passed and applies the configured escalation action if so.
             No manual action is required - it runs for all active workflow instances
             across your organization.

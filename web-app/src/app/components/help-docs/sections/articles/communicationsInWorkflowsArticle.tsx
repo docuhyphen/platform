@@ -3,21 +3,21 @@ import React from "react";
 export const communicationsInWorkflowsArticle = (
     <>
         <p>
-            A NOTIFICATION step in a workflow can use a communication to deliver a
+            A Notification step in a workflow can use a communication to deliver a
             fully customized subject and body instead of the default system message.
             The workflow engine resolves the linked communication's variable tokens
             against the triggering Exchange at send time and delivers the result
             by email and in-app notification to every assignee on the step.
         </p>
 
-        <h3>Linking a communication to a NOTIFICATION step</h3>
+        <h3>Linking a communication to a Notification step</h3>
         <ol>
             <li>
                 Open the workflow in the <b>Workflow Designer</b> (Settings {">"} Workflows {">"} Edit).
             </li>
             <li>
-                Find and click the NOTIFICATION step card (or add one by clicking
-                <b>Add Step</b>, click its card, and select <b>NOTIFICATION</b>).
+                Find and click the Notification step card (or add one by clicking
+                <b>Add Step</b>, click its card, and select <b>Notification</b>).
             </li>
             <li>
                 Click <b>Select communication...</b>. The Communication Picker dialog
@@ -59,7 +59,7 @@ export const communicationsInWorkflowsArticle = (
             advances normally.
         </p>
 
-        <h3>Token resolution in NOTIFICATION steps</h3>
+        <h3>Token resolution in Notification steps</h3>
         <p>
             The engine resolves tokens using the workflow instance's subject data
             (Exchange fields, initiator, organization) merged with any custom
@@ -97,7 +97,7 @@ export const communicationsInWorkflowsArticle = (
                    data-help-article="step-types">
                     <b>Step types explained</b>
                 </a>{" "}
-                - full reference for NOTIFICATION and other step types.
+                - full reference for Notification and other step types.
             </li>
         </ul>
     </>

@@ -32,15 +32,15 @@ export const recipientWorkflowsArticle = (
         <h3>Recipient trigger events</h3>
         <ul>
             <li>
-                <b>exchange.received</b> - fires in the recipient org when an
+                <b>Received</b> <code>(exchange.received)</code> - fires in the recipient org when an
                 Exchange is sent and waiting for acceptance.
             </li>
             <li>
-                <b>exchange.received_activated</b> - fires in the recipient org
+                <b>Activated (Recipient Side)</b> <code>(exchange.received_activated)</code> - fires in the recipient org
                 when the Exchange transitions to Active.
             </li>
             <li>
-                <b>exchange.received_ending</b> - fires in the recipient org when
+                <b>Ending (Recipient Side)</b> <code>(exchange.received_ending)</code> - fires in the recipient org when
                 the Exchange is being closed.
             </li>
         </ul>
@@ -69,7 +69,7 @@ export const recipientWorkflowsArticle = (
             across organizational boundaries.
         </p>
 
-        <h3>Coordinating across parties with WAIT_FOR_COUNTERPARTY_CLEARANCE</h3>
+        <h3>Coordinating across parties with Wait for Counterparty Clearance</h3>
         <p>
             If you need your workflow to pause until the other party's workflows
             are also done, add a{" "}
@@ -101,7 +101,7 @@ export const recipientWorkflowsArticle = (
                    data-help-article="step-types">
                     <b>Step types explained</b>
                 </a>{" "}
-                - WAIT_FOR_COUNTERPARTY_CLEARANCE step configuration.
+                - Wait for Counterparty Clearance step configuration.
             </li>
         </ul>
     </>

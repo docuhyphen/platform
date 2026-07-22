@@ -65,9 +65,9 @@ export const workflowActivityMonitoringArticle = (
                 SLA was configured.
             </li>
             <li>
-                <b>Decision entries</b> - for APPROVAL steps, a list of every
-                decision recorded: who decided, what their decision was (APPROVE or
-                REJECT), when they decided, and any reason they provided.
+                <b>Decision entries</b> - for Approval steps, a list of every
+                decision recorded: who decided, what their decision was (Approve or
+                Reject), when they decided, and any reason they provided.
             </li>
             <li>
                 <b>Completed at</b> - when the step finished.

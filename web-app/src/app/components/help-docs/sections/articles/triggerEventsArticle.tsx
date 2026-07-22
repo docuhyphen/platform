@@ -11,7 +11,7 @@ export const triggerEventsArticle = (
 
         <h3>Available trigger events</h3>
 
-        <h3>exchange.draft_submitted</h3>
+        <h3>Draft Submitted <code>(exchange.draft_submitted)</code></h3>
         <p>
             Fires immediately when a new Exchange is created. Use this trigger for
             internal pre-send approvals that must complete before any recipient is
@@ -23,7 +23,7 @@ export const triggerEventsArticle = (
             <li><b>Org</b> - the organization the initiator belongs to.</li>
         </ul>
 
-        <h3>exchange.acceptance_pending</h3>
+        <h3>Acceptance Pending <code>(exchange.acceptance_pending)</code></h3>
         <p>
             Fires after the draft stage when recipient acceptance is required (the
             org-level "require recipient acceptance" setting is on). The Exchange
@@ -46,7 +46,7 @@ export const triggerEventsArticle = (
             </li>
         </ul>
 
-        <h3>exchange.activated</h3>
+        <h3>Activated <code>(exchange.activated)</code></h3>
         <p>
             Fires when an Exchange transitions to Active. Use
             this for post-activation notifications, automatic actions, or secondary
@@ -58,7 +58,7 @@ export const triggerEventsArticle = (
             <li><b>Org</b> - the initiator organization. No searchable picker - used as a scope reference in assignee configuration.</li>
         </ul>
 
-        <h3>exchange.ending</h3>
+        <h3>Ending <code>(exchange.ending)</code></h3>
         <p>
             Fires when a user requests to close an Exchange. The Exchange is held
             in its current state until this workflow completes or is rejected. Use
@@ -71,7 +71,7 @@ export const triggerEventsArticle = (
             <li><b>Org</b> - the initiator organization. No searchable picker - used as a scope reference in assignee configuration.</li>
         </ul>
 
-        <h3>exchange.received</h3>
+        <h3>Received (Recipient Side) <code>(exchange.received)</code></h3>
         <p>
             Fires in a <b>recipient organization's</b> context when an Exchange is
             sent to them and is waiting for their acceptance. Use this to run
@@ -85,7 +85,7 @@ export const triggerEventsArticle = (
             <li><b>Recipient Org</b> - the recipient organization this instance was triggered for.</li>
         </ul>
 
-        <h3>exchange.received_activated</h3>
+        <h3>Activated (Recipient Side) <code>(exchange.received_activated)</code></h3>
         <p>
             Fires in a <b>recipient organization's</b> context when an Exchange they
             are part of transitions to Active. Use this for post-activation
@@ -98,7 +98,7 @@ export const triggerEventsArticle = (
             <li><b>Recipient Org</b> - the recipient organization this instance was triggered for.</li>
         </ul>
 
-        <h3>exchange.received_ending</h3>
+        <h3>Ending (Recipient Side) <code>(exchange.received_ending)</code></h3>
         <p>
             Fires in a <b>recipient organization's</b> context when an Exchange they
             are part of is being closed. Use this for recipient-side completion
@@ -111,14 +111,16 @@ export const triggerEventsArticle = (
             <li><b>Recipient Org</b> - the recipient organization this instance was triggered for.</li>
         </ul>
 
-        <h3>Tip: subject field placeholders in assignees</h3>
+        <h3>Tip: referencing trigger data in assignees</h3>
         <p>
-            When configuring <b>assignees</b>, you can reference subject fields
-            using the syntax <code>$subject.fieldName</code> (for example,{" "}
-            <code>$subject.orgId</code>). This keeps the definition portable across
-            organizations instead of hardcoding specific user or group IDs. In
-            the condition builder, fields are selected by name from a dropdown -
-            no manual syntax required.
+            When configuring <b>assignees</b>, you can point to a value carried
+            by the trigger event - for example, "the Exchange's initiating
+            organization" - instead of hardcoding a specific user or group ID.
+            These options appear by their plain-language name in the assignee
+            dropdown (internally stored as <code>$subject.fieldName</code>, for
+            example <code>$subject.orgId</code>). This keeps the definition
+            portable across organizations. In the condition builder, fields are
+            selected by name from a dropdown - no manual syntax required.
         </p>
 
         <h3>Learn more</h3>
@@ -128,7 +130,7 @@ export const triggerEventsArticle = (
                    data-help-article="assignees-and-portability">
                     <b>Assignees and portability</b>
                 </a>{" "}
-                - how to use $subject.* placeholders safely.
+                - how to reference trigger data in assignees safely.
             </li>
             <li>
                 <a href="#"

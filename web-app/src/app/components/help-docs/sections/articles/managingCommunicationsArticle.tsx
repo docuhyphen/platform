@@ -72,7 +72,7 @@ export const managingCommunicationsArticle = (
         <p>
             Use <b>Activate</b> / <b>Deactivate</b> from the three-dot menu. An
             inactive communication is not delivered by the workflow engine; the
-            NOTIFICATION step falls back to the default system message instead.
+            Notification step falls back to the default system message instead.
         </p>
 
         <h3>Duplicating a communication</h3>

@@ -5,6 +5,7 @@ import ConditionValueControl from "./ConditionValueControl.tsx";
 import {
     buildConditionExpression,
     getAllowedConditionOperators,
+    humanizeFieldName as humanize,
     parseConditionExpression,
     parseEnumDescription,
 } from "./conditionExpression.ts";
@@ -16,9 +17,6 @@ interface Props
     subjectFields: WorkflowSubjectFieldDto[];
     onChange: (expression: string | undefined) => void;
 }
-
-const humanize = (value: string): string => value.replace(/Id$/, "")
-    .replace(/([A-Z])/g, " $1").replace(/^./, character => character.toUpperCase()).trim();
 
 const ConditionExpressionBuilder = ({expression, subjectFields, onChange}: Props) =>
 {
@@ -50,7 +48,7 @@ const ConditionExpressionBuilder = ({expression, subjectFields, onChange}: Props
                 <Input
                     id="condition-expression-input"
                     size="small"
-                    placeholder="$subject.fieldName == 'value'"
+                    placeholder="e.g. status equals 'approved'"
                     value={expression ?? ""}
                     onChange={(_, data) => onChange(data.value || undefined)}
                 />

@@ -17,14 +17,14 @@ export const workflowOrgSettingsArticle = (
             <li>
                 <b>On (default)</b> - newly created Exchanges stay in Draft until
                 a recipient accepts. If a workflow definition for the{" "}
-                <code>exchange.acceptance_pending</code> trigger is active, that
+                <b>Acceptance Pending</b> <code>(exchange.acceptance_pending)</code> trigger is active, that
                 workflow gates the acceptance. If no matching definition is active,
                 the platform still requires the primary recipient's manual acceptance
                 before the Exchange becomes Active.
             </li>
             <li>
                 <b>Off</b> - most newly created Exchanges advance to Active immediately
-                on creation. The <code>exchange.activated</code> event fires and
+                on creation. The <b>Activated</b> <code>(exchange.activated)</code> event fires and
                 the Exchange bypasses the acceptance stage. Use this for internal
                 or automated Exchanges where recipient sign-off is not needed. An Exchange
                 sent to a published group in a Trusted Organization is an exception and always
@@ -62,7 +62,7 @@ export const workflowOrgSettingsArticle = (
         <ul>
             <li>
                 When the setting is <b>on</b> and a matching{" "}
-                <code>exchange.acceptance_pending</code> workflow is active, the
+                <b>Acceptance Pending</b> <code>(exchange.acceptance_pending)</code> workflow is active, the
                 recipient's "Accept" action is routed through the workflow engine.
                 The workflow step records the decision and, once the quorum is met,
                 advances the Exchange to Active.
@@ -75,7 +75,7 @@ export const workflowOrgSettingsArticle = (
             </li>
             <li>
                 When the setting is <b>off</b>, the{" "}
-                <code>exchange.acceptance_pending</code> trigger never fires and
+                <b>Acceptance Pending</b> <code>(exchange.acceptance_pending)</code> trigger never fires and
                 acceptance workflow definitions for that trigger will not run for ordinary
                 recipients. Trusted Organization group recipients still require a direct group
                 acceptance decision.
@@ -101,7 +101,7 @@ export const workflowOrgSettingsArticle = (
                    data-help-article="trigger-events">
                     <b>Trigger events</b>
                 </a>{" "}
-                - how exchange.acceptance_pending works.
+                - how the Acceptance Pending trigger works.
             </li>
             <li>
                 <a href="#"

@@ -4,8 +4,8 @@ export const communicationsOverviewArticle = (
     <>
         <p>
             Communications are reusable message definitions that can be attached to
-            workflow NOTIFICATION steps. Each communication stores a subject line, a
-            body written in Markdown, and optional metadata. When a NOTIFICATION step
+            workflow Notification steps. Each communication stores a subject line, a
+            body written in Markdown, and optional metadata. When a Notification step
             fires, the engine looks up the linked communication, interpolates any
             variable tokens, and delivers the result as an email and an in-app
             notification to the step's assignees.
@@ -61,7 +61,7 @@ export const communicationsOverviewArticle = (
         <p>
             All communications have an active/inactive toggle. Only active
             communications are delivered by the workflow engine. Deactivating a
-            communication causes the NOTIFICATION step to fall back to the default
+            communication causes the Notification step to fall back to the default
             system message.
         </p>
 
@@ -79,7 +79,7 @@ export const communicationsOverviewArticle = (
                    data-help-article="communications-in-workflows">
                     <b>Using communications in workflows</b>
                 </a>{" "}
-                - attach a communication to a NOTIFICATION step.
+                - attach a communication to a Notification step.
             </li>
         </ul>
     </>

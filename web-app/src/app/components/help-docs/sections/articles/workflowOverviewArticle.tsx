@@ -89,7 +89,7 @@ export const workflowOverviewArticle = (
                    data-help-article="step-types">
                     <b>Step types explained</b>
                 </a>{" "}
-                - APPROVAL, NOTIFICATION, CONDITION, and ACTION steps.
+                - Approval, Notification, Condition, and Action steps.
             </li>
             <li>
                 <a href="#"

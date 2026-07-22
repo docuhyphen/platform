@@ -49,9 +49,10 @@ export const buildingAWorkflowArticle = (
                 (for example, "Recipient Acceptance Gate" or "Pre-Send Manager Approval").
             </li>
             <li>
-                <b>Trigger event</b> - select from the dropdown. The available{" "}
-                <code>$subject.*</code> fields for assignee placeholders update
-                automatically based on your selection.
+                <b>Trigger event</b> - select from the dropdown. The fields
+                available for assignee placeholders (for example, the
+                recipient or the initiating organization) update automatically
+                based on your selection.
             </li>
             <li>
                 <b>Summary</b> - a plain-language description of what this
@@ -76,36 +77,36 @@ export const buildingAWorkflowArticle = (
                    data-help-article="step-types">
                     step type
                 </a>{" "}
-                from the dropdown: APPROVAL, NOTIFICATION, CONDITION, or ACTION.
+                from the dropdown: Approval, Notification, Condition, or Action.
             </li>
             <li>
                 Configure the step fields for that type:
                 <ul>
                     <li>
-                        For <b>CONDITION</b> steps, use the visual condition
+                        For <b>Condition</b> steps, use the visual condition
                         builder to select a field, an operator, and a value. Text
                         fields support equality, contains, and starts with; number
                         fields support comparisons. Invalid conditions cannot be saved.
                     </li>
                     <li>
-                        For <b>APPROVAL</b> steps, configure assignees, quorum,
+                        For <b>Approval</b> steps, configure assignees, quorum,
                         optional SLA, escalation action, and escalation targets
                         when the action is <b>Escalate</b>.
                     </li>
                     <li>
-                        For <b>NOTIFICATION</b> steps, optionally select a
+                        For <b>Notification</b> steps, optionally select a
                         communication (via the picker) and add assignees who
                         will receive the notification.
                     </li>
                     <li>
-                        For <b>ACTION</b> steps, select the action key. No
+                        For <b>Action</b> steps, select the action to run. No
                         assignees are needed - the action runs automatically.
                     </li>
                 </ul>
             </li>
             <li>
                 Set the <b>outcome connectors</b> (On Approve / On Reject, or On
-                True / On False for CONDITION steps) to point to the next step
+                True / On False for Condition steps) to point to the next step
                 index or to END. Deleting a step lists every route that points at
                 it, rewrites those to END on confirmation, and shifts later routes
                 automatically so none is left dangling.
@@ -131,7 +132,7 @@ export const buildingAWorkflowArticle = (
             the next time the trigger event fires for an Exchange in your organization.
         </p>
         <p>
-            Saving is rejected when the definition would fail at runtime (no steps, an APPROVAL step with no assignees, a required approval count above its assignees, a step routing to itself or a missing step, a step that cannot reach END, or escalation without an SLA or targets). The message names the affected step.
+            Saving is rejected when the definition would fail at runtime (no steps, an Approval step with no assignees, a required approval count above its assignees, a step routing to itself or a missing step, a step that cannot reach End, or escalation without an SLA or targets). The message names the affected step.
         </p>
         <h3>Editing a live workflow</h3>
         <p>
