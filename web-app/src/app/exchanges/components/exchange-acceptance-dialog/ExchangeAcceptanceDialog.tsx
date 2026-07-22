@@ -14,8 +14,7 @@ import {
 } from "@fluentui/react-components";
 import {
     ChatRegular,
-    CheckmarkCircleRegular, CircleFilled,
-    DismissCircleRegular, Document16Filled, Document24Filled, Document28Filled, Document32Filled, DocumentFilled,
+    CircleFilled,
     DocumentRegular,
     FolderRegular,
     InfoRegular,
@@ -26,6 +25,7 @@ import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {fetchSignedInUserAppUserExchange, updateExchange} from "../../../../services/exchangeApi.ts";
 import {useExchangeAcceptanceDialogStyles} from "./ExchangeAcceptanceDialogStyles.tsx";
 import {publishExchangeUpdate} from "../../../observable/exchangeObservables.ts";
+import {normalizeApiError} from "../../../../utils/apiErrorUtils.ts";
 
 interface ExchangeAcceptanceDialogProps
 {
@@ -90,8 +90,7 @@ const ExchangeAcceptanceDialog: React.FC<ExchangeAcceptanceDialogProps> = (
         }
         catch (error)
         {
-            setDialogErrorMessage("Error updating exchange");
-            console.error("Error updating exchange", error);
+            setDialogErrorMessage(normalizeApiError(error, "Error updating exchange").message);
         }
         finally
         {

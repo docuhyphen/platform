@@ -321,7 +321,7 @@ class ExchangeRecipientService @Inject constructor(
         {
             PrincipalKind.USER -> share.principalId == appUserId
             PrincipalKind.PRINCIPAL_GROUP ->
-                organizationGroupService.isActiveOwnerOrManager(share.principalId, appUserId)
+                organizationGroupService.isActiveDecisionMaker(share.principalId, appUserId)
             else -> false
         }
 }

@@ -10,6 +10,7 @@ import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.PrincipalGroup
 import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
+import com.docuhyphen.app.api.model.entity.PrincipalGroupScope
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
@@ -88,6 +89,38 @@ class OrganizationGroupService @Inject constructor(
                     (it.groupRole == PrincipalGroupRoleName.OWNER ||
                         it.groupRole == PrincipalGroupRoleName.MANAGER)
             }
+    }
+
+    /**
+     * Whether the given user may decide an Exchange on behalf of this group. For [PrincipalGroupScope.PERSONAL]
+     * groups (e.g. "My Group"), all invited contacts are plain members with no owner/manager among the
+     * recipients themselves, so any active member may decide. For all other scopes, only an active
+     * owner or manager may decide.
+     */
+    fun isActiveDecisionMaker(groupId: UUID, appUserId: UUID): Boolean
+    {
+        val group = principalGroupRepository.findById(groupId)
+            ?: return false
+        if (!group.isActive)
+        {
+            return false
+        }
+        val activeMembers = principalGroupMemberRepository.findActiveMembers(groupId)
+        return if (group.scope == PrincipalGroupScope.PERSONAL)
+        {
+            activeMembers.any {
+                it.principalKind == PrincipalKind.USER && it.principalId == appUserId
+            }
+        }
+        else
+        {
+            activeMembers.any {
+                it.principalKind == PrincipalKind.USER &&
+                    it.principalId == appUserId &&
+                    (it.groupRole == PrincipalGroupRoleName.OWNER ||
+                        it.groupRole == PrincipalGroupRoleName.MANAGER)
+            }
+        }
     }
 
     fun activeOwnerOrManagerUserIds(groupId: UUID): Set<UUID>

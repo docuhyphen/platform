@@ -137,7 +137,7 @@ class ExchangeRecipientServiceTest
     }
 
     @Test
-    fun `pending primary group is visible to an active owner or manager`()
+    fun `pending primary group is visible to an active owner or manager (ORG group) or decision maker (Personal Group)`()
     {
         val groupId = UUID.randomUUID()
         val decisionMakerId = UUID.randomUUID()
@@ -146,7 +146,7 @@ class ExchangeRecipientServiceTest
         }
         whenever(repository.findPrimary(exchangeId)).thenReturn(pendingRecipient(share.id))
         whenever(shareService.getById(share.id)).thenReturn(share)
-        whenever(organizationGroupService.isActiveOwnerOrManager(groupId, decisionMakerId)).thenReturn(true)
+        whenever(organizationGroupService.isActiveDecisionMaker(groupId, decisionMakerId)).thenReturn(true)
 
         assertTrue(service.canViewPendingPrimaryInvitation(exchangeId, decisionMakerId))
     }
@@ -162,7 +162,7 @@ class ExchangeRecipientServiceTest
         whenever(shareService.getById(share.id)).thenReturn(share)
 
         listOf(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()).forEach { ineligibleUserId ->
-            whenever(organizationGroupService.isActiveOwnerOrManager(groupId, ineligibleUserId)).thenReturn(false)
+            whenever(organizationGroupService.isActiveDecisionMaker(groupId, ineligibleUserId)).thenReturn(false)
             assertFalse(service.canViewPendingPrimaryInvitation(exchangeId, ineligibleUserId))
         }
     }
@@ -222,7 +222,7 @@ class ExchangeRecipientServiceTest
         val share = directShare(PrincipalKind.PRINCIPAL_GROUP, groupId)
         whenever(repository.findPrimaryForUpdate(exchangeId)).thenReturn(pendingRecipient(share.id))
         whenever(shareService.getById(share.id)).thenReturn(share)
-        whenever(organizationGroupService.isActiveOwnerOrManager(groupId, managerId)).thenReturn(true)
+        whenever(organizationGroupService.isActiveDecisionMaker(groupId, managerId)).thenReturn(true)
         whenever(repository.update(any())).thenAnswer { it.getArgument(0) }
 
         val updated = service.recordPrimaryDecision(exchange, managerId, accepted = false)
@@ -242,7 +242,7 @@ class ExchangeRecipientServiceTest
         val attestation = ExchangeRecipientAttestation()
         whenever(repository.findPrimaryForUpdate(exchangeId)).thenReturn(recipient)
         whenever(shareService.getById(share.id)).thenReturn(share)
-        whenever(organizationGroupService.isActiveOwnerOrManager(groupId, managerId)).thenReturn(true)
+        whenever(organizationGroupService.isActiveDecisionMaker(groupId, managerId)).thenReturn(true)
         whenever(attestationService.findForRecipient(recipient.id)).thenReturn(attestation)
         whenever(validationService.validateGroupAttestation(eq(attestation), any())).thenReturn(mock())
         whenever(repository.update(any())).thenAnswer { it.getArgument(0) }
@@ -265,7 +265,7 @@ class ExchangeRecipientServiceTest
         }
         whenever(repository.findPrimaryForUpdate(exchangeId)).thenReturn(recipient)
         whenever(shareService.getById(share.id)).thenReturn(share)
-        whenever(organizationGroupService.isActiveOwnerOrManager(groupId, managerId)).thenReturn(true)
+        whenever(organizationGroupService.isActiveDecisionMaker(groupId, managerId)).thenReturn(true)
         whenever(repository.update(any())).thenAnswer { it.getArgument(0) }
 
         val updated = service.recordPrimaryDecision(exchange, managerId, accepted = false)
@@ -287,7 +287,7 @@ class ExchangeRecipientServiceTest
         val attestation = ExchangeRecipientAttestation()
         whenever(repository.findPrimaryForUpdate(exchangeId)).thenReturn(recipient)
         whenever(shareService.getById(share.id)).thenReturn(share)
-        whenever(organizationGroupService.isActiveOwnerOrManager(groupId, managerId)).thenReturn(true)
+        whenever(organizationGroupService.isActiveDecisionMaker(groupId, managerId)).thenReturn(true)
         whenever(attestationService.findForRecipient(recipient.id)).thenReturn(attestation)
         whenever(validationService.validateGroupAttestation(eq(attestation), any()))
             .thenThrow(OrganizationTrustNotFoundException("Published trusted group is unavailable"))
@@ -310,7 +310,7 @@ class ExchangeRecipientServiceTest
         }
         whenever(repository.findPrimaryForUpdate(exchangeId)).thenReturn(recipient)
         whenever(shareService.getById(share.id)).thenReturn(share)
-        whenever(organizationGroupService.isActiveOwnerOrManager(groupId, memberId)).thenReturn(false)
+        whenever(organizationGroupService.isActiveDecisionMaker(groupId, memberId)).thenReturn(false)
 
         assertThrows(IllegalArgumentException::class.java) {
             service.recordPrimaryDecision(exchange, memberId, accepted = true)
@@ -557,7 +557,7 @@ class ExchangeRecipientServiceTest
         }
         whenever(repository.findByIdForUpdate(recipient.id)).thenReturn(recipient)
         whenever(shareService.getById(share.id)).thenReturn(share)
-        whenever(organizationGroupService.isActiveOwnerOrManager(groupId, managerId)).thenReturn(true)
+        whenever(organizationGroupService.isActiveDecisionMaker(groupId, managerId)).thenReturn(true)
         whenever(repository.update(any())).thenAnswer { it.getArgument(0) }
 
         val updated = service.recordTrustedParticipantDecision(recipient.id, managerId, accepted = false)
