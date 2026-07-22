@@ -4,8 +4,8 @@ export const managingSequencesArticle = (
     <>
         <p>
             A sequence is a named counter stored at the org level. Reference it with the
-            syntax <code>{"{{SEQ:KEY}}"}</code> in the exchange name field. Each time an
-            exchange is created with that token in the name, the counter increments by 1
+            syntax <code>{"{{SEQ:KEY}}"}</code> in the Exchange name field. Each time an
+            Exchange is created with that token in the name, the counter increments by 1
             and the formatted value is substituted.
         </p>
 
@@ -13,7 +13,7 @@ export const managingSequencesArticle = (
         <p>
             Only Organization Admins and App Admins can create, edit, reset, and delete
             sequences. Regular members can use <code>{"{{SEQ:KEY}}"}</code> tokens in
-            blueprints and exchanges but cannot create or configure sequence definitions.
+            blueprints and Exchanges but cannot create or configure sequence definitions.
         </p>
         <p>
             Sequence changes can require a 6-digit verification code before the create,
@@ -49,21 +49,21 @@ export const managingSequencesArticle = (
         <h3>Reset Counter</h3>
         <p>
             Click <b>Reset Counter</b> in the three-dot menu to set the counter back to
-            0. The next exchange that uses the sequence will receive value 1 (or the
+            0. The next Exchange that uses the sequence will receive value 1 (or the
             formatted equivalent). Gaps in the sequence before the reset are normal and
             expected.
         </p>
 
         <h3>Deleting a sequence</h3>
         <p>
-            Deleting a sequence soft-deletes the definition. Any blueprint or exchange
+            Deleting a sequence soft-deletes the definition. Any blueprint or Exchange
             field that still contains <code>{"{{SEQ:KEY}}"}</code> for a deleted sequence
             will leave the token unresolved after deletion.
         </p>
 
         <h3>A note on gaps</h3>
         <p>
-            If exchange creation fails after the counter has already been incremented,
+            If Exchange creation fails after the counter has already been incremented,
             the counter is not rolled back. Gaps in the sequence are expected and
             acceptable, consistent with how invoice numbers work. Do not rely on
             sequential numbering being gap-free.

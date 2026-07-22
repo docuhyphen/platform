@@ -20,8 +20,8 @@ export const managingPersonalVariablesArticle = (
             <li>Save.</li>
         </ol>
         <p>
-            The new variable is available as <code>{"{{KEY}}"}</code> only in exchanges
-            and blueprints you create. Other users who receive or view your exchanges do
+            The new variable is available as <code>{"{{KEY}}"}</code> only in Exchanges
+            and blueprints you create. Other users who receive or view your Exchanges do
             not see the token definition.
         </p>
         <p>
@@ -29,10 +29,10 @@ export const managingPersonalVariablesArticle = (
             you to enter a 6-digit verification code before the change is saved.
         </p>
 
-        <h3>Overriding at exchange creation</h3>
+        <h3>Overriding at Exchange creation</h3>
         <p>
             When a blueprint uses personal variable tokens, the variable override panel
-            lets you set per-exchange values without changing the saved default. This is
+            lets you set per-Exchange values without changing the saved default. This is
             useful when the same blueprint is used for different clients or projects that
             each require a different value for the same token.
         </p>

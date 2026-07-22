@@ -3,7 +3,7 @@ import React from "react";
 export const blueprintPlatformArticle = (
     <>
         <p>
-            Platform blueprints are ready-made exchange configurations provided by
+            Platform blueprints are ready-made Exchange configurations provided by
             DocuHyphen. They are available to all users across all organizations
             and cover common document exchange patterns.
         </p>
@@ -13,7 +13,7 @@ export const blueprintPlatformArticle = (
             <li>Click <b>Start Exchange</b> and choose <b>From Blueprint</b>.</li>
             <li>In the picker, click the <b>Platform</b> tab.</li>
             <li>Browse the available blueprints by name, summary, or tags.</li>
-            <li>Click <b>Use Blueprint</b> on any card to pre-fill your exchange immediately.</li>
+            <li>Click <b>Use Blueprint</b> on any card to pre-fill your Exchange immediately.</li>
         </ol>
         <p>
             Platform blueprints can also be viewed in Settings under the{" "}
@@ -48,7 +48,7 @@ export const blueprintPlatformArticle = (
         <ul>
             <li>
                 <a href="#"
-                   data-help-article="using-blueprints"><b>Starting an exchange from a blueprint</b></a> - how to use any blueprint in the picker.
+                   data-help-article="using-blueprints"><b>Starting an Exchange from a blueprint</b></a> - how to use any blueprint in the picker.
             </li>
             <li>
                 <a href="#"

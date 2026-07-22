@@ -11,7 +11,7 @@ export const useSignInMfaStepStyles = makeStyles({
         flexWrap: "wrap",
         gap: tokens.spacingHorizontalS,
     },
-    verifyButton: {
-        marginLeft: "auto",
-    },
+    // verifyButton: {
+    //     marginLeft: "auto",
+    // },
 });

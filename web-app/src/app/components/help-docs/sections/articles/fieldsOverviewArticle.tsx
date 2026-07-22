@@ -4,9 +4,9 @@ export const fieldsOverviewArticle = (
     <>
         <p>
             Fields let your organization describe its own business concepts and attach them
-            to exchanges. Instead of building industry-specific models into the platform,
+            to Exchanges. Instead of building industry-specific models into the platform,
             an administrator configures reusable <b>fields</b> and groups them into a{" "}
-            <b>schema</b> that gives an exchange a business meaning, such as a Claim Case or
+            <b>schema</b> that gives an Exchange a business meaning, such as a Claim Case or
             a Loan Application.
         </p>
 
@@ -19,13 +19,13 @@ export const fieldsOverviewArticle = (
                 and hyphens).
             </li>
             <li>
-                A <b>schema</b> composes one or more fields into a case type that exchange
-                creators can select. Schemas target exchanges.
+                A <b>schema</b> composes one or more fields into a case type that Exchange
+                creators can select. Schemas target Exchanges.
             </li>
         </ul>
 
         <h3>Field types</h3>
-        <p>The first release supports nine value types:</p>
+        <p>Nine value types are supported:</p>
         <ul>
             <li>Short text and Long text.</li>
             <li>Yes or No.</li>
@@ -37,12 +37,12 @@ export const fieldsOverviewArticle = (
         <h3>Publishing lifecycle</h3>
         <p>
             A schema starts as a <b>draft</b>. You add fields, then <b>publish</b> it to
-            make it available to exchanges. Publishing freezes that version. To change a
+            make it available to Exchanges. Publishing freezes that version. To change a
             published schema, open a <b>new version</b>, edit its fields, and publish again.
-            An exchange stays pinned to the exact schema version it was created with, so
-            historical exchanges remain understandable. Fields and schemas can be{" "}
+            An Exchange stays pinned to the exact schema version it was created with, so
+            historical Exchanges remain understandable. Fields and schemas can be{" "}
             <b>retired</b> when no longer needed; retiring never erases values already
-            stored on existing exchanges.
+            stored on existing Exchanges.
         </p>
 
         <h3>Where to find this feature</h3>
@@ -54,9 +54,5 @@ export const fieldsOverviewArticle = (
             <li><b>Fields</b> - create and retire reusable field definitions.</li>
             <li><b>Schemas</b> - compose fields into schemas, publish, and version them.</li>
         </ul>
-        <p>
-            When either sub-tab has results, the footer shows the visible range on
-            the left and page navigation actions on the right.
-        </p>
     </>
 );

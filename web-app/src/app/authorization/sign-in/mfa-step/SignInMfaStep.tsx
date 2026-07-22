@@ -91,6 +91,20 @@ const SignInMfaStep = ({
     {!sessionExpired && <div
         id={"sign-in-mfa-action-row"}
         className={styles.actionRow}>
+        <Button
+            id={"sign-in-verify-code-btn"}
+            onClick={onVerify}
+            disabled={resending || busy}
+            appearance={"primary"}
+            className={mergeClasses(buttonWithLoadingClassName)}
+            shape={"circular"}>
+            {busy && <Spinner
+                id={"sign-in-verification-spinner"}
+                size={"tiny"}
+            />} {busy
+            ? "Verifying code"
+            : "Verify code"}
+        </Button>
         {method === 'EMAIL' && <Button
             id={"sign-in-resend-otp-btn"}
             appearance={"transparent"}
@@ -108,27 +122,13 @@ const SignInMfaStep = ({
         </Button>}
         {method !== 'EMAIL' && emailFallbackEnabled && <Button
             id={"sign-in-use-another-method-btn"}
-            appearance={"outline"}
+            appearance={"subtle"}
             size={"small"}
             disabled={resending || busy}
             shape={"circular"}
             onClick={() => setAlternativeMethodDialogOpen(true)}>
             Use another method
         </Button>}
-        <Button
-            id={"sign-in-verify-code-btn"}
-            onClick={onVerify}
-            disabled={resending || busy}
-            appearance={"primary"}
-            className={mergeClasses(buttonWithLoadingClassName, styles.verifyButton)}
-            shape={"circular"}>
-            {busy && <Spinner
-                id={"sign-in-verification-spinner"}
-                size={"tiny"}
-            />} {busy
-                ? "Verifying code"
-                : "Verify code"}
-        </Button>
     </div>}
     {sessionExpired && <Button
         id={"sign-in-start-over-btn"}

@@ -7,6 +7,9 @@ export const useProfileOverviewCardStyles = makeStyles({
         gap: tokens.spacingHorizontalXL,
         ...shorthands.padding(tokens.spacingHorizontalXXL),
         ...shorthands.borderRadius(tokens.borderRadiusXLarge),
+        ...shorthands.padding(tokens.spacingVerticalM, tokens.spacingHorizontalM),
+        ...shorthands.borderRadius(tokens.borderRadiusLarge),
+        ...shorthands.border("1px", "solid", tokens.colorNeutralStroke2),
     },
 
     content: {

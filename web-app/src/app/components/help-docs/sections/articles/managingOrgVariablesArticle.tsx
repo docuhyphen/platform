@@ -5,14 +5,14 @@ export const managingOrgVariablesArticle = (
         <p>
             Organization variables are key/value definitions managed by Organization Admins.
             They are available to all members of the org as tokens in blueprints and
-            exchanges.
+            Exchanges.
         </p>
 
         <h3>Who can manage org variables</h3>
         <p>
             Only Organization Admins and App Admins can create, edit, and delete org
             variable definitions. Regular members can see org variable tokens resolved in
-            their exchanges but cannot create or edit the definitions.
+            their Exchanges but cannot create or edit the definitions.
         </p>
 
         <h3>How to create an org variable</h3>
@@ -40,7 +40,7 @@ export const managingOrgVariablesArticle = (
             Use the three-dot menu on each variable row to edit or delete it (visible to
             admins only). The key cannot be changed after creation. Only the default value
             can be updated. Deleting a variable soft-deletes the definition. Any blueprint
-            or exchange that still contains the token will leave it unresolved after
+            or Exchange that still contains the token will leave it unresolved after
             deletion.
         </p>
 

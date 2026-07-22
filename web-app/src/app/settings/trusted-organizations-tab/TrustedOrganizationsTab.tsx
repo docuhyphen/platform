@@ -8,6 +8,7 @@ import TrustedOrganizationRequestDialog from "./request-dialog/TrustedOrganizati
 import {useTrustedOrganizationsTabStyles} from "./TrustedOrganizationsTabStyles.tsx";
 import {useTrustedOrganizations} from "./useTrustedOrganizations.ts";
 import {useTrustedOrganizationDialogs} from "./useTrustedOrganizationDialogs.ts";
+import {OrgPairingIcon} from "../../components/IconBundles.tsx";
 
 const TrustedOrganizationsTab = () =>
 {
@@ -35,20 +36,13 @@ const TrustedOrganizationsTab = () =>
                 id={"trusted-organizations-header"}
                 className={styles.header}
             >
-                <div id={"trusted-organizations-heading"}>
-                    <Title2 id={"trusted-organizations-title"}>Trusted Organizations</Title2>
-                    <Text
-                        id={"trusted-organizations-description"}
-                        block
-                    >
-                        Jointly control verified organization collaboration and directional policy.
-                    </Text>
-                </div>
+                <div></div>
                 {hasCapability(Capability.ORG_TRUST_REQUEST) && (
                     <Button
                         id={"trusted-organizations-new-request"}
                         shape={"circular"}
-                        appearance={"primary"}
+                        icon={<OrgPairingIcon/>}
+                        appearance={"subtle"}
                         onClick={() => dialogs.setRequestOpen(true)}
                     >
                         New request

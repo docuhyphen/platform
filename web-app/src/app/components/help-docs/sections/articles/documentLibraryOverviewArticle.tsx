@@ -4,9 +4,9 @@ export const documentLibraryOverviewArticle = (
     <>
         <p>
             The Document Library is a scope-aware repository for physical files that you
-            reuse across exchanges. Instead of uploading the same standard document every
+            reuse across Exchanges. Instead of uploading the same standard document every
             time, you store it once in the library and reference it from Blueprints or
-            add it directly when creating an exchange.
+            add it directly when creating an Exchange.
         </p>
 
         <h3>Three library scopes</h3>
@@ -42,16 +42,16 @@ export const documentLibraryOverviewArticle = (
         <p>
             Open a Blueprint in Settings - Blueprints and go to the Documents tab. Each
             document slot has a <b>Link Document</b> button. Selecting a library document
-            links it to that slot. When an exchange is created from the Blueprint, the
-            linked file is automatically copied into the exchange document. Recipients
+            links it to that slot. When an Exchange is created from the Blueprint, the
+            linked file is automatically copied into the Exchange document. Recipients
             receive a completed document, not an empty slot.
         </p>
 
-        <h3>Picking from Library during exchange creation</h3>
+        <h3>Picking from Library during Exchange creation</h3>
         <p>
-            On the Documents tab of the exchange initiation dialog, click
+            On the Documents tab of the Exchange initiation dialog, click
             <b> Pick from Library</b> to open a three-tab picker. Selecting a library
-            document adds it as a pre-titled slot; the file is copied into the exchange
+            document adds it as a pre-titled slot; the file is copied into the Exchange
             on submission.
         </p>
 

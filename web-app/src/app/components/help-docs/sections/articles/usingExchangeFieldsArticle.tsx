@@ -3,8 +3,8 @@ import React from "react";
 export const usingExchangeFieldsArticle = (
     <>
         <p>
-            Once your organization has published at least one schema, exchange creators can
-            attach it to an exchange and record typed business values against it.
+            Once your organization has published at least one schema, Exchange creators can
+            attach it to an Exchange and record typed business values against it.
         </p>
 
         <h3>Assigning a schema</h3>
@@ -16,8 +16,8 @@ export const usingExchangeFieldsArticle = (
             also do this later: open an Exchange and select the <b>Details</b> tab.
         </p>
         <p>
-            While the exchange is still a draft (status <b>Pending</b>), choose a published schema
-            from the list and select <b>Assign</b>. Each exchange has one primary schema assignment,
+            While the Exchange is still a draft (status <b>Pending</b>), choose a published schema
+            from the list and select <b>Assign</b>. Each Exchange has one primary schema assignment,
             pinned to the schema version that was current when you assigned it.
         </p>
 
@@ -32,16 +32,16 @@ export const usingExchangeFieldsArticle = (
 
         <h3>When values can change</h3>
         <p>
-            Fields can be assigned and edited only while the exchange is <b>Pending</b>.
-            Once the exchange becomes <b>Active</b> or is ended, the Details tab shows the
+            Fields can be assigned and edited only while the Exchange is <b>Pending</b>.
+            Once the Exchange becomes <b>Active</b> or is ended, the Details tab shows the
             recorded values as read-only. This keeps the business data consistent with the
-            point at which the exchange started.
+            point at which the Exchange started.
         </p>
 
         <h3>Visibility</h3>
         <p>
-            Access to an exchange is still governed by its sharing rules. Field values are
-            shown to participants who can view the exchange. Classifying a field does not by
+            Access to an Exchange is still governed by its sharing rules. Field values are
+            shown to participants who can view the Exchange. Classifying a field does not by
             itself grant or restrict access.
         </p>
     </>

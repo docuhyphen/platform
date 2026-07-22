@@ -4,7 +4,7 @@ export const managingBlueprintsArticle = (
     <>
         <p>
             Personal blueprints are blueprints you create and manage yourself. They
-            are visible only to you and can be used any time you start an exchange.
+            are visible only to you and can be used any time you start an Exchange.
         </p>
 
         <h3>Creating a blueprint from the settings page</h3>
@@ -15,9 +15,9 @@ export const managingBlueprintsArticle = (
             <li>Fill in the blueprint editor (see below) and click <b>Create Blueprint</b>.</li>
         </ol>
 
-        <h3>Creating a blueprint while initiating an exchange</h3>
+        <h3>Creating a blueprint while initiating an Exchange</h3>
         <ol>
-            <li>Fill out an exchange form as you normally would.</li>
+            <li>Fill out an Exchange form as you normally would.</li>
             <li>Click <b>Save as Blueprint</b> in the dialog title bar.</li>
             <li>Give the blueprint a name, optional summary, and tags, then click <b>Save Blueprint</b>.</li>
         </ol>
@@ -53,7 +53,7 @@ export const managingBlueprintsArticle = (
             </li>
             <li>
                 Check <b>Required</b> to mark the document as mandatory. Required
-                documents must be uploaded before the exchange can be completed.
+                documents must be uploaded before the Exchange can be completed.
             </li>
             <li>Click the red delete icon to remove a document slot.</li>
         </ul>
@@ -61,21 +61,21 @@ export const managingBlueprintsArticle = (
         <h3>Business Fields tab</h3>
         <ul>
             <li>
-                Pick a published business schema to classify exchanges started from this
+                Pick a published business schema to classify Exchanges started from this
                 blueprint (for example, a Client Onboarding schema with a Category field).
             </li>
             <li>
                 Set default values for the schema's fields. These pre-fill the Business
-                Fields step when someone starts an exchange from the blueprint.
+                Fields step when someone starts an Exchange from the blueprint.
             </li>
             <li>Leave the schema empty to keep the blueprint free of business fields.</li>
         </ul>
 
         <h3>Permissions tab</h3>
         <ul>
-            <li><b>Require recipient sign-in</b> - recipients must authenticate before accessing the exchange.</li>
+            <li><b>Require recipient sign-in</b> - recipients must authenticate before accessing the Exchange.</li>
             <li><b>Allow document addition</b> - recipients can upload additional documents beyond the pre-defined slots.</li>
-            <li><b>Allow document deletion</b> - recipients can remove documents from the exchange.</li>
+            <li><b>Allow document deletion</b> - recipients can remove documents from the Exchange.</li>
             <li><b>Allow document download</b> - recipients can download documents.</li>
             <li><b>Allow document update</b> - recipients can replace uploaded documents.</li>
             <li><b>Allow document upload</b> - recipients can upload files to the defined document slots.</li>

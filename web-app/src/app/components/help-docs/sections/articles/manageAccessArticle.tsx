@@ -1,24 +1,24 @@
 export const manageAccessArticle = (
     <>
         <p>
-            This guide explains how exchange access works, including roles, constraints,
-            document permissions, and exchange settings.
+            This guide explains how Exchange access works, including roles, constraints,
+            document permissions, and Exchange settings.
         </p>
 
         <h3>Roles</h3>
         <p>
-            Each person in an exchange is assigned a role that determines what they can do.
-            The exchange creator is always the <strong>Owner</strong>.
+            Each person in an Exchange is assigned a role that determines what they can do.
+            The Exchange creator is always the <strong>Owner</strong>.
         </p>
         <ul>
             <li>
-                <strong>Owner</strong> - Full control over the exchange. Can manage access, edit settings,
-                add/remove documents, rescind or end the exchange, and manage its final lifecycle state.
+                <strong>Owner</strong> - Full control over the Exchange. Can manage access, edit settings,
+                add/remove documents, rescind or end the Exchange, and manage its final lifecycle state.
                 This role is structural and cannot be assigned or revoked.
             </li>
             <li>
-                <strong>Editor</strong> - Can add, update, upload, and manage documents within the exchange.
-                Editors have broad document-level access but cannot manage exchange access or settings.
+                <strong>Editor</strong> - Can add, update, upload, and manage documents within the Exchange.
+                Editors have broad document-level access but cannot manage Exchange access or settings.
             </li>
             <li>
                 <strong>Reviewer</strong> - Can view all documents and leave comments or notes. Typically
@@ -29,12 +29,12 @@ export const manageAccessArticle = (
                 documents. Has read access plus signing capabilities.
             </li>
             <li>
-                <strong>Viewer</strong> - Read-only access to exchange documents. Cannot modify documents.
+                <strong>Viewer</strong> - Read-only access to Exchange documents. Cannot modify documents.
                 Supports additional constraints such as download restrictions and watermarking.
             </li>
             <li>
                 <strong>Commenter</strong> - Can view documents and leave comments or notes, but cannot
-                modify documents or exchange settings.
+                modify documents or Exchange settings.
             </li>
             <li>
                 <strong>Participant</strong> - General participant access. Can view documents with optional
@@ -61,7 +61,7 @@ export const manageAccessArticle = (
             </li>
             <li>
                 <strong>No reshare</strong> - Prevents the participant from sharing or forwarding the
-                exchange link to others.
+                Exchange link to others.
             </li>
             <li>
                 <strong>Watermark</strong> - Overlays a watermark on document previews to discourage
@@ -69,7 +69,7 @@ export const manageAccessArticle = (
             </li>
             <li>
                 <strong>Require MFA</strong> - Requires the participant to complete multi-factor
-                authentication before accessing exchange documents.
+                authentication before accessing Exchange documents.
             </li>
         </ul>
 
@@ -88,13 +88,13 @@ export const manageAccessArticle = (
 
         <h3>Document permissions</h3>
         <p>
-            Document permissions are exchange-wide settings that control what actions recipients and
+            Document permissions are Exchange-wide settings that control what actions recipients and
             participants can perform on documents.
         </p>
         <ul>
-            <li><strong>Allow document additions</strong> - Participants with the appropriate role can add new documents to the exchange.</li>
-            <li><strong>Allow document deletions</strong> - Participants can remove documents from the exchange.</li>
-            <li><strong>Allow document zip download</strong> - Participants can download all exchange documents as a single zip archive.</li>
+            <li><strong>Allow document additions</strong> - Participants with the appropriate role can add new documents to the Exchange.</li>
+            <li><strong>Allow document deletions</strong> - Participants can remove documents from the Exchange.</li>
+            <li><strong>Allow document zip download</strong> - Participants can download all Exchange documents as a single zip archive.</li>
             <li><strong>Allow document update</strong> - Participants can modify or replace existing document metadata.</li>
             <li><strong>Allow document upload</strong> - Participants can upload new file versions for existing documents.</li>
         </ul>
@@ -103,7 +103,7 @@ export const manageAccessArticle = (
         <ul>
             <li>
                 <strong>Require recipient sign in</strong> - When enabled, the recipient must sign in with
-                their account to access the exchange. When disabled, the recipient must open the secure
+                their account to access the Exchange. When disabled, the recipient must open the secure
                 email link and enter its one-time access code, which is useful for external parties without
                 an account. The link credential is required on every no-sign-in request.
             </li>
@@ -120,8 +120,8 @@ export const manageAccessArticle = (
 
         <h3>Summary tab</h3>
         <p>
-            The Summary tab shows all people involved in the exchange: the <strong>Requester</strong> (who
-            initiated the exchange), the <strong>Primary recipient</strong> (the main person the exchange
+            The Summary tab shows all people involved in the Exchange: the <strong>Requester</strong> (who
+            initiated the Exchange), the <strong>Primary recipient</strong> (the main person the Exchange
             was shared with), and any additional <strong>Participants</strong> (users or groups added
             through the Access &amp; permissions tab).
         </p>

@@ -6,7 +6,7 @@ export const orgBlueprintsArticle = (
             Organization blueprints are shared configurations that Organization
             Admins create and publish for all members of the organization. Members
             see them in the <b>Organization</b> tab of the blueprint picker when
-            starting an exchange.
+            starting an Exchange.
         </p>
 
         <h3>Who can manage organization blueprints</h3>

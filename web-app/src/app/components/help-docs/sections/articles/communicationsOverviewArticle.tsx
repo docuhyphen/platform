@@ -38,10 +38,10 @@ export const communicationsOverviewArticle = (
         <h3>Variable tokens</h3>
         <p>
             The subject and body both support <code>{"{{TOKEN}}"}</code> syntax.
-            Tokens are resolved at send time against the triggering exchange, the
+            Tokens are resolved at send time against the triggering Exchange, the
             initiator's organization, and any custom variables you have defined.
             Use <code>{"{{SEQ:KEY}}"}</code> tokens to insert auto-incrementing
-            sequence values (only valid in exchange name fields, not in
+            sequence values (only valid in Exchange name fields, not in
             communications).
         </p>
         <p>

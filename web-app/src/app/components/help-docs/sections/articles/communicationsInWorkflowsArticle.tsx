@@ -6,7 +6,7 @@ export const communicationsInWorkflowsArticle = (
             A NOTIFICATION step in a workflow can use a communication to deliver a
             fully customized subject and body instead of the default system message.
             The workflow engine resolves the linked communication's variable tokens
-            against the triggering exchange at send time and delivers the result
+            against the triggering Exchange at send time and delivers the result
             by email and in-app notification to every assignee on the step.
         </p>
 
@@ -62,7 +62,7 @@ export const communicationsInWorkflowsArticle = (
         <h3>Token resolution in NOTIFICATION steps</h3>
         <p>
             The engine resolves tokens using the workflow instance's subject data
-            (exchange fields, initiator, organization) merged with any custom
+            (Exchange fields, initiator, organization) merged with any custom
             variables. The initiator's user and organization context are used as the
             resolution base. Overrides passed from the trigger event's subject data
             take precedence over defaults.

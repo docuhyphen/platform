@@ -3,24 +3,24 @@ import React from "react";
 export const blueprintOverviewArticle = (
     <>
         <p>
-            Blueprints are saved exchange configurations. Instead of filling in
+            Blueprints are saved Exchange configurations. Instead of filling in
             documents, permissions, recipient settings, and participants from scratch
             every time, you save a blueprint once and reuse it whenever you start a
-            new exchange.
+            new Exchange.
         </p>
 
         <h3>What a blueprint stores</h3>
         <ul>
-            <li><b>Exchange name and description</b> - a pre-filled name and description for the exchange.</li>
-            <li><b>Initial message</b> - the message shown to the recipient when the exchange is sent.</li>
+            <li><b>Exchange name and description</b> - a pre-filled name and description for the Exchange.</li>
+            <li><b>Initial message</b> - the message shown to the recipient when the Exchange is sent.</li>
             <li><b>Documents</b> - a list of document slots, each with a title, an optional upload-type restriction, and an optional required flag.</li>
             <li><b>Permissions</b> - the full set of permission toggles: allow document addition, deletion, download, update, and upload.</li>
-            <li><b>Recipient sign-in requirement</b> - whether recipients must sign in to access the exchange.</li>
-            <li><b>Participants</b> - internal participants added to the exchange, each with a role.</li>
+            <li><b>Recipient sign-in requirement</b> - whether recipients must sign in to access the Exchange.</li>
+            <li><b>Participants</b> - internal participants added to the Exchange, each with a role.</li>
         </ul>
         <p>
             Exchange name, description, and document titles can include variable tokens
-            (<code>{"{{TOKEN}}"}</code>) that are resolved at exchange creation time. See{" "}
+            (<code>{"{{TOKEN}}"}</code>) that are resolved at Exchange creation time. See{" "}
             <a href="#"
                data-help-article="using-variable-tokens">
                 Using variable tokens
@@ -29,7 +29,7 @@ export const blueprintOverviewArticle = (
         </p>
         <p>
             Blueprints do <b>not</b> store the recipient's identity (email, name, or
-            account). You always choose who to send the exchange to at initiation time.
+            account). You always choose who to send the Exchange to at initiation time.
         </p>
 
         <h3>Three blueprint scopes</h3>
@@ -55,7 +55,7 @@ export const blueprintOverviewArticle = (
         <h3>Where blueprints appear</h3>
         <ul>
             <li>
-                <b>Exchange initiation picker</b> - when starting a new exchange,
+                <b>Exchange initiation picker</b> - when starting a new Exchange,
                 click <b>From Blueprint</b> in the start menu to open the three-tab
                 picker and select a blueprint.
             </li>
@@ -70,7 +70,7 @@ export const blueprintOverviewArticle = (
         <ul>
             <li>
                 <a href="#"
-                   data-help-article="using-blueprints"><b>Starting an exchange from a blueprint</b></a> - how to use the picker.
+                   data-help-article="using-blueprints"><b>Starting an Exchange from a blueprint</b></a> - how to use the picker.
             </li>
             <li>
                 <a href="#"

@@ -142,7 +142,8 @@
     MailEditRegular, PersonEditFilled, PersonEditRegular, PhoneFilled, PhoneRegular, PhoneAddRegular, PhoneAddFilled,
     PhoneEditFilled, PhoneEditRegular,
     PersonFilled, PersonRegular, ClockFilled, ClockRegular, TagFilled, TagRegular, TargetFilled, TargetRegular,
-    ArrowRightFilled, ArrowRightRegular, ArrowDownFilled, ArrowDownRegular,
+    ArrowRightFilled, ArrowRightRegular, ArrowDownFilled, ArrowDownRegular, BuildingSwapRegular,
+    BuildingSwapFilled,
 } from "@fluentui/react-icons";
 
 export const ZipDocumentsIcon = bundleIcon(FolderZipFilled, FolderZipRegular)
@@ -237,6 +238,7 @@ export const FullScreenEnterIcon = bundleIcon(FullScreenMaximizeFilled, FullScre
 export const FullScreenExitIcon = bundleIcon(FullScreenMinimizeFilled, FullScreenMinimizeRegular)
 export const ViewCardsIcon = bundleIcon(GridFilled, GridRegular)
 export const ViewTableIcon = bundleIcon(TableFilled, TableRegular)
+export const OrgPairingIcon = bundleIcon(BuildingSwapFilled, BuildingSwapRegular)
 
 // Workflow graph step-kind node icons.
 export const WorkflowApprovalNodeIcon = CheckmarkNoteFilled

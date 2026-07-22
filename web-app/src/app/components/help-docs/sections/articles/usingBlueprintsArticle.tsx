@@ -10,7 +10,7 @@ export const usingBlueprintsArticle = (
         <ol>
             <li>Click <b>Start Exchange</b> from the main navigation or Exchange list.</li>
             <li>In the start menu, click <b>From Blueprint</b>.</li>
-            <li>The blueprint picker opens inside the exchange initiation dialog.</li>
+            <li>The blueprint picker opens inside the Exchange initiation dialog.</li>
         </ol>
 
         <h3>Choosing a blueprint</h3>
@@ -58,8 +58,8 @@ export const usingBlueprintsArticle = (
         <p>
             The dialog moves to the <b>Recipients</b> tab automatically once you
             have reviewed the pre-filled details. Search for a recipient by name or email,
-            select a personal or organization group, or use an eligible <b>Trusted Organization</b>
-            to verify a known member by exact email or choose a published group. You can enter a complete email address for
+            select a personal or organization group, or use an eligible <b>Trusted Organization</b> to verify a known
+            member by exact email or choose a published group. You can enter a complete email address for
             a new recipient who is not in your contacts. Add any internal participants with
             the multi-person picker, then initiate the Exchange when ready.
         </p>

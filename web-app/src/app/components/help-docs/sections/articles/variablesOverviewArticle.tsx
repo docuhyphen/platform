@@ -4,9 +4,9 @@ export const variablesOverviewArticle = (
     <>
         <p>
             Variables are named placeholders written as <code>{"{{TOKEN}}"}</code> that are resolved
-            to their actual values at exchange creation time. They let blueprints carry
+            to their actual values at Exchange creation time. They let blueprints carry
             dynamic content - names, dates, counters - without hardcoding values that
-            change from exchange to exchange.
+            change from Exchange to Exchange.
         </p>
 
         <h3>Four variable types</h3>
@@ -39,7 +39,7 @@ export const variablesOverviewArticle = (
             Org variables use the syntax <code>{"{{KEY}}"}</code> where <code>KEY</code> is an
             uppercase alphanumeric identifier. They are created and managed by Organization
             Admins. Each variable has an optional default value shared across the org.
-            Members can override the default value per exchange at creation time without
+            Members can override the default value per Exchange at creation time without
             changing the saved definition.
         </p>
 
@@ -54,13 +54,13 @@ export const variablesOverviewArticle = (
         <h3>Sequences</h3>
         <p>
             Sequences are org-managed auto-incrementing counters referenced by the syntax{" "}
-            <code>{"{{SEQ:KEY}}"}</code>. Each time an exchange is created with a sequence token
-            in the exchange name field, the counter is atomically incremented by 1 and the
+            <code>{"{{SEQ:KEY}}"}</code>. Each time an Exchange is created with a sequence token
+            in the Exchange name field, the counter is atomically incremented by 1 and the
             formatted value is substituted. Sequences support padding, prefix, suffix, and
             optional reset periods (yearly or monthly).
         </p>
         <p>
-            Gaps in a sequence are expected and acceptable. If exchange creation fails
+            Gaps in a sequence are expected and acceptable. If Exchange creation fails
             after the counter has already incremented, the counter is not rolled back.
             This is consistent with how invoice numbers work.
         </p>

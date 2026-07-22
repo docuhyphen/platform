@@ -3,8 +3,8 @@ export const usingVariableTokensArticle = (
     <>
         <p>
             Variable tokens can be inserted into supported text fields in blueprints and
-            exchanges. At exchange creation time, every token is resolved to its current
-            value before the exchange is saved.
+            Exchanges. At Exchange creation time, every token is resolved to its current
+            value before the Exchange is saved.
         </p>
 
         <h3>Which fields support tokens</h3>
@@ -48,17 +48,17 @@ export const usingVariableTokensArticle = (
             the next formatted value without incrementing the counter.
         </p>
 
-        <h3>Resolution at exchange creation</h3>
+        <h3>Resolution at Exchange creation</h3>
         <p>
-            When an exchange is created, every token in the supported fields is resolved
+            When an Exchange is created, every token in the supported fields is resolved
             in this order:
         </p>
         <ol>
             <li>System tokens are resolved first using the creator's profile and the current timestamp.</li>
-            <li>Per-exchange overrides (values entered in the variable override panel) take priority over saved defaults.</li>
+            <li>Per-Exchange overrides (values entered in the variable override panel) take priority over saved defaults.</li>
             <li>Org variable defaults are used if no override was provided.</li>
             <li>Personal variable defaults are used for personal variable tokens.</li>
-            <li>Sequence tokens (<code>{"{{SEQ:KEY}}"}</code>) are incremented and substituted in the exchange name field only. The counter increments once per exchange regardless of how many times the token appears in the name.</li>
+            <li>Sequence tokens (<code>{"{{SEQ:KEY}}"}</code>) are incremented and substituted in the Exchange name field only. The counter increments once per Exchange regardless of how many times the token appears in the name.</li>
         </ol>
         <p>
             Org or personal tokens with no matching variable definition remain as-is in the
@@ -69,9 +69,9 @@ export const usingVariableTokensArticle = (
         <p>
             If a blueprint contains org or personal variable tokens, a variable override
             panel appears after blueprint selection. The panel lists each token with its
-            saved default value. You can accept the defaults or enter per-exchange values
+            saved default value. You can accept the defaults or enter per-Exchange values
             before proceeding to the Recipients tab. Overrides are used only for that
-            exchange and do not change the saved variable definition.
+            Exchange and do not change the saved variable definition.
         </p>
     </>
 );
